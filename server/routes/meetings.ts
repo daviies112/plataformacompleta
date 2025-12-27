@@ -155,9 +155,12 @@ router.post('/', async (req: AuthRequest, res: Response) => {
     return res.status(201).json({ success: true, data: newMeeting });
   } catch (error) {
     console.error('[MEETINGS] Erro ao criar reunião:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
     return res.status(500).json({
       success: false,
       message: 'Erro ao criar reunião',
+      details: process.env.NODE_ENV === 'development' ? errorMessage : undefined,
+      error: error instanceof Error ? error.message : String(error),
     });
   }
 });
@@ -320,9 +323,12 @@ router.post('/:id/start', async (req: AuthRequest, res: Response) => {
     });
   } catch (error) {
     console.error('[MEETINGS] Erro ao iniciar reunião:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
     return res.status(500).json({
       success: false,
       message: 'Erro ao iniciar reunião',
+      details: process.env.NODE_ENV === 'development' ? errorMessage : undefined,
+      error: errorMessage,
     });
   }
 });
