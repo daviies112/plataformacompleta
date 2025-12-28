@@ -12,3 +12,4 @@
 [x] 12. Adicionada mutação testHms100msMutation no SettingsPage
 [x] 13. Botão "Testar Conexão 100ms" adicionado à seção 100ms com estilo correto
 [x] 14. Workflow reiniciado e código compilado com sucesso
+[x] 15. Reinstalled npm dependencies and restarted workflow - application running successfully
