@@ -1633,7 +1633,7 @@ export const meetingTenants = pgTable("meeting_tenants", {
 // Meeting Users Table - Users per tenant (renamed from usuariosTenant)
 export const meetingUsuarios = pgTable("meeting_usuarios", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  tenantId: uuid("tenant_id").references(() => meetingTenants.id).notNull(),
+  tenantId: text("tenant_id").notNull(),
   nome: text("nome").notNull(),
   email: text("email").notNull(),
   telefone: text("telefone"),
@@ -1648,8 +1648,8 @@ export const meetingUsuarios = pgTable("meeting_usuarios", {
 // Reunioes Table - Meeting records
 export const reunioes = pgTable("reunioes", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  tenantId: uuid("tenant_id").references(() => meetingTenants.id).notNull(),
-  usuarioId: uuid("usuario_id").references(() => meetingUsuarios.id),
+  tenantId: text("tenant_id").notNull(),
+  usuarioId: text("usuario_id"),
   nome: text("nome"),
   email: text("email"),
   telefone: text("telefone"),
@@ -1679,7 +1679,7 @@ export const reunioes = pgTable("reunioes", {
 export const transcricoes = pgTable("transcricoes", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   reuniaoId: uuid("reuniao_id").references(() => reunioes.id).notNull(),
-  tenantId: uuid("tenant_id").references(() => meetingTenants.id).notNull(),
+  tenantId: text("tenant_id").notNull(),
   roomId100ms: text("room_id_100ms"),
   status: text("status").default("pending"),
   startedAt: timestamp("started_at"),
@@ -1701,7 +1701,7 @@ export const transcricoes = pgTable("transcricoes", {
 export const gravacoes = pgTable("gravacoes", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   reuniaoId: uuid("reuniao_id").references(() => reunioes.id).notNull(),
-  tenantId: uuid("tenant_id").references(() => meetingTenants.id).notNull(),
+  tenantId: text("tenant_id").notNull(),
   roomId100ms: text("room_id_100ms"),
   sessionId100ms: text("session_id_100ms"),
   recordingId100ms: text("recording_id_100ms"),
