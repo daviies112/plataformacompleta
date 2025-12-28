@@ -7,3 +7,4 @@
 [x] 7. Verificar e criar endpoint de teste do 100ms
 [x] 8. COMPLETADO: Sistema 100ms pronto para usar!
 [x] 9. Import migration completed - all dependencies installed and workflow running
+[x] 10. Botão "Testar Conexão 100ms" movido para footer ao lado de "Salvar Configuração"

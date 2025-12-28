@@ -486,40 +486,39 @@ export default function Configuracoes() {
                   </ul>
                 </div>
 
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={testHms100msMutation.isPending || !form.getValues("hms_app_access_key") || !form.getValues("hms_app_secret")}
-                    onClick={() => testHms100msMutation.mutate({
-                      appAccessKey: form.getValues("hms_app_access_key"),
-                      appSecret: form.getValues("hms_app_secret"),
-                    })}
-                  >
-                    {testHms100msMutation.isPending ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Testando...
-                      </>
-                    ) : (
-                      "Testar Credenciais"
-                    )}
-                  </Button>
-                </div>
               </CardContent>
             </Card>
 
           </div>
 
-          <div className="flex justify-end">
-            <Button type="submit" size="lg" disabled={updateMutation.isPending}>
+          <div className="flex justify-end gap-2">
+            <Button 
+              type="button" 
+              variant="outline"
+              disabled={testHms100msMutation.isPending || !form.getValues("hms_app_access_key") || !form.getValues("hms_app_secret")}
+              onClick={() => testHms100msMutation.mutate({
+                appAccessKey: form.getValues("hms_app_access_key"),
+                appSecret: form.getValues("hms_app_secret"),
+              })}
+              data-testid="button-test-100ms"
+            >
+              {testHms100msMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Testando...
+                </>
+              ) : (
+                "Testar Conexão 100ms"
+              )}
+            </Button>
+            <Button type="submit" size="lg" disabled={updateMutation.isPending} data-testid="button-save-config">
               {updateMutation.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Salvando...
                 </>
               ) : (
-                "Salvar Alterações"
+                "Salvar Configuração"
               )}
             </Button>
           </div>
