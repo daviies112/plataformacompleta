@@ -593,6 +593,30 @@ const SettingsPage = () => {
     },
   });
 
+  const testHms100msMutation = useMutation({
+    mutationFn: async (credentials: any) => {
+      const response = await fetch('/api/config/hms100ms/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          appAccessKey: credentials.app_access_key,
+          appSecret: credentials.app_secret,
+        }),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Credenciais inválidas");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Sucesso!", description: "Credenciais do 100ms validadas com sucesso" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Erro na validação", description: error.message, variant: "destructive" });
+    },
+  });
+
   const saveMonitoringMutation = useMutation({
     mutationFn: async (settings: any) => {
       const response = await fetch('/api/config/monitoring', {
@@ -2493,12 +2517,27 @@ const SettingsPage = () => {
                 placeholder="https://api.100ms.live/v2"
               />
 
-              <PremiumButton 
-                onClick={() => handleSaveIntegration('hms100ms')}
-                variant="primary"
-              >
-                Salvar Configuração
-              </PremiumButton>
+              <div className="flex gap-2">
+                <PremiumButton 
+                  onClick={() => testHms100msMutation.mutate({
+                    app_access_key: integrationForms.hms100ms?.app_access_key || '',
+                    app_secret: integrationForms.hms100ms?.app_secret || '',
+                  })}
+                  variant="outline"
+                  disabled={testHms100msMutation.isPending || !integrationForms.hms100ms?.app_access_key || !integrationForms.hms100ms?.app_secret}
+                  isLoading={testHms100msMutation.isPending}
+                  data-testid="button-test-100ms"
+                >
+                  {testHms100msMutation.isPending ? "Testando..." : "Testar Conexão 100ms"}
+                </PremiumButton>
+                <PremiumButton 
+                  onClick={() => handleSaveIntegration('hms100ms')}
+                  variant="primary"
+                  data-testid="button-save-100ms"
+                >
+                  Salvar Configuração
+                </PremiumButton>
+              </div>
             </div>
           </CollapsibleSection>
 
