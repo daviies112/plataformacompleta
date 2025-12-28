@@ -660,11 +660,16 @@ function MeetingsList() {
   );
 }
 
-export function ReuniaoDashboardPage() {
-  const { id } = useParams<{ id?: string }>();
+export function ReuniaoDashboardPage({ meetingId: propMeetingId }: { meetingId?: string | null }) {
+  const navigate = useNavigate();
+  const { id: urlMeetingId } = useParams<{ id?: string }>();
+  const meetingId = propMeetingId || urlMeetingId;
+  
+  const { meetings, loading, error, addMeeting, isCreating, startMeeting, isStarting, createInstantMeeting } = useReuniao();
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
-  if (id) {
-    return <MeetingDetailView meetingId={id} />;
+  if (meetingId) {
+    return <MeetingDetailView meetingId={meetingId} />;
   }
 
   return <MeetingsList />;

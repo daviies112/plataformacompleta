@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ArrowRight, Copy, Check, Play, Calendar, Clock } from "lucide-react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { Meeting } from "../types";
 
@@ -30,6 +30,7 @@ const statusLabels: Record<string, string> = {
 };
 
 export function ReuniaoCard({ meeting, onStart, isStarting }: ReuniaoCardProps) {
+  const navigate = useNavigate();
   const [copied, setCopied] = useState(false);
 
   const handleCopyLink = async () => {
@@ -114,19 +115,25 @@ export function ReuniaoCard({ meeting, onStart, isStarting }: ReuniaoCardProps) 
         )}
         
         {(isActive || meeting.roomId100ms) && (
-          <Link to={`/reunioes/${meeting.id}`}>
-            <Button variant="default" size="sm" className="gap-2">
-              Entrar <ArrowRight className="h-3 w-3" />
-            </Button>
-          </Link>
+          <Button 
+            variant="default" 
+            size="sm" 
+            className="gap-2"
+            onClick={() => navigate(`/reuniao/${meeting.id}`)}
+          >
+            Entrar <ArrowRight className="h-3 w-3" />
+          </Button>
         )}
         
         {!isActive && !canStart && !meeting.roomId100ms && (
-          <Link to={`/reunioes/${meeting.id}`}>
-            <Button variant="outline" size="sm" className="gap-2">
-              Ver detalhes <ArrowRight className="h-3 w-3" />
-            </Button>
-          </Link>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="gap-2"
+            onClick={() => navigate(`/reuniao/${meeting.id}`)}
+          >
+            Ver detalhes <ArrowRight className="h-3 w-3" />
+          </Button>
         )}
       </div>
     </div>

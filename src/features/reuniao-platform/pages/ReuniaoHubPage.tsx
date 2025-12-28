@@ -1,6 +1,7 @@
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Home, Calendar, Video, Settings, Palette, Loader2 } from "lucide-react";
+import { useLocation } from "react-router-dom";
 import ReuniaoDashboardPage from "./ReuniaoDashboardPage";
 
 // Lazy load heavy components
@@ -21,6 +22,17 @@ const LoadingFallback = () => (
 
 export default function ReuniaoHubPage() {
   const [activeTab, setActiveTab] = useState("home");
+  const location = useLocation();
+  
+  // Detect if we are in a direct meeting URL /reuniao/{id}
+  const meetingIdMatch = location.pathname.match(/\/reuniao\/([^\/]+)/);
+  const meetingId = meetingIdMatch ? meetingIdMatch[1] : null;
+
+  useEffect(() => {
+    if (meetingId) {
+      setActiveTab("home");
+    }
+  }, [meetingId]);
 
   return (
     <div className="space-y-6">
@@ -56,7 +68,7 @@ export default function ReuniaoHubPage() {
         </TabsList>
 
         <TabsContent value="home" className="mt-6">
-          <ReuniaoDashboardPage />
+          <ReuniaoDashboardPage meetingId={meetingId} />
         </TabsContent>
 
         <TabsContent value="calendario" className="mt-6">
