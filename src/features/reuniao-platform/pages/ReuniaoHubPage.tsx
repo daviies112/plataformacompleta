@@ -5,7 +5,7 @@ import { useLocation } from "react-router-dom";
 import ReuniaoDashboardPage from "./ReuniaoDashboardPage";
 
 // Lazy load heavy components
-const Calendario = lazy(() => import("@/features/reuniao-platform/components/CalendarioPage"));
+const Calendario = lazy(() => import("../components/CalendarioPage"));
 const Gravacoes = lazy(() => import("@/pages/Gravacoes"));
 const Configuracoes = lazy(() => import("@/pages/Configuracoes"));
 const RoomDesignSettings = lazy(() => import("@/pages/RoomDesignSettings"));
