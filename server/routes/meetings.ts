@@ -208,39 +208,79 @@ router.post('/', async (req: AuthRequest, res: Response) => {
 
     // 📌 Busca design do tenant se não for passado
     let designConfig = roomDesignConfig;
-    if (!designConfig) {
-      const [tenant] = await db
-        .select()
-        .from(meetingTenants)
-        .where(eq(meetingTenants.id, tenantId));
-      
-      if (tenant?.roomDesignConfig) {
-        designConfig = tenant.roomDesignConfig;
+    try {
+      if (!designConfig) {
+        const [tenant] = await db
+          .select()
+          .from(meetingTenants)
+          .where(eq(meetingTenants.id, tenantId));
+        
+        if (tenant?.roomDesignConfig) {
+          designConfig = tenant.roomDesignConfig;
+        }
       }
+    } catch (dbError) {
+      console.warn('[MEETINGS] Falha ao buscar design do tenant, usando padrão:', dbError);
     }
+
+    const meetingData = {
+      tenantId,
+      titulo: titulo || 'Nova Reunião',
+      descricao,
+      dataInicio: new Date(dataInicio),
+      dataFim: new Date(dataFim),
+      duracao: duracao || 30,
+      participantes: participantes || [],
+      nome,
+      email,
+      telefone,
+      status: 'agendada',
+      metadata: {
+        roomDesignConfig: designConfig,
+        createdAt: new Date().toISOString(),
+        createdBy: req.user?.email || 'unknown',
+      },
+    };
 
     const [newMeeting] = await db
       .insert(reunioes)
-      .values({
-        tenantId,
-        titulo: titulo || 'Nova Reunião',
-        descricao,
-        dataInicio: new Date(dataInicio),
-        dataFim: new Date(dataFim),
-        duracao: duracao || 30,
-        participantes: participantes || [],
-        nome,
-        email,
-        telefone,
-        status: 'agendada',
-        // 📌 CRÍTICO: Salva design da reunião específica no metadata
-        metadata: {
-          roomDesignConfig: designConfig,
-          createdAt: new Date().toISOString(),
-          createdBy: req.user?.email || 'unknown',
-        },
-      })
+      .values(meetingData)
       .returning();
+
+    // 🚀 SINCRONIZAÇÃO SUPABASE (Dual-Write)
+    try {
+      const { getDynamicSupabaseClient } = await import('../lib/multiTenantSupabase');
+      const supabase = await getDynamicSupabaseClient(tenantId);
+      
+      if (supabase) {
+        console.log(`[MEETINGS] Sincronizando reunião ${newMeeting.id} com Supabase do tenant...`);
+        const { error: syncError } = await supabase
+          .from('reunioes')
+          .insert({
+            id: newMeeting.id,
+            tenant_id: tenantId,
+            titulo: newMeeting.titulo,
+            descricao: newMeeting.descricao,
+            data_inicio: newMeeting.dataInicio.toISOString(),
+            data_fim: newMeeting.dataFim.toISOString(),
+            duracao: newMeeting.duracao,
+            status: newMeeting.status,
+            participantes: newMeeting.participantes,
+            metadata: newMeeting.metadata,
+            nome: newMeeting.nome,
+            email: newMeeting.email,
+            telefone: newMeeting.telefone
+          });
+
+        if (syncError) {
+          console.error(`[MEETINGS] Erro na sincronização Supabase:`, syncError);
+        } else {
+          console.log(`[MEETINGS] Sincronização Supabase concluída com sucesso!`);
+        }
+      }
+    } catch (syncErr) {
+      console.error(`[MEETINGS] Falha crítica na sincronização Supabase:`, syncErr);
+    }
 
     return res.status(201).json({ success: true, data: newMeeting });
   } catch (error) {
@@ -323,6 +363,28 @@ router.patch('/:id', async (req: AuthRequest, res: Response) => {
       .where(and(eq(reunioes.id, id), eq(reunioes.tenantId, tenantId)))
       .returning();
 
+    // 🚀 SINCRONIZAÇÃO SUPABASE (Update)
+    try {
+      const { getDynamicSupabaseClient } = await import('../lib/multiTenantSupabase');
+      const supabase = await getDynamicSupabaseClient(tenantId);
+      if (supabase && updated) {
+        await supabase
+          .from('reunioes')
+          .update({
+            titulo: updated.titulo,
+            descricao: updated.descricao,
+            status: updated.status,
+            data_inicio: updated.dataInicio.toISOString(),
+            data_fim: updated.dataFim.toISOString(),
+            metadata: updated.metadata,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', id);
+      }
+    } catch (err) {
+      console.error('[MEETINGS] Erro ao sincronizar update no Supabase:', err);
+    }
+
     return res.json({ success: true, data: updated });
   } catch (error) {
     console.error('[MEETINGS] Erro ao atualizar reunião:', error);
@@ -353,6 +415,17 @@ router.delete('/:id', async (req: AuthRequest, res: Response) => {
     await db
       .delete(reunioes)
       .where(and(eq(reunioes.id, id), eq(reunioes.tenantId, tenantId)));
+
+    // 🚀 SINCRONIZAÇÃO SUPABASE (Delete)
+    try {
+      const { getDynamicSupabaseClient } = await import('../lib/multiTenantSupabase');
+      const supabase = await getDynamicSupabaseClient(tenantId);
+      if (supabase) {
+        await supabase.from('reunioes').delete().eq('id', id);
+      }
+    } catch (err) {
+      console.error('[MEETINGS] Erro ao sincronizar delete no Supabase:', err);
+    }
 
     return res.json({ success: true, data: { deleted: true } });
   } catch (error) {
