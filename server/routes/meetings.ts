@@ -105,26 +105,8 @@ router.patch('/room-design', async (req: AuthRequest, res: Response) => {
       });
     }
 
-    const [updated] = await db
-      .update(meetingTenants)
-      .set({ roomDesignConfig, updatedAt: new Date() })
-      .where(eq(meetingTenants.id, tenantId))
-      .returning();
-
-    let result = updated;
-    if (!updated) {
-      // Se o tenant não existir na tabela meeting_tenants, cria ele
-      const [newTenant] = await db
-        .insert(meetingTenants)
-        .values({
-          id: tenantId,
-          roomDesignConfig,
-        })
-        .returning();
-      result = newTenant;
-    }
-
     // 🚀 SINCRONIZAÇÃO SUPABASE (Design)
+    // Fazemos isso antes ou em paralelo, mas para depuração vamos garantir as credenciais
     try {
       const supabaseUrl = req.headers['x-supabase-url'] as string;
       const supabaseKey = req.headers['x-supabase-key'] as string;
@@ -137,9 +119,6 @@ router.patch('/room-design', async (req: AuthRequest, res: Response) => {
 
       if (supabase) {
         console.log(`[MEETINGS] Sincronizando design com Supabase para tenant ${tenantId}...`);
-        
-        // Verifica se a tabela meeting_tenants existe no Supabase do cliente
-        // Se não, tenta salvar em uma tabela de configurações genérica ou apenas loga
         const { error: syncError } = await supabase
           .from('meeting_tenants')
           .upsert({
@@ -158,7 +137,39 @@ router.patch('/room-design', async (req: AuthRequest, res: Response) => {
       console.warn(`[MEETINGS] Supabase não disponível para sincronizar design:`, err);
     }
 
-    return res.json({ success: true, data: result });
+    // Use regex check to avoid UUID error if tenantId is not a UUID
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(tenantId);
+
+    if (isUuid) {
+      const [updated] = await db
+        .update(meetingTenants)
+        .set({ roomDesignConfig, updatedAt: new Date() })
+        .where(eq(meetingTenants.id, tenantId))
+        .returning();
+
+      if (updated) {
+        return res.json({ success: true, data: updated });
+      }
+
+      const [newTenant] = await db
+        .insert(meetingTenants)
+        .values({
+          id: tenantId,
+          roomDesignConfig,
+        })
+        .returning();
+      
+      return res.json({ success: true, data: newTenant });
+    } else {
+      console.warn(`[MEETINGS] tenantId "${tenantId}" is not a valid UUID, skipping local database update for meeting_tenants`);
+      // Retornamos sucesso mesmo sem salvar localmente se for um tenant de dev (UUID requerido pelo Postgres)
+      // Mas o Supabase já tentou salvar acima (que aceita texto)
+      return res.json({ 
+        success: true, 
+        message: 'Configuração enviada ao Supabase (banco local ignorado por não ser UUID)',
+        data: { id: tenantId, roomDesignConfig } 
+      });
+    }
   } catch (error) {
     console.error('[MEETINGS] Erro ao atualizar design da sala:', error);
     return res.status(500).json({
@@ -172,22 +183,59 @@ router.get('/tenant-config', async (req: AuthRequest, res: Response) => {
   try {
     const tenantId = req.user!.tenantId;
 
-    const [tenant] = await db
-      .select()
-      .from(meetingTenants)
-      .where(eq(meetingTenants.id, tenantId));
-
-    if (!tenant) {
-      return res.json({ 
-        success: true, 
-        data: { 
-          id: tenantId,
-          roomDesignConfig: null 
-        } 
+    // 1. Tenta buscar do Supabase primeiro (prioridade)
+    try {
+      const supabaseUrl = req.headers['x-supabase-url'] as string;
+      const supabaseKey = req.headers['x-supabase-key'] as string;
+      const { getDynamicSupabaseClient } = await import('../lib/multiTenantSupabase');
+      
+      const supabase = await getDynamicSupabaseClient(tenantId, { 
+        url: supabaseUrl, 
+        key: supabaseKey 
       });
+
+      if (supabase) {
+        const { data: supabaseTenant, error } = await supabase
+          .from('meeting_tenants')
+          .select('*')
+          .eq('id', tenantId)
+          .single();
+
+        if (!error && supabaseTenant) {
+          return res.json({ 
+            success: true, 
+            data: {
+              ...supabaseTenant,
+              roomDesignConfig: supabaseTenant.room_design_config
+            } 
+          });
+        }
+      }
+    } catch (err) {
+      console.warn(`[MEETINGS] Supabase não disponível para carregar config:`, err);
     }
 
-    return res.json({ success: true, data: tenant });
+    // 2. Fallback para banco local (apenas se for UUID válido)
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(tenantId);
+    
+    if (isUuid) {
+      const [tenant] = await db
+        .select()
+        .from(meetingTenants)
+        .where(eq(meetingTenants.id, tenantId));
+
+      if (tenant) {
+        return res.json({ success: true, data: tenant });
+      }
+    }
+
+    return res.json({ 
+      success: true, 
+      data: { 
+        id: tenantId,
+        roomDesignConfig: null 
+      } 
+    });
   } catch (error) {
     console.error('[MEETINGS] Erro ao obter configuração do tenant:', error);
     return res.status(500).json({
