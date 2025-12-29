@@ -492,6 +492,17 @@ const MobileApp = () => {
           </ProtectedRoute>
         } 
       />
+
+      <Route 
+        path="/reuniao/:id" 
+        element={
+          <ProtectedRoute>
+            <MobileLayout>
+              <ReuniaoHubPage />
+            </MobileLayout>
+          </ProtectedRoute>
+        } 
+      />
       
       {/* Revendedora Platform - Plataforma completa de vendas e revendedoras */}
       <Route 

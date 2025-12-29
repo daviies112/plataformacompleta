@@ -232,7 +232,7 @@ function MeetingDetailView({ meetingId }: { meetingId: string }) {
     return (
       <div className="flex flex-col items-center justify-center h-[50vh] gap-4">
         <h1 className="text-2xl font-bold">Reunião não encontrada</h1>
-        <Button onClick={() => navigate("/reunioes")}>Voltar ao Dashboard</Button>
+        <Button onClick={() => navigate("/reuniao")}>Voltar ao Dashboard</Button>
       </div>
     );
   }
@@ -242,7 +242,7 @@ function MeetingDetailView({ meetingId }: { meetingId: string }) {
       <div className="h-full flex flex-col gap-4">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-4">
-            <Button variant="outline" size="icon" onClick={() => navigate("/reunioes")}>
+            <Button variant="outline" size="icon" onClick={() => navigate("/reuniao")}>
               <ArrowLeft className="h-4 w-4" />
             </Button>
             <div>
@@ -289,7 +289,7 @@ function MeetingDetailView({ meetingId }: { meetingId: string }) {
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-4">
-          <Button variant="outline" size="icon" onClick={() => navigate("/reunioes")}>
+          <Button variant="outline" size="icon" onClick={() => navigate("/reuniao")}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
@@ -398,7 +398,7 @@ function MeetingDetailView({ meetingId }: { meetingId: string }) {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-4">
-        <Button variant="outline" size="icon" onClick={() => navigate("/reunioes")}>
+        <Button variant="outline" size="icon" onClick={() => navigate("/reuniao")}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
@@ -512,7 +512,8 @@ function MeetingsList() {
       const result = await createInstantMeeting();
       toast.dismiss();
       toast.success("Reunião instantânea criada!");
-      navigate(`/reunioes/${result.data.id}`);
+      // 📌 Ajustado para o caminho correto de roteamento
+      navigate(`/reuniao/${result.data.id}`);
     } catch (err: any) {
       toast.dismiss();
       toast.error(err.message || "Erro ao criar reunião instantânea");
@@ -523,7 +524,8 @@ function MeetingsList() {
     try {
       await startMeeting(id);
       toast.success("Reunião iniciada!");
-      navigate(`/reunioes/${id}`);
+      // 📌 Ajustado para o caminho correto de roteamento
+      navigate(`/reuniao/${id}`);
     } catch (err: any) {
       toast.error(err.message || "Erro ao iniciar reunião");
     }

@@ -492,6 +492,17 @@ const DesktopApp = () => {
           </ProtectedRoute>
         } 
       />
+
+      <Route 
+        path="/reuniao/:id" 
+        element={
+          <ProtectedRoute>
+            <DesktopLayout>
+              <ReuniaoHubPage />
+            </DesktopLayout>
+          </ProtectedRoute>
+        } 
+      />
       
       {/* Revendedora Platform - Plataforma completa de vendas e revendedoras */}
       <Route 
