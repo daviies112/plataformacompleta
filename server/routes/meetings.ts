@@ -219,8 +219,9 @@ router.post('/', async (req: AuthRequest, res: Response) => {
           designConfig = tenant.roomDesignConfig;
         }
       }
-    } catch (dbError) {
-      console.warn('[MEETINGS] Falha ao buscar design do tenant, usando padrão:', dbError);
+    } catch (dbError: any) {
+      console.warn('[MEETINGS] Falha ao buscar design do tenant (provavelmente ID não UUID), usando padrão:', dbError.message);
+      // Se o erro for de sintaxe de UUID, ignoramos e seguimos com o padrão
     }
 
     const meetingData = {
