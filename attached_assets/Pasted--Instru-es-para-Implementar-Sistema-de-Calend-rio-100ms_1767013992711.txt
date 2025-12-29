@@ -1,0 +1,234 @@
+# 🚀 Instruções para Implementar Sistema de Calendário + 100ms
+
+## 📁 Estrutura de Arquivos
+
+```
+src/
+├── features/
+│   └── reuniao-platform/
+│       ├── components/
+│       │   └── CalendarioPage.tsx          # ARQUIVO 1
+│       ├── modals/
+│       │   └── CreateEventModal.tsx        # ARQUIVO 2
+│       └── hooks/
+│           └── useReuniao.ts               # ARQUIVO 5
+│
+server/
+├── routes/
+│   └── meetings.ts                         # ARQUIVO 3 (NOVO)
+└── index.ts                                # ARQUIVO 4 (MODIFICAR)
+```
+
+---
+
+## 🔧 Passo a Passo de Instalação
+
+### 1️⃣ Instalar Dependências (se necessário)
+
+```bash
+npm install react-big-calendar date-fns @tanstack/react-query
+```
+
+---
+
+### 2️⃣ Substituir/Criar os Arquivos Frontend
+
+#### **CalendarioPage.tsx**
+- Caminho: `src/features/reuniao-platform/components/CalendarioPage.tsx`
+- **Ação**: SUBSTITUIR completamente o arquivo existente
+- ✅ Corrige a tela preta
+- ✅ Adiciona tratamento de erros robusto
+- ✅ Sincroniza com a tabela `reunioes`
+
+#### **CreateEventModal.tsx**
+- Caminho: `src/features/reuniao-platform/modals/CreateEventModal.tsx`
+- **Ação**: SUBSTITUIR completamente o arquivo existente
+- ✅ Envia dados para `/api/meetings` (rota correta)
+- ✅ Usa formato ISO para datas (compatível com PostgreSQL)
+- ✅ Suporta reuniões online (100ms) e presenciais
+
+#### **useReuniao.ts**
+- Caminho: `src/features/reuniao-platform/hooks/useReuniao.ts`
+- **Ação**: CRIAR ou SUBSTITUIR
+- ✅ Hook com React Query para gerenciar estado
+- ✅ Cache automático de 30 segundos
+- ✅ Toasts de feedback
+
+---
+
+### 3️⃣ Criar Rota de Backend
+
+#### **meetings.ts**
+- Caminho: `server/routes/meetings.ts`
+- **Ação**: CRIAR arquivo novo
+- ✅ Endpoints REST completos (GET, POST, PUT, DELETE)
+- ✅ Validação com Zod
+- ✅ Multi-tenant seguro
+- ✅ Logs detalhados
+
+---
+
+### 4️⃣ Registrar Rota no Backend
+
+#### **server/index.ts**
+Adicione esta linha **APÓS** as outras rotas (ex: `/api/auth`, `/api/dashboard`):
+
+```typescript
+import meetingsRouter from './routes/meetings';
+
+// ... outras configurações ...
+
+app.use('/api/meetings', meetingsRouter); // ← ADICIONAR ESTA LINHA
+
+// ... resto do código ...
+```
+
+---
+
+## ✅ Checklist de Verificação
+
+Antes de testar, verifique se:
+
+- [ ] Todas as dependências foram instaladas (`react-big-calendar`, `date-fns`)
+- [ ] O arquivo `CalendarioPage.tsx` foi substituído completamente
+- [ ] O arquivo `CreateEventModal.tsx` foi substituído completamente
+- [ ] O arquivo `useReuniao.ts` foi criado no caminho correto
+- [ ] O arquivo `meetings.ts` foi criado em `server/routes/`
+- [ ] A linha `app.use('/api/meetings', meetingsRouter)` foi adicionada ao `server/index.ts`
+- [ ] O servidor foi reiniciado
+
+---
+
+## 🧪 Como Testar
+
+### **Teste 1: Criar Reunião**
+1. Acesse a página `/calendario`
+2. Clique no botão **"Nova Reunião"**
+3. Preencha os campos obrigatórios:
+   - Título
+   - Tipo (Online ou Presencial)
+   - Data/Hora de Início e Fim
+4. Clique em **"Agendar Reunião"**
+5. ✅ Deve aparecer um toast de sucesso
+6. ✅ A reunião deve aparecer imediatamente no calendário
+
+### **Teste 2: Visualizar no Calendário**
+1. Após criar a reunião, verifique se ela aparece no grid do calendário
+2. Clique sobre a reunião
+3. ✅ Deve mostrar um toast com os detalhes (horário, tipo, local)
+4. ✅ Se for online, deve ter botão "Entrar na Reunião 100ms"
+
+### **Teste 3: Reuniões da Home**
+1. Vá para a página inicial (onde lista as reuniões)
+2. Volte para `/calendario`
+3. ✅ As reuniões da home devem aparecer no calendário
+
+---
+
+## 🐛 Solução de Problemas Comuns
+
+### ❌ **Erro: "Cannot find module 'react-big-calendar'"**
+**Solução:**
+```bash
+npm install react-big-calendar date-fns
+```
+
+---
+
+### ❌ **Tela Preta no Calendário**
+**Causa:** Erro de renderização por dados inválidos  
+**Solução:** Verifique se você substituiu completamente o `CalendarioPage.tsx` (tem tratamento de erro)
+
+---
+
+### ❌ **Reuniões não aparecem**
+**Causa:** Rota `/api/meetings` não registrada  
+**Solução:**
+1. Verifique se `server/routes/meetings.ts` existe
+2. Verifique se `app.use('/api/meetings', meetingsRouter)` está no `server/index.ts`
+3. Reinicie o servidor
+
+---
+
+### ❌ **Erro 401 (Não autenticado)**
+**Causa:** `req.user` não está definido  
+**Solução:** Verifique se o middleware de autenticação está ativo:
+```typescript
+// Em server/index.ts
+app.use(authMiddleware); // Deve vir ANTES das rotas
+```
+
+---
+
+### ❌ **Erro ao criar reunião: "Dados inválidos"**
+**Causa:** Payload não está no formato esperado  
+**Solução:** Abra o console do navegador (F12) e verifique o payload enviado. Deve estar assim:
+```json
+{
+  "titulo": "Reunião Teste",
+  "dataInicio": "2024-12-28T14:00:00.000Z",
+  "dataFim": "2024-12-28T15:00:00.000Z",
+  "duracao": 60,
+  "nome": "online",
+  "status": "agendada"
+}
+```
+
+---
+
+## 📊 Fluxo de Dados Completo
+
+```
+Frontend (CalendarioPage.tsx)
+    ↓
+useReuniao() hook
+    ↓
+React Query: fetch('/api/meetings')
+    ↓
+Backend (server/routes/meetings.ts)
+    ↓
+Database: SELECT * FROM reunioes WHERE tenant_id = ?
+    ↓
+Retorna JSON para frontend
+    ↓
+Calendário renderiza os eventos
+```
+
+---
+
+## 🎯 Diferenças do Código Anterior
+
+| Aspecto | ❌ Código Antigo | ✅ Código Novo |
+|---------|------------------|----------------|
+| **Rota** | `/api/dashboard/create-manual-event` (inexistente) | `/api/meetings` (funcional) |
+| **Tabela** | Tentava usar tabela de eventos genérica | Usa `reunioes` (nativa do sistema) |
+| **Formato de Data** | Strings inconsistentes | ISO 8601 (`.000Z`) |
+| **Erro na Tela** | Tela preta sem feedback | Error boundary + logs |
+| **Integração 100ms** | Esquecida | Integrada (campo `roomId100ms`) |
+| **Multi-tenant** | Não verificava | Filtra por `tenantId` |
+
+---
+
+## 📞 Suporte
+
+Se ainda tiver problemas:
+1. Abra o console do navegador (F12 → Console)
+2. Verifique os logs do servidor (terminal onde roda o backend)
+3. Copie os erros e envie para análise
+
+---
+
+## ✨ Recursos Implementados
+
+- ✅ Calendário visual completo
+- ✅ Agendamento de reuniões online (100ms) e presenciais
+- ✅ Sincronização em tempo real
+- ✅ Validação de dados com Zod
+- ✅ Feedback visual (toasts)
+- ✅ Multi-tenant seguro
+- ✅ Tratamento robusto de erros
+- ✅ Integração com sistema 100ms existente
+
+---
+
+🎉 **Sistema pronto para uso!**
