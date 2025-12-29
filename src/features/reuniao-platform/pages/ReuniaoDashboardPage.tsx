@@ -51,6 +51,8 @@ function CreateMeetingDialog({
 }) {
   const [titulo, setTitulo] = useState("");
   const [descricao, setDescricao] = useState("");
+  const [nomeCliente, setNomeCliente] = useState("");
+  const [emailCliente, setEmailCliente] = useState("");
   const [dataInicio, setDataInicio] = useState(() => {
     const now = new Date();
     now.setMinutes(Math.ceil(now.getMinutes() / 15) * 15);
@@ -60,12 +62,19 @@ function CreateMeetingDialog({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!nomeCliente || !emailCliente) {
+      toast.error("Nome e e-mail do cliente são obrigatórios");
+      return;
+    }
+
     const inicio = new Date(dataInicio);
     const fim = addHours(inicio, duracao / 60);
     
     onSubmit({
       titulo: titulo || "Nova Reunião",
       descricao,
+      nome: nomeCliente,
+      email: emailCliente,
       dataInicio: inicio.toISOString(),
       dataFim: fim.toISOString(),
       duracao,
@@ -92,6 +101,30 @@ function CreateMeetingDialog({
                 value={titulo}
                 onChange={(e) => setTitulo(e.target.value)}
               />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="nomeCliente">Nome do Cliente</Label>
+                <Input
+                  id="nomeCliente"
+                  placeholder="Nome completo"
+                  value={nomeCliente}
+                  onChange={(e) => setNomeCliente(e.target.value)}
+                  required
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="emailCliente">E-mail do Cliente</Label>
+                <Input
+                  id="emailCliente"
+                  type="email"
+                  placeholder="cliente@email.com"
+                  value={emailCliente}
+                  onChange={(e) => setEmailCliente(e.target.value)}
+                  required
+                />
+              </div>
             </div>
             
             <div className="grid gap-2">
