@@ -1177,24 +1177,31 @@ router.get('/gravacoes/:id/url', async (req: AuthRequest, res: Response) => {
 
     const { obterUrlPresignadaAsset, obterAssetIdPorRecordingId, obterAssetGravacao } = await import('../services/meetings/hms100ms');
     
-    let assetIdToUse = gravacao.assetId;
+    let assetIdToUse: string | null = null;
     
-    // Se não tiver assetId, tenta recuperar pelo recordingId
-    if (!assetIdToUse && gravacao.recordingId100ms) {
-      console.log(`[MEETINGS] Recuperando assetId faltante para gravação ${id} usando recordingId ${gravacao.recordingId100ms}...`);
+    // SEMPRE tenta recuperar o assetId correto do 100ms para garantir que é um vídeo (room-composite)
+    // Ignora o cache do banco para evitar usar um chat asset ID
+    if (gravacao.recordingId100ms) {
+      console.log(`[MEETINGS] Buscando assetId correto (room-composite) para recordingId ${gravacao.recordingId100ms}...`);
       assetIdToUse = await obterAssetIdPorRecordingId(
         gravacao.recordingId100ms,
         hmsCredentials.appAccessKey,
         hmsCredentials.appSecret
       );
       
-      if (assetIdToUse) {
-        console.log(`[MEETINGS] AssetId recuperado com sucesso: ${assetIdToUse}. Atualizando banco...`);
+      if (assetIdToUse && assetIdToUse !== gravacao.assetId) {
+        console.log(`[MEETINGS] AssetId correto recuperado: ${assetIdToUse}. Atualizando banco...`);
         // Atualiza no banco para futuras requisições
         await db.update(gravacoes).set({ assetId: assetIdToUse }).where(eq(gravacoes.id, id));
-      } else {
-        console.warn(`[MEETINGS] Não foi possível recuperar assetId para recordingId ${gravacao.recordingId100ms}`);
+      } else if (assetIdToUse) {
+        console.log(`[MEETINGS] AssetId do banco ainda é o correto: ${assetIdToUse}`);
       }
+    }
+    
+    // Fallback: usa o assetId do banco se não conseguir recuperar um novo
+    if (!assetIdToUse && gravacao.assetId) {
+      console.log(`[MEETINGS] Usando assetId do banco como fallback: ${gravacao.assetId}`);
+      assetIdToUse = gravacao.assetId;
     }
 
     if (!assetIdToUse) {
@@ -1215,6 +1222,8 @@ router.get('/gravacoes/:id/url', async (req: AuthRequest, res: Response) => {
       
       if (presignedUrl && presignedUrl.url) {
         console.log(`[MEETINGS] URL gerada com sucesso para asset ${assetIdToUse}`);
+        console.log(`[MEETINGS] URL presignada: ${presignedUrl.url.substring(0, 150)}...`);
+        console.log(`[MEETINGS] Expiry: ${presignedUrl.expiry}`);
         
         // Garante que a URL seja tratada como vídeo e não forçada para download
         let finalUrl = presignedUrl.url;
@@ -1224,6 +1233,7 @@ router.get('/gravacoes/:id/url', async (req: AuthRequest, res: Response) => {
           finalUrl += (finalUrl.includes('?') ? '&' : '?') + 'response-content-disposition=inline';
         }
 
+        console.log(`[MEETINGS] URL final: ${finalUrl.substring(0, 150)}...`);
         return res.json({ url: finalUrl });
       }
       

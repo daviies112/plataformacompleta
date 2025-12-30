@@ -344,6 +344,15 @@ export default function Gravacoes() {
                 className="w-full h-full"
                 playsInline
                 controlsList="nodownload"
+                onError={(e) => {
+                  console.error('[VIDEO] Erro ao carregar vídeo:', e);
+                  console.error('[VIDEO] URL:', playbackUrl);
+                  toast({
+                    variant: "destructive",
+                    title: "Erro ao carregar vídeo",
+                    description: "O navegador não conseguiu carregar o vídeo. Pode ser um problema de CORS ou a URL expirou.",
+                  });
+                }}
               >
                 <source src={playbackUrl} type="video/mp4" />
                 <source src={playbackUrl} type="video/webm" />
