@@ -1181,7 +1181,7 @@ router.get('/gravacoes/:id/url', async (req: AuthRequest, res: Response) => {
     
     // Se não tiver assetId, tenta recuperar pelo recordingId
     if (!assetIdToUse && gravacao.recordingId100ms) {
-      console.log(`[MEETINGS] Recuperando assetId faltante para gravação ${id}...`);
+      console.log(`[MEETINGS] Recuperando assetId faltante para gravação ${id} usando recordingId ${gravacao.recordingId100ms}...`);
       assetIdToUse = await obterAssetIdPorRecordingId(
         gravacao.recordingId100ms,
         hmsCredentials.appAccessKey,
@@ -1189,25 +1189,76 @@ router.get('/gravacoes/:id/url', async (req: AuthRequest, res: Response) => {
       );
       
       if (assetIdToUse) {
+        console.log(`[MEETINGS] AssetId recuperado com sucesso: ${assetIdToUse}. Atualizando banco...`);
         // Atualiza no banco para futuras requisições
         await db.update(gravacoes).set({ assetId: assetIdToUse }).where(eq(gravacoes.id, id));
+      } else {
+        console.warn(`[MEETINGS] Não foi possível recuperar assetId para recordingId ${gravacao.recordingId100ms}`);
       }
     }
 
     if (!assetIdToUse) {
+      console.error(`[MEETINGS] Falha final: Nenhum assetId disponível para a gravação ${id}`);
       return res.status(400).json({
         success: false,
-        message: 'ID do asset não encontrado e não pôde ser recuperado',
+        message: 'A gravação ainda está sendo processada pelo 100ms. Por favor, aguarde alguns minutos e tente novamente.',
       });
     }
 
-    const presignedUrl = await obterUrlPresignadaAsset(
-      assetIdToUse,
-      hmsCredentials.appAccessKey,
-      hmsCredentials.appSecret
-    );
+    try {
+      console.log(`[MEETINGS] Gerando URL para assetId: ${assetIdToUse}`);
+      const presignedUrl = await obterUrlPresignadaAsset(
+        assetIdToUse,
+        hmsCredentials.appAccessKey,
+        hmsCredentials.appSecret
+      );
+      
+      if (presignedUrl && presignedUrl.url) {
+        console.log(`[MEETINGS] URL gerada com sucesso para asset ${assetIdToUse}`);
+        return res.json({ url: presignedUrl.url });
+      }
+      
+      throw new Error('URL retornada é inválida');
+    } catch (urlError: any) {
+      const errorMsg = urlError.response?.data?.message || urlError.message;
+      console.error(`[MEETINGS] Erro crítico ao gerar URL para asset ${assetIdToUse}:`, errorMsg);
+      
+      // Tentativa de último recurso: Listar assets da sala vinculada à reunião
+      try {
+        if (gravacao.roomId100ms) {
+          console.log(`[MEETINGS] Tentativa de último recurso: buscando assets para sala ${gravacao.roomId100ms}`);
+          const { listarAssetsRecentesSala } = await import('../services/meetings/hms100ms');
+          const assets = await listarAssetsRecentesSala(
+            gravacao.roomId100ms,
+            hmsCredentials.appAccessKey,
+            hmsCredentials.appSecret
+          );
+          
+          const validAsset = assets.find(a => a.status === 'completed');
+          if (validAsset) {
+            console.log(`[MEETINGS] Encontrado asset válido alternativo: ${validAsset.id}. Tentando gerar URL...`);
+            const retryPresigned = await obterUrlPresignadaAsset(
+              validAsset.id,
+              hmsCredentials.appAccessKey,
+              hmsCredentials.appSecret
+            );
+            
+            // Atualiza o banco com o novo assetId funcional
+            await db.update(gravacoes).set({ assetId: validAsset.id }).where(eq(gravacoes.id, id));
+            
+            return res.json({ url: retryPresigned.url });
+          }
+        }
+      } catch (lastResortError) {
+        console.error(`[MEETINGS] Falha no último recurso para gravação ${id}:`, lastResortError);
+      }
 
-    return res.json({ url: presignedUrl.url });
+      return res.status(500).json({
+        success: false,
+        message: 'A gravação ainda não está disponível para visualização. O 100ms está processando o arquivo. Tente novamente em 5-10 minutos.',
+        details: errorMsg
+      });
+    }
   } catch (error: any) {
     console.error('[MEETINGS] Erro ao obter URL presignada:', error);
     return res.status(500).json({

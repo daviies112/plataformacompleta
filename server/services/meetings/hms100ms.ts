@@ -241,26 +241,44 @@ export async function obterUrlPresignadaAsset(
 
     return response.data;
   } catch (error: any) {
-    console.error(`[HMS] Erro ao obter URL presignada para asset ${assetId}:`, error.response?.data || error.message);
+    const errorData = error.response?.data;
+    console.error(`[HMS] Erro ao obter URL presignada para asset ${assetId}:`, errorData || error.message);
     
-    // ESTRATÉGIA DE RECUPERAÇÃO: Se o assetId falhar, tenta listar assets da sala se soubermos o ID
-    // Ou tenta buscar o asset primeiro para ver se ele existe
+    // ESTRATÉGIA DE RECUPERAÇÃO: Se o assetId falhar com 404 ou erro de RemotePath
     try {
       const asset = await obterAssetGravacao(assetId, appAccessKey, appSecret);
+      
+      // Se o asset existe e tem um path, tenta forçar a geração da URL usando esse path
       if (asset && asset.path) {
-        console.log(`[HMS] Recuperando via path direto: ${asset.path}`);
+        console.log(`[HMS] Tentando recuperação forçada via RemotePath: ${asset.path}`);
+        
+        // No 100ms API V2, às vezes passar o path como query param ou no body resolve se o assetId der 404
         const retryResponse = await axios.get(`${HMS_API_URL}/recording-assets/${assetId}/presigned-url`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
           params: {
-            path: asset.path
+            path: asset.path // Tenta como query param
           }
         });
         return retryResponse.data;
       }
-    } catch (innerError) {
-      console.error(`[HMS] Falha na recuperação de asset ${assetId}:`, innerError);
+      
+      // Se ainda não resolveu, tenta listar todos os assets da sala para ver se há outro ID válido
+      if (asset && asset.room_id) {
+        console.log(`[HMS] Buscando assets alternativos para a sala ${asset.room_id}`);
+        const altAssets = await listarAssetsRecentesSala(asset.room_id, appAccessKey, appSecret);
+        const alternative = altAssets.find(a => a.status === 'completed' && a.id !== assetId);
+        if (alternative) {
+          console.log(`[HMS] Encontrado asset alternativo: ${alternative.id}`);
+          const altResponse = await axios.get(`${HMS_API_URL}/recording-assets/${alternative.id}/presigned-url`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          return altResponse.data;
+        }
+      }
+    } catch (innerError: any) {
+      console.error(`[HMS] Falha total na recuperação de asset ${assetId}:`, innerError.response?.data || innerError.message);
     }
     
     throw error;
@@ -274,12 +292,30 @@ export async function obterAssetIdPorRecordingId(
 ): Promise<string | null> {
   const token = generateManagementToken(appAccessKey, appSecret);
   try {
-    const response = await axios.get(`${HMS_API_URL}/recordings/${recordingId}`, {
+    console.log(`[HMS] Buscando assets para recordingId: ${recordingId}`);
+    const response = await axios.get(`${HMS_API_URL}/recording-assets`, {
+      headers: { Authorization: `Bearer ${token}` },
+      params: { recording_id: recordingId }
+    });
+    
+    const assets = response.data?.data;
+    if (assets && assets.length > 0) {
+      // Prioriza assets com status 'completed'
+      const completedAsset = assets.find((a: any) => a.status === 'completed');
+      const assetId = completedAsset ? completedAsset.id : assets[0].id;
+      console.log(`[HMS] Asset encontrado para recording ${recordingId}: ${assetId}`);
+      return assetId;
+    }
+    
+    // Fallback: tenta obter via GET /recordings/:id
+    const recResponse = await axios.get(`${HMS_API_URL}/recordings/${recordingId}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
-    return response.data?.asset_id || response.data?.asset?.id || null;
-  } catch (error) {
-    console.error(`[HMS] Erro ao obter assetId por recordingId ${recordingId}:`, error);
+    const assetId = recResponse.data?.asset_id || recResponse.data?.asset?.id || null;
+    console.log(`[HMS] Asset recuperado via recording info para ${recordingId}: ${assetId}`);
+    return assetId;
+  } catch (error: any) {
+    console.error(`[HMS] Erro ao obter assetId por recordingId ${recordingId}:`, error.response?.data || error.message);
     return null;
   }
 }
