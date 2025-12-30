@@ -300,10 +300,11 @@ export async function obterAssetIdPorRecordingId(
     
     const assets = response.data?.data;
     if (assets && assets.length > 0) {
-      // Prioriza assets com status 'completed'
-      const completedAsset = assets.find((a: any) => a.status === 'completed');
+      // Prioriza videos (room-composite) sobre outros tipos (chat, etc)
+      const videoAsset = assets.find((a: any) => a.status === 'completed' && a.type === 'room-composite');
+      const completedAsset = videoAsset || assets.find((a: any) => a.status === 'completed');
       const assetId = completedAsset ? completedAsset.id : assets[0].id;
-      console.log(`[HMS] Asset encontrado para recording ${recordingId}: ${assetId}`);
+      console.log(`[HMS] Asset encontrado para recording ${recordingId}: ${assetId} (tipo: ${completedAsset?.type || 'unknown'})`);
       return assetId;
     }
     
