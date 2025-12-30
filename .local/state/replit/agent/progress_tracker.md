@@ -9,3 +9,6 @@
 [x] 9. Complete project import
 [x] 10. Create Gravações page route and register in DesktopApp
 [x] 11. Verify gravações page is accessible and loading recordings
+[x] 12. Create useGravacoes hook that connects to Supabase like Calendar and Home pages
+[x] 13. Update Gravacoes page to use the new hook instead of direct API calls
+[x] 14. Fix LSP errors and test page functionality

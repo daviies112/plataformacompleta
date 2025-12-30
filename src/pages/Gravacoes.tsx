@@ -1,7 +1,5 @@
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api } from "@/lib/api";
-import { useLocation } from "wouter";
+import { useGravacoes } from "@/features/reuniao-platform/hooks/useGravacoes";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -37,20 +35,20 @@ import { Video, Play, Trash2, Download, Loader2, Circle, Clock, Calendar, FileVi
 
 interface Gravacao {
   id: string;
-  reuniaoId: string;
-  tenantId: string;
-  roomId100ms: string;
-  sessionId100ms: string;
-  recordingId100ms: string;
+  reuniao_id: string;
+  tenant_id: string;
+  room_id_100ms: string;
+  session_id_100ms: string;
+  recording_id_100ms: string;
   status: string;
-  startedAt: string;
-  stoppedAt: string | null;
+  started_at: string;
+  stopped_at: string | null;
   duration: number | null;
-  fileUrl: string | null;
-  fileSize: number | null;
-  thumbnailUrl: string | null;
-  createdAt: string;
-  reuniao: {
+  file_url: string | null;
+  file_size: number | null;
+  thumbnail_url: string | null;
+  created_at: string;
+  reuniao?: {
     id: string;
     titulo: string;
     nome: string | null;
@@ -61,65 +59,38 @@ interface Gravacao {
 }
 
 export default function Gravacoes() {
-  const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
+  const { gravacoes, isLoading, deleteGravacao, getPlaybackUrl, isFetchingUrl, isDeleting } = useGravacoes();
   const [selectedGravacao, setSelectedGravacao] = useState<Gravacao | null>(null);
   const [playbackUrl, setPlaybackUrl] = useState<string | null>(null);
-  const [isLoadingPlayback, setIsLoadingPlayback] = useState(false);
-
-  const { data: gravacoes = [], isLoading } = useQuery<Gravacao[]>({
-    queryKey: ["gravacoes"],
-    queryFn: async () => {
-      const response = await api.get("/api/reunioes/gravacoes/list");
-      return response.data;
-    },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      await api.delete(`/api/reunioes/gravacoes/${id}`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["gravacoes"] });
-      toast({
-        title: "Gravação excluída",
-        description: "A gravação foi excluída com sucesso.",
-      });
-    },
-    onError: () => {
-      toast({
-        variant: "destructive",
-        title: "Erro",
-        description: "Não foi possível excluir a gravação.",
-      });
-    },
-  });
 
   const handlePlayRecording = async (gravacao: Gravacao) => {
     setSelectedGravacao(gravacao);
-    setIsLoadingPlayback(true);
     setPlaybackUrl(null);
 
     try {
-      const response = await api.get(`/api/reunioes/gravacoes/${gravacao.id}/url`);
-      setPlaybackUrl(response.data.url);
+      getPlaybackUrl(gravacao.id, {
+        onSuccess: (response: any) => {
+          setPlaybackUrl(response.url || response.data?.url);
+        },
+        onError: (error: any) => {
+          const errorMessage = error?.message || "Não foi possível carregar a gravação.";
+          toast({
+            variant: "destructive",
+            title: "Erro",
+            description: errorMessage,
+          });
+          setSelectedGravacao(null);
+        },
+      } as any);
     } catch (error: any) {
-      const errorData = error.response?.data;
-      const errorMessage = errorData?.message || "Não foi possível carregar a gravação.";
-      
-      if (errorData?.status === 'failed') {
-        queryClient.invalidateQueries({ queryKey: ["gravacoes"] });
-      }
-      
+      const errorMessage = error?.message || "Não foi possível carregar a gravação.";
       toast({
         variant: "destructive",
         title: "Erro",
         description: errorMessage,
       });
       setSelectedGravacao(null);
-    } finally {
-      setIsLoadingPlayback(false);
     }
   };
 
@@ -244,11 +215,11 @@ export default function Gravacoes() {
                     <TableCell>
                       <div className="flex items-center gap-2 text-sm">
                         <Calendar className="h-4 w-4 text-muted-foreground" />
-                        {format(new Date(gravacao.startedAt || gravacao.createdAt), "dd/MM/yyyy", { locale: ptBR })}
+                        {format(new Date(gravacao.started_at || gravacao.created_at), "dd/MM/yyyy", { locale: ptBR })}
                       </div>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Clock className="h-4 w-4" />
-                        {format(new Date(gravacao.startedAt || gravacao.createdAt), "HH:mm", { locale: ptBR })}
+                        {format(new Date(gravacao.started_at || gravacao.created_at), "HH:mm", { locale: ptBR })}
                       </div>
                     </TableCell>
                     <TableCell>
@@ -258,7 +229,7 @@ export default function Gravacoes() {
                       {formatDuration(gravacao.duration)}
                     </TableCell>
                     <TableCell>
-                      {formatFileSize(gravacao.fileSize)}
+                      {formatFileSize(gravacao.file_size)}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
@@ -268,17 +239,18 @@ export default function Gravacoes() {
                               variant="outline"
                               size="sm"
                               onClick={() => handlePlayRecording(gravacao)}
+                              disabled={isFetchingUrl}
                             >
                               <Play className="h-4 w-4 mr-1" />
                               Assistir
                             </Button>
-                            {gravacao.fileUrl && (
+                            {gravacao.file_url && (
                               <Button
                                 variant="outline"
                                 size="sm"
                                 asChild
                               >
-                                <a href={gravacao.fileUrl} download>
+                                <a href={gravacao.file_url} download>
                                   <Download className="h-4 w-4" />
                                 </a>
                               </Button>
@@ -292,7 +264,7 @@ export default function Gravacoes() {
                         )}
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button variant="outline" size="sm">
+                            <Button variant="outline" size="sm" disabled={isDeleting}>
                               <Trash2 className="h-4 w-4 text-red-500" />
                             </Button>
                           </AlertDialogTrigger>
@@ -306,10 +278,11 @@ export default function Gravacoes() {
                             <AlertDialogFooter>
                               <AlertDialogCancel>Cancelar</AlertDialogCancel>
                               <AlertDialogAction
-                                onClick={() => deleteMutation.mutate(gravacao.id)}
+                                onClick={() => deleteGravacao(gravacao.id)}
                                 className="bg-red-500 hover:bg-red-600"
+                                disabled={isDeleting}
                               >
-                                Excluir
+                                {isDeleting ? "Excluindo..." : "Excluir"}
                               </AlertDialogAction>
                             </AlertDialogFooter>
                           </AlertDialogContent>
@@ -332,7 +305,7 @@ export default function Gravacoes() {
             </DialogTitle>
           </DialogHeader>
           <div className="aspect-video bg-black rounded-lg overflow-hidden">
-            {isLoadingPlayback ? (
+            {isFetchingUrl ? (
               <div className="w-full h-full flex items-center justify-center">
                 <Loader2 className="h-8 w-8 animate-spin text-white" />
               </div>
