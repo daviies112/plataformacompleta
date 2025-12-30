@@ -1215,7 +1215,16 @@ router.get('/gravacoes/:id/url', async (req: AuthRequest, res: Response) => {
       
       if (presignedUrl && presignedUrl.url) {
         console.log(`[MEETINGS] URL gerada com sucesso para asset ${assetIdToUse}`);
-        return res.json({ url: presignedUrl.url });
+        
+        // Garante que a URL seja tratada como vídeo e não forçada para download
+        let finalUrl = presignedUrl.url;
+        if (finalUrl.includes('response-content-disposition=')) {
+          finalUrl = finalUrl.replace(/response-content-disposition=[^&]*/, 'response-content-disposition=inline');
+        } else {
+          finalUrl += (finalUrl.includes('?') ? '&' : '?') + 'response-content-disposition=inline';
+        }
+
+        return res.json({ url: finalUrl });
       }
       
       throw new Error('URL retornada é inválida');

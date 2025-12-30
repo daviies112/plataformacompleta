@@ -338,11 +338,17 @@ export default function Gravacoes() {
               </div>
             ) : playbackUrl ? (
               <video
-                src={playbackUrl}
+                key={playbackUrl}
                 controls
                 autoPlay
                 className="w-full h-full"
-              />
+                playsInline
+                controlsList="nodownload"
+              >
+                <source src={playbackUrl} type="video/mp4" />
+                <source src={playbackUrl} type="video/webm" />
+                Seu navegador não suporta a reprodução de vídeos.
+              </video>
             ) : (
               <div className="w-full h-full flex items-center justify-center text-white">
                 <p>Não foi possível carregar o vídeo</p>
