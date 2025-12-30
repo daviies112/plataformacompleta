@@ -1073,7 +1073,8 @@ router.get('/gravacoes/list', async (req: AuthRequest, res: Response) => {
           .select('*, reunioes(*)')
           .order('created_at', { ascending: false });
 
-        if (!error && supabaseRecordings && supabaseRecordings.length > 0) {
+        if (!error && supabaseRecordings) {
+          console.log(`[MEETINGS] Encontradas ${supabaseRecordings.length} gravações no Supabase.`);
           const normalizedRecordings = supabaseRecordings.map(r => ({
             id: r.id,
             reuniaoId: r.reuniao_id,
@@ -1099,13 +1100,21 @@ router.get('/gravacoes/list', async (req: AuthRequest, res: Response) => {
               dataFim: new Date(r.reunioes.data_fim),
             } : null
           }));
-          return res.json(normalizedRecordings);
+          
+          // Se o Supabase retornou dados, priorizamos eles mas podemos mesclar se necessário
+          // Por enquanto, seguimos a lógica de prioridade do Supabase conforme outras rotas
+          if (normalizedRecordings.length > 0) {
+            return res.json(normalizedRecordings);
+          }
+        } else if (error) {
+          console.error(`[MEETINGS] Erro ao buscar gravações no Supabase:`, error);
         }
       }
     } catch (err) {
       console.warn(`[MEETINGS] Supabase não disponível para listagem de gravações:`, err);
     }
 
+    console.log(`[MEETINGS] Retornando ${recordings.length} gravações do banco local.`);
     return res.json(recordings);
   } catch (error) {
     console.error('[MEETINGS] Erro ao listar gravações:', error);
