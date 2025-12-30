@@ -66,7 +66,9 @@ scripts/   → Utilitários (export, import)
 ✅ WhatsApp Business  
 ✅ Video Conferencing (100ms)  
 ✅ Label Designer  
-✅ Sistema de Gravações Resiliente (Veja DOCUMENTACAO_GRAVACOES.md)
+✅ **Sistema de Gravações** - CORRIGIDO (30/12/2025)  
+   - Veja: `DOCUMENTACAO_CORRECOES_GRAVACOES.md` (detalhado)  
+   - Veja: `CHECKLIST_GRAVACOES.md` (verificação rápida)
 
 ## Desenvolvimento
 
