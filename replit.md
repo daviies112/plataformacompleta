@@ -64,7 +64,8 @@ scripts/   → Utilitários (export, import)
 ✅ Formulários Públicos  
 ✅ Validação CPF  
 ✅ WhatsApp Business  
-✅ Video Conferencing (100ms)  
+✅ Video Conferencing (100ms) - CORRIGIDO (03/01/2026)
+   - Veja: `DOCUMENTACAO_CORRECAO_100MS.md` (detalhado)
 ✅ Label Designer  
 ✅ **Sistema de Gravações** - CORRIGIDO (30/12/2025)  
    - Veja: `DOCUMENTACAO_CORRECOES_GRAVACOES.md` (detalhado)  
@@ -106,6 +107,6 @@ Veja [DESENVOLVIMENTO.md](./DESENVOLVIMENTO.md) para documentação técnica com
 
 ---
 
-**Last Updated:** 20 de Dezembro de 2025  
+**Last Updated:** 03 de Janeiro de 2026  
 **Tamanho Otimizado:** ~200MB (sem node_modules)  
 **Economia de Créditos:** 95%
