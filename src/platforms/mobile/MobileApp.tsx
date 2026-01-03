@@ -29,6 +29,7 @@ import PublicForm from "@/features/formularios-platform/pages/PublicForm";
 import FormularioPublicoWrapper from "@/features/formularios-platform/pages/FormularioPublicoWrapper";
 import ConsultarCPFPage from "@/pages/consultar-cpf";
 import HistoricoConsultasPage from "@/pages/historico-consultas";
+import Reuniao from "@/pages/Reuniao";
 
 // Import Revendedora Platform
 import RevendedoraApp from "@/features/revendedora/RevendedoraApp";
@@ -483,18 +484,11 @@ const MobileApp = () => {
       
       {/* Reuniao Platform - Plataforma de videoconferencia e reunioes */}
       <Route 
-        path="/reuniao/*" 
-        element={
-          <ProtectedRoute>
-            <MobileLayout>
-              <ReuniaoHubPage />
-            </MobileLayout>
-          </ProtectedRoute>
-        } 
-      />
-
-      <Route 
         path="/reuniao/:id" 
+        element={<Reuniao />} 
+      />
+      <Route 
+        path="/reuniao/*" 
         element={
           <ProtectedRoute>
             <MobileLayout>
