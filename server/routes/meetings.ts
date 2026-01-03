@@ -1525,6 +1525,7 @@ router.get('/gravacoes/:id/url', async (req: AuthRequest, res: Response) => {
     const { obterUrlPresignadaAsset, obterAssetIdPorRecordingId, obterAssetGravacao } = await import('../services/meetings/hms100ms');
     
     let assetIdToUse: string | null = null;
+    let assetPathToUse: string | undefined = undefined;
     
     // SEMPRE tenta recuperar o assetId correto do 100ms para garantir que é um vídeo (room-composite)
     // Ignora o cache do banco para evitar usar um chat asset ID
@@ -1536,6 +1537,15 @@ router.get('/gravacoes/:id/url', async (req: AuthRequest, res: Response) => {
         hmsCredentials.appSecret
       );
       
+      if (assetIdToUse) {
+        try {
+          const assetDetails = await obterAssetGravacao(assetIdToUse, hmsCredentials.appAccessKey, hmsCredentials.appSecret);
+          assetPathToUse = assetDetails?.path;
+        } catch (e) {
+          console.warn(`[MEETINGS] Erro ao obter detalhes do asset ${assetIdToUse}:`, e);
+        }
+      }
+
       if (assetIdToUse && assetIdToUse !== gravacao.assetId) {
         console.log(`[MEETINGS] AssetId correto recuperado: ${assetIdToUse}. Atualizando banco...`);
         // Atualiza no banco para futuras requisições
@@ -1564,7 +1574,8 @@ router.get('/gravacoes/:id/url', async (req: AuthRequest, res: Response) => {
       const presignedUrl = await obterUrlPresignadaAsset(
         assetIdToUse,
         hmsCredentials.appAccessKey,
-        hmsCredentials.appSecret
+        hmsCredentials.appSecret,
+        assetPathToUse
       );
       
       if (presignedUrl && presignedUrl.url) {

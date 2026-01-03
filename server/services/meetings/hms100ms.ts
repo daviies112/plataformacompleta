@@ -227,7 +227,8 @@ export async function obterAssetGravacao(
 export async function obterUrlPresignadaAsset(
   assetId: string,
   appAccessKey: string,
-  appSecret: string
+  appSecret: string,
+  assetPath?: string
 ): Promise<{ url: string; expiry: number }> {
   const token = generateManagementToken(appAccessKey, appSecret);
 
@@ -237,6 +238,9 @@ export async function obterUrlPresignadaAsset(
       headers: {
         Authorization: `Bearer ${token}`,
       },
+      params: {
+        path: assetPath // Pass the path if available
+      }
     });
 
     return response.data;
