@@ -53,6 +53,7 @@ export function useGravacoes() {
   const { data: gravacoesList = [], isLoading, error, refetch } = useQuery({
     queryKey: [API_BASE, 'gravacoes', tenantId],
     queryFn: async () => {
+      // Tenta buscar da API local (que por sua vez busca no Supabase se configurado)
       const response = await apiRequest("GET", `${API_BASE}/gravacoes/list`);
       return response.data || response;
     },

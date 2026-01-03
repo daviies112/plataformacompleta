@@ -71,7 +71,11 @@ export default function Gravacoes() {
     try {
       getPlaybackUrl(gravacao.id, {
         onSuccess: (response: any) => {
-          setPlaybackUrl(response.url || response.data?.url);
+          const url = response.url || response.data?.url;
+          if (!url) {
+            throw new Error("URL de reprodução não encontrada.");
+          }
+          setPlaybackUrl(url);
         },
         onError: (error: any) => {
           const errorMessage = error?.message || "Não foi possível carregar a gravação.";
