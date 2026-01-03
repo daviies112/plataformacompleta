@@ -53,15 +53,14 @@ export default function PublicMeetingRoom() {
   const [feedback, setFeedback] = useState<"positive" | "negative" | null>(null);
   const [feedbackComment, setFeedbackComment] = useState("");
 
-  const { data, isLoading, error } = useQuery<PublicMeetingData>({
-    queryKey: ["/api/public/reuniao", companySlug, roomId],
-    queryFn: async () => {
-      const response = await publicApi.getMeetingRoom(companySlug || "", roomId || "");
-      return response.data;
-    },
+  const { data: response, isLoading, error } = useQuery<{ data: PublicMeetingData }>({
+    queryKey: ["/api/reunioes/public", companySlug, roomId],
+    queryFn: () => publicApi.getMeetingRoom(companySlug || "", roomId || ""),
     enabled: !!companySlug && !!roomId,
     staleTime: 60 * 1000,
   });
+
+  const data = response?.data;
 
   const roomDesignConfig = useMemo(() => {
     return data?.roomDesignConfig || DEFAULT_ROOM_DESIGN_CONFIG;

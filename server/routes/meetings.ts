@@ -99,9 +99,8 @@ router.get('/public/:companySlug/:roomId', async (req, res) => {
     const [tenant] = await db
       .select()
       .from(meetingTenants)
-      .where(eq(meetingTenants.id, companySlug)); // Assuming companySlug is tenantId for now or we need a lookup
+      .where(eq(meetingTenants.id, companySlug));
 
-    // If not found by ID, try searching by some slug field if it exists
     // For now, let's assume we can find the meeting directly by ID first
     const [meeting] = await db
       .select()
