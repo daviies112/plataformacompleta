@@ -539,27 +539,34 @@ function Controls({
     }
   };
 
-  const toggleRecording = async () => {
-    if (!roomId) {
-      toast({ variant: "destructive", title: "Erro", description: "ID da sala não encontrado." });
-      return;
-    }
-
-    setIsRecordingLoading(true);
-    
+  const startRecording = async () => {
     try {
-      if (isRecording) {
-        await api.post(`/api/reunioes/recording/stop`, { roomId });
-        toast({ title: "Gravação Finalizada", description: "A gravação foi encerrada e está sendo processada." });
-        setIsRecording(false);
-        setRecordingTimer(0);
-      } else {
-        await api.post(`/api/reunioes/recording/start`, { roomId });
-        toast({ title: "Gravação Iniciada", description: "A reunião está sendo gravada." });
+      if (!roomId) {
+        toast({ variant: "destructive", title: "Erro", description: "ID da sala não encontrado." });
+        return;
+      }
+      
+      console.log("[HMS] Solicitando início de gravação para sala:", roomId);
+      setIsRecordingLoading(true);
+      
+      const res = await api.post("/api/reunioes/recording/start", { roomId });
+      const data = res.data;
+      
+      if (data.success) {
+        setRecordingId(data.recordingId);
         setIsRecording(true);
+        toast({ title: "Gravação Iniciada", description: "A reunião está sendo gravada." });
+      } else {
+        console.error("[HMS] Erro ao iniciar gravação (API):", data.message);
+        toast({ 
+          variant: "destructive",
+          title: "Erro na gravação", 
+          description: data.message || "Não foi possível iniciar a gravação."
+        });
       }
     } catch (error: any) {
-      const message = error.response?.data?.message || "Erro ao controlar gravação";
+      console.error("[HMS] Erro na requisição de gravação:", error);
+      const message = error.response?.data?.message || "Falha na comunicação com o servidor.";
       toast({ variant: "destructive", title: "Erro", description: message });
     } finally {
       setIsRecordingLoading(false);

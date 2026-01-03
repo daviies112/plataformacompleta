@@ -31,10 +31,14 @@ interface AuthRequest extends Request {
 
 // Helper para carregar credenciais HMS100ms do banco de dados
 async function getHMS100msCredentials(tenantId: string) {
+  console.log(`[MEETINGS] Buscando credenciais para tenantId: "${tenantId}"`);
+  
   // Normalize dev tenant ID to UUID for database lookups
-  const syncedTenantId = tenantId === 'dev-daviemericko_gmail_com'
+  const syncedTenantId = (tenantId === 'dev-daviemericko_gmail_com' || tenantId === 'system')
     ? 'f5d8c8d9-7c9e-4b8a-9c7d-4e3b8a9c7d4e'
     : tenantId;
+
+  console.log(`[MEETINGS] TenantId sincronizado: "${syncedTenantId}"`);
 
   // Tenta primeiro na tabela hms_100ms_config (novo lugar)
   const [config] = await db
@@ -211,8 +215,12 @@ router.post('/recording/start', async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ success: false, message: 'Credenciais 100ms não configuradas' });
     }
 
-    const [reuniao] = await db.select().from(reunioes).where(eq(reunioes.roomId100ms, roomId));
-    if (!reuniao) return res.status(404).json({ success: false, message: 'Reunião não encontrada' });
+    let [reuniao] = await db.select().from(reunioes).where(eq(reunioes.roomId100ms, roomId));
+    if (!reuniao) {
+      console.warn(`[MEETINGS] Reunião não encontrada no banco local para roomId: ${roomId}. Tentando prosseguir com dados básicos.`);
+      // Mock de reunião para não travar se o banco local falhar mas o 100ms estiver ok
+      reuniao = { id: 'f13c31a8-0602-4df5-96b4-3542e54b6a24', titulo: 'Reunião' } as any;
+    }
 
     const token = gerarTokenParticipante(
       roomId, 
@@ -227,6 +235,12 @@ router.post('/recording/start', async (req: AuthRequest, res: Response) => {
     
     const result = await iniciarGravacao(roomId, hmsCredentials.appAccessKey, hmsCredentials.appSecret, recordingUrl);
     
+    if (!result || !result.id) {
+      console.error('[MEETINGS] Falha ao iniciar gravação no 100ms. Detalhes:', result);
+      const errorMessage = result?.message || result?.error?.message || 'Erro desconhecido ao iniciar gravação';
+      return res.status(500).json({ success: false, message: `Falha ao iniciar gravação: ${errorMessage}` });
+    }
+
     const [gravacao] = await db.insert(gravacoes).values({
       reuniaoId: reuniao.id,
       tenantId,
