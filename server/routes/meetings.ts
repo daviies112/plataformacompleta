@@ -256,6 +256,7 @@ router.post('/recording/start', async (req: AuthRequest, res: Response) => {
       tenantId,
       roomId100ms: roomId,
       recordingId100ms: result.id,
+      assetId: result.asset_id || result.assetId,
       status: "recording",
     }).returning();
 
@@ -336,7 +337,7 @@ router.post('/100ms/recording/stop', (req, res) => {
 router.post('/webhook/100ms', async (req: Request, res: Response) => {
   const event = req.body;
   
-  if (event.type === "beam.recording.success") {
+    if (event.type === "beam.recording.success") {
     const { id, asset } = event.data;
     
     await db.update(gravacoes)
@@ -345,6 +346,7 @@ router.post('/webhook/100ms', async (req: Request, res: Response) => {
         fileUrl: asset?.location,
         fileSize: asset?.size,
         duration: asset?.duration,
+        assetId: asset?.id,
         updatedAt: new Date()
       })
       .where(eq(gravacoes.recordingId100ms, id));
@@ -378,6 +380,7 @@ router.get('/recording/list', async (req: AuthRequest, res: Response) => {
     const recordings = await db.select({
       id: gravacoes.id,
       reuniaoId: gravacoes.reuniaoId,
+      assetId: gravacoes.assetId,
       status: gravacoes.status,
       createdAt: gravacoes.createdAt,
       duration: gravacoes.duration,
