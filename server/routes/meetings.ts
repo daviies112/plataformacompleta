@@ -31,11 +31,16 @@ interface AuthRequest extends Request {
 
 // Helper para carregar credenciais HMS100ms do banco de dados
 async function getHMS100msCredentials(tenantId: string) {
+  // Normalize dev tenant ID to UUID for database lookups
+  const syncedTenantId = tenantId === 'dev-daviemericko_gmail_com'
+    ? 'f5d8c8d9-7c9e-4b8a-9c7d-4e3b8a9c7d4e'
+    : tenantId;
+
   // Tenta primeiro na tabela hms_100ms_config (novo lugar)
   const [config] = await db
     .select()
     .from(hms100msConfig)
-    .where(eq(hms100msConfig.tenantId, tenantId));
+    .where(eq(hms100msConfig.tenantId, syncedTenantId));
 
   if (config) {
     return {
@@ -94,13 +99,19 @@ router.use((req: Request, res: Response, next) => {
     }
     
     const tenantIdFromSession = req.session.tenantId || 'f5d8c8d9-7c9e-4b8a-9c7d-4e3b8a9c7d4e';
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(tenantIdFromSession);
+    
+    // Normalize dev tenant ID to UUID for database lookups
+    const syncedTenantId = tenantIdFromSession === 'dev-daviemericko_gmail_com'
+      ? 'f5d8c8d9-7c9e-4b8a-9c7d-4e3b8a9c7d4e'
+      : tenantIdFromSession;
+
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(syncedTenantId);
     
     (req as any).user = {
       id: req.session.userId,
       email: req.session.userEmail,
       nome: req.session.userName,
-      tenantId: isUuid ? tenantIdFromSession : 'f5d8c8d9-7c9e-4b8a-9c7d-4e3b8a9c7d4e'
+      tenantId: isUuid ? syncedTenantId : 'f5d8c8d9-7c9e-4b8a-9c7d-4e3b8a9c7d4e'
     };
     next();
   });
