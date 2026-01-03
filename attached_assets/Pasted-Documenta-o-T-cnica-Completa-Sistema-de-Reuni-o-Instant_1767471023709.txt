@@ -1,0 +1,178 @@
+Documentação Técnica Completa: Sistema de Reunião Instantânea
+📋 Índice
+Visão Geral do Fluxo
+Passo 1: Criação da Reunião (Dashboard)
+Passo 2: Modal de Sucesso
+Passo 3: Interface de Vídeo (Sala)
+Passo 4: Gravação da Reunião
+Passo 5: Visualização de Gravações
+Arquitetura Backend
+Checklist de Replicação
+Visão Geral do Fluxo
+Clica 'Reunião Instantânea'
+Clica 'Participar agora'
+Interface de Vídeo
+Clica Gravar
+Clica Parar
+Webhook/Sync
+Clica Assistir
+Dashboard
+API cria sala 100ms
+Modal de Sucesso
+Sala de Reunião
+Meeting100ms Component
+Inicia Gravação
+Para Gravação
+Status: Completed
+Página Gravações
+Player de Vídeo
+Passo 1: Criação da Reunião
+Dashboard (
+client/src/pages/Dashboard.tsx
+)
+Botão Verde "Reunião Instantânea":
+
+<Button 
+  onClick={handleInstantMeeting} 
+  disabled={isCreatingInstant}
+  className="gap-2 bg-green-600 hover:bg-green-700"
+>
+  {isCreatingInstant ? (
+    <Loader2 className="h-4 w-4 animate-spin" />
+  ) : (
+    <Zap className="h-4 w-4" />
+  )}
+  Reunião Instantânea
+</Button>
+Handler:
+
+const handleInstantMeeting = async () => {
+  try {
+    // Chama API para criar reunião
+    const meeting = await createInstantMeeting({ titulo: 'Reunião Instantânea' });
+    
+    // Armazena dados da reunião criada
+    setCreatedMeeting({
+      id: meeting.id,
+      linkReuniao: meeting.linkReuniao,
+      titulo: meeting.titulo,
+    });
+    
+    // Abre modal de sucesso
+    setShowMeetingModal(true);
+  } catch (error) {
+    toast({ title: "Erro", description: error.message });
+  }
+};
+Backend Endpoint (
+server/routes.ts
+):
+
+app.post("/api/reunioes/instantanea", requireAuth, requireTenant, async (req, res) => {
+  // 1. Criar sala no 100ms
+  const sala = await criarSala(
+    `instantanea-${Date.now()}`,
+    hmsTemplateId,
+    hmsAccessKey,
+    hmsAppSecret
+  );
+  
+  // 2. Gerar link público
+  const linkReuniao = `https://${domain}/reuniao/${tenant.slug}/${sala.id}`;
+  
+  // 3. Salvar no banco
+  const [novaReuniao] = await db.insert(reunioes).values({
+    titulo: 'Reunião Instantânea',
+    roomId100ms: sala.id,
+    linkReuniao,
+    status: 'em_andamento',
+    dataInicio: new Date(),
+    dataFim: new Date(Date.now() + 60 * 60000), // +60min
+  }).returning();
+  
+  return res.status(201).json(novaReuniao);
+});
+Passo 2: Modal de Sucesso
+InstantMeetingModal (
+client/src/components/InstantMeetingModal.tsx
+)
+Design do Modal:
+
+✅ Ícone de check verde
+📋 Campo de input com o link (read-only)
+📋 Botão "Copiar" ao lado do input
+👥 Botão "Convidar" (abre formulário de email)
+🔵 Botão principal "Participar agora" (azul, grande)
+Código do Botão Principal:
+
+<Button 
+  onClick={handleJoinNow} 
+  className="w-full h-14 rounded-2xl bg-blue-600 hover:bg-blue-700 shadow-lg"
+>
+  Participar agora
+  <ArrowRight className="h-5 w-5" />
+</Button>
+Handler de Participação:
+
+const handleJoinNow = () => {
+  if (meeting?.linkReuniao) {
+    // Abre link em nova aba
+    const url = meeting.linkReuniao.startsWith('http') 
+      ? meeting.linkReuniao 
+      : `${window.location.origin}${meeting.linkReuniao}`;
+    
+    window.open(url, "_blank");
+    onClose();
+  }
+};
+Passo 3: Interface de Vídeo
+Meeting100ms Component (
+client/src/components/Meeting100ms.tsx
+)
+Estrutura da Interface:
+
+┌─────────────────────────────────────────┐
+│ Header (Logo + Status de Gravação)     │
+├─────────────────────────────────────────┤
+│                                         │
+│   Grid de Vídeos (PeerVideo)           │
+│   ┌──────┐  ┌──────┐                   │
+│   │Peer 1│  │Peer 2│                   │
+│   └──────┘  └──────┘                   │
+│                                         │
+├─────────────────────────────────────────┤
+│ Footer (Controles)                      │
+│ [🎤] [📹] [🖥️] [⚫] [Sair]             │
+└─────────────────────────────────────────┘
+Componente PeerVideo (linhas 36-112):
+
+function PeerVideo({ peer, config, totalPeers }) {
+  const { videoRef } = useVideo({ trackId: peer.videoTrack });
+  const isVideoOff = !peer.videoTrack;
+  return (
+    <Card className="relative aspect-video bg-zinc-900">
+      {/* Avatar (quando vídeo está off) */}
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="w-20 h-20 rounded-full bg-blue-600 text-white">
+          {peer.name?.charAt(0).toUpperCase()}
+        </div>
+      </div>
+      {/* Vídeo */}
+      <video
+        ref={videoRef}
+        autoPlay
+        muted={peer.isLocal}
+        playsInline
+        className="absolute inset-0 w-full h-full object-cover"
+      />
+      {/* Nome do participante */}
+      <div className="absolute bottom-3 left-3 px-3 py-1.5 rounded-lg bg-black/60 text-white">
+        {peer.name} {peer.isLocal && "(Você)"}
+        {!peer.audioTrack && <MicOff className="w-3 h-3 text-red-500" />}
+      </div>
+    </Card>
+  );
+}
+Header com Indicador de Gravação (linhas 454-486):
+
+<head...
