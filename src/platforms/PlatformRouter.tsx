@@ -4,6 +4,7 @@ import { useLocation } from 'react-router-dom';
 import DesktopApp from './desktop/DesktopApp';
 import MobileApp from './mobile/MobileApp';
 import Reuniao from '@/pages/Reuniao';
+import PublicMeetingRoom from '@/pages/PublicMeetingRoom';
 
 /**
  * PlatformRouter - Roteador inteligente que decide qual app renderizar
@@ -15,6 +16,11 @@ import Reuniao from '@/pages/Reuniao';
 const PlatformRouter = () => {
   const { isMobile } = usePlatform();
   const location = useLocation();
+
+  // Se a rota for de reunião pública, renderiza o componente isolado sem layout
+  if (location.pathname.startsWith('/reuniao/') && location.pathname.split('/').length === 4) {
+    return <PublicMeetingRoom />;
+  }
 
   // Se a rota for de reunião, renderiza o componente isolado sem layout
   if (location.pathname.startsWith('/reuniao/') && location.pathname.split('/').length === 3) {

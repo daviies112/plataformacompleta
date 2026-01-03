@@ -90,6 +90,90 @@ async function getHMS100msCredentials(tenantId: string) {
   return null;
 }
 
+// 📌 GET meeting details (PUBLIC - No auth required)
+router.get('/public/:companySlug/:roomId', async (req, res) => {
+  try {
+    const { companySlug, roomId } = req.params;
+
+    // Resolve tenant by slug
+    const [tenant] = await db
+      .select()
+      .from(meetingTenants)
+      .where(eq(meetingTenants.id, companySlug)); // Assuming companySlug is tenantId for now or we need a lookup
+
+    // If not found by ID, try searching by some slug field if it exists
+    // For now, let's assume we can find the meeting directly by ID first
+    const [meeting] = await db
+      .select()
+      .from(reunioes)
+      .where(eq(reunioes.id, roomId));
+
+    if (!meeting) {
+      return res.status(404).json({
+        success: false,
+        message: 'Reunião não encontrada',
+      });
+    }
+
+    return res.json({ 
+      success: true, 
+      data: {
+        reuniao: meeting,
+        tenant: tenant || { id: meeting.tenantId, nome: 'Nexus' },
+        designConfig: meeting.metadata?.roomDesignConfig || {},
+        roomDesignConfig: meeting.metadata?.roomDesignConfig
+      }
+    });
+  } catch (error) {
+    console.error('[MEETINGS] Erro ao obter reunião pública:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Erro ao obter reunião',
+    });
+  }
+});
+
+router.post('/public/:companySlug/:roomId/token', async (req, res) => {
+  try {
+    const { companySlug, roomId } = req.params;
+    const { name } = req.body;
+
+    const [meeting] = await db
+      .select()
+      .from(reunioes)
+      .where(eq(reunioes.id, roomId));
+
+    if (!meeting || !meeting.roomId100ms) {
+      return res.status(404).json({ success: false, message: 'Reunião não encontrada ou não iniciada' });
+    }
+
+    const tenantId = meeting.tenantId;
+    const hmsCredentials = await getHMS100msCredentials(tenantId);
+
+    if (!hmsCredentials) {
+      return res.status(400).json({ success: false, message: 'Credenciais 100ms não configuradas' });
+    }
+
+    const token = gerarTokenParticipante(
+      meeting.roomId100ms,
+      `user-${Date.now()}`,
+      'guest',
+      hmsCredentials.appAccessKey,
+      hmsCredentials.appSecret
+    );
+
+    return res.json({
+      success: true,
+      data: {
+        token,
+        roomId: meeting.roomId100ms
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Erro ao gerar token' });
+  }
+});
+
 router.use((req: Request, res: Response, next) => {
   attachUserData(req, res, next);
 });

@@ -91,9 +91,9 @@ export const publicApi = {
   getConfirmation: (bookingId: string) => 
     api.get(`/api/public/booking/${bookingId}/confirmation`),
   getMeetingRoom: (company: string, roomId: string) => 
-    api.get(`/api/public/reuniao/${company}/${roomId}`),
+    api.get(`/api/reunioes/public/${company}/${roomId}`),
   getMeetingRoomToken: (company: string, roomId: string, name: string) => 
-    api.post(`/api/public/reuniao/${company}/${roomId}/token`, { name }),
+    api.post(`/api/reunioes/public/${company}/${roomId}/token`, { name }),
 };
 
 export const confirmationPagesApi = {

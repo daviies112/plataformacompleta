@@ -32,3 +32,6 @@
 [x] 32. Workflow configured with webview output type for port 5000
 [x] 33. Application running successfully - server started on port 5000
 [x] 34. Project import completed
+[x] 35. Investigar por que a rota /reuniao/:id está retornando "Reunião não encontrada"
+[x] 36. Implementar endpoints públicos de reunião e corrigir roteamento frontend
+[x] 37. Validar correção da URL de reunião

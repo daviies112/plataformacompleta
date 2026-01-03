@@ -30,6 +30,7 @@ import FormularioPublicoWrapper from "@/features/formularios-platform/pages/Form
 import ConsultarCPFPage from "@/pages/consultar-cpf";
 import HistoricoConsultasPage from "@/pages/historico-consultas";
 import Gravacoes from "@/pages/Gravacoes";
+import PublicMeetingRoom from "@/pages/PublicMeetingRoom";
 import Reuniao from "@/pages/Reuniao";
 
 // Import Revendedora Platform
@@ -494,11 +495,8 @@ const DesktopApp = () => {
         } 
       />
       
-      {/* Reuniao Platform - Plataforma de videoconferencia e reunioes */}
-      <Route 
-        path="/reuniao/:id" 
-        element={<Reuniao />} 
-      />
+      <Route path="/reuniao/:companySlug/:roomId" element={<PublicMeetingRoom />} />
+      <Route path="/reuniao/:id" element={<Reuniao />} />
       <Route 
         path="/reuniao/*" 
         element={
