@@ -10,6 +10,7 @@ import {
   HMSPeer,
 } from "@100mslive/hms-video-store";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Tooltip,
   TooltipContent,
@@ -32,24 +33,12 @@ import {
   Loader2,
   Users,
   Smile,
+  CheckCircle2,
+  Copy,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { RoomDesignConfig, DEFAULT_ROOM_DESIGN_CONFIG } from "../types";
-
-interface Meeting100msProps {
-  roomId: string;
-  meetingId: string;
-  participantName?: string;
-  initialAudioEnabled?: boolean;
-  initialVideoEnabled?: boolean;
-  onLeave: () => void;
-  tenant?: {
-    nome: string;
-    logoUrl?: string;
-  };
-  roomDesignConfig?: RoomDesignConfig;
-  meetingCode?: string;
-}
+import { useToast } from "@/hooks/use-toast";
 
 const hmsManager = new HMSReactiveStore();
 const hmsStore = hmsManager.getStore();
@@ -163,7 +152,7 @@ function PeerVideo({
       />
       
       {!hasVideo && (
-        <div className="absolute inset-0 flex items-center justify-center">
+        <div className="absolute inset-0 flex items-center justify-center bg-zinc-800">
           <div
             className={cn(
               "rounded-full flex items-center justify-center font-bold",
@@ -307,8 +296,7 @@ function Controls({
 
   return (
     <div
-      className="flex items-center justify-center gap-3 p-4 rounded-2xl"
-      style={{ backgroundColor: config.colors.controlsBackground }}
+      className="flex items-center justify-center gap-3 p-4 rounded-2xl bg-zinc-900/80 backdrop-blur-md"
     >
       <TooltipProvider>
         <Tooltip>
@@ -468,10 +456,25 @@ function Controls({
   );
 }
 
+interface Meeting100msProps {
+  roomId: string;
+  meetingId: string;
+  participantName?: string;
+  initialAudioEnabled?: boolean;
+  initialVideoEnabled?: boolean;
+  onLeave: () => void;
+  tenant?: {
+    nome: string;
+    logoUrl?: string;
+  };
+  roomDesignConfig?: RoomDesignConfig;
+  meetingCode?: string;
+}
+
 export function Meeting100ms({
   roomId,
   meetingId,
-  participantName = "Participante",
+  participantName: initialParticipantName = "Participante",
   initialAudioEnabled = true,
   initialVideoEnabled = true,
   onLeave,
@@ -485,6 +488,9 @@ export function Meeting100ms({
   const [reactions, setReactions] = useState<{ id: string; emoji: string }[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isRecordingLoading, setIsRecordingLoading] = useState(false);
+  const [showLobby, setShowLobby] = useState(true);
+  const [participantName, setParticipantName] = useState(initialParticipantName);
+  const { toast } = useToast();
 
   const config = roomDesignConfig || DEFAULT_ROOM_DESIGN_CONFIG;
 
@@ -492,8 +498,6 @@ export function Meeting100ms({
     setIsRecordingLoading(true);
     try {
       const token = localStorage.getItem('auth_token');
-      console.log('[Meeting100ms] Iniciando gravação para reunião:', meetingId);
-      
       const response = await fetch(`/api/reunioes/${meetingId}/recording/start`, {
         method: 'POST',
         headers: {
@@ -502,19 +506,13 @@ export function Meeting100ms({
         },
         credentials: 'include',
         body: JSON.stringify({
-          meetingUrl: `https://app.100ms.live/meeting/${roomId}`
+          meetingUrl: `${window.location.origin}/reuniao/${meetingId}`
         }),
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        const errorMsg = errorData?.message || `HTTP ${response.status}`;
-        console.error('[Meeting100ms] Erro ao iniciar gravação:', errorMsg);
-        throw new Error(`Falha ao iniciar gravação: ${errorMsg}`);
+        throw new Error("Falha ao iniciar gravação");
       }
-
-      const data = await response.json();
-      console.log('[Meeting100ms] Gravação iniciada com sucesso:', data);
     } catch (err: any) {
       console.error('[Meeting100ms] Erro ao iniciar gravação:', err);
       throw err;
@@ -527,8 +525,6 @@ export function Meeting100ms({
     setIsRecordingLoading(true);
     try {
       const token = localStorage.getItem('auth_token');
-      console.log('[Meeting100ms] Parando gravação para reunião:', meetingId);
-      
       const response = await fetch(`/api/reunioes/${meetingId}/recording/stop`, {
         method: 'POST',
         headers: {
@@ -538,25 +534,11 @@ export function Meeting100ms({
         credentials: 'include',
       });
 
-      // Log detalhado da resposta
-      console.log('[Meeting100ms] Response status:', response.status);
-      
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        const errorMsg = errorData?.message || `HTTP ${response.status}`;
-        console.error('[Meeting100ms] Erro ao parar gravação:', errorMsg);
-        console.error('[Meeting100ms] Dados de erro completo:', errorData);
-        
-        // Ainda assim marca como parado localmente (a gravação pode estar já parada no 100ms)
-        throw new Error(`Falha ao parar gravação: ${errorMsg}`);
+        throw new Error("Falha ao parar gravação");
       }
-
-      const data = await response.json();
-      console.log('[Meeting100ms] Gravação parada com sucesso:', data);
     } catch (err: any) {
-      console.error('[Meeting100ms] Erro ao parar gravação - mas marcando como parado localmente:', err);
-      // NÃO relançar erro aqui - deixar o estado ser atualizado mesmo com erro
-      // porque a gravação pode já estar parada no backend
+      console.error('[Meeting100ms] Erro ao parar gravação:', err);
     } finally {
       setIsRecordingLoading(false);
     }
@@ -572,23 +554,11 @@ export function Meeting100ms({
     };
   }, []);
 
-  useEffect(() => {
-    // Auto-join ao montar o componente
-    const autoJoin = async () => {
-      await joinRoom();
-    };
-    autoJoin();
-  }, [meetingId, participantName]);
-
   const joinRoom = async () => {
-    if (isConnected) return; // Já conectado
-    
     setIsJoining(true);
     setError(null);
 
     try {
-      console.log('[Meeting100ms] Obtendo token para reunião:', meetingId);
-      
       const token = localStorage.getItem('auth_token');
       const response = await fetch(`/api/meetings/${meetingId}/token?userName=${encodeURIComponent(participantName)}`, {
         headers: {
@@ -598,21 +568,16 @@ export function Meeting100ms({
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('[Meeting100ms] Erro ao obter token:', response.status, errorText);
-        throw new Error(`Falha ao obter token de acesso: ${response.status}`);
+        throw new Error(`Falha ao obter token: ${response.status}`);
       }
 
       const result = await response.json();
       const authToken = result.data?.token;
 
       if (!authToken) {
-        console.error('[Meeting100ms] Token inválido na resposta:', result);
         throw new Error('Token de acesso inválido');
       }
 
-      console.log('[Meeting100ms] Token obtido com sucesso, conectando...');
-      
       await hmsActions.join({
         userName: participantName,
         authToken,
@@ -622,7 +587,7 @@ export function Meeting100ms({
         },
       });
       
-      console.log('[Meeting100ms] Conectado com sucesso!');
+      setShowLobby(false);
     } catch (err: any) {
       console.error('[Meeting100ms] Join error:', err);
       setError(err.message || 'Erro ao entrar na reunião');
@@ -639,58 +604,79 @@ export function Meeting100ms({
     }, 3000);
   };
 
-  useEffect(() => {
-    return () => {
-      if (isConnected) {
-        hmsActions.leave().catch(console.error);
+  const handleCopyLink = async () => {
+    const url = `${window.location.origin}/reuniao/${meetingId}`;
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(url);
+      } else {
+        const textArea = document.createElement("textarea");
+        textArea.value = url;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textArea);
       }
-    };
-  }, [isConnected]);
+      toast({
+        title: "Link copiado!",
+        description: "O link da reunião foi copiado para a área de transferência.",
+      });
+    } catch (err) {
+      console.error("Failed to copy:", err);
+    }
+  };
 
-  if (!isConnected) {
+  if (showLobby && !isConnected) {
     return (
-      <div
-        className="h-full flex flex-col items-center justify-center gap-6 p-8"
-        style={{ backgroundColor: config.colors.background }}
-      >
-        {tenant?.logoUrl && config.branding.showLogoInLobby && (
-          <img
-            src={tenant.logoUrl}
-            alt={tenant.nome}
-            className="h-12 object-contain"
-          />
-        )}
-        
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-white mb-2">
-            {config.lobby.title}
-          </h2>
-          {config.lobby.subtitle && (
-            <p className="text-zinc-400">{config.lobby.subtitle}</p>
-          )}
-        </div>
+      <div className="h-full flex flex-col items-center justify-center bg-[#0f1115] text-white p-4">
+        <div className="w-full max-w-2xl bg-[#1a1d21] rounded-2xl overflow-hidden shadow-2xl border border-zinc-800">
+          <div className="p-8 flex flex-col items-center gap-6">
+            <h2 className="text-2xl font-bold text-white">Pronto para participar?</h2>
+            <p className="text-zinc-400 -mt-4 text-sm">Reunião Instantânea</p>
 
-        {error && (
-          <div className="bg-red-500/20 border border-red-500 rounded-lg px-4 py-2 text-red-400">
-            {error}
+            <div className="relative w-full aspect-video bg-zinc-900 rounded-xl overflow-hidden border border-zinc-800 group">
+               <div className="absolute inset-0 flex items-center justify-center bg-zinc-800/50">
+                  <div className="w-24 h-24 rounded-full bg-blue-600 flex items-center justify-center text-4xl font-bold text-white">
+                    {participantName.charAt(0).toUpperCase()}
+                  </div>
+               </div>
+               
+               <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Button size="icon" variant="secondary" className="rounded-full bg-zinc-800/80 border-none h-10 w-10 text-white hover:bg-zinc-700/80">
+                    <Video className="h-5 w-5" />
+                  </Button>
+                  <Button size="icon" variant="secondary" className="rounded-full bg-zinc-800/80 border-none h-10 w-10 text-white hover:bg-zinc-700/80">
+                    <Mic className="h-5 w-5" />
+                  </Button>
+               </div>
+            </div>
+
+            <div className="w-full space-y-4">
+              <div className="space-y-2 text-left">
+                <label className="text-sm font-medium text-zinc-400">Como você quer ser chamado?</label>
+                <Input 
+                  value={participantName}
+                  onChange={(e) => setParticipantName(e.target.value)}
+                  className="bg-[#2a2d32] border-zinc-700 h-12 text-white focus:ring-blue-500"
+                  placeholder="Seu nome"
+                />
+              </div>
+
+              <Button 
+                onClick={joinRoom}
+                className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg transition-all"
+                disabled={!participantName.trim() || isJoining}
+              >
+                {isJoining ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Participar agora"}
+              </Button>
+
+              <div className="flex justify-center gap-6 text-[10px] sm:text-xs text-zinc-500 mt-2">
+                <span className="flex items-center gap-1.5"><CheckCircle2 className="h-3 w-3 text-green-500" /> Câmera: Conectada</span>
+                <span className="flex items-center gap-1.5"><CheckCircle2 className="h-3 w-3 text-green-500" /> Microfone: Conectado</span>
+              </div>
+            </div>
           </div>
-        )}
-
-        <Button
-          onClick={joinRoom}
-          disabled={isJoining}
-          className="gap-2 px-8 py-6 text-lg"
-          style={{ backgroundColor: config.colors.primaryButton }}
-        >
-          {isJoining ? (
-            <>
-              <Loader2 className="h-5 w-5 animate-spin" />
-              Entrando...
-            </>
-          ) : (
-            config.lobby.buttonText || "Participar agora"
-          )}
-        </Button>
+        </div>
       </div>
     );
   }
@@ -706,58 +692,68 @@ export function Meeting100ms({
 
   return (
     <div
-      className="h-full flex flex-col relative"
-      style={{ backgroundColor: config.colors.background }}
+      className="h-full flex flex-col bg-[#0f1115] relative overflow-hidden"
     >
-      {tenant?.logoUrl && config.branding.showLogoInMeeting && (
-        <div className="absolute top-4 left-4 z-10">
-          <img
-            src={tenant.logoUrl}
-            alt={tenant.nome}
-            style={{ height: config.branding.logoSize || 40 }}
-            className="object-contain"
-          />
+      {/* Header */}
+      <div className="flex items-center justify-between p-4 bg-zinc-950/40 backdrop-blur-sm border-b border-zinc-800/50 z-20">
+        <div className="flex items-center gap-3">
+          <div className="bg-blue-600 p-2 rounded-lg">
+            <Video className="h-5 w-5 text-white" />
+          </div>
+          <span className="font-bold text-white tracking-tight">MeetFlow</span>
         </div>
-      )}
 
-      {config.meeting.showParticipantCount && (
-        <div className="absolute top-4 right-4 z-10 flex items-center gap-2 bg-black/50 px-3 py-1.5 rounded-full text-white text-sm">
-          <Users className="h-4 w-4" />
-          {peers.length}
+        <div className="flex items-center gap-3">
+          {isConnected && hmsStore.getState((state) => state.recordings?.server?.running) && (
+             <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/20 px-3 py-1.5 rounded-full">
+                <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+                <span className="text-xs font-medium text-red-500 uppercase tracking-wider">Gravando</span>
+             </div>
+          )}
+          
+          <Button variant="outline" size="sm" className="bg-zinc-800/50 border-zinc-700 text-white gap-2 h-9 px-4 rounded-lg hover:bg-zinc-700" onClick={handleCopyLink}>
+             <Copy className="h-4 w-4" />
+             <span className="hidden sm:inline">Copiar Link</span>
+          </Button>
+
+          <div className="flex items-center gap-2 bg-zinc-800/50 px-3 py-1.5 rounded-lg border border-zinc-700 h-9">
+            <Users className="h-4 w-4 text-zinc-400" />
+            <span className="text-sm font-medium text-white">{peers.length} Participantes</span>
+          </div>
         </div>
-      )}
-
-      <div className={`flex-1 grid ${gridCols} gap-4 p-4`}>
-        {peers.map((peer) => (
-          <PeerVideo
-            key={peer.id}
-            peer={peer}
-            config={config}
-            isSpotlight={peers.length === 1}
-          />
-        ))}
       </div>
 
-      {reactions.map(({ id, emoji }) => (
-        <div
-          key={id}
-          className="absolute bottom-24 left-1/2 transform -translate-x-1/2 animate-bounce text-4xl"
-          style={{ animationDuration: "0.5s" }}
-        >
-          {emoji}
-        </div>
-      ))}
+      {/* Video Grid Area */}
+      <div className="flex-1 p-6 flex items-center justify-center overflow-hidden">
+         <div className={cn("w-full h-full max-w-6xl grid gap-4 items-center justify-center", gridCols)}>
+            {peers.map(peer => (
+              <PeerVideo key={peer.id} peer={peer} config={config} isSpotlight={peers.length === 1} />
+            ))}
+         </div>
+      </div>
 
-      <div className="flex justify-center pb-6">
-        <Controls 
-          onLeave={onLeave} 
-          config={config} 
-          onReact={handleReact}
-          meetingId={meetingId}
-          onStartRecording={handleStartRecording}
-          onStopRecording={handleStopRecording}
-          isRecordingLoading={isRecordingLoading}
-        />
+      {/* Footer Controls */}
+      <div className="p-6 bg-gradient-to-t from-black/80 to-transparent z-20">
+        <div className="flex items-center justify-center max-w-screen-xl mx-auto">
+           <Controls 
+             onLeave={onLeave} 
+             config={config} 
+             onReact={handleReact}
+             meetingId={meetingId}
+             onStartRecording={handleStartRecording}
+             onStopRecording={handleStopRecording}
+             isRecordingLoading={isRecordingLoading}
+           />
+        </div>
+      </div>
+
+      {/* Emoji Overlay */}
+      <div className="absolute bottom-24 left-1/2 -translate-x-1/2 flex gap-4 pointer-events-none z-50">
+        {reactions.map(r => (
+          <div key={r.id} className="text-4xl animate-bounce">
+            {r.emoji}
+          </div>
+        ))}
       </div>
     </div>
   );
