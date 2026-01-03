@@ -33,20 +33,15 @@ interface AuthRequest extends Request {
 async function getHMS100msCredentials(tenantId: string) {
   console.log(`[MEETINGS] Buscando credenciais para tenantId: "${tenantId}"`);
   
-  // Normalize dev tenant ID to UUID for database lookups
-  const syncedTenantId = (tenantId === 'dev-daviemericko_gmail_com' || tenantId === 'system')
-    ? 'f5d8c8d9-7c9e-4b8a-9c7d-4e3b8a9c7d4e'
-    : tenantId;
-
-  console.log(`[MEETINGS] TenantId sincronizado: "${syncedTenantId}"`);
-
-  // Tenta primeiro na tabela hms_100ms_config (novo lugar)
+  // Tenta primeiro na tabela hms_100ms_config (novo lugar) - SEM normalização forçada para UUID de dev
+  // Isso permite que cada login (mesmo em dev) tenha suas próprias credenciais vinculadas ao seu tenantId real
   const [config] = await db
     .select()
     .from(hms100msConfig)
-    .where(eq(hms100msConfig.tenantId, syncedTenantId));
+    .where(eq(hms100msConfig.tenantId, tenantId));
 
   if (config) {
+    console.log(`[MEETINGS] Credenciais encontradas na tabela hms_100ms_config para tenant: ${tenantId}`);
     return {
       appAccessKey: decrypt(config.appAccessKey),
       appSecret: decrypt(config.appSecret),
@@ -54,31 +49,46 @@ async function getHMS100msCredentials(tenantId: string) {
     };
   }
 
-  // Se não achar, tenta em meeting_tenants.configuracoes (lugar antigo JSONB)
-  // Use regex check to avoid UUID error if tenantId is not a UUID
-  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(tenantId);
-  
-  if (!isUuid) {
-    console.warn(`[MEETINGS] tenantId "${tenantId}" is not a valid UUID, skipping meeting_tenants lookup`);
-    return null;
-  }
-
-  const [tenant] = await db
-    .select()
-    .from(meetingTenants)
-    .where(eq(meetingTenants.id, tenantId));
-
-  if (tenant && tenant.configuracoes) {
-    const hmsConfig = (tenant.configuracoes as any)?.hms_100ms;
-    if (hmsConfig && hmsConfig.appAccessKey && hmsConfig.appSecret) {
+  // Fallback: Se for ID de dev, tenta buscar pelo UUID sincronizado (legado/compatibilidade)
+  if (tenantId === 'dev-daviemericko_gmail_com' || tenantId === 'system') {
+    const DEV_UUID = 'f5d8c8d9-7c9e-4b8a-9c7d-4e3b8a9c7d4e';
+    console.log(`[MEETINGS] Tentando fallback para UUID de dev: ${DEV_UUID}`);
+    const [devConfig] = await db
+      .select()
+      .from(hms100msConfig)
+      .where(eq(hms100msConfig.tenantId, DEV_UUID));
+    
+    if (devConfig) {
       return {
-        appAccessKey: hmsConfig.appAccessKey,
-        appSecret: hmsConfig.appSecret,
-        templateId: hmsConfig.templateId,
+        appAccessKey: decrypt(devConfig.appAccessKey),
+        appSecret: decrypt(devConfig.appSecret),
+        templateId: devConfig.templateId,
       };
     }
   }
 
+  // Se não achar, tenta em meeting_tenants.configuracoes (lugar antigo JSONB)
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(tenantId);
+  
+  if (isUuid) {
+    const [tenant] = await db
+      .select()
+      .from(meetingTenants)
+      .where(eq(meetingTenants.id, tenantId));
+
+    if (tenant && tenant.configuracoes) {
+      const hmsConfig = (tenant.configuracoes as any)?.hms_100ms;
+      if (hmsConfig && hmsConfig.appAccessKey && hmsConfig.appSecret) {
+        return {
+          appAccessKey: hmsConfig.appAccessKey,
+          appSecret: hmsConfig.appSecret,
+          templateId: hmsConfig.templateId,
+        };
+      }
+    }
+  }
+
+  console.warn(`[MEETINGS] Nenhuma credencial encontrada para tenant: ${tenantId}`);
   return null;
 }
 

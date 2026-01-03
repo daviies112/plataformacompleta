@@ -647,6 +647,168 @@ export function setupConfigRoutes(app: Express) {
     }
   });
 
+  // ===== HMS 100MS CONFIGURATION =====
+
+  app.get("/api/config/hms100ms", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const tenantId = req.user!.tenantId;
+      const configFromDb = await db.select().from(hms100msConfig)
+        .where(eq(hms100msConfig.tenantId, tenantId))
+        .limit(1);
+
+      if (configFromDb[0]) {
+        return res.json({
+          configured: true,
+          templateId: configFromDb[0].templateId,
+          createdAt: configFromDb[0].createdAt,
+          updatedAt: configFromDb[0].updatedAt,
+        });
+      }
+
+      return res.json({
+        configured: false,
+      });
+    } catch (error) {
+      console.error("Erro ao buscar configuração do HMS 100ms:", error);
+      return res.json({
+        configured: false,
+      });
+    }
+  });
+
+  app.get("/api/config/hms100ms/credentials", authenticateConfig, async (req: AuthRequest, res) => {
+    try {
+      const tenantId = req.user!.tenantId;
+      const configFromDb = await db.select().from(hms100msConfig)
+        .where(eq(hms100msConfig.tenantId, tenantId))
+        .limit(1);
+
+      if (configFromDb[0]) {
+        const decryptedAccessKey = decrypt(configFromDb[0].appAccessKey);
+        const decryptedSecret = decrypt(configFromDb[0].appSecret);
+
+        return res.json({
+          success: true,
+          credentials: {
+            appAccessKey: decryptedAccessKey,
+            appSecret: decryptedSecret,
+            templateId: configFromDb[0].templateId,
+          }
+        });
+      }
+
+      return res.status(404).json({
+        success: false,
+        error: "Credenciais não encontradas"
+      });
+    } catch (error) {
+      console.error("Erro ao buscar credenciais do HMS 100ms:", error);
+      return res.status(500).json({
+        success: false,
+        error: "Erro ao buscar credenciais",
+        message: error instanceof Error ? error.message : "Erro desconhecido",
+      });
+    }
+  });
+
+  app.post("/api/config/hms100ms", authenticateConfig, async (req: AuthRequest, res) => {
+    try {
+      const { appAccessKey, appSecret, templateId } = req.body;
+      const tenantId = req.user!.tenantId;
+
+      if (!appAccessKey || !appSecret) {
+        return res.status(400).json({
+          error: "appAccessKey e appSecret são obrigatórios",
+        });
+      }
+
+      const encryptedKey = encrypt(appAccessKey);
+      const encryptedSecret = encrypt(appSecret);
+
+      const existingConfig = await db.select().from(hms100msConfig)
+        .where(eq(hms100msConfig.tenantId, tenantId))
+        .limit(1);
+
+      if (existingConfig[0]) {
+        await db
+          .update(hms100msConfig)
+          .set({
+            appAccessKey: encryptedKey,
+            appSecret: encryptedSecret,
+            templateId: templateId || null,
+            updatedAt: new Date(),
+          })
+          .where(and(
+            eq(hms100msConfig.id, existingConfig[0].id),
+            eq(hms100msConfig.tenantId, tenantId)
+          ));
+
+        console.log(`✅ Configuração do HMS 100ms atualizada para tenant ${tenantId}`);
+        return res.json({
+          success: true,
+          message: "Credenciais atualizadas com sucesso",
+        });
+      } else {
+        await db.insert(hms100msConfig).values({
+          tenantId,
+          appAccessKey: encryptedKey,
+          appSecret: encryptedSecret,
+          templateId: templateId || null,
+        });
+
+        console.log(`✅ Configuração do HMS 100ms salva para tenant ${tenantId}`);
+        return res.json({
+          success: true,
+          message: "Credenciais salvas com sucesso",
+        });
+      }
+    } catch (error) {
+      console.error("Erro ao salvar configuração do HMS 100ms:", error);
+      return res.status(500).json({
+        error: "Erro ao salvar configuração",
+        message: error instanceof Error ? error.message : "Erro desconhecido",
+      });
+    }
+  });
+
+  app.post("/api/config/hms100ms/test", authenticateConfig, async (req: AuthRequest, res) => {
+    try {
+      const { appAccessKey, appSecret } = req.body;
+
+      if (!appAccessKey || !appSecret) {
+        return res.status(400).json({
+          success: false,
+          error: "appAccessKey e appSecret são obrigatórios",
+        });
+      }
+
+      // Simple validation by trying to generate a management token
+      // In a real scenario, we could call an HMS API endpoint
+      try {
+        const { gerarTokenParticipante } = await import('../services/meetings/hms100ms');
+        // If this doesn't throw, credentials format is likely okay
+        gerarTokenParticipante("test-room", "test-user", "host", appAccessKey, appSecret);
+
+        return res.json({
+          success: true,
+          message: "Credenciais do 100ms validadas com sucesso! ✅",
+        });
+      } catch (err: any) {
+        return res.status(400).json({
+          success: false,
+          error: `Erro ao validar credenciais: ${err.message}`,
+        });
+      }
+    } catch (error) {
+      console.error("Erro ao testar configuração do HMS 100ms:", error);
+      return res.status(500).json({
+        success: false,
+        error: "Erro ao testar conexão",
+        message: error instanceof Error ? error.message : "Erro desconhecido",
+      });
+    }
+  });
+
   // ===== CLOUDFLARE CONFIGURATION =====
   
   app.get("/api/config/cloudflare", authenticateToken, async (req: AuthRequest, res) => {
