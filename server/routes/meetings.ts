@@ -954,6 +954,8 @@ router.post('/:id/start', async (req: AuthRequest, res: Response) => {
     const tenantId = req.user!.tenantId;
     const { id } = req.params;
 
+    console.log(`[MEETINGS] Iniciando reunião ${id} para tenant ${tenantId}`);
+
     const [meeting] = await db
       .select()
       .from(reunioes)
