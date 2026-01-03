@@ -37,23 +37,32 @@ export function InstantMeetingModal({ isOpen, onClose, meeting }: InstantMeeting
   };
 
   const handleJoinNow = () => {
+    console.log("handleJoinNow - meeting data:", meeting);
     if (meeting?.linkReuniao) {
       const url = meeting.linkReuniao.startsWith('http') 
         ? meeting.linkReuniao 
         : `${window.location.origin}${meeting.linkReuniao}`;
       
+      console.log("Opening URL:", url);
       window.open(url, "_blank");
       onClose();
+    } else {
+      console.error("Meeting link missing!");
+      toast({
+        title: "Erro",
+        description: "Link da reunião não encontrado.",
+        variant: "destructive"
+      });
     }
   };
 
   const handleInvite = () => {
-    if (meeting?.linkReuniao) {
-      const url = meeting.linkReuniao.startsWith('http') 
-        ? meeting.linkReuniao 
-        : `${window.location.origin}${meeting.linkReuniao}`;
-      
-      const text = encodeURIComponent(`Olá! Você foi convidado para uma reunião: ${meeting.titulo}\nEntre pelo link: ${url}`);
+    const url = meeting?.linkReuniao 
+      ? (meeting.linkReuniao.startsWith('http') ? meeting.linkReuniao : `${window.location.origin}${meeting.linkReuniao}`)
+      : "";
+    
+    if (url) {
+      const text = encodeURIComponent(`Olá! Você foi convidado para uma reunião: ${meeting?.titulo || 'Reunião'}\nEntre pelo link: ${url}`);
       window.open(`https://wa.me/?text=${text}`, "_blank");
       
       toast({
@@ -67,9 +76,12 @@ export function InstantMeetingModal({ isOpen, onClose, meeting }: InstantMeeting
     ? (meeting.linkReuniao.startsWith('http') ? meeting.linkReuniao : `${window.location.origin}${meeting.linkReuniao}`)
     : "";
 
+  console.log("Modal Render - meeting:", meeting);
+  console.log("Modal Render - displayUrl:", displayUrl);
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-md bg-white dark:bg-zinc-950 p-6 rounded-3xl border-none shadow-2xl">
+      <DialogContent className="sm:max-w-md bg-white dark:bg-zinc-950 p-6 rounded-3xl border-none shadow-2xl z-[9999]">
         <DialogHeader className="flex flex-col items-center gap-4 py-4">
           <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
             <Check className="h-10 w-10 text-green-600 dark:text-green-500" />
@@ -88,12 +100,13 @@ export function InstantMeetingModal({ isOpen, onClose, meeting }: InstantMeeting
             <Input
               readOnly
               value={displayUrl}
-              className="bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 pl-10 pr-10 h-12 rounded-xl font-mono text-sm text-blue-600 select-all"
+              onClick={(e) => (e.target as HTMLInputElement).select()}
+              className="bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 pl-10 pr-10 h-12 rounded-xl font-mono text-sm text-blue-600 select-all focus-visible:ring-1"
             />
             <Button 
               size="icon" 
               variant="ghost" 
-              className="absolute right-1 top-1/2 -translate-y-1/2 h-10 w-10"
+              className="absolute right-1 top-1/2 -translate-y-1/2 h-10 w-10 hover:bg-transparent"
               onClick={handleCopyLink}
             >
               {copied ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4 text-zinc-400" />}
@@ -120,7 +133,7 @@ export function InstantMeetingModal({ isOpen, onClose, meeting }: InstantMeeting
           </div>
         </div>
 
-        <DialogFooter className="flex flex-col gap-3 sm:justify-center pt-4">
+        <DialogFooter className="flex flex-col gap-3 sm:justify-center pt-4 border-t border-zinc-100 dark:border-zinc-800">
           <Button 
             onClick={handleJoinNow}
             className="w-full h-14 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white text-lg font-bold shadow-lg shadow-blue-500/20 gap-2 group transition-all"
