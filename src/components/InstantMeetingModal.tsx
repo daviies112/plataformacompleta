@@ -50,55 +50,70 @@ export function InstantMeetingModal({ isOpen, onClose, meeting }: InstantMeeting
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-md bg-white dark:bg-zinc-950 p-6 rounded-3xl border-none shadow-2xl">
-        <DialogHeader className="flex flex-col items-center gap-4">
+        <DialogHeader className="flex flex-col items-center gap-4 py-4">
           <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-            <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-500" />
+            <Check className="h-10 w-10 text-green-600 dark:text-green-500" />
           </div>
-          <DialogTitle className="text-2xl font-bold text-center">Reunião Criada!</DialogTitle>
-          <p className="text-muted-foreground text-center">
-            Sua reunião instantânea "{meeting?.titulo}" está pronta.
+          <DialogTitle className="text-2xl font-bold text-center">Reunião criada!</DialogTitle>
+          <p className="text-muted-foreground text-center text-sm px-4">
+            Compartilhe o link abaixo com os participantes para iniciarem.
           </p>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Link da Reunião</label>
-            <div className="flex gap-2">
-              <Input
-                readOnly
-                value={meeting?.linkReuniao || ""}
-                className="bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800"
-              />
-              <Button size="icon" variant="outline" onClick={handleCopyLink}>
-                {copied ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
-              </Button>
+        <div className="space-y-6 py-2">
+          <div className="relative group">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400">
+              <span className="text-xs">🔗</span>
             </div>
+            <Input
+              readOnly
+              value={meeting?.linkReuniao || ""}
+              className="bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 pl-10 pr-10 h-12 rounded-xl font-mono text-sm text-blue-600"
+            />
+            <Button 
+              size="icon" 
+              variant="ghost" 
+              className="absolute right-1 top-1/2 -translate-y-1/2 h-10 w-10"
+              onClick={handleCopyLink}
+            >
+              {copied ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4 text-zinc-400" />}
+            </Button>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Convidar por E-mail</label>
-            <div className="flex gap-2">
-              <Input
-                placeholder="email@exemplo.com"
-                value={inviteEmail}
-                onChange={(e) => setInviteEmail(e.target.value)}
-                className="bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800"
-              />
-              <Button variant="outline" className="gap-2">
-                <Users className="h-4 w-4" />
-                Convidar
-              </Button>
-            </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Button 
+              variant="outline" 
+              className="h-12 rounded-xl gap-2 border-zinc-200"
+              onClick={() => toast({ title: "Em breve", description: "Funcionalidade de convite será liberada." })}
+            >
+              <Users className="h-4 w-4" />
+              Convidar
+            </Button>
+            <Button 
+              variant="outline" 
+              className="h-12 rounded-xl gap-2 border-zinc-200"
+              onClick={handleCopyLink}
+            >
+              <Copy className="h-4 w-4" />
+              Copiar
+            </Button>
           </div>
         </div>
 
-        <DialogFooter className="sm:justify-center pt-2">
+        <DialogFooter className="flex flex-col gap-3 sm:justify-center pt-4">
           <Button 
             onClick={handleJoinNow}
-            className="w-full h-14 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white text-lg font-bold shadow-lg shadow-blue-500/30 gap-2 group transition-all"
+            className="w-full h-14 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white text-lg font-bold shadow-lg shadow-blue-500/20 gap-2 group transition-all"
           >
             Participar agora
             <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
+          </Button>
+          <Button 
+            variant="ghost" 
+            className="text-zinc-500 hover:text-zinc-800"
+            onClick={onClose}
+          >
+            Fechar
           </Button>
         </DialogFooter>
       </DialogContent>

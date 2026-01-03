@@ -216,10 +216,9 @@ export default function Dashboard() {
       </div>
 
       <InstantMeetingModal
-        open={showMeetingModal}
+        isOpen={showMeetingModal}
         onClose={handleCloseModal}
         meeting={createdMeeting}
-        onJoin={handleJoinMeeting}
       />
     </div>
   );
