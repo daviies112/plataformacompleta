@@ -635,6 +635,14 @@ export function Meeting100ms({
             <p className="text-zinc-400 -mt-4 text-sm">Reunião Instantânea</p>
 
             <div className="relative w-full aspect-video bg-zinc-900 rounded-xl overflow-hidden border border-zinc-800 group">
+               <video
+                  ref={videoRef}
+                  autoPlay
+                  muted
+                  playsInline
+                  className="absolute inset-0 w-full h-full object-cover transform scale-x-[-1]"
+               />
+               
                <div className="absolute inset-0 flex items-center justify-center bg-zinc-800/50">
                   <div className="w-24 h-24 rounded-full bg-blue-600 flex items-center justify-center text-4xl font-bold text-white">
                     {participantName.charAt(0).toUpperCase()}

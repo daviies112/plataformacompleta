@@ -171,43 +171,12 @@ export default function Reuniao() {
   }
 
   return (
-    <div className="h-full flex flex-col gap-4">
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-4">
-          <Button variant="outline" size="icon" onClick={() => setLocation("/dashboard")}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div>
-            <h1 className="text-xl font-bold">{meeting.titulo}</h1>
-            <p className="text-sm text-muted-foreground">Participante: {meeting.nome}</p>
-          </div>
-        </div>
-        {meeting.linkReuniao && (
-          <Button
-            variant="outline"
-            onClick={handleCopyLink}
-            className="gap-2"
-          >
-            {copied ? (
-              <>
-                <Check className="h-4 w-4 text-green-500" />
-                Copiado!
-              </>
-            ) : (
-              <>
-                <Share2 className="h-4 w-4" />
-                Compartilhar
-              </>
-            )}
-          </Button>
-        )}
-      </div>
-      
-      <div className="flex-1 min-h-0 border rounded-lg overflow-hidden shadow-2xl">
+    <div className="h-screen w-full bg-[#0f1115] overflow-hidden fixed inset-0 z-[100]">
+      <div className="h-full w-full">
          <Meeting100ms 
            roomId={meeting.roomId100ms || "room-test"} 
            meetingId={meetingId!}
-           onLeave={() => setLocation("/dashboard")} 
+           onLeave={() => window.close()} 
          />
       </div>
     </div>
