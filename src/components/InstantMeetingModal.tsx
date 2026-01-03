@@ -21,9 +21,24 @@ export function InstantMeetingModal({ isOpen, onClose, meeting }: InstantMeeting
   const { toast } = useToast();
 
   const handleCopyLink = async () => {
-    if (meeting?.linkReuniao) {
+    const url = meeting?.linkReuniao 
+      ? (meeting.linkReuniao.startsWith('http') ? meeting.linkReuniao : `${window.location.origin}${meeting.linkReuniao.startsWith('/') ? '' : '/'}${meeting.linkReuniao}`)
+      : meeting?.id ? `${window.location.origin}/reuniao/${meeting.id}` : "";
+
+    if (url) {
       try {
-        await navigator.clipboard.writeText(meeting.linkReuniao);
+        // Fallback for browsers/iframes where clipboard API might be restricted
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(url);
+        } else {
+          const textArea = document.createElement("textarea");
+          textArea.value = url;
+          document.body.appendChild(textArea);
+          textArea.select();
+          document.execCommand("copy");
+          document.body.removeChild(textArea);
+        }
+        
         setCopied(true);
         toast({
           title: "Link copiado!",
@@ -32,13 +47,17 @@ export function InstantMeetingModal({ isOpen, onClose, meeting }: InstantMeeting
         setTimeout(() => setCopied(false), 3000);
       } catch (err) {
         console.error("Failed to copy:", err);
+        toast({
+          title: "Erro ao copiar",
+          description: "Não foi possível copiar o link automaticamente.",
+          variant: "destructive"
+        });
       }
     }
   };
 
   const handleJoinNow = () => {
     console.log("handleJoinNow - meeting data:", meeting);
-    // Prefer linkReuniao, then meeting.id, then just meeting
     const meetingId = meeting?.id;
     const link = meeting?.linkReuniao;
 
@@ -67,8 +86,8 @@ export function InstantMeetingModal({ isOpen, onClose, meeting }: InstantMeeting
 
   const handleInvite = () => {
     const url = meeting?.linkReuniao 
-      ? (meeting.linkReuniao.startsWith('http') ? meeting.linkReuniao : `${window.location.origin}${meeting.linkReuniao}`)
-      : "";
+      ? (meeting.linkReuniao.startsWith('http') ? meeting.linkReuniao : `${window.location.origin}${meeting.linkReuniao.startsWith('/') ? '' : '/'}${meeting.linkReuniao}`)
+      : meeting?.id ? `${window.location.origin}/reuniao/${meeting.id}` : "";
     
     if (url) {
       const text = encodeURIComponent(`Olá! Você foi convidado para uma reunião: ${meeting?.titulo || 'Reunião'}\nEntre pelo link: ${url}`);
@@ -82,8 +101,8 @@ export function InstantMeetingModal({ isOpen, onClose, meeting }: InstantMeeting
   };
 
   const displayUrl = meeting?.linkReuniao 
-    ? (meeting.linkReuniao.startsWith('http') ? meeting.linkReuniao : `${window.location.origin}${meeting.linkReuniao}`)
-    : "";
+    ? (meeting.linkReuniao.startsWith('http') ? meeting.linkReuniao : `${window.location.origin}${meeting.linkReuniao.startsWith('/') ? '' : '/'}${meeting.linkReuniao}`)
+    : meeting?.id ? `${window.location.origin}/reuniao/${meeting.id}` : "";
 
   console.log("Modal Render - meeting:", meeting);
   console.log("Modal Render - displayUrl:", displayUrl);
