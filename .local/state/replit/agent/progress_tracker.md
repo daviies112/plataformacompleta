@@ -15,3 +15,7 @@
 [x] 15. Final migration verification - npm install completed
 [x] 16. Workflow configured with webview output for port 5000
 [x] 17. Application running successfully on Replit environment
+[x] 18. Run npm install to restore dependencies after migration
+[x] 19. Configure workflow with webview output type
+[x] 20. Verify application starts and runs correctly
+[x] 21. Complete project import
