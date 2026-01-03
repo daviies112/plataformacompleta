@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useReuniao } from "../hooks/useReuniao";
 import { ReuniaoCard } from "../components/ReuniaoCard";
 import { Meeting100ms } from "../components/Meeting100ms";
+import { InstantMeetingModal } from "@/components/InstantMeetingModal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -496,10 +497,15 @@ function MeetingsList() {
   const { meetings, loading, error, addMeeting, isCreating, startMeeting, isStarting, createInstantMeeting } = useReuniao();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
+  const [createdMeeting, setCreatedMeeting] = useState<any>(null);
+  const [showMeetingModal, setShowMeetingModal] = useState(false);
+
   const handleCreateMeeting = async (data: any) => {
     try {
       const result = await addMeeting(data);
       setCreateDialogOpen(false);
+      setCreatedMeeting(result.data);
+      setShowMeetingModal(true);
       toast.success("Reunião criada com sucesso!");
     } catch (err: any) {
       toast.error(err.message || "Erro ao criar reunião");
@@ -511,9 +517,9 @@ function MeetingsList() {
       toast.loading("Criando reunião instantânea...");
       const result = await createInstantMeeting();
       toast.dismiss();
+      setCreatedMeeting(result.data);
+      setShowMeetingModal(true);
       toast.success("Reunião instantânea criada!");
-      // 📌 Ajustado para o caminho correto de roteamento
-      navigate(`/reuniao/${result.data.id}`);
     } catch (err: any) {
       toast.dismiss();
       toast.error(err.message || "Erro ao criar reunião instantânea");
@@ -524,7 +530,6 @@ function MeetingsList() {
     try {
       await startMeeting(id);
       toast.success("Reunião iniciada!");
-      // 📌 Ajustado para o caminho correto de roteamento
       navigate(`/reuniao/${id}`);
     } catch (err: any) {
       toast.error(err.message || "Erro ao iniciar reunião");
@@ -580,6 +585,12 @@ function MeetingsList() {
           </Button>
         </div>
       </div>
+
+      <InstantMeetingModal
+        isOpen={showMeetingModal}
+        onClose={() => setShowMeetingModal(false)}
+        meeting={createdMeeting}
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
