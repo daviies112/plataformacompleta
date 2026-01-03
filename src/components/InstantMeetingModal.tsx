@@ -1,25 +1,23 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Copy, Check, Mail, ArrowRight, Link as LinkIcon, Users, X } from "lucide-react";
+import { Copy, Check, ArrowRight, Users, CheckCircle2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface InstantMeetingModalProps {
-  open: boolean;
+  isOpen: boolean;
   onClose: () => void;
   meeting: {
     id: string;
     linkReuniao: string;
     titulo: string;
   } | null;
-  onJoin: () => void;
 }
 
-export function InstantMeetingModal({ open, onClose, meeting, onJoin }: InstantMeetingModalProps) {
+export function InstantMeetingModal({ isOpen, onClose, meeting }: InstantMeetingModalProps) {
   const [copied, setCopied] = useState(false);
-  const [showInviteForm, setShowInviteForm] = useState(false);
-  const [inviteEmails, setInviteEmails] = useState("");
+  const [inviteEmail, setInviteEmail] = useState("");
   const { toast } = useToast();
 
   const handleCopyLink = async () => {
@@ -34,150 +32,75 @@ export function InstantMeetingModal({ open, onClose, meeting, onJoin }: InstantM
         setTimeout(() => setCopied(false), 3000);
       } catch (err) {
         console.error("Failed to copy:", err);
-        toast({
-          title: "Erro ao copiar",
-          description: "Não foi possível copiar o link.",
-          variant: "destructive",
-        });
       }
     }
   };
 
-  const handleSendInvites = () => {
-    const emails = inviteEmails.split(",").map(e => e.trim()).filter(e => e);
-    if (emails.length === 0) {
-      toast({
-        title: "Nenhum email informado",
-        description: "Digite pelo menos um email para enviar o convite.",
-        variant: "destructive",
-      });
-      return;
+  const handleJoinNow = () => {
+    if (meeting?.linkReuniao) {
+      const url = meeting.linkReuniao.startsWith('http') 
+        ? meeting.linkReuniao 
+        : `${window.location.origin}${meeting.linkReuniao}`;
+      
+      window.open(url, "_blank");
+      onClose();
     }
-
-    const subject = encodeURIComponent(`Convite para reunião: ${meeting?.titulo || "Reunião"}`);
-    const body = encodeURIComponent(
-      `Olá!\n\nVocê foi convidado(a) para participar de uma reunião.\n\n` +
-      `Clique no link abaixo para entrar:\n${meeting?.linkReuniao}\n\n` +
-      `Até já!`
-    );
-    
-    window.open(`mailto:${emails.join(",")}?subject=${subject}&body=${body}`, "_blank");
-    
-    toast({
-      title: "Cliente de email aberto",
-      description: "Complete o envio do convite no seu cliente de email.",
-    });
-    setInviteEmails("");
-    setShowInviteForm(false);
-  };
-
-  const getMeetingCode = () => {
-    if (!meeting?.linkReuniao) return "";
-    const parts = meeting.linkReuniao.split("/");
-    return parts[parts.length - 1] || "";
   };
 
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
-              <Check className="h-5 w-5 text-green-600" />
-            </div>
-            <span>Reunião criada!</span>
-          </DialogTitle>
-        </DialogHeader>
-        
-        <div className="space-y-4 py-4">
-          <p className="text-sm text-muted-foreground">
-            Envie este link para quem participará da reunião. Recomendamos salvá-lo para usar mais tarde.
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-md bg-white dark:bg-zinc-950 p-6 rounded-3xl border-none shadow-2xl">
+        <DialogHeader className="flex flex-col items-center gap-4">
+          <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+            <CheckCircle2 className="h-10 w-10 text-green-600 dark:text-green-500" />
+          </div>
+          <DialogTitle className="text-2xl font-bold text-center">Reunião Criada!</DialogTitle>
+          <p className="text-muted-foreground text-center">
+            Sua reunião instantânea "{meeting?.titulo}" está pronta.
           </p>
+        </DialogHeader>
 
-          <div className="flex items-center gap-2 p-3 bg-muted rounded-lg">
-            <LinkIcon className="h-4 w-4 text-muted-foreground shrink-0" />
-            <span className="text-sm font-mono truncate flex-1">
-              {getMeetingCode() || meeting?.linkReuniao}
-            </span>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleCopyLink}
-              className="shrink-0"
-            >
-              {copied ? (
-                <Check className="h-4 w-4 text-green-600" />
-              ) : (
-                <Copy className="h-4 w-4" />
-              )}
-            </Button>
+        <div className="space-y-6 py-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Link da Reunião</label>
+            <div className="flex gap-2">
+              <Input
+                readOnly
+                value={meeting?.linkReuniao || ""}
+                className="bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800"
+              />
+              <Button size="icon" variant="outline" onClick={handleCopyLink}>
+                {copied ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+              </Button>
+            </div>
           </div>
 
-          {!showInviteForm ? (
-            <div className="space-y-2">
-              <Button
-                variant="outline"
-                className="w-full justify-start gap-2"
-                onClick={() => setShowInviteForm(true)}
-              >
-                <Users className="h-4 w-4" />
-                Adicionar pessoas
-              </Button>
-              
-              <Button
-                variant="outline"
-                className="w-full justify-start gap-2"
-                onClick={handleCopyLink}
-              >
-                <Copy className="h-4 w-4" />
-                {copied ? "Link copiado!" : "Copiar link da reunião"}
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-3 p-4 bg-muted/50 rounded-lg">
-              <div className="flex items-center justify-between">
-                <h4 className="text-sm font-medium flex items-center gap-2">
-                  <Mail className="h-4 w-4" />
-                  Convidar por email
-                </h4>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowInviteForm(false)}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Convidar por E-mail</label>
+            <div className="flex gap-2">
               <Input
-                placeholder="email@exemplo.com, outro@exemplo.com"
-                value={inviteEmails}
-                onChange={(e) => setInviteEmails(e.target.value)}
-                className="bg-background"
+                placeholder="email@exemplo.com"
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+                className="bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800"
               />
-              <p className="text-xs text-muted-foreground">
-                Separe múltiplos emails com vírgula
-              </p>
-              <Button
-                onClick={handleSendInvites}
-                className="w-full"
-                size="sm"
-              >
-                <Mail className="h-4 w-4 mr-2" />
-                Enviar convite
+              <Button variant="outline" className="gap-2">
+                <Users className="h-4 w-4" />
+                Convidar
               </Button>
             </div>
-          )}
+          </div>
         </div>
 
-        <div className="flex gap-2 justify-end pt-4 border-t">
-          <Button variant="outline" onClick={onClose}>
-            Fechar
-          </Button>
-          <Button onClick={onJoin} className="gap-2">
+        <DialogFooter className="sm:justify-center pt-2">
+          <Button 
+            onClick={handleJoinNow}
+            className="w-full h-14 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white text-lg font-bold shadow-lg shadow-blue-500/30 gap-2 group transition-all"
+          >
             Participar agora
-            <ArrowRight className="h-4 w-4" />
+            <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
           </Button>
-        </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

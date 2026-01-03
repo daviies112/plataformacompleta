@@ -2,21 +2,52 @@ import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
 import { Input } from "../components/ui/input";
-import { ArrowLeft, Sparkles, FileText, Folder, Search, TrendingUp } from "lucide-react";
+import { ArrowLeft, Sparkles, FileText, Folder, Search, TrendingUp, Zap, Loader2 } from "lucide-react";
 import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import type { Form } from "../../../../shared/db-schema";
 import { useState, useMemo } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale/pt-BR";
+import { useToast } from "@/hooks/use-toast";
+import { api } from "@/lib/api";
+import { InstantMeetingModal } from "@/components/InstantMeetingModal";
 
 const Dashboard = () => {
   const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
+  const { toast } = useToast();
+  const [isCreatingInstant, setIsCreatingInstant] = useState(false);
+  const [showMeetingModal, setShowMeetingModal] = useState(false);
+  const [createdMeeting, setCreatedMeeting] = useState<any>(null);
 
   const { data: formsResponse, isLoading } = useQuery({
     queryKey: ["/api/forms"],
   });
+
+  const handleInstantMeeting = async () => {
+    setIsCreatingInstant(true);
+    try {
+      const response = await api.post("/api/reunioes/instantanea", { titulo: 'Reunião Instantânea' });
+      const meeting = response.data.data || response.data;
+      
+      setCreatedMeeting({
+        id: meeting.id,
+        linkReuniao: meeting.linkReuniao,
+        titulo: meeting.titulo,
+      });
+      
+      setShowMeetingModal(true);
+    } catch (error: any) {
+      toast({ 
+        variant: "destructive",
+        title: "Erro", 
+        description: error.response?.data?.message || error.message 
+      });
+    } finally {
+      setIsCreatingInstant(false);
+    }
+  };
 
   const forms = Array.isArray(formsResponse) 
     ? formsResponse 
@@ -70,19 +101,38 @@ const Dashboard = () => {
                 </p>
               </div>
 
-              {/* Campo de busca */}
-              <div className="relative max-w-md">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar formulário..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 glass"
-                  data-testid="input-search"
-                />
+              <div className="flex items-center gap-4">
+                <Button 
+                  onClick={handleInstantMeeting} 
+                  disabled={isCreatingInstant}
+                  className="gap-2 bg-green-600 hover:bg-green-700 text-white"
+                >
+                  {isCreatingInstant ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Zap className="h-4 w-4" />
+                  )}
+                  Reunião Instantânea
+                </Button>
+                <div className="relative max-w-md flex-1">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar formulário..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10 glass"
+                    data-testid="input-search"
+                  />
+                </div>
               </div>
             </div>
           </div>
+
+          <InstantMeetingModal 
+            isOpen={showMeetingModal}
+            onClose={() => setShowMeetingModal(false)}
+            meeting={createdMeeting}
+          />
 
           {isLoading ? (
             <div className="text-center py-20 animate-fade-in">

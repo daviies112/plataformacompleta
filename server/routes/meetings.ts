@@ -93,7 +93,169 @@ router.use((req: Request, res: Response, next) => {
   next();
 });
 
-router.patch('/room-design', async (req: AuthRequest, res: Response) => {
+router.post('/instantanea', async (req: AuthRequest, res: Response) => {
+  try {
+    const tenantId = req.user!.tenantId;
+    const { titulo = 'Reunião Instantânea' } = req.body;
+
+    const hmsCredentials = await getHMS100msCredentials(tenantId);
+    if (!hmsCredentials) {
+      return res.status(400).json({
+        success: false,
+        message: 'Credenciais do 100ms não configuradas',
+      });
+    }
+
+    const roomName = `instant-${tenantId}-${Date.now()}`;
+    const room = await criarSala(
+      roomName,
+      hmsCredentials.templateId,
+      hmsCredentials.appAccessKey,
+      hmsCredentials.appSecret
+    );
+
+    const publicUrl = process.env.PUBLIC_URL || `https://${process.env.REPLIT_DEV_DOMAIN}`;
+    const linkReuniao = `${publicUrl}/reuniao/${room.id}`;
+
+    const meetingData = {
+      tenantId,
+      titulo,
+      dataInicio: new Date(),
+      dataFim: new Date(Date.now() + 60 * 60000), // +1h
+      status: 'em_andamento',
+      roomId100ms: room.id,
+      linkReuniao,
+      metadata: {
+        isInstant: true,
+        createdAt: new Date().toISOString(),
+        createdBy: req.user?.email || 'unknown',
+      },
+    };
+
+    const [newMeeting] = await db
+      .insert(reunioes)
+      .values(meetingData)
+      .returning();
+
+    // 🚀 SINCRONIZAÇÃO SUPABASE
+    try {
+      const { getDynamicSupabaseClient } = await import('../lib/multiTenantSupabase');
+      const supabase = await getDynamicSupabaseClient(tenantId);
+      if (supabase) {
+        await supabase.from('reunioes').insert({
+          id: newMeeting.id,
+          tenant_id: tenantId,
+          titulo: newMeeting.titulo,
+          data_inicio: newMeeting.dataInicio.toISOString(),
+          data_fim: newMeeting.dataFim.toISOString(),
+          status: newMeeting.status,
+          room_id_100ms: newMeeting.roomId100ms,
+          link_reuniao: newMeeting.linkReuniao,
+          metadata: newMeeting.metadata
+        });
+      }
+    } catch (err) {
+      console.error('[MEETINGS] Erro ao sincronizar reunião instantânea no Supabase:', err);
+    }
+
+    return res.status(201).json({ success: true, data: newMeeting });
+  } catch (error) {
+    console.error('[MEETINGS] Erro ao criar reunião instantânea:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Erro ao criar reunião instantânea',
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+});
+
+router.post('/recording/start', async (req: AuthRequest, res: Response) => {
+  try {
+    const tenantId = req.user!.tenantId;
+    const { roomId } = req.body;
+
+    const hmsCredentials = await getHMS100msCredentials(tenantId);
+    if (!hmsCredentials) {
+      return res.status(400).json({ success: false, message: 'Credenciais 100ms não configuradas' });
+    }
+
+    const [reuniao] = await db.select().from(reunioes).where(eq(reunioes.roomId100ms, roomId));
+    if (!reuniao) return res.status(404).json({ success: false, message: 'Reunião não encontrada' });
+
+    const token = gerarTokenParticipante(
+      roomId, 
+      "beam-" + Date.now(), 
+      "__internal_recorder", 
+      hmsCredentials.appAccessKey, 
+      hmsCredentials.appSecret
+    );
+    
+    const publicUrl = process.env.PUBLIC_URL || `https://${process.env.REPLIT_DEV_DOMAIN}`;
+    const recordingUrl = `${publicUrl}/reuniao/${roomId}?token=${token}&auto_join=true&skip_preview=true&skip_device_selection=true`;
+    
+    const result = await iniciarGravacao(roomId, hmsCredentials.appAccessKey, hmsCredentials.appSecret, recordingUrl);
+    
+    const [gravacao] = await db.insert(gravacoes).values({
+      reuniaoId: reuniao.id,
+      tenantId,
+      roomId100ms: roomId,
+      recordingId100ms: result.id,
+      status: "recording",
+    }).returning();
+
+    // Sincronizar Supabase
+    try {
+      const { getDynamicSupabaseClient } = await import('../lib/multiTenantSupabase');
+      const supabase = await getDynamicSupabaseClient(tenantId);
+      if (supabase) {
+        await supabase.from('gravacoes').insert({
+          id: gravacao.id,
+          reuniao_id: gravacao.reuniaoId,
+          tenant_id: tenantId,
+          room_id_100ms: roomId,
+          recording_id_100ms: result.id,
+          status: "recording"
+        });
+      }
+    } catch (err) {}
+
+    res.json({ success: true, recordingId: result.id });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+router.post('/recording/stop', async (req: AuthRequest, res: Response) => {
+  try {
+    const tenantId = req.user!.tenantId;
+    const { roomId } = req.body;
+
+    const hmsCredentials = await getHMS100msCredentials(tenantId);
+    if (!hmsCredentials) return res.status(400).json({ success: false, message: 'Credenciais 100ms não configuradas' });
+
+    await pararGravacao(roomId, hmsCredentials.appAccessKey, hmsCredentials.appSecret);
+    
+    await db.update(gravacoes)
+      .set({ status: "processing", stoppedAt: new Date() })
+      .where(and(eq(gravacoes.roomId100ms, roomId), eq(gravacoes.status, "recording")));
+
+    // Sincronizar Supabase
+    try {
+      const { getDynamicSupabaseClient } = await import('../lib/multiTenantSupabase');
+      const supabase = await getDynamicSupabaseClient(tenantId);
+      if (supabase) {
+        await supabase.from('gravacoes')
+          .update({ status: "processing", stopped_at: new Date().toISOString() })
+          .eq('room_id_100ms', roomId)
+          .eq('status', 'recording');
+      }
+    } catch (err) {}
+
+    res.json({ success: true });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
   try {
     const tenantId = req.user!.tenantId;
     const { roomDesignConfig } = req.body;

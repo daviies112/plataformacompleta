@@ -1658,7 +1658,7 @@ export const reunioes = pgTable("reunioes", {
   dataInicio: timestamp("data_inicio").notNull(),
   dataFim: timestamp("data_fim").notNull(),
   duracao: integer("duracao"),
-  roomId100ms: text("room_id_100ms").unique(),
+  roomId100ms: text("room_id_100ms"),
   roomCode100ms: text("room_code_100ms"),
   linkReuniao: text("link_reuniao"),
   status: text("status").default("agendada"),

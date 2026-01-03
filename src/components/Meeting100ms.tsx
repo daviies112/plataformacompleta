@@ -540,8 +540,8 @@ function Controls({
   };
 
   const toggleRecording = async () => {
-    if (!meetingId) {
-      toast({ variant: "destructive", title: "Erro", description: "ID da reunião não encontrado." });
+    if (!roomId) {
+      toast({ variant: "destructive", title: "Erro", description: "ID da sala não encontrado." });
       return;
     }
 
@@ -549,12 +549,12 @@ function Controls({
     
     try {
       if (isRecording) {
-        await api.post(`/api/reunioes/${meetingId}/gravacao/parar`);
-        toast({ title: "Gravação Finalizada", description: "A gravação foi encerrada e salva." });
+        await api.post(`/api/reunioes/recording/stop`, { roomId });
+        toast({ title: "Gravação Finalizada", description: "A gravação foi encerrada e está sendo processada." });
         setIsRecording(false);
         setRecordingTimer(0);
       } else {
-        await api.post(`/api/reunioes/${meetingId}/gravacao/iniciar`);
+        await api.post(`/api/reunioes/recording/start`, { roomId });
         toast({ title: "Gravação Iniciada", description: "A reunião está sendo gravada." });
         setIsRecording(true);
       }
