@@ -95,25 +95,58 @@ router.get('/public/:companySlug/:roomId', async (req, res) => {
   try {
     const { companySlug, roomId } = req.params;
 
-    // Resolve tenant by slug
-    const [tenant] = await db
-      .select()
-      .from(meetingTenants)
-      .where(eq(meetingTenants.id, companySlug));
+    console.log('[DEBUG] Requisição pública recebida:', { companySlug, roomId, url: req.url });
 
-    // For now, let's assume we can find the meeting directly by ID first
+    // Tenta encontrar a reunião primeiro, pois o ID dela é único
     const [meeting] = await db
       .select()
       .from(reunioes)
       .where(eq(reunioes.id, roomId));
 
-    console.log('[DEBUG] Reunião encontrada:', meeting ? 'Sim' : 'Não', 'ID:', roomId);
+    console.log('[DEBUG] Reunião encontrada:', meeting ? 'Sim' : 'Não', meeting?.id);
 
     if (!meeting) {
+      // Fallback: se companySlug for o ID da reunião (link mal formado)
+      const [meetingFallback] = await db
+        .select()
+        .from(reunioes)
+        .where(eq(reunioes.id, companySlug));
+
+      if (meetingFallback) {
+        console.log('[DEBUG] Reunião encontrada via fallback (ID no slug):', meetingFallback.id);
+        const [tenant] = await db
+          .select()
+          .from(meetingTenants)
+          .where(eq(meetingTenants.id, meetingFallback.tenantId));
+
+        return res.json({ 
+          success: true, 
+          data: {
+            reuniao: meetingFallback,
+            tenant: tenant || { id: meetingFallback.tenantId, nome: 'Nexus' },
+            designConfig: meetingFallback.metadata?.roomDesignConfig || {},
+            roomDesignConfig: meetingFallback.metadata?.roomDesignConfig
+          }
+        });
+      }
+
       return res.status(404).json({
         success: false,
         message: 'Reunião não encontrada',
       });
+    }
+
+    // Resolve tenant
+    let [tenant] = await db
+      .select()
+      .from(meetingTenants)
+      .where(eq(meetingTenants.id, companySlug));
+
+    if (!tenant) {
+      [tenant] = await db
+        .select()
+        .from(meetingTenants)
+        .where(eq(meetingTenants.id, meeting.tenantId));
     }
 
     return res.json({ 
