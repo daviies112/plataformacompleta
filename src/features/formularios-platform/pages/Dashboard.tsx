@@ -29,12 +29,12 @@ const Dashboard = () => {
     setIsCreatingInstant(true);
     try {
       const response = await api.post("/api/reunioes/instantanea", { titulo: 'Reunião Instantânea' });
-      const meeting = response.data.data || response.data;
+      const meetingData = response.data.data || response.data;
       
       setCreatedMeeting({
-        id: meeting.id,
-        linkReuniao: meeting.linkReuniao,
-        titulo: meeting.titulo,
+        id: meetingData.id,
+        linkReuniao: meetingData.linkReuniao,
+        titulo: meetingData.titulo,
       });
       
       setShowMeetingModal(true);

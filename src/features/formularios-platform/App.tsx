@@ -11,6 +11,7 @@ import PublicForm from "./pages/PublicForm";
 import TrackedPublicForm from "./pages/TrackedPublicForm";
 import FormularioPublico from "./pages/FormularioPublico";
 import Dashboard from "./pages/Dashboard";
+import Gravacoes from "../../pages/Gravacoes";
 import VerFormularios from "./pages/VerFormularios";
 import VerPaginasFinal from "./pages/VerPaginasFinal";
 import EditarFormulario from "./pages/EditarFormulario";
@@ -53,6 +54,12 @@ const App = () => (
             <Route path="/admin/dashboard">
               <FormularioLayout>
                 <Dashboard />
+              </FormularioLayout>
+            </Route>
+            
+            <Route path="/admin/gravacoes">
+              <FormularioLayout>
+                <Gravacoes />
               </FormularioLayout>
             </Route>
             

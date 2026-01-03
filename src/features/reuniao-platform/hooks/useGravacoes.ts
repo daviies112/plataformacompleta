@@ -52,7 +52,10 @@ export function useGravacoes() {
   // 📌 Busca todas as gravações do tenant via API
   const { data: gravacoesList = [], isLoading, error, refetch } = useQuery({
     queryKey: [API_BASE, 'gravacoes', tenantId],
-    queryFn: () => apiRequest("GET", `${API_BASE}/gravacoes/list`),
+    queryFn: async () => {
+      const response = await apiRequest("GET", `${API_BASE}/gravacoes/list`);
+      return response.data || response;
+    },
     enabled: !!tenantId,
     staleTime: 30 * 1000,
   });
