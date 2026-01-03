@@ -55,7 +55,9 @@ echo "🗑️  Removendo arquivos temporários..."
 rm -rf /tmp/logs 2>/dev/null
 rm -f *.log 2>/dev/null
 rm -rf .cache 2>/dev/null
-echo "   ✅ Arquivos temporários removidos"
+# NÃO remover a pasta data/ pois contém configurações essenciais
+# rm -rf data/ 2>/dev/null 
+echo "   ✅ Arquivos temporários removidos (Configurações em data/ preservadas)"
 
 # 6. Remover backups .git antigos (se existirem)
 if [ -d ".git.bak" ]; then

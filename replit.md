@@ -66,6 +66,10 @@ scripts/   → Utilitários (export, import)
 ✅ WhatsApp Business  
 ✅ Video Conferencing (100ms) - CORRIGIDO (03/01/2026)
    - Veja: `DOCUMENTACAO_CORRECAO_100MS.md` (detalhado)
+   - Fallback de Identity e Config Endpoints implementados.
+✅ **Sistema de Exportação Otimizado** - ATUALIZADO (03/01/2026)
+   - Scripts de limpeza preservam a pasta `data/` para manter credenciais.
+   - Veja: `DOCUMENTACAO_PERSISTENCIA_EXPORT.md`
 ✅ Label Designer  
 ✅ **Sistema de Gravações** - CORRIGIDO (30/12/2025)  
    - Veja: `DOCUMENTACAO_CORRECOES_GRAVACOES.md` (detalhado)  
