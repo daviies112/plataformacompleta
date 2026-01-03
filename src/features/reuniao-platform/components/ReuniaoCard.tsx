@@ -114,12 +114,21 @@ export function ReuniaoCard({ meeting, onStart, isStarting }: ReuniaoCardProps) 
           </Button>
         )}
         
-        {(isActive || meeting.roomId100ms) && (
+        {(isActive || meeting.roomId100ms || meeting.linkReuniao) && (
           <Button 
             variant="default" 
             size="sm" 
             className="gap-2"
-            onClick={() => navigate(`/reuniao/${meeting.id}`)}
+            onClick={() => {
+              if (meeting.linkReuniao) {
+                const url = meeting.linkReuniao.startsWith('http') 
+                  ? meeting.linkReuniao 
+                  : `${window.location.origin}${meeting.linkReuniao.startsWith('/') ? '' : '/'}${meeting.linkReuniao}`;
+                window.open(url, "_blank");
+              } else {
+                navigate(`/reuniao/${meeting.id}`);
+              }
+            }}
           >
             Entrar <ArrowRight className="h-3 w-3" />
           </Button>

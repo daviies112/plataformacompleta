@@ -38,10 +38,19 @@ export function InstantMeetingModal({ isOpen, onClose, meeting }: InstantMeeting
 
   const handleJoinNow = () => {
     console.log("handleJoinNow - meeting data:", meeting);
-    if (meeting?.linkReuniao) {
-      const url = meeting.linkReuniao.startsWith('http') 
-        ? meeting.linkReuniao 
-        : `${window.location.origin}${meeting.linkReuniao}`;
+    // Prefer linkReuniao, then meeting.id, then just meeting
+    const meetingId = meeting?.id;
+    const link = meeting?.linkReuniao;
+
+    if (link || meetingId) {
+      let url = "";
+      if (link) {
+        url = link.startsWith('http') 
+          ? link 
+          : `${window.location.origin}${link.startsWith('/') ? '' : '/'}${link}`;
+      } else {
+        url = `${window.location.origin}/reuniao/${meetingId}`;
+      }
       
       console.log("Opening URL:", url);
       window.open(url, "_blank");

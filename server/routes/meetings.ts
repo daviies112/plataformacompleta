@@ -150,7 +150,7 @@ router.post('/instantanea', async (req: AuthRequest, res: Response) => {
     );
 
     const domain = req.headers.host || process.env.REPLIT_DEV_DOMAIN;
-    const protocol = req.headers['x-forwarded-proto'] || 'http';
+    const protocol = req.headers['x-forwarded-proto'] || 'https';
     const publicUrl = `${protocol}://${domain}`;
     const linkReuniao = `${publicUrl}/reuniao/${room.id}`;
 
