@@ -644,12 +644,15 @@ function Controls({
             </Tooltip>
           </TooltipProvider>
         )}
-        {config.meeting.showRecordingIndicator && isRecording && (
-          <div className="flex items-center gap-2 text-red-500 bg-red-500/10 px-3 py-1 rounded-full animate-pulse">
-            <Circle className="h-2 w-2 fill-current" />
-            <span className="text-xs font-bold">REC {formatTime(recordingTimer)}</span>
-          </div>
-        )}
+        <div className="flex items-center gap-3">
+          <span className="font-bold text-white">MeetFlow</span>
+          {isRecording && (
+            <div className="flex items-center gap-1 animate-pulse">
+              <Circle className="h-1.5 w-1.5 fill-red-500 text-red-500" />
+              <span className="text-red-500 font-bold">GRAVANDO</span>
+            </div>
+          )}
+        </div>
         {isTranscribing && (
           <div className="flex items-center gap-2 text-green-500 bg-green-500/10 px-3 py-1 rounded-full animate-pulse">
             <FileText className="h-3 w-3" />

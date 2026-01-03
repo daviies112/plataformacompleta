@@ -229,6 +229,12 @@ router.post('/recording/start', async (req: AuthRequest, res: Response) => {
   }
 });
 
+// Alias for documentation compatibility
+router.post('/100ms/recording/start', (req, res) => {
+  req.url = '/recording/start';
+  router.handle(req, res, () => {});
+});
+
 router.post('/recording/stop', async (req: AuthRequest, res: Response) => {
   try {
     const tenantId = req.user!.tenantId;
@@ -259,6 +265,12 @@ router.post('/recording/stop', async (req: AuthRequest, res: Response) => {
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }
+});
+
+// Alias for documentation compatibility
+router.post('/100ms/recording/stop', (req, res) => {
+  req.url = '/recording/stop';
+  router.handle(req, res, () => {});
 });
 
 router.patch('/room-design', async (req: AuthRequest, res: Response) => {
