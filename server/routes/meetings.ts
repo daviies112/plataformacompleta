@@ -33,15 +33,14 @@ interface AuthRequest extends Request {
 async function getHMS100msCredentials(tenantId: string) {
   console.log(`[MEETINGS] Buscando credenciais para tenantId: "${tenantId}"`);
   
-  // Tenta primeiro na tabela hms_100ms_config (novo lugar) - SEM normalização forçada para UUID de dev
-  // Isso permite que cada login (mesmo em dev) tenha suas próprias credenciais vinculadas ao seu tenantId real
+  // 1. Tenta buscar pelo ID exato fornecido (pode ser o e-mail formatado de dev ou UUID)
   const [config] = await db
     .select()
     .from(hms100msConfig)
     .where(eq(hms100msConfig.tenantId, tenantId));
 
   if (config) {
-    console.log(`[MEETINGS] Credenciais encontradas na tabela hms_100ms_config para tenant: ${tenantId}`);
+    console.log(`[MEETINGS] Credenciais encontradas para ID exato: ${tenantId}`);
     return {
       appAccessKey: decrypt(config.appAccessKey),
       appSecret: decrypt(config.appSecret),
@@ -49,16 +48,17 @@ async function getHMS100msCredentials(tenantId: string) {
     };
   }
 
-  // Fallback: Se for ID de dev, tenta buscar pelo UUID sincronizado (legado/compatibilidade)
+  // 2. Fallback: Se não encontrou e for um ID de dev, tenta o UUID padrão
   if (tenantId === 'dev-daviemericko_gmail_com' || tenantId === 'system') {
     const DEV_UUID = 'f5d8c8d9-7c9e-4b8a-9c7d-4e3b8a9c7d4e';
-    console.log(`[MEETINGS] Tentando fallback para UUID de dev: ${DEV_UUID}`);
+    console.log(`[MEETINGS] Fallback dev: tentando buscar por UUID ${DEV_UUID}`);
     const [devConfig] = await db
       .select()
       .from(hms100msConfig)
       .where(eq(hms100msConfig.tenantId, DEV_UUID));
     
     if (devConfig) {
+      console.log(`[MEETINGS] Credenciais de dev encontradas via UUID fallback`);
       return {
         appAccessKey: decrypt(devConfig.appAccessKey),
         appSecret: decrypt(devConfig.appSecret),
@@ -67,24 +67,22 @@ async function getHMS100msCredentials(tenantId: string) {
     }
   }
 
-  // Se não achar, tenta em meeting_tenants.configuracoes (lugar antigo JSONB)
-  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(tenantId);
-  
-  if (isUuid) {
-    const [tenant] = await db
+  // 3. Fallback reverso: Se recebeu um UUID, tenta buscar pelo ID de e-mail de dev
+  const DEV_EMAIL_ID = 'dev-daviemericko_gmail_com';
+  if (tenantId === 'f5d8c8d9-7c9e-4b8a-9c7d-4e3b8a9c7d4e') {
+    console.log(`[MEETINGS] Fallback reverso: tentando buscar por ID de e-mail ${DEV_EMAIL_ID}`);
+    const [emailConfig] = await db
       .select()
-      .from(meetingTenants)
-      .where(eq(meetingTenants.id, tenantId));
-
-    if (tenant && tenant.configuracoes) {
-      const hmsConfig = (tenant.configuracoes as any)?.hms_100ms;
-      if (hmsConfig && hmsConfig.appAccessKey && hmsConfig.appSecret) {
-        return {
-          appAccessKey: hmsConfig.appAccessKey,
-          appSecret: hmsConfig.appSecret,
-          templateId: hmsConfig.templateId,
-        };
-      }
+      .from(hms100msConfig)
+      .where(eq(hms100msConfig.tenantId, DEV_EMAIL_ID));
+    
+    if (emailConfig) {
+      console.log(`[MEETINGS] Credenciais de dev encontradas via e-mail fallback`);
+      return {
+        appAccessKey: decrypt(emailConfig.appAccessKey),
+        appSecret: decrypt(emailConfig.appSecret),
+        templateId: emailConfig.templateId,
+      };
     }
   }
 
