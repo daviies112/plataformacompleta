@@ -273,6 +273,103 @@ router.post('/100ms/recording/stop', (req, res) => {
   router.handle(req, res, () => {});
 });
 
+router.post('/webhook/100ms', async (req: Request, res: Response) => {
+  const event = req.body;
+  
+  if (event.type === "beam.recording.success") {
+    const { id, asset } = event.data;
+    
+    await db.update(gravacoes)
+      .set({ 
+        status: "completed", 
+        fileUrl: asset?.location,
+        fileSize: asset?.size,
+        duration: asset?.duration,
+        updatedAt: new Date()
+      })
+      .where(eq(gravacoes.recordingId100ms, id));
+
+    // Sincronizar Supabase
+    try {
+      const { getDynamicSupabaseClient } = await import('../lib/multiTenantSupabase');
+      const [gravacao] = await db.select().from(gravacoes).where(eq(gravacoes.recordingId100ms, id));
+      if (gravacao) {
+        const supabase = await getDynamicSupabaseClient(gravacao.tenantId);
+        if (supabase) {
+          await supabase.from('gravacoes')
+            .update({ 
+              status: "completed", 
+              file_url: asset?.location,
+              file_size: asset?.size,
+              duration: asset?.duration,
+              updated_at: new Date().toISOString()
+            })
+            .eq('recording_id_100ms', id);
+        }
+      }
+    } catch (err) {}
+  }
+  res.json({ success: true });
+});
+
+router.get('/recording/list', async (req: AuthRequest, res: Response) => {
+  try {
+    const tenantId = req.user!.tenantId;
+    const recordings = await db.select({
+      id: gravacoes.id,
+      reuniaoId: gravacoes.reuniaoId,
+      status: gravacoes.status,
+      createdAt: gravacoes.createdAt,
+      duration: gravacoes.duration,
+      fileUrl: gravacoes.fileUrl,
+      reuniao: {
+        titulo: reunioes.titulo,
+      }
+    })
+    .from(gravacoes)
+    .leftJoin(reunioes, eq(gravacoes.reuniaoId, reunioes.id))
+    .where(eq(gravacoes.tenantId, tenantId))
+    .orderBy(desc(gravacoes.createdAt));
+    
+    // Sincronizar com Supabase
+    try {
+      const { getDynamicSupabaseClient } = await import('../lib/multiTenantSupabase');
+      const supabase = await getDynamicSupabaseClient(tenantId);
+      if (supabase) {
+        const { data: supabaseRecordings } = await supabase
+          .from('gravacoes')
+          .select('*, reunioes(titulo)')
+          .order('created_at', { ascending: false });
+        
+        if (supabaseRecordings && supabaseRecordings.length > 0) {
+          const normalized = supabaseRecordings.map(r => ({
+            id: r.id,
+            reuniaoId: r.reuniao_id,
+            status: r.status,
+            createdAt: r.created_at,
+            duration: r.duration,
+            fileUrl: r.file_url,
+            reuniao: {
+              titulo: r.reunioes?.titulo || "Reunião Instantânea",
+            }
+          }));
+          return res.json({ success: true, data: normalized });
+        }
+      }
+    } catch (err) {}
+    
+    res.json({ success: true, data: recordings });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// Alias for frontend
+router.get('/gravacoes/list', (req, res) => {
+  req.url = '/recording/list';
+  router.handle(req, res, () => {});
+});
+
 router.patch('/room-design', async (req: AuthRequest, res: Response) => {
   try {
     const tenantId = req.user!.tenantId;
