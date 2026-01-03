@@ -47,6 +47,26 @@ export function InstantMeetingModal({ isOpen, onClose, meeting }: InstantMeeting
     }
   };
 
+  const handleInvite = () => {
+    if (meeting?.linkReuniao) {
+      const url = meeting.linkReuniao.startsWith('http') 
+        ? meeting.linkReuniao 
+        : `${window.location.origin}${meeting.linkReuniao}`;
+      
+      const text = encodeURIComponent(`Olá! Você foi convidado para uma reunião: ${meeting.titulo}\nEntre pelo link: ${url}`);
+      window.open(`https://wa.me/?text=${text}`, "_blank");
+      
+      toast({
+        title: "Convite",
+        description: "Abrindo compartilhamento via WhatsApp.",
+      });
+    }
+  };
+
+  const displayUrl = meeting?.linkReuniao 
+    ? (meeting.linkReuniao.startsWith('http') ? meeting.linkReuniao : `${window.location.origin}${meeting.linkReuniao}`)
+    : "";
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-md bg-white dark:bg-zinc-950 p-6 rounded-3xl border-none shadow-2xl">
@@ -67,8 +87,8 @@ export function InstantMeetingModal({ isOpen, onClose, meeting }: InstantMeeting
             </div>
             <Input
               readOnly
-              value={meeting?.linkReuniao || ""}
-              className="bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 pl-10 pr-10 h-12 rounded-xl font-mono text-sm text-blue-600"
+              value={displayUrl}
+              className="bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 pl-10 pr-10 h-12 rounded-xl font-mono text-sm text-blue-600 select-all"
             />
             <Button 
               size="icon" 
@@ -84,7 +104,7 @@ export function InstantMeetingModal({ isOpen, onClose, meeting }: InstantMeeting
             <Button 
               variant="outline" 
               className="h-12 rounded-xl gap-2 border-zinc-200"
-              onClick={() => toast({ title: "Em breve", description: "Funcionalidade de convite será liberada." })}
+              onClick={handleInvite}
             >
               <Users className="h-4 w-4" />
               Convidar

@@ -149,7 +149,9 @@ router.post('/instantanea', async (req: AuthRequest, res: Response) => {
       hmsCredentials.appSecret
     );
 
-    const publicUrl = process.env.PUBLIC_URL || `https://${process.env.REPLIT_DEV_DOMAIN}`;
+    const domain = req.headers.host || process.env.REPLIT_DEV_DOMAIN;
+    const protocol = req.headers['x-forwarded-proto'] || 'http';
+    const publicUrl = `${protocol}://${domain}`;
     const linkReuniao = `${publicUrl}/reuniao/${room.id}`;
 
     const meetingData = {
