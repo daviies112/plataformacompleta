@@ -46,6 +46,14 @@ async function getHMS100msCredentials(tenantId: string) {
   }
 
   // Se não achar, tenta em meeting_tenants.configuracoes (lugar antigo JSONB)
+  // Use regex check to avoid UUID error if tenantId is not a UUID
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(tenantId);
+  
+  if (!isUuid) {
+    console.warn(`[MEETINGS] tenantId "${tenantId}" is not a valid UUID, skipping meeting_tenants lookup`);
+    return null;
+  }
+
   const [tenant] = await db
     .select()
     .from(meetingTenants)
@@ -69,29 +77,33 @@ router.use((req: Request, res: Response, next) => {
   attachUserData(req, res, next);
 });
 
-router.use((req: Request, res: Response, next) => {
-  if (!req.session?.userId) {
-    if (process.env.NODE_ENV === 'development') {
-      // Use a fixed UUID for development tenant
-      const DEV_TENANT_ID = 'f5d8c8d9-7c9e-4b8a-9c7d-4e3b8a9c7d4e';
-      (req as any).user = { 
-        id: DEV_TENANT_ID, 
-        tenantId: DEV_TENANT_ID,
-        email: 'dev@example.com',
-        nome: 'Dev User'
-      };
-      return next();
+  router.use((req: Request, res: Response, next) => {
+    if (!req.session?.userId) {
+      if (process.env.NODE_ENV === 'development') {
+        // Use a fixed UUID for development tenant
+        const DEV_TENANT_ID = 'f5d8c8d9-7c9e-4b8a-9c7d-4e3b8a9c7d4e';
+        (req as any).user = { 
+          id: DEV_TENANT_ID, 
+          tenantId: DEV_TENANT_ID,
+          email: 'admin@example.com',
+          nome: 'Admin User'
+        };
+        return next();
+      }
+      return res.status(401).json({ success: false, message: 'Não autenticado' });
     }
-    return res.status(401).json({ success: false, message: 'Não autenticado' });
-  }
-  (req as any).user = {
-    id: req.session.userId,
-    email: req.session.userEmail,
-    nome: req.session.userName,
-    tenantId: req.session.tenantId || 'f5d8c8d9-7c9e-4b8a-9c7d-4e3b8a9c7d4e'
-  };
-  next();
-});
+    
+    const tenantIdFromSession = req.session.tenantId || 'f5d8c8d9-7c9e-4b8a-9c7d-4e3b8a9c7d4e';
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(tenantIdFromSession);
+    
+    (req as any).user = {
+      id: req.session.userId,
+      email: req.session.userEmail,
+      nome: req.session.userName,
+      tenantId: isUuid ? tenantIdFromSession : 'f5d8c8d9-7c9e-4b8a-9c7d-4e3b8a9c7d4e'
+    };
+    next();
+  });
 
 router.post('/instantanea', async (req: AuthRequest, res: Response) => {
   try {
@@ -143,12 +155,17 @@ router.post('/instantanea', async (req: AuthRequest, res: Response) => {
 
     // 🚀 SINCRONIZAÇÃO SUPABASE
     try {
+      const isDevTenant = tenantId === 'dev-daviemericko_gmail_com';
+      const syncedTenantId = isDevTenant 
+        ? 'f5d8c8d9-7c9e-4b8a-9c7d-4e3b8a9c7d4e' 
+        : tenantId;
+
       const { getDynamicSupabaseClient } = await import('../lib/multiTenantSupabase');
-      const supabase = await getDynamicSupabaseClient(tenantId);
+      const supabase = await getDynamicSupabaseClient(syncedTenantId);
       if (supabase) {
         await supabase.from('reunioes').insert({
           id: newMeeting.id,
-          tenant_id: tenantId,
+          tenant_id: isDevTenant ? syncedTenantId : tenantId,
           titulo: newMeeting.titulo,
           data_inicio: newMeeting.dataInicio.toISOString(),
           data_fim: newMeeting.dataFim.toISOString(),
@@ -209,13 +226,17 @@ router.post('/recording/start', async (req: AuthRequest, res: Response) => {
 
     // Sincronizar Supabase
     try {
+      const syncedTenantId = tenantId === 'dev-daviemericko_gmail_com' 
+        ? 'f5d8c8d9-7c9e-4b8a-9c7d-4e3b8a9c7d4e' 
+        : tenantId;
+        
       const { getDynamicSupabaseClient } = await import('../lib/multiTenantSupabase');
-      const supabase = await getDynamicSupabaseClient(tenantId);
+      const supabase = await getDynamicSupabaseClient(syncedTenantId);
       if (supabase) {
         await supabase.from('gravacoes').insert({
           id: gravacao.id,
           reuniao_id: gravacao.reuniaoId,
-          tenant_id: tenantId,
+          tenant_id: syncedTenantId,
           room_id_100ms: roomId,
           recording_id_100ms: result.id,
           status: "recording"
@@ -251,8 +272,12 @@ router.post('/recording/stop', async (req: AuthRequest, res: Response) => {
 
     // Sincronizar Supabase
     try {
+      const syncedTenantId = tenantId === 'dev-daviemericko_gmail_com' 
+        ? 'f5d8c8d9-7c9e-4b8a-9c7d-4e3b8a9c7d4e' 
+        : tenantId;
+        
       const { getDynamicSupabaseClient } = await import('../lib/multiTenantSupabase');
-      const supabase = await getDynamicSupabaseClient(tenantId);
+      const supabase = await getDynamicSupabaseClient(syncedTenantId);
       if (supabase) {
         await supabase.from('gravacoes')
           .update({ status: "processing", stopped_at: new Date().toISOString() })
