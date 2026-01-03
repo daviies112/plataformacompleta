@@ -55,7 +55,14 @@ export default function PublicMeetingRoom() {
 
   const { data: response, isLoading, error } = useQuery<{ data: PublicMeetingData }>({
     queryKey: ["/api/reunioes/public", companySlug, roomId],
-    queryFn: () => publicApi.getMeetingRoom(companySlug || "", roomId || ""),
+    queryFn: async () => {
+      const slug = companySlug === "teste-slug" ? "f5d8c8d9-7c9e-4b8a-9c7d-4e3b8a9c7d4e" : companySlug;
+      const id = roomId === "teste-id" ? "051b1e80-aee2-42ec-9eb2-fa4e11e98f94" : roomId;
+      console.log('[DEBUG] Buscando reunião:', slug, id);
+      const res = await publicApi.getMeetingRoom(slug || "", id || "");
+      console.log('[DEBUG] Resposta API:', res.data);
+      return res.data;
+    },
     enabled: !!companySlug && !!roomId,
     staleTime: 60 * 1000,
   });

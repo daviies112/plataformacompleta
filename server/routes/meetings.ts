@@ -107,6 +107,8 @@ router.get('/public/:companySlug/:roomId', async (req, res) => {
       .from(reunioes)
       .where(eq(reunioes.id, roomId));
 
+    console.log('[DEBUG] Reunião encontrada:', meeting ? 'Sim' : 'Não', 'ID:', roomId);
+
     if (!meeting) {
       return res.status(404).json({
         success: false,
