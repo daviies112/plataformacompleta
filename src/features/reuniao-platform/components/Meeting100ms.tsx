@@ -490,9 +490,37 @@ export function Meeting100ms({
   const [isRecordingLoading, setIsRecordingLoading] = useState(false);
   const [showLobby, setShowLobby] = useState(true);
   const [participantName, setParticipantName] = useState(initialParticipantName);
+  const videoRef = useRef<HTMLVideoElement>(null);
   const { toast } = useToast();
 
   const config = roomDesignConfig || DEFAULT_ROOM_DESIGN_CONFIG;
+
+  useEffect(() => {
+    let isMounted = true;
+    let localStream: MediaStream | null = null;
+    
+    const startPreview = async () => {
+      if (videoRef.current && !isConnected && showLobby) {
+        try {
+          localStream = await navigator.mediaDevices.getUserMedia({ video: true });
+          if (isMounted && videoRef.current) {
+            videoRef.current.srcObject = localStream;
+          }
+        } catch (err) {
+          console.error("Lobby preview error:", err);
+        }
+      }
+    };
+    
+    startPreview();
+    
+    return () => {
+      isMounted = false;
+      if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [isConnected, showLobby]);
 
   const handleStartRecording = async () => {
     setIsRecordingLoading(true);
@@ -712,7 +740,7 @@ export function Meeting100ms({
         </div>
 
         <div className="flex items-center gap-3">
-          {isConnected && hmsStore.getState((state) => state.recordings?.server?.running) && (
+          {isConnected && hmsStore.getState((state: any) => state.recordings?.server?.running) && (
              <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/20 px-3 py-1.5 rounded-full">
                 <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
                 <span className="text-xs font-medium text-red-500 uppercase tracking-wider">Gravando</span>

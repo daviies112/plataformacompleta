@@ -12,7 +12,7 @@ import { ptBR } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Reuniao() {
-  const params = useParams();
+  const params = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
   const meetingId = params.id;
   const { meeting, loading, error } = useReuniao(meetingId);
