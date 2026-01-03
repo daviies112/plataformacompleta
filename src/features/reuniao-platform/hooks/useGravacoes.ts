@@ -70,6 +70,24 @@ export function useGravacoes() {
     mutationFn: (id: string) => apiRequest("GET", `${API_BASE}/gravacoes/${id}/url`),
   });
 
+  const startRecording = useMutation({
+    mutationFn: async (roomId: string) => {
+      return apiRequest("POST", `${API_BASE}/recording/start`, { roomId });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [API_BASE, 'gravacoes'] });
+    },
+  });
+
+  const stopRecording = useMutation({
+    mutationFn: async (roomId: string) => {
+      return apiRequest("POST", `${API_BASE}/recording/stop`, { roomId });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [API_BASE, 'gravacoes'] });
+    },
+  });
+
   return {
     gravacoes: gravacoesList,
     isLoading,
@@ -77,6 +95,8 @@ export function useGravacoes() {
     refetch,
     deleteGravacao: deleteGravacao.mutate,
     getPlaybackUrl: getPlaybackUrl.mutate,
+    startRecording,
+    stopRecording,
     isDeleting: deleteGravacao.isPending,
     isFetchingUrl: getPlaybackUrl.isPending,
   };

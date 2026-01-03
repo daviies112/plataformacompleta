@@ -134,7 +134,11 @@ router.post('/instantanea', async (req: AuthRequest, res: Response) => {
 
     const [newMeeting] = await db
       .insert(reunioes)
-      .values(meetingData)
+      .values({
+        ...meetingData,
+        dataInicio: new Date(),
+        dataFim: new Date(Date.now() + 60 * 60000),
+      })
       .returning();
 
     // 🚀 SINCRONIZAÇÃO SUPABASE
@@ -256,6 +260,8 @@ router.post('/recording/stop', async (req: AuthRequest, res: Response) => {
     res.status(500).json({ success: false, message: error.message });
   }
 });
+
+router.patch('/room-design', async (req: AuthRequest, res: Response) => {
   try {
     const tenantId = req.user!.tenantId;
     const { roomDesignConfig } = req.body;
@@ -573,7 +579,11 @@ router.post('/', async (req: AuthRequest, res: Response) => {
 
     const [newMeeting] = await db
       .insert(reunioes)
-      .values(meetingData)
+      .values({
+        ...meetingData,
+        dataInicio: new Date(),
+        dataFim: new Date(Date.now() + 60 * 60000),
+      })
       .returning();
 
     // 🚀 SINCRONIZAÇÃO SUPABASE (Dual-Write)
@@ -696,19 +706,23 @@ router.patch('/:id', async (req: AuthRequest, res: Response) => {
     try {
       const { getDynamicSupabaseClient } = await import('../lib/multiTenantSupabase');
       const supabase = await getDynamicSupabaseClient(tenantId);
-      if (supabase && updated) {
-        await supabase
+      if (supabase) {
+        const { data: updated, error } = await supabase
           .from('reunioes')
           .update({
-            titulo: updated.titulo,
-            descricao: updated.descricao,
-            status: updated.status,
-            data_inicio: updated.dataInicio.toISOString(),
-            data_fim: updated.dataFim.toISOString(),
-            metadata: updated.metadata,
+            titulo: req.body.titulo,
+            descricao: req.body.descricao,
+            status: req.body.status,
+            data_inicio: req.body.dataInicio,
+            data_fim: req.body.dataFim,
+            metadata: req.body.metadata,
             updated_at: new Date().toISOString()
           })
-          .eq('id', id);
+          .eq('id', id)
+          .select()
+          .single();
+          
+        if (error) throw error;
       }
     } catch (err) {
       console.error('[MEETINGS] Erro ao sincronizar update no Supabase:', err);
