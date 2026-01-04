@@ -124,11 +124,6 @@ app.use((req, res, next) => {
   const supabaseConfigRoutes = await import('./routes/supabaseConfig');
   app.use('/api/config', supabaseConfigRoutes.default);
   
-  // Meetings routes (protegido - requer autenticação)
-  const meetingsRouter = await import('./routes/meetings');
-  app.use('/api/meetings', meetingsRouter.default);
-  log('📹 Meetings system initialized');
-  
   // Label Designer routes (protegido - requer autenticação)
   const labelDesignerRoutes = await import('./routes/labelDesigner');
   app.use('/api/label-designer', requireAuth, labelDesignerRoutes.default);

@@ -8,7 +8,6 @@ import CalendarPage from "./pages/CalendarPage";
 import SettingsPage from "./pages/SettingsPage";
 import ClientConfigPage from "./pages/ClientConfigPage";
 import WorkspacePage from "./pages/WorkspacePage";
-import WorkspaceCalendarPage from "@/pages/WorkspaceCalendarPage";
 import BillingPage from "./pages/BillingPage";
 import NotificationsPage from "./pages/NotificationsPage";
 import WhatsAppPage from "./pages/WhatsAppPage";
@@ -21,21 +20,15 @@ import LoginPage from "./pages/LoginPage";
 import NotionBoardsPage from "@/pages/notion/BoardsWrapper";
 import NotionHomePage from "@/pages/notion/Home";
 import NotionTemplatesPage from "@/pages/notion/Templates";
-import NotificationTestPage from "@/pages/NotificationTestPage";
-import ExportData from "@/pages/ExportData";
 import { Navigate } from "react-router-dom";
 import { RootRedirect } from "@/components/RootRedirect";
 import PublicForm from "@/features/formularios-platform/pages/PublicForm";
 import FormularioPublicoWrapper from "@/features/formularios-platform/pages/FormularioPublicoWrapper";
 import ConsultarCPFPage from "@/pages/consultar-cpf";
-import HistoricoConsultasPage from "@/pages/historico-consultas";
-import Reuniao from "@/pages/Reuniao";
+import HistoricoConsultasPage from "./pages/ClientConfigPage"; 
 
 // Import Revendedora Platform
 import RevendedoraApp from "@/features/revendedora/RevendedoraApp";
-
-// Import Reuniao Platform
-import { ReuniaoHubPage } from "@/features/reuniao-platform";
 
 // Import Revendedora Admin components for /produto/admin/* routes
 import { CompanyProvider } from "@/features/revendedora/contexts/CompanyContext";
@@ -109,28 +102,6 @@ const MobileApp = () => {
           <ProtectedRoute>
             <MobileLayout>
               <WorkspacePage />
-            </MobileLayout>
-          </ProtectedRoute>
-        } 
-      />
-      
-      <Route 
-        path="/workspace/calendar" 
-        element={
-          <ProtectedRoute>
-            <MobileLayout>
-              <WorkspaceCalendarPage />
-            </MobileLayout>
-          </ProtectedRoute>
-        } 
-      />
-      
-      <Route 
-        path="/workspace/calendario" 
-        element={
-          <ProtectedRoute>
-            <MobileLayout>
-              <WorkspaceCalendarPage />
             </MobileLayout>
           </ProtectedRoute>
         } 
@@ -482,32 +453,14 @@ const MobileApp = () => {
         } 
       />
       
-      {/* Reuniao Platform - Plataforma de videoconferencia e reunioes */}
-      <Route 
-        path="/reuniao/:id" 
-        element={<Reuniao />} 
-      />
-      <Route 
-        path="/reuniao/*" 
-        element={<ReuniaoHubPage />} 
-      />
-      <Route 
-        path="/plataforma-reuniao/*" 
-        element={
-          <ProtectedRoute>
-            <MobileLayout>
-              <ReuniaoHubPage />
-            </MobileLayout>
-          </ProtectedRoute>
-        } 
-      />
-      
       {/* Revendedora Platform - Plataforma completa de vendas e revendedoras */}
       <Route 
         path="/revendedora/*" 
         element={
           <ProtectedRoute>
-            <RevendedoraApp />
+            <MobileLayout>
+              <RevendedoraApp />
+            </MobileLayout>
           </ProtectedRoute>
         } 
       />

@@ -8,7 +8,6 @@ import CalendarPage from "./pages/CalendarPage";
 import SettingsPage from "./pages/SettingsPage";
 import ClientConfigPage from "./pages/ClientConfigPage";
 import WorkspacePage from "./pages/WorkspacePage";
-import WorkspaceCalendarPage from "@/pages/WorkspaceCalendarPage";
 import BillingPage from "./pages/BillingPage";
 import NotificationsPage from "./pages/NotificationsPage";
 import WhatsAppPage from "./pages/WhatsAppPage";
@@ -28,16 +27,10 @@ import { RootRedirect } from "@/components/RootRedirect";
 import PublicForm from "@/features/formularios-platform/pages/PublicForm";
 import FormularioPublicoWrapper from "@/features/formularios-platform/pages/FormularioPublicoWrapper";
 import ConsultarCPFPage from "@/pages/consultar-cpf";
-import HistoricoConsultasPage from "@/pages/historico-consultas";
-import Gravacoes from "@/pages/Gravacoes";
-import PublicMeetingRoom from "@/pages/PublicMeetingRoom";
-import Reuniao from "@/pages/Reuniao";
+import HistoricoConsultasPage from "./pages/ClientConfigPage"; 
 
 // Import Revendedora Platform
 import RevendedoraApp from "@/features/revendedora/RevendedoraApp";
-
-// Import Reuniao Platform
-import { ReuniaoHubPage } from "@/features/reuniao-platform";
 
 // Import Revendedora Admin components for /produto/admin/* routes
 import { CompanyProvider } from "@/features/revendedora/contexts/CompanyContext";
@@ -111,28 +104,6 @@ const DesktopApp = () => {
           <ProtectedRoute>
             <DesktopLayout>
               <WorkspacePage />
-            </DesktopLayout>
-          </ProtectedRoute>
-        } 
-      />
-      
-      <Route 
-        path="/workspace/calendar" 
-        element={
-          <ProtectedRoute>
-            <DesktopLayout>
-              <WorkspaceCalendarPage />
-            </DesktopLayout>
-          </ProtectedRoute>
-        } 
-      />
-      
-      <Route 
-        path="/workspace/calendario" 
-        element={
-          <ProtectedRoute>
-            <DesktopLayout>
-              <WorkspaceCalendarPage />
             </DesktopLayout>
           </ProtectedRoute>
         } 
@@ -479,31 +450,6 @@ const DesktopApp = () => {
           <ProtectedRoute>
             <DesktopLayout>
               <HistoricoConsultasPage />
-            </DesktopLayout>
-          </ProtectedRoute>
-        } 
-      />
-      
-      <Route 
-        path="/gravacoes" 
-        element={
-          <ProtectedRoute>
-            <DesktopLayout>
-              <Gravacoes />
-            </DesktopLayout>
-          </ProtectedRoute>
-        } 
-      />
-      
-      <Route path="/reuniao/:companySlug/:roomId" element={<PublicMeetingRoom />} />
-      <Route path="/reuniao/:id" element={<Reuniao />} />
-      <Route path="/reuniao/*" element={<ReuniaoHubPage />} />
-      <Route 
-        path="/plataforma-reuniao/*" 
-        element={
-          <ProtectedRoute>
-            <DesktopLayout>
-              <ReuniaoHubPage />
             </DesktopLayout>
           </ProtectedRoute>
         } 
