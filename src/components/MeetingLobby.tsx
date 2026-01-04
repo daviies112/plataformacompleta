@@ -301,7 +301,7 @@ export function MeetingLobby({
                   style={{ backgroundColor: config.colors.background }}
                 >
                   <div
-                    className="h-24 w-24 rounded-full flex items-center justify-center text-4xl font-bold"
+                    className="h-24 w-24 rounded-full flex items-center justify-center text-4xl font-bold border-4 border-white/10 shadow-xl"
                     style={{
                       backgroundColor: config.colors.avatarBackground,
                       color: config.colors.avatarText,

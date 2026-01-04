@@ -539,37 +539,68 @@ function Controls({
     }
   };
 
-  const startRecording = async () => {
+  const [localRecordingStatus, setLocalRecordingStatus] = useState<boolean | 'loading'>(false);
+
+  // Sincronização segura do estado de gravação do SDK
+  const sdkRecordingOn = (room as any)?.recording?.browser?.running || 
+                        (room as any)?.browserRecordingState?.running || 
+                        (room as any)?.recording?.server?.running || 
+                        (room as any)?.recording?.hls?.running || 
+                        ['starting', 'started', 'recording'].includes((room as any)?.recording?.status) ||
+                        false;
+  
+  useEffect(() => {
+    setLocalRecordingStatus(sdkRecordingOn);
+  }, [sdkRecordingOn]);
+
+  const isRecordingOn = localRecordingStatus === 'loading' ? sdkRecordingOn : localRecordingStatus;
+  
+  // Encontrar o track de compartilhamento de tela
+  const peers = useHMSStore(selectPeers);
+  const screenSharePeer = peers.find(p => (p as any).auxiliaryTracks?.length > 0);
+  const screenShareTrackId = screenSharePeer?.auxiliaryTracks?.[0];
+
+  const handleToggleRecording = async () => {
+    if (localRecordingStatus === 'loading') return;
+
     try {
-      if (!roomId) {
-        toast({ variant: "destructive", title: "Erro", description: "ID da sala não encontrado." });
-        return;
-      }
+      const isCurrentlyRecording = isRecordingOn;
+      console.log("[Meeting100ms] Executando toggle gravação... Estado atual:", isCurrentlyRecording);
       
-      console.log("[HMS] Solicitando início de gravação para sala:", roomId);
-      setIsRecordingLoading(true);
-      
-      const res = await api.post("/api/reunioes/recording/start", { roomId });
-      const data = res.data;
-      
-      if (data.success) {
-        setRecordingId(data.recordingId);
-        setIsRecording(true);
-        toast({ title: "Gravação Iniciada", description: "A reunião está sendo gravada." });
-      } else {
-        console.error("[HMS] Erro ao iniciar gravação (API):", data.message);
-        toast({ 
-          variant: "destructive",
-          title: "Erro na gravação", 
-          description: data.message || "Não foi possível iniciar a gravação."
+      const currentRoomId = roomId || meetingId;
+      setLocalRecordingStatus('loading');
+
+      if (isCurrentlyRecording) {
+        const response = await fetch('/api/100ms/recording/stop', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ roomId: currentRoomId }),
         });
+
+        if (!response.ok) {
+          setLocalRecordingStatus(true);
+          throw new Error('Erro ao parar gravação');
+        }
+        toast({ title: "Gravação parada", description: "O vídeo será processado em breve." });
+      } else {
+        const response = await fetch('/api/100ms/recording/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            roomId: currentRoomId,
+            meetingUrl: window.location.href,
+            tenantSlug: companySlug 
+          }),
+        });
+
+        if (!response.ok) {
+          setLocalRecordingStatus(false);
+          throw new Error('Erro ao iniciar gravação');
+        }
+        toast({ title: "Gravação iniciada", description: "A reunião está sendo gravada." });
       }
-    } catch (error: any) {
-      console.error("[HMS] Erro na requisição de gravação:", error);
-      const message = error.response?.data?.message || "Falha na comunicação com o servidor.";
-      toast({ variant: "destructive", title: "Erro", description: message });
-    } finally {
-      setIsRecordingLoading(false);
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Erro na gravação", description: err.message });
     }
   };
 
