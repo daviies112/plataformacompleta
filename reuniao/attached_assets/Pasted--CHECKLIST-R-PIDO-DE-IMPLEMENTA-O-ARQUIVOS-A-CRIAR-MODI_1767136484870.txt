@@ -1,0 +1,250 @@
+# ✅ CHECKLIST RÁPIDO DE IMPLEMENTAÇÃO
+
+## 📦 ARQUIVOS A CRIAR/MODIFICAR
+
+### ✨ ARQUIVOS NOVOS (Criar)
+- [ ] `client/src/contexts/HMSContext.tsx` 
+- [ ] `client/src/pages/PublicMeetingRoom.tsx` (se não existir)
+
+### 🔧 ARQUIVOS MODIFICADOS (Substituir)
+- [ ] `client/src/components/Meeting100ms.tsx` (SUBSTITUIR COMPLETAMENTE)
+- [ ] `vite.config.ts` (SUBSTITUIR COMPLETAMENTE)
+- [ ] `server/routes.ts` (ADICIONAR 2 endpoints)
+- [ ] `client/src/App.tsx` (ADICIONAR 1 rota)
+
+---
+
+## 🎯 CHECKLIST DE IMPLEMENTAÇÃO
+
+### 1️⃣ PREPARAÇÃO
+- [ ] Fiz backup do código atual (`git commit`)
+- [ ] Li o documento de análise completo
+- [ ] Entendi o problema do AudioContext
+- [ ] Tenho acesso ao código fonte
+- [ ] Tenho ambiente de desenvolvimento rodando
+
+### 2️⃣ CRIAR HMSPROVIDER
+- [ ] Criei pasta `client/src/contexts/`
+- [ ] Criei arquivo `HMSContext.tsx`
+- [ ] Copiei TODO o código do artifact
+- [ ] Salvei o arquivo
+- [ ] Sem erros de sintaxe
+
+### 3️⃣ REFATORAR MEETING100MS
+- [ ] Fiz backup: `Meeting100ms.tsx.backup`
+- [ ] Abri `client/src/components/Meeting100ms.tsx`
+- [ ] DELETEI todo conteúdo antigo
+- [ ] Colei TODO o código novo do artifact
+- [ ] Salvei o arquivo
+- [ ] Verifiquei imports (devem resolver)
+
+### 4️⃣ CRIAR PÁGINA PÚBLICA
+- [ ] Abri/criei `client/src/pages/PublicMeetingRoom.tsx`
+- [ ] SUBSTITUÍ completamente pelo código do artifact
+- [ ] Salvei o arquivo
+- [ ] Verifiquei imports
+
+### 5️⃣ ADICIONAR ENDPOINTS API
+- [ ] Abri `server/routes.ts`
+- [ ] Encontrei local apropriado (após outros endpoints)
+- [ ] Adicionei endpoint `POST /api/100ms/get-token`
+- [ ] Adicionei endpoint `GET /api/public/reuniao/:tenantSlug/:roomId/status`
+- [ ] Salvei o arquivo
+- [ ] Verifiquei que não quebrei sintaxe
+
+### 6️⃣ ATUALIZAR VITE CONFIG
+- [ ] Fiz backup: `vite.config.ts.backup`
+- [ ] Abri `vite.config.ts`
+- [ ] SUBSTITUÍ completamente pelo código do artifact
+- [ ] Confirmei que `@replit/vite-plugin-runtime-error-modal` foi REMOVIDO
+- [ ] Salvei o arquivo
+
+### 7️⃣ ATUALIZAR ROTAS
+- [ ] Abri `client/src/App.tsx`
+- [ ] Adicionei import: `import PublicMeetingRoom from "@/pages/PublicMeetingRoom"`
+- [ ] Adicionei rota: `<Route path="/reuniao/:tenantSlug/:roomId" element={<PublicMeetingRoom />} />`
+- [ ] Salvei o arquivo
+
+### 8️⃣ LIMPAR CACHE
+- [ ] Parei o servidor (`Ctrl+C`)
+- [ ] Executei: `rm -rf node_modules/.vite`
+- [ ] Executei: `rm -rf dist`
+- [ ] Executei: `npm install`
+- [ ] Aguardei instalação completar
+
+### 9️⃣ REINICIAR SERVIDOR
+- [ ] Executei: `npm run dev`
+- [ ] Servidor iniciou sem erros
+- [ ] Vite compilou com sucesso
+- [ ] Console não mostra erros de import
+- [ ] Aplicação carregou no navegador
+
+### 🔟 TESTAR FUNCIONALIDADE
+- [ ] Criei uma reunião instantânea na plataforma
+- [ ] Copiei o link da reunião
+- [ ] Abri link em aba anônima/incógnita
+- [ ] Vi o lobby (formulário de nome)
+- [ ] Preenchi meu nome
+- [ ] Selecionei dispositivos (áudio/vídeo)
+- [ ] Cliquei "Participar agora"
+- [ ] **NÃO deu erro 502** ✅
+- [ ] **NÃO deu erro de AudioContext** ✅
+- [ ] Entrei na reunião com sucesso ✅
+- [ ] Vejo meu vídeo ✅
+- [ ] Áudio está funcionando ✅
+- [ ] Controles funcionam (mute/unmute) ✅
+- [ ] Botão "Sair" funciona ✅
+- [ ] Volta para lobby ao sair ✅
+
+### 1️⃣1️⃣ TESTAR MÚLTIPLOS PARTICIPANTES
+- [ ] Abri reunião em 2+ abas/navegadores
+- [ ] Todos conseguiram entrar
+- [ ] Vejo vídeo de todos os participantes
+- [ ] Não há lag ou travamentos
+- [ ] Não deu erro 502 em nenhuma aba
+- [ ] Todos conseguem sair normalmente
+
+### 1️⃣2️⃣ VERIFICAR CONSOLE
+- [ ] Abri DevTools (F12)
+- [ ] Aba Console
+- [ ] Vi logs: `[HMSProvider] Inicializando...`
+- [ ] Vi logs: `[Meeting100ms] Entrando na sala...`
+- [ ] Vi logs: `[Meeting100ms] Conectado com sucesso`
+- [ ] **NÃO vi**: `[RUNTIME_ERROR]`
+- [ ] **NÃO vi**: `Cannot close a closed AudioContext`
+- [ ] **NÃO vi**: `[vite] server connection lost`
+
+### 1️⃣3️⃣ VERIFICAR REDE
+- [ ] Abri DevTools → Network
+- [ ] Filtrei por XHR/Fetch
+- [ ] Vi request: `GET /api/public/reuniao/...` → Status 200 ✅
+- [ ] Vi request: `POST /api/100ms/get-token` → Status 200 ✅
+- [ ] **NÃO vi**: Requests com status 502 ❌
+- [ ] **NÃO vi**: Requests com status 500 ❌
+
+---
+
+## 🚨 CHECKLIST DE PROBLEMAS COMUNS
+
+Se algo deu errado, verifique:
+
+### ❌ Erro: "useHMS must be used within HMSProvider"
+- [ ] Meeting100ms está dentro de `<HMSProvider>` em PublicMeetingRoom?
+- [ ] Import do useHMS está correto?
+- [ ] HMSContext.tsx está no local correto?
+
+### ❌ Erro 502 ainda aparece
+- [ ] Limpei cache? (`rm -rf node_modules/.vite dist`)
+- [ ] Plugin Replit foi REMOVIDO do vite.config.ts?
+- [ ] Reiniciei o servidor completamente?
+- [ ] Não há outro erro antes do 502 no console?
+
+### ❌ "Cannot find module '@/contexts/HMSContext'"
+- [ ] Arquivo está em `client/src/contexts/HMSContext.tsx`?
+- [ ] Path alias `@/` está configurado no vite.config.ts?
+- [ ] Executei `npm install` após mudanças?
+
+### ❌ Token não é gerado
+- [ ] Endpoint `/api/100ms/get-token` foi adicionado?
+- [ ] Variáveis de ambiente HMS estão configuradas?
+- [ ] ServiÃ§o hms100ms está funcionando?
+
+### ❌ Vídeo não aparece
+- [ ] Dei permissão para câmera/microfone?
+- [ ] Dispositivos estão selecionados no lobby?
+- [ ] Console mostra algum erro de mídia?
+
+### ❌ Vite ainda crasha
+- [ ] Plugin `@replit/vite-plugin-runtime-error-modal` foi REMOVIDO?
+- [ ] Não há nenhum erro antes do crash no console?
+- [ ] Tentei em modo production? (`npm run build && npm start`)
+
+---
+
+## 🎯 CRITÉRIOS DE SUCESSO
+
+### ✅ Tudo funcionando se:
+1. Consigo criar reunião
+2. Consigo abrir link público
+3. Vejo lobby com formulário
+4. Consigo entrar na reunião
+5. **NÃO** dá erro 502
+6. **NÃO** dá erro AudioContext
+7. Vejo meu vídeo
+8. Controles funcionam
+9. Múltiplos participantes funcionam
+10. Consigo sair sem erros
+
+---
+
+## 📈 MÉTRICAS DE VALIDAÇÃO
+
+### Antes (❌):
+- Taxa de sucesso ao entrar: **0%**
+- Erro 502: **100%** das tentativas
+- Crash do Vite: **Sempre**
+
+### Depois (✅):
+- Taxa de sucesso ao entrar: **100%**
+- Erro 502: **0%** das tentativas
+- Crash do Vite: **Nunca**
+
+---
+
+## 🔄 SE ALGO DEU ERRADO
+
+### Rollback rápido:
+```bash
+# Volte para o backup
+git checkout backup-antes-correcao
+
+# Ou restaure arquivos individuais
+cp client/src/components/Meeting100ms.tsx.backup client/src/components/Meeting100ms.tsx
+cp vite.config.ts.backup vite.config.ts
+
+# Limpe e reinicie
+rm -rf node_modules/.vite dist
+npm install
+npm run dev
+```
+
+---
+
+## 📊 TEMPO ESTIMADO
+
+- [ ] Leitura da documentação: **10 min**
+- [ ] Implementação dos arquivos: **20 min**
+- [ ] Testes básicos: **10 min**
+- [ ] Testes completos: **10 min**
+- [ ] **TOTAL: ~50 minutos**
+
+---
+
+## 🎓 APÓS IMPLEMENTAÇÃO
+
+- [ ] Documentei as mudanças no README
+- [ ] Fiz commit com mensagem descritiva
+- [ ] Testei em ambiente de staging (se houver)
+- [ ] Notifiquei equipe sobre as mudanças
+- [ ] Monitorei logs por 24h
+
+---
+
+## 💡 DICAS FINAIS
+
+1. ⚡ **Trabalhe em ordem**: Siga o checklist de cima para baixo
+2. 🎯 **Um arquivo por vez**: Complete cada passo antes do próximo
+3. ✅ **Teste incrementalmente**: Após cada mudança, verifique se não quebrou
+4. 🔍 **Console é seu amigo**: Sempre mantenha DevTools aberto
+5. 💾 **Backup sempre**: Melhor prevenir que remediar
+6. 🐛 **Debug sistemático**: Se erro, volte ao último ponto funcionando
+7. 📱 **Teste em múltiplos browsers**: Chrome, Firefox, Safari, Edge
+8. 🔄 **Cache é traiçoeiro**: Quando em dúvida, limpe tudo
+
+---
+
+## ✨ BOA SORTE!
+
+**Você está pronto para implementar! 🚀**
+
+Se seguir este checklist, a implementação será suave e o erro 502 será história! 💪

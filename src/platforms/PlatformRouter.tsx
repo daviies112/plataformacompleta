@@ -18,12 +18,12 @@ const PlatformRouter = () => {
   const location = useLocation();
 
   // Se a rota for de reunião pública, renderiza o componente isolado sem layout
-  if (location.pathname.startsWith('/reuniao/') && location.pathname.split('/').length === 4) {
+  if (location.pathname.startsWith('/reuniao/') && location.pathname.split('/').filter(Boolean).length === 3) {
     return <PublicMeetingRoom />;
   }
 
   // Se a rota for de reunião, renderiza o componente isolado sem layout
-  if (location.pathname.startsWith('/reuniao/') && location.pathname.split('/').length === 3) {
+  if (location.pathname.startsWith('/reuniao/') && location.pathname.split('/').filter(Boolean).length === 2) {
     return <Reuniao />;
   }
 
