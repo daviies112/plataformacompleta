@@ -20,6 +20,9 @@ import LoginPage from "./pages/LoginPage";
 import NotionBoardsPage from "@/pages/notion/BoardsWrapper";
 import NotionHomePage from "@/pages/notion/Home";
 import NotionTemplatesPage from "@/pages/notion/Templates";
+import ReuniaoDashboard from "@/pages/ReuniaoDashboard";
+import ReuniaoPage from "@/pages/Reuniao";
+import GravacoesPage from "@/pages/Gravacoes";
 import { Navigate } from "react-router-dom";
 import { RootRedirect } from "@/components/RootRedirect";
 import PublicForm from "@/features/formularios-platform/pages/PublicForm";
@@ -391,6 +394,39 @@ const DesktopApp = () => {
           <ProtectedRoute>
             <DesktopLayout>
               <NotionHomePage />
+            </DesktopLayout>
+          </ProtectedRoute>
+        } 
+      />
+      
+      <Route 
+        path="/reuniao" 
+        element={
+          <ProtectedRoute>
+            <DesktopLayout>
+              <ReuniaoDashboard />
+            </DesktopLayout>
+          </ProtectedRoute>
+        } 
+      />
+      
+      <Route 
+        path="/reuniao/:id" 
+        element={
+          <ProtectedRoute>
+            <DesktopLayout>
+              <ReuniaoPage />
+            </DesktopLayout>
+          </ProtectedRoute>
+        } 
+      />
+      
+      <Route 
+        path="/gravacoes" 
+        element={
+          <ProtectedRoute>
+            <DesktopLayout>
+              <GravacoesPage />
             </DesktopLayout>
           </ProtectedRoute>
         } 

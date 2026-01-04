@@ -18,10 +18,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { Meeting } from "@/lib/mock-store";
 import { useState } from "react";
-import { Link } from "wouter";
+import { Link } from "react-router-dom";
 
 interface CalendarProps {
-  meetings: any[];
+  meetings: Meeting[];
   onDateClick: (date: Date) => void;
 }
 
@@ -43,10 +43,7 @@ export function Calendar({ meetings, onDateClick }: CalendarProps) {
   const goToToday = () => setCurrentDate(new Date());
 
   const getMeetingsForDay = (day: Date) => {
-    return meetings.filter(m => {
-      const meetingDate = new Date(m.data_inicio);
-      return isSameDay(meetingDate, day);
-    });
+    return meetings.filter(m => isSameDay(new Date(m.data_inicio), day));
   };
 
   return (
@@ -99,7 +96,7 @@ export function Calendar({ meetings, onDateClick }: CalendarProps) {
                   
                   <div className="space-y-1">
                     {dayMeetings.map((meeting) => (
-                      <Link key={meeting.id} href={`/reuniao/${meeting.id}`}>
+                      <Link key={meeting.id} to={`/reuniao/${meeting.id}`}>
                         <div 
                           className="text-xs p-1.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-200 truncate hover:opacity-80 transition-opacity border-l-2 border-blue-500 shadow-sm"
                           title={meeting.titulo}
