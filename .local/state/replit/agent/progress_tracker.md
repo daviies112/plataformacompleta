@@ -35,3 +35,6 @@
 [x] 35. Investigar por que a rota /reuniao/:id está retornando "Reunião não encontrada"
 [x] 36. Implementar endpoints públicos de reunião e corrigir roteamento frontend
 [x] 37. Validar correção da URL de reunião
+[x] 38. Install drizzle-kit package (missing from path)
+[x] 39. Configure workflow with webview output type for port 5000
+[x] 40. Application running successfully - all systems initialized
