@@ -1,0 +1,680 @@
+# 🔧 GUIA COMPLETO DE IMPLEMENTAÇÃO
+## Correção do Erro 502 e AudioContext + Página Pública
+
+---
+
+## 📋 O QUE VAMOS FAZER
+
+Esta implementação resolve **3 problemas críticos**:
+1. ❌ **Erro "Cannot close a closed AudioContext"**
+2. ❌ **Crash do servidor Vite**  
+3. ❌ **Erro 502 Bad Gateway**
+
+E implementa **1 funcionalidade nova**:
+✅ **Página pública de reunião** (cliente acessa direto, sem login)
+
+---
+
+## 🎯 RESUMO DA SOLUÇÃO
+
+### O Problema:
+```
+Meeting100ms.tsx tinha um singleton global:
+const hmsManager = new HMSReactiveStore(); // ❌ PROBLEMA!
+
+Isso causava:
+- Múltiplas instâncias conflitando
+- AudioContext sendo fechado prematuramente  
+- Tentativa de fechar novamente = erro
+- Plugin Replit amplificava o erro
+- Vite crashava
+- Resultado: 502 Bad Gateway
+```
+
+### A Solução:
+```
+1. Criar HMSContext (React Context)
+2. Gerenciar HMSReactiveStore corretamente
+3. Cleanup seguro com refs
+4. Remover plugin problemático
+5. Isolar reunião em página própria
+```
+
+---
+
+## 🚀 IMPLEMENTAÇÃO PASSO A PASSO
+
+### PASSO 1: Fazer Backup
+```bash
+# Crie um branch de backup
+git add .
+git commit -m "backup antes de corrigir erro 502"
+
+# Ou apenas copie os arquivos que vamos modificar
+cp client/src/components/Meeting100ms.tsx Meeting100ms.tsx.backup
+cp vite.config.ts vite.config.ts.backup
+```
+
+---
+
+### PASSO 2: Criar HMSContext
+
+**Crie o arquivo:** `client/src/contexts/HMSContext.tsx`
+
+```typescript
+// client/src/contexts/HMSContext.tsx
+import React, { createContext, useContext, useRef, useEffect, ReactNode } from 'react';
+import {
+  HMSReactiveStore,
+  HMSActions,
+  HMSStore,
+} from '@100mslive/hms-video-store';
+
+interface HMSContextType {
+  hmsStore: HMSStore;
+  hmsActions: HMSActions;
+  isInitialized: boolean;
+}
+
+const HMSContext = createContext<HMSContextType | null>(null);
+
+interface HMSProviderProps {
+  children: ReactNode;
+}
+
+export function HMSProvider({ children }: HMSProviderProps) {
+  const managerRef = useRef<HMSReactiveStore | null>(null);
+  const isInitializedRef = useRef(false);
+  const isCleaningUpRef = useRef(false);
+
+  // Inicializa apenas uma vez
+  if (!managerRef.current && !isInitializedRef.current) {
+    console.log('[HMSProvider] Inicializando HMSReactiveStore...');
+    managerRef.current = new HMSReactiveStore();
+    isInitializedRef.current = true;
+  }
+
+  const hmsStore = managerRef.current!.getStore();
+  const hmsActions = managerRef.current!.getActions();
+
+  useEffect(() => {
+    console.log('[HMSProvider] Montado');
+
+    return () => {
+      // Cleanup seguro apenas uma vez
+      if (isCleaningUpRef.current) {
+        console.log('[HMSProvider] Cleanup já em andamento, ignorando...');
+        return;
+      }
+
+      isCleaningUpRef.current = true;
+      console.log('[HMSProvider] Iniciando cleanup...');
+
+      const cleanup = async () => {
+        try {
+          const isConnected = hmsStore.getState(
+            (state: any) => state.room?.isConnected
+          );
+
+          if (isConnected && managerRef.current) {
+            console.log('[HMSProvider] Desconectando da sala...');
+            await hmsActions.leave().catch((err) => {
+              console.warn('[HMSProvider] Erro ao sair da sala:', err);
+            });
+          }
+
+          await new Promise((resolve) => setTimeout(resolve, 300));
+          console.log('[HMSProvider] Cleanup concluído');
+        } catch (error) {
+          console.error('[HMSProvider] Erro no cleanup:', error);
+        } finally {
+          isCleaningUpRef.current = false;
+        }
+      };
+
+      cleanup();
+    };
+  }, []);
+
+  return (
+    <HMSContext.Provider
+      value={{
+        hmsStore,
+        hmsActions,
+        isInitialized: isInitializedRef.current,
+      }}
+    >
+      {children}
+    </HMSContext.Provider>
+  );
+}
+
+export function useHMS() {
+  const context = useContext(HMSContext);
+  if (!context) {
+    throw new Error('useHMS deve ser usado dentro de HMSProvider');
+  }
+  return context;
+}
+```
+
+**✅ Verificação:** Arquivo criado em `client/src/contexts/HMSContext.tsx`
+
+---
+
+### PASSO 3: Refatorar Meeting100ms
+
+**Abra o arquivo:** `client/src/components/Meeting100ms.tsx`
+
+**⚠️ IMPORTANTE:** Delete TUDO e substitua pelo código abaixo:
+
+```typescript
+// client/src/components/Meeting100ms.tsx
+import { useEffect, useState, useRef, useCallback } from "react";
+import {
+  selectIsConnectedToRoom,
+  selectPeers,
+  selectIsLocalAudioEnabled,
+  selectIsLocalVideoEnabled,
+  selectLocalPeer,
+  selectVideoTrackByID,
+  HMSPeer,
+} from "@100mslive/hms-video-store";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { useHMS } from "@/contexts/HMSContext";
+import type { RoomDesignConfig } from "@/types/design";
+
+interface MeetingProps {
+  authToken: string;
+  userName: string;
+  config: RoomDesignConfig;
+  onLeave?: () => void;
+}
+
+// Componente para vídeo de peer individual
+function PeerVideo({
+  peer,
+  config,
+  totalPeers,
+}: {
+  peer: HMSPeer;
+  config: RoomDesignConfig;
+  totalPeers: number;
+}) {
+  const { hmsStore, hmsActions } = useHMS();
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [hasVideo, setHasVideo] = useState(false);
+  const isMountedRef = useRef(true);
+  const attachedTrackRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    const videoElement = videoRef.current;
+    if (!videoElement) return;
+
+    let unsubscribe: (() => void) | null = null;
+
+    const setupVideo = () => {
+      unsubscribe = hmsStore.subscribe((videoTrackId: string | undefined) => {
+        if (!isMountedRef.current) return;
+
+        setHasVideo(!!videoTrackId);
+
+        // Detach vídeo anterior se existir
+        if (attachedTrackRef.current && attachedTrackRef.current !== videoTrackId) {
+          hmsActions
+            .detachVideo(attachedTrackRef.current, videoElement)
+            .catch((err) => console.warn('[PeerVideo] Erro ao detach anterior:', err));
+          attachedTrackRef.current = null;
+        }
+
+        // Attach novo vídeo
+        if (videoTrackId && videoTrackId !== attachedTrackRef.current) {
+          hmsActions
+            .attachVideo(videoTrackId, videoElement)
+            .then(() => {
+              if (isMountedRef.current) {
+                attachedTrackRef.current = videoTrackId;
+              }
+            })
+            .catch((err) => console.error('[PeerVideo] Erro ao attach:', err));
+        }
+      }, selectVideoTrackByID(peer.videoTrack));
+    };
+
+    setupVideo();
+
+    return () => {
+      isMountedRef.current = false;
+      if (unsubscribe) unsubscribe();
+
+      // Cleanup seguro do vídeo
+      if (videoElement && attachedTrackRef.current) {
+        hmsActions
+          .detachVideo(attachedTrackRef.current, videoElement)
+          .catch(() => {});
+        attachedTrackRef.current = null;
+      }
+    };
+  }, [peer.videoTrack, hmsStore, hmsActions]);
+
+  return (
+    <div className="relative aspect-video">
+      <div className="absolute inset-0 rounded-lg overflow-hidden">
+        {hasVideo ? (
+          <video
+            ref={videoRef}
+            autoPlay
+            muted
+            playsInline
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div
+            className="w-full h-full flex items-center justify-center"
+            style={{
+              backgroundColor: config.colors?.avatarBackground || "#3b82f6",
+            }}
+          >
+            <div
+              className="text-4xl font-bold"
+              style={{ color: config.colors?.avatarText || "#ffffff" }}
+            >
+              {peer.name.charAt(0).toUpperCase()}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div
+        className="absolute bottom-2 left-2 px-3 py-1 rounded-md text-sm font-medium"
+        style={{
+          backgroundColor: config.colors?.participantNameBackground || "rgba(0, 0, 0, 0.6)",
+          color: config.colors?.participantNameText || "#ffffff",
+        }}
+      >
+        {peer.name} {peer.isLocal ? "(Você)" : ""}
+      </div>
+    </div>
+  );
+}
+
+export default function Meeting100ms({
+  authToken,
+  userName,
+  config,
+  onLeave,
+}: MeetingProps) {
+  const { hmsStore, hmsActions, isInitialized } = useHMS();
+  const [isConnected, setIsConnected] = useState(false);
+  const [peers, setPeers] = useState<HMSPeer[]>([]);
+  const [isAudioEnabled, setIsAudioEnabled] = useState(true);
+  const [isVideoEnabled, setIsVideoEnabled] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isJoining, setIsJoining] = useState(false);
+  const hasJoinedRef = useRef(false);
+
+  // Join na sala
+  useEffect(() => {
+    if (!isInitialized || hasJoinedRef.current || isJoining) return;
+
+    const joinRoom = async () => {
+      setIsJoining(true);
+      hasJoinedRef.current = true;
+
+      try {
+        console.log('[Meeting100ms] Entrando na sala...');
+        await hmsActions.join({
+          authToken,
+          userName,
+          settings: {
+            isAudioMuted: false,
+            isVideoMuted: false,
+          },
+        });
+        console.log('[Meeting100ms] Conectado com sucesso');
+      } catch (err: any) {
+        console.error('[Meeting100ms] Erro ao entrar:', err);
+        setError(err.message || "Erro ao entrar na sala");
+        hasJoinedRef.current = false;
+      } finally {
+        setIsJoining(false);
+      }
+    };
+
+    joinRoom();
+  }, [isInitialized, authToken, userName, hmsActions, isJoining]);
+
+  // Subscriptions
+  useEffect(() => {
+    const unsubscribes = [
+      hmsStore.subscribe(setIsConnected, selectIsConnectedToRoom),
+      hmsStore.subscribe(setPeers, selectPeers),
+      hmsStore.subscribe(setIsAudioEnabled, selectIsLocalAudioEnabled),
+      hmsStore.subscribe(setIsVideoEnabled, selectIsLocalVideoEnabled),
+    ];
+
+    return () => {
+      unsubscribes.forEach((unsub) => unsub());
+    };
+  }, [hmsStore]);
+
+  const handleToggleAudio = useCallback(async () => {
+    try {
+      await hmsActions.setLocalAudioEnabled(!isAudioEnabled);
+    } catch (err) {
+      console.error('[Meeting100ms] Erro ao alternar áudio:', err);
+    }
+  }, [hmsActions, isAudioEnabled]);
+
+  const handleToggleVideo = useCallback(async () => {
+    try {
+      await hmsActions.setLocalVideoEnabled(!isVideoEnabled);
+    } catch (err) {
+      console.error('[Meeting100ms] Erro ao alternar vídeo:', err);
+    }
+  }, [hmsActions, isVideoEnabled]);
+
+  const handleLeave = useCallback(async () => {
+    try {
+      console.log('[Meeting100ms] Saindo da sala...');
+      await hmsActions.leave();
+      onLeave?.();
+    } catch (err) {
+      console.error('[Meeting100ms] Erro ao sair:', err);
+    }
+  }, [hmsActions, onLeave]);
+
+  if (error) {
+    return (
+      <Card className="p-8 text-center">
+        <h2 className="text-2xl font-bold text-red-600 mb-4">Erro</h2>
+        <p className="text-gray-600 mb-4">{error}</p>
+        <Button onClick={() => window.location.reload()}>
+          Tentar Novamente
+        </Button>
+      </Card>
+    );
+  }
+
+  if (!isConnected) {
+    return (
+      <Card className="p-8 text-center">
+        <h2 className="text-2xl font-bold mb-4">Conectando...</h2>
+        <p className="text-gray-600">Entrando na reunião</p>
+      </Card>
+    );
+  }
+
+  const gridClass =
+    peers.length === 1 ? "grid-cols-1" :
+    peers.length === 2 ? "grid-cols-1 lg:grid-cols-2" :
+    peers.length <= 4 ? "grid-cols-1 lg:grid-cols-2" :
+    "grid-cols-1 lg:grid-cols-3";
+
+  return (
+    <div className="flex flex-col h-screen" style={{ backgroundColor: config.colors?.background || "#0f172a" }}>
+      {/* Header */}
+      <div className="p-4 border-b">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {config.branding?.logo && (
+              <img src={config.branding.logo} alt="Logo" style={{ height: `${config.branding.logoSize || 40}px` }} />
+            )}
+          </div>
+          <div className="text-sm" style={{ color: config.colors?.controlsText || "#ffffff" }}>
+            {peers.length} participante{peers.length !== 1 ? 's' : ''}
+          </div>
+        </div>
+      </div>
+
+      {/* Grid de vídeos */}
+      <div className="flex-1 p-4 overflow-auto">
+        <div className={`grid ${gridClass} gap-4`}>
+          {peers.map((peer) => (
+            <PeerVideo key={peer.id} peer={peer} config={config} totalPeers={peers.length} />
+          ))}
+        </div>
+      </div>
+
+      {/* Controles */}
+      <div className="p-4 border-t" style={{ backgroundColor: config.colors?.controlsBackground || "#18181b" }}>
+        <div className="flex items-center justify-center gap-4">
+          <Button
+            onClick={handleToggleAudio}
+            variant={isAudioEnabled ? "default" : "destructive"}
+          >
+            {isAudioEnabled ? "🎤 Microfone" : "🔇 Mudo"}
+          </Button>
+
+          <Button
+            onClick={handleToggleVideo}
+            variant={isVideoEnabled ? "default" : "destructive"}
+          >
+            {isVideoEnabled ? "📹 Câmera" : "🚫 Sem Vídeo"}
+          </Button>
+
+          <Button onClick={handleLeave} variant="destructive">
+            Sair da Reunião
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+```
+
+**✅ Verificação:** 
+- Arquivo substituído completamente
+- Não há mais `const hmsManager = new HMSReactiveStore()` global
+- Usa `useHMS()` hook agora
+
+---
+
+### PASSO 4: Atualizar vite.config.ts
+
+**Abra:** `vite.config.ts`
+
+**Substitua completamente por:**
+
+```typescript
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+export default defineConfig({
+  plugins: [
+    react(),
+    tailwindcss(),
+    // REMOVIDO: @replit/vite-plugin-runtime-error-modal
+  ],
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "client", "src"),
+      "@shared": path.resolve(__dirname, "shared"),
+      "@assets": path.resolve(__dirname, "attached_assets"),
+    },
+  },
+  root: path.resolve(__dirname, "client"),
+  server: {
+    host: "0.0.0.0",
+    port: 5000,
+    strictPort: true,
+    allowedHosts: true,
+    fs: {
+      strict: true,
+      deny: ["**/.*"],
+    },
+    hmr: {
+      overlay: true,
+    },
+  },
+  build: {
+    outDir: path.resolve(__dirname, "dist/client"),
+    emptyOutDir: true,
+    sourcemap: true,
+  },
+  optimizeDeps: {
+    include: [
+      "@100mslive/hms-video-store",
+      "@100mslive/react-sdk",
+    ],
+  },
+});
+```
+
+**✅ Verificação:**
+- Plugin `@replit/vite-plugin-runtime-error-modal` foi REMOVIDO
+- Resto da configuração mantida
+
+---
+
+### PASSO 5: Criar Página Pública
+
+**Crie o arquivo:** `client/src/pages/PublicMeetingRoom.tsx`
+
+```typescript
+// Copie o conteúdo completo do artifact "PublicMeetingRoom.tsx"
+// É muito grande para colar aqui, mas está nos artifacts
+```
+
+**✅ Verificação:** Arquivo criado
+
+---
+
+### PASSO 6: Adicionar Endpoints API
+
+**Abra:** `server/routes.ts`
+
+**Adicione no final (antes do export):**
+
+```typescript
+// Endpoint para gerar token de acesso à reunião (público)
+app.post("/api/100ms/get-token", async (req, res) => {
+  try {
+    const { roomId, role, userId } = req.body;
+
+    if (!roomId) {
+      return res.status(400).json({ error: "roomId é obrigatório" });
+    }
+
+    console.log(`[100ms Token] Gerando token para userId=${userId}, role=${role}, roomId=${roomId}`);
+
+    const token = await hms100msService.generateAuthToken({
+      roomId,
+      userId: userId || `guest-${Date.now()}`,
+      role: role || "guest",
+    });
+
+    return res.json({ token });
+  } catch (error: any) {
+    console.error("[100ms Token] Erro ao gerar token:", error);
+    return res.status(500).json({
+      error: "Erro ao gerar token de acesso",
+      message: error.message,
+    });
+  }
+});
+```
+
+**✅ Verificação:** Endpoint adicionado
+
+---
+
+### PASSO 7: Atualizar Rotas
+
+**Abra:** `client/src/App.tsx`
+
+**Adicione:**
+
+```typescript
+import PublicMeetingRoom from "@/pages/PublicMeetingRoom";
+
+// Nas rotas:
+<Route path="/reuniao/:tenantSlug/:roomId" element={<PublicMeetingRoom />} />
+```
+
+**✅ Verificação:** Rota adicionada
+
+---
+
+### PASSO 8: Limpar e Testar
+
+```bash
+# Pare o servidor (Ctrl+C)
+
+# Limpe cache
+rm -rf node_modules/.vite
+rm -rf dist
+
+# Reinstale
+npm install
+
+# Inicie
+npm run dev
+```
+
+---
+
+## 🧪 TESTANDO
+
+### Teste 1: Criar Reunião
+1. Acesse sua plataforma
+2. Crie uma reunião instantânea
+3. Copie o link gerado
+
+### Teste 2: Acessar como Convidado
+1. Abra o link em aba anônima
+2. Digite seu nome
+3. Clique "Participar agora"
+4. **✅ NÃO deve dar erro 502**
+5. **✅ Deve entrar na reunião**
+
+### Teste 3: Verificar Console
+Abra DevTools (F12) e verifique:
+```
+✅ [HMSProvider] Inicializando HMSReactiveStore...
+✅ [HMSProvider] Montado
+✅ [Meeting100ms] Entrando na sala...
+✅ [Meeting100ms] Conectado com sucesso
+
+❌ NÃO deve ter: [RUNTIME_ERROR]
+❌ NÃO deve ter: Cannot close a closed AudioContext
+❌ NÃO deve ter: [vite] server connection lost
+```
+
+---
+
+## 🐛 PROBLEMAS COMUNS
+
+### Erro: "useHMS must be used within HMSProvider"
+**Solução:** Verifique que `Meeting100ms` está dentro de `<HMSProvider>` em `PublicMeetingRoom.tsx`
+
+### Ainda dá erro 502
+**Solução:**
+```bash
+rm -rf node_modules/.vite dist node_modules
+npm install
+npm run dev
+```
+
+### "Cannot find module '@/contexts/HMSContext'"
+**Solução:** Verifique que o arquivo está em `client/src/contexts/HMSContext.tsx`
+
+---
+
+## ✅ SUCESSO!
+
+Se tudo funcionou:
+- ✅ Sem erro 502
+- ✅ Reunião funciona
+- ✅ Vídeo aparece
+- ✅ Controles funcionam
+- ✅ Página pública acessível
+
+**Parabéns! O problema está resolvido! 🎉**

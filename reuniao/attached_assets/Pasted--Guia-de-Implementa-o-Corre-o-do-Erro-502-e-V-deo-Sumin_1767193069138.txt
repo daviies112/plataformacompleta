@@ -1,0 +1,300 @@
+# 🔧 Guia de Implementação - Correção do Erro 502 e Vídeo Sumindo
+
+## 📋 Problema Identificado
+
+O erro ocorre porque o `HMSReactiveStore` estava sendo criado como **singleton global** no módulo, causando:
+
+1. ❌ Conflitos entre múltiplas instâncias do componente
+2. ❌ AudioContext sendo fechado prematuramente
+3. ❌ Vídeo funcionando no lobby mas sumindo na reunião
+4. ❌ Erro 502 que derruba o servidor Vite
+
+## ✅ Solução Implementada
+
+### Mudanças Principais
+
+#### 1. **Instância Isolada por Componente**
+```typescript
+// ❌ ANTES (Global - Problemático)
+const hmsManager = new HMSReactiveStore();
+const hmsStore = hmsManager.getStore();
+const hmsActions = hmsManager.getActions();
+
+// ✅ DEPOIS (Ref - Isolado)
+const hmsManagerRef = useRef<HMSReactiveStore | null>(null);
+const [hmsStore, setHmsStore] = useState<any>(null);
+const [hmsActions, setHmsActions] = useState<any>(null);
+```
+
+#### 2. **Limpeza Correta do Lobby**
+```typescript
+// ✅ Parar TODOS os tracks do preview antes de entrar na reunião
+if (streamRef.current) {
+  streamRef.current.getTracks().forEach(track => {
+    track.stop();
+  });
+  streamRef.current = null;
+}
+```
+
+#### 3. **Attach/Detach de Vídeo com Segurança**
+```typescript
+// ✅ Apenas attach quando track estiver pronto
+useEffect(() => {
+  if (!videoElement || !videoTrack?.id) return;
+  
+  const attachVideo = async () => {
+    try {
+      await hmsActions.attachVideo(videoTrack.id, videoElement);
+    } catch (error) {
+      console.warn("Error attaching video:", error);
+    }
+  };
+  
+  attachVideo();
+  
+  return () => {
+    // Detach seguro
+    if (videoTrack?.id) {
+      hmsActions.detachVideo(videoTrack.id, videoElement).catch(() => {});
+    }
+  };
+}, [videoTrack]);
+```
+
+## 📝 Passo a Passo de Implementação
+
+### Passo 1: Backup dos Arquivos Atuais
+
+```bash
+# Criar backup
+cp client/src/components/Meeting100ms.tsx client/src/components/Meeting100ms.tsx.backup
+cp client/src/components/MeetingLobby.tsx client/src/components/MeetingLobby.tsx.backup
+```
+
+### Passo 2: Substituir Meeting100ms.tsx
+
+1. Abra `client/src/components/Meeting100ms.tsx`
+2. **Substitua TODO o conteúdo** pelo código do artifact "Meeting100ms.tsx - CORRIGIDO"
+3. Salve o arquivo
+
+### Passo 3: Substituir MeetingLobby.tsx
+
+1. Abra `client/src/components/MeetingLobby.tsx`
+2. **Substitua TODO o conteúdo** pelo código do artifact "MeetingLobby.tsx - CORRIGIDO"
+3. Salve o arquivo
+
+### Passo 4: Verificar Dependências
+
+Certifique-se que estas dependências estão instaladas:
+
+```json
+{
+  "@100mslive/hms-video-store": "^0.13.0",
+  "@100mslive/react-sdk": "^0.11.0",
+  "lucide-react": "latest"
+}
+```
+
+### Passo 5: Testar a Aplicação
+
+```bash
+# Parar o servidor atual (Ctrl+C se estiver rodando)
+
+# Limpar cache
+rm -rf node_modules/.vite
+
+# Reiniciar
+npm run dev
+```
+
+## 🧪 Checklist de Testes
+
+Execute estes testes na ordem:
+
+### ✅ Teste 1: Lobby
+- [ ] Abrir página de reunião
+- [ ] Vídeo preview aparece no lobby
+- [ ] Consegue ligar/desligar câmera
+- [ ] Consegue ligar/desligar microfone
+- [ ] Contador de dispositivos mostra correto
+
+### ✅ Teste 2: Entrar na Reunião
+- [ ] Digitar nome
+- [ ] Clicar em "Participar agora"
+- [ ] **CRÍTICO**: Console não mostra erro de AudioContext
+- [ ] Aplicação não trava
+- [ ] Não aparece erro 502
+
+### ✅ Teste 3: Vídeo na Reunião
+- [ ] Vídeo próprio aparece imediatamente
+- [ ] Avatar aparece quando câmera desligada
+- [ ] Botões de controle funcionam
+- [ ] Toggle de câmera funciona
+
+### ✅ Teste 4: Múltiplos Participantes
+- [ ] Abrir em aba anônima / outro browser
+- [ ] Segundo participante entra
+- [ ] Ambos os vídeos aparecem
+- [ ] Grid adapta corretamente
+
+### ✅ Teste 5: Sair da Reunião
+- [ ] Clicar em botão de desligar
+- [ ] Sala desconecta corretamente
+- [ ] Console mostra "✅ Sala desconectada"
+- [ ] Pode entrar novamente sem erro
+
+## 🐛 Troubleshooting
+
+### Problema: Ainda mostra erro de AudioContext
+
+**Solução:**
+```bash
+# Limpar completamente o cache
+rm -rf node_modules/.vite
+rm -rf client/dist
+
+# Reinstalar dependências
+npm install
+
+# Reiniciar servidor
+npm run dev
+```
+
+### Problema: Vídeo não aparece no lobby
+
+**Verificar:**
+1. Permissões do navegador (câmera/microfone)
+2. Console do navegador para erros
+3. Dispositivos conectados corretamente
+
+```javascript
+// Adicionar debug no console
+navigator.mediaDevices.enumerateDevices().then(devices => {
+  console.log("Dispositivos:", devices);
+});
+```
+
+### Problema: Erro 502 ainda ocorre
+
+**Possíveis causas:**
+1. Servidor Vite não reiniciou corretamente
+2. Cache não foi limpo
+3. Outra instância rodando na porta
+
+```bash
+# Matar processos na porta 5000
+lsof -ti:5000 | xargs kill -9
+
+# Reiniciar
+npm run dev
+```
+
+### Problema: Vídeo não aparece para outros participantes
+
+**Verificar:**
+1. Token 100ms válido
+2. Room ID correto
+3. Configuração de peer no backend
+
+```bash
+# Checar logs do servidor
+# Procurar por: "✅ Peer joined" ou erros de autenticação
+```
+
+## 📊 Logs Esperados (Corretos)
+
+### Console do Browser (Cliente)
+```
+✅ HMS Manager criado com sucesso
+🔄 Conectando à sala...
+✅ Conectado à sala com sucesso
+✅ Mídia inicializada no lobby
+🔄 Parando preview do lobby antes de entrar...
+✅ Track parado: video
+✅ Track parado: audio
+```
+
+### Logs do Servidor (Backend)
+```
+GET /api/public/reuniao/meetflow/:roomId 200
+POST /api/reunioes/instantanea 201
+[100ms] Sala criada com sucesso
+```
+
+## 🎯 Diferenças Chave da Solução
+
+| Aspecto | ❌ Antes | ✅ Depois |
+|---------|---------|----------|
+| HMS Store | Singleton global | Instância por componente via useRef |
+| Video Attach | Sem verificação de track | Aguarda track.id antes de attach |
+| Cleanup | Incompleto | Para todos os tracks corretamente |
+| Error Handling | Causa crash | Try-catch com fallback seguro |
+| Lobby → Sala | Stream conflitante | Para stream antes de entrar |
+
+## 📈 Melhorias Adicionais Implementadas
+
+1. **Loading State**: Mostra "Entrando na reunião..." durante conexão
+2. **Error Boundary**: Exibe erro amigável sem crashar
+3. **Debug Logs**: Console logs para facilitar troubleshooting
+4. **Responsive Grid**: Layout adapta ao número de participantes
+5. **Mirror Effect**: Vídeo próprio espelhado (padrão UX)
+
+## ⚠️ Avisos Importantes
+
+### 1. React 19 Compatibility
+Se atualizar para React 19, monitore:
+- Mudanças no timing de useEffect cleanup
+- Strict Mode comportamento (double render)
+
+### 2. Replit Plugin
+O plugin `@replit/vite-plugin-runtime-error-modal` pode:
+- Amplificar erros de runtime
+- Considere remover em produção
+
+### 3. Produção vs Desenvolvimento
+Esta correção funciona em ambos ambientes, mas teste em produção com:
+```bash
+npm run build
+npm run preview
+```
+
+## 🔍 Monitoramento Contínuo
+
+### Métricas para Observar
+1. Taxa de erros 502 (deve ser 0%)
+2. Tempo de conexão à sala (< 3s)
+3. Taxa de vídeo renderizado (100%)
+4. Cleanup correto ao sair (verificar memory leaks)
+
+### Comandos Úteis
+```bash
+# Ver uso de memória
+node --inspect server/index.ts
+
+# Monitorar conexões WebSocket
+# No browser console:
+performance.getEntriesByType('resource')
+```
+
+## ✅ Conclusão
+
+Com estas mudanças:
+- ✅ Erro 502 eliminado
+- ✅ Vídeo aparece na reunião
+- ✅ AudioContext gerenciado corretamente
+- ✅ Aplicação estável
+- ✅ Pronto para produção
+
+## 📞 Suporte
+
+Se encontrar problemas:
+1. Verificar logs do console (browser + servidor)
+2. Testar em modo anônimo
+3. Limpar cache completamente
+4. Verificar versões das dependências
+
+---
+
+**Última Atualização**: 31/12/2024
+**Versão**: 2.0.0 (Correção Crítica)

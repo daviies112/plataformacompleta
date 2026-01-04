@@ -1,0 +1,580 @@
+# 📹 GUIA COMPLETO - Gravação e Compartilhamento de Tela
+
+## 🎯 O QUE O DOCUMENTO REVELA
+
+Analisando o arquivo `nexusintelligence.json`, descobri que seu template 100ms **JÁ ESTÁ CONFIGURADO** para:
+
+✅ **Compartilhamento de Tela** - Guest e Host têm permissão
+✅ **Gravação** - Habilitada via Browser Recording
+✅ **Role Especial** - `__internal_recorder` para gravação
+✅ **Transcrição** - Configurada para gerar resumos
+
+---
+
+## 📊 CONFIGURAÇÃO ATUAL
+
+### 1. **Roles e Permissões**
+
+#### Guest (Convidado)
+```json
+"publishParams": {
+  "allowed": [
+    "audio",   ✅
+    "video",   ✅
+    "screen"   ✅ <- Pode compartilhar tela!
+  ]
+}
+
+"permissions": {
+  "browserRecording": false,  ❌ Não pode gravar
+  "pollWrite": true,
+  "pollRead": true
+}
+```
+
+#### Host (Anfitrião)
+```json
+"publishParams": {
+  "allowed": [
+    "audio",   ✅
+    "video",   ✅
+    "screen"   ✅ <- Pode compartilhar tela!
+  ]
+}
+
+"permissions": {
+  "browserRecording": true,   ✅ Pode gravar!
+  "endRoom": true,
+  "removeOthers": true,
+  "mute": true,
+  "unmute": true,
+  "changeRole": true
+}
+```
+
+#### __internal_recorder (Role de Gravação)
+```json
+"publishParams": {
+  "allowed": [],  ← Não publica, só grava
+  "video": {
+    "bitRate": 300,
+    "width": 480,
+    "height": 360
+  }
+}
+
+"subscribeParams": {
+  "subscribeToRoles": [
+    "guest",   ← Grava guests
+    "host"     ← Grava hosts
+  ]
+}
+```
+
+### 2. **Gravação Configurada**
+
+```json
+"browserRecordings": {
+  "3419d519-b211-4974-802d-a194740e2502": {
+    "role": "__internal_recorder",
+    "width": 1280,
+    "height": 720,
+    "maxDuration": 14400,        ← 4 horas máx
+    "autoStopTimeout": 0,        ← Não para automaticamente
+    "presignDuration": 259200    ← 3 dias para download
+  }
+}
+
+"compositeRecording": {
+  "browserComposite": {
+    "enabled": true,             ✅ Gravação habilitada!
+    "width": 1280,
+    "height": 720
+  }
+}
+```
+
+### 3. **Transcrição Configurada**
+
+```json
+"transcriptions": {
+  "modes": ["live"],             ← Tempo real
+  "language": "en",              ← Inglês
+  "summary": {
+    "sections": [
+      { "title": "Agenda", "format": "bullets" },
+      { "title": "Key Points Discussed", "format": "bullets" },
+      { "title": "Follow Up Action Items", "format": "bullets" },
+      { "title": "Short Summary", "format": "paragraph" }
+    ]
+  }
+}
+```
+
+---
+
+## 🚀 IMPLEMENTAÇÃO
+
+### PARTE 1: Compartilhamento de Tela (Já está pronto!)
+
+O botão de compartilhar tela **JÁ FUNCIONA** porque:
+- ✅ Role guest tem `"allowed": ["screen"]`
+- ✅ Role host tem `"allowed": ["screen"]`
+- ✅ Código já implementa `handleScreenShare()`
+
+**O que você tem que fazer:** NADA! Já está funcionando! 🎉
+
+---
+
+### PARTE 2: Implementar Gravação
+
+A gravação precisa de **2 coisas**:
+
+#### 1. Iniciar Gravação (Backend)
+
+Adicione no `server/routes.ts`:
+
+```typescript
+// Iniciar gravação
+app.post("/api/100ms/recording/start", async (req, res) => {
+  try {
+    const { roomId, meetingUrl } = req.body;
+
+    if (!roomId) {
+      return res.status(400).json({ error: "roomId é obrigatório" });
+    }
+
+    console.log('[Recording] Iniciando gravação para room:', roomId);
+
+    // Chamar API 100ms para iniciar gravação
+    const response = await fetch(
+      `https://api.100ms.live/v2/recordings/room/${roomId}/browser`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${process.env.HMS_MANAGEMENT_TOKEN}`,
+        },
+        body: JSON.stringify({
+          meeting_url: meetingUrl,
+          recording_info: {
+            width: 1280,
+            height: 720,
+          },
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Erro 100ms: ${error}`);
+    }
+
+    const data = await response.json();
+    console.log('[Recording] Gravação iniciada:', data);
+
+    return res.json({
+      success: true,
+      recordingId: data.id,
+      message: "Gravação iniciada com sucesso",
+    });
+  } catch (error: any) {
+    console.error("[Recording] Erro ao iniciar:", error);
+    return res.status(500).json({
+      error: "Erro ao iniciar gravação",
+      message: error.message,
+    });
+  }
+});
+
+// Parar gravação
+app.post("/api/100ms/recording/stop", async (req, res) => {
+  try {
+    const { roomId } = req.body;
+
+    if (!roomId) {
+      return res.status(400).json({ error: "roomId é obrigatório" });
+    }
+
+    console.log('[Recording] Parando gravação para room:', roomId);
+
+    const response = await fetch(
+      `https://api.100ms.live/v2/recordings/room/${roomId}/browser/stop`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.HMS_MANAGEMENT_TOKEN}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Erro 100ms: ${error}`);
+    }
+
+    const data = await response.json();
+    console.log('[Recording] Gravação parada:', data);
+
+    return res.json({
+      success: true,
+      message: "Gravação parada com sucesso",
+    });
+  } catch (error: any) {
+    console.error("[Recording] Erro ao parar:", error);
+    return res.status(500).json({
+      error: "Erro ao parar gravação",
+      message: error.message,
+    });
+  }
+});
+
+// Listar gravações
+app.get("/api/100ms/recording/:roomId", async (req, res) => {
+  try {
+    const { roomId } = req.params;
+
+    const response = await fetch(
+      `https://api.100ms.live/v2/recordings?room_id=${roomId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.HMS_MANAGEMENT_TOKEN}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error("Erro ao listar gravações");
+    }
+
+    const data = await response.json();
+    return res.json(data);
+  } catch (error: any) {
+    console.error("[Recording] Erro ao listar:", error);
+    return res.status(500).json({
+      error: "Erro ao listar gravações",
+      message: error.message,
+    });
+  }
+});
+```
+
+#### 2. Adicionar Botão de Gravar no Frontend
+
+No `Meeting100ms.tsx`, adicione:
+
+```typescript
+import { Circle } from "lucide-react"; // Adicionar aos imports
+
+// No estado:
+const [isRecording, setIsRecording] = useState(false);
+const [recordingId, setRecordingId] = useState<string | null>(null);
+
+// Adicionar função:
+const handleToggleRecording = async () => {
+  try {
+    if (!isRecording) {
+      // Iniciar gravação
+      console.log('[Meeting] Iniciando gravação...');
+      
+      const meetingUrl = window.location.href;
+      const roomId = meetingUrl.split('/').pop(); // Extrair roomId da URL
+
+      const response = await fetch('/api/100ms/recording/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          roomId,
+          meetingUrl,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Erro ao iniciar gravação');
+      }
+
+      const data = await response.json();
+      setRecordingId(data.recordingId);
+      setIsRecording(true);
+      
+      alert('Gravação iniciada!');
+    } else {
+      // Parar gravação
+      console.log('[Meeting] Parando gravação...');
+      
+      const roomId = window.location.href.split('/').pop();
+
+      const response = await fetch('/api/100ms/recording/stop', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roomId }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Erro ao parar gravação');
+      }
+
+      setIsRecording(false);
+      setRecordingId(null);
+      
+      alert('Gravação parada! Será processada em alguns minutos.');
+    }
+  } catch (err: any) {
+    console.error('[Meeting] Erro gravação:', err);
+    alert(err.message || 'Erro ao controlar gravação');
+  }
+};
+
+// No JSX dos controles (após compartilhar tela):
+{localPeer?.roleName === 'host' && (
+  <Button
+    onClick={handleToggleRecording}
+    variant={isRecording ? "destructive" : "outline"}
+    size="lg"
+    className="flex items-center gap-2"
+  >
+    <Circle className={`w-5 h-5 ${isRecording ? 'animate-pulse fill-red-500' : ''}`} />
+    <span className="hidden sm:inline">
+      {isRecording ? 'Parar Gravação' : 'Gravar'}
+    </span>
+  </Button>
+)}
+```
+
+---
+
+## 🔑 VARIÁVEIS DE AMBIENTE NECESSÁRIAS
+
+Adicione no `.env`:
+
+```bash
+# Token de Management (não é o mesmo do auth token!)
+HMS_MANAGEMENT_TOKEN=your_management_token_here
+
+# Ou use App ID + App Secret
+HMS_APP_ID=your_app_id
+HMS_APP_SECRET=your_app_secret
+```
+
+**Como obter Management Token:**
+1. Acesse: https://dashboard.100ms.live
+2. Vá em "Developer" → "Management Tokens"
+3. Crie um novo token
+4. Copie e cole no `.env`
+
+---
+
+## 📥 COMO BAIXAR GRAVAÇÕES
+
+### Opção 1: Via API
+
+```typescript
+app.get("/api/100ms/recording/:roomId/download", async (req, res) => {
+  try {
+    const { roomId } = req.params;
+
+    const response = await fetch(
+      `https://api.100ms.live/v2/recordings?room_id=${roomId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.HMS_MANAGEMENT_TOKEN}`,
+        },
+      }
+    );
+
+    const data = await response.json();
+    
+    // Pegar a última gravação
+    const recordings = data.data || [];
+    if (recordings.length === 0) {
+      return res.status(404).json({ error: "Nenhuma gravação encontrada" });
+    }
+
+    const latestRecording = recordings[0];
+    
+    return res.json({
+      downloadUrl: latestRecording.presigned_url, // URL para download
+      status: latestRecording.status,
+      duration: latestRecording.duration,
+      size: latestRecording.size,
+    });
+  } catch (error: any) {
+    console.error("[Recording] Erro:", error);
+    return res.status(500).json({ error: error.message });
+  }
+});
+```
+
+### Opção 2: Webhook (Recomendado)
+
+Configure webhook no dashboard 100ms para receber notificação quando gravação terminar:
+
+```typescript
+// server/routes.ts
+app.post("/api/webhooks/100ms", async (req, res) => {
+  try {
+    const event = req.body;
+
+    console.log('[Webhook] Evento recebido:', event.type);
+
+    if (event.type === 'recording.success') {
+      const recording = event.data;
+      
+      console.log('[Webhook] Gravação concluída!');
+      console.log('  - ID:', recording.id);
+      console.log('  - URL:', recording.location);
+      console.log('  - Duração:', recording.duration);
+      
+      // Salvar no banco de dados
+      await db.insert(gravacoes).values({
+        roomId: recording.room_id,
+        recordingId: recording.id,
+        downloadUrl: recording.location,
+        duration: recording.duration,
+        size: recording.size,
+        status: 'concluida',
+        createdAt: new Date(),
+      });
+
+      // Enviar notificação ao usuário (email, etc)
+    }
+
+    return res.json({ success: true });
+  } catch (error) {
+    console.error('[Webhook] Erro:', error);
+    return res.status(500).json({ error: "Erro ao processar webhook" });
+  }
+});
+```
+
+---
+
+## 🎬 FLUXO COMPLETO
+
+### 1. Iniciar Reunião
+```
+Usuário → Entra na reunião → Vê controles
+```
+
+### 2. Iniciar Gravação (Host)
+```
+Host → Clica "Gravar" → API /recording/start → 100ms cria bot gravador
+```
+
+### 3. Durante Gravação
+```
+- Botão mostra "Parar Gravação" (vermelho, pulsando)
+- Indicador visual de gravação ativa
+- Todos os participantes são gravados
+```
+
+### 4. Parar Gravação
+```
+Host → Clica "Parar Gravação" → API /recording/stop → 100ms processa
+```
+
+### 5. Pós-Processamento
+```
+100ms → Processa vídeo (2-5 min) → Envia webhook → Gravação disponível
+```
+
+### 6. Download
+```
+API /recording/:roomId/download → Retorna presigned_url → Usuário baixa
+```
+
+---
+
+## 🎨 INTERFACE SUGERIDA
+
+### Indicador de Gravação
+
+```tsx
+{isRecording && (
+  <div className="fixed top-4 left-1/2 transform -translate-x-1/2 bg-red-500 text-white px-4 py-2 rounded-full flex items-center gap-2 z-50">
+    <Circle className="w-4 h-4 animate-pulse fill-white" />
+    <span className="font-semibold">Gravando</span>
+  </div>
+)}
+```
+
+### Lista de Gravações (Dashboard)
+
+```tsx
+<Card>
+  <h3>Gravações da Reunião</h3>
+  {recordings.map(rec => (
+    <div key={rec.id}>
+      <p>{rec.duration}s</p>
+      <Button onClick={() => downloadRecording(rec.downloadUrl)}>
+        Baixar
+      </Button>
+    </div>
+  ))}
+</Card>
+```
+
+---
+
+## ✅ CHECKLIST DE IMPLEMENTAÇÃO
+
+### Backend
+- [ ] Adicionar endpoint `/api/100ms/recording/start`
+- [ ] Adicionar endpoint `/api/100ms/recording/stop`
+- [ ] Adicionar endpoint `/api/100ms/recording/:roomId`
+- [ ] Adicionar webhook `/api/webhooks/100ms`
+- [ ] Configurar `HMS_MANAGEMENT_TOKEN` no `.env`
+- [ ] Criar tabela `gravacoes` no banco (opcional)
+
+### Frontend
+- [ ] Adicionar estado `isRecording` e `recordingId`
+- [ ] Implementar `handleToggleRecording()`
+- [ ] Adicionar botão de gravar (só para host)
+- [ ] Adicionar indicador visual de gravação
+- [ ] Adicionar ícone `Circle` do lucide-react
+
+### 100ms Dashboard
+- [ ] Obter Management Token
+- [ ] Configurar webhook URL (se usar webhooks)
+- [ ] Verificar que template tem gravação habilitada ✅ (já tem!)
+
+---
+
+## 🐛 TROUBLESHOOTING
+
+### Erro: "unauthorized" ao iniciar gravação
+**Causa:** Management token inválido
+**Solução:** Gere novo token no dashboard 100ms
+
+### Gravação não inicia
+**Causa:** Role não tem permissão
+**Solução:** Verificar que host tem `"browserRecording": true`
+
+### Vídeo não aparece na gravação
+**Causa:** Bot não conseguiu se conectar
+**Solução:** Verificar que `meeting_url` está acessível publicamente
+
+### Gravação trava/para
+**Causa:** Timeout ou erro no bot
+**Solução:** Verificar logs no dashboard 100ms
+
+---
+
+## 📚 RECURSOS ADICIONAIS
+
+- **API Docs**: https://www.100ms.live/docs/server-side/v2/api-reference/recordings/start-recording-for-room
+- **Webhooks**: https://www.100ms.live/docs/server-side/v2/how-to-guides/configure-webhooks/overview
+- **Dashboard**: https://dashboard.100ms.live
+
+---
+
+## 🎉 CONCLUSÃO
+
+Seu template **JÁ ESTÁ 90% CONFIGURADO**!
+
+Você só precisa:
+1. ✅ Compartilhar tela: **JÁ FUNCIONA!**
+2. 📹 Gravação: Adicionar endpoints + botão (30 min)
+3. 🎤 Transcrição: **JÁ CONFIGURADA!** (só usar)
+
+**Próximo passo:** Implementar os endpoints de gravação! 🚀

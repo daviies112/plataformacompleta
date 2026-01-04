@@ -1,0 +1,1930 @@
+# Documentação Completa 100ms - Gravações e Compartilhamento de Tela
+
+## Índice
+1. [Visão Geral](#visão-geral)
+2. [Tipos de Gravação](#tipos-de-gravação)
+3. [Gravação Browser Composite](#gravação-browser-composite)
+4. [Gravação SFU](#gravação-sfu)
+5. [HLS Streaming e Gravação](#hls-streaming-e-gravação)
+6. [RTMP Streaming e Gravação](#rtmp-streaming-e-gravação)
+7. [Compartilhamento de Tela](#compartilhamento-de-tela)
+8. [APIs de Gravação](#apis-de-gravação)
+9. [Transcrição e Resumo](#transcrição-e-resumo)
+10. [Armazenamento e Acesso](#armazenamento-e-acesso)
+
+---
+
+## Visão Geral
+
+O 100ms oferece múltiplas opções de gravação e streaming para capturar sessões de videoconferência. As gravações podem ser iniciadas de várias formas:
+- Via Dashboard (configuração de template)
+- Via Client SDK (iOS, Android, Web, Flutter, React Native)
+- Via Server-side APIs REST
+
+### Conceitos Principais
+- **Recording Job**: O processo de gravação em execução
+- **Recording Asset**: Os arquivos gerados pela gravação (vídeo, chat, transcrições, resumos)
+- **Beam**: Bot automatizado que se junta à sala para gravar/transmitir
+
+---
+
+## Tipos de Gravação
+
+### 1. **Browser Composite Recording (Room Composite)**
+Grava a perspectiva de um participante visualizando a sala.
+
+**Características:**
+- Gera arquivo MP4 único
+- Baseado em navegador (bot abre URL da reunião)
+- Personalizável via UI customizada
+- Resolução configurável (500x480 a 1920x1080)
+- Suporta auto-start quando primeiro peer entra
+
+### 2. **SFU Recording (Track Recording)**
+Grava streams individuais de cada participante.
+
+**Características:**
+- Arquivo MP4 separado por peer
+- Útil para composição personalizada offline
+- Dois modos: Individual e Composite
+- Tamanho estimado: `bitrate (kbps) * 0.45 MB/hora`
+
+### 3. **HLS VOD Recording**
+Grava streams HLS para reprodução sob demanda.
+
+**Características:**
+- Formato HLS (M3U8 + chunks)
+- Adaptive Bitrate (ABR)
+- Ideal para casos de uso VOD
+- Pode gerar thumbnail automaticamente
+
+### 4. **Server Recording**
+Gravação automática de arquivamento.
+
+**Características:**
+- Não pode ser parado por SDK
+- Configurável apenas via Dashboard
+- Propósito de arquivamento
+
+---
+
+## Gravação Browser Composite
+
+### Configuração via Dashboard
+
+1. Acesse o template no Dashboard
+2. Navegue até a aba "Recording"
+3. Configure:
+   - **Enable auto-start**: Inicia automaticamente quando primeiro peer entra
+   - **Resolution**: Largura e altura do vídeo
+   - **Maximum Duration**: Duração máxima da gravação
+   - **Storage**: 100ms storage ou cloud próprio (S3, GCS, Alibaba OSS)
+
+### Iniciar Gravação via Web SDK
+
+```javascript
+// Método básico
+try {
+  await hmsActions.startRTMPOrRecording({
+    record: true,
+    meetingURL: 'https://your-app.app.100ms.live/meeting/abc',
+    resolution: { width: 1280, height: 720 }
+  });
+} catch (error) {
+  console.error('Erro ao iniciar gravação:', error);
+}
+
+// Parar gravação
+await hmsActions.stopRTMPAndRecording();
+```
+
+### Verificar Status da Gravação
+
+```javascript
+// Selectors úteis
+const browserRecordingState = hmsStore.getState(
+  selectHMSRoom.browserRecordingState
+);
+
+const isRecording = browserRecordingState.running;
+const recordingError = browserRecordingState.error;
+```
+
+### Iniciar via Android SDK
+
+```kotlin
+class Meeting : HMSUpdateListener, HMSActionResultListener {
+    
+    fun startRecording() {
+        val config = HMSRecordingConfig(
+            meetingUrl = "https://your-app.app.100ms.live/meeting/abc",
+            toRecord = true,
+            rtmpUrls = emptyList(),
+            resolution = HMSResolution(width = 1280.0, height = 720.0)
+        )
+        
+        hmsSDK.startRtmpOrRecording(
+            hmsRecordingConfig = config,
+            hmsActionResultListener = this
+        )
+    }
+    
+    fun stopRecording() {
+        hmsSDK.stopRtmpAndRecording(hmsActionResultListener = this)
+    }
+    
+    override fun onSuccess() {
+        // Gravação iniciada/parada com sucesso
+    }
+    
+    override fun onError(error: HMSException) {
+        // Tratar erro
+    }
+}
+
+// Verificar status no HMSRoom
+fun checkRecordingStatus(room: HMSRoom) {
+    val isRecording = room.browserRecordingState?.running ?: false
+    val recordingError = room.browserRecordingState?.error
+}
+```
+
+### Iniciar via iOS SDK
+
+```swift
+// Configurar e iniciar
+let config = HMSRTMPConfig(
+    meetingURL: "https://your-app.app.100ms.live/meeting/abc",
+    rtmpURLs: [],
+    record: true
+)
+
+hmsSDK.startRTMPOrRecording(
+    config: config
+) { success, error in
+    if success {
+        print("Gravação iniciada")
+    } else if let error = error {
+        print("Erro: \(error)")
+    }
+}
+
+// Parar gravação
+hmsSDK.stopRTMPAndRecording { success, error in
+    // Handle callback
+}
+
+// Verificar status
+func checkStatus(room: HMSRoom) {
+    let isRecording = room.browserRecordingState?.running ?? false
+    let error = room.browserRecordingState?.error
+}
+```
+
+### Iniciar via Flutter SDK
+
+```dart
+class Meeting implements HMSUpdateListener, HMSActionResultListener {
+  late HMSSDK hmsSDK;
+  
+  Future<void> startRecording() async {
+    HMSRecordingConfig recordingConfig = HMSRecordingConfig(
+      meetingUrl: "https://your-app.app.100ms.live/meeting/abc",
+      toRecord: true,
+      rtmpUrls: [],
+      resolution: HMSResolution(height: 720, width: 1280),
+    );
+    
+    hmsSDK.startRtmpOrRecording(
+      hmsRecordingConfig: recordingConfig,
+      hmsActionResultListener: this,
+    );
+  }
+  
+  void stopRecording() {
+    hmsSDK.stopRtmpAndRecording(hmsActionResultListener: this);
+  }
+  
+  @override
+  void onSuccess({required HMSActionResultListenerMethod methodType}) {
+    // Sucesso
+  }
+  
+  @override
+  void onException({
+    required HMSActionResultListenerMethod methodType,
+    required HMSException hmsException,
+  }) {
+    // Erro
+  }
+}
+```
+
+### Iniciar via React Native SDK
+
+```javascript
+import { HMSSDK } from '@100mslive/react-native-hms';
+
+// Iniciar gravação
+const startRecording = async () => {
+  try {
+    const config = {
+      meetingURL: 'https://your-app.app.100ms.live/meeting/abc',
+      rtmpURLs: [],
+      record: true,
+      resolution: { width: 1280, height: 720 }
+    };
+    
+    await hmsInstance.startRTMPOrRecording(config);
+    console.log('Gravação iniciada');
+  } catch (error) {
+    console.error('Erro:', error);
+  }
+};
+
+// Parar gravação
+const stopRecording = async () => {
+  try {
+    await hmsInstance.stopRtmpAndRecording();
+  } catch (error) {
+    console.error('Erro:', error);
+  }
+};
+
+// Verificar status
+const checkStatus = (room) => {
+  const isRecording = room.browserRecordingState?.running || false;
+  return isRecording;
+};
+```
+
+---
+
+## Gravação SFU
+
+### Configuração
+
+1. No Dashboard, acesse o template
+2. Na aba "Recording", configure:
+   - **Enable SFU Recording**
+   - **Upload Info**: Configure bucket S3/GCS/OSS
+   - **Recording Mode**: Individual ou Composite
+
+### Estrutura de Arquivos
+
+**Composite Recording:**
+```
+s3://<bucket>/<prefix>/<room_id>/<date>/<session_id>/Rec-<session_id>-<epoch>.mp4
+```
+
+**Individual Recordings:**
+```
+s3://<bucket>/<prefix>/<room_id>/<date>/<session_id>/<peer_id>/<stream-id>/<stream-id>.mp4
+```
+
+### Cálculo de Tamanho
+
+```
+Tamanho = (video bitrate + audio bitrate) * 0.45 MB/hora
+
+Exemplo:
+- Vídeo 360p a 300kbps = 300 * 0.45 = 135 MB/hora
+- Áudio padrão 32kbps = 32 * 0.45 = 15 MB/hora
+- Total = 150 MB/hora por peer
+```
+
+---
+
+## HLS Streaming e Gravação
+
+### O que é HLS?
+
+HLS (HTTP Live Streaming) permite escalar para milhões de viewers com latência próxima ao real-time (<10s). O 100ms gera uma URL HLS que pode ser reproduzida em qualquer player compatível.
+
+### Iniciar HLS via Web SDK
+
+```javascript
+// HLS básico (default UI)
+await hmsActions.startHLSStreaming();
+
+// HLS customizado com gravação
+const hlsConfig = {
+  meetingURLVariants: [
+    {
+      meetingURL: 'https://your-app.app.100ms.live/streaming/abc',
+      metadata: 'hls-variant-1'
+    }
+  ],
+  recording: {
+    singleFilePerLayer: false, // Um MP4 por camada de resolução
+    videoOnDemand: true         // Habilita VOD recording (HLS format)
+  }
+};
+
+await hmsActions.startHLSStreaming(hlsConfig);
+
+// Parar HLS
+await hmsActions.stopHLSStreaming();
+
+// Obter URL do stream
+const hlsState = hmsStore.getState(selectHLSState);
+if (hlsState.running && hlsState.variants.length > 0) {
+  const hlsURL = hlsState.variants[0].hlsStreamUrl;
+  console.log('HLS URL:', hlsURL);
+}
+```
+
+### Iniciar HLS via Android SDK
+
+```kotlin
+class Meeting : HMSUpdateListener, HMSActionResultListener {
+    
+    fun startHLS() {
+        // HLS padrão
+        hmsSDK.startHLSStreaming(
+            hmsActionResultListener = this
+        )
+    }
+    
+    fun startHLSWithRecording() {
+        // Criar variante
+        val variant = HMSHLSMeetingURLVariant(
+            meetingUrl = "https://your-app.app.100ms.live/streaming/abc",
+            metadata = "hls-variant"
+        )
+        
+        // Config de gravação
+        val recordingConfig = HMSHlsRecordingConfig(
+            singleFilePerLayer = false,
+            videoOnDemand = true
+        )
+        
+        val hlsConfig = HMSHLSConfig(
+            variants = listOf(variant),
+            recording = recordingConfig
+        )
+        
+        hmsSDK.startHLSStreaming(
+            hlsConfig = hlsConfig,
+            hmsActionResultListener = this
+        )
+    }
+    
+    fun stopHLS() {
+        hmsSDK.stopHLSStreaming(
+            variant = null,
+            hmsActionResultListener = this
+        )
+    }
+}
+
+// Obter URL HLS do room
+fun getHLSUrl(room: HMSRoom): String? {
+    return room.hlsStreamingState?.variants?.getOrNull(0)?.hlsStreamUrl
+}
+
+// Verificar status
+override fun onRoomUpdate(type: HMSRoomUpdate, hmsRoom: HMSRoom) {
+    if (type == HMSRoomUpdate.HLS_STREAMING_STATE_UPDATED) {
+        val isStreaming = hmsRoom.hlsStreamingState?.running ?: false
+        val hlsUrl = hmsRoom.hlsStreamingState?.variants?.firstOrNull()?.hlsStreamUrl
+    }
+}
+```
+
+### Iniciar HLS via iOS SDK
+
+```swift
+// HLS padrão
+hmsSDK.startHLSStreaming { success, error in
+    if success {
+        print("HLS iniciado")
+    }
+}
+
+// HLS com gravação
+let variant = HMSHLSMeetingURLVariant(
+    meetingURL: "https://your-app.app.100ms.live/streaming/abc",
+    metadata: "variant-1"
+)
+
+let recordingConfig = HMSHLSRecordingConfig(
+    singleFilePerLayer: false,
+    enableVOD: true
+)
+
+let config = HMSHLSConfig(
+    variants: [variant],
+    recording: recordingConfig
+)
+
+hmsSDK.startHLSStreaming(config: config) { success, error in
+    // Handle callback
+}
+
+// Parar HLS
+hmsSDK.stopHLSStreaming { success, error in
+    // Handle callback
+}
+
+// Obter URL
+func getHLSUrl(room: HMSRoom) -> String? {
+    return room.hlsStreamingState?.variants.first?.hlsStreamUrl
+}
+```
+
+### Iniciar HLS via Flutter SDK
+
+```dart
+class Meeting implements HMSUpdateListener, HMSActionResultListener {
+  
+  void startHLS() {
+    // HLS padrão
+    hmsSDK.startHlsStreaming(
+      hmsActionResultListener: this
+    );
+  }
+  
+  void startHLSWithRecording() {
+    HMSHLSMeetingURLVariant variant = HMSHLSMeetingURLVariant(
+      meetingUrl: "https://your-app.app.100ms.live/streaming/abc",
+      metadata: "variant-1",
+    );
+    
+    HMSHLSRecordingConfig recordingConfig = HMSHLSRecordingConfig(
+      singleFilePerLayer: false,
+      videoOnDemand: true,
+    );
+    
+    HMSHLSConfig hlsConfig = HMSHLSConfig(
+      meetingURLVariant: [variant],
+      hmshlsRecordingConfig: recordingConfig,
+    );
+    
+    hmsSDK.startHlsStreaming(
+      hmsHLSConfig: hlsConfig,
+      hmsActionResultListener: this,
+    );
+  }
+  
+  void stopHLS() {
+    hmsSDK.stopHlsStreaming(
+      hmsActionResultListener: this
+    );
+  }
+  
+  @override
+  void onRoomUpdate({required HMSRoom room, required HMSRoomUpdate update}) {
+    if (update == HMSRoomUpdate.hlsStreamingStateUpdated) {
+      bool isStreaming = room.hmshlsStreamingState?.running ?? false;
+      String? hlsUrl = room.hmshlsStreamingState?.variants?.first?.hlsStreamUrl;
+    }
+  }
+}
+```
+
+### Configurações de Gravação HLS
+
+#### VOD Recording (Video on Demand)
+- **Formato**: HLS (M3U8 + chunks de vídeo)
+- **Upload Format**: 
+  - **Unzipped**: Arquivos enviados diretamente para storage (recomendado)
+  - **Zipped**: Todos os arquivos em um ZIP único
+
+#### Single File Per Layer
+- **true**: Gera um arquivo MP4 para cada camada de resolução
+- **false**: Mantém formato HLS nativo
+
+### Resoluções HLS Suportadas
+
+Configure múltiplas camadas de resolução (144p a 1080p):
+```javascript
+// Exemplo de configuração no Dashboard
+Layers disponíveis:
+- 1080p (1920x1080) - Alta qualidade
+- 720p (1280x720) - Média qualidade
+- 480p (854x480) - Baixa qualidade
+- 360p (640x360) - Muito baixa
+- 240p (426x240)
+- 144p (256x144)
+```
+
+---
+
+## RTMP Streaming e Gravação
+
+### O que é RTMP?
+
+RTMP permite transmitir para plataformas como YouTube, Facebook, Twitch, LinkedIn simultaneamente (máximo 3 URLs).
+
+### Iniciar RTMP via Web SDK
+
+```javascript
+const rtmpConfig = {
+  meetingURL: 'https://your-app.app.100ms.live/meeting/abc',
+  rtmpURLs: [
+    'rtmp://a.rtmp.youtube.com/live2/your-stream-key',
+    'rtmp://live-api-s.facebook.com/rtmp/your-stream-key'
+  ],
+  record: true,
+  resolution: { width: 1280, height: 720 }
+};
+
+// Iniciar streaming e gravação
+await hmsActions.startRTMPOrRecording(rtmpConfig);
+
+// Parar
+await hmsActions.stopRTMPAndRecording();
+
+// Verificar status
+const rtmpState = hmsStore.getState(selectRTMPState);
+const isStreaming = rtmpState.running;
+```
+
+### Iniciar RTMP via Android SDK
+
+```kotlin
+fun startRTMPStreaming() {
+    val config = HMSRecordingConfig(
+        meetingUrl = "https://your-app.app.100ms.live/meeting/abc",
+        rtmpUrls = listOf(
+            "rtmp://a.rtmp.youtube.com/live2/stream-key",
+            "rtmp://live-api-s.facebook.com/rtmp/stream-key"
+        ),
+        toRecord = true,
+        resolution = HMSResolution(1280.0, 720.0)
+    )
+    
+    hmsSDK.startRtmpOrRecording(
+        hmsRecordingConfig = config,
+        hmsActionResultListener = this
+    )
+}
+
+// Status
+fun checkRTMPStatus(room: HMSRoom) {
+    val isStreaming = room.rtmpHMSRtmpStreamingState?.running ?: false
+}
+```
+
+### URLs RTMP Comuns
+
+**YouTube:**
+```
+rtmp://a.rtmp.youtube.com/live2/<stream-key>
+```
+
+**Facebook:**
+```
+rtmp://live-api-s.facebook.com/rtmp/<stream-key>
+```
+
+**Twitch:**
+```
+rtmp://live.twitch.tv/app/<stream-key>
+```
+
+**LinkedIn:**
+```
+rtmp://streaming.linkedin.com/rtmp/<stream-key>
+```
+
+---
+
+## Compartilhamento de Tela
+
+### Web SDK
+
+#### Iniciar Compartilhamento
+
+```javascript
+// Compartilhar tela com vídeo e áudio
+try {
+  await hmsActions.setScreenShareEnabled(true);
+} catch (error) {
+  console.error('Usuário negou permissão:', error);
+}
+
+// Compartilhar apenas áudio
+await hmsActions.setScreenShareEnabled(true, {
+  audioOnly: true
+});
+
+// Compartilhar apenas vídeo
+await hmsActions.setScreenShareEnabled(true, {
+  videoOnly: true
+});
+
+// Parar compartilhamento
+await hmsActions.setScreenShareEnabled(false);
+```
+
+#### Configurações Avançadas
+
+```javascript
+const screenShareConfig = {
+  // Forçar aba atual (erro se outra for selecionada)
+  forceCurrentTab: false,
+  
+  // Preferir aba atual (mas permitir outras)
+  preferCurrentTab: false,
+  
+  // Mostrar opção para compartilhar aba atual
+  selfBrowserSurface: 'exclude', // 'include' | 'exclude'
+  
+  // Permitir trocar de aba durante compartilhamento
+  surfaceSwitching: 'include', // 'include' | 'exclude'
+  
+  // Mostrar opção de áudio do sistema
+  systemAudio: 'exclude', // 'include' | 'exclude'
+  
+  // Pré-selecionar tipo de superfície
+  displaySurface: 'monitor', // 'browser' | 'window' | 'monitor'
+  
+  // Apenas vídeo
+  videoOnly: false,
+  
+  // Apenas áudio
+  audioOnly: false,
+  
+  // Recortar para elemento específico (Region Capture)
+  cropElement: document.getElementById('my-div')
+};
+
+await hmsActions.setScreenShareEnabled(true, screenShareConfig);
+```
+
+#### Selectors Úteis
+
+```javascript
+// Verificar se alguém está compartilhando
+const isSomeoneScreenSharing = hmsStore.getState(
+  selectIsSomeoneScreenSharing
+);
+
+// Obter peer compartilhando
+const presenter = hmsStore.getState(selectPeerScreenSharing);
+
+// Obter todos compartilhando
+const presenters = hmsStore.getState(selectPeersScreenSharing);
+
+// Verificar se eu estou compartilhando
+const amIScreenSharing = hmsStore.getState(selectIsLocalScreenShared);
+
+// Obter track de vídeo da tela
+const screenShareVideoTrack = hmsStore.getState(
+  selectScreenShareByPeerID(presenter.id)
+);
+
+// Obter track de áudio da tela
+const screenShareAudioTrack = hmsStore.getState(
+  selectScreenShareAudioByPeerID(presenter.id)
+);
+```
+
+### Android SDK
+
+#### Configuração
+
+1. Adicionar permissão no `AndroidManifest.xml`:
+```xml
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+```
+
+2. Habilitar screen share no Dashboard para a role
+
+#### Implementação
+
+```kotlin
+class ScreenShareActivity : AppCompatActivity() {
+    
+    private lateinit var hmsSDK: HMSSDK
+    
+    // Launcher para permissão
+    private val resultLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val mediaProjectionData: Intent? = result.data
+            if (mediaProjectionData != null) {
+                startScreenShare(mediaProjectionData)
+            }
+        }
+    }
+    
+    fun requestScreenShare() {
+        val mediaProjectionManager = getSystemService(
+            Context.MEDIA_PROJECTION_SERVICE
+        ) as MediaProjectionManager
+        
+        resultLauncher.launch(
+            mediaProjectionManager.createScreenCaptureIntent()
+        )
+    }
+    
+    private fun startScreenShare(intent: Intent) {
+        // Notificação customizada (opcional)
+        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setContentTitle("Compartilhamento de Tela")
+            .setContentText("Sua tela está sendo compartilhada")
+            .setSmallIcon(R.drawable.ic_screen_share)
+            .build()
+        
+        hmsSDK.startScreenshare(
+            object : HMSActionResultListener {
+                override fun onSuccess() {
+                    Log.d(TAG, "Screen share iniciado")
+                }
+                
+                override fun onError(error: HMSException) {
+                    Log.e(TAG, "Erro: ${error.message}")
+                }
+            },
+            intent,
+            notification // Opcional
+        )
+    }
+    
+    fun stopScreenShare() {
+        hmsSDK.stopScreenshare(object : HMSActionResultListener {
+            override fun onSuccess() {
+                Log.d(TAG, "Screen share parado")
+            }
+            
+            override fun onError(error: HMSException) {
+                Log.e(TAG, "Erro: ${error.message}")
+            }
+        })
+    }
+    
+    override fun onDestroy() {
+        super.onDestroy()
+        // IMPORTANTE: Sempre chamar leave para parar o foreground service
+        hmsSDK.leave()
+    }
+}
+```
+
+### iOS SDK
+
+#### Configuração
+
+1. Criar Broadcast Upload Extension no Xcode
+2. Adicionar App Group capability (mesmo ID no app e extensão)
+3. Adicionar `HMSBroadcastExtensionSDK` via SPM
+
+#### Implementação
+
+**No App Principal:**
+
+```swift
+import HMSSDK
+import HMSBroadcastExtensionSDK
+
+class ViewController: UIViewController {
+    
+    var hmsSDK: HMSSDK!
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        
+        // Configurar SDK com App Group
+        hmsSDK = HMSSDK.build { sdk in
+            sdk.appGroup = "group.live.100ms.videoapp"
+            // ... outras configs
+        }
+    }
+    
+    func setupScreenShare() {
+        let picker = RPSystemBroadcastPickerView(
+            frame: CGRect(x: 0, y: 0, width: 50, height: 50)
+        )
+        
+        // Mostrar apenas sua extensão
+        picker.preferredExtension = "com.company.app.BroadcastExtension"
+        picker.showsMicrophoneButton = false
+        
+        view.addSubview(picker)
+    }
+    
+    // Verificar se está compartilhando
+    func checkScreenShareStatus() {
+        let isSharing = hmsSDK.localPeer?.auxiliaryTracks?.contains { track in
+            track.source == "screen"
+        } ?? false
+    }
+}
+```
+
+**Na Broadcast Extension:**
+
+```swift
+import HMSBroadcastExtensionSDK
+
+class SampleHandler: RPBroadcastSampleHandler {
+    
+    let screenRenderer = HMSScreenRenderer(appGroup: "group.live.100ms.videoapp")
+    
+    override func broadcastStarted(withSetupInfo setupInfo: [String : NSObject]?) {
+        // Screen share iniciado
+    }
+    
+    override func processSampleBuffer(
+        _ sampleBuffer: CMSampleBuffer,
+        with sampleBufferType: RPSampleBufferType
+    ) {
+        screenRenderer.process(sampleBuffer, with: sampleBufferType)
+    }
+    
+    override func broadcastFinished() {
+        // Screen share terminado
+        screenRenderer.invalidate()
+    }
+}
+```
+
+### Flutter SDK
+
+```dart
+class ScreenShareExample extends StatefulWidget {
+  @override
+  _ScreenShareExampleState createState() => _ScreenShareExampleState();
+}
+
+class _ScreenShareExampleState extends State<ScreenShareExample> {
+  late HMSSDK hmsSDK;
+  
+  void startScreenShare() async {
+    // Android: Solicita permissão automaticamente
+    // iOS: Mostra RPSystemBroadcastPickerView
+    
+    hmsSDK.startScreenShare(
+      hmsActionResultListener: HMSActionResultListenerImpl()
+    );
+  }
+  
+  void stopScreenShare() {
+    hmsSDK.stopScreenShare(
+      hmsActionResultListener: HMSActionResultListenerImpl()
+    );
+  }
+  
+  // Verificar status
+  bool isScreenSharing(HMSPeer peer) {
+    return peer.auxiliaryTracks?.any(
+      (track) => track.source == "screen"
+    ) ?? false;
+  }
+}
+
+class HMSActionResultListenerImpl implements HMSActionResultListener {
+  @override
+  void onSuccess({required HMSActionResultListenerMethod methodType}) {
+    print('Screen share: sucesso');
+  }
+  
+  @override
+  void onException({
+    required HMSActionResultListenerMethod methodType,
+    required HMSException hmsException
+  }) {
+    print('Screen share erro: ${hmsException.message}');
+  }
+}
+```
+
+### React Native SDK
+
+```javascript
+import { HMSSDK } from '@100mslive/react-native-hms';
+
+// Iniciar compartilhamento
+const startScreenShare = async () => {
+  try {
+    await hmsInstance.startScreenshare();
+    console.log('Screen share iniciado');
+  } catch (error) {
+    console.error('Erro:', error);
+  }
+};
+
+// Parar compartilhamento
+const stopScreenShare = async () => {
+  try {
+    await hmsInstance.stopScreenshare();
+    console.log('Screen share parado');
+  } catch (error) {
+    console.error('Erro:', error);
+  }
+};
+
+// Verificar se está compartilhando
+const isScreenShared = async () => {
+  try {
+    const isSharing = await hmsInstance.isScreenShared();
+    return isSharing;
+  } catch (error) {
+    return false;
+  }
+};
+
+// Listener para mudanças
+const onTrackUpdate = (data) => {
+  const { peer, track, type } = data;
+  
+  if (track.source === 'screen' && type === 'TRACK_ADDED') {
+    console.log(`${peer.name} iniciou screen share`);
+  }
+  
+  if (track.source === 'screen' && type === 'TRACK_REMOVED') {
+    console.log(`${peer.name} parou screen share`);
+  }
+};
+```
+
+---
+
+## APIs de Gravação
+
+### Start Recording
+
+**Endpoint:**
+```
+POST https://api.100ms.live/v2/recordings/room/<room_id>/start
+```
+
+**Headers:**
+```
+Content-Type: application/json
+Authorization: Bearer <management_token>
+```
+
+**Body:**
+```json
+{
+  "meeting_url": "https://your-app.app.100ms.live/meeting/abc?token=xxx",
+  "resolution": {
+    "width": 1280,
+    "height": 720
+  },
+  "transcription": {
+    "enabled": true,
+    "output_modes": ["txt", "srt", "json"],
+    "summary": {
+      "enabled": true,
+      "context": "Esta é uma reunião sobre...",
+      "sections": [
+        {
+          "title": "Pontos Principais",
+          "format": "bullets"
+        },
+        {
+          "title": "Ações Necessárias",
+          "format": "action_items"
+        }
+      ]
+    }
+  }
+}
+```
+
+**Resposta:**
+```json
+{
+  "id": "recording_job_id",
+  "room_id": "room_id",
+  "session_id": "session_id",
+  "status": "starting",
+  "meeting_url": "https://your-app.app.100ms.live/meeting/abc?token=xxx",
+  "resolution": {
+    "width": 1280,
+    "height": 720
+  },
+  "asset_types": ["room-composite", "chat", "transcript", "summary"],
+  "created_at": "2024-01-01T10:00:00.000Z",
+  "started_at": null,
+  "started_by": "",
+  "stopped_at": null,
+  "stopped_by": "",
+  "updated_at": "2024-01-01T10:00:00.000Z"
+}
+```
+
+### Stop Recording
+
+**Endpoint:**
+```
+POST https://api.100ms.live/v2/recordings/<recording_id>/stop
+```
+
+**Headers:**
+```
+Content-Type: application/json
+Authorization: Bearer <management_token>
+```
+
+**Resposta:**
+```json
+{
+  "id": "recording_job_id",
+  "status": "stopping",
+  "stopped_at": "2024-01-01T11:00:00.000Z",
+  "stopped_by": ""
+}
+```
+
+### Get Recording
+
+**Endpoint:**
+```
+GET https://api.100ms.live/v2/recordings/<recording_id>
+```
+
+**Headers:**
+```
+Authorization: Bearer <management_token>
+```
+
+**Resposta:**
+```json
+{
+  "id": "recording_job_id",
+  "room_id": "room_id",
+  "session_id": "session_id",
+  "status": "completed",
+  "meeting_url": "https://your-app.app.100ms.live/meeting/abc",
+  "resolution": {
+    "width": 1280,
+    "height": 720
+  },
+  "asset_types": ["room-composite", "chat", "transcript", "summary"],
+  "recording_assets": [
+    {
+      "id": "asset_1",
+      "type": "room-composite",
+      "path": "s3://bucket/path/to/video.mp4",
+      "size": 1048576,
+      "duration": 3600
+    },
+    {
+      "id": "asset_2",
+      "type": "transcript",
+      "path": "s3://bucket/path/to/transcript.json"
+    }
+  ],
+  "created_at": "2024-01-01T10:00:00.000Z",
+  "started_at": "2024-01-01T10:00:30.000Z",
+  "started_by": "peer_id",
+  "stopped_at": "2024-01-01T11:00:00.000Z",
+  "stopped_by": "peer_id",
+  "updated_at": "2024-01-01T11:05:00.000Z"
+}
+```
+
+### List Recordings
+
+**Endpoint:**
+```
+GET https://api.100ms.live/v2/recordings?room_id=<room_id>&session_id=<session_id>&limit=10&start=<last_id>
+```
+
+**Query Parameters:**
+- `room_id` (opcional): Filtrar por room
+- `session_id` (opcional): Filtrar por sessão
+- `limit` (opcional): Número máximo de resultados (padrão: 10)
+- `start` (opcional): ID do último item da página anterior para paginação
+
+### Região da API
+
+O endpoint da API varia conforme a região da sala:
+
+**Índia (padrão):**
+```
+https://api.100ms.live/v2/recordings
+```
+
+**EUA:**
+```
+https://prod-us2.100ms.live/api/v2/recordings
+```
+
+**Europa:**
+```
+https://prod-eu2.100ms.live/api/v2/recordings
+```
+
+---
+
+## Transcrição e Resumo
+
+### Tipos de Transcrição
+
+#### 1. Live Transcription (Legendas ao Vivo)
+
+Transcrição em tempo real durante conferências WebRTC.
+
+**Habilitar via Web SDK:**
+
+```javascript
+import { HMSTranscriptionMode } from '@100mslive/react-sdk';
+
+// Verificar se transcrição está habilitada
+const isTranscriptionEnabled = hmsStore.getState(
+  selectIsTranscriptionEnabled
+);
+
+// Verificar se tem permissão para iniciar
+const canStartTranscription = hmsStore.getState(
+  selectIsTranscriptionAllowedByMode(HMSTranscriptionMode.CAPTION)
+);
+
+// Iniciar legendas
+async function startCaptions() {
+  try {
+    await hmsActions.startTranscription({
+      mode: HMSTranscriptionMode.CAPTION
+    });
+    console.log('Legendas iniciadas');
+  } catch (error) {
+    console.error('Erro:', error);
+  }
+}
+
+// Parar legendas
+async function stopCaptions() {
+  try {
+    await hmsActions.stopTranscription(HMSTranscriptionMode.CAPTION);
+    console.log('Legendas paradas');
+  } catch (error) {
+    console.error('Erro:', error);
+  }
+}
+
+// Receber transcrições
+import { useTranscript } from '@100mslive/react-sdk';
+
+function CaptionComponent() {
+  const [captions, setCaptions] = useState([]);
+  
+  useTranscript({
+    onTranscript: (transcripts) => {
+      // transcripts é um array de objetos HMSTranscript
+      setCaptions(transcripts);
+    },
+    handleError: (error) => {
+      console.error('Erro na transcrição:', error);
+    }
+  });
+  
+  return (
+    <div>
+      {captions.map((caption, index) => (
+        <div key={index}>
+          <span>{caption.peer_id}: </span>
+          <span>{caption.transcript}</span>
+          {!caption.final && <span> ...</span>}
+        </div>
+      ))}
+    </div>
+  );
+}
+```
+
+**Objeto HMSTranscript:**
+
+```typescript
+interface HMSTranscript {
+  start: number;        // Tempo de início em segundos
+  end: number;          // Tempo de fim em segundos
+  peer_id: string;      // ID do participante falando
+  final: boolean;       // true quando transcrição está finalizada
+  transcript: string;   // Texto da legenda
+}
+```
+
+#### 2. HLS Live Transcription
+
+Transcrição ao vivo durante streams HLS.
+
+**Características:**
+- Latência: 500ms a 1s
+- Formato: WebVTT
+- Suporta múltiplos players HLS
+- Não inclui identificação de falante
+
+**Habilitar via Dashboard:**
+
+1. Acesse o template
+2. Aba "Transcription"
+3. Ative "Live Transcription for HLS"
+4. Configure:
+   - **Custom Vocabulary**: Palavras personalizadas
+   - **Language**: Idioma (atualmente apenas inglês)
+
+**Iniciar HLS com Transcrição:**
+
+```javascript
+// Web SDK
+const hlsConfig = {
+  meetingURLVariants: [
+    {
+      meetingURL: 'https://your-app.app.100ms.live/streaming/abc',
+      metadata: 'hls-variant'
+    }
+  ],
+  transcription: {
+    enabled: true,
+    outputModes: ['txt'], // Não aplicável ao HLS
+    customVocabulary: ['palavras', 'personalizadas']
+  }
+};
+
+await hmsActions.startHLSStreaming(hlsConfig);
+
+// Obter URL da transcrição WebVTT
+const hlsState = hmsStore.getState(selectHLSState);
+if (hlsState.running && hlsState.variants.length > 0) {
+  const variant = hlsState.variants[0];
+  const hlsURL = variant.hlsStreamUrl;
+  const captionURL = variant.playlistUrl.replace('.m3u8', '_captions.vtt');
+}
+```
+
+**Reproduzir com hls.js:**
+
+```javascript
+import Hls from 'hls.js';
+
+const video = document.getElementById('video');
+const hls = new Hls();
+
+hls.loadSource(hlsURL);
+hls.attachMedia(video);
+
+// Adicionar track de legenda
+const track = document.createElement('track');
+track.kind = 'captions';
+track.label = 'English';
+track.srclang = 'en';
+track.src = captionURL;
+track.default = true;
+video.appendChild(track);
+```
+
+#### 3. Post-Call Transcription
+
+Transcrição após a gravação com identificação de falante.
+
+**Características:**
+- Suporta identificação de falante (speaker labels)
+- Formatos: TXT, SRT, JSON
+- Processamento: Mínimo 5min + 20% da duração
+- Apenas inglês (mais idiomas em breve)
+
+**Formatos de Saída:**
+
+**Plain Text (.txt):**
+```
+Speaker 1: Olá, como você está?
+Speaker 2: Estou bem, obrigado!
+Speaker 1: Ótimo, vamos começar a reunião.
+```
+
+**SubRip (.srt):**
+```
+1
+00:00:00,000 --> 00:00:03,500
+Speaker 1: Olá, como você está?
+
+2
+00:00:03,500 --> 00:00:06,000
+Speaker 2: Estou bem, obrigado!
+
+3
+00:00:06,000 --> 00:00:09,500
+Speaker 1: Ótimo, vamos começar a reunião.
+```
+
+**JSON Estruturado (.json):**
+```json
+{
+  "transcription": [
+    {
+      "speaker": "Speaker 1",
+      "start": 0.0,
+      "end": 3.5,
+      "text": "Olá, como você está?"
+    },
+    {
+      "speaker": "Speaker 2",
+      "start": 3.5,
+      "end": 6.0,
+      "text": "Estou bem, obrigado!"
+    },
+    {
+      "speaker": "Speaker 1",
+      "start": 6.0,
+      "end": 9.5,
+      "text": "Ótimo, vamos começar a reunião."
+    }
+  ],
+  "duration": 9.5,
+  "language": "en"
+}
+```
+
+### AI-Generated Summaries
+
+Resumos gerados por IA baseados nas transcrições.
+
+**Seções Pré-Definidas:**
+- **Agenda**: Tópicos discutidos
+- **Key Points Covered**: Pontos principais
+- **Follow-up Action Items**: Itens de ação
+- **Short Summary**: Resumo breve
+
+**Seções Personalizadas:**
+
+Você pode criar até 6 seções personalizadas com perguntas específicas.
+
+**Exemplo de Configuração:**
+
+```json
+{
+  "summary": {
+    "enabled": true,
+    "context": "Esta é uma reunião de planejamento de sprint da equipe de desenvolvimento",
+    "sections": [
+      {
+        "title": "Pontos Principais",
+        "format": "bullets"
+      },
+      {
+        "title": "Decisões Tomadas",
+        "format": "bullets"
+      },
+      {
+        "title": "Ações Necessárias",
+        "format": "action_items"
+      },
+      {
+        "title": "Quantas vezes o prazo foi mencionado?",
+        "format": "paragraph"
+      },
+      {
+        "title": "Resumo Executivo",
+        "format": "paragraph"
+      }
+    ]
+  }
+}
+```
+
+**Formatos de Seção:**
+- `bullets`: Lista com marcadores
+- `paragraph`: Parágrafo contínuo
+- `action_items`: Lista de ações com responsáveis (se identificados)
+
+**Exemplo de Saída:**
+
+```json
+{
+  "summary": {
+    "sections": [
+      {
+        "title": "Pontos Principais",
+        "format": "bullets",
+        "content": "• Discussão sobre arquitetura do novo módulo\n• Revisão de bugs críticos\n• Definição de prioridades para próxima sprint"
+      },
+      {
+        "title": "Decisões Tomadas",
+        "format": "bullets",
+        "content": "• Adotar microserviços para o novo módulo\n• Alocar 2 desenvolvedores para correção de bugs\n• Sprint de 2 semanas"
+      },
+      {
+        "title": "Ações Necessárias",
+        "format": "action_items",
+        "content": "• João: Criar diagrama de arquitetura (até sexta-feira)\n• Maria: Priorizar backlog de bugs (até amanhã)\n• Pedro: Configurar ambiente de dev (até quinta-feira)"
+      },
+      {
+        "title": "Quantas vezes o prazo foi mencionado?",
+        "format": "paragraph",
+        "content": "O prazo foi mencionado 7 vezes durante a reunião, principalmente no contexto da entrega do novo módulo e da correção de bugs críticos antes do lançamento."
+      },
+      {
+        "title": "Resumo Executivo",
+        "format": "paragraph",
+        "content": "A equipe de desenvolvimento se reuniu para planejar a próxima sprint de 2 semanas. As principais decisões incluem a adoção de arquitetura de microserviços para o novo módulo e a alocação de recursos para correção de bugs críticos. Foram definidas ações claras com responsáveis e prazos para garantir o progresso do projeto."
+      }
+    ],
+    "generated_at": "2024-01-01T11:30:00.000Z"
+  }
+}
+```
+
+### Habilitar Transcrição e Resumo
+
+**Via Dashboard:**
+
+1. Acesse o template
+2. Aba "Transcription"
+3. Ative "Transcribe Recordings"
+4. Selecione "Output Modes": txt, srt, json
+5. Ative "Summarize Transcripts"
+6. Configure seções personalizadas (opcional)
+7. Configure "Custom Vocabulary" (opcional)
+
+**Via Recording API:**
+
+```bash
+curl -X POST 'https://api.100ms.live/v2/recordings/room/<room_id>/start' \
+  -H 'Authorization: Bearer <management_token>' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "meeting_url": "https://your-app.app.100ms.live/meeting/abc?token=xxx",
+  "resolution": {
+    "width": 1280,
+    "height": 720
+  },
+  "transcription": {
+    "enabled": true,
+    "output_modes": ["txt", "srt", "json"],
+    "custom_vocabulary": ["100ms", "WebRTC", "SFU"],
+    "summary": {
+      "enabled": true,
+      "context": "Reunião de planejamento de sprint",
+      "sections": [
+        {
+          "title": "Pontos Principais",
+          "format": "bullets"
+        },
+        {
+          "title": "Ações Necessárias",
+          "format": "action_items"
+        },
+        {
+          "title": "Resumo",
+          "format": "paragraph"
+        }
+      ]
+    }
+  }
+}'
+```
+
+**Via HLS Streaming API:**
+
+```bash
+curl -X POST 'https://api.100ms.live/v2/live-streams/room/<room_id>/start' \
+  -H 'Authorization: Bearer <management_token>' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "meeting_url": "https://your-app.app.100ms.live/streaming/abc?token=xxx",
+  "recording": {
+    "hls_vod": true,
+    "single_file_per_layer": false
+  },
+  "transcription": {
+    "enabled": true,
+    "output_modes": ["txt", "json"],
+    "summary": {
+      "enabled": true
+    }
+  }
+}'
+```
+
+### Limitações
+
+- Apenas inglês suportado (mais idiomas em breve: FR, PT, ES)
+- Processamento leva 5min + 20% da duração da gravação
+- Máximo de 6 seções personalizadas no resumo
+- Resumos podem estar incompletos para gravações > 90min
+- Não funciona com SFU Recording (room-composite-legacy)
+
+---
+
+## Armazenamento e Acesso
+
+### Recording Assets API
+
+Após a gravação ser processada, os arquivos são disponibilizados como "recording assets".
+
+**Tipos de Assets:**
+- `room-composite`: Vídeo MP4 da gravação
+- `room-vod`: Vídeo HLS (M3U8 + chunks)
+- `chat`: Mensagens do chat em JSON
+- `transcript`: Transcrição em TXT/SRT/JSON
+- `summary`: Resumo gerado por IA em JSON
+
+### Listar Recording Assets
+
+**Endpoint:**
+```
+GET https://api.100ms.live/v2/recording-assets?room_id=<room_id>&session_id=<session_id>&limit=10
+```
+
+**Resposta:**
+```json
+{
+  "data": [
+    {
+      "id": "asset_1",
+      "job_id": "recording_job_id",
+      "room_id": "room_id",
+      "session_id": "session_id",
+      "type": "room-composite",
+      "path": "s3://bucket/recordings/room/session/video.mp4",
+      "presigned_url": "https://s3.amazonaws.com/...",
+      "size": 104857600,
+      "duration": 3600.5,
+      "metadata": {
+        "resolution": "1280x720",
+        "num_layers": 1
+      },
+      "created_at": "2024-01-01T11:05:00.000Z"
+    },
+    {
+      "id": "asset_2",
+      "job_id": "recording_job_id",
+      "room_id": "room_id",
+      "session_id": "session_id",
+      "type": "transcript",
+      "path": "s3://bucket/recordings/room/session/transcript.json",
+      "presigned_url": "https://s3.amazonaws.com/...",
+      "size": 51200,
+      "created_at": "2024-01-01T11:10:00.000Z"
+    },
+    {
+      "id": "asset_3",
+      "job_id": "recording_job_id",
+      "room_id": "room_id",
+      "session_id": "session_id",
+      "type": "summary",
+      "path": "s3://bucket/recordings/room/session/summary.json",
+      "presigned_url": "https://s3.amazonaws.com/...",
+      "size": 10240,
+      "created_at": "2024-01-01T11:10:00.000Z"
+    }
+  ],
+  "last": "asset_3"
+}
+```
+
+### Get Recording Asset
+
+**Endpoint:**
+```
+GET https://api.100ms.live/v2/recording-assets/<asset_id>
+```
+
+**Resposta:**
+```json
+{
+  "id": "asset_1",
+  "job_id": "recording_job_id",
+  "room_id": "room_id",
+  "session_id": "session_id",
+  "type": "room-composite",
+  "path": "s3://bucket/recordings/room/session/video.mp4",
+  "presigned_url": "https://s3.amazonaws.com/bucket/recordings/room/session/video.mp4?X-Amz-...",
+  "size": 104857600,
+  "duration": 3600.5,
+  "metadata": {
+    "resolution": "1280x720",
+    "num_layers": 1
+  },
+  "created_at": "2024-01-01T11:05:00.000Z"
+}
+```
+
+### Webhooks
+
+Configure webhooks para receber notificações sobre eventos de gravação.
+
+**Configurar via Dashboard:**
+1. Acesse "Developer" → "Webhooks"
+2. Adicione URL do webhook
+3. Selecione eventos
+
+**Eventos Disponíveis:**
+
+```typescript
+// Gravação iniciada
+{
+  "type": "recording.started",
+  "data": {
+    "id": "recording_job_id",
+    "room_id": "room_id",
+    "session_id": "session_id",
+    "started_at": "2024-01-01T10:00:30.000Z"
+  },
+  "timestamp": "2024-01-01T10:00:30.000Z"
+}
+
+// Gravação parada
+{
+  "type": "recording.stopped",
+  "data": {
+    "id": "recording_job_id",
+    "room_id": "room_id",
+    "session_id": "session_id",
+    "stopped_at": "2024-01-01T11:00:00.000Z",
+    "duration": 3570
+  },
+  "timestamp": "2024-01-01T11:00:00.000Z"
+}
+
+// Gravação finalizada (processamento completo)
+{
+  "type": "recording.completed",
+  "data": {
+    "id": "recording_job_id",
+    "room_id": "room_id",
+    "session_id": "session_id",
+    "recording_assets": [
+      {
+        "id": "asset_1",
+        "type": "room-composite",
+        "path": "s3://bucket/path/video.mp4",
+        "size": 104857600,
+        "duration": 3600.5
+      }
+    ]
+  },
+  "timestamp": "2024-01-01T11:05:00.000Z"
+}
+
+// Transcrição disponível
+{
+  "type": "transcript.ready",
+  "data": {
+    "id": "asset_2",
+    "job_id": "recording_job_id",
+    "room_id": "room_id",
+    "session_id": "session_id",
+    "type": "transcript",
+    "path": "s3://bucket/path/transcript.json",
+    "output_modes": ["txt", "srt", "json"]
+  },
+  "timestamp": "2024-01-01T11:10:00.000Z"
+}
+
+// Resumo disponível
+{
+  "type": "summary.ready",
+  "data": {
+    "id": "asset_3",
+    "job_id": "recording_job_id",
+    "room_id": "room_id",
+    "session_id": "session_id",
+    "type": "summary",
+    "path": "s3://bucket/path/summary.json"
+  },
+  "timestamp": "2024-01-01T11:10:00.000Z"
+}
+
+// Erro na gravação
+{
+  "type": "recording.failed",
+  "data": {
+    "id": "recording_job_id",
+    "room_id": "room_id",
+    "session_id": "session_id",
+    "error": {
+      "code": "RECORDING_FAILED",
+      "message": "Failed to upload recording to storage"
+    }
+  },
+  "timestamp": "2024-01-01T11:00:00.000Z"
+}
+```
+
+### Armazenamento Personalizado
+
+Configure seu próprio bucket S3, Google Cloud Storage ou Alibaba OSS.
+
+**Amazon S3:**
+
+```json
+{
+  "type": "s3",
+  "location": "us-east-1",
+  "bucket": "my-recordings-bucket",
+  "prefix": "recordings/",
+  "credentials": {
+    "key": "AKIAIOSFODNN7EXAMPLE",
+    "secret": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+  }
+}
+```
+
+**Google Cloud Storage:**
+
+```json
+{
+  "type": "gcs",
+  "location": "us-central1",
+  "bucket": "my-recordings-bucket",
+  "prefix": "recordings/",
+  "credentials": {
+    "key": "<base64-encoded-json-key>"
+  }
+}
+```
+
+**Alibaba Cloud OSS:**
+
+```json
+{
+  "type": "oss",
+  "location": "oss-cn-beijing",
+  "bucket": "my-recordings-bucket",
+  "prefix": "recordings/",
+  "credentials": {
+    "key": "your-access-key-id",
+    "secret": "your-access-key-secret"
+  }
+}
+```
+
+**Configurar via Dashboard:**
+1. Acesse o template
+2. Aba "Recording"
+3. Seção "Storage"
+4. Selecione "Custom Storage"
+5. Escolha o provedor e insira credenciais
+
+**Configurar via API:**
+
+```bash
+curl -X POST 'https://api.100ms.live/v2/templates/<template_id>' \
+  -H 'Authorization: Bearer <management_token>' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "destinations": {
+    "storage": {
+      "type": "s3",
+      "location": "us-east-1",
+      "bucket": "my-recordings-bucket",
+      "prefix": "recordings/",
+      "credentials": {
+        "key": "AKIAIOSFODNN7EXAMPLE",
+        "secret": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+      }
+    }
+  }
+}'
+```
+
+---
+
+## Exemplos Práticos Completos
+
+### Exemplo 1: Sistema de Gravação Automática com Dashboard
+
+```javascript
+import { 
+  HMSRoomProvider, 
+  useHMSActions, 
+  useHMSStore,
+  selectHMSRoom
+} from '@100mslive/react-sdk';
+
+function RecordingDashboard() {
+  const hmsActions = useHMSActions();
+  const room = useHMSStore(selectHMSRoom);
+  
+  const browserRecordingState = room.browserRecordingState;
+  const hlsState = room.hlsStreamingState;
+  const rtmpState = room.rtmpHMSRtmpStreamingState;
+  
+  const isRecording = browserRecordingState?.running || false;
+  const isHLSStreaming = hlsState?.running || false;
+  const isRTMPStreaming = rtmpState?.running || false;
+  
+  const startBrowserRecording = async () => {
+    try {
+      await hmsActions.startRTMPOrRecording({
+        record: true,
+        meetingURL: 'https://myapp.app.100ms.live/meeting/abc',
+        resolution: { width: 1920, height: 1080 }
+      });
+      alert('Gravação iniciada!');
+    } catch (error) {
+      console.error('Erro ao iniciar gravação:', error);
+    }
+  };
+  
+  const startHLSWithRecording = async () => {
+    try {
+      const config = {
+        meetingURLVariants: [{
+          meetingURL: 'https://myapp.app.100ms.live/streaming/abc',
+          metadata: 'hls-1080p'
+        }],
+        recording: {
+          singleFilePerLayer: true,
+          videoOnDemand: true
+        },
+        transcription: {
+          enabled: true,
+          output_modes: ['txt', 'json'],
+          summary: {
+            enabled: true,
+            sections: [
+              { title: 'Pontos Principais', format: 'bullets' },
+              { title: 'Ações', format: 'action_items' }
+            ]
+          }
+        }
+      };
+      
+      await hmsActions.startHLSStreaming(config);
+      alert('HLS iniciado com gravação!');
+    } catch (error) {
+      console.error('Erro:', error);
+    }
+  };
+  
+  const stopAll = async () => {
+    try {
+      if (isRecording || isRTMPStreaming) {
+        await hmsActions.stopRTMPAndRecording();
+      }
+      if (isHLSStreaming) {
+        await hmsActions.stopHLSStreaming();
+      }
+      alert('Tudo parado!');
+    } catch (error) {
+      console.error('Erro:', error);
+    }
+  };
+  
+  return (
+    <div style={{ padding: '20px' }}>
+      <h2>Dashboard de Gravação</h2>
+      
+      <div style={{ marginBottom: '20px' }}>
+        <h3>Status</h3>
+        <p>Browser Recording: {isRecording ? '🔴 Gravando' : '⚪ Parado'}</p>
+        <p>HLS Streaming: {isHLSStreaming ? '🔴 Ao Vivo' : '⚪ Parado'}</p>
+        <p>RTMP Streaming: {isRTMPStreaming ? '🔴 Transmitindo' : '⚪ Parado'}</p>
+        
+        {isHLSStreaming && hlsState.variants.length > 0 && (
+          <div>
+            <p>HLS URL: </p>
+            <input 
+              type="text" 
+              value={hlsState.variants[0].hlsStreamUrl} 
+              readOnly 
+              style={{ width: '100%' }}
+            />
+          </div>
+        )}
+      </div>
+      
+      <div>
+        <button onClick={startBrowserRecording} disabled={isRecording}>
+          Iniciar Gravação Browser
+        </button>
+        
+        <button onClick={startHLSWithRecording} disabled={isHLSStreaming}>
+          Iniciar HLS + Gravação
+        </button>
+        
+        <button onClick={stopAll} disabled={!isRecording && !isHLSStreaming && !isRTMPStreaming}>
+          Parar Tudo
+        </button>
+      </div>
+    </div>
+  );
+}
+```
+
+### Exemplo 2: Screen Share com Controles Avançados
+
+```javascript
+import React, { useState } from 'react';
+import { useHMSActions, useHMSStore, selectIsLocalScreenShared } from '@100mslive/react-sdk';
+
+function ScreenShareControls() {
+  const hmsActions = useHMSActions();
+  const isScreenShared = useHMSStore(selectIsLocalScreenShared);
+  const [shareAudio, setShareAudio] = useState(false);
+  const [displaySurface, setDisplaySurface] = useState('monitor');
+  
+  const startScreenShare = async () => {
+    try {
+      const config = {
+        videoOnly: !shareAudio,
+        audioOnly: false,
+        displaySurface: displaySurface,
+        systemAudio: shareAudio ? 'include' : 'exclude',
+        selfBrowserSurface: 'exclude',
+        surfaceSwitching: 'include'
+      };
+      
+      await hmsActions.setScreenShareEnabled(true, config);
+      console.log('Screen share iniciado');
+    } catch (error
