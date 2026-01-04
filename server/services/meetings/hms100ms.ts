@@ -53,12 +53,20 @@ export async function criarSala(
 ): Promise<{ id: string; name: string; enabled: boolean }> {
   const token = generateManagementToken(appAccessKey, appSecret);
 
+  // Removendo caracteres especiais e espaços para evitar erro 400 (Invalid body param)
+  // A API do 100ms exige que o nome tenha apenas letras, números e hifens.
+  const timestamp = Date.now();
+  const safeName = `instantanea-${timestamp}`;
+
+  console.log(`[100ms] Criando sala com nome: ${safeName}`);
+
   const response = await axios.post(
     `${HMS_API_URL}/rooms`,
     {
-      name: nome,
+      name: safeName,
       description: `Sala de reunião: ${nome}`,
-      template_id: templateId,
+      // Removendo template_id para que o 100ms use o template padrão da conta
+      // Isso evita erro 400 se o template "default" não existir ou for inválido na região
     },
     {
       headers: {
@@ -135,11 +143,19 @@ export async function iniciarGravacao(
 ): Promise<{ id: string; room_id: string; session_id: string; status: string }> {
   const token = generateManagementToken(appAccessKey, appSecret);
 
+  console.log(`[100ms] Iniciando gravação para sala ${roomId} com URL: ${meetingUrl}`);
+
+  // Construir URL com todos os parâmetros de bypass de UI
+  const separator = meetingUrl.includes('?') ? '&' : '?';
+  const recordingUrl = `${meetingUrl}${separator}auto_join=true&recording_bot=true&skip_preview=true&skip_device_selection=true&quality=high`;
+
+  console.log(`[100ms] URL final para o bot: ${recordingUrl}`);
+
   const response = await axios.post(
     `${HMS_API_URL}/recordings/room/${roomId}/start`,
     {
-      meeting_url: meetingUrl,
-      resolution: { width: 1280, height: 720 },
+      meeting_url: recordingUrl,
+      resolution: { width: 1280, height: 720 }, // HD é mais estável para o bot Beam
     },
     {
       headers: {
