@@ -97,7 +97,7 @@ meetingsRouter.get('/reunioes', authenticateToken, requireTenantId, async (req: 
   }
 });
 
-meetingsRouter.get('/reunioes/:id', authenticateToken, async (req: AuthRequest, res: Response) => {
+meetingsRouter.get('/reunioes/:id', authenticateToken, requireTenantId, async (req: AuthRequest, res: Response) => {
   try {
     const tenantId = req.user!.tenantId;
     const { id } = req.params;
@@ -117,7 +117,107 @@ meetingsRouter.get('/reunioes/:id', authenticateToken, async (req: AuthRequest, 
   }
 });
 
-meetingsRouter.post('/reunioes', authenticateToken, async (req: AuthRequest, res: Response) => {
+meetingsRouter.get('/reunioes/:id/token-100ms', authenticateToken, requireTenantId, async (req: AuthRequest, res: Response) => {
+  try {
+    const tenantId = req.user!.tenantId;
+    const { id } = req.params;
+    const role = (req.query.role as string) || 'guest';
+
+    const [meeting] = await db.select().from(reunioes)
+      .where(and(eq(reunioes.id, id), eq(reunioes.tenantId, tenantId)))
+      .limit(1);
+
+    if (!meeting || !meeting.roomId100ms) {
+      return res.status(404).json({ error: 'Reunião não encontrada ou sem sala 100ms' });
+    }
+
+    const credentials = await get100msCredentials(tenantId);
+    if (!credentials) {
+      return res.status(400).json({ error: 'Credenciais do 100ms não configuradas' });
+    }
+
+    const userId = nanoid(8);
+    const token = gerarTokenParticipante(
+      meeting.roomId100ms,
+      userId,
+      role,
+      credentials.appAccessKey,
+      credentials.appSecret
+    );
+
+    res.json({ 
+      token, 
+      roomId: meeting.roomId100ms,
+      userId,
+      role
+    });
+  } catch (error: any) {
+    console.error('Erro ao gerar token 100ms:', error);
+    res.status(500).json({ error: 'Erro ao gerar token', message: error.message });
+  }
+});
+
+meetingsRouter.post('/reunioes/instantanea', authenticateToken, requireTenantId, async (req: AuthRequest, res: Response) => {
+  try {
+    const tenantId = req.user!.tenantId;
+    const userName = req.user?.nome || req.user?.email || 'Host';
+
+    const credentials = await get100msCredentials(tenantId);
+    if (!credentials) {
+      return res.status(400).json({ 
+        error: 'Credenciais do 100ms não configuradas',
+        message: 'Configure suas credenciais do 100ms em Configurações antes de criar reuniões'
+      });
+    }
+
+    const titulo = `Reunião Instantânea - ${new Date().toLocaleString('pt-BR')}`;
+    
+    const sala = await criarSala(
+      titulo, 
+      credentials.templateId || '', 
+      credentials.appAccessKey, 
+      credentials.appSecret
+    );
+
+    const meetingId = nanoid();
+    const baseUrl = process.env.REPLIT_DOMAINS?.split(',')[0] || 'localhost:5000';
+    const linkReuniao = `https://${baseUrl}/reuniao/${meetingId}`;
+
+    const [newMeeting] = await db.insert(reunioes).values({
+      id: meetingId,
+      tenantId,
+      titulo,
+      nome: userName,
+      email: req.user?.email,
+      dataInicio: new Date(),
+      tipo: 'video',
+      status: 'em_andamento',
+      roomId100ms: sala.id,
+      linkReuniao,
+    }).returning();
+
+    const userId = nanoid(8);
+    const token = gerarTokenParticipante(
+      sala.id,
+      userId,
+      'host',
+      credentials.appAccessKey,
+      credentials.appSecret
+    );
+
+    res.json({ 
+      ...newMeeting, 
+      token,
+      roomId: sala.id,
+      userId
+    });
+  } catch (error: any) {
+    console.error('Erro ao criar reunião instantânea:', error);
+    res.status(500).json({ error: 'Erro ao criar reunião instantânea', message: error.message });
+  }
+});
+
+meetingsRouter.post('/reunioes', authenticateToken, requireTenantId, async (req: AuthRequest, res: Response) => {
   try {
     const tenantId = req.user!.tenantId;
     const { titulo, nome, email, dataInicio, dataFim, descricao, tipo } = req.body;

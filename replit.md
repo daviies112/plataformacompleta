@@ -64,9 +64,11 @@ scripts/   → Utilitários (export, import)
 ✅ Formulários Públicos  
 ✅ Validação CPF  
 ✅ WhatsApp Business  
-✅ Video Conferencing (100ms) - CORRIGIDO (03/01/2026)
+✅ Video Conferencing (100ms) - ATUALIZADO (04/01/2026)
+   - API Routes: `/api/reunioes`, `/api/reunioes/instantanea`, `/api/gravacoes`
+   - Acessível via menu "Reunião" no header
+   - Configure credenciais do 100ms em Configurações antes de criar reuniões
    - Veja: `DOCUMENTACAO_CORRECAO_100MS.md` (detalhado)
-   - Fallback de Identity e Config Endpoints implementados.
 ✅ **Sistema de Exportação Otimizado** - ATUALIZADO (03/01/2026)
    - Scripts de limpeza preservam a pasta `data/` para manter credenciais.
    - Veja: `DOCUMENTACAO_PERSISTENCIA_EXPORT.md`
