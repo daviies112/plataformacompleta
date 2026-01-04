@@ -1,4 +1,4 @@
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { authenticateToken } from '../middleware/auth';
 import { db } from '../db';
 import { reunioes, gravacoes, hms100msConfig } from '../../shared/db-schema';
@@ -14,6 +14,7 @@ import {
   obterUrlPresignadaAsset
 } from '../services/meetings/hms100ms';
 import { nanoid } from 'nanoid';
+import { z } from 'zod';
 
 export const meetingsRouter = Router();
 
@@ -27,23 +28,61 @@ interface AuthRequest extends Request {
   };
 }
 
-async function get100msCredentials(tenantId: string) {
-  const config = await db.select().from(hms100msConfig)
-    .where(eq(hms100msConfig.tenantId, tenantId))
-    .limit(1);
-
-  if (!config[0]) {
-    return null;
+function requireTenantId(req: AuthRequest, res: Response, next: NextFunction) {
+  if (!req.user?.tenantId) {
+    return res.status(401).json({ error: 'Tenant não identificado' });
   }
-
-  return {
-    appAccessKey: decrypt(config[0].appAccessKey),
-    appSecret: decrypt(config[0].appSecret),
-    templateId: config[0].templateId
-  };
+  next();
 }
 
-meetingsRouter.get('/api/reunioes', authenticateToken, async (req: AuthRequest, res: Response) => {
+const createMeetingSchema = z.object({
+  titulo: z.string().optional(),
+  nome: z.string().optional(),
+  email: z.string().email().optional(),
+  dataInicio: z.string(),
+  dataFim: z.string().optional(),
+  descricao: z.string().optional(),
+  tipo: z.enum(['video', 'audio', 'webinar']).optional()
+});
+
+const tokenRequestSchema = z.object({
+  userName: z.string().optional(),
+  role: z.enum(['host', 'guest']).optional()
+});
+
+async function get100msCredentials(tenantId: string) {
+  try {
+    const config = await db.select().from(hms100msConfig)
+      .where(eq(hms100msConfig.tenantId, tenantId))
+      .limit(1);
+
+    if (!config[0]) {
+      return null;
+    }
+
+    if (!config[0].appAccessKey || !config[0].appSecret) {
+      return null;
+    }
+
+    const appAccessKey = decrypt(config[0].appAccessKey);
+    const appSecret = decrypt(config[0].appSecret);
+
+    if (!appAccessKey || !appSecret) {
+      return null;
+    }
+
+    return {
+      appAccessKey,
+      appSecret,
+      templateId: config[0].templateId
+    };
+  } catch (error) {
+    console.error('Erro ao obter credenciais 100ms');
+    return null;
+  }
+}
+
+meetingsRouter.get('/reunioes', authenticateToken, requireTenantId, async (req: AuthRequest, res: Response) => {
   try {
     const tenantId = req.user!.tenantId;
     
@@ -58,7 +97,7 @@ meetingsRouter.get('/api/reunioes', authenticateToken, async (req: AuthRequest, 
   }
 });
 
-meetingsRouter.get('/api/reunioes/:id', authenticateToken, async (req: AuthRequest, res: Response) => {
+meetingsRouter.get('/reunioes/:id', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     const tenantId = req.user!.tenantId;
     const { id } = req.params;
@@ -78,7 +117,7 @@ meetingsRouter.get('/api/reunioes/:id', authenticateToken, async (req: AuthReque
   }
 });
 
-meetingsRouter.post('/api/reunioes', authenticateToken, async (req: AuthRequest, res: Response) => {
+meetingsRouter.post('/reunioes', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     const tenantId = req.user!.tenantId;
     const { titulo, nome, email, dataInicio, dataFim, descricao, tipo } = req.body;
@@ -124,7 +163,7 @@ meetingsRouter.post('/api/reunioes', authenticateToken, async (req: AuthRequest,
   }
 });
 
-meetingsRouter.post('/api/reunioes/:id/token', authenticateToken, async (req: AuthRequest, res: Response) => {
+meetingsRouter.post('/reunioes/:id/token', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     const tenantId = req.user!.tenantId;
     const { id } = req.params;
@@ -164,7 +203,7 @@ meetingsRouter.post('/api/reunioes/:id/token', authenticateToken, async (req: Au
   }
 });
 
-meetingsRouter.post('/api/reunioes/:id/start-recording', authenticateToken, async (req: AuthRequest, res: Response) => {
+meetingsRouter.post('/reunioes/:id/start-recording', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     const tenantId = req.user!.tenantId;
     const { id } = req.params;
@@ -207,7 +246,7 @@ meetingsRouter.post('/api/reunioes/:id/start-recording', authenticateToken, asyn
   }
 });
 
-meetingsRouter.post('/api/reunioes/:id/stop-recording', authenticateToken, async (req: AuthRequest, res: Response) => {
+meetingsRouter.post('/reunioes/:id/stop-recording', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     const tenantId = req.user!.tenantId;
     const { id } = req.params;
@@ -248,7 +287,7 @@ meetingsRouter.post('/api/reunioes/:id/stop-recording', authenticateToken, async
   }
 });
 
-meetingsRouter.get('/api/gravacoes', authenticateToken, async (req: AuthRequest, res: Response) => {
+meetingsRouter.get('/gravacoes', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     const tenantId = req.user!.tenantId;
 
@@ -263,7 +302,7 @@ meetingsRouter.get('/api/gravacoes', authenticateToken, async (req: AuthRequest,
   }
 });
 
-meetingsRouter.get('/api/gravacoes/:id/playback', authenticateToken, async (req: AuthRequest, res: Response) => {
+meetingsRouter.get('/gravacoes/:id/playback', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     const tenantId = req.user!.tenantId;
     const { id } = req.params;
@@ -307,7 +346,7 @@ meetingsRouter.get('/api/gravacoes/:id/playback', authenticateToken, async (req:
   }
 });
 
-meetingsRouter.delete('/api/gravacoes/:id', authenticateToken, async (req: AuthRequest, res: Response) => {
+meetingsRouter.delete('/gravacoes/:id', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     const tenantId = req.user!.tenantId;
     const { id } = req.params;
@@ -329,7 +368,7 @@ meetingsRouter.delete('/api/gravacoes/:id', authenticateToken, async (req: AuthR
   }
 });
 
-meetingsRouter.get('/api/100ms/active-recordings', authenticateToken, async (req: AuthRequest, res: Response) => {
+meetingsRouter.get('/100ms/active-recordings', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     const tenantId = req.user!.tenantId;
 

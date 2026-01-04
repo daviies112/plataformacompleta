@@ -100,7 +100,7 @@ export async function registerRoutes(app: Express) {
   app.use("/api/formularios", requireTenant, formulariosRoutes);
   
   // Meetings / Video Conferencing routes (100ms)
-  app.use(meetingsRouter);
+  app.use("/api", requireTenant, meetingsRouter);
   
   // Note: leads-pipeline routes registered above (before requireTenant middleware)
   
