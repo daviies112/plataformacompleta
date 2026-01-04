@@ -22,6 +22,7 @@ import { setupComplianceRoutes } from "./routes/compliance";
 import formsAutomationAPIRoutes from "./routes/formsAutomationAPI";
 import { requireTenant } from "./middleware/requireTenant";
 import { leadsPipelineRoutes } from "./routes/leadsPipelineRoutes";
+import { meetingsRouter } from "./routes/meetings";
 
 // Configure multer for logo uploads
 const logoStorage = multer.diskStorage({
@@ -97,6 +98,9 @@ export async function registerRoutes(app: Express) {
   registerWhatsAppCompleteRoutes(app);
   
   app.use("/api/formularios", requireTenant, formulariosRoutes);
+  
+  // Meetings / Video Conferencing routes (100ms)
+  app.use(meetingsRouter);
   
   // Note: leads-pipeline routes registered above (before requireTenant middleware)
   
