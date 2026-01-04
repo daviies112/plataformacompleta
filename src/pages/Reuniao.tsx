@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Meeting100ms } from "@/components/Meeting100ms";
 import { useReuniao } from "@/hooks/useReuniao";
@@ -10,14 +10,70 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
+import { DEFAULT_ROOM_DESIGN_CONFIG, type RoomDesignConfig } from "@/types/reuniao";
 
 export default function Reuniao() {
   const params = useParams();
   const navigate = useNavigate();
   const meetingId = params.id;
-  const { meeting, loading, error } = useReuniao(meetingId);
+  const { meeting, loading, error, getToken100ms } = useReuniao(meetingId);
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
+
+  const [token100ms, setToken100ms] = useState<string | null>(null);
+  const [tokenLoading, setTokenLoading] = useState(false);
+  const [tokenError, setTokenError] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string>("Participante");
+
+  useEffect(() => {
+    const userData = localStorage.getItem("userData");
+    if (userData) {
+      try {
+        const parsed = JSON.parse(userData);
+        if (parsed.nome) {
+          setUserName(parsed.nome);
+        } else if (parsed.name) {
+          setUserName(parsed.name);
+        } else if (parsed.email) {
+          setUserName(parsed.email.split("@")[0]);
+        }
+      } catch (e) {
+        console.warn("Erro ao parsear userData:", e);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    async function fetchToken() {
+      if (!meetingId || !meeting || meeting.status === 'concluida' || meeting.status === 'cancelada') {
+        return;
+      }
+
+      if (!meeting.roomId100ms) {
+        setTokenError("Esta reunião não possui uma sala 100ms configurada.");
+        return;
+      }
+
+      setTokenLoading(true);
+      setTokenError(null);
+
+      try {
+        const response = await getToken100ms(meetingId);
+        if (response.token) {
+          setToken100ms(response.token);
+        } else {
+          setTokenError("Token não retornado pela API.");
+        }
+      } catch (err: any) {
+        console.error("[Reuniao] Erro ao buscar token 100ms:", err);
+        setTokenError(err.message || "Erro ao obter token de acesso.");
+      } finally {
+        setTokenLoading(false);
+      }
+    }
+
+    fetchToken();
+  }, [meetingId, meeting?.roomId100ms, meeting?.status, getToken100ms]);
 
   const handleCopyLink = async () => {
     if (meeting?.linkReuniao) {
@@ -41,7 +97,7 @@ export default function Reuniao() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center h-[50vh] gap-4">
+      <div className="flex flex-col items-center justify-center h-[50vh] gap-4" data-testid="loading-meeting">
         <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         <p className="text-muted-foreground">Carregando reunião...</p>
       </div>
@@ -50,26 +106,26 @@ export default function Reuniao() {
 
   if (error || !meeting) {
     return (
-      <div className="flex flex-col items-center justify-center h-[50vh] gap-4">
+      <div className="flex flex-col items-center justify-center h-[50vh] gap-4" data-testid="error-meeting">
         <h1 className="text-2xl font-bold">Reunião não encontrada</h1>
-        <Button onClick={() => navigate("/reuniao")}>Voltar ao Dashboard</Button>
+        <Button onClick={() => navigate("/reuniao")} data-testid="button-back-dashboard">Voltar ao Dashboard</Button>
       </div>
     );
   }
 
   if (meeting.status === 'concluida') {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6" data-testid="meeting-completed">
         <div className="flex items-center gap-4">
-          <Button variant="outline" size="icon" onClick={() => navigate("/reuniao")}>
+          <Button variant="outline" size="icon" onClick={() => navigate("/reuniao")} data-testid="button-back">
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
              <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold">{meeting.titulo}</h1>
+              <h1 className="text-2xl font-bold" data-testid="text-meeting-title">{meeting.titulo}</h1>
               <Badge className="bg-green-100 text-green-700 border-green-200">Concluída</Badge>
              </div>
-             <p className="text-muted-foreground mt-1">Participante: {meeting.nome} • {meeting.email}</p>
+             <p className="text-muted-foreground mt-1">Participante: {meeting.nome} - {meeting.email}</p>
           </div>
         </div>
 
@@ -82,9 +138,9 @@ export default function Reuniao() {
             <CardContent>
               <Tabs defaultValue="recording">
                 <TabsList className="mb-4">
-                  <TabsTrigger value="recording">Gravação de Vídeo</TabsTrigger>
-                  <TabsTrigger value="transcript">Transcrição (IA)</TabsTrigger>
-                  <TabsTrigger value="summary">Resumo Inteligente</TabsTrigger>
+                  <TabsTrigger value="recording" data-testid="tab-recording">Gravação de Vídeo</TabsTrigger>
+                  <TabsTrigger value="transcript" data-testid="tab-transcript">Transcrição (IA)</TabsTrigger>
+                  <TabsTrigger value="summary" data-testid="tab-summary">Resumo Inteligente</TabsTrigger>
                 </TabsList>
                 
                 <TabsContent value="recording" className="space-y-4">
@@ -98,7 +154,7 @@ export default function Reuniao() {
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-muted-foreground">Duração: {meeting.duracao || 45} min</span>
-                    <Button variant="outline" size="sm" className="gap-2">
+                    <Button variant="outline" size="sm" className="gap-2" data-testid="button-download-mp4">
                       <Download className="h-4 w-4" /> Download MP4
                     </Button>
                   </div>
@@ -170,15 +226,54 @@ export default function Reuniao() {
     );
   }
 
+  if (tokenLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[50vh] gap-4" data-testid="loading-token">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <p className="text-muted-foreground">Preparando sala de reunião...</p>
+      </div>
+    );
+  }
+
+  if (tokenError) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[50vh] gap-4" data-testid="error-token">
+        <h1 className="text-2xl font-bold text-destructive">Erro ao acessar reunião</h1>
+        <p className="text-muted-foreground text-center max-w-md">{tokenError}</p>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => navigate("/reuniao")} data-testid="button-back-error">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Voltar
+          </Button>
+          <Button onClick={() => window.location.reload()} data-testid="button-retry">
+            Tentar Novamente
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!token100ms || !meeting.roomId100ms) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[50vh] gap-4" data-testid="no-room">
+        <h1 className="text-2xl font-bold">Sala não disponível</h1>
+        <p className="text-muted-foreground">Esta reunião não possui uma sala de vídeo configurada.</p>
+        <Button onClick={() => navigate("/reuniao")} data-testid="button-back-noroom">Voltar ao Dashboard</Button>
+      </div>
+    );
+  }
+
+  const roomConfig: RoomDesignConfig = DEFAULT_ROOM_DESIGN_CONFIG;
+
   return (
-    <div className="h-full flex flex-col gap-4">
+    <div className="h-full flex flex-col gap-4" data-testid="meeting-room">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-4">
-          <Button variant="outline" size="icon" onClick={() => navigate("/reuniao")}>
+          <Button variant="outline" size="icon" onClick={() => navigate("/reuniao")} data-testid="button-back-meeting">
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h1 className="text-xl font-bold">{meeting.titulo}</h1>
+            <h1 className="text-xl font-bold" data-testid="text-meeting-title-active">{meeting.titulo}</h1>
             <p className="text-sm text-muted-foreground">Participante: {meeting.nome}</p>
           </div>
         </div>
@@ -187,6 +282,7 @@ export default function Reuniao() {
             variant="outline"
             onClick={handleCopyLink}
             className="gap-2"
+            data-testid="button-share-link"
           >
             {copied ? (
               <>
@@ -205,9 +301,11 @@ export default function Reuniao() {
       
       <div className="flex-1 min-h-0 border rounded-lg overflow-hidden shadow-2xl">
          <Meeting100ms 
-           roomId={meeting.roomId100ms || "room-test"} 
-           meetingId={meetingId!}
+           roomId={meeting.roomId100ms} 
+           userName={userName}
+           authToken={token100ms}
            onLeave={() => navigate("/reuniao")} 
+           config={roomConfig}
          />
       </div>
     </div>
