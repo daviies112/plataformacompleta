@@ -24,7 +24,6 @@ import { Navigate } from "react-router-dom";
 import { RootRedirect } from "@/components/RootRedirect";
 import PublicForm from "@/features/formularios-platform/pages/PublicForm";
 import FormularioPublicoWrapper from "@/features/formularios-platform/pages/FormularioPublicoWrapper";
-import ConsultarCPFPage from "@/pages/consultar-cpf";
 import HistoricoConsultasPage from "./pages/ClientConfigPage"; 
 
 // Import Revendedora Platform
@@ -426,40 +425,6 @@ const MobileApp = () => {
           <ProtectedRoute>
             <MobileLayout>
               <NotionHomePage />
-            </MobileLayout>
-          </ProtectedRoute>
-        } 
-      />
-      
-      <Route 
-        path="/consultar-cpf" 
-        element={
-          <ProtectedRoute>
-            <MobileLayout>
-              <ConsultarCPFPage />
-            </MobileLayout>
-          </ProtectedRoute>
-        } 
-      />
-      
-      <Route 
-        path="/historico-consultas" 
-        element={
-          <ProtectedRoute>
-            <MobileLayout>
-              <HistoricoConsultasPage />
-            </MobileLayout>
-          </ProtectedRoute>
-        } 
-      />
-      
-      {/* Revendedora Platform - Plataforma completa de vendas e revendedoras */}
-      <Route 
-        path="/revendedora/*" 
-        element={
-          <ProtectedRoute>
-            <MobileLayout>
-              <RevendedoraApp />
             </MobileLayout>
           </ProtectedRoute>
         } 
