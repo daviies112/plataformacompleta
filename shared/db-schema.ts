@@ -1906,9 +1906,9 @@ export const gravacoes = pgTable("gravacoes", {
 }));
 
 // Meeting Confirmation Pages Table
-export const meetingConfirmationPages = pgTable("meeting_confirmation_pages", {
+export const meetingConfirmationPagesOld = pgTable("meeting_confirmation_pages_old", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  tenantId: uuid("tenant_id").references(() => meetingTenants.id).notNull(),
+  tenantId: uuid("tenant_id").notNull(), // Linked to our system's tenant
   name: text("name").notNull(),
   title: text("title").notNull().default("Reunião Agendada!"),
   subtitle: text("subtitle"),
@@ -1940,14 +1940,12 @@ export const meetingConfirmationPages = pgTable("meeting_confirmation_pages", {
   }),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at"),
-}, (table) => ({
-  tenantIdx: index("idx_meeting_confirmation_pages_tenant").on(table.tenantId),
-}));
+});
 
-// Meeting Types Table - Configurable booking pages
-export const meetingTypes = pgTable("meeting_types", {
+// Meeting types (configurable booking pages)
+export const meetingTypesOld = pgTable("meeting_types_old", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  tenantId: uuid("tenant_id").references(() => meetingTenants.id).notNull(),
+  tenantId: uuid("tenant_id").notNull(),
   title: text("title").notNull(),
   slug: text("slug"),
   description: text("description"),
@@ -1993,31 +1991,119 @@ export const meetingTypes = pgTable("meeting_types", {
     logo: null,
     spacing: "comfortable"
   }),
-  confirmationPageId: uuid("confirmation_page_id").references(() => meetingConfirmationPages.id, { onDelete: "set null" }),
+  confirmationPageId: uuid("confirmation_page_id").references(() => meetingConfirmationPagesOld.id, { onDelete: "set null" }),
   isPublic: boolean("is_public").default(false),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at"),
 }, (table) => ({
-  tenantIdx: index("idx_meeting_types_tenant").on(table.tenantId),
-  slugIdx: index("idx_meeting_types_slug").on(table.slug),
-  publicIdx: index("idx_meeting_types_public").on(table.isPublic),
+  tenantIdx: index("idx_meeting_types_tenant_old").on(table.tenantId),
+  slugIdx: index("idx_meeting_types_slug_old").on(table.slug),
 }));
 
-// Meeting Tenant Mapping Table - For public access
-export const meetingTenantMapping = pgTable("meeting_tenant_mapping", {
-  meetingTypeId: uuid("meeting_type_id").primaryKey().references(() => meetingTypes.id, { onDelete: "cascade" }),
-  tenantId: uuid("tenant_id").references(() => meetingTenants.id).notNull(),
+// Meeting tenant mapping for public access
+export const meetingTenantMappingOld = pgTable("meeting_tenant_mapping_old", {
+  meetingTypeId: uuid("meeting_type_id").primaryKey().references(() => meetingTypesOld.id, { onDelete: "cascade" }),
+  tenantId: uuid("tenant_id").notNull(),
   slug: text("slug"),
   companySlug: text("company_slug"),
   isPublic: boolean("is_public").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at"),
 }, (table) => ({
-  tenantIdx: index("idx_meeting_mapping_tenant").on(table.tenantId),
-  publicIdx: index("idx_meeting_mapping_public").on(table.isPublic),
-  slugIdx: index("idx_meeting_mapping_slug").on(table.slug),
-  companySlugIdx: index("idx_meeting_mapping_company_slug").on(table.companySlug),
+  tenantIdx: index("idx_meeting_mapping_tenant_old").on(table.tenantId),
+  slugIdx: index("idx_meeting_mapping_slug_old").on(table.slug),
+  companySlugIdx: index("idx_meeting_mapping_company_slug_old").on(table.companySlug),
+}));
+
+// Meeting bookings (client appointments)
+export const meetingBookingsOld = pgTable("meeting_bookings_old", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id"),
+  meetingTypeId: uuid("meeting_type_id").references(() => meetingTypesOld.id, { onDelete: "cascade" }).notNull(),
+  reuniaoId: uuid("reuniao_id").references(() => reunioes.id, { onDelete: "set null" }),
+  scheduledDate: date("scheduled_date").notNull(),
+  scheduledTime: text("scheduled_time").notNull(),
+  scheduledDateTime: timestamp("scheduled_date_time", { withTimezone: true }).notNull(),
+  duration: integer("duration").notNull(),
+  timezone: text("timezone").default("America/Sao_Paulo"),
+  status: text("status").default("pending"),
+  answers: jsonb("answers").notNull(),
+  contactName: text("contact_name"),
+  contactEmail: text("contact_email"),
+  contactPhone: text("contact_phone"),
+  locationUrl: text("location_url"),
+  locationDetails: text("location_details"),
+  googleEventId: text("google_event_id"),
+  calendarLink: text("calendar_link"),
+  reminderSentAt: timestamp("reminder_sent_at", { withTimezone: true }),
+  notes: text("notes"),
+  cancellationReason: text("cancellation_reason"),
+  metadata: jsonb("metadata").default({}),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at"),
+}, (table) => ({
+  tenantIdx: index("idx_meeting_bookings_tenant_old").on(table.tenantId),
+  meetingTypeIdx: index("idx_meeting_bookings_type_old").on(table.meetingTypeId),
+  scheduledIdx: index("idx_meeting_bookings_scheduled_old").on(table.scheduledDateTime),
+  statusIdx: index("idx_meeting_bookings_status_old").on(table.status),
+}));
+
+// Meeting templates
+export const meetingTemplatesOld = pgTable("meeting_templates_old", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").notNull(),
+  name: text("name").notNull(),
+  description: text("description"),
+  thumbnailUrl: text("thumbnail_url"),
+  duration: integer("duration").notNull().default(30),
+  designConfig: jsonb("design_config").notNull(),
+  bookingFields: jsonb("booking_fields").notNull(),
+  availabilityConfig: jsonb("availability_config").notNull(),
+  isDefault: boolean("is_default").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at"),
+}, (table) => ({
+  tenantIdx: index("idx_meeting_templates_tenant_old").on(table.tenantId),
+}));
+
+// Meeting Confirmation Pages Table
+export const meetingConfirmationPages = pgTable("meeting_confirmation_pages", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: uuid("tenant_id").references(() => meetingTenants.id).notNull(),
+  name: text("name").notNull(),
+  title: text("title").notNull().default("Reunião Agendada!"),
+  subtitle: text("subtitle"),
+  confirmationMessage: text("confirmation_message").notNull().default("Sua reunião foi agendada com sucesso. Você receberá um e-mail de confirmação em breve."),
+  showDateTime: boolean("show_date_time").default(true),
+  showLocation: boolean("show_location").default(true),
+  showAddToCalendar: boolean("show_add_to_calendar").default(true),
+  logo: text("logo"),
+  logoAlign: text("logo_align").default("center"),
+  iconColor: text("icon_color").default("hsl(142, 71%, 45%)"),
+  iconImage: text("icon_image"),
+  iconType: text("icon_type").default("calendar-check"),
+  ctaText: text("cta_text"),
+  ctaUrl: text("cta_url"),
+  customContent: text("custom_content"),
+  designConfig: jsonb("design_config").default({
+    colors: {
+      primary: "hsl(221, 83%, 53%)",
+      secondary: "hsl(210, 40%, 96%)",
+      background: "hsl(0, 0%, 100%)",
+      text: "hsl(222, 47%, 11%)"
+    },
+    typography: {
+      fontFamily: "Inter",
+      titleSize: "2xl",
+      textSize: "base"
+    },
+    spacing: "comfortable"
+  }),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at"),
+}, (table) => ({
+  tenantIdx: index("idx_meeting_confirmation_pages_tenant").on(table.tenantId),
 }));
 
 // Meeting Bookings Table - Client appointments
