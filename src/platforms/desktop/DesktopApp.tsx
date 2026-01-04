@@ -20,8 +20,6 @@ import LoginPage from "./pages/LoginPage";
 import NotionBoardsPage from "@/pages/notion/BoardsWrapper";
 import NotionHomePage from "@/pages/notion/Home";
 import NotionTemplatesPage from "@/pages/notion/Templates";
-import NotificationTestPage from "@/pages/NotificationTestPage";
-import ExportData from "@/pages/ExportData";
 import { Navigate } from "react-router-dom";
 import { RootRedirect } from "@/components/RootRedirect";
 import PublicForm from "@/features/formularios-platform/pages/PublicForm";
@@ -152,44 +150,11 @@ const DesktopApp = () => {
       />
       
       <Route 
-        path="/export" 
-        element={
-          <ProtectedRoute>
-            <DesktopLayout>
-              <ExportData />
-            </DesktopLayout>
-          </ProtectedRoute>
-        } 
-      />
-      
-      <Route 
-        path="/exportar" 
-        element={
-          <ProtectedRoute>
-            <DesktopLayout>
-              <ExportData />
-            </DesktopLayout>
-          </ProtectedRoute>
-        } 
-      />
-      
-      <Route 
         path="/notifications" 
         element={
           <ProtectedRoute>
             <DesktopLayout>
               <NotificationsPage />
-            </DesktopLayout>
-          </ProtectedRoute>
-        } 
-      />
-
-      <Route 
-        path="/notifications/test" 
-        element={
-          <ProtectedRoute>
-            <DesktopLayout>
-              <NotificationTestPage />
             </DesktopLayout>
           </ProtectedRoute>
         } 

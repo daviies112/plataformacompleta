@@ -24,7 +24,6 @@ import { Navigate } from "react-router-dom";
 import { RootRedirect } from "@/components/RootRedirect";
 import PublicForm from "@/features/formularios-platform/pages/PublicForm";
 import FormularioPublicoWrapper from "@/features/formularios-platform/pages/FormularioPublicoWrapper";
-import HistoricoConsultasPage from "./pages/ClientConfigPage"; 
 
 // Import Revendedora Platform
 import RevendedoraApp from "@/features/revendedora/RevendedoraApp";
@@ -151,44 +150,11 @@ const MobileApp = () => {
       />
       
       <Route 
-        path="/export" 
-        element={
-          <ProtectedRoute>
-            <MobileLayout>
-              <ExportData />
-            </MobileLayout>
-          </ProtectedRoute>
-        } 
-      />
-      
-      <Route 
-        path="/exportar" 
-        element={
-          <ProtectedRoute>
-            <MobileLayout>
-              <ExportData />
-            </MobileLayout>
-          </ProtectedRoute>
-        } 
-      />
-      
-      <Route 
         path="/notifications" 
         element={
           <ProtectedRoute>
             <MobileLayout>
               <NotificationsPage />
-            </MobileLayout>
-          </ProtectedRoute>
-        } 
-      />
-
-      <Route 
-        path="/notifications/test" 
-        element={
-          <ProtectedRoute>
-            <MobileLayout>
-              <NotificationTestPage />
             </MobileLayout>
           </ProtectedRoute>
         } 
