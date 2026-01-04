@@ -58,8 +58,23 @@ export default function PublicMeetingRoom() {
   const { data, isLoading, error } = useQuery<PublicMeetingData>({
     queryKey: ["/api/public/reuniao", companySlug, roomId],
     queryFn: async () => {
-      const response = await publicApi.getMeetingRoom(companySlug || "", roomId || "");
-      return response.data;
+      // Try to get meeting data from either /api/reunioes/public or /api/public/reuniao
+      // The current system uses /api/reunioes/public/:companySlug/:roomId
+      try {
+        console.log(`[PublicMeetingRoom] Fetching meeting: /api/reunioes/public/${companySlug}/${roomId}`);
+        const response = await fetch(`/api/reunioes/public/${companySlug}/${roomId}`);
+        if (!response.ok) {
+          console.warn(`[PublicMeetingRoom] /api/reunioes/public failed with ${response.status}, trying fallback`);
+          throw new Error('Meeting not found');
+        }
+        const result = await response.json();
+        if (!result.success || !result.data) throw new Error('Invalid response');
+        return result.data;
+      } catch (err) {
+        console.log(`[PublicMeetingRoom] Falling back to publicApi.getMeetingRoom`);
+        const response = await publicApi.getMeetingRoom(companySlug || "", roomId || "");
+        return response.data;
+      }
     },
     enabled: !!companySlug && !!roomId,
     staleTime: 60 * 1000,
@@ -282,13 +297,17 @@ function MeetingWrapper({
           return;
         }
 
-        const response = await api.post("/api/100ms/get-token", {
-          roomId: reuniao.roomId100ms,
-          name: participantName || `guest-${Date.now()}`,
-          role: "host",
-          tenantSlug: companySlug,
+        const response = await fetch(`/api/reunioes/public/${companySlug}/${reuniao.roomId100ms}/token`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: participantName || `guest-${Date.now()}` })
         });
-        setAuthToken(response.data.token);
+        const result = await response.json();
+        if (result.success) {
+          setAuthToken(result.data.token);
+        } else {
+          throw new Error(result.message || "Erro ao gerar token");
+        }
       } catch (err: any) {
         console.error("Erro ao gerar token:", err);
         setTokenError(err.response?.data?.message || "Erro ao gerar token de acesso");

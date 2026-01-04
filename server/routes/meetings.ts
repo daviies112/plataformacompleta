@@ -98,38 +98,29 @@ router.get('/public/:companySlug/:roomId', async (req, res) => {
     console.log('[DEBUG] Requisição pública recebida:', { companySlug, roomId, url: req.url });
 
     // Tenta encontrar a reunião primeiro, pois o ID dela é único
-    const [meeting] = await db
+    // O roomId pode ser o ID da reunião (UUID)
+    let [meeting] = await db
       .select()
       .from(reunioes)
       .where(eq(reunioes.id, roomId));
 
-    console.log('[DEBUG] Reunião encontrada:', meeting ? 'Sim' : 'Não', meeting?.id);
+    console.log('[DEBUG] Reunião encontrada por ID:', meeting ? 'Sim' : 'Não', meeting?.id);
 
     if (!meeting) {
-      // Fallback: se companySlug for o ID da reunião (link mal formado)
-      const [meetingFallback] = await db
+      // Fallback 1: se companySlug for o ID da reunião (link mal formado ou vindo de outro sistema)
+      [meeting] = await db
         .select()
         .from(reunioes)
         .where(eq(reunioes.id, companySlug));
-
-      if (meetingFallback) {
-        console.log('[DEBUG] Reunião encontrada via fallback (ID no slug):', meetingFallback.id);
-        const [tenant] = await db
-          .select()
-          .from(meetingTenants)
-          .where(eq(meetingTenants.id, meetingFallback.tenantId));
-
-        return res.json({ 
-          success: true, 
-          data: {
-            reuniao: meetingFallback,
-            tenant: tenant || { id: meetingFallback.tenantId, nome: 'Nexus' },
-            designConfig: meetingFallback.metadata?.roomDesignConfig || {},
-            roomDesignConfig: meetingFallback.metadata?.roomDesignConfig
-          }
-        });
+      
+      if (meeting) {
+        console.log('[DEBUG] Reunião encontrada via fallback (ID no slug):', meeting.id);
       }
+    }
 
+    if (!meeting) {
+      // Fallback 2: buscar por slug se houver uma coluna de slug (não parece haver no db-schema mas vamos ser seguros)
+      // Se não houver, o erro 404 é apropriado
       return res.status(404).json({
         success: false,
         message: 'Reunião não encontrada',
@@ -140,14 +131,7 @@ router.get('/public/:companySlug/:roomId', async (req, res) => {
     let [tenant] = await db
       .select()
       .from(meetingTenants)
-      .where(eq(meetingTenants.id, companySlug));
-
-    if (!tenant) {
-      [tenant] = await db
-        .select()
-        .from(meetingTenants)
-        .where(eq(meetingTenants.id, meeting.tenantId));
-    }
+      .where(eq(meetingTenants.id, meeting.tenantId));
 
     return res.json({ 
       success: true, 
