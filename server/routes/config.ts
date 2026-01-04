@@ -790,7 +790,7 @@ export function setupConfigRoutes(app: Express) {
         // Try a simple API call to validate
         await axios.get('https://api.100ms.live/v2/rooms', {
           headers: { Authorization: `Bearer ${token}` },
-          params: { limit: 1 }
+          params: { limit: 10 }
         });
 
         return res.json({

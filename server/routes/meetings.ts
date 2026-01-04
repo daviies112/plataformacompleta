@@ -42,7 +42,7 @@ const createMeetingSchema = z.object({
   dataInicio: z.string(),
   dataFim: z.string().optional(),
   descricao: z.string().optional(),
-  tipo: z.enum(['video', 'audio', 'webinar']).optional()
+  duracao: z.number().optional()
 });
 
 const tokenRequestSchema = z.object({
@@ -179,22 +179,27 @@ meetingsRouter.post('/reunioes/instantanea', authenticateToken, requireTenantId,
       credentials.appSecret
     );
 
-    const meetingId = nanoid();
     const baseUrl = process.env.REPLIT_DOMAINS?.split(',')[0] || 'localhost:5000';
-    const linkReuniao = `https://${baseUrl}/reuniao/${meetingId}`;
+    const dataInicio = new Date();
+    const dataFim = new Date(dataInicio.getTime() + 60 * 60 * 1000); // 1 hour default duration
 
     const [newMeeting] = await db.insert(reunioes).values({
-      id: meetingId,
       tenantId,
       titulo,
       nome: userName,
       email: req.user?.email,
-      dataInicio: new Date(),
-      tipo: 'video',
+      dataInicio,
+      dataFim,
+      duracao: 60,
       status: 'em_andamento',
       roomId100ms: sala.id,
-      linkReuniao,
+      linkReuniao: '', // Will be updated after we get the ID
     }).returning();
+
+    // Update with the correct meeting link using the generated UUID
+    const linkReuniao = `https://${baseUrl}/reuniao/${newMeeting.id}`;
+    await db.update(reunioes).set({ linkReuniao }).where(eq(reunioes.id, newMeeting.id));
+    newMeeting.linkReuniao = linkReuniao;
 
     const userId = nanoid(8);
     const token = gerarTokenParticipante(
@@ -237,24 +242,30 @@ meetingsRouter.post('/reunioes', authenticateToken, requireTenantId, async (req:
       credentials.appSecret
     );
 
-    const meetingId = nanoid();
     const baseUrl = process.env.REPLIT_DOMAINS?.split(',')[0] || 'localhost:5000';
-    const linkReuniao = `https://${baseUrl}/reuniao/${meetingId}`;
+    const startDate = new Date(dataInicio);
+    // Calculate dataFim: use provided value or default to 1 hour duration
+    const endDate = dataFim ? new Date(dataFim) : new Date(startDate.getTime() + 60 * 60 * 1000);
+    const duracao = Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60)); // duration in minutes
 
     const [newMeeting] = await db.insert(reunioes).values({
-      id: meetingId,
       tenantId,
       titulo: titulo || 'Reunião',
       nome,
       email,
-      dataInicio: new Date(dataInicio),
-      dataFim: dataFim ? new Date(dataFim) : null,
+      dataInicio: startDate,
+      dataFim: endDate,
+      duracao,
       descricao,
-      tipo: tipo || 'video',
       status: 'agendada',
       roomId100ms: sala.id,
-      linkReuniao,
+      linkReuniao: '', // Will be updated after we get the ID
     }).returning();
+
+    // Update with the correct meeting link using the generated UUID
+    const linkReuniao = `https://${baseUrl}/reuniao/${newMeeting.id}`;
+    await db.update(reunioes).set({ linkReuniao }).where(eq(reunioes.id, newMeeting.id));
+    newMeeting.linkReuniao = linkReuniao;
 
     res.json(newMeeting);
   } catch (error: any) {

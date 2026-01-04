@@ -41,5 +41,28 @@ Este documento descreve as alterações realizadas para corrigir o salvamento de
 5.  Após a confirmação, vá para a tela de **Reuniões** e tente iniciar uma nova sala.
 
 ---
-**Data da Correção:** 03 de Janeiro de 2026
+
+## Correções Adicionais (04 de Janeiro de 2026)
+
+### Problemas Corrigidos
+
+1. **Erro "Invalid query param"** no teste de conexão 100ms
+   - **Causa:** O parâmetro `limit: 1` não é aceito pela API do 100ms (limite mínimo é 10)
+   - **Solução:** Alterado para `limit: 10` em `server/routes/config.ts`
+
+2. **Erro "invalid input syntax for type uuid"** ao criar reunião
+   - **Causa:** O código usava `nanoid()` para gerar o ID da reunião, mas a tabela `reunioes` espera UUID
+   - **Solução:** Removido o ID manual e deixado o banco de dados gerar o UUID automaticamente via `gen_random_uuid()`
+
+3. **Erro de campo NOT NULL** para `dataFim`
+   - **Causa:** A tabela `reunioes` exige `dataFim` como NOT NULL, mas o código passava `null`
+   - **Solução:** Agora calcula `dataFim` automaticamente como `dataInicio + duração` (padrão: 1 hora)
+
+### Arquivos Alterados
+
+- `server/routes/config.ts` - Correção do parâmetro limit no teste 100ms
+- `server/routes/meetings.ts` - Correção da criação de reuniões (UUID e dataFim)
+
+---
+**Data da Última Correção:** 04 de Janeiro de 2026
 **Status:** ✅ Resolvido
