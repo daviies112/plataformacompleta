@@ -91,7 +91,6 @@ export async function registerRoutes(app: Express) {
   app.use("/api/dashboard", requireTenant, dashboardRoutes);
   app.use("/api/workspace", requireTenant, workspaceRoutes);
   app.use("/api/clients", requireTenant, clientsRoutes);
-  app.use("/api/reunioes", requireTenant, (await import("./routes/meetings")).default);
   registerNotificationRoutes(app);
   app.use("/api/evolution", requireTenant, evolutionRoutes);
   app.use("/api/whatsapp", requireTenant, whatsappRoutes);

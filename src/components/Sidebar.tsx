@@ -19,8 +19,6 @@ export function Sidebar() {
   const menuItems = [
     { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
     { icon: Calendar, label: "Calendário", href: "/calendario" },
-    { icon: Video, label: "Gravações", href: "/gravacoes" },
-    { icon: Palette, label: "Design da Sala", href: "/room-design" },
     { icon: Settings, label: "Configurações", href: "/configuracoes" },
   ];
 
