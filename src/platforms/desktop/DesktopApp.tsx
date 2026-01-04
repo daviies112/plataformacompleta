@@ -497,8 +497,9 @@ const DesktopApp = () => {
       
       <Route path="/reuniao/:companySlug/:roomId" element={<PublicMeetingRoom />} />
       <Route path="/reuniao/:id" element={<Reuniao />} />
+      <Route path="/reuniao/*" element={<ReuniaoHubPage />} />
       <Route 
-        path="/reuniao/*" 
+        path="/plataforma-reuniao/*" 
         element={
           <ProtectedRoute>
             <DesktopLayout>

@@ -489,6 +489,10 @@ const MobileApp = () => {
       />
       <Route 
         path="/reuniao/*" 
+        element={<ReuniaoHubPage />} 
+      />
+      <Route 
+        path="/plataforma-reuniao/*" 
         element={
           <ProtectedRoute>
             <MobileLayout>
