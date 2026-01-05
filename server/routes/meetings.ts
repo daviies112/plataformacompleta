@@ -50,6 +50,53 @@ const tokenRequestSchema = z.object({
   role: z.enum(['host', 'guest']).optional()
 });
 
+const roomDesignConfigSchema = z.object({
+  branding: z.object({
+    logo: z.string().nullable().optional(),
+    logoSize: z.number().optional(),
+    logoPosition: z.enum(['left', 'center', 'right']).optional(),
+    companyName: z.string().optional(),
+    showCompanyName: z.boolean().optional(),
+    showLogoInLobby: z.boolean().optional(),
+    showLogoInMeeting: z.boolean().optional(),
+    showLogoInEnd: z.boolean().optional()
+  }).optional(),
+  colors: z.object({
+    background: z.string().optional(),
+    controlsBackground: z.string().optional(),
+    controlsText: z.string().optional(),
+    primaryButton: z.string().optional(),
+    dangerButton: z.string().optional(),
+    avatarBackground: z.string().optional(),
+    avatarText: z.string().optional(),
+    participantNameBackground: z.string().optional(),
+    participantNameText: z.string().optional()
+  }).optional(),
+  lobby: z.object({
+    title: z.string().optional(),
+    subtitle: z.string().optional(),
+    buttonText: z.string().optional(),
+    showDeviceSelectors: z.boolean().optional(),
+    showCameraPreview: z.boolean().optional(),
+    backgroundImage: z.string().nullable().optional()
+  }).optional(),
+  meeting: z.object({
+    showParticipantCount: z.boolean().optional(),
+    showMeetingCode: z.boolean().optional(),
+    showRecordingIndicator: z.boolean().optional(),
+    enableReactions: z.boolean().optional(),
+    enableChat: z.boolean().optional(),
+    enableScreenShare: z.boolean().optional(),
+    enableRaiseHand: z.boolean().optional()
+  }).optional(),
+  endScreen: z.object({
+    title: z.string().optional(),
+    message: z.string().optional(),
+    showFeedback: z.boolean().optional(),
+    redirectUrl: z.string().nullable().optional()
+  }).optional()
+}).passthrough();
+
 async function get100msCredentials(tenantId: string) {
   try {
     const config = await db.select().from(hms100msConfig)
@@ -94,6 +141,71 @@ meetingsRouter.get('/reunioes', authenticateToken, requireTenantId, async (req: 
   } catch (error: any) {
     console.error('Erro ao listar reuniões:', error);
     res.status(500).json({ error: 'Erro ao listar reuniões', message: error.message });
+  }
+});
+
+meetingsRouter.get('/reunioes/room-design', authenticateToken, requireTenantId, async (req: AuthRequest, res: Response) => {
+  try {
+    const tenantId = req.user!.tenantId;
+    
+    const [config] = await db.select().from(hms100msConfig)
+      .where(eq(hms100msConfig.tenantId, tenantId))
+      .limit(1);
+    
+    if (!config) {
+      return res.json({ roomDesignConfig: null });
+    }
+    
+    res.json({ roomDesignConfig: config.roomDesignConfig });
+  } catch (error: any) {
+    console.error('Erro ao obter room design config:', error);
+    res.status(500).json({ error: 'Erro ao obter configuração de design', message: error.message });
+  }
+});
+
+meetingsRouter.patch('/reunioes/room-design', authenticateToken, requireTenantId, async (req: AuthRequest, res: Response) => {
+  try {
+    const tenantId = req.user!.tenantId;
+    const { roomDesignConfig } = req.body;
+    
+    if (!roomDesignConfig) {
+      return res.status(400).json({ error: 'roomDesignConfig é obrigatório' });
+    }
+
+    const validationResult = roomDesignConfigSchema.safeParse(roomDesignConfig);
+    if (!validationResult.success) {
+      return res.status(400).json({ 
+        error: 'Configuração de design inválida', 
+        details: validationResult.error.errors 
+      });
+    }
+    
+    const [existingConfig] = await db.select().from(hms100msConfig)
+      .where(eq(hms100msConfig.tenantId, tenantId))
+      .limit(1);
+    
+    let updatedConfig;
+    
+    if (!existingConfig) {
+      [updatedConfig] = await db.insert(hms100msConfig)
+        .values({
+          tenantId,
+          appAccessKey: 'pending_configuration',
+          appSecret: 'pending_configuration',
+          roomDesignConfig: validationResult.data,
+        })
+        .returning();
+    } else {
+      [updatedConfig] = await db.update(hms100msConfig)
+        .set({ roomDesignConfig: validationResult.data, updatedAt: new Date() })
+        .where(eq(hms100msConfig.tenantId, tenantId))
+        .returning();
+    }
+    
+    res.json({ roomDesignConfig: updatedConfig.roomDesignConfig });
+  } catch (error: any) {
+    console.error('Erro ao atualizar room design config:', error);
+    res.status(500).json({ error: 'Erro ao atualizar configuração de design', message: error.message });
   }
 });
 
@@ -493,120 +605,5 @@ meetingsRouter.get('/100ms/active-recordings', authenticateToken, async (req: Au
   } catch (error: any) {
     console.error('Erro ao listar gravações ativas:', error);
     res.status(500).json({ error: 'Erro ao listar gravações ativas', message: error.message });
-  }
-});
-
-// GET /reunioes/room-design - Get room design config for tenant
-meetingsRouter.get('/reunioes/room-design', authenticateToken, requireTenantId, async (req: AuthRequest, res: Response) => {
-  try {
-    const tenantId = req.user!.tenantId;
-    
-    const [config] = await db.select().from(hms100msConfig)
-      .where(eq(hms100msConfig.tenantId, tenantId))
-      .limit(1);
-    
-    if (!config) {
-      return res.json({ roomDesignConfig: null });
-    }
-    
-    res.json({ roomDesignConfig: config.roomDesignConfig });
-  } catch (error: any) {
-    console.error('Erro ao obter room design config:', error);
-    res.status(500).json({ error: 'Erro ao obter configuração de design', message: error.message });
-  }
-});
-
-// Room Design Config validation schema
-const roomDesignConfigSchema = z.object({
-  branding: z.object({
-    logo: z.string().nullable().optional(),
-    logoSize: z.number().optional(),
-    logoPosition: z.enum(['left', 'center', 'right']).optional(),
-    companyName: z.string().optional(),
-    showCompanyName: z.boolean().optional(),
-    showLogoInLobby: z.boolean().optional(),
-    showLogoInMeeting: z.boolean().optional(),
-    showLogoInEnd: z.boolean().optional()
-  }).optional(),
-  colors: z.object({
-    background: z.string().optional(),
-    controlsBackground: z.string().optional(),
-    controlsText: z.string().optional(),
-    primaryButton: z.string().optional(),
-    dangerButton: z.string().optional(),
-    avatarBackground: z.string().optional(),
-    avatarText: z.string().optional(),
-    participantNameBackground: z.string().optional(),
-    participantNameText: z.string().optional()
-  }).optional(),
-  lobby: z.object({
-    title: z.string().optional(),
-    subtitle: z.string().optional(),
-    buttonText: z.string().optional(),
-    showDeviceSelectors: z.boolean().optional(),
-    showCameraPreview: z.boolean().optional(),
-    backgroundImage: z.string().nullable().optional()
-  }).optional(),
-  meeting: z.object({
-    showParticipantCount: z.boolean().optional(),
-    showMeetingCode: z.boolean().optional(),
-    showRecordingIndicator: z.boolean().optional(),
-    enableReactions: z.boolean().optional(),
-    enableChat: z.boolean().optional(),
-    enableScreenShare: z.boolean().optional(),
-    enableRaiseHand: z.boolean().optional()
-  }).optional(),
-  endScreen: z.object({
-    title: z.string().optional(),
-    message: z.string().optional(),
-    showFeedback: z.boolean().optional(),
-    redirectUrl: z.string().nullable().optional()
-  }).optional()
-}).passthrough();
-
-// PATCH /reunioes/room-design - Update room design config for tenant
-meetingsRouter.patch('/reunioes/room-design', authenticateToken, requireTenantId, async (req: AuthRequest, res: Response) => {
-  try {
-    const tenantId = req.user!.tenantId;
-    const { roomDesignConfig } = req.body;
-    
-    if (!roomDesignConfig) {
-      return res.status(400).json({ error: 'roomDesignConfig é obrigatório' });
-    }
-
-    const validationResult = roomDesignConfigSchema.safeParse(roomDesignConfig);
-    if (!validationResult.success) {
-      return res.status(400).json({ 
-        error: 'Configuração de design inválida', 
-        details: validationResult.error.errors 
-      });
-    }
-    
-    const [existingConfig] = await db.select().from(hms100msConfig)
-      .where(eq(hms100msConfig.tenantId, tenantId))
-      .limit(1);
-    
-    let updatedConfig;
-    
-    if (!existingConfig) {
-      [updatedConfig] = await db.insert(hms100msConfig)
-        .values({
-          tenantId,
-          appAccessKey: 'pending_configuration',
-          appSecret: 'pending_configuration',
-          roomDesignConfig: validationResult.data,
-        })
-        .returning();
-    } else {
-      [updatedConfig] = await db.update(hms100msConfig)
-        .set({ roomDesignConfig: validationResult.data, updatedAt: new Date() })
-        .where(eq(hms100msConfig.tenantId, tenantId))
-        .returning();
-    }
-    
-    res.json({ roomDesignConfig: updatedConfig.roomDesignConfig });
-  } catch (error: any) {
-    console.error('Erro ao atualizar room design config:', error);
-    res.status(500).json({ error: 'Erro ao atualizar configuração de design', message: error.message });
   }
 });
