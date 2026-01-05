@@ -107,7 +107,7 @@ export default function Gravacoes() {
     setPlaybackUrl(null);
 
     try {
-      const response = await api.get(`/api/gravacoes/${gravacao.id}/url`);
+      const response = await api.get(`/api/gravacoes/${gravacao.id}/playback`);
       setPlaybackUrl(response.data.url);
     } catch (error: any) {
       const errorData = error.response?.data;
