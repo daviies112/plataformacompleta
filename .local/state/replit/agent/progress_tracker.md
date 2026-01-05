@@ -42,3 +42,6 @@
 [x] 42. Workflow configured with webview output on port 5000
 [x] 43. Application server running successfully - all modules loaded
 [x] 44. Project import completed
+[x] 45. Corrigida a rota /consultar-cpf que estava retornando 404
+[x] 46. Adicionadas as rotas faltantes /historico-consultas e /export no Desktop e Mobile
+[x] 47. Verificado carregamento da página através dos logs do servidor

@@ -26,6 +26,8 @@ import ReuniaoPublica from "@/pages/ReuniaoPublica";
 import GravacoesPage from "@/pages/Gravacoes";
 import RoomDesignSettings from "@/pages/RoomDesignSettings";
 import ConsultarCPFPage from "@/pages/consultar-cpf";
+import HistoricoConsultasPage from "@/pages/historico-consultas";
+import ExportDataPage from "@/pages/ExportData";
 import { Navigate } from "react-router-dom";
 import { RootRedirect } from "@/components/RootRedirect";
 import PublicForm from "@/features/formularios-platform/pages/PublicForm";
@@ -457,6 +459,28 @@ const DesktopApp = () => {
           <ProtectedRoute>
             <DesktopLayout>
               <ConsultarCPFPage />
+            </DesktopLayout>
+          </ProtectedRoute>
+        } 
+      />
+
+      <Route 
+        path="/historico-consultas" 
+        element={
+          <ProtectedRoute>
+            <DesktopLayout>
+              <HistoricoConsultasPage />
+            </DesktopLayout>
+          </ProtectedRoute>
+        } 
+      />
+
+      <Route 
+        path="/export" 
+        element={
+          <ProtectedRoute>
+            <DesktopLayout>
+              <ExportDataPage />
             </DesktopLayout>
           </ProtectedRoute>
         } 

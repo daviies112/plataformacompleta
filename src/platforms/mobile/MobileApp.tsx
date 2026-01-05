@@ -21,6 +21,8 @@ import NotionBoardsPage from "@/pages/notion/BoardsWrapper";
 import NotionHomePage from "@/pages/notion/Home";
 import NotionTemplatesPage from "@/pages/notion/Templates";
 import ConsultarCPFPage from "@/pages/consultar-cpf";
+import HistoricoConsultasPage from "@/pages/historico-consultas";
+import ExportDataPage from "@/pages/ExportData";
 import { Navigate } from "react-router-dom";
 import { RootRedirect } from "@/components/RootRedirect";
 import PublicForm from "@/features/formularios-platform/pages/PublicForm";
@@ -403,6 +405,28 @@ const MobileApp = () => {
           <ProtectedRoute>
             <MobileLayout>
               <ConsultarCPFPage />
+            </MobileLayout>
+          </ProtectedRoute>
+        } 
+      />
+
+      <Route 
+        path="/historico-consultas" 
+        element={
+          <ProtectedRoute>
+            <MobileLayout>
+              <HistoricoConsultasPage />
+            </MobileLayout>
+          </ProtectedRoute>
+        } 
+      />
+
+      <Route 
+        path="/export" 
+        element={
+          <ProtectedRoute>
+            <MobileLayout>
+              <ExportDataPage />
             </MobileLayout>
           </ProtectedRoute>
         } 
