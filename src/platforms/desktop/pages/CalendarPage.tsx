@@ -201,50 +201,49 @@ const CalendarPage = () => {
 
       const workspaceType = idParts[1]; // 'board' ou 'db'
       
-      if (workspaceType === 'board') {
-        // Format: workspace_board_BOARD_ID_CARD_ID
-        if (idParts.length < 4) {
-          console.error('[CalendarPage] Invalid board event ID format:', event.id);
-          toast.error('Formato de ID de board inválido');
-          return;
+      if (workspaceType === 'board' || event.id.startsWith('db_')) {
+        // Suporte para IDs do WorkspaceCalendarView (db_DBID_ROWID_COLID) ou CalendarPage (workspace_board_...)
+        if (workspaceType === 'board') {
+          // Format: workspace_board_BOARD_ID_CARD_ID
+          if (idParts.length < 4) {
+            console.error('[CalendarPage] Invalid board event ID format:', event.id);
+            toast.error('Formato de ID de board inválido');
+            return;
+          }
+          
+          const boardId = idParts[2];
+          const cardId = idParts[3];
+          
+          console.log('[CalendarPage] Opening board card:', { boardId, cardId });
+          
+          // Setar o board ativo
+          setCurrentBoard(boardId);
+          
+          toast.success('Abrindo card no workspace...', {
+            duration: 1000
+          });
+          
+          // Navegar para workspace com o cardId como parâmetro
+          setTimeout(() => {
+            navigate(`/workspace?cardId=${cardId}`);
+          }, 300);
+        } else {
+          // Format: db_DB_ID_ROW_ID_COL_ID ou workspace_db_DB_ID_ROW_ID_COL_ID
+          const dbId = workspaceType === 'db' ? idParts[2] : idParts[1];
+          
+          console.log('[CalendarPage] Opening database:', dbId);
+          
+          // Setar o database ativo
+          setCurrentDatabase(dbId);
+          
+          toast.success('Abrindo workspace...', {
+            duration: 1000
+          });
+          
+          setTimeout(() => {
+            navigate(`/workspace?dbId=${dbId}`);
+          }, 300);
         }
-        
-        const boardId = idParts[2];
-        const cardId = idParts[3];
-        
-        console.log('[CalendarPage] Opening board card:', { boardId, cardId });
-        
-        // Setar o board ativo
-        setCurrentBoard(boardId);
-        
-        toast.success('Abrindo card no workspace...', {
-          duration: 1000
-        });
-        
-        // Navegar para workspace com o cardId como parâmetro
-        setTimeout(() => {
-          navigate(`/workspace?cardId=${cardId}`);
-          console.log('[CalendarPage] Navegado para /workspace com cardId:', cardId);
-        }, 300);
-        
-      } else if (workspaceType === 'db') {
-        // Format: workspace_db_DB_ID_ROW_ID_COL_ID
-        const dbId = idParts[2];
-        
-        console.log('[CalendarPage] Opening database:', dbId);
-        
-        // Setar o database ativo
-        setCurrentDatabase(dbId);
-        
-        toast.success('Abrindo workspace...', {
-          duration: 1000
-        });
-        
-        // Navegar para workspace
-        setTimeout(() => {
-          navigate('/workspace');
-          console.log('[CalendarPage] Navegado para /workspace');
-        }, 300);
       }
       
     } catch (error) {

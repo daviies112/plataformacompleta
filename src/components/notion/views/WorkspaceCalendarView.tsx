@@ -518,7 +518,17 @@ export const WorkspaceCalendarView = ({
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   console.log('[WorkspaceCalendarView] Abrir Database button clicked!', { event });
-                                  onEventClick?.(event);
+                                  if (event.metadata?.databaseId) {
+                                    // Use a interface onEventClick se fornecida, ou navegue diretamente
+                                    if (onEventClick) {
+                                      onEventClick(event);
+                                    } else {
+                                      // Fallback para navegação direta se não houver handler
+                                      window.location.href = `/workspace?dbId=${event.metadata.databaseId}`;
+                                    }
+                                  } else {
+                                    onEventClick?.(event);
+                                  }
                                 }}
                               >
                                 <Database className="w-3 h-3 mr-2" />
