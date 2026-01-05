@@ -411,13 +411,12 @@ const DesktopApp = () => {
         } 
       />
       
+      {/* Reunião sala - Full screen SEM header (experiência imersiva) */}
       <Route 
         path="/reuniao/:id" 
         element={
           <ProtectedRoute>
-            <DesktopLayout>
-              <ReuniaoPage />
-            </DesktopLayout>
+            <ReuniaoPage />
           </ProtectedRoute>
         } 
       />
