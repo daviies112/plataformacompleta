@@ -552,6 +552,56 @@ router.get('/calendar-events', authenticateToken, async (req, res) => {
     } catch (workspaceError) {
       console.error('Erro ao buscar eventos do workspace:', workspaceError);
     }
+
+    // ============================================================================
+    // MEETING EVENTS - Buscar reuniões agendadas do sistema 100ms
+    // ============================================================================
+    let meetingEvents: any[] = [];
+    try {
+      const tenantId = req.user!.tenantId;
+      const meetings = await db.select().from(reunioes)
+        .where(eq(reunioes.tenantId, tenantId))
+        .orderBy(desc(reunioes.dataInicio));
+
+      if (meetings && meetings.length > 0) {
+        console.log(`🎥 Processando ${meetings.length} reuniões...`);
+        for (const meeting of meetings) {
+          try {
+            const startDate = meeting.dataInicio;
+            if (!startDate) continue;
+
+            const dateObj = new Date(startDate);
+            const dateOnly = dateObj.toISOString().split('T')[0];
+            const timeOnly = dateObj.toLocaleTimeString('pt-BR', {
+              hour: '2-digit',
+              minute: '2-digit',
+              timeZone: 'America/Sao_Paulo'
+            });
+
+            meetingEvents.push({
+              id: `meeting_${meeting.id}`,
+              title: `🎥 Reunião: ${meeting.titulo || 'Sem título'}`,
+              description: meeting.descricao || `Reunião agendada via 100ms`,
+              date: dateOnly,
+              time: timeOnly,
+              duration: meeting.duracao || 60,
+              isAllDay: false,
+              type: 'video',
+              client: meeting.nome || 'Sistema de Reunião',
+              status: meeting.status || 'agendada',
+              location: `/reuniao/${meeting.id}`,
+              meetLink: `/reuniao/${meeting.id}`,
+              source: 'meeting_system'
+            });
+          } catch (meetingProcessError) {
+            console.error('Erro ao processar reunião:', meeting.id, meetingProcessError);
+          }
+        }
+      }
+      console.log(`✅ Reuniões: ${meetingEvents.length} eventos encontrados`);
+    } catch (meetingError) {
+      console.error('Erro ao buscar reuniões do sistema:', meetingError);
+    }
     
     // ============================================================================
     // ICAL EVENTS - Buscar eventos do iCal (se configurado)
@@ -623,8 +673,8 @@ router.get('/calendar-events', authenticateToken, async (req, res) => {
       console.error('Erro ao buscar dados do iCal:', icalError);
     }
 
-    // Combinar eventos do iCal e Workspace
-    const allEvents = [...icalEvents, ...workspaceEvents];
+    // Combinar eventos do iCal, Workspace e Reuniões
+    const allEvents = [...icalEvents, ...workspaceEvents, ...meetingEvents];
     
     // Remover duplicatas baseado no título e data
     const uniqueEvents = allEvents.filter((event, index, arr) => 
@@ -652,6 +702,7 @@ router.get('/calendar-events', authenticateToken, async (req, res) => {
       sources: {
         ical: icalEvents.length,
         workspace: workspaceEvents.length,
+        meetings: meetingEvents.length,
         total_unique: uniqueEvents.length
       },
       total: uniqueEvents.length
