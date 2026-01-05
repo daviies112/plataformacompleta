@@ -50,3 +50,4 @@
 [x] 50. Alterado comportamento do botão "Agendar Reunião" para abrir modal em vez de navegar para o calendário
 [x] 51. Atualizado CreateEventModal para usar a plataforma 100ms em vez do Google Meet
 [x] 52. Integrada a lógica de criação de reuniões com o hook useReuniao para gerar links automáticos do 100ms
+[x] 53. Refinada a lógica do modal para alternar corretamente entre reuniões 100ms (vídeo) e presenciais (calendário)

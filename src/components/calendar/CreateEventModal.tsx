@@ -57,15 +57,25 @@ export const CreateEventModal = ({ open, onOpenChange, defaultDate }: CreateEven
       const dataInicio = new Date(`${eventData.date}T${eventData.startTime}:00`).toISOString();
       const dataFim = new Date(new Date(dataInicio).getTime() + eventData.duration * 60000).toISOString();
       
-      return await addMeeting({
-        titulo: eventData.title,
-        descricao: eventData.description,
-        dataInicio,
-        dataFim,
-        status: 'agendada',
-        participantes: eventData.attendees,
-        sendNotifications: eventData.sendNotifications
+      // Se for vídeo, forçar o uso do 100ms através do addMeeting
+      if (eventData.meetingType === 'video') {
+        return await addMeeting({
+          titulo: eventData.title,
+          descricao: eventData.description,
+          dataInicio,
+          dataFim,
+          status: 'agendada',
+          participantes: eventData.attendees,
+          sendNotifications: eventData.sendNotifications
+        });
+      }
+
+      // Se for presencial, usar o endpoint de evento manual (Google Calendar se configurado)
+      const response = await apiRequest('/api/dashboard/create-manual-event', {
+        method: 'POST',
+        body: JSON.stringify(eventData),
       });
+      return await response.json();
     },
     onSuccess: (data) => {
       toast({
