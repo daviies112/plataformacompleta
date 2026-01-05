@@ -559,7 +559,6 @@ router.get('/calendar-events', authenticateToken, async (req, res) => {
     let meetingEvents: any[] = [];
     try {
       const tenantId = req.user!.tenantId;
-      // Corrigido: db estava faltando no escopo da função de cache
       const { db } = await import('../db');
       const meetings = await db.select().from(reunioes)
         .where(eq(reunioes.tenantId, tenantId))
@@ -680,13 +679,13 @@ router.get('/calendar-events', authenticateToken, async (req, res) => {
     
     // Remover duplicatas baseado no título e data
     const uniqueEvents = allEvents.filter((event, index, arr) => 
-      index === arr.findIndex(e => e.title === event.title && e.date === event.date && e.time === event.time)
+      index === arr.findIndex(e => e.id === event.id || (e.title === event.title && e.date === event.date && e.time === event.time))
     );
     
     // Ordenar todos os eventos por data e hora
     uniqueEvents.sort((a, b) => {
-      const dateA = new Date(a.date + ' ' + (a.time !== 'Dia todo' ? a.time : '00:00'));
-      const dateB = new Date(b.date + ' ' + (b.time !== 'Dia todo' ? b.time : '00:00'));
+      const dateA = new Date(a.date + 'T' + (a.time && a.time !== 'Dia todo' ? a.time : '00:00') + ':00');
+      const dateB = new Date(b.date + 'T' + (b.time && b.time !== 'Dia todo' ? b.time : '00:00') + ':00');
       return dateA.getTime() - dateB.getTime();
     });
     
@@ -700,6 +699,7 @@ router.get('/calendar-events', authenticateToken, async (req, res) => {
     return {
       success: true,
       data: uniqueEvents,
+      timestamp: new Date().toISOString(),
       source: 'integrated',
       sources: {
         ical: icalEvents.length,
