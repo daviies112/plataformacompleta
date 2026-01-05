@@ -23,6 +23,7 @@ import NotionTemplatesPage from "@/pages/notion/Templates";
 import ReuniaoDashboard from "@/pages/ReuniaoDashboard";
 import ReuniaoPage from "@/pages/Reuniao";
 import GravacoesPage from "@/pages/Gravacoes";
+import RoomDesignSettings from "@/pages/RoomDesignSettings";
 import { Navigate } from "react-router-dom";
 import { RootRedirect } from "@/components/RootRedirect";
 import PublicForm from "@/features/formularios-platform/pages/PublicForm";
@@ -427,6 +428,17 @@ const DesktopApp = () => {
           <ProtectedRoute>
             <DesktopLayout>
               <GravacoesPage />
+            </DesktopLayout>
+          </ProtectedRoute>
+        } 
+      />
+      
+      <Route 
+        path="/room-design" 
+        element={
+          <ProtectedRoute>
+            <DesktopLayout>
+              <RoomDesignSettings />
             </DesktopLayout>
           </ProtectedRoute>
         } 

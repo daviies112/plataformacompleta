@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useReuniao, Meeting } from "@/hooks/useReuniao";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, Users, Video, Clock, Plus, Loader2, Zap } from "lucide-react";
+import { Calendar, Users, Video, Clock, Plus, Loader2, Zap, Palette } from "lucide-react";
 import { ReuniaoCard } from "@/components/ReuniaoCard";
 import { useToast } from "@/hooks/use-toast";
 import { InstantMeetingModal } from "@/components/InstantMeetingModal";
@@ -135,6 +135,14 @@ export default function ReuniaoDashboard() {
             data-testid="button-recordings"
           >
             <Video className="h-4 w-4" /> Gravacoes
+          </Button>
+          <Button 
+            variant="outline" 
+            className="gap-2"
+            onClick={() => navigate("/room-design")}
+            data-testid="button-room-design"
+          >
+            <Palette className="h-4 w-4" /> Design
           </Button>
         </div>
       </div>
