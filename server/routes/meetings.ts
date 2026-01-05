@@ -18,6 +18,40 @@ import { z } from 'zod';
 
 export const meetingsRouter = Router();
 
+// PUBLIC router - no authentication required for these routes
+export const publicRoomDesignRouter = Router();
+
+// PUBLIC endpoint - Get room design config by meeting ID (no auth required)
+// This allows meeting participants to see the correct room design colors
+publicRoomDesignRouter.get('/reunioes/:id/room-design-public', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    // First, get the meeting to find its tenantId
+    const [meeting] = await db.select().from(reunioes)
+      .where(eq(reunioes.id, id))
+      .limit(1);
+
+    if (!meeting) {
+      return res.status(404).json({ error: 'Reunião não encontrada', roomDesignConfig: null });
+    }
+
+    // Get the room design config for this tenant
+    const [config] = await db.select().from(hms100msConfig)
+      .where(eq(hms100msConfig.tenantId, meeting.tenantId))
+      .limit(1);
+    
+    if (!config) {
+      return res.json({ roomDesignConfig: null });
+    }
+    
+    res.json({ roomDesignConfig: config.roomDesignConfig });
+  } catch (error: any) {
+    console.error('Erro ao obter room design config público:', error);
+    res.status(500).json({ error: 'Erro ao obter configuração de design', roomDesignConfig: null });
+  }
+});
+
 interface AuthRequest extends Request {
   user?: {
     id: number;

@@ -37,20 +37,22 @@ export default function Reuniao() {
   
   const lastAttemptedRoomIdRef = useRef<string | null>(null);
 
+  // Use public endpoint to get room design based on meeting ID (no auth required)
   const { data: designData } = useQuery({
-    queryKey: ["/api/reunioes/room-design"],
+    queryKey: ["/api/reunioes", meetingId, "room-design-public"],
     queryFn: async () => {
+      if (!meetingId) {
+        return { roomDesignConfig: null };
+      }
       try {
-        const response = await api.get("/api/reunioes/room-design");
+        const response = await api.get(`/api/reunioes/${meetingId}/room-design-public`);
         return response.data;
       } catch (error: any) {
-        // Return empty data on 401 instead of throwing
-        if (error.response?.status === 401) {
-          return { roomDesignConfig: null };
-        }
-        throw error;
+        console.error("[Reuniao] Erro ao carregar room design:", error);
+        return { roomDesignConfig: null };
       }
     },
+    enabled: !!meetingId,
     staleTime: 0, // Always refetch when component mounts
     refetchOnMount: 'always', // Ensure data is fresh
   });

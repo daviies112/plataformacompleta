@@ -63,6 +63,11 @@ export async function registerRoutes(app: Express) {
   // 🌐 PUBLIC ROUTES - Must be registered BEFORE the global /api middleware
   registerFormulariosCompleteRoutes(app);
   
+  // Public endpoint for meeting room design - allows unauthenticated access to room colors
+  // Must be registered BEFORE routes with requireTenant middleware
+  const { publicRoomDesignRouter } = await import("./routes/meetings");
+  app.use("/api", publicRoomDesignRouter);
+  
   // Compliance routes (CPF check) - public access allowed with DEMO fallback
   // Must be registered BEFORE routes that apply requireTenant to all /api paths
   app.use(setupComplianceRoutes());
