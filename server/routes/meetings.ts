@@ -732,10 +732,10 @@ meetingsRouter.post('/reunioes', authenticateToken, requireTenantId, async (req:
     }
 
     const sala = await criarSala(
-      titulo || 'Reunião', 
-      credentials.templateId || '', 
-      credentials.appAccessKey, 
-      credentials.appSecret
+      titulo || 'Reunião',
+      credentials.appAccessKey,
+      credentials.appSecret,
+      credentials.templateId || ''
     );
 
     const baseUrl = process.env.REPLIT_DOMAINS?.split(',')[0] || 'localhost:5000';

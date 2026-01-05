@@ -65,7 +65,6 @@ export const CreateEventModal = ({ open, onOpenChange, defaultDate }: CreateEven
           descricao: eventData.description,
           dataInicio,
           dataFim,
-          status: 'agendada',
           participantes: eventData.attendees
         };
         
