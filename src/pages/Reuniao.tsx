@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { Meeting100ms } from "@/components/Meeting100ms";
 import { useReuniao } from "@/hooks/useReuniao";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
+import { api } from "@/lib/api";
 import { DEFAULT_ROOM_DESIGN_CONFIG, type RoomDesignConfig } from "@/types/reuniao";
 
 export default function Reuniao() {
@@ -27,6 +29,19 @@ export default function Reuniao() {
   
   const lastAttemptedRoomIdRef = useRef<string | null>(null);
   const hasAttemptedFetchRef = useRef(false);
+
+  const { data: designData } = useQuery({
+    queryKey: ["/api/reunioes/room-design"],
+    queryFn: async () => {
+      const response = await api.get("/api/reunioes/room-design");
+      return response.data;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const roomConfig: RoomDesignConfig = useMemo(() => {
+    return designData?.roomDesignConfig || DEFAULT_ROOM_DESIGN_CONFIG;
+  }, [designData]);
 
   useEffect(() => {
     const userData = localStorage.getItem("userData");
@@ -298,8 +313,6 @@ export default function Reuniao() {
       </div>
     );
   }
-
-  const roomConfig: RoomDesignConfig = DEFAULT_ROOM_DESIGN_CONFIG;
 
   return (
     <div className="h-full flex flex-col gap-4" data-testid="meeting-room">

@@ -450,59 +450,35 @@ export default function RoomDesignSettings() {
   const [devicePreview, setDevicePreview] = useState<"desktop" | "mobile">("desktop");
   const [isUploading, setIsUploading] = useState(false);
 
-  const { data: tenant, isLoading } = useQuery({
-    queryKey: ["/api/reunioes/tenant-config"],
+  const { data: designData, isLoading } = useQuery({
+    queryKey: ["/api/reunioes/room-design"],
     queryFn: async () => {
-      // 📌 Inclui headers do Supabase para o backend buscar a config
-      const supabaseUrl = localStorage.getItem('supabase_url');
-      const supabaseKey = localStorage.getItem('supabase_key');
-      
-      const headers: Record<string, string> = {};
-      if (supabaseUrl) headers["x-supabase-url"] = supabaseUrl;
-      if (supabaseKey) headers["x-supabase-key"] = supabaseKey;
-
-      const response = await api.get("/api/reunioes/tenant-config", { headers });
-      return response.data.data;
+      const response = await api.get("/api/reunioes/room-design");
+      return response.data;
     },
   });
 
   useEffect(() => {
-    if (tenant?.roomDesignConfig) {
-      setConfig(tenant.roomDesignConfig);
-    } else if (tenant) {
-      // Use defaults if no config exists
-      setConfig({
-        ...DEFAULT_ROOM_DESIGN_CONFIG,
-        branding: {
-          ...DEFAULT_ROOM_DESIGN_CONFIG.branding,
-          companyName: tenant.id || "Empresa",
-        },
-      });
+    if (designData?.roomDesignConfig) {
+      setConfig(designData.roomDesignConfig);
+    } else {
+      setConfig(DEFAULT_ROOM_DESIGN_CONFIG);
     }
-  }, [tenant]);
+  }, [designData]);
 
   const saveMutation = useMutation({
     mutationFn: async (newConfig: RoomDesignConfig) => {
-      // 📌 Inclui headers do Supabase para o backend sincronizar
-      const supabaseUrl = localStorage.getItem('supabase_url');
-      const supabaseKey = localStorage.getItem('supabase_key');
-      
-      const headers: Record<string, string> = {};
-      if (supabaseUrl) headers["x-supabase-url"] = supabaseUrl;
-      if (supabaseKey) headers["x-supabase-key"] = supabaseKey;
-
       const response = await api.patch("/api/reunioes/room-design", 
-        { roomDesignConfig: newConfig },
-        { headers }
+        { roomDesignConfig: newConfig }
       );
       return response.data;
     },
     onSuccess: () => {
-      toast({ title: "Configurações salvas!", description: "As personalizações foram aplicadas e sincronizadas com o Supabase." });
-      queryClient.invalidateQueries({ queryKey: ["/api/reunioes/tenant-config"] });
+      toast({ title: "Configurações salvas!", description: "As personalizações foram aplicadas com sucesso." });
+      queryClient.invalidateQueries({ queryKey: ["/api/reunioes/room-design"] });
     },
     onError: () => {
-      toast({ variant: "destructive", title: "Erro", description: "Não foi possível salvar as configurações." });
+      toast({ variant: "destructive", title: "Erro", description: "Não foi possível salvar as configurações. Certifique-se de que as credenciais 100ms estão configuradas." });
     },
   });
 
@@ -532,14 +508,7 @@ export default function RoomDesignSettings() {
   };
 
   const handleReset = () => {
-    setConfig({
-      ...DEFAULT_ROOM_DESIGN_CONFIG,
-      branding: {
-        ...DEFAULT_ROOM_DESIGN_CONFIG.branding,
-        logo: tenant?.logoUrl,
-        companyName: tenant?.nome,
-      },
-    });
+    setConfig(DEFAULT_ROOM_DESIGN_CONFIG);
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
