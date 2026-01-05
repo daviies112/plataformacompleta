@@ -1773,12 +1773,15 @@ export function setupConfigRoutes(app: Express) {
         
         if (credentials) {
           console.log("✅ Supabase credentials loaded from database");
+          // Also check file config for databaseUrl (stored separately)
+          const fileConfig = getEffectiveSupabaseConfig();
           return res.json({
             success: true,
             credentials: {
               url: credentials.url,
               anonKey: credentials.anonKey,
               bucket: credentials.bucket || 'receipts',
+              databaseUrl: fileConfig?.databaseUrl || null,
             },
             source: 'database'
           });
