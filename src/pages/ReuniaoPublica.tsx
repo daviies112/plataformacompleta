@@ -175,13 +175,11 @@ export default function ReuniaoPublica() {
   if (step === "meeting" && token100ms && meeting.roomId100ms) {
     return (
       <Meeting100ms
-        token={token100ms}
+        authToken={token100ms}
         roomId={meeting.roomId100ms}
         userName={userName || "Participante"}
         onLeave={handleLeave}
-        roomConfig={roomConfig}
-        initialAudioEnabled={mediaSettings.audioEnabled}
-        initialVideoEnabled={mediaSettings.videoEnabled}
+        config={roomConfig}
       />
     );
   }
