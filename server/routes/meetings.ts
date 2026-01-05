@@ -197,25 +197,15 @@ publicRoomDesignRouter.post('/100ms/recording/start', async (req: Request, res: 
       return res.status(400).json({ error: 'Credenciais do 100ms não configuradas para este tenant' });
     }
 
-    // Build the meeting URL if not provided - USE PUBLIC ROUTE for recording bot
-    let finalMeetingUrl = meetingUrl;
-    if (!finalMeetingUrl) {
-      const baseUrl = process.env.REPLIT_DEV_DOMAIN || 
-                      process.env.REPLIT_DOMAINS?.split(',')[0] || 
-                      'localhost:5000';
-      const protocol = baseUrl.includes('localhost') ? 'http' : 'https';
-      // Use /reuniao-publica/ for recording bot (no authentication required)
-      finalMeetingUrl = `${protocol}://${baseUrl}/reuniao-publica/${meeting.id}`;
-    }
+    // Start SFU (Server-Side) recording via 100ms API
+    // SFU recording captures the room directly without needing a browser URL
+    // This ensures we record the actual meeting content, not loading screens
+    console.log(`[Recording] Iniciando gravação SFU (Server-Side) para roomId: ${roomId}`);
 
-    console.log(`[Recording] URL da reunião para gravação: ${finalMeetingUrl}`);
-
-    // Start recording via 100ms API
     const result = await iniciarGravacao(
       roomId,
       credentials.appAccessKey,
-      credentials.appSecret,
-      finalMeetingUrl
+      credentials.appSecret
     );
 
     console.log(`[Recording] Gravação iniciada com sucesso:`, result);
@@ -779,11 +769,11 @@ meetingsRouter.post('/reunioes/:id/start-recording', authenticateToken, async (r
       return res.status(400).json({ error: 'Credenciais do 100ms não configuradas' });
     }
 
+    // SFU recording captures the room directly without needing a browser URL
     const result = await iniciarGravacao(
       meeting.roomId100ms,
       credentials.appAccessKey,
-      credentials.appSecret,
-      meeting.linkReuniao || ''
+      credentials.appSecret
     );
 
     const [gravacao] = await db.insert(gravacoes).values({

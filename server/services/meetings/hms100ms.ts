@@ -145,23 +145,17 @@ export async function iniciarGravacao(
   roomId: string,
   appAccessKey: string,
   appSecret: string,
-  meetingUrl: string
+  meetingUrl?: string
 ): Promise<{ id: string; room_id: string; session_id: string; status: string }> {
   const token = generateManagementToken(appAccessKey, appSecret);
 
-  console.log(`[100ms] Iniciando gravação para sala ${roomId} com URL: ${meetingUrl}`);
-
-  // Construir URL com todos os parâmetros de bypass de UI
-  const separator = meetingUrl.includes('?') ? '&' : '?';
-  const recordingUrl = `${meetingUrl}${separator}auto_join=true&recording_bot=true&skip_preview=true&skip_device_selection=true&quality=high`;
-
-  console.log(`[100ms] URL final para o bot: ${recordingUrl}`);
+  console.log(`[100ms] Iniciando gravação SFU (Server-Side) para sala ${roomId}`);
+  console.log(`[100ms] Modo: Composite Recording (grava diretamente a sala, sem URL de browser)`);
 
   const response = await axios.post(
     `${HMS_API_URL}/recordings/room/${roomId}/start`,
     {
-      meeting_url: recordingUrl,
-      resolution: { width: 1280, height: 720 }, // HD é mais estável para o bot Beam
+      resolution: { width: 1280, height: 720 },
     },
     {
       headers: {
@@ -171,6 +165,7 @@ export async function iniciarGravacao(
     }
   );
 
+  console.log(`[100ms] Gravação SFU iniciada com sucesso:`, response.data);
   return response.data;
 }
 
