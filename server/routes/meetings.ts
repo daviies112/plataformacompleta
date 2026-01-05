@@ -765,6 +765,18 @@ meetingsRouter.post('/reunioes/:id/stop-recording', authenticateToken, async (re
   }
 });
 
+// Helper function to find the best video asset from recording_assets array
+function findVideoAsset(recordingAssets: any[]): any | null {
+  if (!recordingAssets || !Array.isArray(recordingAssets)) return null;
+  
+  // Find the largest completed room-composite asset (video file)
+  const videoAssets = recordingAssets
+    .filter(asset => asset.type === 'room-composite' && asset.status === 'completed' && asset.size > 0)
+    .sort((a, b) => (b.size || 0) - (a.size || 0));
+  
+  return videoAssets[0] || null;
+}
+
 meetingsRouter.get('/gravacoes', authenticateToken, async (req: AuthRequest, res: Response) => {
   try {
     const tenantId = req.user!.tenantId;
@@ -808,16 +820,32 @@ meetingsRouter.get('/gravacoes/:id/playback', authenticateToken, async (req: Aut
       credentials.appSecret
     );
 
-    if (recordingDetails.asset?.id) {
+    // Find the best video asset from recording_assets array
+    const videoAsset = findVideoAsset(recordingDetails.recording_assets);
+    
+    if (videoAsset) {
       const presigned = await obterUrlPresignadaAsset(
-        recordingDetails.asset.id,
+        videoAsset.id,
         credentials.appAccessKey,
         credentials.appSecret
       );
+      
+      // Also update the database with the asset info
+      await db.update(gravacoes)
+        .set({
+          status: 'completed',
+          fileUrl: presigned.url,
+          duration: videoAsset.duration || recording.duration,
+          fileSize: videoAsset.size || recording.fileSize,
+          assetId: videoAsset.id,
+          updatedAt: new Date(),
+        })
+        .where(eq(gravacoes.id, id));
+      
       return res.json({ url: presigned.url });
     }
 
-    res.status(404).json({ error: 'URL de playback não disponível ainda' });
+    res.status(404).json({ error: 'URL de playback não disponível ainda', status: 'processing' });
   } catch (error: any) {
     console.error('Erro ao obter playback:', error);
     res.status(500).json({ error: 'Erro ao obter playback', message: error.message });
@@ -898,9 +926,14 @@ meetingsRouter.post('/gravacoes/:id/refresh', authenticateToken, async (req: Aut
 
         console.log('[Recording Refresh] Details from 100ms:', recordingDetails);
 
-        if (recordingDetails.asset?.id) {
+        // Find the best video asset from recording_assets array
+        const videoAsset = findVideoAsset(recordingDetails.recording_assets);
+
+        if (videoAsset) {
+          console.log('[Recording Refresh] Found video asset:', videoAsset.id, 'size:', videoAsset.size);
+          
           const presigned = await obterUrlPresignadaAsset(
-            recordingDetails.asset.id,
+            videoAsset.id,
             credentials.appAccessKey,
             credentials.appSecret
           );
@@ -910,9 +943,9 @@ meetingsRouter.post('/gravacoes/:id/refresh', authenticateToken, async (req: Aut
             .set({
               status: 'completed',
               fileUrl: presigned.url,
-              duration: recordingDetails.asset.duration || recording.duration,
-              fileSize: recordingDetails.asset.size || recording.fileSize,
-              assetId: recordingDetails.asset.id,
+              duration: videoAsset.duration || recording.duration,
+              fileSize: videoAsset.size || recording.fileSize,
+              assetId: videoAsset.id,
               updatedAt: new Date(),
             })
             .where(eq(gravacoes.id, id))
@@ -925,6 +958,8 @@ meetingsRouter.post('/gravacoes/:id/refresh', authenticateToken, async (req: Aut
             .where(eq(gravacoes.id, id));
 
           return res.json({ success: false, message: 'Gravacao falhou no processamento' });
+        } else {
+          console.log('[Recording Refresh] No video asset found yet, recording status:', recordingDetails.status);
         }
       } catch (apiError: any) {
         console.error('[Recording Refresh] Error fetching from 100ms:', apiError.message);
