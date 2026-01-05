@@ -2,17 +2,21 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Meeting100ms } from "@/components/Meeting100ms";
+import { MeetingLobby } from "@/components/MeetingLobby";
 import { useReuniao } from "@/hooks/useReuniao";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, FileText, Download, Play, Loader2, Copy, Check, Share2, RefreshCw } from "lucide-react";
+import { ArrowLeft, FileText, Download, Play, Loader2, Copy, Check, Share2, RefreshCw, Video, ThumbsUp, ThumbsDown, Home } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
 import { DEFAULT_ROOM_DESIGN_CONFIG, type RoomDesignConfig } from "@/types/reuniao";
+
+type MeetingStep = "lobby" | "meeting" | "ended";
 
 export default function Reuniao() {
   const params = useParams();
@@ -22,13 +26,16 @@ export default function Reuniao() {
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
 
+  const [step, setStep] = useState<MeetingStep>("lobby");
   const [token100ms, setToken100ms] = useState<string | null>(null);
   const [tokenLoading, setTokenLoading] = useState(false);
   const [tokenError, setTokenError] = useState<string | null>(null);
-  const [userName, setUserName] = useState<string>("Participante");
+  const [userName, setUserName] = useState<string>("");
+  const [mediaSettings, setMediaSettings] = useState({ audioEnabled: true, videoEnabled: true });
+  const [feedback, setFeedback] = useState<"positive" | "negative" | null>(null);
+  const [feedbackComment, setFeedbackComment] = useState("");
   
   const lastAttemptedRoomIdRef = useRef<string | null>(null);
-  const hasAttemptedFetchRef = useRef(false);
 
   const { data: designData } = useQuery({
     queryKey: ["/api/reunioes/room-design"],
@@ -61,7 +68,7 @@ export default function Reuniao() {
     }
   }, []);
 
-  const fetchTokenInternal = useCallback(async () => {
+  const fetchTokenAndJoin = useCallback(async () => {
     if (!meetingId || !meeting || meeting.status === 'concluida' || meeting.status === 'cancelada') {
       return;
     }
@@ -74,12 +81,12 @@ export default function Reuniao() {
     setTokenLoading(true);
     setTokenError(null);
     lastAttemptedRoomIdRef.current = meeting.roomId100ms;
-    hasAttemptedFetchRef.current = true;
 
     try {
       const response = await getToken100ms(meetingId);
       if (response.token) {
         setToken100ms(response.token);
+        setStep("meeting");
       } else {
         setTokenError("Token não retornado pela API.");
       }
@@ -91,39 +98,19 @@ export default function Reuniao() {
     }
   }, [meetingId, meeting, getToken100ms]);
 
-  useEffect(() => {
-    if (token100ms) {
-      return;
-    }
+  const handleJoinFromLobby = useCallback((settings: { audioEnabled: boolean; videoEnabled: boolean }) => {
+    setMediaSettings(settings);
+    fetchTokenAndJoin();
+  }, [fetchTokenAndJoin]);
 
-    if (tokenLoading) {
-      return;
-    }
-
-    const currentRoomId = meeting?.roomId100ms;
-    const roomIdChanged = currentRoomId && currentRoomId !== lastAttemptedRoomIdRef.current;
-    
-    if (roomIdChanged) {
-      setTokenError(null);
-      hasAttemptedFetchRef.current = false;
-    }
-
-    if (tokenError) {
-      return;
-    }
-
-    if (hasAttemptedFetchRef.current && lastAttemptedRoomIdRef.current === currentRoomId) {
-      return;
-    }
-
-    fetchTokenInternal();
-  }, [meetingId, meeting?.roomId100ms, meeting?.status, token100ms, tokenLoading, tokenError, fetchTokenInternal]);
+  const handleLeaveMeeting = useCallback(() => {
+    setStep("ended");
+  }, []);
 
   const handleRetryToken = useCallback(() => {
-    hasAttemptedFetchRef.current = false;
     setTokenError(null);
-    fetchTokenInternal();
-  }, [fetchTokenInternal]);
+    fetchTokenAndJoin();
+  }, [fetchTokenAndJoin]);
 
   const handleCopyLink = async () => {
     if (meeting?.linkReuniao) {
@@ -145,33 +132,45 @@ export default function Reuniao() {
     }
   };
 
+  const handleBackToDashboard = useCallback(() => {
+    navigate("/reuniao");
+  }, [navigate]);
+
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center h-[50vh] gap-4" data-testid="loading-meeting">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        <p className="text-muted-foreground">Carregando reunião...</p>
+      <div 
+        className="min-h-screen flex flex-col items-center justify-center gap-4" 
+        style={{ backgroundColor: roomConfig.colors.background }}
+        data-testid="loading-meeting"
+      >
+        <Loader2 className="h-8 w-8 animate-spin" style={{ color: roomConfig.colors.controlsText }} />
+        <p style={{ color: `${roomConfig.colors.controlsText}99` }}>Carregando reunião...</p>
       </div>
     );
   }
 
   if (error || !meeting) {
     return (
-      <div className="flex flex-col items-center justify-center h-[50vh] gap-4" data-testid="error-meeting">
-        <h1 className="text-2xl font-bold">Reunião não encontrada</h1>
-        <Button onClick={() => navigate("/reuniao")} data-testid="button-back-dashboard">Voltar ao Dashboard</Button>
+      <div 
+        className="min-h-screen flex flex-col items-center justify-center gap-4" 
+        style={{ backgroundColor: roomConfig.colors.background }}
+        data-testid="error-meeting"
+      >
+        <h1 className="text-2xl font-bold" style={{ color: roomConfig.colors.controlsText }}>Reunião não encontrada</h1>
+        <Button onClick={handleBackToDashboard} data-testid="button-back-dashboard">Voltar ao Dashboard</Button>
       </div>
     );
   }
 
   if (meeting.status === 'concluida') {
     return (
-      <div className="space-y-6" data-testid="meeting-completed">
+      <div className="space-y-6 p-6" data-testid="meeting-completed">
         <div className="flex items-center gap-4">
-          <Button variant="outline" size="icon" onClick={() => navigate("/reuniao")} data-testid="button-back">
+          <Button variant="outline" size="icon" onClick={handleBackToDashboard} data-testid="button-back">
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-             <div className="flex items-center gap-3">
+             <div className="flex items-center gap-3 flex-wrap">
               <h1 className="text-2xl font-bold" data-testid="text-meeting-title">{meeting.titulo}</h1>
               <Badge className="bg-green-100 text-green-700 border-green-200">Concluída</Badge>
              </div>
@@ -179,8 +178,8 @@ export default function Reuniao() {
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-6">
-          <Card className="col-span-2">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <Card className="lg:col-span-2">
             <CardHeader>
               <CardTitle>Gravação e Transcrição</CardTitle>
               <CardDescription>Acesse o conteúdo gravado da reunião.</CardDescription>
@@ -202,7 +201,7 @@ export default function Reuniao() {
                       </div>
                     </div>
                   </div>
-                  <div className="flex justify-between items-center">
+                  <div className="flex justify-between items-center flex-wrap gap-2">
                     <span className="text-sm text-muted-foreground">Duração: {meeting.duracao || 45} min</span>
                     <Button variant="outline" size="sm" className="gap-2" data-testid="button-download-mp4">
                       <Download className="h-4 w-4" /> Download MP4
@@ -276,87 +275,265 @@ export default function Reuniao() {
     );
   }
 
+  if (step === "ended") {
+    const endConfig = roomConfig.endScreen;
+
+    return (
+      <div
+        className="min-h-screen flex items-center justify-center p-4"
+        style={{ backgroundColor: roomConfig.colors.background }}
+        data-testid="meeting-ended"
+      >
+        <Card
+          className="w-full max-w-md border-0"
+          style={{ backgroundColor: roomConfig.colors.controlsBackground }}
+        >
+          <CardHeader className="text-center">
+            {roomConfig.branding?.logo && (
+              <img
+                src={roomConfig.branding.logo}
+                alt={roomConfig.branding.companyName || "Logo"}
+                className="h-12 w-auto mx-auto mb-4"
+              />
+            )}
+            <div className="h-16 w-16 rounded-full bg-green-500/20 flex items-center justify-center mx-auto mb-4">
+              <Video className="h-8 w-8 text-green-500" />
+            </div>
+            <CardTitle style={{ color: roomConfig.colors.controlsText }}>
+              {endConfig.title || "Reunião Encerrada"}
+            </CardTitle>
+            <CardDescription style={{ color: `${roomConfig.colors.controlsText}99` }}>
+              {endConfig.message || "Obrigado por participar!"}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <p
+              className="text-center text-sm"
+              style={{ color: `${roomConfig.colors.controlsText}cc` }}
+            >
+              A reunião "{meeting.titulo}" foi encerrada.
+            </p>
+
+            {endConfig.showFeedback && (
+              <div className="space-y-4">
+                <p
+                  className="text-center text-sm"
+                  style={{ color: `${roomConfig.colors.controlsText}cc` }}
+                >
+                  Como foi sua experiência?
+                </p>
+                <div className="flex justify-center gap-4">
+                  <Button
+                    variant={feedback === "positive" ? "default" : "outline"}
+                    size="lg"
+                    onClick={() => setFeedback("positive")}
+                    className={feedback === "positive" ? "bg-green-600" : ""}
+                    data-testid="button-feedback-positive"
+                  >
+                    <ThumbsUp className="h-5 w-5 mr-2" />
+                    Boa
+                  </Button>
+                  <Button
+                    variant={feedback === "negative" ? "default" : "outline"}
+                    size="lg"
+                    onClick={() => setFeedback("negative")}
+                    className={feedback === "negative" ? "bg-red-600" : ""}
+                    data-testid="button-feedback-negative"
+                  >
+                    <ThumbsDown className="h-5 w-5 mr-2" />
+                    Ruim
+                  </Button>
+                </div>
+                {feedback && (
+                  <Textarea
+                    placeholder="Comentário opcional..."
+                    value={feedbackComment}
+                    onChange={(e) => setFeedbackComment(e.target.value)}
+                    className="bg-zinc-700/50 border-zinc-600 text-white"
+                    data-testid="input-feedback-comment"
+                  />
+                )}
+              </div>
+            )}
+
+            <div className="flex flex-col gap-2">
+              {endConfig.redirectUrl ? (
+                <Button
+                  onClick={() => window.location.href = endConfig.redirectUrl!}
+                  className="w-full"
+                  style={{ backgroundColor: roomConfig.colors.primaryButton }}
+                  data-testid="button-redirect"
+                >
+                  Continuar
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleBackToDashboard}
+                  className="w-full"
+                  style={{ backgroundColor: roomConfig.colors.primaryButton }}
+                  data-testid="button-back-to-dashboard"
+                >
+                  <Home className="h-4 w-4 mr-2" />
+                  Voltar ao Dashboard
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   if (tokenLoading) {
     return (
-      <div className="flex flex-col items-center justify-center h-[50vh] gap-4" data-testid="loading-token">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        <p className="text-muted-foreground">Preparando sala de reunião...</p>
+      <div 
+        className="min-h-screen flex flex-col items-center justify-center gap-4" 
+        style={{ backgroundColor: roomConfig.colors.background }}
+        data-testid="loading-token"
+      >
+        <Loader2 className="h-8 w-8 animate-spin" style={{ color: roomConfig.colors.controlsText }} />
+        <p style={{ color: `${roomConfig.colors.controlsText}99` }}>Preparando sala de reunião...</p>
       </div>
     );
   }
 
   if (tokenError) {
     return (
-      <div className="flex flex-col items-center justify-center h-[50vh] gap-4" data-testid="error-token">
-        <h1 className="text-2xl font-bold text-destructive">Erro ao acessar reunião</h1>
-        <p className="text-muted-foreground text-center max-w-md">{tokenError}</p>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => navigate("/reuniao")} data-testid="button-back-error">
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Voltar
-          </Button>
-          <Button onClick={handleRetryToken} data-testid="button-retry">
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Tentar Novamente
-          </Button>
-        </div>
+      <div 
+        className="min-h-screen flex flex-col items-center justify-center gap-4 p-4" 
+        style={{ backgroundColor: roomConfig.colors.background }}
+        data-testid="error-token"
+      >
+        <Card
+          className="w-full max-w-md border-0"
+          style={{ backgroundColor: roomConfig.colors.controlsBackground }}
+        >
+          <CardContent className="pt-6 text-center space-y-4">
+            <h1 className="text-xl font-bold" style={{ color: "#ef4444" }}>Erro ao acessar reunião</h1>
+            <p style={{ color: `${roomConfig.colors.controlsText}99` }}>{tokenError}</p>
+            <div className="flex gap-2 justify-center flex-wrap">
+              <Button variant="outline" onClick={handleBackToDashboard} data-testid="button-back-error">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Voltar
+              </Button>
+              <Button onClick={handleRetryToken} data-testid="button-retry">
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Tentar Novamente
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
-  if (!token100ms || !meeting.roomId100ms) {
+  if (step === "meeting" && token100ms && meeting.roomId100ms) {
     return (
-      <div className="flex flex-col items-center justify-center h-[50vh] gap-4" data-testid="no-room">
-        <h1 className="text-2xl font-bold">Sala não disponível</h1>
-        <p className="text-muted-foreground">Esta reunião não possui uma sala de vídeo configurada.</p>
-        <Button onClick={() => navigate("/reuniao")} data-testid="button-back-noroom">Voltar ao Dashboard</Button>
+      <div 
+        className="min-h-screen flex flex-col" 
+        style={{ backgroundColor: roomConfig.colors.background }}
+        data-testid="meeting-room"
+      >
+        <div 
+          className="flex items-center justify-between p-4 border-b"
+          style={{ 
+            backgroundColor: roomConfig.colors.controlsBackground,
+            borderColor: `${roomConfig.colors.controlsText}20`
+          }}
+        >
+          <div className="flex items-center gap-4 flex-wrap">
+            <Button 
+              variant="outline" 
+              size="icon" 
+              onClick={handleLeaveMeeting} 
+              data-testid="button-leave-meeting"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div>
+              <h1 
+                className="text-lg font-bold" 
+                style={{ color: roomConfig.colors.controlsText }}
+                data-testid="text-meeting-title-active"
+              >
+                {meeting.titulo}
+              </h1>
+              <p 
+                className="text-sm" 
+                style={{ color: `${roomConfig.colors.controlsText}99` }}
+              >
+                Participante: {meeting.nome}
+              </p>
+            </div>
+          </div>
+          {meeting.linkReuniao && (
+            <Button
+              variant="outline"
+              onClick={handleCopyLink}
+              className="gap-2"
+              data-testid="button-share-link"
+            >
+              {copied ? (
+                <>
+                  <Check className="h-4 w-4 text-green-500" />
+                  Copiado!
+                </>
+              ) : (
+                <>
+                  <Share2 className="h-4 w-4" />
+                  Compartilhar
+                </>
+              )}
+            </Button>
+          )}
+        </div>
+        
+        <div className="flex-1 min-h-0">
+           <Meeting100ms 
+             roomId={meeting.roomId100ms} 
+             userName={userName}
+             authToken={token100ms}
+             onLeave={handleLeaveMeeting} 
+             config={roomConfig}
+           />
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="h-full flex flex-col gap-4" data-testid="meeting-room">
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-4">
-          <Button variant="outline" size="icon" onClick={() => navigate("/reuniao")} data-testid="button-back-meeting">
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div>
-            <h1 className="text-xl font-bold" data-testid="text-meeting-title-active">{meeting.titulo}</h1>
-            <p className="text-sm text-muted-foreground">Participante: {meeting.nome}</p>
-          </div>
-        </div>
-        {meeting.linkReuniao && (
-          <Button
-            variant="outline"
-            onClick={handleCopyLink}
-            className="gap-2"
-            data-testid="button-share-link"
-          >
-            {copied ? (
-              <>
-                <Check className="h-4 w-4 text-green-500" />
-                Copiado!
-              </>
-            ) : (
-              <>
-                <Share2 className="h-4 w-4" />
-                Compartilhar
-              </>
-            )}
-          </Button>
-        )}
+    <div className="min-h-screen" style={{ backgroundColor: roomConfig.colors.background }}>
+      <div 
+        className="absolute top-4 left-4 z-10"
+        data-testid="lobby-back-button"
+      >
+        <Button 
+          variant="outline" 
+          onClick={handleBackToDashboard}
+          className="gap-2"
+          style={{
+            backgroundColor: `${roomConfig.colors.controlsBackground}cc`,
+            color: roomConfig.colors.controlsText,
+            borderColor: `${roomConfig.colors.controlsText}40`,
+          }}
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Voltar ao Dashboard
+        </Button>
       </div>
       
-      <div className="flex-1 min-h-0 border rounded-lg overflow-hidden shadow-2xl">
-         <Meeting100ms 
-           roomId={meeting.roomId100ms} 
-           userName={userName}
-           authToken={token100ms}
-           onLeave={() => navigate("/reuniao")} 
-           config={roomConfig}
-         />
-      </div>
+      <MeetingLobby
+        meetingTitle={meeting.titulo || "Reunião"}
+        meetingDescription={meeting.descricao}
+        meetingDate={meeting.dataInicio}
+        companyName={roomConfig.branding?.companyName}
+        companyLogo={roomConfig.branding?.logo}
+        participantName={userName}
+        onParticipantNameChange={setUserName}
+        onJoin={handleJoinFromLobby}
+        roomDesignConfig={roomConfig}
+        config={roomConfig}
+      />
     </div>
   );
 }
