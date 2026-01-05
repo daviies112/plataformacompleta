@@ -560,17 +560,21 @@ router.get('/calendar-events', authenticateToken, async (req, res) => {
     let meetingEvents: any[] = [];
     try {
       const tenantId = req.user!.tenantId;
+      console.log(`🎥 Buscando reuniões para tenantId: ${tenantId}`);
       const { db } = await import('../db');
       const meetings = await db.select().from(reunioes)
         .where(eq(reunioes.tenantId, tenantId))
         .orderBy(desc(reunioes.dataInicio));
 
       if (meetings && meetings.length > 0) {
-        console.log(`🎥 Processando ${meetings.length} reuniões...`);
+        console.log(`🎥 Encontradas ${meetings.length} reuniões no banco de dados`);
         for (const meeting of meetings) {
           try {
             const startDate = meeting.dataInicio;
-            if (!startDate) continue;
+            if (!startDate) {
+              console.log(`⚠️ Reunião ${meeting.id} sem data de início`);
+              continue;
+            }
 
             const dateObj = new Date(startDate);
             const dateOnly = dateObj.toISOString().split('T')[0];
@@ -579,6 +583,8 @@ router.get('/calendar-events', authenticateToken, async (req, res) => {
               minute: '2-digit',
               timeZone: 'America/Sao_Paulo'
             });
+
+            console.log(`✅ Adicionando reunião: ${meeting.titulo} em ${dateOnly} ${timeOnly}`);
 
             meetingEvents.push({
               id: `meeting_${meeting.id}`,
@@ -599,8 +605,10 @@ router.get('/calendar-events', authenticateToken, async (req, res) => {
             console.error('Erro ao processar reunião:', meeting.id, meetingProcessError);
           }
         }
+      } else {
+        console.log(`ℹ️ Nenhuma reunião encontrada para o tenant ${tenantId}`);
       }
-      console.log(`✅ Reuniões: ${meetingEvents.length} eventos encontrados`);
+      console.log(`✅ Reuniões: ${meetingEvents.length} eventos processados`);
     } catch (meetingError) {
       console.error('Erro ao buscar reuniões do sistema:', meetingError);
     }
