@@ -25,7 +25,9 @@ export default function Settings() {
   const [supabaseUrl, setSupabaseUrl] = useState("");
   const [supabaseAnonKey, setSupabaseAnonKey] = useState("");
   const [supabaseBucket, setSupabaseBucket] = useState("receipts");
+  const [databaseUrl, setDatabaseUrl] = useState("");
   const [showSupabaseKey, setShowSupabaseKey] = useState(false);
+  const [showDatabaseUrl, setShowDatabaseUrl] = useState(false);
   const [isSupabaseConfigured, setIsSupabaseConfigured] = useState(false);
   const [isSupabaseLoading, setIsSupabaseLoading] = useState(false);
   
@@ -153,6 +155,9 @@ export default function Settings() {
               if (credData.success && credData.credentials) {
                 setSupabaseUrl(credData.credentials.url);
                 setSupabaseAnonKey(credData.credentials.anonKey);
+                if (credData.credentials.databaseUrl) {
+                  setDatabaseUrl(credData.credentials.databaseUrl);
+                }
                 
                 // Exibir mensagem informando a fonte
                 toast({
@@ -290,6 +295,7 @@ export default function Settings() {
           supabaseUrl: supabaseUrl,
           supabaseAnonKey: supabaseAnonKey,
           supabaseBucket: supabaseBucket,
+          databaseUrl: databaseUrl,
         }),
       });
 
@@ -1032,6 +1038,38 @@ export default function Settings() {
             />
             <p className="text-xs text-muted-foreground">
               Nome do bucket onde os arquivos serão armazenados. Padrão: "receipts"
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="databaseUrl">Database URL (PostgreSQL)</Label>
+            <div className="relative">
+              <Input
+                id="databaseUrl"
+                data-testid="input-database-url"
+                type={showDatabaseUrl ? "text" : "password"}
+                placeholder="postgresql://postgres:password@db.xxxx.supabase.co:5432/postgres"
+                value={databaseUrl}
+                onChange={(e) => setDatabaseUrl(e.target.value)}
+                className="pr-10"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                onClick={() => setShowDatabaseUrl(!showDatabaseUrl)}
+                data-testid="button-toggle-database-url"
+              >
+                {showDatabaseUrl ? (
+                  <EyeOff className="h-4 w-4" />
+                ) : (
+                  <Eye className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Encontrado em Settings → Database → Connection string do seu projeto Supabase
             </p>
           </div>
 

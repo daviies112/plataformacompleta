@@ -1797,6 +1797,7 @@ export function setupConfigRoutes(app: Express) {
             url: fileConfig.url,
             anonKey: fileConfig.anonKey,
             bucket: 'receipts',
+            databaseUrl: fileConfig.databaseUrl || null,
           },
           source: 'file'
         });
@@ -1835,7 +1836,7 @@ export function setupConfigRoutes(app: Express) {
   
   app.post("/api/config/supabase", authenticateConfig, async (req: AuthRequest, res) => {
     try {
-      const { supabaseUrl, supabaseAnonKey, supabaseBucket } = req.body;
+      const { supabaseUrl, supabaseAnonKey, supabaseBucket, databaseUrl } = req.body;
       const tenantId = req.user!.tenantId;
       
       if (!supabaseUrl || !supabaseAnonKey) {
@@ -1847,6 +1848,12 @@ export function setupConfigRoutes(app: Express) {
       if (!supabaseUrl.startsWith('http')) {
         return res.status(400).json({
           error: "URL inválida - deve começar com http:// ou https://",
+        });
+      }
+      
+      if (databaseUrl && !databaseUrl.startsWith('postgres')) {
+        return res.status(400).json({
+          error: "DATABASE_URL inválida. Deve começar com postgresql:// ou postgres://",
         });
       }
       
@@ -1917,6 +1924,7 @@ export function setupConfigRoutes(app: Express) {
         const fileSaved = saveSupabaseFileConfig({
           supabaseUrl,
           supabaseAnonKey,
+          ...(databaseUrl && { databaseUrl }),
         });
         
         if (fileSaved) {
@@ -1931,6 +1939,18 @@ export function setupConfigRoutes(app: Express) {
         }
       }
       
+      // Always save databaseUrl to file (it's the main database connection)
+      if (databaseUrl) {
+        const dbUrlSaved = saveSupabaseFileConfig({
+          supabaseUrl,
+          supabaseAnonKey,
+          databaseUrl,
+        });
+        if (dbUrlSaved) {
+          console.log("✅ Database URL saved to supabase-config.json - restart server to apply");
+        }
+      }
+      
       // Clear Supabase client cache to force reconnection
       try {
         const { clearSupabaseCache } = await import('../lib/supabaseClient.js');
@@ -1941,10 +1961,14 @@ export function setupConfigRoutes(app: Express) {
       }
       
       const storageMethod = savedToDatabase ? 'database' : 'file';
+      const needsRestart = !!databaseUrl;
       return res.json({
         success: true,
-        message: `Credenciais salvas com sucesso! (storage: ${storageMethod})`,
+        message: needsRestart 
+          ? `Credenciais salvas! Reinicie o servidor para aplicar a nova conexão com o banco de dados.`
+          : `Credenciais salvas com sucesso! (storage: ${storageMethod})`,
         storage: storageMethod,
+        needsRestart,
       });
     } catch (error) {
       console.error("Erro ao salvar configuração do Supabase:", error);
