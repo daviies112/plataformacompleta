@@ -179,7 +179,7 @@ export default function Reuniao() {
         data-testid="error-meeting"
       >
         <h1 className="text-2xl font-bold" style={{ color: roomConfig.colors.controlsText }}>Reunião não encontrada</h1>
-        <Button onClick={handleBackToDashboard} data-testid="button-back-dashboard">Voltar ao Dashboard</Button>
+        <p style={{ color: `${roomConfig.colors.controlsText}80` }}>Verifique se o link está correto ou entre em contato com o organizador.</p>
       </div>
     );
   }
@@ -378,8 +378,8 @@ export default function Reuniao() {
               </div>
             )}
 
-            <div className="flex flex-col gap-2">
-              {endConfig.redirectUrl ? (
+            {endConfig.redirectUrl && (
+              <div className="flex flex-col gap-2">
                 <Button
                   onClick={() => window.location.href = endConfig.redirectUrl!}
                   className="w-full"
@@ -388,18 +388,8 @@ export default function Reuniao() {
                 >
                   Continuar
                 </Button>
-              ) : (
-                <Button
-                  onClick={handleBackToDashboard}
-                  className="w-full"
-                  style={{ backgroundColor: roomConfig.colors.primaryButton }}
-                  data-testid="button-back-to-dashboard"
-                >
-                  <Home className="h-4 w-4 mr-2" />
-                  Voltar ao Dashboard
-                </Button>
-              )}
-            </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -525,25 +515,6 @@ export default function Reuniao() {
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: roomConfig.colors.background }}>
-      <div 
-        className="absolute top-4 left-4 z-10"
-        data-testid="lobby-back-button"
-      >
-        <Button 
-          variant="outline" 
-          onClick={handleBackToDashboard}
-          className="gap-2"
-          style={{
-            backgroundColor: `${roomConfig.colors.controlsBackground}cc`,
-            color: roomConfig.colors.controlsText,
-            borderColor: `${roomConfig.colors.controlsText}40`,
-          }}
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Voltar ao Dashboard
-        </Button>
-      </div>
-      
       <MeetingLobby
         meetingTitle={meeting.titulo || "Reunião"}
         meetingDescription={meeting.descricao}
