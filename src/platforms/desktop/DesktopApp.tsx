@@ -25,6 +25,7 @@ import ReuniaoPage from "@/pages/Reuniao";
 import ReuniaoPublica from "@/pages/ReuniaoPublica";
 import GravacoesPage from "@/pages/Gravacoes";
 import RoomDesignSettings from "@/pages/RoomDesignSettings";
+import ConsultarCPFPage from "@/pages/consultar-cpf";
 import { Navigate } from "react-router-dom";
 import { RootRedirect } from "@/components/RootRedirect";
 import PublicForm from "@/features/formularios-platform/pages/PublicForm";
@@ -445,6 +446,17 @@ const DesktopApp = () => {
           <ProtectedRoute>
             <DesktopLayout>
               <RoomDesignSettings />
+            </DesktopLayout>
+          </ProtectedRoute>
+        } 
+      />
+      
+      <Route 
+        path="/consultar-cpf" 
+        element={
+          <ProtectedRoute>
+            <DesktopLayout>
+              <ConsultarCPFPage />
             </DesktopLayout>
           </ProtectedRoute>
         } 
