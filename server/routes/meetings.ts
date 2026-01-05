@@ -13,8 +13,58 @@ import {
   listarGravacoesSala,
   obterUrlPresignadaAsset
 } from '../services/meetings/hms100ms';
+import { getClientSupabaseClient } from '../lib/multiTenantSupabase';
 import { nanoid } from 'nanoid';
 import { z } from 'zod';
+
+// Helper function to sync recording to Supabase
+async function syncRecordingToSupabase(tenantId: string, recording: any) {
+  try {
+    const supabase = await getClientSupabaseClient(tenantId);
+    if (!supabase) {
+      console.log(`[Recording Sync] Supabase não configurado para tenant ${tenantId} - gravação apenas local`);
+      return;
+    }
+
+    // Serialize dates to ISO strings for Supabase compatibility
+    const toISOString = (date: Date | string | null | undefined): string | null => {
+      if (!date) return null;
+      if (date instanceof Date) return date.toISOString();
+      if (typeof date === 'string') return date;
+      return null;
+    };
+
+    const { error } = await supabase
+      .from('gravacoes')
+      .upsert({
+        id: recording.id,
+        reuniao_id: recording.reuniaoId,
+        tenant_id: recording.tenantId,
+        room_id_100ms: recording.roomId100ms || null,
+        session_id_100ms: recording.sessionId100ms || null,
+        recording_id_100ms: recording.recordingId100ms || null,
+        asset_id: recording.assetId || null,
+        status: recording.status || 'recording',
+        started_at: toISOString(recording.startedAt),
+        stopped_at: toISOString(recording.stoppedAt),
+        duration: recording.duration || null,
+        file_url: recording.fileUrl || null,
+        file_size: recording.fileSize || null,
+        thumbnail_url: recording.thumbnailUrl || null,
+        metadata: recording.metadata ? JSON.parse(JSON.stringify(recording.metadata)) : {},
+        created_at: toISOString(recording.createdAt),
+        updated_at: toISOString(recording.updatedAt),
+      }, { onConflict: 'id' });
+
+    if (error) {
+      console.error(`[Recording Sync] Erro ao sincronizar gravação ${recording.id} com Supabase:`, error);
+    } else {
+      console.log(`[Recording Sync] Gravação ${recording.id} sincronizada com Supabase para tenant ${tenantId}`);
+    }
+  } catch (err) {
+    console.error(`[Recording Sync] Erro inesperado ao sincronizar gravação:`, err);
+  }
+}
 
 export const meetingsRouter = Router();
 
@@ -221,6 +271,9 @@ publicRoomDesignRouter.post('/100ms/recording/start', async (req: Request, res: 
       startedAt: new Date(),
     }).returning();
 
+    // Sync to Supabase (async, non-blocking)
+    syncRecordingToSupabase(meeting.tenantId, gravacao).catch(console.error);
+
     res.json({ 
       success: true, 
       recording: gravacao, 
@@ -299,7 +352,7 @@ publicRoomDesignRouter.post('/100ms/recording/stop', async (req: Request, res: R
     }
 
     // Update recording in database with asset info if available
-    await db.update(gravacoes)
+    const [updatedRecording] = await db.update(gravacoes)
       .set({
         status: finalStatus,
         stoppedAt: new Date(),
@@ -312,7 +365,13 @@ publicRoomDesignRouter.post('/100ms/recording/stop', async (req: Request, res: R
       .where(and(
         eq(gravacoes.roomId100ms, roomId),
         eq(gravacoes.status, 'recording')
-      ));
+      ))
+      .returning();
+
+    // Sync updated recording to Supabase (async, non-blocking)
+    if (updatedRecording) {
+      syncRecordingToSupabase(meeting.tenantId, updatedRecording).catch(console.error);
+    }
 
     res.json({ success: true, status: finalStatus, hmsResult: result });
   } catch (error: any) {

@@ -64,18 +64,24 @@ scripts/   → Utilitários (export, import)
 ✅ Formulários Públicos  
 ✅ Validação CPF  
 ✅ WhatsApp Business  
-✅ Video Conferencing (100ms) - ATUALIZADO (04/01/2026)
+✅ Video Conferencing (100ms) - ATUALIZADO (05/01/2026)
    - API Routes: `/api/reunioes`, `/api/reunioes/instantanea`, `/api/gravacoes`
    - Acessível via menu "Reunião" no header
    - Configure credenciais do 100ms em Configurações antes de criar reuniões
    - Veja: `DOCUMENTACAO_CORRECAO_100MS.md` (detalhado)
+✅ **Calendário de Reuniões** - NOVO (05/01/2026)
+   - Visualiza todas as reuniões agendadas na página Calendário (header)
+   - Grid mensal com navegação e detalhes de cada reunião
+   - Acesse via menu "Calendário" no header
+✅ **Sistema de Gravações SFU** - ATUALIZADO (05/01/2026)
+   - Gravação Server-Side (SFU) captura diretamente os streams de mídia
+   - Resolve problema de gravar tela de loading em vez do conteúdo da reunião
+   - Sincronização automática com Supabase do cliente
+   - Veja: `supabase-gravacoes-table.sql` para criar tabela no Supabase
 ✅ **Sistema de Exportação Otimizado** - ATUALIZADO (03/01/2026)
    - Scripts de limpeza preservam a pasta `data/` para manter credenciais.
    - Veja: `DOCUMENTACAO_PERSISTENCIA_EXPORT.md`
-✅ Label Designer  
-✅ **Sistema de Gravações** - CORRIGIDO (30/12/2025)  
-   - Veja: `DOCUMENTACAO_CORRECOES_GRAVACOES.md` (detalhado)  
-   - Veja: `CHECKLIST_GRAVACOES.md` (verificação rápida)
+✅ Label Designer
 
 ## Desenvolvimento
 
@@ -113,6 +119,6 @@ Veja [DESENVOLVIMENTO.md](./DESENVOLVIMENTO.md) para documentação técnica com
 
 ---
 
-**Last Updated:** 03 de Janeiro de 2026  
+**Last Updated:** 05 de Janeiro de 2026  
 **Tamanho Otimizado:** ~200MB (sem node_modules)  
 **Economia de Créditos:** 95%
