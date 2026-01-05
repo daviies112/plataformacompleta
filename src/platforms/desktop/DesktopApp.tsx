@@ -485,6 +485,17 @@ const DesktopApp = () => {
           </ProtectedRoute>
         } 
       />
+
+      <Route 
+        path="/revendedora/*" 
+        element={
+          <ProtectedRoute>
+            <DesktopLayout>
+              <RevendedoraApp />
+            </DesktopLayout>
+          </ProtectedRoute>
+        } 
+      />
       
       {/* Catch all - 404 */}
       <Route 

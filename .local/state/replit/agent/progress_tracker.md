@@ -45,3 +45,5 @@
 [x] 45. Corrigida a rota /consultar-cpf que estava retornando 404
 [x] 46. Adicionadas as rotas faltantes /historico-consultas e /export no Desktop e Mobile
 [x] 47. Verificado carregamento da página através dos logs do servidor
+[x] 48. Corrigida a rota /revendedora que estava retornando 404 no Desktop e Mobile
+[x] 49. Registrado o RevendedoraApp nos routers principais para habilitar acesso à plataforma de revenda

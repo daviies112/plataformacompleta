@@ -431,6 +431,17 @@ const MobileApp = () => {
           </ProtectedRoute>
         } 
       />
+
+      <Route 
+        path="/revendedora/*" 
+        element={
+          <ProtectedRoute>
+            <MobileLayout>
+              <RevendedoraApp />
+            </MobileLayout>
+          </ProtectedRoute>
+        } 
+      />
       
       {/* Catch all - 404 */}
       <Route 
