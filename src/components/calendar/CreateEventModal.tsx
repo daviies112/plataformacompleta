@@ -14,6 +14,8 @@ import { Calendar, Clock, Video, MapPin, Users, Mail, Plus, X, Loader2, CheckCir
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale/pt-BR';
 
+import { useReuniao } from '@/hooks/useReuniao';
+
 interface Attendee {
   email: string;
   name: string;
@@ -28,13 +30,14 @@ interface CreateEventModalProps {
 export const CreateEventModal = ({ open, onOpenChange, defaultDate }: CreateEventModalProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { addMeeting } = useReuniao();
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [date, setDate] = useState(defaultDate || format(new Date(), 'yyyy-MM-dd'));
   const [startTime, setStartTime] = useState('09:00');
   const [duration, setDuration] = useState(60);
-  const [meetingType, setMeetingType] = useState<'video' | 'presential'>('presential');
+  const [meetingType, setMeetingType] = useState<'video' | 'presential'>('video');
   const [location, setLocation] = useState('');
   const [sendNotifications, setSendNotifications] = useState(true);
   const [attendees, setAttendees] = useState<Attendee[]>([]);
@@ -50,33 +53,42 @@ export const CreateEventModal = ({ open, onOpenChange, defaultDate }: CreateEven
 
   const createEventMutation = useMutation({
     mutationFn: async (eventData: any) => {
-      const response = await apiRequest('/api/dashboard/create-manual-event', {
-        method: 'POST',
-        body: JSON.stringify(eventData),
+      // Usar useReuniao para criar a reunião que gera o link do 100ms
+      const dataInicio = new Date(`${eventData.date}T${eventData.startTime}:00`).toISOString();
+      const dataFim = new Date(new Date(dataInicio).getTime() + eventData.duration * 60000).toISOString();
+      
+      return await addMeeting({
+        titulo: eventData.title,
+        descricao: eventData.description,
+        dataInicio,
+        dataFim,
+        status: 'agendada',
+        participantes: eventData.attendees,
+        sendNotifications: eventData.sendNotifications
       });
-      return response;
     },
     onSuccess: (data) => {
       toast({
         title: 'Reunião criada!',
         description: (
           <div className="space-y-2">
-            <p>Sua reunião foi agendada com sucesso.</p>
-            {data.data?.meetLink && (
+            <p>Sua reunião foi agendada com sucesso via 100ms.</p>
+            {data.linkReuniao && (
               <a
-                href={data.data.meetLink}
+                href={data.linkReuniao}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 text-primary hover:underline"
               >
                 <Video className="w-4 h-4" />
-                Abrir Google Meet
+                Abrir Sala de Reunião
               </a>
             )}
           </div>
         ),
       });
       queryClient.invalidateQueries({ queryKey: ['/api/dashboard/calendar-events'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/reunioes'] });
       handleClose();
     },
     onError: (error: any) => {
@@ -165,7 +177,7 @@ export const CreateEventModal = ({ open, onOpenChange, defaultDate }: CreateEven
             Nova Reunião
           </DialogTitle>
           <DialogDescription>
-            Crie uma nova reunião no Google Calendar
+            Crie uma nova reunião utilizando a plataforma 100ms
           </DialogDescription>
         </DialogHeader>
 
@@ -257,7 +269,7 @@ export const CreateEventModal = ({ open, onOpenChange, defaultDate }: CreateEven
                 className="w-full"
               >
                 <Video className="w-4 h-4 mr-2" />
-                Online (Google Meet)
+                Online (100ms)
               </Button>
               <Button
                 type="button"
@@ -364,14 +376,14 @@ export const CreateEventModal = ({ open, onOpenChange, defaultDate }: CreateEven
             />
           </div>
 
-          {/* Info sobre Google Meet */}
+          {/* Info sobre 100ms */}
           {meetingType === 'video' && (
             <div className="p-4 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg">
               <div className="flex items-start gap-3">
                 <Video className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" />
                 <div className="space-y-1">
                   <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
-                    Link do Google Meet será criado automaticamente
+                    Link do 100ms será criado automaticamente
                   </p>
                   <p className="text-xs text-blue-700 dark:text-blue-300">
                     Os participantes receberão o link de acesso no convite

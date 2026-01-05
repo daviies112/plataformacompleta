@@ -48,3 +48,5 @@
 [x] 48. Corrigida a rota /revendedora que estava retornando 404 no Desktop e Mobile
 [x] 49. Registrado o RevendedoraApp nos routers principais para habilitar acesso à plataforma de revenda
 [x] 50. Alterado comportamento do botão "Agendar Reunião" para abrir modal em vez de navegar para o calendário
+[x] 51. Atualizado CreateEventModal para usar a plataforma 100ms em vez do Google Meet
+[x] 52. Integrada a lógica de criação de reuniões com o hook useReuniao para gerar links automáticos do 100ms
