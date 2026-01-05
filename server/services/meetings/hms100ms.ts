@@ -9,9 +9,9 @@ export function generateManagementToken(appAccessKey: string, appSecret: string)
     access_key: appAccessKey,
     type: 'management',
     version: 2,
-    iat: Math.floor(Date.now() / 1000),
-    nbf: Math.floor(Date.now() / 1000),
-    exp: Math.floor(Date.now() / 1000) + (24 * 60 * 60), // 24 hours from now
+    iat: Math.floor(Date.now() / 1000) - 60, // 60 seconds buffer for clock skew
+    nbf: Math.floor(Date.now() / 1000) - 60,
+    exp: Math.floor(Date.now() / 1000) + (1 * 60 * 60), // 1 hour duration
   };
 
   const token = jwt.sign(payload, appSecret, {

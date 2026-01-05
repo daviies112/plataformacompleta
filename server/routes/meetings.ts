@@ -723,20 +723,24 @@ meetingsRouter.post('/reunioes', authenticateToken, requireTenantId, async (req:
     const tenantId = req.user!.tenantId;
     const { titulo, nome, email, dataInicio, dataFim, descricao, tipo } = req.body;
 
-    const credentials = await get100msCredentials(tenantId);
-    if (!credentials) {
-      return res.status(400).json({ 
-        error: 'Credenciais do 100ms não configuradas',
-        message: 'Configure suas credenciais do 100ms em Configurações antes de criar reuniões'
-      });
-    }
+    let roomId100ms = null;
+    if (tipo === 'online') {
+      const credentials = await get100msCredentials(tenantId);
+      if (!credentials) {
+        return res.status(400).json({ 
+          error: 'Credenciais do 100ms não configuradas',
+          message: 'Configure suas credenciais do 100ms em Configurações antes de criar reuniões online'
+        });
+      }
 
-    const sala = await criarSala(
-      titulo || 'Reunião',
-      credentials.appAccessKey,
-      credentials.appSecret,
-      credentials.templateId || ''
-    );
+      const sala = await criarSala(
+        titulo || 'Reunião',
+        credentials.templateId || '',
+        credentials.appAccessKey,
+        credentials.appSecret
+      );
+      roomId100ms = sala.id;
+    }
 
     const baseUrl = process.env.REPLIT_DOMAINS?.split(',')[0] || 'localhost:5000';
     const startDate = new Date(dataInicio);
@@ -754,12 +758,19 @@ meetingsRouter.post('/reunioes', authenticateToken, requireTenantId, async (req:
       duracao,
       descricao,
       status: 'agendada',
-      roomId100ms: sala.id,
+      tipo: tipo || 'online',
+      roomId100ms,
       linkReuniao: '', // Will be updated after we get the ID
     }).returning();
 
     // Update with the correct meeting link using the generated UUID
-    const linkReuniao = `https://${baseUrl}/reuniao/${newMeeting.id}`;
+    let linkReuniao = '';
+    if (tipo === 'online') {
+      linkReuniao = `https://${baseUrl}/reuniao/${newMeeting.id}`;
+    } else {
+      linkReuniao = descricao || 'Presencial'; // Or some other default for presencial
+    }
+
     await db.update(reunioes).set({ linkReuniao }).where(eq(reunioes.id, newMeeting.id));
     newMeeting.linkReuniao = linkReuniao;
 

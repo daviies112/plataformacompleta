@@ -90,6 +90,7 @@ export default function CreateEventModal({
         dataInicio: dataInicio.toISOString(),
         dataFim: dataFim.toISOString(),
         duracao,
+        tipo: values.tipo,
         telefone: values.local, // Usando telefone como campo de local para compatibilidade
         status: 'agendada',
       });
