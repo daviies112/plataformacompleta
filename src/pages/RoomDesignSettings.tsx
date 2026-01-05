@@ -453,15 +453,35 @@ export default function RoomDesignSettings() {
   const { data: designData, isLoading } = useQuery({
     queryKey: ["/api/reunioes/room-design"],
     queryFn: async () => {
-      const response = await api.get("/api/reunioes/room-design");
-      return response.data;
+      try {
+        const response = await api.get("/api/reunioes/room-design");
+        return response.data;
+      } catch (error: any) {
+        // Return empty data on 401 (not authenticated) instead of throwing
+        if (error.response?.status === 401) {
+          return { roomDesignConfig: null };
+        }
+        throw error;
+      }
     },
+    staleTime: 0, // Always refetch when component mounts
+    refetchOnMount: 'always', // Ensure data is fresh when navigating back
   });
 
   useEffect(() => {
     if (designData?.roomDesignConfig) {
-      setConfig(designData.roomDesignConfig);
-    } else {
+      // Deep merge with defaults to ensure all fields exist
+      const serverConfig = designData.roomDesignConfig;
+      const mergedConfig: RoomDesignConfig = {
+        branding: { ...DEFAULT_ROOM_DESIGN_CONFIG.branding, ...serverConfig.branding },
+        colors: { ...DEFAULT_ROOM_DESIGN_CONFIG.colors, ...serverConfig.colors },
+        lobby: { ...DEFAULT_ROOM_DESIGN_CONFIG.lobby, ...serverConfig.lobby },
+        meeting: { ...DEFAULT_ROOM_DESIGN_CONFIG.meeting, ...serverConfig.meeting },
+        endScreen: { ...DEFAULT_ROOM_DESIGN_CONFIG.endScreen, ...serverConfig.endScreen },
+      };
+      setConfig(mergedConfig);
+    } else if (designData !== undefined) {
+      // Only reset to default if we actually got a response (not still loading)
       setConfig(DEFAULT_ROOM_DESIGN_CONFIG);
     }
   }, [designData]);

@@ -586,14 +586,23 @@ meetingsRouter.patch('/reunioes/room-design', authenticateToken, requireTenantId
       .where(eq(hms100msConfig.tenantId, tenantId))
       .limit(1);
     
-    if (!existingConfig) {
-      return res.status(404).json({ error: 'Configuração 100ms não encontrada. Configure as credenciais primeiro.' });
-    }
+    let updatedConfig;
     
-    const [updatedConfig] = await db.update(hms100msConfig)
-      .set({ roomDesignConfig: validationResult.data, updatedAt: new Date() })
-      .where(eq(hms100msConfig.tenantId, tenantId))
-      .returning();
+    if (!existingConfig) {
+      [updatedConfig] = await db.insert(hms100msConfig)
+        .values({
+          tenantId,
+          appAccessKey: 'pending_configuration',
+          appSecret: 'pending_configuration',
+          roomDesignConfig: validationResult.data,
+        })
+        .returning();
+    } else {
+      [updatedConfig] = await db.update(hms100msConfig)
+        .set({ roomDesignConfig: validationResult.data, updatedAt: new Date() })
+        .where(eq(hms100msConfig.tenantId, tenantId))
+        .returning();
+    }
     
     res.json({ roomDesignConfig: updatedConfig.roomDesignConfig });
   } catch (error: any) {

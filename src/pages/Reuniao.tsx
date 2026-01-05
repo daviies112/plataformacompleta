@@ -40,14 +40,34 @@ export default function Reuniao() {
   const { data: designData } = useQuery({
     queryKey: ["/api/reunioes/room-design"],
     queryFn: async () => {
-      const response = await api.get("/api/reunioes/room-design");
-      return response.data;
+      try {
+        const response = await api.get("/api/reunioes/room-design");
+        return response.data;
+      } catch (error: any) {
+        // Return empty data on 401 instead of throwing
+        if (error.response?.status === 401) {
+          return { roomDesignConfig: null };
+        }
+        throw error;
+      }
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0, // Always refetch when component mounts
+    refetchOnMount: 'always', // Ensure data is fresh
   });
 
   const roomConfig: RoomDesignConfig = useMemo(() => {
-    return designData?.roomDesignConfig || DEFAULT_ROOM_DESIGN_CONFIG;
+    if (!designData?.roomDesignConfig) {
+      return DEFAULT_ROOM_DESIGN_CONFIG;
+    }
+    // Deep merge with defaults to ensure all fields exist
+    const serverConfig = designData.roomDesignConfig;
+    return {
+      branding: { ...DEFAULT_ROOM_DESIGN_CONFIG.branding, ...serverConfig.branding },
+      colors: { ...DEFAULT_ROOM_DESIGN_CONFIG.colors, ...serverConfig.colors },
+      lobby: { ...DEFAULT_ROOM_DESIGN_CONFIG.lobby, ...serverConfig.lobby },
+      meeting: { ...DEFAULT_ROOM_DESIGN_CONFIG.meeting, ...serverConfig.meeting },
+      endScreen: { ...DEFAULT_ROOM_DESIGN_CONFIG.endScreen, ...serverConfig.endScreen },
+    };
   }, [designData]);
 
   useEffect(() => {
