@@ -14,6 +14,7 @@ import { Calendar, Clock, Video, MapPin, Users, Mail, Plus, X, Loader2, CheckCir
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale/pt-BR';
 
+import api from '@/lib/api';
 import { useReuniao } from '@/hooks/useReuniao';
 
 interface Attendee {
@@ -57,17 +58,20 @@ export const CreateEventModal = ({ open, onOpenChange, defaultDate }: CreateEven
       const dataInicio = new Date(`${eventData.date}T${eventData.startTime}:00`).toISOString();
       const dataFim = new Date(new Date(dataInicio).getTime() + eventData.duration * 60000).toISOString();
       
-      // Se for vídeo, forçar o uso do 100ms através do addMeeting
+      // Se for vídeo, usar o endpoint de reunião para garantir integração com 100ms
       if (eventData.meetingType === 'video') {
-        return await addMeeting({
+        const payload = {
           titulo: eventData.title,
           descricao: eventData.description,
           dataInicio,
           dataFim,
           status: 'agendada',
-          participantes: eventData.attendees,
-          sendNotifications: eventData.sendNotifications
-        });
+          participantes: eventData.attendees
+        };
+        
+        // Usar o endpoint direto de criação de reunião que já lida com 100ms
+        const response = await api.post('/api/reunioes', payload);
+        return response.data;
       }
 
       // Se for presencial, usar o endpoint de evento manual (Google Calendar se configurado)
@@ -75,14 +79,17 @@ export const CreateEventModal = ({ open, onOpenChange, defaultDate }: CreateEven
       return await response.json();
     },
     onSuccess: (data) => {
+      // O backend retorna { success: true, meeting: { ... } } ou direto o objeto da reunião
+      const meetingData = data.meeting || data;
+      
       toast({
         title: 'Reunião criada!',
         description: (
           <div className="space-y-2">
             <p>Sua reunião foi agendada com sucesso via 100ms.</p>
-            {data.linkReuniao && (
+            {meetingData.linkReuniao && (
               <a
-                href={data.linkReuniao}
+                href={meetingData.linkReuniao}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 text-primary hover:underline"
