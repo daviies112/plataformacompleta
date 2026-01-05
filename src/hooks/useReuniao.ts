@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useCallback } from "react";
 import { reunioesApi } from "@/lib/api";
 
 export type Meeting = {
@@ -79,6 +80,13 @@ export function useReuniao(id?: string) {
     },
   });
 
+  // Memoizar para evitar loop infinito em useEffect
+  const getToken100ms = useCallback(
+    (meetingId: string) => getToken100msMutation.mutateAsync(meetingId),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
+
   const checkAvailabilityMutation = useMutation({
     mutationFn: async (data: { dataInicio: string; dataFim: string }) => {
       const response = await reunioesApi.checkAvailability(data);
@@ -104,7 +112,7 @@ export function useReuniao(id?: string) {
     addMeeting: (data: any) => createMutation.mutateAsync(data),
     updateMeeting: (id: string, data: any) => updateMutation.mutateAsync({ id, data }),
     deleteMeeting: (id: string) => deleteMutation.mutateAsync(id),
-    getToken100ms: (id: string) => getToken100msMutation.mutateAsync(id),
+    getToken100ms,
     checkAvailability: (data: { dataInicio: string; dataFim: string }) => checkAvailabilityMutation.mutateAsync(data),
     createInstantMeeting: (data?: { titulo?: string; duracao?: number }) => createInstantMutation.mutateAsync(data),
     isCreating: createMutation.isPending,

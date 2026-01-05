@@ -44,6 +44,11 @@ export default function Reuniao() {
   }, []);
 
   useEffect(() => {
+    // Evitar loop infinito: só buscar token uma vez
+    if (token100ms || tokenLoading || tokenError) {
+      return;
+    }
+
     async function fetchToken() {
       if (!meetingId || !meeting || meeting.status === 'concluida' || meeting.status === 'cancelada') {
         return;
@@ -73,7 +78,8 @@ export default function Reuniao() {
     }
 
     fetchToken();
-  }, [meetingId, meeting?.roomId100ms, meeting?.status, getToken100ms]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [meetingId, meeting?.roomId100ms, meeting?.status]);
 
   const handleCopyLink = async () => {
     if (meeting?.linkReuniao) {
