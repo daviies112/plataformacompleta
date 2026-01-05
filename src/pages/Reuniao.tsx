@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Meeting100ms } from "@/components/Meeting100ms";
 import { useReuniao } from "@/hooks/useReuniao";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, FileText, Download, Play, Loader2, Copy, Check, Share2 } from "lucide-react";
+import { ArrowLeft, FileText, Download, Play, Loader2, Copy, Check, Share2, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
@@ -24,6 +24,9 @@ export default function Reuniao() {
   const [tokenLoading, setTokenLoading] = useState(false);
   const [tokenError, setTokenError] = useState<string | null>(null);
   const [userName, setUserName] = useState<string>("Participante");
+  
+  const lastAttemptedRoomIdRef = useRef<string | null>(null);
+  const hasAttemptedFetchRef = useRef(false);
 
   useEffect(() => {
     const userData = localStorage.getItem("userData");
@@ -43,43 +46,69 @@ export default function Reuniao() {
     }
   }, []);
 
-  useEffect(() => {
-    // Evitar loop infinito: só buscar token uma vez
-    if (token100ms || tokenLoading || tokenError) {
+  const fetchTokenInternal = useCallback(async () => {
+    if (!meetingId || !meeting || meeting.status === 'concluida' || meeting.status === 'cancelada') {
       return;
     }
 
-    async function fetchToken() {
-      if (!meetingId || !meeting || meeting.status === 'concluida' || meeting.status === 'cancelada') {
-        return;
-      }
-
-      if (!meeting.roomId100ms) {
-        setTokenError("Esta reunião não possui uma sala 100ms configurada.");
-        return;
-      }
-
-      setTokenLoading(true);
-      setTokenError(null);
-
-      try {
-        const response = await getToken100ms(meetingId);
-        if (response.token) {
-          setToken100ms(response.token);
-        } else {
-          setTokenError("Token não retornado pela API.");
-        }
-      } catch (err: any) {
-        console.error("[Reuniao] Erro ao buscar token 100ms:", err);
-        setTokenError(err.message || "Erro ao obter token de acesso.");
-      } finally {
-        setTokenLoading(false);
-      }
+    if (!meeting.roomId100ms) {
+      setTokenError("Esta reunião não possui uma sala 100ms configurada.");
+      return;
     }
 
-    fetchToken();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [meetingId, meeting?.roomId100ms, meeting?.status]);
+    setTokenLoading(true);
+    setTokenError(null);
+    lastAttemptedRoomIdRef.current = meeting.roomId100ms;
+    hasAttemptedFetchRef.current = true;
+
+    try {
+      const response = await getToken100ms(meetingId);
+      if (response.token) {
+        setToken100ms(response.token);
+      } else {
+        setTokenError("Token não retornado pela API.");
+      }
+    } catch (err: any) {
+      console.error("[Reuniao] Erro ao buscar token 100ms:", err);
+      setTokenError(err.message || "Erro ao obter token de acesso.");
+    } finally {
+      setTokenLoading(false);
+    }
+  }, [meetingId, meeting, getToken100ms]);
+
+  useEffect(() => {
+    if (token100ms) {
+      return;
+    }
+
+    if (tokenLoading) {
+      return;
+    }
+
+    const currentRoomId = meeting?.roomId100ms;
+    const roomIdChanged = currentRoomId && currentRoomId !== lastAttemptedRoomIdRef.current;
+    
+    if (roomIdChanged) {
+      setTokenError(null);
+      hasAttemptedFetchRef.current = false;
+    }
+
+    if (tokenError) {
+      return;
+    }
+
+    if (hasAttemptedFetchRef.current && lastAttemptedRoomIdRef.current === currentRoomId) {
+      return;
+    }
+
+    fetchTokenInternal();
+  }, [meetingId, meeting?.roomId100ms, meeting?.status, token100ms, tokenLoading, tokenError, fetchTokenInternal]);
+
+  const handleRetryToken = useCallback(() => {
+    hasAttemptedFetchRef.current = false;
+    setTokenError(null);
+    fetchTokenInternal();
+  }, [fetchTokenInternal]);
 
   const handleCopyLink = async () => {
     if (meeting?.linkReuniao) {
@@ -251,7 +280,8 @@ export default function Reuniao() {
             <ArrowLeft className="h-4 w-4 mr-2" />
             Voltar
           </Button>
-          <Button onClick={() => window.location.reload()} data-testid="button-retry">
+          <Button onClick={handleRetryToken} data-testid="button-retry">
+            <RefreshCw className="h-4 w-4 mr-2" />
             Tentar Novamente
           </Button>
         </div>
