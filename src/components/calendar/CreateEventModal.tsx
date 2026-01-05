@@ -71,10 +71,7 @@ export const CreateEventModal = ({ open, onOpenChange, defaultDate }: CreateEven
       }
 
       // Se for presencial, usar o endpoint de evento manual (Google Calendar se configurado)
-      const response = await apiRequest('/api/dashboard/create-manual-event', {
-        method: 'POST',
-        body: JSON.stringify(eventData),
-      });
+      const response = await apiRequest('POST', '/api/dashboard/create-manual-event', eventData);
       return await response.json();
     },
     onSuccess: (data) => {
