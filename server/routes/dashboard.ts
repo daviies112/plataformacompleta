@@ -5,7 +5,7 @@ import { getSupabaseClient } from '../lib/supabaseClient';
 import { testDynamicSupabaseConnection, getDashboardDataFromSupabase, getDynamicSupabaseClient, fetchTenantSupabaseData } from '../lib/multiTenantSupabase';
 import { getSupabaseCredentials, getWhatsAppCredentials } from '../lib/credentialsManager';
 import { detectNewClients, processNewClients, getCacheStats, cleanExpiredCache } from '../lib/clientMonitor';
-import { DashboardCompleteV5 } from '../../shared/db-schema';
+import { DashboardCompleteV5, reunioes } from '../../shared/db-schema';
 import { cacheDashboardData } from '../lib/cacheStrategies';
 import { MockDataGenerator } from '../lib/mockDataGenerator';
 import jwt from 'jsonwebtoken';
@@ -559,6 +559,8 @@ router.get('/calendar-events', authenticateToken, async (req, res) => {
     let meetingEvents: any[] = [];
     try {
       const tenantId = req.user!.tenantId;
+      // Corrigido: db estava faltando no escopo da função de cache
+      const { db } = await import('../db');
       const meetings = await db.select().from(reunioes)
         .where(eq(reunioes.tenantId, tenantId))
         .orderBy(desc(reunioes.dataInicio));
