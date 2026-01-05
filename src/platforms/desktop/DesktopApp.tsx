@@ -22,6 +22,7 @@ import NotionHomePage from "@/pages/notion/Home";
 import NotionTemplatesPage from "@/pages/notion/Templates";
 import ReuniaoDashboard from "@/pages/ReuniaoDashboard";
 import ReuniaoPage from "@/pages/Reuniao";
+import ReuniaoPublica from "@/pages/ReuniaoPublica";
 import GravacoesPage from "@/pages/Gravacoes";
 import RoomDesignSettings from "@/pages/RoomDesignSettings";
 import { Navigate } from "react-router-dom";
@@ -419,6 +420,12 @@ const DesktopApp = () => {
             <ReuniaoPage />
           </ProtectedRoute>
         } 
+      />
+      
+      {/* Reunião pública - Para bot de gravação e participantes externos (SEM autenticação) */}
+      <Route 
+        path="/reuniao-publica/:id" 
+        element={<ReuniaoPublica />} 
       />
       
       <Route 

@@ -52,6 +52,85 @@ publicRoomDesignRouter.get('/reunioes/:id/room-design-public', async (req: Reque
   }
 });
 
+// PUBLIC endpoint - Get meeting info by ID (no auth required - for recording bot and external participants)
+publicRoomDesignRouter.get('/reunioes/:id/public', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const [meeting] = await db.select().from(reunioes)
+      .where(eq(reunioes.id, id))
+      .limit(1);
+
+    if (!meeting) {
+      return res.status(404).json({ error: 'Reunião não encontrada' });
+    }
+
+    // Return limited meeting info for public access
+    res.json({ 
+      meeting: {
+        id: meeting.id,
+        titulo: meeting.titulo,
+        roomId100ms: meeting.roomId100ms,
+        status: meeting.status,
+        dataHora: meeting.dataHora,
+        tenantId: meeting.tenantId
+      }
+    });
+  } catch (error: any) {
+    console.error('Erro ao obter reunião pública:', error);
+    res.status(500).json({ error: 'Erro ao obter reunião' });
+  }
+});
+
+// PUBLIC endpoint - Generate 100ms token for public participants (no auth required)
+publicRoomDesignRouter.post('/reunioes/:id/token-public', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { userName, role } = req.body;
+
+    const [meeting] = await db.select().from(reunioes)
+      .where(eq(reunioes.id, id))
+      .limit(1);
+
+    if (!meeting) {
+      return res.status(404).json({ error: 'Reunião não encontrada' });
+    }
+
+    if (!meeting.roomId100ms) {
+      return res.status(400).json({ error: 'Reunião não possui sala 100ms configurada' });
+    }
+
+    // Get 100ms credentials for this tenant
+    const credentials = await get100msCredentialsForTenant(meeting.tenantId);
+    if (!credentials) {
+      return res.status(400).json({ error: 'Credenciais do 100ms não configuradas para este tenant' });
+    }
+
+    // Determine role - recording bot gets special role, others get guest
+    const participantRole = role === 'recorder' ? 'recorder' : 'guest';
+    const participantName = userName || 'Participante';
+
+    console.log(`[Token Public] Gerando token para ${participantName} (${participantRole}) na sala ${meeting.roomId100ms}`);
+
+    const token = gerarTokenParticipante(
+      meeting.roomId100ms,
+      participantName,
+      participantRole,
+      credentials.appAccessKey,
+      credentials.appSecret
+    );
+
+    res.json({ 
+      token,
+      roomId: meeting.roomId100ms,
+      role: participantRole
+    });
+  } catch (error: any) {
+    console.error('Erro ao gerar token público:', error);
+    res.status(500).json({ error: 'Erro ao gerar token de acesso' });
+  }
+});
+
 // Helper function to get 100ms credentials without auth (for public recording routes)
 async function get100msCredentialsForTenant(tenantId: string) {
   try {
@@ -118,14 +197,15 @@ publicRoomDesignRouter.post('/100ms/recording/start', async (req: Request, res: 
       return res.status(400).json({ error: 'Credenciais do 100ms não configuradas para este tenant' });
     }
 
-    // Build the meeting URL if not provided
+    // Build the meeting URL if not provided - USE PUBLIC ROUTE for recording bot
     let finalMeetingUrl = meetingUrl;
     if (!finalMeetingUrl) {
       const baseUrl = process.env.REPLIT_DEV_DOMAIN || 
                       process.env.REPLIT_DOMAINS?.split(',')[0] || 
                       'localhost:5000';
       const protocol = baseUrl.includes('localhost') ? 'http' : 'https';
-      finalMeetingUrl = `${protocol}://${baseUrl}/reuniao/${meeting.id}`;
+      // Use /reuniao-publica/ for recording bot (no authentication required)
+      finalMeetingUrl = `${protocol}://${baseUrl}/reuniao-publica/${meeting.id}`;
     }
 
     console.log(`[Recording] URL da reunião para gravação: ${finalMeetingUrl}`);
