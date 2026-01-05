@@ -7,6 +7,7 @@ import { Calendar, Users, Video, Clock, Plus, Loader2, Zap, Palette } from "luci
 import { ReuniaoCard } from "@/components/ReuniaoCard";
 import { useToast } from "@/hooks/use-toast";
 import { InstantMeetingModal } from "@/components/InstantMeetingModal";
+import { CreateEventModal } from "@/components/calendar/CreateEventModal";
 
 interface CreatedMeeting {
   id: string;
@@ -20,6 +21,7 @@ export default function ReuniaoDashboard() {
   const navigate = useNavigate();
   const [createdMeeting, setCreatedMeeting] = useState<CreatedMeeting | null>(null);
   const [showMeetingModal, setShowMeetingModal] = useState(false);
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
 
   const meetingsArray = Array.isArray(meetings) ? meetings : [];
   
@@ -123,7 +125,7 @@ export default function ReuniaoDashboard() {
           <Button 
             variant="outline" 
             className="gap-2"
-            onClick={() => navigate("/calendar")}
+            onClick={() => setShowScheduleModal(true)}
             data-testid="button-schedule-meeting"
           >
             <Plus className="h-4 w-4" /> Agendar Reuniao
@@ -238,6 +240,11 @@ export default function ReuniaoDashboard() {
         onClose={handleCloseModal}
         meeting={createdMeeting}
         onJoin={handleJoinMeeting}
+      />
+
+      <CreateEventModal 
+        open={showScheduleModal} 
+        onOpenChange={setShowScheduleModal} 
       />
     </div>
   );

@@ -47,3 +47,4 @@
 [x] 47. Verificado carregamento da página através dos logs do servidor
 [x] 48. Corrigida a rota /revendedora que estava retornando 404 no Desktop e Mobile
 [x] 49. Registrado o RevendedoraApp nos routers principais para habilitar acesso à plataforma de revenda
+[x] 50. Alterado comportamento do botão "Agendar Reunião" para abrir modal em vez de navegar para o calendário
