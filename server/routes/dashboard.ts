@@ -5,6 +5,7 @@ import { getSupabaseClient } from '../lib/supabaseClient';
 import { testDynamicSupabaseConnection, getDashboardDataFromSupabase, getDynamicSupabaseClient, fetchTenantSupabaseData } from '../lib/multiTenantSupabase';
 import { getSupabaseCredentials, getWhatsAppCredentials } from '../lib/credentialsManager';
 import { detectNewClients, processNewClients, getCacheStats, cleanExpiredCache } from '../lib/clientMonitor';
+import { eq, desc, and, or } from 'drizzle-orm';
 import { DashboardCompleteV5, reunioes } from '../../shared/db-schema';
 import { cacheDashboardData } from '../lib/cacheStrategies';
 import { MockDataGenerator } from '../lib/mockDataGenerator';
