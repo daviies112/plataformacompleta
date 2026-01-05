@@ -52,6 +52,200 @@ publicRoomDesignRouter.get('/reunioes/:id/room-design-public', async (req: Reque
   }
 });
 
+// Helper function to get 100ms credentials without auth (for public recording routes)
+async function get100msCredentialsForTenant(tenantId: string) {
+  try {
+    const config = await db.select().from(hms100msConfig)
+      .where(eq(hms100msConfig.tenantId, tenantId))
+      .limit(1);
+
+    if (!config[0]) {
+      return null;
+    }
+
+    if (!config[0].appAccessKey || !config[0].appSecret) {
+      return null;
+    }
+
+    const appAccessKey = decrypt(config[0].appAccessKey);
+    const appSecret = decrypt(config[0].appSecret);
+
+    if (!appAccessKey || !appSecret) {
+      return null;
+    }
+
+    return {
+      appAccessKey,
+      appSecret,
+      templateId: config[0].templateId
+    };
+  } catch (error) {
+    console.error('Erro ao obter credenciais 100ms para tenant:', error);
+    return null;
+  }
+}
+
+// PUBLIC RECORDING ROUTES - No authentication required
+// These routes allow the recording bot to control recordings without being logged in
+
+// POST /api/100ms/recording/start - Start recording by 100ms roomId
+publicRoomDesignRouter.post('/100ms/recording/start', async (req: Request, res: Response) => {
+  try {
+    const { roomId, meetingUrl } = req.body;
+
+    if (!roomId) {
+      return res.status(400).json({ error: 'roomId é obrigatório' });
+    }
+
+    console.log(`[Recording] Iniciando gravação para roomId: ${roomId}`);
+
+    // Find the meeting by 100ms roomId
+    const [meeting] = await db.select().from(reunioes)
+      .where(eq(reunioes.roomId100ms, roomId))
+      .limit(1);
+
+    if (!meeting) {
+      console.error(`[Recording] Reunião não encontrada para roomId: ${roomId}`);
+      return res.status(404).json({ error: 'Reunião não encontrada para este roomId' });
+    }
+
+    console.log(`[Recording] Reunião encontrada: ${meeting.id}, tenant: ${meeting.tenantId}`);
+
+    // Get 100ms credentials for this tenant
+    const credentials = await get100msCredentialsForTenant(meeting.tenantId);
+    if (!credentials) {
+      console.error(`[Recording] Credenciais 100ms não configuradas para tenant: ${meeting.tenantId}`);
+      return res.status(400).json({ error: 'Credenciais do 100ms não configuradas para este tenant' });
+    }
+
+    // Build the meeting URL if not provided
+    let finalMeetingUrl = meetingUrl;
+    if (!finalMeetingUrl) {
+      const baseUrl = process.env.REPLIT_DEV_DOMAIN || 
+                      process.env.REPLIT_DOMAINS?.split(',')[0] || 
+                      'localhost:5000';
+      const protocol = baseUrl.includes('localhost') ? 'http' : 'https';
+      finalMeetingUrl = `${protocol}://${baseUrl}/reuniao/${meeting.id}`;
+    }
+
+    console.log(`[Recording] URL da reunião para gravação: ${finalMeetingUrl}`);
+
+    // Start recording via 100ms API
+    const result = await iniciarGravacao(
+      roomId,
+      credentials.appAccessKey,
+      credentials.appSecret,
+      finalMeetingUrl
+    );
+
+    console.log(`[Recording] Gravação iniciada com sucesso:`, result);
+
+    // Save recording to database
+    const [gravacao] = await db.insert(gravacoes).values({
+      reuniaoId: meeting.id,
+      tenantId: meeting.tenantId,
+      roomId100ms: roomId,
+      sessionId100ms: result.session_id,
+      recordingId100ms: result.id,
+      status: 'recording',
+      startedAt: new Date(),
+    }).returning();
+
+    res.json({ 
+      success: true, 
+      recording: gravacao, 
+      recordingId: result.id,
+      hmsResult: result 
+    });
+  } catch (error: any) {
+    console.error('[Recording] Erro ao iniciar gravação:', error);
+    res.status(500).json({ 
+      error: 'Erro ao iniciar gravação', 
+      message: error.response?.data?.message || error.message 
+    });
+  }
+});
+
+// POST /api/100ms/recording/stop - Stop recording by 100ms roomId
+publicRoomDesignRouter.post('/100ms/recording/stop', async (req: Request, res: Response) => {
+  try {
+    const { roomId } = req.body;
+
+    if (!roomId) {
+      return res.status(400).json({ error: 'roomId é obrigatório' });
+    }
+
+    console.log(`[Recording] Parando gravação para roomId: ${roomId}`);
+
+    // Find the meeting by 100ms roomId
+    const [meeting] = await db.select().from(reunioes)
+      .where(eq(reunioes.roomId100ms, roomId))
+      .limit(1);
+
+    if (!meeting) {
+      console.error(`[Recording] Reunião não encontrada para roomId: ${roomId}`);
+      return res.status(404).json({ error: 'Reunião não encontrada para este roomId' });
+    }
+
+    console.log(`[Recording] Reunião encontrada: ${meeting.id}, tenant: ${meeting.tenantId}`);
+
+    // Get 100ms credentials for this tenant
+    const credentials = await get100msCredentialsForTenant(meeting.tenantId);
+    if (!credentials) {
+      console.error(`[Recording] Credenciais 100ms não configuradas para tenant: ${meeting.tenantId}`);
+      return res.status(400).json({ error: 'Credenciais do 100ms não configuradas para este tenant' });
+    }
+
+    // Stop recording via 100ms API
+    const result = await pararGravacao(
+      roomId,
+      credentials.appAccessKey,
+      credentials.appSecret
+    );
+
+    console.log(`[Recording] Gravação parada com sucesso:`, result);
+
+    // Update recording in database
+    await db.update(gravacoes)
+      .set({
+        status: 'stopped',
+        stoppedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(and(
+        eq(gravacoes.roomId100ms, roomId),
+        eq(gravacoes.status, 'recording')
+      ));
+
+    res.json({ success: true, hmsResult: result });
+  } catch (error: any) {
+    console.error('[Recording] Erro ao parar gravação:', error);
+    res.status(500).json({ 
+      error: 'Erro ao parar gravação', 
+      message: error.response?.data?.message || error.message 
+    });
+  }
+});
+
+// GET /api/100ms/recording/:roomId - List recordings for a 100ms roomId
+publicRoomDesignRouter.get('/100ms/recording/:roomId', async (req: Request, res: Response) => {
+  try {
+    const { roomId } = req.params;
+
+    console.log(`[Recording] Listando gravações para roomId: ${roomId}`);
+
+    // Find recordings for this roomId
+    const recordings = await db.select().from(gravacoes)
+      .where(eq(gravacoes.roomId100ms, roomId))
+      .orderBy(desc(gravacoes.createdAt));
+
+    res.json(recordings);
+  } catch (error: any) {
+    console.error('[Recording] Erro ao listar gravações:', error);
+    res.status(500).json({ error: 'Erro ao listar gravações', message: error.message });
+  }
+});
+
 interface AuthRequest extends Request {
   user?: {
     id: number;
