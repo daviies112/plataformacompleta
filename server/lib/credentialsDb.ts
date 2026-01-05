@@ -10,7 +10,6 @@ import {
   pluggyConfig, 
   supabaseConfig, 
   n8nConfig, 
-  googleCalendarConfig,
   redisConfig,
   sentryConfig,
   resendConfig,
@@ -34,12 +33,6 @@ export interface SupabaseCredentials {
 
 export interface N8nCredentials {
   webhookUrl: string;
-}
-
-export interface GoogleCalendarCredentials {
-  clientId: string;
-  clientSecret: string;
-  refreshToken?: string;
 }
 
 export interface RedisCredentials {
@@ -266,37 +259,6 @@ export async function getN8nCredentials(tenantId: string): Promise<N8nCredential
     return null;
   } catch (error) {
     console.error('Erro ao buscar URL do webhook N8N:', error);
-    return null;
-  }
-}
-
-/**
- * Get Google Calendar credentials from database
- * 🔐 MULTI-TENANT: Requires explicit tenant_id - NO default fallback for security
- */
-export async function getGoogleCalendarCredentials(tenantId: string): Promise<GoogleCalendarCredentials | null> {
-  try {
-    // 🔐 Query filtered by tenant
-    const configs = await db.select()
-      .from(googleCalendarConfig)
-      .where(eq(googleCalendarConfig.tenantId, tenantId))
-      .limit(1)
-      .execute();
-    
-    if (configs.length > 0) {
-      const config = configs[0];
-      console.log(`✅ Credenciais do Google Calendar carregadas do banco de dados (tenant: ${tenantId})`);
-      return {
-        clientId: config.clientId,
-        clientSecret: config.clientSecret,
-        refreshToken: config.refreshToken || undefined
-      };
-    }
-    
-    console.log('❌ Credenciais do Google Calendar não encontradas');
-    return null;
-  } catch (error) {
-    console.error('Erro ao buscar credenciais do Google Calendar:', error);
     return null;
   }
 }

@@ -194,30 +194,6 @@ export function registerNotificationRoutes(app: Express) {
 
   // ============ WEBHOOKS ============
 
-  // Webhook do Google Calendar
-  app.post('/api/notifications/webhooks/google-calendar', async (req: Request, res: Response) => {
-    try {
-      const channelId = req.headers['x-goog-channel-id'] as string;
-      const resourceId = req.headers['x-goog-resource-id'] as string;
-      const state = req.headers['x-goog-resource-state'] as string;
-      
-      log(`📅 Webhook Google Calendar recebido - Channel: ${channelId}, State: ${state}`);
-      
-      // Responder imediatamente
-      res.status(200).send('OK');
-      
-      // Processar em background apenas para mudanças
-      if (state === 'exists' || state === 'sync') {
-        setImmediate(() => {
-          IntegrationListeners.handleGoogleCalendarWebhook(channelId, resourceId);
-        });
-      }
-    } catch (error: any) {
-      log(`❌ Erro no webhook do Google Calendar: ${error.message}`);
-      res.status(500).send('Error');
-    }
-  });
-
   // Webhook do Pluggy
   app.post('/api/notifications/webhooks/pluggy', async (req: Request, res: Response) => {
     try {
@@ -239,33 +215,6 @@ export function registerNotificationRoutes(app: Express) {
   });
 
   // ============ SETUP DE INTEGRAÇÕES ============
-
-  // Configurar webhook do Google Calendar
-  app.post('/api/notifications/integrations/google-calendar/setup', async (req: Request, res: Response) => {
-    try {
-      // MULTI-TENANT SECURITY: Exigir autenticação válida (sem fallback dev_user)
-      const userId = (req.session as any)?.userId;
-      const tenantId = (req.session as any)?.tenantId;
-      
-      if (!userId || !tenantId) {
-        return res.status(401).json({ success: false, error: 'Não autenticado' });
-      }
-
-      const { calendarId } = req.body;
-      
-      // MULTI-TENANT: Passar tenantId para o método
-      const result = await IntegrationListeners.setupGoogleCalendarWebhook(
-        userId,
-        tenantId,
-        calendarId || 'primary'
-      );
-      
-      res.json({ success: true, webhook: result });
-    } catch (error: any) {
-      log(`❌ Erro ao configurar webhook do Google Calendar: ${error.message}`);
-      res.status(500).json({ error: error.message });
-    }
-  });
 
   // Registrar conexão Pluggy
   app.post('/api/notifications/integrations/pluggy/register', async (req: Request, res: Response) => {
@@ -292,35 +241,6 @@ export function registerNotificationRoutes(app: Express) {
       res.json(result);
     } catch (error: any) {
       log(`❌ Erro ao registrar conexão Pluggy: ${error.message}`);
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  // Salvar tokens do Google OAuth
-  app.post('/api/notifications/integrations/google/tokens', async (req: Request, res: Response) => {
-    try {
-      // MULTI-TENANT SECURITY: Exigir autenticação válida (sem fallback dev_user)
-      const userId = (req.session as any)?.userId;
-      const tenantId = (req.session as any)?.tenantId;
-      
-      if (!userId || !tenantId) {
-        return res.status(401).json({ success: false, error: 'Não autenticado' });
-      }
-
-      const { accessToken, refreshToken, expiresAt } = req.body;
-      
-      // MULTI-TENANT: Passar tenantId para o método
-      const result = await IntegrationListeners.saveGoogleTokens(
-        userId,
-        tenantId,
-        accessToken,
-        refreshToken,
-        expiresAt ? new Date(expiresAt) : undefined
-      );
-      
-      res.json(result);
-    } catch (error: any) {
-      log(`❌ Erro ao salvar tokens do Google: ${error.message}`);
       res.status(500).json({ error: error.message });
     }
   });
@@ -364,14 +284,6 @@ export function registerNotificationRoutes(app: Express) {
       let result;
       
       switch (type) {
-        case 'calendar':
-          result = await UnifiedNotificationService.sendCalendarNotification(
-            userId,
-            'Reunião de Planejamento',
-            new Date(Date.now() + 60 * 60 * 1000) // 1 hora a partir de agora
-          );
-          break;
-          
         case 'pluggy':
           result = await UnifiedNotificationService.sendPluggyNotification(
             userId,

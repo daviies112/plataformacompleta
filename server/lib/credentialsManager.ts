@@ -197,19 +197,6 @@ export function getSupabaseCredentials(clientId: string): { url: string; anonKey
   return null;
 }
 
-// Função para obter credenciais do Google Calendar de um cliente
-export function getGoogleCalendarCredentials(clientId: string): { clientId: string; clientSecret: string; refreshToken?: string } | null {
-  const credentials = getClientCredentials(clientId, 'google_calendar');
-  if (credentials && credentials.client_id && credentials.client_secret) {
-    return {
-      clientId: credentials.client_id,
-      clientSecret: credentials.client_secret,
-      refreshToken: credentials.refresh_token
-    };
-  }
-  return null;
-}
-
 // Função para obter credenciais do WhatsApp de um cliente
 export function getWhatsAppCredentials(clientId: string): { phoneNumber: string; apiKey: string; instanceId: string } | null {
   const credentials = getClientCredentials(clientId, 'whatsapp');

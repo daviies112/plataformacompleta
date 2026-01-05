@@ -84,8 +84,8 @@ class UnifiedNotificationService {
   private async sendPush(payload: UnifiedNotificationPayload) {
     try {
       // Mapear tipo para o NotificationService
-      const typeMap: Record<string, 'SUPABASE_NEW_DATA' | 'GOOGLE_CALENDAR_EVENT' | 'PLUGGY_UPDATE' | 'SYSTEM_ALERT'> = {
-        'CALENDAR': 'GOOGLE_CALENDAR_EVENT',
+      const typeMap: Record<string, 'SUPABASE_NEW_DATA' | 'PLUGGY_UPDATE' | 'SYSTEM_ALERT'> = {
+        'CALENDAR': 'SYSTEM_ALERT',
         'PLUGGY': 'PLUGGY_UPDATE',
         'WHATSAPP': 'SYSTEM_ALERT',
         'DASHBOARD': 'SYSTEM_ALERT',

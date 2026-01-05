@@ -1,8 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
-import { google } from 'googleapis';
 import NotificationService from './NotificationService';
 import { db } from '../db';
-import { googleCalendarWebhooks, pluggyConnections, googleTokens } from '../../shared/db-schema.js';
+import { pluggyConnections } from '../../shared/db-schema.js';
 import { eq, and } from 'drizzle-orm';
 import { log } from '../vite';
 
@@ -145,105 +144,6 @@ class IntegrationListeners {
     });
   }
 
-  // ============ GOOGLE CALENDAR INTEGRATION ============
-
-  async setupGoogleCalendarWebhook(userId: string, tenantId: string, calendarId: string = 'primary') {
-    try {
-      const oauth2Client = await this.getGoogleOAuthClient(userId, tenantId);
-      if (!oauth2Client) {
-        log('⚠️  Google OAuth não configurado para usuário');
-        return;
-      }
-
-      const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
-
-      // Configurar webhook - MULTI-TENANT: incluir tenantId no token
-      const channelId = `tenant_${tenantId}_user_${userId}_${Date.now()}`;
-      const apiUrl = process.env.API_URL || `https://${process.env.REPLIT_DEV_DOMAIN}`;
-      
-      const webhook = await calendar.events.watch({
-        calendarId: calendarId,
-        requestBody: {
-          id: channelId,
-          type: 'web_hook',
-          address: `${apiUrl}/api/notifications/webhooks/google-calendar`,
-          token: `${tenantId}:${userId}`,
-          expiration: (Date.now() + (7 * 24 * 60 * 60 * 1000)).toString()
-        }
-      });
-
-      // MULTI-TENANT: Salvar webhook com tenantId
-      await db.insert(googleCalendarWebhooks).values({
-        userId,
-        tenantId,
-        calendarId,
-        channelId,
-        resourceId: webhook.data.resourceId!,
-        expiration: new Date(parseInt(webhook.data.expiration!))
-      });
-
-      log(`✅ [TENANT:${tenantId}] Google Calendar webhook configurado para usuário: ${userId}`);
-      return webhook.data;
-    } catch (error) {
-      log(`❌ Erro ao configurar Google Calendar webhook: ${error}`);
-      throw error;
-    }
-  }
-
-  async handleGoogleCalendarWebhook(channelId: string, resourceId: string) {
-    try {
-      // MULTI-TENANT: Buscar webhook com tenantId
-      const [webhook] = await db.select()
-        .from(googleCalendarWebhooks)
-        .where(eq(googleCalendarWebhooks.channelId, channelId));
-
-      if (!webhook) {
-        log('⚠️  Webhook não encontrado');
-        return;
-      }
-
-      const oauth2Client = await this.getGoogleOAuthClient(webhook.userId, webhook.tenantId);
-      if (!oauth2Client) return;
-
-      const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
-
-      // Buscar eventos próximos (nas próximas 24h)
-      const now = new Date();
-      const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-      
-      const events = await calendar.events.list({
-        calendarId: webhook.calendarId,
-        timeMin: now.toISOString(),
-        timeMax: tomorrow.toISOString(),
-        maxResults: 10,
-        singleEvents: true,
-        orderBy: 'startTime'
-      });
-
-      // MULTI-TENANT: Processar eventos e incluir tenantId ao enviar notificação
-      for (const event of events.data.items || []) {
-        const eventStart = new Date(event.start?.dateTime || event.start?.date || '');
-        
-        await NotificationService.sendNotification(webhook.userId, webhook.tenantId, {
-          type: 'GOOGLE_CALENDAR_EVENT',
-          title: '📅 Evento Próximo',
-          body: `${event.summary} - ${this.formatEventTime(eventStart)}`,
-          data: {
-            event_id: event.id,
-            event_title: event.summary,
-            event_start: eventStart.toISOString(),
-            calendar_id: webhook.calendarId,
-            url: '/calendario'
-          }
-        });
-      }
-
-      log(`✅ [TENANT:${webhook.tenantId}] Google Calendar webhook processado com sucesso`);
-    } catch (error) {
-      log(`❌ Erro ao processar webhook do Google Calendar: ${error}`);
-    }
-  }
-
   // ============ PLUGGY INTEGRATION ============
 
   async handlePluggyWebhook(event: any) {
@@ -335,39 +235,6 @@ class IntegrationListeners {
     }).format(amount);
   }
 
-  private async getGoogleOAuthClient(userId: string, tenantId: string) {
-    try {
-      // MULTI-TENANT: Buscar tokens do usuário com tenantId
-      const [tokens] = await db.select()
-        .from(googleTokens)
-        .where(and(
-          eq(googleTokens.userId, userId),
-          eq(googleTokens.tenantId, tenantId)
-        ));
-
-      if (!tokens) {
-        log(`⚠️  [TENANT:${tenantId}] Google tokens não encontrados para usuário ${userId}`);
-        return null;
-      }
-
-      const oauth2Client = new google.auth.OAuth2(
-        process.env.GOOGLE_CLIENT_ID,
-        process.env.GOOGLE_CLIENT_SECRET,
-        process.env.GOOGLE_REDIRECT_URI
-      );
-
-      oauth2Client.setCredentials({
-        access_token: tokens.accessToken,
-        refresh_token: tokens.refreshToken
-      });
-
-      return oauth2Client;
-    } catch (error) {
-      log(`❌ Erro ao obter Google OAuth client: ${error}`);
-      return null;
-    }
-  }
-
   // MULTI-TENANT: Método para registrar conexão Pluggy com tenantId
   async registerPluggyConnection(userId: string, tenantId: string, itemId: string, connectorId?: string, connectorName?: string) {
     try {
@@ -395,33 +262,6 @@ class IntegrationListeners {
       throw error;
     }
   }
-
-  // MULTI-TENANT: Método para salvar tokens do Google com tenantId
-  async saveGoogleTokens(userId: string, tenantId: string, accessToken: string, refreshToken: string, expiresAt?: Date) {
-    try {
-      await db.insert(googleTokens).values({
-        userId,
-        tenantId,
-        accessToken,
-        refreshToken,
-        expiresAt
-      }).onConflictDoUpdate({
-        target: [googleTokens.userId, googleTokens.tenantId],
-        set: {
-          accessToken,
-          refreshToken,
-          expiresAt,
-          updatedAt: new Date()
-        }
-      });
-
-      log(`✅ [TENANT:${tenantId}] Google tokens salvos para usuário ${userId}`);
-      return { success: true };
-    } catch (error) {
-      log(`❌ Erro ao salvar Google tokens: ${error}`);
-      throw error;
-    }
-  }
 }
 
 // Lazy singleton pattern to avoid blocking module imports
@@ -437,9 +277,6 @@ export function getIntegrationListeners(): IntegrationListeners {
 // Export a proxy object that lazily initializes the instance
 export default {
   setupSupabaseListeners: (...args: Parameters<IntegrationListeners['setupSupabaseListeners']>) => getIntegrationListeners().setupSupabaseListeners(...args),
-  setupGoogleCalendarWebhook: (...args: Parameters<IntegrationListeners['setupGoogleCalendarWebhook']>) => getIntegrationListeners().setupGoogleCalendarWebhook(...args),
-  handleGoogleCalendarWebhook: (...args: Parameters<IntegrationListeners['handleGoogleCalendarWebhook']>) => getIntegrationListeners().handleGoogleCalendarWebhook(...args),
   handlePluggyWebhook: (...args: Parameters<IntegrationListeners['handlePluggyWebhook']>) => getIntegrationListeners().handlePluggyWebhook(...args),
   registerPluggyConnection: (...args: Parameters<IntegrationListeners['registerPluggyConnection']>) => getIntegrationListeners().registerPluggyConnection(...args),
-  saveGoogleTokens: (...args: Parameters<IntegrationListeners['saveGoogleTokens']>) => getIntegrationListeners().saveGoogleTokens(...args),
 };

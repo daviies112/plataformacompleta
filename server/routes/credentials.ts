@@ -4,9 +4,9 @@ import { authenticateConfig } from '../middleware/configAuth';
 import { credentialsStorage, encrypt, decrypt, saveCredentialsToFile } from '../lib/credentialsManager';
 import { clearSupabaseClientCache, testDynamicSupabaseConnection } from '../lib/multiTenantSupabase';
 import { db } from '../db';
-import { pluggyConfig, supabaseConfig, n8nConfig, googleCalendarConfig, evolutionApiConfig } from '../../shared/db-schema.js';
+import { pluggyConfig, supabaseConfig, n8nConfig, evolutionApiConfig } from '../../shared/db-schema.js';
 import { eq } from 'drizzle-orm';
-import { getSupabaseCredentials, getPluggyCredentials, getN8nCredentials, getGoogleCalendarCredentials, getEvolutionApiCredentials } from '../lib/credentialsDb';
+import { getSupabaseCredentials, getPluggyCredentials, getN8nCredentials, getEvolutionApiCredentials } from '../lib/credentialsDb';
 import { resetAllPollerStates } from '../lib/stateReset';
 import { invalidateClienteCache } from '../lib/clienteSupabase';
 import { clearSupabaseClientCache as clearFormularioSupabaseCache } from '../formularios/utils/supabaseClient';
@@ -33,7 +33,7 @@ router.put('/:integrationType', authenticateToken, async (req, res) => {
     console.log(`🔐 [CREDENTIALS] Salvando credenciais ${integrationType} para tenant ${tenantId}`);
 
     // Validar o tipo de integração
-    const validTypes = ['supabase', 'google_calendar', 'google_meet', 'whatsapp', 'evolution_api', 'n8n', 'pluggy'];
+    const validTypes = ['supabase', 'google_meet', 'whatsapp', 'evolution_api', 'n8n', 'pluggy'];
     if (!validTypes.includes(integrationType)) {
       return res.status(400).json({
         success: false,
@@ -111,19 +111,6 @@ router.put('/:integrationType', authenticateToken, async (req, res) => {
           webhookUrl: credentials.webhook_url
         }).execute();
         console.log(`✅ Configuração do N8N salva no banco (tenant: ${tenantId})`);
-      } else if (integrationType === 'google_calendar') {
-        // 🔐 Deletar configuração anterior APENAS deste tenant
-        await db.delete(googleCalendarConfig)
-          .where(eq(googleCalendarConfig.tenantId, tenantId))
-          .execute();
-        // Inserir nova configuração COM tenantId
-        await db.insert(googleCalendarConfig).values({
-          tenantId,
-          clientId: credentials.client_id,
-          clientSecret: credentials.client_secret,
-          refreshToken: credentials.refresh_token || null
-        }).execute();
-        console.log(`✅ Configuração do Google Calendar salva no banco (tenant: ${tenantId})`);
       } else if (integrationType === 'evolution_api') {
         // 🔐 Deletar configuração anterior APENAS deste tenant
         await db.delete(evolutionApiConfig)
@@ -238,22 +225,6 @@ router.get('/:integrationType', authenticateToken, async (req, res) => {
         }
         credentialsStorage.get(clientId)!.set(integrationType, encryptedCreds);
       }
-    } else if (integrationType === 'google_calendar') {
-      const googleCreds = await getGoogleCalendarCredentials(tenantId);
-      if (googleCreds) {
-        dbCredentials = {
-          client_id: googleCreds.clientId,
-          client_secret: googleCreds.clientSecret,
-          refresh_token: googleCreds.refreshToken
-        };
-        
-        // Salva na memória para próximas requisições
-        const encryptedCreds = encrypt(JSON.stringify(dbCredentials));
-        if (!credentialsStorage.has(clientId)) {
-          credentialsStorage.set(clientId, new Map());
-        }
-        credentialsStorage.get(clientId)!.set(integrationType, encryptedCreds);
-      }
     } else if (integrationType === 'evolution_api') {
       const evolutionCreds = await getEvolutionApiCredentials(tenantId);
       if (evolutionCreds) {
@@ -316,11 +287,9 @@ router.get('/', authenticateToken, async (req, res) => {
     const supabaseCreds = await getSupabaseCredentials(tenantId);
     const pluggyCreds = await getPluggyCredentials(tenantId);
     const n8nCreds = await getN8nCredentials(tenantId);
-    const googleCalendarCreds = await getGoogleCalendarCredentials(tenantId);
 
     const status = {
       supabase_configured: (clientCredentials?.has('supabase') || !!supabaseCreds),
-      google_calendar: (clientCredentials?.has('google_calendar') || !!googleCalendarCreds),
       google_meet: clientCredentials?.has('google_meet') || false,
       whatsapp: clientCredentials?.has('whatsapp') || false,
       evolution_api: clientCredentials?.has('evolution_api') || false,
@@ -349,7 +318,7 @@ router.post('/test/:integrationType', authenticateConfig, async (req, res) => {
     const clientId = req.user!.clientId;
 
     // Validar o tipo de integração
-    const validTypes = ['supabase', 'google_calendar', 'google_meet', 'whatsapp', 'evolution_api', 'n8n', 'pluggy', 'redis', 'sentry', 'resend', 'cloudflare', 'better_stack'];
+    const validTypes = ['supabase', 'google_meet', 'whatsapp', 'evolution_api', 'n8n', 'pluggy', 'redis', 'sentry', 'resend', 'cloudflare', 'better_stack'];
     if (!validTypes.includes(integrationType)) {
       return res.status(400).json({
         success: false,
@@ -368,13 +337,6 @@ router.post('/test/:integrationType', authenticateConfig, async (req, res) => {
         anonKey: req.body.supabaseAnonKey,
       };
       console.log('[TEST SUPABASE] Usando credenciais do body para teste');
-    } else if (bodyHasCredentials && integrationType === 'google_calendar') {
-      credentials = {
-        client_id: req.body.clientId,
-        client_secret: req.body.clientSecret,
-        refresh_token: req.body.refreshToken || null
-      };
-      console.log('[TEST GOOGLE_CALENDAR] Usando credenciais do body para teste');
     } else if (bodyHasCredentials && integrationType === 'pluggy') {
       credentials = {
         clientId: req.body.clientId,

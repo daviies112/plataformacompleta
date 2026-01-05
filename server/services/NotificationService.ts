@@ -10,7 +10,7 @@ import { eq, and } from 'drizzle-orm';
 import { log } from '../vite';
 
 interface NotificationPayload {
-  type: 'SUPABASE_NEW_DATA' | 'GOOGLE_CALENDAR_EVENT' | 'PLUGGY_UPDATE' | 'SYSTEM_ALERT';
+  type: 'SUPABASE_NEW_DATA' | 'PLUGGY_UPDATE' | 'SYSTEM_ALERT';
   title: string;
   body: string;
   icon?: string;
@@ -244,7 +244,7 @@ class NotificationService {
   private preparePayload(notification: NotificationPayload, settings: any) {
     const notifIcons: Record<string, string> = {
       SUPABASE_NEW_DATA: '📊',
-      GOOGLE_CALENDAR_EVENT: '📅',
+      CALENDAR_EVENT: '📅',
       PLUGGY_UPDATE: '💰',
       SYSTEM_ALERT: '⚠️',
     };
@@ -324,7 +324,7 @@ class NotificationService {
   private isTypeEnabled(settings: any, type: string): boolean {
     const typeMap: Record<string, string> = {
       SUPABASE_NEW_DATA: 'supabaseEnabled',
-      GOOGLE_CALENDAR_EVENT: 'calendarEnabled',
+      CALENDAR_EVENT: 'calendarEnabled',
       PLUGGY_UPDATE: 'pluggyEnabled',
       SYSTEM_ALERT: 'systemEnabled',
     };

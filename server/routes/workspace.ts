@@ -4,7 +4,6 @@ import { getDynamicSupabaseClient } from '../lib/multiTenantSupabase';
 import { db } from '../db';
 import { workspaceThemes } from '../../shared/db-schema';
 import { eq } from 'drizzle-orm';
-import { getGoogleCalendarCredentials } from '../lib/credentialsDb';
 import { queryWithCache, CACHE_NAMESPACES, CACHE_TTLS, cacheWorkspaceData, invalidateWorkspaceCache } from '../lib/cacheStrategies';
 import { cache } from '../lib/cache';
 
@@ -639,32 +638,21 @@ workspaceRoutes.delete('/themes/:id', authenticateToken, async (req, res) => {
 
 // ========== CALENDAR SYNC ROUTES ==========
 
-// Lazy-load googleapis to avoid blocking module initialization
-let googleApis: any = null;
-async function getGoogleApis() {
-  if (!googleApis) {
-    const { google } = await import('googleapis');
-    googleApis = google;
-  }
-  return googleApis;
-}
-
 // Interface para eventos de calendário do workspace
 interface WorkspaceCalendarEvent {
   id: string;
   title: string;
   date: string;
   time?: string;
-  source: 'database' | 'board' | 'google_calendar';
+  source: 'database' | 'board';
   sourceId: string;
   description?: string;
-  type: 'date' | 'dueDate' | 'calendar_event';
+  type: 'date' | 'dueDate';
   metadata?: {
     databaseId?: string;
     fieldId?: string;
     boardId?: string;
     cardId?: string;
-    googleEventId?: string;
   };
 }
 
@@ -831,73 +819,6 @@ workspaceRoutes.get('/calendar/events', authenticateToken, async (req, res) => {
           console.log(`[Calendar Events GET] ${boardEvents.length} eventos extraídos de boards`);
         }
 
-        // 3. Buscar eventos do Google Calendar
-        // 🔐 ISOLAMENTO MULTI-TENANT: Buscar credenciais do tenant específico
-        const googleCredentials = await getGoogleCalendarCredentials(req.user!.tenantId);
-        
-        if (googleCredentials?.clientId && googleCredentials?.clientSecret && googleCredentials?.refreshToken) {
-          try {
-            console.log('[Calendar Events] Buscando eventos do Google Calendar...');
-            
-            const google = await getGoogleApis();
-            const oauth2Client = new google.auth.OAuth2(
-              googleCredentials.clientId,
-              googleCredentials.clientSecret,
-              'http://localhost:3000/oauth2callback'
-            );
-
-            oauth2Client.setCredentials({
-              refresh_token: googleCredentials.refreshToken,
-            });
-
-            const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
-            
-            const now = new Date();
-            const timeMin = new Date(now.getTime() - (30 * 24 * 60 * 60 * 1000)).toISOString();
-            const timeMax = new Date(now.getTime() + (365 * 24 * 60 * 60 * 1000)).toISOString();
-            
-            const response = await calendar.events.list({
-              calendarId: 'primary',
-              timeMin,
-              timeMax,
-              maxResults: 500,
-              singleEvents: true,
-              orderBy: 'startTime',
-            });
-
-            const googleEvents = response.data.items || [];
-            console.log(`[Calendar Events] ${googleEvents.length} eventos do Google Calendar encontrados`);
-
-            googleEvents.forEach((event: any) => {
-              const start = event.start?.dateTime || event.start?.date || '';
-              const startDate = new Date(start);
-              const isAllDay = !event.start?.dateTime;
-              
-              events.push({
-                id: `google_${event.id}`,
-                title: event.summary || 'Evento sem título',
-                date: startDate.toISOString().split('T')[0],
-                time: isAllDay ? undefined : startDate.toLocaleTimeString('pt-BR', {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  timeZone: 'America/Sao_Paulo'
-                }),
-                source: 'google_calendar',
-                sourceId: event.id,
-                type: 'calendar_event',
-                description: event.description || '',
-                metadata: {
-                  googleEventId: event.id
-                }
-              });
-            });
-          } catch (googleError: any) {
-            console.error('[Calendar Events] Erro ao buscar Google Calendar:', googleError.message);
-          }
-        } else {
-          console.log('[Calendar Events] Google Calendar não configurado');
-        }
-
         console.log(`[Calendar Events GET] Total de ${events.length} eventos encontrados (fonte: ${dataSource})`);
 
         return {
@@ -905,8 +826,7 @@ workspaceRoutes.get('/calendar/events', authenticateToken, async (req, res) => {
           dataSource,
           sources: {
             database: events.filter(e => e.source === 'database').length,
-            board: events.filter(e => e.source === 'board').length,
-            google_calendar: events.filter(e => e.source === 'google_calendar').length
+            board: events.filter(e => e.source === 'board').length
           }
         };
       },
@@ -926,8 +846,7 @@ workspaceRoutes.get('/calendar/events', authenticateToken, async (req, res) => {
         dataSource: 'fallback',
         sources: {
           database: events.filter(e => e.source === 'database').length,
-          board: events.filter(e => e.source === 'board').length,
-          google_calendar: 0
+          board: events.filter(e => e.source === 'board').length
         }
       };
     });
@@ -990,8 +909,7 @@ workspaceRoutes.post('/calendar/events', authenticateToken, async (req, res) => 
       dataSource: 'request_body',
       sources: {
         database: events.filter(e => e.source === 'database').length,
-        board: events.filter(e => e.source === 'board').length,
-        google_calendar: 0
+        board: events.filter(e => e.source === 'board').length
       }
     });
   } catch (error: any) {
@@ -999,297 +917,6 @@ workspaceRoutes.post('/calendar/events', authenticateToken, async (req, res) => 
     res.status(500).json({
       success: false,
       error: 'Erro ao processar eventos do calendário',
-      details: error.message
-    });
-  }
-});
-
-// POST /api/workspace/calendar/sync-to-google
-// Sincroniza evento do workspace para Google Calendar
-workspaceRoutes.post('/calendar/sync-to-google', authenticateToken, async (req, res) => {
-  try {
-    const { title, date, time, description, duration = 60 } = req.body;
-
-    console.log('[Sync to Google] Sincronizando evento:', { title, date, time });
-
-    if (!title || !date) {
-      return res.status(400).json({
-        success: false,
-        error: 'Título e data são obrigatórios'
-      });
-    }
-
-    // 🔐 ISOLAMENTO MULTI-TENANT: Buscar credenciais do tenant específico
-    const googleCredentials = await getGoogleCalendarCredentials(req.user!.tenantId);
-    
-    if (!googleCredentials?.clientId || !googleCredentials?.clientSecret || !googleCredentials?.refreshToken) {
-      return res.status(400).json({
-        success: false,
-        error: 'Credenciais do Google Calendar não configuradas'
-      });
-    }
-
-    const google = await getGoogleApis();
-    const oauth2Client = new google.auth.OAuth2(
-      googleCredentials.clientId,
-      googleCredentials.clientSecret,
-      'http://localhost:3000/oauth2callback'
-    );
-
-    oauth2Client.setCredentials({
-      refresh_token: googleCredentials.refreshToken,
-    });
-
-    const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
-
-    let startDateTime: string;
-    let endDateTime: string;
-
-    if (time) {
-      const [hours, minutes] = time.split(':');
-      const start = new Date(date);
-      start.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-      
-      const end = new Date(start.getTime() + duration * 60000);
-      
-      startDateTime = start.toISOString();
-      endDateTime = end.toISOString();
-    } else {
-      startDateTime = date;
-      endDateTime = date;
-    }
-
-    const event = {
-      summary: title,
-      description: description || '',
-      start: time ? {
-        dateTime: startDateTime,
-        timeZone: 'America/Sao_Paulo',
-      } : {
-        date: startDateTime,
-      },
-      end: time ? {
-        dateTime: endDateTime,
-        timeZone: 'America/Sao_Paulo',
-      } : {
-        date: endDateTime,
-      },
-    };
-
-    const response = await calendar.events.insert({
-      calendarId: 'primary',
-      requestBody: event,
-    });
-
-    console.log('[Sync to Google] Evento criado:', response.data.id);
-
-    res.json({
-      success: true,
-      googleEventId: response.data.id,
-      eventLink: response.data.htmlLink,
-      message: 'Evento criado no Google Calendar com sucesso'
-    });
-  } catch (error: any) {
-    console.error('[Sync to Google] Erro:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Erro ao criar evento no Google Calendar',
-      details: error.message
-    });
-  }
-});
-
-// POST /api/workspace/calendar/sync-from-google
-// Importa evento do Google Calendar para workspace
-workspaceRoutes.post('/calendar/sync-from-google', authenticateToken, async (req, res) => {
-  try {
-    const { googleEventId, targetType, boardId, databaseId } = req.body;
-    const { clientId } = req.user;
-
-    console.log('[Sync from Google] Importando evento:', { googleEventId, targetType, boardId, databaseId });
-
-    if (!googleEventId) {
-      return res.status(400).json({
-        success: false,
-        error: 'ID do evento do Google Calendar é obrigatório'
-      });
-    }
-
-    if (!targetType || (targetType !== 'board' && targetType !== 'database')) {
-      return res.status(400).json({
-        success: false,
-        error: 'Tipo de destino deve ser "board" ou "database"'
-      });
-    }
-
-    // 🔐 ISOLAMENTO MULTI-TENANT: Buscar credenciais do tenant específico
-    const googleCredentials = await getGoogleCalendarCredentials(req.user!.tenantId);
-    
-    if (!googleCredentials?.clientId || !googleCredentials?.clientSecret || !googleCredentials?.refreshToken) {
-      return res.status(400).json({
-        success: false,
-        error: 'Credenciais do Google Calendar não configuradas'
-      });
-    }
-
-    const google = await getGoogleApis();
-    const oauth2Client = new google.auth.OAuth2(
-      googleCredentials.clientId,
-      googleCredentials.clientSecret,
-      'http://localhost:3000/oauth2callback'
-    );
-
-    oauth2Client.setCredentials({
-      refresh_token: googleCredentials.refreshToken,
-    });
-
-    const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
-
-    const event = await calendar.events.get({
-      calendarId: 'primary',
-      eventId: googleEventId,
-    });
-
-    const eventData = event.data;
-    const start = eventData.start?.dateTime || eventData.start?.date || '';
-    const startDate = new Date(start);
-    const isAllDay = !eventData.start?.dateTime;
-
-    const supabase = await getDynamicSupabaseClient(clientId);
-    
-    if (!supabase) {
-      return res.status(400).json({
-        success: false,
-        error: 'Supabase não configurado para este cliente'
-      });
-    }
-
-    if (targetType === 'board') {
-      if (!boardId) {
-        return res.status(400).json({
-          success: false,
-          error: 'boardId é obrigatório para sincronizar com board'
-        });
-      }
-
-      const { data: boardData, error: boardFetchError } = await supabase
-        .from('workspace_boards')
-        .select('*')
-        .eq('id', boardId)
-        .single();
-
-      if (boardFetchError || !boardData) {
-        return res.status(404).json({
-          success: false,
-          error: 'Board não encontrado'
-        });
-      }
-
-      let cards = boardData.cards;
-      if (typeof cards === 'string') cards = JSON.parse(cards);
-      if (!Array.isArray(cards)) cards = [];
-
-      const newCard = {
-        id: `card_${Date.now()}`,
-        title: eventData.summary || 'Evento importado',
-        description: eventData.description || '',
-        dueDate: startDate.toISOString().split('T')[0],
-        dueTime: isAllDay ? undefined : startDate.toLocaleTimeString('pt-BR', {
-          hour: '2-digit',
-          minute: '2-digit',
-          timeZone: 'America/Sao_Paulo'
-        }),
-        listId: boardData.lists?.[0]?.id || 'list_1',
-        labels: [],
-        members: [],
-        createdAt: Date.now(),
-        updatedAt: Date.now()
-      };
-
-      cards.push(newCard);
-
-      const { error: updateError } = await supabase
-        .from('workspace_boards')
-        .update({ cards: JSON.stringify(cards) })
-        .eq('id', boardId);
-
-      if (updateError) throw updateError;
-
-      console.log('[Sync from Google] Card criado no board:', newCard.id);
-
-      res.json({
-        success: true,
-        cardId: newCard.id,
-        message: 'Evento importado como card no board com sucesso'
-      });
-    } else {
-      if (!databaseId) {
-        return res.status(400).json({
-          success: false,
-          error: 'databaseId é obrigatório para sincronizar com database'
-        });
-      }
-
-      const { data: dbData, error: dbFetchError } = await supabase
-        .from('workspace_databases')
-        .select('*')
-        .eq('id', databaseId)
-        .single();
-
-      if (dbFetchError || !dbData) {
-        return res.status(404).json({
-          success: false,
-          error: 'Database não encontrada'
-        });
-      }
-
-      let rows = dbData.rows;
-      let fields = dbData.fields;
-      if (typeof rows === 'string') rows = JSON.parse(rows);
-      if (typeof fields === 'string') fields = JSON.parse(fields);
-      if (!Array.isArray(rows)) rows = [];
-      if (!Array.isArray(fields)) fields = [];
-
-      const dateField = fields.find((f: any) => f.type === 'date');
-      
-      if (!dateField) {
-        return res.status(400).json({
-          success: false,
-          error: 'Database não possui campo de data'
-        });
-      }
-
-      const newRow: any = {
-        id: `row_${Date.now()}`,
-        title: eventData.summary || 'Evento importado',
-        createdAt: Date.now(),
-        updatedAt: Date.now()
-      };
-
-      newRow[dateField.id] = startDate.toISOString().split('T')[0];
-
-      rows.push(newRow);
-
-      const { error: updateError } = await supabase
-        .from('workspace_databases')
-        .update({ rows: JSON.stringify(rows) })
-        .eq('id', databaseId);
-
-      if (updateError) throw updateError;
-
-      console.log('[Sync from Google] Row criada na database:', newRow.id);
-
-      res.json({
-        success: true,
-        rowId: newRow.id,
-        message: 'Evento importado como row na database com sucesso'
-      });
-    }
-  } catch (error: any) {
-    console.error('[Sync from Google] Erro:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Erro ao importar evento do Google Calendar',
       details: error.message
     });
   }

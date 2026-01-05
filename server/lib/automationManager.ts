@@ -58,7 +58,7 @@ interface AutomationState {
 interface EventIdempotencyCache {
   [key: string]: {
     clientKey: string; // telefone ou email do cliente
-    eventId: string; // ID do evento no Google Calendar
+    eventId: string; // ID do evento
     createdAt: string;
     eventDate: string;
     eventTitle: string;
@@ -363,8 +363,8 @@ async function processNewClientsWithIdempotency(clientId: string, newClients: an
       const processingResult = await processNewClients(clientId, [client]);
       
       // Se sucesso, marcar no cache de idempotência
-      if (processingResult.length > 0 && processingResult[0].success && processingResult[0].calendarEvent) {
-        markEventAsCreated(clientKey, processingResult[0].calendarEvent.id, eventDate, eventTitle);
+      if (processingResult.length > 0 && processingResult[0].success) {
+        markEventAsCreated(clientKey, `client-${Date.now()}`, eventDate, eventTitle);
       }
       
       results.push(processingResult[0] || {

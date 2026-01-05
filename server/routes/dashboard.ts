@@ -3,29 +3,16 @@ import { authenticateToken } from '../middleware/auth';
 import { z } from 'zod';
 import { getSupabaseClient } from '../lib/supabaseClient';
 import { testDynamicSupabaseConnection, getDashboardDataFromSupabase, getDynamicSupabaseClient, fetchTenantSupabaseData } from '../lib/multiTenantSupabase';
-import { getGoogleCalendarCredentials } from '../lib/credentialsDb';
 import { getSupabaseCredentials, getWhatsAppCredentials } from '../lib/credentialsManager';
 import { detectNewClients, processNewClients, getCacheStats, cleanExpiredCache } from '../lib/clientMonitor';
 import { DashboardCompleteV5 } from '../../shared/db-schema';
 import { cacheDashboardData } from '../lib/cacheStrategies';
 import { MockDataGenerator } from '../lib/mockDataGenerator';
-// Lazy-load googleapis to avoid blocking module initialization
-// import { google } from 'googleapis';
 import jwt from 'jsonwebtoken';
 import ical from 'node-ical';
 import fetch from 'node-fetch';
 
 const router = express.Router();
-
-// Lazy-load google APIs to prevent module initialization blocking
-let googleApis: any = null;
-async function getGoogleApis() {
-  if (!googleApis) {
-    const { google } = await import('googleapis');
-    googleApis = google;
-  }
-  return googleApis;
-}
 
 // Remove test endpoints for security - they were used for development only
 
@@ -300,18 +287,6 @@ const statusUpdateSchema = z.object({
   status: z.enum(['active', 'pause', 'completed'])
 });
 
-const createEventSchema = z.object({
-  nome: z.string().min(1, 'Nome é obrigatório'),
-  email: z.string().email('Email inválido'),
-  telefone: z.string().min(1, 'Telefone é obrigatório'),
-  tipoReuniao: z.enum(['online', 'presencial'], 'Tipo de reunião deve ser online ou presencial'),
-  data: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data deve estar no formato YYYY-MM-DD'),
-  hora: z.string().regex(/^\d{2}:\d{2}$/, 'Hora deve estar no formato HH:MM'),
-  duracao: z.number().min(15).max(480).optional().default(60), // 15 min a 8 horas, padrão 1 hora
-  titulo: z.string().optional(),
-  descricao: z.string().optional()
-});
-
 // Update client status - protected, validated, and using Supabase
 router.put('/client/:clientId/status', authenticateToken, async (req, res) => {
   try {
@@ -402,14 +377,14 @@ router.put('/client/:clientId/status', authenticateToken, async (req, res) => {
   }
 });
 
-// Google Calendar events endpoint - usando credenciais configuradas pelo cliente
+// Calendar events endpoint - agregação de eventos do Workspace e iCal
 router.get('/calendar-events', authenticateToken, async (req, res) => {
   try {
     const authClientId = req.user!.clientId;
     // 🔐 ISOLAMENTO MULTI-TENANT: Usar tenantId da sessão
     const tenantId = req.user!.tenantId;
     
-    // Cache calendar events aggregation (workspace + Google + iCal)
+    // Cache calendar events aggregation (workspace + iCal)
     const calendarData = await cacheDashboardData(
       authClientId,
       tenantId,
@@ -579,114 +554,10 @@ router.get('/calendar-events', authenticateToken, async (req, res) => {
     }
     
     // ============================================================================
-    // GOOGLE CALENDAR - Buscar eventos do Google Calendar (se configurado)
+    // ICAL EVENTS - Buscar eventos do iCal (se configurado)
     // ============================================================================
     
-    // 🔐 ISOLAMENTO MULTI-TENANT: Buscar credenciais do Google Calendar do tenant específico
-    const googleCredentials = await getGoogleCalendarCredentials(req.user!.tenantId);
-    
-    if (!googleCredentials || !googleCredentials.clientId || !googleCredentials.clientSecret || !googleCredentials.refreshToken) {
-      // Se não há credenciais do Google, retornar apenas eventos do workspace
-      if (workspaceEvents.length > 0) {
-        return res.json({
-          success: true,
-          data: workspaceEvents,
-          source: 'workspace_only',
-          sources: {
-            google_calendar: 0,
-            ical: 0,
-            workspace: workspaceEvents.length,
-            total_unique: workspaceEvents.length
-          },
-          warning: 'Configure as credenciais do Google Calendar nas configurações para ver também eventos do Google Calendar',
-          total: workspaceEvents.length
-        });
-      }
-      
-      // Se não há nem Google nem workspace, retornar dados de demonstração
-      return res.json({
-        success: true,
-        data: [
-          {
-            id: 'demo_1',
-            title: 'Reunião de Demonstração',
-            description: 'Configure as credenciais do Google Calendar nas configurações para ver eventos reais',
-            date: new Date().toISOString().split('T')[0],
-            time: '14:00',
-            duration: 60,
-            type: 'video',
-            client: 'Sistema Demo',
-            status: 'pending',
-            location: '',
-            meetLink: ''
-          }
-        ],
-        source: 'demo_data',
-        warning: 'Configure as credenciais do Google Calendar nas configurações para conectar ao Google Calendar',
-        total: 1
-      });
-    }
-    
-    const { clientId, clientSecret, refreshToken } = googleCredentials;
-    const calendarId = 'primary'; // Usar calendário primário do usuário
-
-    // Lazy-load Google APIs
-    const google = await getGoogleApis();
-
-    // Configurar autenticação OAuth2 com os secrets
-    const oauth2Client = new google.auth.OAuth2(
-      clientId,
-      clientSecret,
-      'http://localhost:3000/oauth2callback' // redirect URL (não usado para refresh)
-    );
-
-    // Configurar tokens
-    oauth2Client.setCredentials({
-      refresh_token: refreshToken,
-    });
-
-    // Verificar se o token é válido fazendo um teste básico
-    try {
-      const { token } = await oauth2Client.getAccessToken();
-      if (!token) {
-        return res.status(400).json({
-          success: false,
-          error: 'Token de acesso vazio',
-          message: 'O GOOGLE_REFRESH_TOKEN não conseguiu gerar um token válido. Verifique se não expirou.',
-          data: []
-        });
-      }
-    } catch (tokenError) {
-      console.error('Erro ao obter token de acesso:', tokenError);
-      return res.status(400).json({
-        success: false,
-        error: 'Token de acesso inválido',
-        message: 'Verifique se o GOOGLE_REFRESH_TOKEN está correto. Talvez seja necessário gerar um novo.',
-        data: []
-      });
-    }
-
-    const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
-    
-    // Buscar TODOS os eventos disponíveis (período expandido para capturar mais eventos)
-    const now = new Date();
-    const timeMin = new Date(now.getTime() - (365 * 24 * 60 * 60 * 1000)).toISOString(); // 1 ano atrás
-    const timeMax = new Date(now.getTime() + (365 * 24 * 60 * 60 * 1000)).toISOString(); // 1 ano à frente
-    
-    console.log(`Buscando TODOS os eventos do Google Calendar entre ${timeMin} e ${timeMax}`);
-    
-    const response = await calendar.events.list({
-      calendarId: calendarId,
-      timeMin: timeMin,
-      timeMax: timeMax,
-      maxResults: 2500, // Máximo permitido pelo Google Calendar API
-      singleEvents: true,
-      orderBy: 'startTime',
-    });
-
-    const events = response.data.items || [];
-    
-    // SEMPRE processar iCal como complemento (não apenas fallback)
+    // SEMPRE processar iCal como complemento
     let icalEvents = [];
     try {
         const icalUrl = process.env.ICAL_URL;
@@ -751,73 +622,9 @@ router.get('/calendar-events', authenticateToken, async (req, res) => {
     } catch (icalError) {
       console.error('Erro ao buscar dados do iCal:', icalError);
     }
-    
-    console.log(`Google Calendar encontrou ${events.length} eventos`);
-    if (events.length > 0) {
-      console.log('Primeiro evento do Google Calendar:', JSON.stringify(events[0], null, 2));
-    }
-    
-    // Transformar eventos para o formato da nossa aplicação
-    const formattedEvents = events.map((event, index) => {
-      const start = event.start?.dateTime || event.start?.date || '';
-      const end = event.end?.dateTime || event.end?.date || '';
-      const isAllDay = !event.start?.dateTime; // Se só tem date (sem dateTime), é evento de dia inteiro
-      
-      const startDate = new Date(start);
-      const endDate = new Date(end);
-      
-      // Tratar duração para eventos de dia inteiro
-      let duration;
-      let time;
-      
-      if (isAllDay) {
-        time = 'Dia todo';
-        duration = undefined; // Não mostrar duração para eventos de dia inteiro
-      } else {
-        const durationMinutes = Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60));
-        duration = durationMinutes > 0 ? durationMinutes : 60;
-        // Usar timezone do Brasil diretamente
-        time = startDate.toLocaleTimeString('pt-BR', { 
-          hour: '2-digit', 
-          minute: '2-digit',
-          timeZone: 'America/Sao_Paulo'
-        });
-      }
-      
-      // Mapear status do Google Calendar para português
-      let status: string;
-      switch (event.status) {
-        case 'confirmed':
-          status = 'confirmado';
-          break;
-        case 'tentative':
-          status = 'provisorio';
-          break;
-        case 'cancelled':
-          status = 'cancelado';
-          break;
-        default:
-          status = 'pendente';
-      }
-      
-      return {
-        id: event.id || `event_${index}`,
-        title: event.summary || 'Evento sem título',
-        description: event.description || '',
-        date: startDate.toISOString().split('T')[0],
-        time: time,
-        duration: duration,
-        isAllDay: isAllDay,
-        type: event.conferenceData ? 'video' : 'presential',
-        client: event.attendees?.[0]?.displayName || event.attendees?.[0]?.email || event.organizer?.displayName || 'Não informado',
-        status: status,
-        location: event.location || '',
-        meetLink: event.conferenceData?.entryPoints?.[0]?.uri || event.hangoutLink || ''
-      };
-    });
 
-    // Combinar eventos do Google Calendar, iCal e Workspace
-    const allEvents = [...formattedEvents, ...icalEvents, ...workspaceEvents];
+    // Combinar eventos do iCal e Workspace
+    const allEvents = [...icalEvents, ...workspaceEvents];
     
     // Remover duplicatas baseado no título e data
     const uniqueEvents = allEvents.filter((event, index, arr) => 
@@ -832,7 +639,6 @@ router.get('/calendar-events', authenticateToken, async (req, res) => {
     });
     
     console.log(`Total de eventos únicos: ${uniqueEvents.length}`);
-    console.log(`  - Google Calendar: ${formattedEvents.length}`);
     console.log(`  - iCal: ${icalEvents.length}`);
     console.log(`  - Workspace: ${workspaceEvents.length}`);
     if (uniqueEvents.length > 0) {
@@ -844,7 +650,6 @@ router.get('/calendar-events', authenticateToken, async (req, res) => {
       data: uniqueEvents,
       source: 'integrated',
       sources: {
-        google_calendar: formattedEvents.length,
         ical: icalEvents.length,
         workspace: workspaceEvents.length,
         total_unique: uniqueEvents.length
@@ -915,12 +720,12 @@ router.get('/calendar-events', authenticateToken, async (req, res) => {
         success: true,
         data: workspaceEvents.length > 0 ? workspaceEvents : [{
           id: 'fallback_1',
-          title: 'Erro na Conexão',
-          description: 'Não foi possível conectar ao Google Calendar. Verifique as configurações.',
+          title: 'Nenhum evento encontrado',
+          description: 'Configure o Workspace ou iCal para visualizar eventos.',
           date: new Date().toISOString().split('T')[0],
           time: '10:00',
           duration: 60,
-          type: 'video',
+          type: 'presential',
           client: 'Sistema',
           status: 'pending',
           location: '',
@@ -928,7 +733,6 @@ router.get('/calendar-events', authenticateToken, async (req, res) => {
         }],
         source: workspaceEvents.length > 0 ? 'workspace_only_fallback' : 'fallback_data',
         sources: {
-          google_calendar: 0,
           ical: 0,
           workspace: workspaceEvents.length,
           total_unique: workspaceEvents.length || 1
@@ -947,400 +751,6 @@ router.get('/calendar-events', authenticateToken, async (req, res) => {
       success: false,
       error: 'Failed to fetch calendar events',
       message: error instanceof Error ? error.message : 'Unknown error'
-    });
-  }
-});
-
-// Create Google Calendar event endpoint - criar eventos automaticamente
-router.post('/create-calendar-event', authenticateToken, async (req, res) => {
-  try {
-    const authClientId = req.user!.clientId;
-    
-    // Validar dados de entrada
-    const validation = createEventSchema.safeParse(req.body);
-    if (!validation.success) {
-      return res.status(400).json({
-        success: false,
-        error: 'Dados inválidos',
-        details: validation.error.issues
-      });
-    }
-    
-    const { nome, email, telefone, tipoReuniao, data, hora, duracao, titulo, descricao } = validation.data;
-    
-    // Buscar credenciais do Google Calendar configuradas pelo cliente
-    const googleCredentials = getGoogleCalendarCredentials(authClientId);
-    
-    if (!googleCredentials || !googleCredentials.clientId || !googleCredentials.clientSecret || !googleCredentials.refreshToken) {
-      return res.status(400).json({
-        success: false,
-        error: 'Credenciais do Google Calendar não configuradas',
-        message: 'Configure as credenciais do Google Calendar nas configurações para criar eventos'
-      });
-    }
-    
-    const { clientId, clientSecret, refreshToken } = googleCredentials;
-    const calendarId = 'primary'; // Usar calendário primário do usuário
-
-    // Lazy-load Google APIs
-    const google = await getGoogleApis();
-
-    // Configurar autenticação OAuth2 com os secrets
-    const oauth2Client = new google.auth.OAuth2(
-      clientId,
-      clientSecret,
-      'http://localhost:3000/oauth2callback' // redirect URL (não usado para refresh)
-    );
-
-    // Configurar tokens
-    oauth2Client.setCredentials({
-      refresh_token: refreshToken,
-    });
-
-    // Verificar se o token é válido
-    try {
-      const { token } = await oauth2Client.getAccessToken();
-      if (!token) {
-        return res.status(400).json({
-          success: false,
-          error: 'Token de acesso vazio',
-          message: 'O GOOGLE_REFRESH_TOKEN não conseguiu gerar um token válido. Verifique se não expirou.'
-        });
-      }
-    } catch (tokenError) {
-      console.error('Erro ao obter token de acesso:', tokenError);
-      return res.status(400).json({
-        success: false,
-        error: 'Token de acesso inválido',
-        message: 'Verifique se o GOOGLE_REFRESH_TOKEN está correto. Talvez seja necessário gerar um novo.'
-      });
-    }
-
-    const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
-    
-    // Criar data/hora do evento no timezone correto
-    const eventDateTime = new Date(`${data}T${hora}:00.000-03:00`); // Timezone Brasil
-    const endDateTime = new Date(eventDateTime.getTime() + (duracao * 60 * 1000));
-    
-    // Título padrão se não fornecido
-    const eventTitle = titulo || `Reunião com ${nome}`;
-    
-    // Descrição com informações do cliente
-    const eventDescription = [
-      descricao || 'Reunião agendada automaticamente',
-      '',
-      `Cliente: ${nome}`,
-      `Email: ${email}`,
-      `Telefone: ${telefone}`,
-      `Tipo: ${tipoReuniao === 'online' ? 'Reunião Online' : 'Reunião Presencial'}`
-    ].join('\n');
-    
-    // Configurar evento
-    const eventResource: any = {
-      summary: eventTitle,
-      description: eventDescription,
-      start: {
-        dateTime: eventDateTime.toISOString(),
-        timeZone: 'America/Sao_Paulo',
-      },
-      end: {
-        dateTime: endDateTime.toISOString(),
-        timeZone: 'America/Sao_Paulo',
-      },
-      attendees: [
-        { email: email, displayName: nome }
-      ],
-      reminders: {
-        useDefault: false,
-        overrides: [
-          { method: 'email', minutes: 24 * 60 }, // 1 dia antes por email
-          { method: 'popup', minutes: 30 }, // 30 min antes pop-up
-        ],
-      },
-    };
-    
-    // Adicionar Google Meet automaticamente se for reunião online
-    if (tipoReuniao === 'online') {
-      eventResource.conferenceData = {
-        createRequest: {
-          requestId: `meet_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-          conferenceSolutionKey: {
-            type: 'hangoutsMeet'
-          }
-        }
-      };
-    }
-    
-    console.log('Criando evento no Google Calendar:', {
-      title: eventTitle,
-      cliente: nome,
-      email: email,
-      data: data,
-      hora: hora,
-      duracao: duracao,
-      tipo: tipoReuniao
-    });
-    
-    // Criar evento no Google Calendar
-    const response = await calendar.events.insert({
-      calendarId: calendarId,
-      resource: eventResource,
-      conferenceDataVersion: tipoReuniao === 'online' ? 1 : 0, // Necessário para Google Meet
-      sendUpdates: 'all' // Enviar convites para participantes
-    });
-    
-    const createdEvent = response.data;
-    
-    if (!createdEvent) {
-      return res.status(500).json({
-        success: false,
-        error: 'Falha ao criar evento',
-        message: 'O evento não foi criado no Google Calendar'
-      });
-    }
-    
-    // Extrair informações do evento criado
-    const meetLink = createdEvent.conferenceData?.entryPoints?.[0]?.uri || createdEvent.hangoutLink || '';
-    const eventLink = createdEvent.htmlLink || '';
-    const eventId = createdEvent.id || '';
-    
-    console.log('Evento criado com sucesso:', {
-      id: eventId,
-      meetLink: meetLink,
-      eventLink: eventLink
-    });
-    
-    // Resposta de sucesso
-    res.json({
-      success: true,
-      message: 'Evento criado com sucesso no Google Calendar',
-      data: {
-        eventId: eventId,
-        titulo: eventTitle,
-        cliente: {
-          nome: nome,
-          email: email,
-          telefone: telefone
-        },
-        agendamento: {
-          data: data,
-          hora: hora,
-          duracao: duracao,
-          tipo: tipoReuniao
-        },
-        links: {
-          evento: eventLink,
-          reuniao: meetLink || 'Não aplicável para reunião presencial'
-        },
-        status: 'confirmado',
-        convites_enviados: true
-      }
-    });
-
-  } catch (error) {
-    console.error('Erro ao criar evento no Google Calendar:', error);
-    
-    res.status(500).json({
-      success: false,
-      error: 'Erro interno ao criar evento',
-      message: 'Não foi possível criar o evento no Google Calendar. Tente novamente.',
-      details: error.message
-    });
-  }
-});
-
-// Schema para criar evento manualmente (mais flexível)
-const createManualEventSchema = z.object({
-  title: z.string().min(1, 'Título é obrigatório'),
-  description: z.string().optional(),
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Data deve estar no formato YYYY-MM-DD'),
-  startTime: z.string().regex(/^\d{2}:\d{2}$/, 'Hora de início deve estar no formato HH:MM'),
-  duration: z.number().min(15).max(480).optional().default(60), // 15 min a 8 horas, padrão 1 hora
-  attendees: z.array(z.object({
-    email: z.string().email(),
-    name: z.string().optional()
-  })).optional().default([]),
-  location: z.string().optional(),
-  meetingType: z.enum(['video', 'presential']).optional().default('presential'),
-  sendNotifications: z.boolean().optional().default(true)
-});
-
-// Create manual calendar event - Criação manual de eventos
-router.post('/create-manual-event', authenticateToken, async (req, res) => {
-  try {
-    // Validar dados de entrada
-    const validation = createManualEventSchema.safeParse(req.body);
-    if (!validation.success) {
-      return res.status(400).json({
-        success: false,
-        error: 'Dados inválidos',
-        details: validation.error.issues
-      });
-    }
-    
-    const { title, description, date, startTime, duration, attendees, location, meetingType, sendNotifications } = validation.data;
-    
-    // 🔐 ISOLAMENTO MULTI-TENANT: Buscar credenciais do Google Calendar do tenant específico
-    const googleCredentials = await getGoogleCalendarCredentials(req.user!.tenantId);
-    
-    if (!googleCredentials || !googleCredentials.clientId || !googleCredentials.clientSecret || !googleCredentials.refreshToken) {
-      return res.status(400).json({
-        success: false,
-        error: 'Credenciais do Google Calendar não configuradas',
-        message: 'Configure as credenciais do Google Calendar nas configurações para criar eventos'
-      });
-    }
-    
-    const { clientId, clientSecret, refreshToken } = googleCredentials;
-
-    // Lazy-load Google APIs
-    const google = await getGoogleApis();
-
-    // Configurar autenticação OAuth2
-    const oauth2Client = new google.auth.OAuth2(
-      clientId,
-      clientSecret,
-      'http://localhost:3000/oauth2callback'
-    );
-
-    oauth2Client.setCredentials({
-      refresh_token: refreshToken,
-    });
-
-    // Verificar se o token é válido
-    try {
-      const { token } = await oauth2Client.getAccessToken();
-      if (!token) {
-        return res.status(400).json({
-          success: false,
-          error: 'Token de acesso vazio',
-          message: 'O GOOGLE_REFRESH_TOKEN não conseguiu gerar um token válido. Verifique se não expirou.'
-        });
-      }
-    } catch (tokenError) {
-      console.error('Erro ao obter token de acesso:', tokenError);
-      return res.status(400).json({
-        success: false,
-        error: 'Token de acesso inválido',
-        message: 'Verifique se o GOOGLE_REFRESH_TOKEN está correto. Talvez seja necessário gerar um novo.'
-      });
-    }
-
-    const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
-    
-    // Criar data/hora do evento no timezone correto
-    const eventDateTime = new Date(`${date}T${startTime}:00.000-03:00`); // Timezone Brasil
-    const endDateTime = new Date(eventDateTime.getTime() + (duration * 60 * 1000));
-    
-    // Configurar evento
-    const eventResource: any = {
-      summary: title,
-      description: description || '',
-      start: {
-        dateTime: eventDateTime.toISOString(),
-        timeZone: 'America/Sao_Paulo',
-      },
-      end: {
-        dateTime: endDateTime.toISOString(),
-        timeZone: 'America/Sao_Paulo',
-      },
-      attendees: attendees.map(att => ({
-        email: att.email,
-        displayName: att.name || att.email
-      })),
-      reminders: {
-        useDefault: false,
-        overrides: [
-          { method: 'email', minutes: 24 * 60 }, // 1 dia antes por email
-          { method: 'popup', minutes: 30 }, // 30 min antes pop-up
-        ],
-      },
-    };
-    
-    // Adicionar localização se fornecida
-    if (location) {
-      eventResource.location = location;
-    }
-    
-    // Adicionar Google Meet automaticamente se for reunião online
-    if (meetingType === 'video') {
-      eventResource.conferenceData = {
-        createRequest: {
-          requestId: `meet_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-          conferenceSolutionKey: {
-            type: 'hangoutsMeet'
-          }
-        }
-      };
-    }
-    
-    console.log('Criando evento manual no Google Calendar:', {
-      title: title,
-      date: date,
-      startTime: startTime,
-      duration: duration,
-      meetingType: meetingType,
-      attendees: attendees.length
-    });
-    
-    // Criar evento no Google Calendar
-    const response = await calendar.events.insert({
-      calendarId: 'primary',
-      resource: eventResource,
-      conferenceDataVersion: meetingType === 'video' ? 1 : 0,
-      sendUpdates: sendNotifications ? 'all' : 'none'
-    });
-    
-    const createdEvent = response.data;
-    
-    if (!createdEvent) {
-      return res.status(500).json({
-        success: false,
-        error: 'Falha ao criar evento',
-        message: 'O evento não foi criado no Google Calendar'
-      });
-    }
-    
-    // Extrair informações do evento criado
-    const meetLink = createdEvent.conferenceData?.entryPoints?.[0]?.uri || createdEvent.hangoutLink || '';
-    const eventLink = createdEvent.htmlLink || '';
-    const eventId = createdEvent.id || '';
-    
-    console.log('Evento manual criado com sucesso:', {
-      id: eventId,
-      meetLink: meetLink,
-      eventLink: eventLink
-    });
-    
-    // Resposta de sucesso
-    res.json({
-      success: true,
-      message: 'Evento criado com sucesso no Google Calendar',
-      data: {
-        eventId: eventId,
-        title: title,
-        description: description || '',
-        date: date,
-        startTime: startTime,
-        duration: duration,
-        attendees: attendees,
-        meetingType: meetingType,
-        location: location || '',
-        meetLink: meetLink || null,
-        eventLink: eventLink,
-        status: 'confirmed',
-        notificationsSent: sendNotifications
-      }
-    });
-
-  } catch (error) {
-    console.error('Erro ao criar evento manual no Google Calendar:', error);
-    
-    res.status(500).json({
-      success: false,
-      error: 'Erro interno ao criar evento',
-      message: 'Não foi possível criar o evento no Google Calendar. Tente novamente.',
-      details: error.message
     });
   }
 });
@@ -1364,7 +774,6 @@ router.get('/test-connections', authenticateToken, async (req, res) => {
       clientId: clientId,
       tenantId: tenantId,
       supabase: { status: 'not_configured', message: '', hasCredentials: false },
-      google_calendar: { status: 'not_configured', message: '', hasCredentials: false },
       whatsapp: { status: 'not_configured', message: '', hasCredentials: false },
       dashboard_data: null as any,
       overall_status: 'offline'
@@ -1405,53 +814,6 @@ router.get('/test-connections', authenticateToken, async (req, res) => {
     } catch (error) {
       connectionResults.supabase.status = 'error';
       connectionResults.supabase.message = `Erro ao testar Supabase: ${error.message}`;
-    }
-
-    // Test Google Calendar connection
-    try {
-      const googleCredentials = getGoogleCalendarCredentials(clientId);
-      if (googleCredentials && googleCredentials.clientId && googleCredentials.clientSecret) {
-        connectionResults.google_calendar.hasCredentials = true;
-        
-        try {
-          // Lazy-load Google APIs
-          const google = await getGoogleApis();
-          
-          const oauth2Client = new google.auth.OAuth2(
-            googleCredentials.clientId,
-            googleCredentials.clientSecret,
-            'http://localhost:3000/oauth2callback'
-          );
-
-          if (googleCredentials.refreshToken) {
-            oauth2Client.setCredentials({
-              refresh_token: googleCredentials.refreshToken,
-            });
-
-            // Test by getting access token
-            const { token } = await oauth2Client.getAccessToken();
-            if (token) {
-              connectionResults.google_calendar.status = 'connected';
-              connectionResults.google_calendar.message = 'Conexão com Google Calendar estabelecida com sucesso';
-            } else {
-              connectionResults.google_calendar.status = 'error';
-              connectionResults.google_calendar.message = 'Token de acesso não pôde ser obtido';
-            }
-          } else {
-            connectionResults.google_calendar.status = 'partial';
-            connectionResults.google_calendar.message = 'Credenciais básicas presentes, mas refresh token não configurado';
-          }
-        } catch (googleError) {
-          connectionResults.google_calendar.status = 'error';
-          connectionResults.google_calendar.message = `Erro na autenticação Google: ${googleError.message}`;
-        }
-      } else {
-        connectionResults.google_calendar.status = 'not_configured';
-        connectionResults.google_calendar.message = 'Credenciais do Google Calendar não configuradas';
-      }
-    } catch (error) {
-      connectionResults.google_calendar.status = 'error';
-      connectionResults.google_calendar.message = `Erro ao testar Google Calendar: ${error.message}`;
     }
 
     // Test WhatsApp/Evolution API connection
@@ -1497,14 +859,12 @@ router.get('/test-connections', authenticateToken, async (req, res) => {
 
     // Determine overall status
     const hasActiveConnection = connectionResults.supabase.status === 'connected' || 
-                               connectionResults.google_calendar.status === 'connected' || 
                                connectionResults.whatsapp.status === 'connected';
 
     if (hasActiveConnection) {
       connectionResults.overall_status = 'connected';
     } else {
       const hasPartialConnection = connectionResults.supabase.status === 'partial' || 
-                                  connectionResults.google_calendar.status === 'partial' || 
                                   connectionResults.whatsapp.status === 'partial';
       connectionResults.overall_status = hasPartialConnection ? 'partial' : 'error';
     }

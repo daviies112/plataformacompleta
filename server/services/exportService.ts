@@ -29,7 +29,6 @@ const availableTables = {
   pluggyItems: { table: schema.pluggyItems, name: 'Itens Pluggy' },
   supabaseConfig: { table: schema.supabaseConfig, name: 'Configuração Supabase' },
   n8nConfig: { table: schema.n8nConfig, name: 'Configuração N8N' },
-  googleCalendarConfig: { table: schema.googleCalendarConfig, name: 'Configuração Google Calendar' },
   redisConfig: { table: schema.redisConfig, name: 'Configuração Redis' },
   sentryConfig: { table: schema.sentryConfig, name: 'Configuração Sentry' },
   resendConfig: { table: schema.resendConfig, name: 'Configuração Resend' },
@@ -46,9 +45,7 @@ const availableTables = {
   cacheMetadata: { table: schema.cacheMetadata, name: 'Metadados de Cache' },
   
   // Integration tables
-  googleCalendarWebhooks: { table: schema.googleCalendarWebhooks, name: 'Webhooks Google Calendar' },
   pluggyConnections: { table: schema.pluggyConnections, name: 'Conexões Pluggy' },
-  googleTokens: { table: schema.googleTokens, name: 'Tokens Google' },
   deviceTokens: { table: schema.deviceTokens, name: 'Tokens de Dispositivo' },
   notificationHistory: { table: schema.notificationHistory, name: 'Histórico de Notificações' },
   
