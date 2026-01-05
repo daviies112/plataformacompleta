@@ -1,15 +1,15 @@
 {
   "isRunning": true,
-  "startedAt": "2026-01-05T15:22:13.875Z",
+  "startedAt": "2026-01-05T15:30:23.671Z",
   "lastExecutions": {
     "dev-daviemericko_gmail_com-dev-daviemericko_gmail_com": {
       "clientId": "dev-daviemericko_gmail_com",
       "tenantId": "dev-daviemericko_gmail_com",
-      "lastRun": "2026-01-05T15:14:36.981Z",
+      "lastRun": "2026-01-05T15:26:14.588Z",
       "lastSuccess": "2025-12-10T17:19:14.280Z",
       "lastError": null,
       "consecutiveErrors": 0,
-      "totalExecutions": 136,
+      "totalExecutions": 139,
       "totalNewClientsDetected": 0,
       "totalEventsCreated": 0,
       "status": "running"
@@ -28,7 +28,7 @@
     }
   },
   "globalStats": {
-    "totalExecutions": 513,
+    "totalExecutions": 516,
     "totalNewClientsDetected": 1,
     "totalEventsCreated": 0,
     "totalErrors": 0,

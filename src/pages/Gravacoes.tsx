@@ -33,7 +33,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Video, Play, Trash2, Download, Loader2, Circle, Clock, Calendar, FileVideo } from "lucide-react";
+import { Video, Play, Trash2, Download, Loader2, Circle, Clock, Calendar, FileVideo, RefreshCw } from "lucide-react";
 
 interface Gravacao {
   id: string;
@@ -88,15 +88,43 @@ export default function Gravacoes() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["gravacoes"] });
       toast({
-        title: "Gravação excluída",
-        description: "A gravação foi excluída com sucesso.",
+        title: "Gravacao excluida",
+        description: "A gravacao foi excluida com sucesso.",
       });
     },
     onError: () => {
       toast({
         variant: "destructive",
         title: "Erro",
-        description: "Não foi possível excluir a gravação.",
+        description: "Nao foi possivel excluir a gravacao.",
+      });
+    },
+  });
+
+  const refreshMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await api.post(`/api/gravacoes/${id}/refresh`);
+      return response.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["gravacoes"] });
+      if (data.success && data.recording?.status === 'completed') {
+        toast({
+          title: "Gravacao pronta",
+          description: "A gravacao esta disponivel para assistir.",
+        });
+      } else {
+        toast({
+          title: "Processando",
+          description: data.message || "A gravacao ainda esta sendo processada.",
+        });
+      }
+    },
+    onError: () => {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Nao foi possivel atualizar o status da gravacao.",
       });
     },
   });
@@ -132,26 +160,28 @@ export default function Gravacoes() {
     switch (status) {
       case "recording":
         return (
-          <Badge className="bg-red-100 text-red-700 border-red-200 animate-pulse">
+          <Badge className="bg-red-100 text-red-700 border-red-200 animate-pulse dark:bg-red-900 dark:text-red-300 dark:border-red-800">
             <Circle className="h-2 w-2 fill-current mr-1" />
             Gravando
           </Badge>
         );
       case "completed":
         return (
-          <Badge className="bg-green-100 text-green-700 border-green-200">
-            Concluída
+          <Badge className="bg-green-100 text-green-700 border-green-200 dark:bg-green-900 dark:text-green-300 dark:border-green-800">
+            Concluida
           </Badge>
         );
       case "processing":
+      case "stopped":
         return (
-          <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200">
+          <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900 dark:text-yellow-300 dark:border-yellow-800">
+            <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
             Processando
           </Badge>
         );
       case "failed":
         return (
-          <Badge className="bg-red-100 text-red-700 border-red-200">
+          <Badge className="bg-red-100 text-red-700 border-red-200 dark:bg-red-900 dark:text-red-300 dark:border-red-800">
             Falhou
           </Badge>
         );
@@ -267,32 +297,42 @@ export default function Gravacoes() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
-                        {gravacao.status === "completed" && (
-                          <>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handlePlayRecording(gravacao)}
-                            >
-                              <Play className="h-4 w-4 mr-1" />
-                              Assistir
-                            </Button>
-                            {gravacao.fileUrl && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                asChild
-                              >
-                                <a href={gravacao.fileUrl} download>
-                                  <Download className="h-4 w-4" />
-                                </a>
-                              </Button>
-                            )}
-                          </>
+                        {(gravacao.status === "completed" || gravacao.status === "stopped" || gravacao.status === "processing") && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handlePlayRecording(gravacao)}
+                            data-testid={`button-play-${gravacao.id}`}
+                          >
+                            <Play className="h-4 w-4 mr-1" />
+                            Assistir
+                          </Button>
+                        )}
+                        {(gravacao.status === "stopped" || gravacao.status === "processing") && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => refreshMutation.mutate(gravacao.id)}
+                            disabled={refreshMutation.isPending}
+                            data-testid={`button-refresh-${gravacao.id}`}
+                          >
+                            <RefreshCw className={`h-4 w-4 ${refreshMutation.isPending ? 'animate-spin' : ''}`} />
+                          </Button>
+                        )}
+                        {gravacao.status === "completed" && gravacao.fileUrl && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            asChild
+                          >
+                            <a href={gravacao.fileUrl} download>
+                              <Download className="h-4 w-4" />
+                            </a>
+                          </Button>
                         )}
                         {gravacao.status === "failed" && (
                           <span className="text-sm text-muted-foreground">
-                            Gravação muito curta
+                            Falha no processamento
                           </span>
                         )}
                         <AlertDialog>

@@ -205,19 +205,46 @@ publicRoomDesignRouter.post('/100ms/recording/stop', async (req: Request, res: R
 
     console.log(`[Recording] Gravação parada com sucesso:`, result);
 
-    // Update recording in database
+    // Check if asset is available immediately
+    let finalStatus = 'processing';
+    let fileUrl = null;
+    let duration = null;
+    let fileSize = null;
+
+    if (result.asset?.id) {
+      try {
+        const presigned = await obterUrlPresignadaAsset(
+          result.asset.id,
+          credentials.appAccessKey,
+          credentials.appSecret
+        );
+        fileUrl = presigned.url;
+        finalStatus = 'completed';
+        duration = result.asset.duration || null;
+        fileSize = result.asset.size || null;
+        console.log(`[Recording] Asset disponível imediatamente: ${result.asset.id}`);
+      } catch (assetError) {
+        console.log(`[Recording] Asset ainda não está pronto, marcando como processing`);
+      }
+    }
+
+    // Update recording in database with asset info if available
     await db.update(gravacoes)
       .set({
-        status: 'stopped',
+        status: finalStatus,
         stoppedAt: new Date(),
         updatedAt: new Date(),
+        fileUrl: fileUrl,
+        duration: duration,
+        fileSize: fileSize,
+        assetId: result.asset?.id || null,
       })
       .where(and(
         eq(gravacoes.roomId100ms, roomId),
         eq(gravacoes.status, 'recording')
       ));
 
-    res.json({ success: true, hmsResult: result });
+    res.json({ success: true, status: finalStatus, hmsResult: result });
   } catch (error: any) {
     console.error('[Recording] Erro ao parar gravação:', error);
     res.status(500).json({ 
@@ -833,5 +860,80 @@ meetingsRouter.get('/100ms/active-recordings', authenticateToken, async (req: Au
   } catch (error: any) {
     console.error('Erro ao listar gravações ativas:', error);
     res.status(500).json({ error: 'Erro ao listar gravações ativas', message: error.message });
+  }
+});
+
+// POST /api/gravacoes/:id/refresh - Refresh recording status from 100ms
+meetingsRouter.post('/gravacoes/:id/refresh', authenticateToken, async (req: AuthRequest, res: Response) => {
+  try {
+    const tenantId = req.user!.tenantId;
+    const { id } = req.params;
+
+    const [recording] = await db.select().from(gravacoes)
+      .where(and(eq(gravacoes.id, id), eq(gravacoes.tenantId, tenantId)))
+      .limit(1);
+
+    if (!recording) {
+      return res.status(404).json({ error: 'Gravacao nao encontrada' });
+    }
+
+    // If already completed, return current data
+    if (recording.status === 'completed' && recording.fileUrl) {
+      return res.json({ success: true, recording, message: 'Gravacao ja esta pronta' });
+    }
+
+    const credentials = await get100msCredentials(tenantId);
+    if (!credentials) {
+      return res.status(400).json({ error: 'Credenciais 100ms nao configuradas' });
+    }
+
+    // Try to get recording details from 100ms
+    if (recording.recordingId100ms) {
+      try {
+        const recordingDetails = await obterGravacao(
+          recording.recordingId100ms,
+          credentials.appAccessKey,
+          credentials.appSecret
+        );
+
+        console.log('[Recording Refresh] Details from 100ms:', recordingDetails);
+
+        if (recordingDetails.asset?.id) {
+          const presigned = await obterUrlPresignadaAsset(
+            recordingDetails.asset.id,
+            credentials.appAccessKey,
+            credentials.appSecret
+          );
+
+          // Update recording with asset info
+          const [updated] = await db.update(gravacoes)
+            .set({
+              status: 'completed',
+              fileUrl: presigned.url,
+              duration: recordingDetails.asset.duration || recording.duration,
+              fileSize: recordingDetails.asset.size || recording.fileSize,
+              assetId: recordingDetails.asset.id,
+              updatedAt: new Date(),
+            })
+            .where(eq(gravacoes.id, id))
+            .returning();
+
+          return res.json({ success: true, recording: updated, message: 'Gravacao atualizada com sucesso' });
+        } else if (recordingDetails.status === 'failed') {
+          await db.update(gravacoes)
+            .set({ status: 'failed', updatedAt: new Date() })
+            .where(eq(gravacoes.id, id));
+
+          return res.json({ success: false, message: 'Gravacao falhou no processamento' });
+        }
+      } catch (apiError: any) {
+        console.error('[Recording Refresh] Error fetching from 100ms:', apiError.message);
+      }
+    }
+
+    res.json({ success: false, message: 'Gravacao ainda esta sendo processada' });
+  } catch (error: any) {
+    console.error('Erro ao atualizar gravacao:', error);
+    res.status(500).json({ error: 'Erro ao atualizar gravacao', message: error.message });
   }
 });
