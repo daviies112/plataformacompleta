@@ -16,6 +16,7 @@ import {
 import { getClientSupabaseClient } from '../lib/multiTenantSupabase';
 import { nanoid } from 'nanoid';
 import { z } from 'zod';
+import { cache } from '../lib/cache';
 
 // Helper function to sync recording to Supabase
 async function syncRecordingToSupabase(tenantId: string, recording: any) {
@@ -788,6 +789,15 @@ meetingsRouter.post('/reunioes/instantanea', authenticateToken, requireTenantId,
       credentials.appSecret
     );
 
+    // Invalidar cache do calendário para exibir a nova reunião imediatamente
+    try {
+      await cache.delPattern(`dashboard:*:${tenantId}:calendar`);
+      await cache.delPattern(`dashboard:*:${tenantId}:*`);
+      console.log(`✅ Cache do calendário invalidado após criar reunião instantânea ${newMeeting.id} para tenant ${tenantId}`);
+    } catch (cacheError) {
+      console.error('Erro ao invalidar cache:', cacheError);
+    }
+
     res.json({ 
       ...newMeeting, 
       token,
@@ -900,6 +910,15 @@ meetingsRouter.post('/reunioes', authenticateToken, requireTenantId, async (req:
       }
     } catch (e) {
       console.error('Erro ao atualizar link no Supabase:', e);
+    }
+
+    // Invalidar cache do calendário para exibir a nova reunião imediatamente
+    try {
+      await cache.delPattern(`dashboard:*:${tenantId}:calendar`);
+      await cache.delPattern(`dashboard:*:${tenantId}:*`);
+      console.log(`✅ Cache do calendário invalidado após criar reunião ${newMeeting.id} para tenant ${tenantId}`);
+    } catch (cacheError) {
+      console.error('Erro ao invalidar cache:', cacheError);
     }
 
     res.json(newMeeting);
