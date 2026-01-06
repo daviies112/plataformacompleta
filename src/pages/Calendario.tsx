@@ -42,22 +42,115 @@ export default function CalendarioPage() {
   const [, navigate] = useLocation();
   const queryClient = useQueryClient();
 
+  // Buscar reuniões diretamente do Supabase
   const { data: reunioes = [], isLoading, error, refetch } = useQuery<Reuniao[]>({
-    queryKey: ['/api/reunioes'],
+    queryKey: ['reunioes-calendario', format(currentMonth, 'yyyy-MM')],
+    queryFn: async () => {
+      // Primeiro tentar API local (sempre funciona quando autenticado)
+      try {
+        console.log('[Calendario] Buscando reuniões da API...');
+        const res = await fetch('/api/reunioes', { credentials: 'include' });
+        
+        if (res.ok) {
+          const data = await res.json();
+          // A API retorna array diretamente (não { data: [...] })
+          const meetings = Array.isArray(data) ? data : (data.data || []);
+          console.log('[Calendario] API retornou', meetings.length, 'reuniões');
+          
+          // Filtrar pelo mês atual
+          const monthStart = startOfMonth(currentMonth);
+          const monthEnd = endOfMonth(currentMonth);
+          
+          const filteredMeetings = meetings.filter((m: any) => {
+            const meetingDate = new Date(m.dataInicio);
+            return meetingDate >= monthStart && meetingDate <= monthEnd;
+          });
+          
+          console.log('[Calendario] Após filtro do mês:', filteredMeetings.length, 'reuniões em', format(currentMonth, 'MMMM yyyy', { locale: ptBR }));
+          return filteredMeetings;
+        }
+        
+        // Se API retornou erro 401, usuário não autenticado
+        if (res.status === 401) {
+          console.log('[Calendario] Não autenticado - retornando array vazio');
+          return [];
+        }
+      } catch (apiError) {
+        console.warn('[Calendario] Erro na API, tentando Supabase:', apiError);
+      }
+      
+      // Fallback para Supabase direto
+      const supabase = await getSupabaseClient();
+      if (!supabase) {
+        console.log('[Calendario] Supabase também não disponível');
+        return [];
+      }
+
+      // Buscar do Supabase diretamente
+      const monthStart = startOfMonth(currentMonth);
+      const monthEnd = endOfMonth(currentMonth);
+      
+      console.log('[Calendario] Buscando reuniões do Supabase para', format(currentMonth, 'MMMM yyyy', { locale: ptBR }));
+      
+      const { data, error: sbError } = await supabase
+        .from('reunioes')
+        .select('*')
+        .gte('data_inicio', monthStart.toISOString())
+        .lte('data_inicio', monthEnd.toISOString())
+        .order('data_inicio', { ascending: true });
+
+      if (sbError) {
+        console.error('[Calendario] Erro ao buscar do Supabase:', sbError);
+        return [];
+      }
+
+      console.log('[Calendario] Encontradas', data?.length || 0, 'reuniões no Supabase');
+      
+      // Mapear campos do Supabase para o formato esperado
+      return (data || []).map((r: any) => ({
+        id: r.id,
+        tenantId: r.tenant_id,
+        usuarioId: r.usuario_id,
+        nome: r.nome,
+        email: r.email,
+        telefone: r.telefone,
+        titulo: r.titulo,
+        descricao: r.descricao,
+        dataInicio: r.data_inicio,
+        dataFim: r.data_fim,
+        duracao: r.duracao,
+        roomId100ms: r.room_id_100ms,
+        roomCode100ms: r.room_code_100ms,
+        linkReuniao: r.link_reuniao,
+        status: r.status,
+        participantes: r.participantes || [],
+        gravacaoUrl: r.gravacao_url,
+        metadata: r.metadata,
+        createdAt: r.created_at,
+        updatedAt: r.updated_at,
+      }));
+    },
+    refetchInterval: 30000, // Polling a cada 30 segundos como fallback
+    refetchOnWindowFocus: true,
+    retry: 1, // Apenas 1 retry para não ficar preso
   });
 
   // Supabase Realtime Subscription
   useEffect(() => {
     let channel: any;
+    const monthKey = format(currentMonth, 'yyyy-MM');
 
     const setupRealtime = async () => {
       try {
         const supabase = await getSupabaseClient();
-        if (!supabase) return;
+        if (!supabase) {
+          console.log('[Calendario] Supabase não disponível para realtime');
+          return;
+        }
 
-        console.log("Setting up Supabase Realtime subscription for 'reunioes'...");
+        console.log("[Calendario] Configurando Supabase Realtime para 'reunioes'...");
         channel = supabase
-          .channel('schema-db-changes')
+          .channel('reunioes-calendario-changes')
           .on(
             'postgres_changes',
             {
@@ -66,30 +159,36 @@ export default function CalendarioPage() {
               table: 'reunioes'
             },
             async (payload: any) => {
-              console.log('Realtime change detected in reunioes:', payload);
+              console.log('[Calendario] Mudança detectada em reunioes:', payload.eventType);
               
-              // Invalidate query to trigger refetch
-              await queryClient.invalidateQueries({ queryKey: ['/api/reunioes'] });
+              // Invalidar todas as queries de calendário para garantir atualização
+              await queryClient.invalidateQueries({ queryKey: ['reunioes-calendario'] });
               
-              // Also trigger a direct refetch to be sure
+              // Também trigger refetch direto
               refetch();
+
+              const eventMessages: Record<string, string> = {
+                'INSERT': 'criada',
+                'UPDATE': 'atualizada', 
+                'DELETE': 'removida'
+              };
 
               toast({
                 title: "Calendário atualizado",
-                description: `Uma reunião foi ${payload.eventType === 'INSERT' ? 'criada' : payload.eventType === 'UPDATE' ? 'atualizada' : 'removida'}.`,
+                description: "Uma reunião foi " + (eventMessages[payload.eventType] || 'modificada') + ".",
               });
             }
           )
           .subscribe((status: string) => {
-            console.log(`Supabase Realtime subscription status: ${status}`);
+            console.log("[Calendario] Realtime status:", status);
             if (status === 'SUBSCRIBED') {
-              console.log('Successfully subscribed to real-time changes!');
+              console.log('[Calendario] Inscrito em mudanças em tempo real!');
             } else if (status === 'CHANNEL_ERROR') {
-              console.error('Failed to subscribe to real-time changes. Check if Replication is enabled for table "reunioes".');
+              console.error('[Calendario] Erro ao inscrever. Verifique se Replication está habilitado para tabela "reunioes".');
             }
           });
       } catch (err) {
-        console.error("Error setting up realtime subscription:", err);
+        console.error("[Calendario] Erro ao configurar realtime:", err);
       }
     };
 
@@ -97,10 +196,11 @@ export default function CalendarioPage() {
 
     return () => {
       if (channel) {
+        console.log('[Calendario] Desconectando do realtime');
         channel.unsubscribe();
       }
     };
-  }, [queryClient, toast]);
+  }, [queryClient, toast, currentMonth, refetch]);
 
   const daysInMonth = useMemo(() => {
     const start = startOfMonth(currentMonth);
@@ -156,15 +256,22 @@ export default function CalendarioPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-8rem)]">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <Card className="p-6">
+          <div className="flex items-center gap-3">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            <span className="text-muted-foreground">Carregando calendário...</span>
+          </div>
+        </Card>
       </div>
     );
   }
 
   if (error) {
+    console.error('[Calendario] Erro ao carregar reuniões:', error);
     return (
       <div className="flex flex-col items-center justify-center h-[calc(100vh-8rem)] gap-4">
         <p className="text-destructive">Erro ao carregar reuniões</p>
+        <p className="text-muted-foreground text-sm">Verifique se você está logado e tente novamente.</p>
         <Button onClick={() => refetch()}>Tentar novamente</Button>
       </div>
     );
