@@ -23,6 +23,7 @@ import formsAutomationAPIRoutes from "./routes/formsAutomationAPI";
 import { requireTenant } from "./middleware/requireTenant";
 import { leadsPipelineRoutes } from "./routes/leadsPipelineRoutes";
 import { meetingsRouter } from "./routes/meetings";
+import assinaturaRoutes from "./routes/assinatura";
 
 // Configure multer for logo uploads
 const logoStorage = multer.diskStorage({
@@ -210,6 +211,9 @@ export async function registerRoutes(app: Express) {
       });
     }
   });
+
+  // Assinatura Digital routes
+  app.use("/api/assinatura", assinaturaRoutes);
 
   // Health check endpoint
   app.get("/health", (_req, res) => {

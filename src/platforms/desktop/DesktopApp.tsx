@@ -36,6 +36,10 @@ import FormularioPublicoWrapper from "@/features/formularios-platform/pages/Form
 // Import Revendedora Platform
 import RevendedoraApp from "@/features/revendedora/RevendedoraApp";
 
+// Import Assinatura Platform
+import AssinaturaPage from "@/pages/AssinaturaPage";
+import AssinaturaClientPage from "@/pages/AssinaturaClientPage";
+
 // Import Revendedora Admin components for /produto/admin/* routes
 import { CompanyProvider } from "@/features/revendedora/contexts/CompanyContext";
 import { AdminLayout } from "@/features/revendedora/layouts/AdminLayout";
@@ -495,6 +499,24 @@ const DesktopApp = () => {
             </DesktopLayout>
           </ProtectedRoute>
         } 
+      />
+
+      {/* Assinatura Digital - Admin */}
+      <Route 
+        path="/assinatura" 
+        element={
+          <ProtectedRoute>
+            <DesktopLayout>
+              <AssinaturaPage />
+            </DesktopLayout>
+          </ProtectedRoute>
+        } 
+      />
+      
+      {/* Assinatura Digital - Client signing page (public) */}
+      <Route 
+        path="/assinar/:token" 
+        element={<AssinaturaClientPage />} 
       />
       
       {/* Catch all - 404 */}

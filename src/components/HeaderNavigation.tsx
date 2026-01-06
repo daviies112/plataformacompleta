@@ -15,7 +15,8 @@ import {
   Trello,
   Shield,
   ShoppingBag,
-  Video
+  Video,
+  FileSignature
 } from "lucide-react";
 
 const HeaderNavigation = () => {
@@ -83,6 +84,12 @@ const HeaderNavigation = () => {
       label: "Revendedora", 
       icon: ShoppingBag,
       active: location.pathname.startsWith("/revendedora")
+    },
+    { 
+      path: "/assinatura", 
+      label: "Assinatura", 
+      icon: FileSignature,
+      active: location.pathname.startsWith("/assinatura")
     }
   ];
 
