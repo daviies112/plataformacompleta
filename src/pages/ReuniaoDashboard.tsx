@@ -3,11 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { useReuniao, Meeting } from "@/hooks/useReuniao";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, Users, Video, Clock, Plus, Loader2, Zap, Palette } from "lucide-react";
+import { Calendar, Users, Video, Clock, Plus, Loader2, Zap, Palette, CheckCircle, XCircle } from "lucide-react";
 import { ReuniaoCard } from "@/components/ReuniaoCard";
 import { useToast } from "@/hooks/use-toast";
 import { InstantMeetingModal } from "@/components/InstantMeetingModal";
 import { CreateEventModal } from "@/components/calendar/CreateEventModal";
+import { MeetingHeader } from "@/components/MeetingHeader";
+import { api } from "@/lib/api";
 
 interface CreatedMeeting {
   id: string;
@@ -15,11 +17,15 @@ interface CreatedMeeting {
   titulo: string;
 }
 
-import { MeetingHeader } from "@/components/MeetingHeader";
-
 export default function ReuniaoDashboard() {
   const { meetings, loading } = useReuniao();
   const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const [showMeetingModal, setShowMeetingModal] = useState(false);
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [createdMeeting, setCreatedMeeting] = useState<CreatedMeeting | null>(null);
+  const [isCreatingInstant, setIsCreatingInstant] = useState(false);
 
   const meetingsArray = Array.isArray(meetings) ? meetings : [];
   
@@ -27,6 +33,86 @@ export default function ReuniaoDashboard() {
     .filter((m: Meeting) => new Date(m.dataInicio) > new Date() && m.status === 'agendada')
     .sort((a: Meeting, b: Meeting) => new Date(a.dataInicio).getTime() - new Date(b.dataInicio).getTime())
     .slice(0, 5);
+
+  const completedMeetings = meetingsArray.filter((m: Meeting) => m.status === 'finalizada' || m.status === 'concluida');
+  const cancelledMeetings = meetingsArray.filter((m: Meeting) => m.status === 'cancelada');
+  const inProgressMeetings = meetingsArray.filter((m: Meeting) => m.status === 'em_andamento');
+
+  const stats = [
+    {
+      title: "Total de Reunioes",
+      value: meetingsArray.length,
+      description: "reunioes registradas",
+      icon: Video,
+      color: "text-blue-500"
+    },
+    {
+      title: "Agendadas",
+      value: upcomingMeetings.length,
+      description: "proximas reunioes",
+      icon: Calendar,
+      color: "text-green-500"
+    },
+    {
+      title: "Concluidas",
+      value: completedMeetings.length,
+      description: "reunioes encerradas",
+      icon: CheckCircle,
+      color: "text-purple-500"
+    },
+    {
+      title: "Canceladas",
+      value: cancelledMeetings.length,
+      description: "reunioes canceladas",
+      icon: XCircle,
+      color: "text-red-500"
+    }
+  ];
+
+  const handleInstantMeeting = async () => {
+    setIsCreatingInstant(true);
+    try {
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      
+      const response = await api.post('/api/reunioes/instant', {
+        titulo: "Reuniao Instantanea - " + timeStr
+      });
+      
+      if (response.data && response.data.id) {
+        setCreatedMeeting({
+          id: response.data.id,
+          linkReuniao: response.data.linkReuniao || response.data.link_reuniao,
+          titulo: response.data.titulo
+        });
+        setShowMeetingModal(true);
+        toast({
+          title: "Reuniao criada!",
+          description: "Sua reuniao instantanea foi criada com sucesso."
+        });
+      }
+    } catch (error: any) {
+      console.error("Erro ao criar reuniao instantanea:", error);
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: error.response?.data?.error || "Nao foi possivel criar a reuniao."
+      });
+    } finally {
+      setIsCreatingInstant(false);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setShowMeetingModal(false);
+    setCreatedMeeting(null);
+  };
+
+  const handleJoinMeeting = () => {
+    if (createdMeeting?.linkReuniao) {
+      window.open(createdMeeting.linkReuniao, '_blank');
+    }
+  };
 
   if (loading) {
     return (
@@ -39,18 +125,18 @@ export default function ReuniaoDashboard() {
   return (
     <div className="space-y-8">
       <MeetingHeader 
-        title="Reuniões" 
-        description="Gerencie suas videoconferências e agendamentos." 
+        title="Reunioes" 
+        description="Gerencie suas videoconferencias e agendamentos." 
       />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat, index) => (
-          <Card key={index} data-testid={`card-stat-${index}`}>
+          <Card key={index} data-testid={"card-stat-" + index}>
             <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
                 {stat.title}
               </CardTitle>
-              <stat.icon className={`h-4 w-4 ${stat.color}`} />
+              <stat.icon className={"h-4 w-4 " + stat.color} />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{stat.value}</div>
@@ -76,8 +162,9 @@ export default function ReuniaoDashboard() {
                 <div className="text-center py-8">
                   <Video className="h-12 w-12 mx-auto text-muted-foreground/50 mb-4" />
                   <p className="text-sm text-muted-foreground mb-4">Nenhuma reuniao agendada.</p>
-                  <Button onClick={handleInstantMeeting} disabled={isCreatingInstant} className="gap-2">
-                    <Zap className="h-4 w-4" /> Criar Reuniao Agora
+                  <Button onClick={handleInstantMeeting} disabled={isCreatingInstant} className="gap-2" data-testid="button-create-instant">
+                    {isCreatingInstant ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
+                    Criar Reuniao Agora
                   </Button>
                 </div>
               ) : (

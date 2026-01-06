@@ -162,12 +162,11 @@ export default function ReuniaoPublica() {
   if (step === "lobby" && !autoJoin) {
     return (
       <MeetingLobby
-        meetingTitle={meeting.titulo || "Reunião"}
+        meetingTitle={meeting.titulo || "Reuniao"}
         onJoin={handleJoinFromLobby}
-        userName={userName}
-        onUserNameChange={setUserName}
-        loading={tokenLoading}
-        roomConfig={roomConfig}
+        participantName={userName}
+        onParticipantNameChange={setUserName}
+        config={roomConfig}
       />
     );
   }
@@ -189,20 +188,20 @@ export default function ReuniaoPublica() {
       <div 
         className="flex items-center justify-center h-screen"
         style={{ 
-          backgroundColor: roomConfig.endScreen.backgroundColor || roomConfig.colors.background 
+          backgroundColor: roomConfig.colors.background 
         }}
       >
         <Card className="max-w-md">
           <CardContent className="p-8 text-center">
             <h2 
               className="text-2xl font-bold mb-4"
-              style={{ color: roomConfig.colors.text }}
+              style={{ color: roomConfig.colors.controlsText }}
             >
               {roomConfig.endScreen.title}
             </h2>
             <p 
               className="text-muted-foreground"
-              style={{ color: roomConfig.colors.text }}
+              style={{ color: roomConfig.colors.controlsText }}
             >
               {roomConfig.endScreen.message}
             </p>
