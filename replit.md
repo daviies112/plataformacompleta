@@ -82,14 +82,16 @@ scripts/   → Utilitários (export, import)
    - Scripts de limpeza preservam a pasta `data/` para manter credenciais.
    - Veja: `DOCUMENTACAO_PERSISTENCIA_EXPORT.md`
 ✅ Label Designer
-✅ **Assinatura Digital** - NOVO (06/01/2026)
+✅ **Assinatura Digital** - ATUALIZADO (06/01/2026)
    - Plataforma completa para contratos digitais com verificação biométrica
    - Reconhecimento facial (ArcFace, TripletLoss, CosFace, SphereFace)
    - Captura de documentos e validação de identidade
-   - Admin: criar contratos personalizados com 8 abas de customização
-   - Cliente: acessar via URL única para assinar contrato
+   - **Admin (8 abas):** Cliente, Aparência, Verificação, Contrato, Progresso, Parabéns, Apps, Contratos
+   - **Previews em tempo real:** Layout two-column com configurações à esquerda e preview à direita
+   - **Cliente (6 steps):** Loading → Verificação → Contrato → Revenda → App → Sucesso
+   - **Floating Progress Tracker:** Widget fixo no canto inferior direito com 3 passos
    - API Routes: `/api/assinatura/*`
-   - Acesse via menu "Assinatura" no header (precisa scroll horizontal)
+   - Rotas: `/assinatura` (admin), `/assinar/:token` (cliente)
 
 ## Desenvolvimento
 
