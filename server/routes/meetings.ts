@@ -517,15 +517,61 @@ async function get100msCredentials(tenantId: string) {
   }
 }
 
+// GET /api/reunioes - List local meetings with Supabase sync fallback
 meetingsRouter.get('/reunioes', authenticateToken, requireTenantId, async (req: AuthRequest, res: Response) => {
   try {
     const tenantId = req.user!.tenantId;
     
-    const meetings = await db.select().from(reunioes)
+    // 1. Get local meetings
+    let localMeetings = await db.select().from(reunioes)
       .where(eq(reunioes.tenantId, tenantId))
       .orderBy(desc(reunioes.dataInicio));
 
-    res.json(meetings);
+    // 2. Attempt to sync from Supabase if local list is empty or for refresh
+    try {
+      const supabase = await getClientSupabaseClient(tenantId);
+      if (supabase) {
+        const { data: supabaseMeetings, error } = await supabase
+          .from('reunioes')
+          .select('*')
+          .eq('tenant_id', tenantId);
+
+        if (!error && supabaseMeetings && supabaseMeetings.length > 0) {
+          console.log(`[Supabase Sync] Encontradas ${supabaseMeetings.length} reuniões no Supabase para tenant ${tenantId}`);
+          
+          // Basic sync: insert missing meetings into local DB
+          for (const sMeeting of supabaseMeetings) {
+            const exists = localMeetings.some(m => m.id === sMeeting.id);
+            if (!exists) {
+              await db.insert(reunioes).values({
+                id: sMeeting.id,
+                tenantId: tenantId,
+                titulo: sMeeting.titulo,
+                nome: sMeeting.nome,
+                email: sMeeting.email,
+                dataInicio: sMeeting.data_inicio ? new Date(sMeeting.data_inicio) : new Date(),
+                dataFim: sMeeting.data_fim ? new Date(sMeeting.data_fim) : null,
+                duracao: sMeeting.duracao,
+                status: sMeeting.status,
+                tipo: sMeeting.tipo || 'online',
+                roomId100ms: sMeeting.room_id_100ms,
+                linkReuniao: sMeeting.link_reuniao,
+                createdAt: sMeeting.created_at ? new Date(sMeeting.created_at) : new Date(),
+              }).onConflictDoNothing();
+            }
+          }
+          
+          // Re-fetch local meetings after sync
+          localMeetings = await db.select().from(reunioes)
+            .where(eq(reunioes.tenantId, tenantId))
+            .orderBy(desc(reunioes.dataInicio));
+        }
+      }
+    } catch (syncErr) {
+      console.warn(`[Supabase Sync] Falha na sincronização de entrada:`, syncErr);
+    }
+
+    res.json(localMeetings);
   } catch (error: any) {
     console.error('Erro ao listar reuniões:', error);
     res.status(500).json({ error: 'Erro ao listar reuniões', message: error.message });
