@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useMemo, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ChevronLeft, ChevronRight, Video, Clock, User, Calendar as CalendarIcon, Loader2, Plus, ExternalLink, RefreshCw } from "lucide-react";
@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
+import { getSupabaseClient } from "@/lib/supabase";
 
 interface Reuniao {
   id: string;
@@ -39,10 +40,55 @@ export default function CalendarioPage() {
   const [selectedMeeting, setSelectedMeeting] = useState<Reuniao | null>(null);
   const { toast } = useToast();
   const [, navigate] = useLocation();
+  const queryClient = useQueryClient();
 
   const { data: reunioes = [], isLoading, error, refetch } = useQuery<Reuniao[]>({
     queryKey: ['/api/reunioes'],
   });
+
+  // Supabase Realtime Subscription
+  useEffect(() => {
+    let channel: any;
+
+    const setupRealtime = async () => {
+      try {
+        const supabase = await getSupabaseClient();
+        if (!supabase) return;
+
+        console.log("Setting up Supabase Realtime subscription for 'reunioes'...");
+        channel = supabase
+          .channel('schema-db-changes')
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'reunioes'
+            },
+            (payload: any) => {
+              console.log('Realtime change detected in reunioes:', payload);
+              // Invalidate query to trigger refetch
+              queryClient.invalidateQueries({ queryKey: ['/api/reunioes'] });
+              toast({
+                title: "Calendário atualizado",
+                description: "Novas alterações foram detectadas e sincronizadas.",
+              });
+            }
+          )
+          .subscribe();
+      } catch (err) {
+        console.error("Error setting up realtime subscription:", err);
+      }
+    };
+
+    setupRealtime();
+
+    return () => {
+      if (channel) {
+        channel.unsubscribe();
+      }
+    };
+  }, [queryClient, toast]);
 
   const daysInMonth = useMemo(() => {
     const start = startOfMonth(currentMonth);
