@@ -11,7 +11,7 @@ import {
   selectRoom,
   HMSPeer,
 } from "@100mslive/react-sdk";
-import { Mic, MicOff, Video, VideoOff, PhoneOff, Users, MonitorUp, MonitorOff, Circle, Copy, Check, Share2 } from "lucide-react";
+import { Mic, MicOff, Video, VideoOff, PhoneOff, Users, MonitorUp, MonitorOff, Circle, Copy, Check, Share2, FileSignature } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -556,6 +556,26 @@ export function Meeting100ms({
                 </Button>
 
                 <div className="h-8 w-[1px] bg-white/10 mx-1" />
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      onClick={() => {
+                        console.log("[Meeting100ms] Click Assinar Contrato");
+                        window.open('/assinatura', '_blank');
+                      }}
+                      variant="ghost"
+                      className="h-12 px-4 rounded-2xl font-bold bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg shadow-emerald-500/20 hover:scale-105 transition-transform relative z-50 flex items-center gap-2"
+                      data-testid="button-assinar-contrato"
+                    >
+                      <FileSignature className="h-5 w-5" />
+                      <span className="hidden sm:inline">Assinar</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Abrir página de assinatura de contrato</p>
+                  </TooltipContent>
+                </Tooltip>
 
                 <Button 
                   onClick={() => {
