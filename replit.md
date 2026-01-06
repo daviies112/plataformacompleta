@@ -93,7 +93,11 @@ scripts/   → Utilitários (export, import)
    - **API Routes Admin (autenticado):** `/api/assinatura/contracts` (GET, POST, PATCH, DELETE)
    - **API Routes Público (sem auth):** `/api/assinatura/public/contracts` (POST criar), `/api/assinatura/public/contracts/:token` (GET buscar)
    - **Rotas Frontend:** `/assinatura` (admin), `/assinar/:token` (cliente - acesso público)
-   - Persistência em arquivo: `data/assinatura_contracts.json` (sobrevive reinicializações)
+   - **Persistência Supabase + Fallback Local:** 
+     - Usa Supabase como armazenamento principal (tabelas: `assinatura_global_config`, `assinatura_contracts`, `assinatura_signature_logs`)
+     - Fallback automático para arquivo local `data/assinatura_contracts.json` quando Supabase indisponível
+     - Configuração em `data/supabase-config.json` (propriedades: `supabaseUrl`, `supabaseAnonKey`)
+     - Execute `supabase-assinatura-tables.sql` no Supabase SQL Editor para criar tabelas
    - **Integração com Reuniões:** 
      - Botão "Assinar" na barra de controles da reunião (Meeting100ms.tsx)
      - Botão "Assinar Contrato de Revendedor" na tela de Reunião Encerrada (PublicMeetingRoom.tsx)
