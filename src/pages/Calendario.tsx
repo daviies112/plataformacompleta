@@ -65,17 +65,29 @@ export default function CalendarioPage() {
               schema: 'public',
               table: 'reunioes'
             },
-            (payload: any) => {
+            async (payload: any) => {
               console.log('Realtime change detected in reunioes:', payload);
+              
               // Invalidate query to trigger refetch
-              queryClient.invalidateQueries({ queryKey: ['/api/reunioes'] });
+              await queryClient.invalidateQueries({ queryKey: ['/api/reunioes'] });
+              
+              // Also trigger a direct refetch to be sure
+              refetch();
+
               toast({
                 title: "Calendário atualizado",
-                description: "Novas alterações foram detectadas e sincronizadas.",
+                description: `Uma reunião foi ${payload.eventType === 'INSERT' ? 'criada' : payload.eventType === 'UPDATE' ? 'atualizada' : 'removida'}.`,
               });
             }
           )
-          .subscribe();
+          .subscribe((status: string) => {
+            console.log(`Supabase Realtime subscription status: ${status}`);
+            if (status === 'SUBSCRIBED') {
+              console.log('Successfully subscribed to real-time changes!');
+            } else if (status === 'CHANNEL_ERROR') {
+              console.error('Failed to subscribe to real-time changes. Check if Replication is enabled for table "reunioes".');
+            }
+          });
       } catch (err) {
         console.error("Error setting up realtime subscription:", err);
       }
