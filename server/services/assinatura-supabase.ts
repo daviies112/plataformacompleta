@@ -2,7 +2,7 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import * as fs from 'fs';
 import * as path from 'path';
 
-const CONFIG_FILE = path.join(process.cwd(), 'data', 'supabase_config.json');
+const CONFIG_FILE = path.join(process.cwd(), 'data', 'supabase-config.json');
 
 interface SupabaseConfig {
   url: string;
@@ -158,8 +158,11 @@ class AssinaturaSupabaseService {
       if (fs.existsSync(CONFIG_FILE)) {
         const data = fs.readFileSync(CONFIG_FILE, 'utf-8');
         const config = JSON.parse(data);
-        if (config.url && config.anon_key) {
-          return config;
+        const url = config.url || config.supabaseUrl;
+        const anon_key = config.anon_key || config.supabaseAnonKey;
+        if (url && anon_key) {
+          console.log('[AssinaturaSupabase] Config carregada do arquivo');
+          return { url, anon_key };
         }
       }
     } catch (error) {
@@ -170,6 +173,7 @@ class AssinaturaSupabaseService {
     const key = process.env.REACT_APP_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
     
     if (url && key) {
+      console.log('[AssinaturaSupabase] Config carregada das env vars');
       return { url, anon_key: key };
     }
     
