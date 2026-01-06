@@ -35,6 +35,8 @@ export const CreateEventModal = ({ open, onOpenChange, defaultDate }: CreateEven
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [clientName, setClientName] = useState('');
+  const [clientEmail, setClientEmail] = useState('');
   const [date, setDate] = useState(defaultDate || format(new Date(), 'yyyy-MM-dd'));
   const [startTime, setStartTime] = useState('09:00');
   const [duration, setDuration] = useState(60);
@@ -62,9 +64,12 @@ export const CreateEventModal = ({ open, onOpenChange, defaultDate }: CreateEven
       if (eventData.meetingType === 'video') {
         const payload = {
           titulo: eventData.title,
+          nome: eventData.clientName,
+          email: eventData.clientEmail,
           descricao: eventData.description,
           dataInicio,
           dataFim,
+          tipo: 'online',
           participantes: eventData.attendees
         };
         
@@ -153,6 +158,8 @@ export const CreateEventModal = ({ open, onOpenChange, defaultDate }: CreateEven
 
     const eventData = {
       title: title.trim(),
+      clientName: clientName.trim() || undefined,
+      clientEmail: clientEmail.trim() || undefined,
       description: description.trim() || undefined,
       date,
       startTime,
@@ -169,6 +176,8 @@ export const CreateEventModal = ({ open, onOpenChange, defaultDate }: CreateEven
   const handleClose = () => {
     setTitle('');
     setDescription('');
+    setClientName('');
+    setClientEmail('');
     setDate(defaultDate || format(new Date(), 'yyyy-MM-dd'));
     setStartTime('09:00');
     setDuration(60);
@@ -205,6 +214,39 @@ export const CreateEventModal = ({ open, onOpenChange, defaultDate }: CreateEven
               placeholder="Ex: Reunião de Planejamento"
               className="w-full"
             />
+          </div>
+
+          {/* Nome e Email do Cliente */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="clientName" className="flex items-center gap-2">
+                <Users className="w-4 h-4" />
+                Nome do Cliente
+              </Label>
+              <Input
+                id="clientName"
+                data-testid="input-client-name"
+                value={clientName}
+                onChange={(e) => setClientName(e.target.value)}
+                placeholder="Nome do participante principal"
+                className="w-full"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="clientEmail" className="flex items-center gap-2">
+                <Mail className="w-4 h-4" />
+                Email do Cliente
+              </Label>
+              <Input
+                id="clientEmail"
+                data-testid="input-client-email"
+                type="email"
+                value={clientEmail}
+                onChange={(e) => setClientEmail(e.target.value)}
+                placeholder="email@exemplo.com"
+                className="w-full"
+              />
+            </div>
           </div>
 
           {/* Descrição */}

@@ -60,6 +60,8 @@ export function useReuniao(id?: string) {
     mutationFn: (data: CreateMeetingData) => apiRequest("POST", API_BASE, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [API_BASE] });
+      queryClient.invalidateQueries({ queryKey: ["reunioes-calendario"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/calendar-events"] });
     },
   });
 
@@ -69,6 +71,8 @@ export function useReuniao(id?: string) {
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: [API_BASE] });
       queryClient.invalidateQueries({ queryKey: [API_BASE, id] });
+      queryClient.invalidateQueries({ queryKey: ["reunioes-calendario"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/calendar-events"] });
     },
   });
 
@@ -76,6 +80,8 @@ export function useReuniao(id?: string) {
     mutationFn: (id: string) => apiRequest("DELETE", `${API_BASE}/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [API_BASE] });
+      queryClient.invalidateQueries({ queryKey: ["reunioes-calendario"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/calendar-events"] });
     },
   });
 
@@ -84,6 +90,8 @@ export function useReuniao(id?: string) {
     onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: [API_BASE] });
       queryClient.invalidateQueries({ queryKey: [API_BASE, id] });
+      queryClient.invalidateQueries({ queryKey: ["reunioes-calendario"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/calendar-events"] });
     },
   });
 
@@ -92,6 +100,8 @@ export function useReuniao(id?: string) {
     onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: [API_BASE] });
       queryClient.invalidateQueries({ queryKey: [API_BASE, id] });
+      queryClient.invalidateQueries({ queryKey: ["reunioes-calendario"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/calendar-events"] });
     },
   });
 

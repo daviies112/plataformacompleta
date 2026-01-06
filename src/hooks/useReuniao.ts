@@ -49,8 +49,8 @@ export function useReuniao(id?: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/reunioes"] });
-      // Também invalidar cache do calendário
       queryClient.invalidateQueries({ queryKey: ["reunioes-calendario"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/calendar-events"] });
     },
   });
 
@@ -62,8 +62,8 @@ export function useReuniao(id?: string) {
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ["/api/reunioes"] });
       queryClient.invalidateQueries({ queryKey: ["/api/reunioes", id] });
-      // Também invalidar cache do calendário
       queryClient.invalidateQueries({ queryKey: ["reunioes-calendario"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/calendar-events"] });
     },
   });
 
@@ -74,8 +74,8 @@ export function useReuniao(id?: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/reunioes"] });
-      // Também invalidar cache do calendário
       queryClient.invalidateQueries({ queryKey: ["reunioes-calendario"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/calendar-events"] });
     },
   });
 
@@ -107,8 +107,8 @@ export function useReuniao(id?: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/reunioes"] });
-      // Também invalidar cache do calendário
       queryClient.invalidateQueries({ queryKey: ["reunioes-calendario"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/calendar-events"] });
     },
   });
 
