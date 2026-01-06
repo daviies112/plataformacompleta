@@ -82,6 +82,14 @@ scripts/   → Utilitários (export, import)
    - Scripts de limpeza preservam a pasta `data/` para manter credenciais.
    - Veja: `DOCUMENTACAO_PERSISTENCIA_EXPORT.md`
 ✅ Label Designer
+✅ **Assinatura Digital** - NOVO (06/01/2026)
+   - Plataforma completa para contratos digitais com verificação biométrica
+   - Reconhecimento facial (ArcFace, TripletLoss, CosFace, SphereFace)
+   - Captura de documentos e validação de identidade
+   - Admin: criar contratos personalizados com 8 abas de customização
+   - Cliente: acessar via URL única para assinar contrato
+   - API Routes: `/api/assinatura/*`
+   - Acesse via menu "Assinatura" no header (precisa scroll horizontal)
 
 ## Desenvolvimento
 
@@ -119,6 +127,6 @@ Veja [DESENVOLVIMENTO.md](./DESENVOLVIMENTO.md) para documentação técnica com
 
 ---
 
-**Last Updated:** 05 de Janeiro de 2026  
+**Last Updated:** 06 de Janeiro de 2026  
 **Tamanho Otimizado:** ~200MB (sem node_modules)  
 **Economia de Créditos:** 95%
