@@ -88,12 +88,16 @@ scripts/   → Utilitários (export, import)
    - Captura de documentos e validação de identidade
    - **Admin (8 abas):** Cliente, Aparência, Verificação, Contrato, Progresso, Parabéns, Apps, Contratos
    - **Previews em tempo real:** Layout two-column com configurações à esquerda e preview à direita
-   - **Cliente (6 steps):** Loading → Verificação → Contrato → Revenda → App → Sucesso
+   - **Cliente (3 steps):** Reconhecimento Facial → Assinar Contrato → Baixar Aplicativo
    - **Floating Progress Tracker:** Widget fixo no canto inferior direito com 3 passos
    - **API Routes Admin (autenticado):** `/api/assinatura/contracts` (GET, POST, PATCH, DELETE)
    - **API Routes Público (sem auth):** `/api/assinatura/public/contracts` (POST criar), `/api/assinatura/public/contracts/:token` (GET buscar)
    - **Rotas Frontend:** `/assinatura` (admin), `/assinar/:token` (cliente - acesso público)
    - Persistência em arquivo: `data/assinatura_contracts.json` (sobrevive reinicializações)
+   - **Integração com Reuniões:** 
+     - Botão "Assinar" na barra de controles da reunião (Meeting100ms.tsx)
+     - Botão "Assinar Contrato de Revendedor" na tela de Reunião Encerrada (PublicMeetingRoom.tsx)
+     - Criação automática de contrato ao encerrar reunião
 
 ## Desenvolvimento
 

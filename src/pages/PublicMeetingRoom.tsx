@@ -1,7 +1,8 @@
 import { useState, useMemo, useEffect } from "react";
 import { useParams, useSearch } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2, Video, Clock, AlertCircle, Calendar, Star, ThumbsUp, ThumbsDown } from "lucide-react";
+import { Loader2, Video, Clock, AlertCircle, Calendar, Star, ThumbsUp, ThumbsDown, FileSignature } from "lucide-react";
+import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
@@ -54,6 +55,8 @@ export default function PublicMeetingRoom() {
   const [mediaSettings, setMediaSettings] = useState({ audioEnabled: !isRecordingBot, videoEnabled: !isRecordingBot });
   const [feedback, setFeedback] = useState<"positive" | "negative" | null>(null);
   const [feedbackComment, setFeedbackComment] = useState("");
+  const [contractToken, setContractToken] = useState<string | null>(null);
+  const [isCreatingContract, setIsCreatingContract] = useState(false);
 
   const { data, isLoading, error } = useQuery<PublicMeetingData>({
     queryKey: ["/api/public/reuniao", companySlug, roomId],
@@ -74,8 +77,36 @@ export default function PublicMeetingRoom() {
     setStep("meeting");
   };
 
-  const handleLeaveMeeting = () => {
+  const handleLeaveMeeting = async () => {
     setStep("ended");
+    
+    if (!isRecordingBot && !contractToken) {
+      setIsCreatingContract(true);
+      try {
+        const response = await fetch('/api/assinatura/public/contracts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            client_name: participantName || 'Novo Revendedor',
+          }),
+        });
+        
+        if (response.ok) {
+          const contract = await response.json();
+          setContractToken(contract.access_token);
+        }
+      } catch (err) {
+        console.error("[PublicMeetingRoom] Erro ao criar contrato:", err);
+      } finally {
+        setIsCreatingContract(false);
+      }
+    }
+  };
+  
+  const handleGoToSignature = () => {
+    if (contractToken) {
+      window.location.href = `/assinar/${contractToken}`;
+    }
   };
 
   if (isLoading) {
@@ -187,12 +218,29 @@ export default function PublicMeetingRoom() {
               </div>
             )}
 
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-3">
+              {isCreatingContract ? (
+                <Button disabled className="w-full bg-emerald-600">
+                  <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                  Preparando contrato...
+                </Button>
+              ) : contractToken ? (
+                <Button
+                  onClick={handleGoToSignature}
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+                  data-testid="button-assinar-contrato-encerrada"
+                >
+                  <FileSignature className="h-5 w-5 mr-2" />
+                  Assinar Contrato de Revendedor
+                </Button>
+              ) : null}
+              
               {endConfig.redirectUrl ? (
                 <Button
                   onClick={() => window.location.href = endConfig.redirectUrl!}
                   className="w-full"
-                  style={{ backgroundColor: roomDesignConfig.colors.primaryButton }}
+                  variant="outline"
+                  style={{ borderColor: roomDesignConfig.colors.primaryButton }}
                 >
                   Continuar
                 </Button>
@@ -200,7 +248,7 @@ export default function PublicMeetingRoom() {
                 <Button
                   onClick={() => window.close()}
                   className="w-full"
-                  style={{ backgroundColor: roomDesignConfig.colors.primaryButton }}
+                  variant="outline"
                 >
                   Fechar janela
                 </Button>
