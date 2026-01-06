@@ -810,16 +810,16 @@ meetingsRouter.post('/reunioes', authenticateToken, requireTenantId, async (req:
             id: newMeeting.id,
             tenant_id: tenantId,
             titulo: newMeeting.titulo,
-            nome: newMeeting.nome,
-            email: newMeeting.email,
+            nome: newMeeting.nome || '',
+            email: newMeeting.email || '',
             data_inicio: newMeeting.dataInicio?.toISOString(),
             data_fim: newMeeting.dataFim?.toISOString(),
             duracao: newMeeting.duracao,
-            descricao: newMeeting.descricao,
+            descricao: newMeeting.descricao || '',
             status: newMeeting.status,
             tipo: newMeeting.tipo,
             room_id_100ms: newMeeting.roomId100ms,
-            link_reuniao: newMeeting.linkReuniao,
+            link_reuniao: linkReuniao,
             created_at: newMeeting.createdAt?.toISOString(),
             updated_at: newMeeting.updatedAt?.toISOString()
           }, { onConflict: 'id' });
@@ -938,6 +938,37 @@ meetingsRouter.post('/reunioes/:id/start-recording', authenticateToken, async (r
       status: 'recording',
       startedAt: new Date(),
     }).returning();
+
+    // Sync to Supabase (async, non-blocking)
+    try {
+      const supabase = await getClientSupabaseClient(meeting.tenantId);
+      if (supabase) {
+        const toISOString = (date: Date | string | null | undefined): string | null => {
+          if (!date) return null;
+          if (date instanceof Date) return date.toISOString();
+          if (typeof date === 'string') return date;
+          return null;
+        };
+
+        const { error: syncError } = await supabase
+          .from('gravacoes')
+          .upsert({
+            id: gravacao.id,
+            reuniao_id: gravacao.reuniaoId,
+            tenant_id: gravacao.tenantId,
+            room_id_100ms: gravacao.roomId100ms || null,
+            session_id_100ms: gravacao.sessionId100ms || null,
+            recording_id_100ms: gravacao.recordingId100ms || null,
+            status: gravacao.status || 'recording',
+            started_at: toISOString(gravacao.startedAt),
+            created_at: toISOString(gravacao.createdAt),
+          }, { onConflict: 'id' });
+        
+        if (syncError) console.error(`[Recording Sync] Erro Supabase:`, syncError);
+      }
+    } catch (e) {
+      console.error(`[Recording Sync] Erro:`, e);
+    }
 
     res.json({ success: true, recording: gravacao, hmsResult: result });
   } catch (error: any) {
