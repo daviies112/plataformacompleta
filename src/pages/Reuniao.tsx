@@ -158,7 +158,7 @@ export default function Reuniao() {
     navigate("/reuniao");
   }, [navigate]);
 
-  if (loading) {
+  if (loading && !meeting) {
     return (
       <div 
         className="min-h-screen flex flex-col items-center justify-center gap-4" 
@@ -171,7 +171,7 @@ export default function Reuniao() {
     );
   }
 
-  if (error || !meeting) {
+  if (error || (!loading && !meeting)) {
     return (
       <div 
         className="min-h-screen flex flex-col items-center justify-center gap-4" 
@@ -180,6 +180,9 @@ export default function Reuniao() {
       >
         <h1 className="text-2xl font-bold" style={{ color: roomConfig.colors.controlsText }}>Reunião não encontrada</h1>
         <p style={{ color: `${roomConfig.colors.controlsText}80` }}>Verifique se o link está correto ou entre em contato com o organizador.</p>
+        <Button onClick={() => navigate("/reuniao")} variant="outline" className="mt-4">
+          Voltar para o Dashboard
+        </Button>
       </div>
     );
   }

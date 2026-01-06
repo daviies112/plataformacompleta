@@ -189,10 +189,12 @@ async function get100msCredentialsForTenant(tenantId: string) {
       .limit(1);
 
     if (!config[0]) {
+      console.warn(`[HMS] Configuração não encontrada para tenant: ${tenantId}. Usando padrão de desenvolvimento.`);
       return null;
     }
 
-    if (!config[0].appAccessKey || !config[0].appSecret) {
+    if (!config[0].appAccessKey || !config[0].appSecret || config[0].appAccessKey === 'pending_configuration') {
+      console.warn(`[HMS] Credenciais pendentes ou inválidas para tenant: ${tenantId}`);
       return null;
     }
 
@@ -488,10 +490,12 @@ async function get100msCredentials(tenantId: string) {
       .limit(1);
 
     if (!config[0]) {
+      console.warn(`[HMS] Configuração não encontrada para tenant: ${tenantId}. Usando padrão de desenvolvimento.`);
       return null;
     }
 
-    if (!config[0].appAccessKey || !config[0].appSecret) {
+    if (!config[0].appAccessKey || !config[0].appSecret || config[0].appAccessKey === 'pending_configuration') {
+      console.warn(`[HMS] Credenciais pendentes ou inválidas para tenant: ${tenantId}`);
       return null;
     }
 
