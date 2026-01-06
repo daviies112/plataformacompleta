@@ -6,8 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import {
   Loader2,
@@ -15,29 +13,19 @@ import {
   Palette,
   Video,
   LogOut,
-  Settings,
   Eye,
   Monitor,
   Smartphone,
   ArrowLeft,
-  Mic,
-  VideoIcon,
-  MonitorUp,
-  Smile,
-  Hand,
-  MessageSquare,
-  Users,
   RefreshCw,
   Image,
-  AlignLeft,
-  AlignCenter,
-  AlignRight,
   Upload,
   X,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { api } from "@/lib/api";
 import { RoomDesignConfig, DEFAULT_ROOM_DESIGN_CONFIG } from "@/types/reuniao";
+import { MeetingHeader } from "@/components/MeetingHeader";
 
 const COLOR_PRESETS = [
   {
@@ -82,45 +70,10 @@ const COLOR_PRESETS = [
       participantNameText: "#ffffff",
     },
   },
-  {
-    name: "Roxo Elegante",
-    colors: {
-      background: "#2e1a4a",
-      controlsBackground: "#1a0f2e",
-      controlsText: "#ffffff",
-      primaryButton: "#8b5cf6",
-      dangerButton: "#ef4444",
-      avatarBackground: "#8b5cf6",
-      avatarText: "#ffffff",
-      participantNameBackground: "rgba(0, 0, 0, 0.6)",
-      participantNameText: "#ffffff",
-    },
-  },
-  {
-    name: "Cinza Neutro",
-    colors: {
-      background: "#27272a",
-      controlsBackground: "#18181b",
-      controlsText: "#ffffff",
-      primaryButton: "#71717a",
-      dangerButton: "#ef4444",
-      avatarBackground: "#71717a",
-      avatarText: "#ffffff",
-      participantNameBackground: "rgba(0, 0, 0, 0.6)",
-      participantNameText: "#ffffff",
-    },
-  },
 ];
 
-function ColorInput({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-}) {
+function ColorInput(props: { label: string; value: string; onChange: (value: string) => void }) {
+  const { label, value, onChange } = props;
   return (
     <div className="flex items-center justify-between">
       <Label className="text-sm">{label}</Label>
@@ -141,306 +94,6 @@ function ColorInput({
   );
 }
 
-function RoomPreview({
-  config,
-  previewMode,
-}: {
-  config: RoomDesignConfig;
-  previewMode: "lobby" | "meeting" | "end";
-}) {
-  const logoPosition = config.branding.logoPosition || "left";
-  const logoSize = config.branding.logoSize || 40;
-  
-  const getLogoJustify = () => {
-    switch (logoPosition) {
-      case "center": return "justify-center";
-      case "right": return "justify-end";
-      default: return "justify-start";
-    }
-  };
-
-  if (previewMode === "lobby") {
-    return (
-      <div
-        className="rounded-lg overflow-hidden"
-        style={{
-          backgroundColor: config.colors.background,
-          backgroundImage: config.lobby.backgroundImage
-            ? `url(${config.lobby.backgroundImage})`
-            : undefined,
-          backgroundSize: "cover",
-        }}
-      >
-        {config.branding.showLogoInLobby !== false && config.branding.logo && (
-          <div 
-            className={`flex items-center gap-2 p-3 ${getLogoJustify()}`}
-            style={{ backgroundColor: config.colors.controlsBackground }}
-          >
-            <img 
-              src={config.branding.logo} 
-              alt="" 
-              style={{ height: logoSize * 0.6 }}
-              className="object-contain"
-            />
-            {config.branding.showCompanyName && (
-              <span
-                className="text-sm font-medium"
-                style={{ color: config.colors.controlsText }}
-              >
-                {config.branding.companyName || "Empresa"}
-              </span>
-            )}
-          </div>
-        )}
-        <div className="grid grid-cols-2 gap-4 p-4 min-h-[250px]">
-          <div
-            className="rounded-lg flex items-center justify-center aspect-video"
-            style={{ backgroundColor: config.colors.controlsBackground }}
-          >
-            <div
-              className="h-16 w-16 rounded-full flex items-center justify-center text-2xl font-bold"
-              style={{
-                backgroundColor: config.colors.avatarBackground,
-                color: config.colors.avatarText,
-              }}
-            >
-              J
-            </div>
-          </div>
-          <div className="flex flex-col justify-center">
-            <h3
-              className="font-semibold mb-2"
-              style={{ color: config.colors.controlsText }}
-            >
-              {config.lobby.title || "Pronto para participar?"}
-            </h3>
-            <Button
-              className="w-full mt-2"
-              style={{
-                backgroundColor: config.colors.primaryButton,
-                color: "#ffffff",
-              }}
-            >
-              {config.lobby.buttonText || "Participar agora"}
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (previewMode === "meeting") {
-    const showLogo = config.branding.showLogoInMeeting !== false && config.branding.logo;
-    
-    return (
-      <div
-        className="rounded-lg overflow-hidden flex flex-col min-h-[300px]"
-        style={{ backgroundColor: config.colors.background }}
-      >
-        <div
-          className="h-12 flex items-center px-3 border-b"
-          style={{
-            backgroundColor: config.colors.controlsBackground,
-            borderColor: `${config.colors.controlsText}20`,
-            justifyContent: logoPosition === "center" ? "center" : logoPosition === "right" ? "flex-end" : "space-between",
-          }}
-        >
-          {logoPosition === "left" && (
-            <div className="flex items-center gap-2">
-              {showLogo && (
-                <img 
-                  src={config.branding.logo!} 
-                  alt="" 
-                  style={{ height: logoSize * 0.5 }}
-                  className="object-contain"
-                />
-              )}
-              {config.branding.showCompanyName && (
-                <span
-                  className="text-sm font-medium"
-                  style={{ color: config.colors.controlsText }}
-                >
-                  {config.branding.companyName || "Empresa"}
-                </span>
-              )}
-            </div>
-          )}
-          
-          {logoPosition === "center" && showLogo && (
-            <div className="flex items-center gap-2">
-              <img 
-                src={config.branding.logo!} 
-                alt="" 
-                style={{ height: logoSize * 0.5 }}
-                className="object-contain"
-              />
-              {config.branding.showCompanyName && (
-                <span
-                  className="text-sm font-medium"
-                  style={{ color: config.colors.controlsText }}
-                >
-                  {config.branding.companyName || "Empresa"}
-                </span>
-              )}
-            </div>
-          )}
-          
-          {logoPosition === "right" && showLogo && (
-            <div className="flex items-center gap-2">
-              {config.branding.showCompanyName && (
-                <span
-                  className="text-sm font-medium"
-                  style={{ color: config.colors.controlsText }}
-                >
-                  {config.branding.companyName || "Empresa"}
-                </span>
-              )}
-              <img 
-                src={config.branding.logo!} 
-                alt="" 
-                style={{ height: logoSize * 0.5 }}
-                className="object-contain"
-              />
-            </div>
-          )}
-          
-          {logoPosition === "left" && config.meeting.showParticipantCount && (
-            <div
-              className="flex items-center gap-1 text-xs"
-              style={{ color: `${config.colors.controlsText}80` }}
-            >
-              <Users className="h-3 w-3" />
-              <span>2</span>
-            </div>
-          )}
-        </div>
-
-        <div className="flex-1 grid grid-cols-2 gap-2 p-2">
-          {[1, 2].map((i) => (
-            <div
-              key={i}
-              className="rounded-lg flex items-center justify-center aspect-video relative"
-              style={{ backgroundColor: `${config.colors.background}cc` }}
-            >
-              <div
-                className="h-12 w-12 rounded-full flex items-center justify-center text-xl font-bold"
-                style={{
-                  backgroundColor: config.colors.avatarBackground,
-                  color: config.colors.avatarText,
-                }}
-              >
-                {i === 1 ? "J" : "M"}
-              </div>
-              <div
-                className="absolute bottom-2 left-2 px-2 py-1 rounded text-xs"
-                style={{
-                  backgroundColor: config.colors.participantNameBackground,
-                  color: config.colors.participantNameText,
-                }}
-              >
-                {i === 1 ? "João (Você)" : "Maria"}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div
-          className="h-14 flex items-center justify-center gap-2 border-t"
-          style={{
-            backgroundColor: config.colors.controlsBackground,
-            borderColor: `${config.colors.controlsText}20`,
-          }}
-        >
-          <Button
-            size="icon"
-            className="rounded-full h-10 w-10"
-            style={{ backgroundColor: config.colors.controlsBackground }}
-          >
-            <Mic className="h-4 w-4" style={{ color: config.colors.controlsText }} />
-          </Button>
-          <Button
-            size="icon"
-            className="rounded-full h-10 w-10"
-            style={{ backgroundColor: config.colors.controlsBackground }}
-          >
-            <VideoIcon className="h-4 w-4" style={{ color: config.colors.controlsText }} />
-          </Button>
-          {config.meeting.enableScreenShare && (
-            <Button
-              size="icon"
-              className="rounded-full h-10 w-10"
-              style={{ backgroundColor: config.colors.controlsBackground }}
-            >
-              <MonitorUp className="h-4 w-4" style={{ color: config.colors.controlsText }} />
-            </Button>
-          )}
-          {config.meeting.enableReactions && (
-            <Button
-              size="icon"
-              className="rounded-full h-10 w-10"
-              style={{ backgroundColor: config.colors.controlsBackground }}
-            >
-              <Smile className="h-4 w-4" style={{ color: config.colors.controlsText }} />
-            </Button>
-          )}
-          {config.meeting.enableRaiseHand && (
-            <Button
-              size="icon"
-              className="rounded-full h-10 w-10"
-              style={{ backgroundColor: config.colors.controlsBackground }}
-            >
-              <Hand className="h-4 w-4" style={{ color: config.colors.controlsText }} />
-            </Button>
-          )}
-          <Button
-            size="icon"
-            className="rounded-full h-10 w-10 ml-2"
-            style={{ backgroundColor: config.colors.dangerButton }}
-          >
-            <LogOut className="h-4 w-4 text-white" />
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div
-      className="rounded-lg flex items-center justify-center min-h-[300px] p-8"
-      style={{ backgroundColor: config.colors.background }}
-    >
-      <div
-        className="text-center p-6 rounded-lg max-w-sm"
-        style={{ backgroundColor: config.colors.controlsBackground }}
-      >
-        <div className="h-12 w-12 rounded-full bg-green-500/20 flex items-center justify-center mx-auto mb-4">
-          <Video className="h-6 w-6 text-green-500" />
-        </div>
-        <h3
-          className="font-semibold mb-2"
-          style={{ color: config.colors.controlsText }}
-        >
-          {config.endScreen.title || "Reunião Encerrada"}
-        </h3>
-        <p
-          className="text-sm mb-4"
-          style={{ color: `${config.colors.controlsText}99` }}
-        >
-          {config.endScreen.message || "Obrigado por participar!"}
-        </p>
-        <Button
-          className="w-full"
-          style={{ backgroundColor: config.colors.primaryButton }}
-        >
-          Fechar
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-import { MeetingHeader } from "@/components/MeetingHeader";
-
 export default function RoomDesignSettings() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
@@ -459,20 +112,18 @@ export default function RoomDesignSettings() {
         const response = await api.get("/api/reunioes/room-design");
         return response.data;
       } catch (error: any) {
-        // Return empty data on 401 (not authenticated) instead of throwing
         if (error.response?.status === 401) {
           return { roomDesignConfig: null };
         }
         throw error;
       }
     },
-    staleTime: 0, // Always refetch when component mounts
-    refetchOnMount: 'always', // Ensure data is fresh when navigating back
+    staleTime: 0,
+    refetchOnMount: "always" as const,
   });
 
   useEffect(() => {
     if (designData?.roomDesignConfig) {
-      // Deep merge with defaults to ensure all fields exist
       const serverConfig = designData.roomDesignConfig;
       const mergedConfig: RoomDesignConfig = {
         branding: { ...DEFAULT_ROOM_DESIGN_CONFIG.branding, ...serverConfig.branding },
@@ -483,16 +134,13 @@ export default function RoomDesignSettings() {
       };
       setConfig(mergedConfig);
     } else if (designData !== undefined) {
-      // Only reset to default if we actually got a response (not still loading)
       setConfig(DEFAULT_ROOM_DESIGN_CONFIG);
     }
   }, [designData]);
 
   const saveMutation = useMutation({
     mutationFn: async (newConfig: RoomDesignConfig) => {
-      const response = await api.patch("/api/reunioes/room-design", 
-        { roomDesignConfig: newConfig }
-      );
+      const response = await api.patch("/api/reunioes/room-design", { roomDesignConfig: newConfig });
       return response.data;
     },
     onSuccess: () => {
@@ -500,7 +148,7 @@ export default function RoomDesignSettings() {
       queryClient.invalidateQueries({ queryKey: ["/api/reunioes/room-design"] });
     },
     onError: () => {
-      toast({ variant: "destructive", title: "Erro", description: "Não foi possível salvar as configurações. Certifique-se de que as credenciais 100ms estão configuradas." });
+      toast({ variant: "destructive", title: "Erro", description: "Não foi possível salvar as configurações." });
     },
   });
 
@@ -531,6 +179,7 @@ export default function RoomDesignSettings() {
 
   const handleReset = () => {
     setConfig(DEFAULT_ROOM_DESIGN_CONFIG);
+    toast({ title: "Configurações restauradas", description: "O design foi restaurado para o padrão." });
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -540,10 +189,10 @@ export default function RoomDesignSettings() {
     setIsUploading(true);
     try {
       const formData = new FormData();
-      formData.append('logo', file);
+      formData.append("logo", file);
 
-      const response = await api.post('/api/upload/logo', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
+      const response = await api.post("/api/upload/logo", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
       });
 
       if (response.data.url) {
@@ -551,15 +200,15 @@ export default function RoomDesignSettings() {
         toast({ title: "Logo enviado!", description: "O logo foi carregado com sucesso." });
       }
     } catch (error: any) {
-      toast({ 
-        variant: "destructive", 
-        title: "Erro", 
-        description: error.response?.data?.message || "Não foi possível enviar o logo." 
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: error.response?.data?.message || "Não foi possível enviar o logo.",
       });
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) {
-        fileInputRef.current.value = '';
+        fileInputRef.current.value = "";
       }
     }
   };
@@ -596,602 +245,346 @@ export default function RoomDesignSettings() {
             Restaurar Padrão
           </Button>
           <Button onClick={handleSave} disabled={saveMutation.isPending}>
-            {saveMutation.isPending ? (
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Save className="h-4 w-4 mr-2" />
-            )}
+            {saveMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
             Salvar Alterações
           </Button>
         </div>
       </div>
 
-      <MeetingHeader 
-        title="Design" 
-        description="Personalize o visual das suas salas de reunião." 
-      />
-        <div className="grid lg:grid-cols-2 gap-6">
-          <div>
-            <Tabs defaultValue="branding" className="space-y-4">
-              <TabsList className="grid grid-cols-5 w-full">
-                <TabsTrigger value="branding" className="gap-2">
-                  <Image className="h-4 w-4" />
-                  <span className="hidden sm:inline">Marca</span>
-                </TabsTrigger>
-                <TabsTrigger value="colors" className="gap-2">
-                  <Palette className="h-4 w-4" />
-                  <span className="hidden sm:inline">Cores</span>
-                </TabsTrigger>
-                <TabsTrigger value="lobby" className="gap-2">
-                  <Eye className="h-4 w-4" />
-                  <span className="hidden sm:inline">Lobby</span>
-                </TabsTrigger>
-                <TabsTrigger value="meeting" className="gap-2">
-                  <Video className="h-4 w-4" />
-                  <span className="hidden sm:inline">Reunião</span>
-                </TabsTrigger>
-                <TabsTrigger value="end" className="gap-2">
-                  <LogOut className="h-4 w-4" />
-                  <span className="hidden sm:inline">Fim</span>
-                </TabsTrigger>
-              </TabsList>
+      <MeetingHeader title="Design" description="Personalize o visual das suas salas de reunião." />
 
-              <TabsContent value="branding">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Logo da Empresa</CardTitle>
-                    <CardDescription>
-                      Configure o logo que aparecerá nas páginas de lobby e reunião
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="space-y-3">
-                      <Label>Logo da Empresa</Label>
-                      
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/jpeg,image/png,image/gif,image/svg+xml,image/webp"
-                        onChange={handleFileUpload}
-                        className="hidden"
-                        id="logo-upload"
-                      />
-                      
-                      {!config.branding.logo ? (
-                        <div
-                          onClick={() => fileInputRef.current?.click()}
-                          className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center cursor-pointer hover:border-primary/50 hover:bg-muted/50 transition-colors"
-                        >
-                          {isUploading ? (
-                            <div className="flex flex-col items-center gap-2">
-                              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                              <p className="text-sm text-muted-foreground">Enviando...</p>
-                            </div>
-                          ) : (
-                            <div className="flex flex-col items-center gap-2">
-                              <Upload className="h-8 w-8 text-muted-foreground" />
-                              <p className="text-sm font-medium">Clique para enviar o logo</p>
-                              <p className="text-xs text-muted-foreground">
-                                JPG, PNG, GIF, SVG ou WebP (máx. 5MB)
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <div className="relative p-4 bg-muted rounded-lg">
-                          <div className="flex items-center justify-center">
-                            <img 
-                              src={config.branding.logo} 
-                              alt="Logo da empresa" 
-                              style={{ height: config.branding.logoSize || 40 }}
-                              className="max-w-full object-contain"
-                            />
+      <div className="grid lg:grid-cols-2 gap-6">
+        <div>
+          <Tabs defaultValue="branding" className="space-y-4">
+            <TabsList className="grid grid-cols-4 w-full">
+              <TabsTrigger value="branding" className="gap-2">
+                <Image className="h-4 w-4" />
+                <span className="hidden sm:inline">Marca</span>
+              </TabsTrigger>
+              <TabsTrigger value="colors" className="gap-2">
+                <Palette className="h-4 w-4" />
+                <span className="hidden sm:inline">Cores</span>
+              </TabsTrigger>
+              <TabsTrigger value="lobby" className="gap-2">
+                <Eye className="h-4 w-4" />
+                <span className="hidden sm:inline">Lobby</span>
+              </TabsTrigger>
+              <TabsTrigger value="meeting" className="gap-2">
+                <Video className="h-4 w-4" />
+                <span className="hidden sm:inline">Reunião</span>
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="branding">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Logo da Empresa</CardTitle>
+                  <CardDescription>Configure o logo que aparecerá nas páginas de lobby e reunião</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-3">
+                    <Label>Logo da Empresa</Label>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/gif,image/svg+xml,image/webp"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                      id="logo-upload"
+                    />
+                    {!config.branding.logo ? (
+                      <div
+                        onClick={() => fileInputRef.current?.click()}
+                        className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center cursor-pointer hover:border-primary/50 hover:bg-muted/50 transition-colors"
+                      >
+                        {isUploading ? (
+                          <div className="flex flex-col items-center gap-2">
+                            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                            <p className="text-sm text-muted-foreground">Enviando...</p>
                           </div>
-                          <div className="flex gap-2 mt-4 justify-center">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => fileInputRef.current?.click()}
-                              disabled={isUploading}
-                            >
-                              {isUploading ? (
-                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                              ) : (
-                                <Upload className="h-4 w-4 mr-2" />
-                              )}
-                              Trocar
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={handleRemoveLogo}
-                            >
-                              <X className="h-4 w-4 mr-2" />
-                              Remover
-                            </Button>
+                        ) : (
+                          <div className="flex flex-col items-center gap-2">
+                            <Upload className="h-8 w-8 text-muted-foreground" />
+                            <p className="text-sm font-medium">Clique para enviar o logo</p>
+                            <p className="text-xs text-muted-foreground">JPG, PNG, GIF, SVG ou WebP (máx. 5MB)</p>
                           </div>
-                        </div>
-                      )}
-                    </div>
-
-                    <Separator />
-
-                    <div className="space-y-2">
-                      <Label>Tamanho do Logo</Label>
-                      <div className="flex items-center gap-4">
-                        <input
-                          type="range"
-                          min="20"
-                          max="80"
-                          value={config.branding.logoSize || 40}
-                          onChange={(e) => updateConfig("branding.logoSize", parseInt(e.target.value))}
-                          className="flex-1"
-                        />
-                        <span className="text-sm text-muted-foreground w-16">
-                          {config.branding.logoSize || 40}px
-                        </span>
+                        )}
                       </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Posição do Logo</Label>
-                      <div className="flex gap-2">
+                    ) : (
+                      <div className="relative p-4 bg-muted rounded-lg">
+                        <div className="flex items-center justify-center">
+                          <img src={config.branding.logo} alt="Logo" className="max-h-20 object-contain" />
+                        </div>
                         <Button
-                          type="button"
-                          variant={config.branding.logoPosition === "left" ? "default" : "outline"}
-                          className="flex-1"
-                          onClick={() => updateConfig("branding.logoPosition", "left")}
+                          variant="ghost"
+                          size="icon"
+                          className="absolute top-2 right-2"
+                          onClick={handleRemoveLogo}
                         >
-                          <AlignLeft className="h-4 w-4 mr-2" />
-                          Esquerda
-                        </Button>
-                        <Button
-                          type="button"
-                          variant={config.branding.logoPosition === "center" ? "default" : "outline"}
-                          className="flex-1"
-                          onClick={() => updateConfig("branding.logoPosition", "center")}
-                        >
-                          <AlignCenter className="h-4 w-4 mr-2" />
-                          Centro
-                        </Button>
-                        <Button
-                          type="button"
-                          variant={config.branding.logoPosition === "right" ? "default" : "outline"}
-                          className="flex-1"
-                          onClick={() => updateConfig("branding.logoPosition", "right")}
-                        >
-                          <AlignRight className="h-4 w-4 mr-2" />
-                          Direita
+                          <X className="h-4 w-4" />
                         </Button>
                       </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Nome da Empresa</Label>
+                    <Input
+                      value={config.branding.companyName || ""}
+                      onChange={(e) => updateConfig("branding.companyName", e.target.value)}
+                      placeholder="Nome da sua empresa"
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Exibir nome da empresa</Label>
+                      <p className="text-xs text-muted-foreground">Mostrar ao lado do logo</p>
                     </div>
+                    <Switch
+                      checked={config.branding.showCompanyName || false}
+                      onCheckedChange={(checked) => updateConfig("branding.showCompanyName", checked)}
+                    />
+                  </div>
 
-                    <Separator />
-
-                    <div className="space-y-4">
-                      <Label className="text-sm font-medium">Onde exibir o logo</Label>
-                      
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <Label>Mostrar no Lobby</Label>
-                          <p className="text-xs text-muted-foreground">
-                            Exibir logo na tela de espera
-                          </p>
-                        </div>
-                        <Switch
-                          checked={config.branding.showLogoInLobby !== false}
-                          onCheckedChange={(v) => updateConfig("branding.showLogoInLobby", v)}
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <Label>Mostrar na Reunião</Label>
-                          <p className="text-xs text-muted-foreground">
-                            Exibir logo durante a videoconferência
-                          </p>
-                        </div>
-                        <Switch
-                          checked={config.branding.showLogoInMeeting !== false}
-                          onCheckedChange={(v) => updateConfig("branding.showLogoInMeeting", v)}
-                        />
-                      </div>
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Logo no lobby</Label>
+                      <p className="text-xs text-muted-foreground">Exibir antes de entrar</p>
                     </div>
+                    <Switch
+                      checked={config.branding.showLogoInLobby !== false}
+                      onCheckedChange={(checked) => updateConfig("branding.showLogoInLobby", checked)}
+                    />
+                  </div>
 
-                    <Separator />
-
-                    <div className="space-y-2">
-                      <Label>Nome da Empresa</Label>
-                      <Input
-                        value={config.branding.companyName || ""}
-                        onChange={(e) => updateConfig("branding.companyName", e.target.value)}
-                        placeholder="Nome da sua empresa"
-                      />
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Logo na reunião</Label>
+                      <p className="text-xs text-muted-foreground">Exibir durante a chamada</p>
                     </div>
+                    <Switch
+                      checked={config.branding.showLogoInMeeting !== false}
+                      onCheckedChange={(checked) => updateConfig("branding.showLogoInMeeting", checked)}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label>Mostrar Nome da Empresa</Label>
-                        <p className="text-xs text-muted-foreground">
-                          Exibir nome ao lado do logo
-                        </p>
-                      </div>
-                      <Switch
-                        checked={config.branding.showCompanyName !== false}
-                        onCheckedChange={(v) => updateConfig("branding.showCompanyName", v)}
-                      />
+            <TabsContent value="colors">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Paleta de Cores</CardTitle>
+                  <CardDescription>Personalize as cores da interface</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-2">
+                    <Label>Temas Predefinidos</Label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {COLOR_PRESETS.map((preset) => (
+                        <Button
+                          key={preset.name}
+                          variant="outline"
+                          className="flex flex-col h-auto py-3"
+                          onClick={() => applyPreset(preset)}
+                        >
+                          <div
+                            className="w-8 h-8 rounded-full mb-2"
+                            style={{ backgroundColor: preset.colors.primaryButton }}
+                          />
+                          <span className="text-xs">{preset.name}</span>
+                        </Button>
+                      ))}
                     </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
+                  </div>
 
-              <TabsContent value="colors">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Esquema de Cores</CardTitle>
-                    <CardDescription>
-                      Personalize as cores da sua sala de reunião
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div>
-                      <Label className="text-sm font-medium mb-3 block">Temas Predefinidos</Label>
-                      <div className="grid grid-cols-5 gap-2">
-                        {COLOR_PRESETS.map((preset) => (
-                          <Button
-                            key={preset.name}
-                            variant="outline"
-                            className="h-12 p-0 overflow-hidden"
-                            onClick={() => applyPreset(preset)}
-                            title={preset.name}
-                          >
-                            <div className="w-full h-full flex">
-                              <div
-                                className="flex-1"
-                                style={{ backgroundColor: preset.colors.background }}
-                              />
-                              <div
-                                className="flex-1"
-                                style={{ backgroundColor: preset.colors.primaryButton }}
-                              />
-                            </div>
-                          </Button>
-                        ))}
-                      </div>
+                  <div className="space-y-3">
+                    <Label>Cores Personalizadas</Label>
+                    <ColorInput
+                      label="Fundo"
+                      value={config.colors.background}
+                      onChange={(v) => updateConfig("colors.background", v)}
+                    />
+                    <ColorInput
+                      label="Controles"
+                      value={config.colors.controlsBackground}
+                      onChange={(v) => updateConfig("colors.controlsBackground", v)}
+                    />
+                    <ColorInput
+                      label="Texto"
+                      value={config.colors.controlsText}
+                      onChange={(v) => updateConfig("colors.controlsText", v)}
+                    />
+                    <ColorInput
+                      label="Botão Principal"
+                      value={config.colors.primaryButton}
+                      onChange={(v) => updateConfig("colors.primaryButton", v)}
+                    />
+                    <ColorInput
+                      label="Botão Perigo"
+                      value={config.colors.dangerButton}
+                      onChange={(v) => updateConfig("colors.dangerButton", v)}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="lobby">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Tela de Lobby</CardTitle>
+                  <CardDescription>Configure a tela de espera antes de entrar na reunião</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Título</Label>
+                    <Input
+                      value={config.lobby.title || ""}
+                      onChange={(e) => updateConfig("lobby.title", e.target.value)}
+                      placeholder="Pronto para participar?"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Texto do Botão</Label>
+                    <Input
+                      value={config.lobby.buttonText || ""}
+                      onChange={(e) => updateConfig("lobby.buttonText", e.target.value)}
+                      placeholder="Participar agora"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="meeting">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Configurações da Reunião</CardTitle>
+                  <CardDescription>Configure os controles disponíveis na reunião</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Compartilhar tela</Label>
+                      <p className="text-xs text-muted-foreground">Permitir compartilhamento de tela</p>
                     </div>
-
-                    <Separator />
-
-                    <div className="space-y-4">
-                      <ColorInput
-                        label="Fundo"
-                        value={config.colors.background}
-                        onChange={(v) => updateConfig("colors.background", v)}
-                      />
-                      <ColorInput
-                        label="Fundo dos Controles"
-                        value={config.colors.controlsBackground}
-                        onChange={(v) => updateConfig("colors.controlsBackground", v)}
-                      />
-                      <ColorInput
-                        label="Texto dos Controles"
-                        value={config.colors.controlsText}
-                        onChange={(v) => updateConfig("colors.controlsText", v)}
-                      />
-                      <ColorInput
-                        label="Botão Principal"
-                        value={config.colors.primaryButton}
-                        onChange={(v) => updateConfig("colors.primaryButton", v)}
-                      />
-                      <ColorInput
-                        label="Botão de Perigo"
-                        value={config.colors.dangerButton}
-                        onChange={(v) => updateConfig("colors.dangerButton", v)}
-                      />
-                      <ColorInput
-                        label="Avatar (Fundo)"
-                        value={config.colors.avatarBackground}
-                        onChange={(v) => updateConfig("colors.avatarBackground", v)}
-                      />
-                      <ColorInput
-                        label="Avatar (Texto)"
-                        value={config.colors.avatarText}
-                        onChange={(v) => updateConfig("colors.avatarText", v)}
-                      />
+                    <Switch
+                      checked={config.meeting.enableScreenShare !== false}
+                      onCheckedChange={(checked) => updateConfig("meeting.enableScreenShare", checked)}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Reações</Label>
+                      <p className="text-xs text-muted-foreground">Permitir reações durante a chamada</p>
                     </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="lobby">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Configurações do Lobby</CardTitle>
-                    <CardDescription>
-                      Personalize a tela de espera antes de entrar na reunião
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="space-y-2">
-                      <Label>Título</Label>
-                      <Input
-                        value={config.lobby.title || ""}
-                        onChange={(e) => updateConfig("lobby.title", e.target.value)}
-                        placeholder="Pronto para participar?"
-                      />
+                    <Switch
+                      checked={config.meeting.enableReactions !== false}
+                      onCheckedChange={(checked) => updateConfig("meeting.enableReactions", checked)}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Levantar a mão</Label>
+                      <p className="text-xs text-muted-foreground">Permitir levantar a mão</p>
                     </div>
-
-                    <div className="space-y-2">
-                      <Label>Subtítulo</Label>
-                      <Input
-                        value={config.lobby.subtitle || ""}
-                        onChange={(e) => updateConfig("lobby.subtitle", e.target.value)}
-                        placeholder="Opcional"
-                      />
+                    <Switch
+                      checked={config.meeting.enableRaiseHand !== false}
+                      onCheckedChange={(checked) => updateConfig("meeting.enableRaiseHand", checked)}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Contagem de participantes</Label>
+                      <p className="text-xs text-muted-foreground">Mostrar número de participantes</p>
                     </div>
+                    <Switch
+                      checked={config.meeting.showParticipantCount !== false}
+                      onCheckedChange={(checked) => updateConfig("meeting.showParticipantCount", checked)}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </div>
 
-                    <div className="space-y-2">
-                      <Label>Texto do Botão</Label>
-                      <Input
-                        value={config.lobby.buttonText || ""}
-                        onChange={(e) => updateConfig("lobby.buttonText", e.target.value)}
-                        placeholder="Participar agora"
-                      />
-                    </div>
+        <div className="lg:sticky lg:top-6 space-y-4">
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between gap-2">
+                <CardTitle className="text-base">Preview</CardTitle>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant={devicePreview === "desktop" ? "secondary" : "ghost"}
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => setDevicePreview("desktop")}
+                  >
+                    <Monitor className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant={devicePreview === "mobile" ? "secondary" : "ghost"}
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => setDevicePreview("mobile")}
+                  >
+                    <Smartphone className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="flex gap-2 mb-4 flex-wrap">
+                <Button
+                  variant={previewMode === "lobby" ? "secondary" : "outline"}
+                  size="sm"
+                  onClick={() => setPreviewMode("lobby")}
+                >
+                  Lobby
+                </Button>
+                <Button
+                  variant={previewMode === "meeting" ? "secondary" : "outline"}
+                  size="sm"
+                  onClick={() => setPreviewMode("meeting")}
+                >
+                  Reunião
+                </Button>
+                <Button
+                  variant={previewMode === "end" ? "secondary" : "outline"}
+                  size="sm"
+                  onClick={() => setPreviewMode("end")}
+                >
+                  Fim
+                </Button>
+              </div>
 
-                    <Separator />
-
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <Label>Preview da Câmera</Label>
-                          <p className="text-xs text-muted-foreground">
-                            Mostrar preview do vídeo antes de entrar
-                          </p>
-                        </div>
-                        <Switch
-                          checked={config.lobby.showCameraPreview !== false}
-                          onCheckedChange={(v) => updateConfig("lobby.showCameraPreview", v)}
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <Label>Seletores de Dispositivos</Label>
-                          <p className="text-xs text-muted-foreground">
-                            Permitir escolher microfone, câmera e alto-falante
-                          </p>
-                        </div>
-                        <Switch
-                          checked={config.lobby.showDeviceSelectors !== false}
-                          onCheckedChange={(v) => updateConfig("lobby.showDeviceSelectors", v)}
-                        />
-                      </div>
-                    </div>
-
-                    <Separator />
-
-                    <div className="space-y-2">
-                      <Label>Imagem de Fundo (URL)</Label>
-                      <Input
-                        value={config.lobby.backgroundImage || ""}
-                        onChange={(e) => updateConfig("lobby.backgroundImage", e.target.value || null)}
-                        placeholder="https://exemplo.com/imagem.jpg"
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="meeting">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Configurações da Reunião</CardTitle>
-                    <CardDescription>
-                      Personalize a experiência durante a reunião
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <Label>Contador de Participantes</Label>
-                        </div>
-                        <Switch
-                          checked={config.meeting.showParticipantCount !== false}
-                          onCheckedChange={(v) => updateConfig("meeting.showParticipantCount", v)}
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <Label>Código da Reunião</Label>
-                        </div>
-                        <Switch
-                          checked={config.meeting.showMeetingCode !== false}
-                          onCheckedChange={(v) => updateConfig("meeting.showMeetingCode", v)}
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <Label>Indicador de Gravação</Label>
-                        </div>
-                        <Switch
-                          checked={config.meeting.showRecordingIndicator !== false}
-                          onCheckedChange={(v) => updateConfig("meeting.showRecordingIndicator", v)}
-                        />
-                      </div>
-                    </div>
-
-                    <Separator />
-
-                    <div className="space-y-4">
-                      <Label className="text-sm font-medium">Funcionalidades</Label>
-
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Smile className="h-4 w-4" />
-                          <Label>Reações com Emojis</Label>
-                        </div>
-                        <Switch
-                          checked={config.meeting.enableReactions !== false}
-                          onCheckedChange={(v) => updateConfig("meeting.enableReactions", v)}
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Hand className="h-4 w-4" />
-                          <Label>Levantar Mão</Label>
-                        </div>
-                        <Switch
-                          checked={config.meeting.enableRaiseHand !== false}
-                          onCheckedChange={(v) => updateConfig("meeting.enableRaiseHand", v)}
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <MonitorUp className="h-4 w-4" />
-                          <Label>Compartilhar Tela</Label>
-                        </div>
-                        <Switch
-                          checked={config.meeting.enableScreenShare !== false}
-                          onCheckedChange={(v) => updateConfig("meeting.enableScreenShare", v)}
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <MessageSquare className="h-4 w-4" />
-                          <Label>Chat</Label>
-                        </div>
-                        <Switch
-                          checked={config.meeting.enableChat !== false}
-                          onCheckedChange={(v) => updateConfig("meeting.enableChat", v)}
-                        />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-
-              <TabsContent value="end">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Tela de Encerramento</CardTitle>
-                    <CardDescription>
-                      Personalize a tela mostrada quando a reunião termina
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="space-y-2">
-                      <Label>Título</Label>
-                      <Input
-                        value={config.endScreen.title || ""}
-                        onChange={(e) => updateConfig("endScreen.title", e.target.value)}
-                        placeholder="Reunião Encerrada"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>Mensagem</Label>
-                      <Input
-                        value={config.endScreen.message || ""}
-                        onChange={(e) => updateConfig("endScreen.message", e.target.value)}
-                        placeholder="Obrigado por participar!"
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label>Coletar Feedback</Label>
-                        <p className="text-xs text-muted-foreground">
-                          Perguntar se a experiência foi boa ou ruim
-                        </p>
-                      </div>
-                      <Switch
-                        checked={config.endScreen.showFeedback}
-                        onCheckedChange={(v) => updateConfig("endScreen.showFeedback", v)}
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label>URL de Redirecionamento (opcional)</Label>
-                      <Input
-                        value={config.endScreen.redirectUrl || ""}
-                        onChange={(e) => updateConfig("endScreen.redirectUrl", e.target.value || null)}
-                        placeholder="https://seu-site.com/obrigado"
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Se preenchido, o usuário será redirecionado ao clicar no botão
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
-          </div>
-
-          <div className="lg:sticky lg:top-6 space-y-4">
-            <Card>
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-base">Preview</CardTitle>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      variant={devicePreview === "desktop" ? "secondary" : "ghost"}
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => setDevicePreview("desktop")}
-                    >
-                      <Monitor className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant={devicePreview === "mobile" ? "secondary" : "ghost"}
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => setDevicePreview("mobile")}
-                    >
-                      <Smartphone className="h-4 w-4" />
-                    </Button>
+              <div
+                className={
+                  devicePreview === "mobile"
+                    ? "mx-auto w-[280px] border-4 border-zinc-800 rounded-3xl overflow-hidden"
+                    : ""
+                }
+              >
+                <div
+                  className="rounded-lg min-h-[250px] flex items-center justify-center p-4"
+                  style={{ backgroundColor: config.colors.background }}
+                >
+                  <div className="text-center" style={{ color: config.colors.controlsText }}>
+                    <p className="text-sm opacity-70">Preview: {previewMode}</p>
+                    {config.branding.logo && (
+                      <img src={config.branding.logo} alt="" className="h-10 mx-auto mt-4" />
+                    )}
+                    {config.branding.showCompanyName && config.branding.companyName && (
+                      <p className="mt-2 font-medium">{config.branding.companyName}</p>
+                    )}
                   </div>
                 </div>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="flex gap-2 mb-4">
-                  <Button
-                    variant={previewMode === "lobby" ? "secondary" : "outline"}
-                    size="sm"
-                    onClick={() => setPreviewMode("lobby")}
-                  >
-                    Lobby
-                  </Button>
-                  <Button
-                    variant={previewMode === "meeting" ? "secondary" : "outline"}
-                    size="sm"
-                    onClick={() => setPreviewMode("meeting")}
-                  >
-                    Reunião
-                  </Button>
-                  <Button
-                    variant={previewMode === "end" ? "secondary" : "outline"}
-                    size="sm"
-                    onClick={() => setPreviewMode("end")}
-                  >
-                    Fim
-                  </Button>
-                </div>
-
-                <div className={devicePreview === "mobile" ? "mx-auto w-[280px] border-4 border-zinc-800 rounded-3xl overflow-hidden" : ""}>
-                  <RoomPreview config={config} previewMode={previewMode} />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
