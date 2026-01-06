@@ -560,9 +560,28 @@ export function Meeting100ms({
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button 
-                      onClick={() => {
+                      onClick={async () => {
                         console.log("[Meeting100ms] Click Assinar Contrato");
-                        window.open('/assinatura', '_blank');
+                        try {
+                          const response = await fetch('/api/assinatura/public/contracts', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              client_name: userName || 'Novo Revendedor',
+                              client_cpf: '',
+                              client_email: '',
+                            }),
+                          });
+                          
+                          if (!response.ok) throw new Error('Erro ao criar contrato');
+                          
+                          const contract = await response.json();
+                          window.open(`/assinar/${contract.access_token}`, '_blank');
+                          toast.success("Página de assinatura aberta!");
+                        } catch (err: any) {
+                          console.error("[Meeting100ms] Erro ao criar contrato:", err);
+                          toast.error("Erro ao abrir página de assinatura");
+                        }
                       }}
                       variant="ghost"
                       className="h-12 px-4 rounded-2xl font-bold bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg shadow-emerald-500/20 hover:scale-105 transition-transform relative z-50 flex items-center gap-2"
