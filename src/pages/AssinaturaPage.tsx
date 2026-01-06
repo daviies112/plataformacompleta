@@ -703,103 +703,160 @@ const AssinaturaPage = () => {
         </TabsContent>
 
         <TabsContent value="verificacao" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Verificação de Identidade</CardTitle>
-              <CardDescription>Personalize a etapa de verificação facial</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="verificationWelcomeText">Título da Página</Label>
-                  <Input
-                    id="verificationWelcomeText"
-                    value={verificationWelcomeText}
-                    onChange={(e) => setVerificationWelcomeText(e.target.value)}
-                    placeholder="Verificação de Identidade"
-                    data-testid="input-verification-welcome"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="verificationHeaderCompanyName">Nome da Empresa no Header</Label>
-                  <Input
-                    id="verificationHeaderCompanyName"
-                    value={verificationHeaderCompanyName}
-                    onChange={(e) => setVerificationHeaderCompanyName(e.target.value)}
-                    placeholder="Sua Empresa"
-                    data-testid="input-verification-company"
-                  />
-                </div>
-                <div className="md:col-span-2 space-y-2">
-                  <Label htmlFor="verificationInstructions">Instruções</Label>
-                  <Textarea
-                    id="verificationInstructions"
-                    value={verificationInstructions}
-                    onChange={(e) => setVerificationInstructions(e.target.value)}
-                    placeholder="Descrição do processo"
-                    rows={3}
-                    data-testid="input-verification-instructions"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="verificationPrimaryColor">Cor Primária</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="verificationPrimaryColor"
-                      type="color"
-                      value={verificationPrimaryColor}
-                      onChange={(e) => setVerificationPrimaryColor(e.target.value)}
-                      className="h-10 w-20"
-                      data-testid="input-verification-primary-color"
-                    />
-                    <Input
-                      value={verificationPrimaryColor}
-                      onChange={(e) => setVerificationPrimaryColor(e.target.value)}
-                      className="flex-1"
-                    />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Verificação de Identidade</CardTitle>
+                  <CardDescription>Personalize a etapa de verificação facial</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="verificationWelcomeText">Título da Página</Label>
+                      <Input
+                        id="verificationWelcomeText"
+                        value={verificationWelcomeText}
+                        onChange={(e) => setVerificationWelcomeText(e.target.value)}
+                        placeholder="Verificação de Identidade"
+                        data-testid="input-verification-welcome"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="verificationHeaderCompanyName">Nome da Empresa no Header</Label>
+                      <Input
+                        id="verificationHeaderCompanyName"
+                        value={verificationHeaderCompanyName}
+                        onChange={(e) => setVerificationHeaderCompanyName(e.target.value)}
+                        placeholder="Sua Empresa"
+                        data-testid="input-verification-company"
+                      />
+                    </div>
+                    <div className="md:col-span-2 space-y-2">
+                      <Label htmlFor="verificationInstructions">Instruções</Label>
+                      <Textarea
+                        id="verificationInstructions"
+                        value={verificationInstructions}
+                        onChange={(e) => setVerificationInstructions(e.target.value)}
+                        placeholder="Descrição do processo"
+                        rows={3}
+                        data-testid="input-verification-instructions"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="verificationPrimaryColor">Cor Primária</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="verificationPrimaryColor"
+                          type="color"
+                          value={verificationPrimaryColor}
+                          onChange={(e) => setVerificationPrimaryColor(e.target.value)}
+                          className="h-10 w-20"
+                          data-testid="input-verification-primary-color"
+                        />
+                        <Input
+                          value={verificationPrimaryColor}
+                          onChange={(e) => setVerificationPrimaryColor(e.target.value)}
+                          className="flex-1"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="verificationHeaderBackgroundColor">Cor do Header</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="verificationHeaderBackgroundColor"
+                          type="color"
+                          value={verificationHeaderBackgroundColor}
+                          onChange={(e) => setVerificationHeaderBackgroundColor(e.target.value)}
+                          className="h-10 w-20"
+                          data-testid="input-verification-header-color"
+                        />
+                        <Input
+                          value={verificationHeaderBackgroundColor}
+                          onChange={(e) => setVerificationHeaderBackgroundColor(e.target.value)}
+                          className="flex-1"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="verificationFooterText">Texto do Rodapé</Label>
+                      <Input
+                        id="verificationFooterText"
+                        value={verificationFooterText}
+                        onChange={(e) => setVerificationFooterText(e.target.value)}
+                        placeholder="Texto do rodapé"
+                        data-testid="input-verification-footer"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="verificationSecurityText">Texto de Segurança</Label>
+                      <Input
+                        id="verificationSecurityText"
+                        value={verificationSecurityText}
+                        onChange={(e) => setVerificationSecurityText(e.target.value)}
+                        placeholder="Suas informações são seguras"
+                        data-testid="input-verification-security"
+                      />
+                    </div>
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="verificationHeaderBackgroundColor">Cor do Header</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="verificationHeaderBackgroundColor"
-                      type="color"
-                      value={verificationHeaderBackgroundColor}
-                      onChange={(e) => setVerificationHeaderBackgroundColor(e.target.value)}
-                      className="h-10 w-20"
-                      data-testid="input-verification-header-color"
-                    />
-                    <Input
-                      value={verificationHeaderBackgroundColor}
-                      onChange={(e) => setVerificationHeaderBackgroundColor(e.target.value)}
-                      className="flex-1"
-                    />
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="sticky top-6 h-fit">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Preview da Verificação</CardTitle>
+                  <CardDescription>Visualização em tempo real</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="border rounded-lg overflow-hidden shadow-sm" style={{ minHeight: '400px' }}>
+                    <div 
+                      className="p-4 flex items-center justify-between"
+                      style={{ backgroundColor: verificationHeaderBackgroundColor }}
+                    >
+                      {logoUrl && (
+                        <img src={logoUrl} alt="Logo" className="h-8 object-contain" />
+                      )}
+                      <span className="text-white font-medium text-sm">{verificationHeaderCompanyName}</span>
+                      <Shield className="w-5 h-5 text-white opacity-75" />
+                    </div>
+                    <div className="p-6 bg-gray-50 flex flex-col items-center">
+                      <div 
+                        className="w-16 h-16 rounded-full flex items-center justify-center mb-4"
+                        style={{ backgroundColor: verificationPrimaryColor }}
+                      >
+                        <Camera className="w-8 h-8 text-white" />
+                      </div>
+                      <h3 className="text-xl font-bold mb-2 text-center" style={{ color: verificationPrimaryColor }}>
+                        {verificationWelcomeText}
+                      </h3>
+                      <p className="text-sm text-gray-600 text-center mb-6 max-w-xs">
+                        {verificationInstructions}
+                      </p>
+                      <div className="w-32 h-32 bg-gray-200 rounded-full flex items-center justify-center border-4 mb-4" style={{ borderColor: verificationPrimaryColor }}>
+                        <Camera className="w-12 h-12 text-gray-400" />
+                      </div>
+                      <button 
+                        className="px-6 py-2 rounded-lg text-white font-medium text-sm"
+                        style={{ backgroundColor: verificationPrimaryColor }}
+                      >
+                        Tirar Selfie
+                      </button>
+                      <p className="text-xs text-gray-500 mt-4 flex items-center gap-1">
+                        <Shield className="w-3 h-3" />
+                        {verificationSecurityText}
+                      </p>
+                    </div>
+                    <div className="p-3 bg-gray-100 text-center">
+                      <p className="text-xs text-gray-500">{verificationFooterText}</p>
+                    </div>
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="verificationFooterText">Texto do Rodapé</Label>
-                  <Input
-                    id="verificationFooterText"
-                    value={verificationFooterText}
-                    onChange={(e) => setVerificationFooterText(e.target.value)}
-                    placeholder="Texto do rodapé"
-                    data-testid="input-verification-footer"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="verificationSecurityText">Texto de Segurança</Label>
-                  <Input
-                    id="verificationSecurityText"
-                    value={verificationSecurityText}
-                    onChange={(e) => setVerificationSecurityText(e.target.value)}
-                    placeholder="Suas informações são seguras"
-                    data-testid="input-verification-security"
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </TabsContent>
 
         <TabsContent value="contrato" className="space-y-6">
@@ -866,251 +923,449 @@ const AssinaturaPage = () => {
         </TabsContent>
 
         <TabsContent value="progresso" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Rastreador de Progresso</CardTitle>
-              <CardDescription>Personalize o indicador de progresso exibido ao cliente</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="progressTitle">Título</Label>
-                  <Input
-                    id="progressTitle"
-                    value={progressTitle}
-                    onChange={(e) => setProgressTitle(e.target.value)}
-                    placeholder="Assinatura Digital"
-                    data-testid="input-progress-title"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="progressCardColor">Cor do Card</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="progressCardColor"
-                      type="color"
-                      value={progressCardColor}
-                      onChange={(e) => setProgressCardColor(e.target.value)}
-                      className="h-10 w-20"
-                      data-testid="input-progress-card-color"
-                    />
-                    <Input
-                      value={progressCardColor}
-                      onChange={(e) => setProgressCardColor(e.target.value)}
-                      className="flex-1"
-                    />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Rastreador de Progresso</CardTitle>
+                  <CardDescription>Personalize o indicador de progresso exibido ao cliente</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="progressTitle">Título</Label>
+                      <Input
+                        id="progressTitle"
+                        value={progressTitle}
+                        onChange={(e) => setProgressTitle(e.target.value)}
+                        placeholder="Assinatura Digital"
+                        data-testid="input-progress-title"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="progressCardColor">Cor do Card</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="progressCardColor"
+                          type="color"
+                          value={progressCardColor}
+                          onChange={(e) => setProgressCardColor(e.target.value)}
+                          className="h-10 w-20"
+                          data-testid="input-progress-card-color"
+                        />
+                        <Input
+                          value={progressCardColor}
+                          onChange={(e) => setProgressCardColor(e.target.value)}
+                          className="flex-1"
+                        />
+                      </div>
+                    </div>
+                    <div className="md:col-span-2 space-y-2">
+                      <Label htmlFor="progressSubtitle">Subtítulo</Label>
+                      <Textarea
+                        id="progressSubtitle"
+                        value={progressSubtitle}
+                        onChange={(e) => setProgressSubtitle(e.target.value)}
+                        placeholder="Conclua os passos abaixo"
+                        rows={2}
+                        data-testid="input-progress-subtitle"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="progressStep1Title">Passo 1 - Título</Label>
+                      <Input
+                        id="progressStep1Title"
+                        value={progressStep1Title}
+                        onChange={(e) => setProgressStep1Title(e.target.value)}
+                        placeholder="1. Reconhecimento Facial"
+                        data-testid="input-progress-step1-title"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="progressStep1Description">Passo 1 - Descrição</Label>
+                      <Input
+                        id="progressStep1Description"
+                        value={progressStep1Description}
+                        onChange={(e) => setProgressStep1Description(e.target.value)}
+                        placeholder="Descrição do passo 1"
+                        data-testid="input-progress-step1-desc"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="progressStep2Title">Passo 2 - Título</Label>
+                      <Input
+                        id="progressStep2Title"
+                        value={progressStep2Title}
+                        onChange={(e) => setProgressStep2Title(e.target.value)}
+                        placeholder="2. Assinar Contrato"
+                        data-testid="input-progress-step2-title"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="progressStep2Description">Passo 2 - Descrição</Label>
+                      <Input
+                        id="progressStep2Description"
+                        value={progressStep2Description}
+                        onChange={(e) => setProgressStep2Description(e.target.value)}
+                        placeholder="Descrição do passo 2"
+                        data-testid="input-progress-step2-desc"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="progressStep3Title">Passo 3 - Título</Label>
+                      <Input
+                        id="progressStep3Title"
+                        value={progressStep3Title}
+                        onChange={(e) => setProgressStep3Title(e.target.value)}
+                        placeholder="3. Confirmação"
+                        data-testid="input-progress-step3-title"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="progressStep3Description">Passo 3 - Descrição</Label>
+                      <Input
+                        id="progressStep3Description"
+                        value={progressStep3Description}
+                        onChange={(e) => setProgressStep3Description(e.target.value)}
+                        placeholder="Descrição do passo 3"
+                        data-testid="input-progress-step3-desc"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="progressButtonColor">Cor do Botão</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="progressButtonColor"
+                          type="color"
+                          value={progressButtonColor}
+                          onChange={(e) => setProgressButtonColor(e.target.value)}
+                          className="h-10 w-20"
+                          data-testid="input-progress-button-color"
+                        />
+                        <Input
+                          value={progressButtonColor}
+                          onChange={(e) => setProgressButtonColor(e.target.value)}
+                          className="flex-1"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="progressTextColor">Cor do Texto</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="progressTextColor"
+                          type="color"
+                          value={progressTextColor}
+                          onChange={(e) => setProgressTextColor(e.target.value)}
+                          className="h-10 w-20"
+                          data-testid="input-progress-text-color"
+                        />
+                        <Input
+                          value={progressTextColor}
+                          onChange={(e) => setProgressTextColor(e.target.value)}
+                          className="flex-1"
+                        />
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div className="md:col-span-2 space-y-2">
-                  <Label htmlFor="progressSubtitle">Subtítulo</Label>
-                  <Textarea
-                    id="progressSubtitle"
-                    value={progressSubtitle}
-                    onChange={(e) => setProgressSubtitle(e.target.value)}
-                    placeholder="Conclua os passos abaixo"
-                    rows={2}
-                    data-testid="input-progress-subtitle"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="progressStep1Title">Passo 1 - Título</Label>
-                  <Input
-                    id="progressStep1Title"
-                    value={progressStep1Title}
-                    onChange={(e) => setProgressStep1Title(e.target.value)}
-                    placeholder="1. Reconhecimento Facial"
-                    data-testid="input-progress-step1-title"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="progressStep1Description">Passo 1 - Descrição</Label>
-                  <Input
-                    id="progressStep1Description"
-                    value={progressStep1Description}
-                    onChange={(e) => setProgressStep1Description(e.target.value)}
-                    placeholder="Descrição do passo 1"
-                    data-testid="input-progress-step1-desc"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="progressStep2Title">Passo 2 - Título</Label>
-                  <Input
-                    id="progressStep2Title"
-                    value={progressStep2Title}
-                    onChange={(e) => setProgressStep2Title(e.target.value)}
-                    placeholder="2. Assinar Contrato"
-                    data-testid="input-progress-step2-title"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="progressStep2Description">Passo 2 - Descrição</Label>
-                  <Input
-                    id="progressStep2Description"
-                    value={progressStep2Description}
-                    onChange={(e) => setProgressStep2Description(e.target.value)}
-                    placeholder="Descrição do passo 2"
-                    data-testid="input-progress-step2-desc"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="progressStep3Title">Passo 3 - Título</Label>
-                  <Input
-                    id="progressStep3Title"
-                    value={progressStep3Title}
-                    onChange={(e) => setProgressStep3Title(e.target.value)}
-                    placeholder="3. Confirmação"
-                    data-testid="input-progress-step3-title"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="progressStep3Description">Passo 3 - Descrição</Label>
-                  <Input
-                    id="progressStep3Description"
-                    value={progressStep3Description}
-                    onChange={(e) => setProgressStep3Description(e.target.value)}
-                    placeholder="Descrição do passo 3"
-                    data-testid="input-progress-step3-desc"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="progressButtonColor">Cor do Botão</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="progressButtonColor"
-                      type="color"
-                      value={progressButtonColor}
-                      onChange={(e) => setProgressButtonColor(e.target.value)}
-                      className="h-10 w-20"
-                      data-testid="input-progress-button-color"
-                    />
-                    <Input
-                      value={progressButtonColor}
-                      onChange={(e) => setProgressButtonColor(e.target.value)}
-                      className="flex-1"
-                    />
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="sticky top-6 h-fit">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Preview do Progresso</CardTitle>
+                  <CardDescription>Visualização em tempo real</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div 
+                    style={{ 
+                      backgroundColor: progressCardColor,
+                      fontFamily: progressFontFamily,
+                      padding: '16px',
+                      borderRadius: '8px',
+                      gap: '12px',
+                      display: 'flex',
+                      flexDirection: 'column'
+                    }}
+                  >
+                    <h2 
+                      style={{ 
+                        color: progressTextColor,
+                        fontSize: '18px',
+                        fontWeight: 'bold',
+                        margin: 0
+                      }}
+                    >
+                      {progressTitle}
+                    </h2>
+                    <p 
+                      style={{ 
+                        color: progressTextColor,
+                        fontSize: '13px',
+                        margin: 0,
+                        opacity: 0.9
+                      }}
+                    >
+                      {progressSubtitle}
+                    </p>
+
+                    <div style={{ gap: '8px', display: 'flex', flexDirection: 'column' }}>
+                      {[
+                        { num: 1, title: progressStep1Title, desc: progressStep1Description, complete: true },
+                        { num: 2, title: progressStep2Title, desc: progressStep2Description, complete: false },
+                        { num: 3, title: progressStep3Title, desc: progressStep3Description, complete: false },
+                      ].map((step) => (
+                        <div 
+                          key={step.num}
+                          style={{ 
+                            display: 'flex',
+                            alignItems: 'flex-start',
+                            gap: '12px',
+                            padding: '12px',
+                            borderRadius: '6px',
+                            borderColor: progressButtonColor,
+                            borderWidth: '1px',
+                            borderStyle: 'solid',
+                            backgroundColor: step.complete ? 'rgba(34, 197, 94, 0.15)' : 'rgba(255, 255, 255, 0.1)'
+                          }}
+                        >
+                          <div className="flex-shrink-0">
+                            <div 
+                              className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold"
+                              style={{ backgroundColor: progressButtonColor }}
+                            >
+                              {step.complete ? <Check className="w-3 h-3" /> : step.num}
+                            </div>
+                          </div>
+                          <div className="flex-1">
+                            <p 
+                              style={{ 
+                                color: progressTextColor,
+                                fontSize: '13px',
+                                fontWeight: 'bold',
+                                margin: 0,
+                                textDecoration: step.complete ? 'line-through' : 'none'
+                              }}
+                            >
+                              {step.title}
+                            </p>
+                            <p 
+                              style={{ 
+                                color: progressTextColor,
+                                fontSize: '11px',
+                                opacity: 0.8,
+                                margin: '2px 0 0 0'
+                              }}
+                            >
+                              {step.desc}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <button 
+                      style={{ 
+                        backgroundColor: progressButtonColor,
+                        fontFamily: progressFontFamily,
+                        fontSize: '13px',
+                        width: '100%',
+                        padding: '10px 0',
+                        color: 'white',
+                        fontWeight: 'bold',
+                        borderRadius: '6px',
+                        border: 'none',
+                        opacity: 0.5,
+                        cursor: 'default'
+                      }}
+                      disabled
+                    >
+                      {progressButtonText}
+                    </button>
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="progressTextColor">Cor do Texto</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="progressTextColor"
-                      type="color"
-                      value={progressTextColor}
-                      onChange={(e) => setProgressTextColor(e.target.value)}
-                      className="h-10 w-20"
-                      data-testid="input-progress-text-color"
-                    />
-                    <Input
-                      value={progressTextColor}
-                      onChange={(e) => setProgressTextColor(e.target.value)}
-                      className="flex-1"
-                    />
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </TabsContent>
 
         <TabsContent value="parabens" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Página de Parabéns</CardTitle>
-              <CardDescription>Personalize a página de conclusão</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="parabensTitle">Título</Label>
-                  <Input
-                    id="parabensTitle"
-                    value={parabensTitle}
-                    onChange={(e) => setParabensTitle(e.target.value)}
-                    placeholder="Parabéns!"
-                    data-testid="input-parabens-title"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="parabensSubtitle">Subtítulo</Label>
-                  <Input
-                    id="parabensSubtitle"
-                    value={parabensSubtitle}
-                    onChange={(e) => setParabensSubtitle(e.target.value)}
-                    placeholder="Processo concluído!"
-                    data-testid="input-parabens-subtitle"
-                  />
-                </div>
-                <div className="md:col-span-2 space-y-2">
-                  <Label htmlFor="parabensDescription">Descrição</Label>
-                  <Textarea
-                    id="parabensDescription"
-                    value={parabensDescription}
-                    onChange={(e) => setParabensDescription(e.target.value)}
-                    placeholder="Sua documentação foi processada"
-                    rows={3}
-                    data-testid="input-parabens-description"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="parabensCardColor">Cor do Card</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="parabensCardColor"
-                      type="color"
-                      value={parabensCardColor}
-                      onChange={(e) => setParabensCardColor(e.target.value)}
-                      className="h-10 w-20"
-                      data-testid="input-parabens-card-color"
-                    />
-                    <Input
-                      value={parabensCardColor}
-                      onChange={(e) => setParabensCardColor(e.target.value)}
-                      className="flex-1"
-                    />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Página de Parabéns</CardTitle>
+                  <CardDescription>Personalize a página de conclusão</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="parabensTitle">Título</Label>
+                      <Input
+                        id="parabensTitle"
+                        value={parabensTitle}
+                        onChange={(e) => setParabensTitle(e.target.value)}
+                        placeholder="Parabéns!"
+                        data-testid="input-parabens-title"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="parabensSubtitle">Subtítulo</Label>
+                      <Input
+                        id="parabensSubtitle"
+                        value={parabensSubtitle}
+                        onChange={(e) => setParabensSubtitle(e.target.value)}
+                        placeholder="Processo concluído!"
+                        data-testid="input-parabens-subtitle"
+                      />
+                    </div>
+                    <div className="md:col-span-2 space-y-2">
+                      <Label htmlFor="parabensDescription">Descrição</Label>
+                      <Textarea
+                        id="parabensDescription"
+                        value={parabensDescription}
+                        onChange={(e) => setParabensDescription(e.target.value)}
+                        placeholder="Sua documentação foi processada"
+                        rows={3}
+                        data-testid="input-parabens-description"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="parabensCardColor">Cor do Card</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="parabensCardColor"
+                          type="color"
+                          value={parabensCardColor}
+                          onChange={(e) => setParabensCardColor(e.target.value)}
+                          className="h-10 w-20"
+                          data-testid="input-parabens-card-color"
+                        />
+                        <Input
+                          value={parabensCardColor}
+                          onChange={(e) => setParabensCardColor(e.target.value)}
+                          className="flex-1"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="parabensButtonColor">Cor do Botão</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="parabensButtonColor"
+                          type="color"
+                          value={parabensButtonColor}
+                          onChange={(e) => setParabensButtonColor(e.target.value)}
+                          className="h-10 w-20"
+                          data-testid="input-parabens-button-color"
+                        />
+                        <Input
+                          value={parabensButtonColor}
+                          onChange={(e) => setParabensButtonColor(e.target.value)}
+                          className="flex-1"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="parabensButtonText">Texto do Botão</Label>
+                      <Input
+                        id="parabensButtonText"
+                        value={parabensButtonText}
+                        onChange={(e) => setParabensButtonText(e.target.value)}
+                        placeholder="Confirmar e Continuar"
+                        data-testid="input-parabens-button-text"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="parabensFormTitle">Título do Formulário</Label>
+                      <Input
+                        id="parabensFormTitle"
+                        value={parabensFormTitle}
+                        onChange={(e) => setParabensFormTitle(e.target.value)}
+                        placeholder="Endereço para Entrega"
+                        data-testid="input-parabens-form-title"
+                      />
+                    </div>
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="parabensButtonColor">Cor do Botão</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="parabensButtonColor"
-                      type="color"
-                      value={parabensButtonColor}
-                      onChange={(e) => setParabensButtonColor(e.target.value)}
-                      className="h-10 w-20"
-                      data-testid="input-parabens-button-color"
-                    />
-                    <Input
-                      value={parabensButtonColor}
-                      onChange={(e) => setParabensButtonColor(e.target.value)}
-                      className="flex-1"
-                    />
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="sticky top-6 h-fit">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Preview de Parabéns</CardTitle>
+                  <CardDescription>Visualização em tempo real</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div 
+                    className="rounded-lg p-6 flex flex-col items-center"
+                    style={{ 
+                      backgroundColor: parabensBackgroundColor,
+                      fontFamily: parabensFontFamily
+                    }}
+                  >
+                    <div 
+                      className="w-16 h-16 rounded-full flex items-center justify-center mb-4"
+                      style={{ backgroundColor: 'rgba(34, 197, 94, 0.1)' }}
+                    >
+                      <Gift className="w-8 h-8 text-green-600" />
+                    </div>
+                    <h2 
+                      className="text-2xl font-bold mb-2 text-center"
+                      style={{ color: parabensTextColor }}
+                    >
+                      {parabensTitle}
+                    </h2>
+                    <p 
+                      className="text-lg mb-1 text-center"
+                      style={{ color: parabensTextColor }}
+                    >
+                      {parabensSubtitle}
+                    </p>
+                    <p 
+                      className="text-sm text-center mb-6 opacity-80"
+                      style={{ color: parabensTextColor }}
+                    >
+                      {parabensDescription}
+                    </p>
+
+                    <div 
+                      className="w-full p-4 rounded-lg mb-4"
+                      style={{ backgroundColor: parabensCardColor }}
+                    >
+                      <h3 
+                        className="text-sm font-semibold mb-3"
+                        style={{ color: parabensTextColor }}
+                      >
+                        {parabensFormTitle}
+                      </h3>
+                      <div className="space-y-2">
+                        <div className="h-8 bg-white rounded border border-gray-200" />
+                        <div className="flex gap-2">
+                          <div className="h-8 flex-1 bg-white rounded border border-gray-200" />
+                          <div className="h-8 w-20 bg-white rounded border border-gray-200" />
+                        </div>
+                        <div className="flex gap-2">
+                          <div className="h-8 flex-1 bg-white rounded border border-gray-200" />
+                          <div className="h-8 w-16 bg-white rounded border border-gray-200" />
+                        </div>
+                      </div>
+                    </div>
+
+                    <button 
+                      className="w-full py-3 rounded-lg text-white font-bold text-sm"
+                      style={{ backgroundColor: parabensButtonColor }}
+                    >
+                      {parabensButtonText}
+                    </button>
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="parabensButtonText">Texto do Botão</Label>
-                  <Input
-                    id="parabensButtonText"
-                    value={parabensButtonText}
-                    onChange={(e) => setParabensButtonText(e.target.value)}
-                    placeholder="Confirmar e Continuar"
-                    data-testid="input-parabens-button-text"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="parabensFormTitle">Título do Formulário</Label>
-                  <Input
-                    id="parabensFormTitle"
-                    value={parabensFormTitle}
-                    onChange={(e) => setParabensFormTitle(e.target.value)}
-                    placeholder="Endereço para Entrega"
-                    data-testid="input-parabens-form-title"
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </TabsContent>
 
         <TabsContent value="aplicativos" className="space-y-6">
