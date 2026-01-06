@@ -845,6 +845,14 @@ meetingsRouter.post('/reunioes', authenticateToken, requireTenantId, async (req:
       linkReuniao: '', // Will be updated after we get the ID
     }).returning();
 
+    // Update with the correct meeting link using the generated UUID
+    let linkReuniao = '';
+    if (tipo === 'online') {
+      linkReuniao = `https://${baseUrl}/reuniao/${newMeeting.id}`;
+    } else {
+      linkReuniao = descricao || 'Presencial'; // Or some other default for presencial
+    }
+
     // Sincronizar com Supabase (Tenant) se configurado
     try {
       const supabase = await getClientSupabaseClient(tenantId);
@@ -876,14 +884,6 @@ meetingsRouter.post('/reunioes', authenticateToken, requireTenantId, async (req:
       }
     } catch (syncErr) {
       console.error(`[Supabase Sync] Erro inesperado ao sincronizar reunião:`, syncErr);
-    }
-
-    // Update with the correct meeting link using the generated UUID
-    let linkReuniao = '';
-    if (tipo === 'online') {
-      linkReuniao = `https://${baseUrl}/reuniao/${newMeeting.id}`;
-    } else {
-      linkReuniao = descricao || 'Presencial'; // Or some other default for presencial
     }
 
     await db.update(reunioes).set({ linkReuniao }).where(eq(reunioes.id, newMeeting.id));
