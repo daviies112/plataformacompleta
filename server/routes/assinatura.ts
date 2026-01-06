@@ -218,7 +218,7 @@ router.patch('/contracts/:id', (req: Request, res: Response) => {
 router.post('/contracts/:id/finalize', (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { address } = req.body;
+    const { address, selfie_photo, document_photo, signed_contract_html, status } = req.body;
 
     const contract = contractsStore.get(id);
 
@@ -232,14 +232,16 @@ router.post('/contracts/:id/finalize', (req: Request, res: Response) => {
 
     const updatedContract: AssinaturaContract = {
       ...contract,
-      status: 'signed',
+      status: status || 'signed',
       signed_at: new Date().toISOString(),
-      address: address || null
+      address: address || contract.address || null,
+      contract_html: signed_contract_html || contract.contract_html
     };
 
     contractsStore.set(id, updatedContract);
     saveContracts(contractsStore);
 
+    console.log(`✅ [Assinatura] Contrato ${id} assinado com sucesso`);
     res.json(updatedContract);
   } catch (error) {
     console.error('Error finalizing contract:', error);

@@ -163,27 +163,11 @@ export const ContractStep = ({ clientData, selfiePhoto, documentPhoto, currentSt
       const { html, protocol } = generateContractHTML();
       const now = new Date().toISOString();
       
-      await apiRequest('POST', `/api/contracts/${clientData.id}/finalize`, {
+      await apiRequest('POST', `/api/assinatura/public/contracts/${clientData.id}/finalize`, {
         selfie_photo: selfiePhoto,
         document_photo: documentPhoto,
         signed_contract_html: html,
         status: 'signed',
-      });
-
-      await apiRequest('POST', '/api/signature-logs', {
-        contract_id: clientData.id,
-        ip_address: '0.0.0.0',
-        user_agent: navigator.userAgent,
-        timestamp: now,
-        signature_valid: true,
-      });
-
-      await apiRequest('POST', '/api/audit-trail', {
-        contract_id: clientData.id,
-        action: 'signed',
-        metadata: {
-          signed_via: 'facial_recognition',
-        },
       });
 
       setContractData({
