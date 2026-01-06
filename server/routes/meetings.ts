@@ -758,15 +758,15 @@ meetingsRouter.post('/reunioes/instantanea', authenticateToken, requireTenantId,
             id: newMeeting.id,
             tenant_id: tenantId,
             titulo: newMeeting.titulo,
-            nome: newMeeting.nome,
-            email: newMeeting.email,
+            nome: newMeeting.nome || '',
+            email: newMeeting.email || '',
             data_inicio: newMeeting.dataInicio?.toISOString(),
             data_fim: newMeeting.dataFim?.toISOString(),
             duracao: newMeeting.duracao,
             status: newMeeting.status,
             tipo: 'online',
             room_id_100ms: newMeeting.roomId100ms,
-            link_reuniao: newMeeting.linkReuniao,
+            link_reuniao: linkReuniao,
             created_at: newMeeting.createdAt?.toISOString(),
             updated_at: newMeeting.updatedAt?.toISOString()
           }, { onConflict: 'id' });
@@ -873,17 +873,17 @@ meetingsRouter.post('/reunioes', authenticateToken, requireTenantId, async (req:
             status: newMeeting.status,
             tipo: newMeeting.tipo,
             room_id_100ms: newMeeting.roomId100ms,
-            link_reuniao: linkReuniao,
+            link_reuniao: linkReuniao, // Now it is correctly initialized
             created_at: newMeeting.createdAt?.toISOString(),
             updated_at: newMeeting.updatedAt?.toISOString()
           }, { onConflict: 'id' });
 
         if (syncError) {
-          console.error(`[Supabase Sync] Erro ao sincronizar reunião ${newMeeting.id}:`, syncError);
+          console.error(`[Supabase Sync] Erro ao sincronizar reunião agendada ${newMeeting.id}:`, syncError);
         }
       }
     } catch (syncErr) {
-      console.error(`[Supabase Sync] Erro inesperado ao sincronizar reunião:`, syncErr);
+      console.error(`[Supabase Sync] Erro inesperado ao sincronizar reunião agendada:`, syncErr);
     }
 
     await db.update(reunioes).set({ linkReuniao }).where(eq(reunioes.id, newMeeting.id));
