@@ -90,8 +90,10 @@ scripts/   → Utilitários (export, import)
    - **Previews em tempo real:** Layout two-column com configurações à esquerda e preview à direita
    - **Cliente (6 steps):** Loading → Verificação → Contrato → Revenda → App → Sucesso
    - **Floating Progress Tracker:** Widget fixo no canto inferior direito com 3 passos
-   - API Routes: `/api/assinatura/*`
-   - Rotas: `/assinatura` (admin), `/assinar/:token` (cliente)
+   - **API Routes Admin (autenticado):** `/api/assinatura/contracts` (GET, POST, PATCH, DELETE)
+   - **API Routes Público (sem auth):** `/api/assinatura/public/contracts` (POST criar), `/api/assinatura/public/contracts/:token` (GET buscar)
+   - **Rotas Frontend:** `/assinatura` (admin), `/assinar/:token` (cliente - acesso público)
+   - Persistência em arquivo: `data/assinatura_contracts.json` (sobrevive reinicializações)
 
 ## Desenvolvimento
 

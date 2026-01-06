@@ -1,5 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { nanoid } from 'nanoid';
+import * as fs from 'fs';
+import * as path from 'path';
 
 const router = Router();
 
@@ -76,7 +78,42 @@ interface AssinaturaContract {
   } | null;
 }
 
-const contractsStore = new Map<string, AssinaturaContract>();
+const CONTRACTS_FILE = path.join(process.cwd(), 'data', 'assinatura_contracts.json');
+
+function loadContracts(): Map<string, AssinaturaContract> {
+  try {
+    const dataDir = path.dirname(CONTRACTS_FILE);
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
+    }
+    
+    if (fs.existsSync(CONTRACTS_FILE)) {
+      const data = fs.readFileSync(CONTRACTS_FILE, 'utf-8');
+      const contracts = JSON.parse(data);
+      console.log(`📄 [Assinatura] ${Object.keys(contracts).length} contratos carregados do arquivo`);
+      return new Map(Object.entries(contracts));
+    }
+  } catch (error) {
+    console.error('Erro ao carregar contratos:', error);
+  }
+  return new Map();
+}
+
+function saveContracts(store: Map<string, AssinaturaContract>): void {
+  try {
+    const dataDir = path.dirname(CONTRACTS_FILE);
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
+    }
+    
+    const data = Object.fromEntries(store);
+    fs.writeFileSync(CONTRACTS_FILE, JSON.stringify(data, null, 2));
+  } catch (error) {
+    console.error('Erro ao salvar contratos:', error);
+  }
+}
+
+const contractsStore = loadContracts();
 
 router.get('/contracts', (req: Request, res: Response) => {
   try {
@@ -147,6 +184,7 @@ router.post('/contracts', (req: Request, res: Response) => {
     };
 
     contractsStore.set(id, contract);
+    saveContracts(contractsStore);
 
     res.status(201).json(contract);
   } catch (error) {
@@ -168,6 +206,7 @@ router.patch('/contracts/:id', (req: Request, res: Response) => {
 
     const updatedContract = { ...contract, ...updates };
     contractsStore.set(id, updatedContract);
+    saveContracts(contractsStore);
 
     res.json(updatedContract);
   } catch (error) {
@@ -199,6 +238,7 @@ router.post('/contracts/:id/finalize', (req: Request, res: Response) => {
     };
 
     contractsStore.set(id, updatedContract);
+    saveContracts(contractsStore);
 
     res.json(updatedContract);
   } catch (error) {
@@ -216,6 +256,7 @@ router.delete('/contracts/:id', (req: Request, res: Response) => {
     }
 
     contractsStore.delete(id);
+    saveContracts(contractsStore);
     res.status(204).send();
   } catch (error) {
     console.error('Error deleting contract:', error);

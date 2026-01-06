@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams } from 'wouter';
+import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -201,9 +201,21 @@ const AssinaturaClientContent = () => {
   const [selfiePhoto, setSelfiePhoto] = useState<string | null>(null);
   const [documentPhoto, setDocumentPhoto] = useState<string | null>(null);
 
-  const { data: contract, isLoading, error } = useQuery<ContractData>({
-    queryKey: ['/api/assinatura/contracts', token],
+  const { data: contract, isLoading, error } = useQuery<ContractData | null>({
+    queryKey: ['/api/assinatura/public/contracts', token],
     enabled: !!token,
+    queryFn: async () => {
+      const res = await fetch(`/api/assinatura/public/contracts/${token}`, {
+        credentials: 'include'
+      });
+      if (res.status === 404 || res.status === 401) {
+        return null;
+      }
+      if (!res.ok) {
+        throw new Error(`Failed to fetch contract: ${res.status}`);
+      }
+      return await res.json();
+    }
   });
 
   useEffect(() => {

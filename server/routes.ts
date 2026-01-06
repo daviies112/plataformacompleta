@@ -62,6 +62,9 @@ export async function registerRoutes(app: Express) {
   app.use("/api/biometric", biometricRoutes);
   
   // 🌐 PUBLIC ROUTES - Must be registered BEFORE the global /api middleware
+  // Public route for client contract access (no auth required)
+  app.use("/api/assinatura/public", assinaturaRoutes);
+  
   registerFormulariosCompleteRoutes(app);
   
   // Public endpoint for meeting room design - allows unauthenticated access to room colors
