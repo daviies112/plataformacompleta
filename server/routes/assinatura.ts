@@ -161,8 +161,8 @@ router.post('/contracts', (req: Request, res: Response) => {
       ...customizations
     } = req.body;
 
-    if (!client_name || !client_cpf || !client_email) {
-      return res.status(400).json({ error: 'Missing required fields' });
+    if (!client_name) {
+      return res.status(400).json({ error: 'Missing required field: client_name' });
     }
 
     const id = nanoid();
@@ -171,8 +171,8 @@ router.post('/contracts', (req: Request, res: Response) => {
     const contract: AssinaturaContract = {
       id,
       client_name,
-      client_cpf,
-      client_email,
+      client_cpf: client_cpf || null,
+      client_email: client_email || null,
       client_phone: client_phone || null,
       contract_html: contract_html || null,
       protocol_number: protocol_number || `CONT-${Date.now()}`,
