@@ -1186,13 +1186,7 @@ export default function RoomDesignSettings() {
                   </Button>
                 </div>
 
-                <div
-                  className={
-                    devicePreview === "mobile"
-                      ? "mx-auto w-[280px] border-4 border-zinc-800 rounded-3xl overflow-hidden"
-                      : ""
-                  }
-                >
+                <div className={devicePreview === "mobile" ? "mx-auto w-[280px] border-4 border-zinc-800 rounded-3xl overflow-hidden" : ""}>
                   <RoomPreview config={config} previewMode={previewMode} />
                 </div>
               </CardContent>
