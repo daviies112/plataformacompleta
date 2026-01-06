@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Video, Clock, User, Calendar as CalendarIcon, Loader2, Plus, ExternalLink } from "lucide-react";
+import { ChevronLeft, ChevronRight, Video, Clock, User, Calendar as CalendarIcon, Loader2, Plus, ExternalLink, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -40,7 +40,7 @@ export default function CalendarioPage() {
   const { toast } = useToast();
   const [, navigate] = useLocation();
 
-  const { data: reunioes = [], isLoading, error } = useQuery<Reuniao[]>({
+  const { data: reunioes = [], isLoading, error, refetch } = useQuery<Reuniao[]>({
     queryKey: ['/api/reunioes'],
   });
 
@@ -107,7 +107,7 @@ export default function CalendarioPage() {
     return (
       <div className="flex flex-col items-center justify-center h-[calc(100vh-8rem)] gap-4">
         <p className="text-destructive">Erro ao carregar reuniões</p>
-        <Button onClick={() => window.location.reload()}>Tentar novamente</Button>
+        <Button onClick={() => refetch()}>Tentar novamente</Button>
       </div>
     );
   }
@@ -115,9 +115,21 @@ export default function CalendarioPage() {
   return (
     <div className="flex flex-col h-[calc(100vh-8rem)] gap-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight" data-testid="text-page-title">Calendário</h1>
-          <p className="text-muted-foreground">Visualize e gerencie suas reuniões agendadas.</p>
+        <div className="flex items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight" data-testid="text-page-title">Calendário</h1>
+            <p className="text-muted-foreground">Visualize e gerencie suas reuniões agendadas.</p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => refetch()}
+            className="h-9 px-3"
+            data-testid="button-refresh-calendario"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Atualizar
+          </Button>
         </div>
         <Button onClick={() => navigate('/reuniao')} data-testid="button-nova-reuniao">
           <Plus className="mr-2 h-4 w-4" />
