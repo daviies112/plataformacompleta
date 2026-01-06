@@ -60,6 +60,8 @@ interface Gravacao {
   } | null;
 }
 
+import { MeetingHeader } from "@/components/MeetingHeader";
+
 export default function Gravacoes() {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -88,15 +90,15 @@ export default function Gravacoes() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["gravacoes"] });
       toast({
-        title: "Gravacao excluida",
-        description: "A gravacao foi excluida com sucesso.",
+        title: "Gravação excluída",
+        description: "A gravação foi excluída com sucesso.",
       });
     },
     onError: () => {
       toast({
         variant: "destructive",
         title: "Erro",
-        description: "Nao foi possivel excluir a gravacao.",
+        description: "Não foi possível excluir a gravação.",
       });
     },
   });
@@ -110,13 +112,13 @@ export default function Gravacoes() {
       queryClient.invalidateQueries({ queryKey: ["gravacoes"] });
       if (data.success && data.recording?.status === 'completed') {
         toast({
-          title: "Gravacao pronta",
-          description: "A gravacao esta disponivel para assistir.",
+          title: "Gravação pronta",
+          description: "A gravação está disponível para assistir.",
         });
       } else {
         toast({
           title: "Processando",
-          description: data.message || "A gravacao ainda esta sendo processada.",
+          description: data.message || "A gravação ainda está sendo processada.",
         });
       }
     },
@@ -124,7 +126,7 @@ export default function Gravacoes() {
       toast({
         variant: "destructive",
         title: "Erro",
-        description: "Nao foi possivel atualizar o status da gravacao.",
+        description: "Não foi possível atualizar o status da gravação.",
       });
     },
   });
@@ -168,7 +170,7 @@ export default function Gravacoes() {
       case "completed":
         return (
           <Badge className="bg-green-100 text-green-700 border-green-200 dark:bg-green-900 dark:text-green-300 dark:border-green-800">
-            Concluida
+            Concluída
           </Badge>
         );
       case "processing":
@@ -218,14 +220,10 @@ export default function Gravacoes() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Gravações</h1>
-          <p className="text-muted-foreground">
-            Visualize e gerencie as gravações das suas reuniões.
-          </p>
-        </div>
-      </div>
+      <MeetingHeader 
+        title="Gravações" 
+        description="Visualize e gerencie as gravações das suas reuniões." 
+      />
 
       {gravacoes.length === 0 ? (
         <Card>

@@ -15,13 +15,11 @@ interface CreatedMeeting {
   titulo: string;
 }
 
+import { MeetingHeader } from "@/components/MeetingHeader";
+
 export default function ReuniaoDashboard() {
-  const { meetings, loading, createInstantMeeting, isCreatingInstant } = useReuniao();
-  const { toast } = useToast();
+  const { meetings, loading } = useReuniao();
   const navigate = useNavigate();
-  const [createdMeeting, setCreatedMeeting] = useState<CreatedMeeting | null>(null);
-  const [showMeetingModal, setShowMeetingModal] = useState(false);
-  const [showScheduleModal, setShowScheduleModal] = useState(false);
 
   const meetingsArray = Array.isArray(meetings) ? meetings : [];
   
@@ -29,66 +27,6 @@ export default function ReuniaoDashboard() {
     .filter((m: Meeting) => new Date(m.dataInicio) > new Date() && m.status === 'agendada')
     .sort((a: Meeting, b: Meeting) => new Date(a.dataInicio).getTime() - new Date(b.dataInicio).getTime())
     .slice(0, 5);
-
-  const handleInstantMeeting = async () => {
-    try {
-      const meeting = await createInstantMeeting({ titulo: 'Reuniao Instantanea' });
-      setCreatedMeeting({
-        id: meeting.id,
-        linkReuniao: meeting.linkReuniao || '',
-        titulo: meeting.titulo || 'Reuniao Instantanea',
-      });
-      setShowMeetingModal(true);
-    } catch (error: any) {
-      toast({
-        title: "Erro",
-        description: error.response?.data?.message || "Nao foi possivel criar a reuniao.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleJoinMeeting = () => {
-    if (createdMeeting) {
-      setShowMeetingModal(false);
-      navigate(`/reuniao/${createdMeeting.id}`);
-    }
-  };
-
-  const handleCloseModal = () => {
-    setShowMeetingModal(false);
-  };
-
-  const stats = [
-    {
-      title: "Total Reunioes",
-      value: meetingsArray.length,
-      description: "Neste mes",
-      icon: Video,
-      color: "text-blue-500",
-    },
-    {
-      title: "Agendadas",
-      value: meetingsArray.filter((m: Meeting) => m.status === "agendada").length,
-      description: "Proximos 7 dias",
-      icon: Calendar,
-      color: "text-green-500",
-    },
-    {
-      title: "Em Andamento",
-      value: meetingsArray.filter((m: Meeting) => m.status === "em_andamento").length,
-      description: "Reunioes ativas",
-      icon: Clock,
-      color: "text-orange-500",
-    },
-    {
-      title: "Finalizadas",
-      value: meetingsArray.filter((m: Meeting) => m.status === "finalizada" || m.status === "concluida").length,
-      description: "Este mes",
-      icon: Users,
-      color: "text-purple-500",
-    },
-  ];
 
   if (loading) {
     return (
@@ -100,54 +38,10 @@ export default function ReuniaoDashboard() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight" data-testid="text-page-title">Reunioes</h1>
-          <p className="text-muted-foreground">
-            Gerencie suas videoconferencias e agendamentos.
-          </p>
-        </div>
-        <div className="flex gap-2 flex-wrap">
-          <Button 
-            onClick={handleInstantMeeting} 
-            disabled={isCreatingInstant}
-            variant="default"
-            className="gap-2 bg-green-600 hover:bg-green-700"
-            data-testid="button-instant-meeting"
-          >
-            {isCreatingInstant ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Zap className="h-4 w-4" />
-            )}
-            Reuniao Instantanea
-          </Button>
-          <Button 
-            variant="outline" 
-            className="gap-2"
-            onClick={() => setShowScheduleModal(true)}
-            data-testid="button-schedule-meeting"
-          >
-            <Plus className="h-4 w-4" /> Agendar Reuniao
-          </Button>
-          <Button 
-            variant="outline" 
-            className="gap-2"
-            onClick={() => navigate("/gravacoes")}
-            data-testid="button-recordings"
-          >
-            <Video className="h-4 w-4" /> Gravacoes
-          </Button>
-          <Button 
-            variant="outline" 
-            className="gap-2"
-            onClick={() => navigate("/room-design")}
-            data-testid="button-room-design"
-          >
-            <Palette className="h-4 w-4" /> Design
-          </Button>
-        </div>
-      </div>
+      <MeetingHeader 
+        title="Reuniões" 
+        description="Gerencie suas videoconferências e agendamentos." 
+      />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat, index) => (
