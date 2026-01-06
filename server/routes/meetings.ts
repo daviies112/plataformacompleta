@@ -729,38 +729,6 @@ meetingsRouter.post('/reunioes/instantanea', authenticateToken, requireTenantId,
       console.error(`[Supabase Sync] Erro inesperado ao sincronizar reunião instantânea:`, syncErr);
     }
 
-    // Sincronizar com Supabase (Tenant) se configurado
-    try {
-      const supabase = await getClientSupabaseClient(tenantId);
-      if (supabase) {
-        console.log(`[Supabase Sync] Sincronizando reunião instantânea ${newMeeting.id} para tenant ${tenantId}`);
-        const { error: syncError } = await supabase
-          .from('reunioes')
-          .upsert({
-            id: newMeeting.id,
-            tenant_id: tenantId,
-            titulo: newMeeting.titulo,
-            nome: newMeeting.nome,
-            email: newMeeting.email,
-            data_inicio: newMeeting.dataInicio?.toISOString(),
-            data_fim: newMeeting.dataFim?.toISOString(),
-            duracao: newMeeting.duracao,
-            status: newMeeting.status,
-            tipo: 'online',
-            room_id_100ms: newMeeting.roomId100ms,
-            link_reuniao: newMeeting.linkReuniao,
-            created_at: newMeeting.createdAt?.toISOString(),
-            updated_at: newMeeting.updatedAt?.toISOString()
-          }, { onConflict: 'id' });
-
-        if (syncError) {
-          console.error(`[Supabase Sync] Erro ao sincronizar reunião instantânea ${newMeeting.id}:`, syncError);
-        }
-      }
-    } catch (syncErr) {
-      console.error(`[Supabase Sync] Erro inesperado ao sincronizar reunião instantânea:`, syncErr);
-    }
-
     const userId = nanoid(8);
     const token = gerarTokenParticipante(
       sala.id,
