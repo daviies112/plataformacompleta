@@ -47,6 +47,9 @@ export function useGravacoes() {
     const stored = localStorage.getItem('tenant_id');
     if (stored) {
       setTenantId(stored);
+    } else {
+      // Fallback para admin se não houver tenant_id (ambiente dev)
+      setTenantId('admin');
     }
   }, []);
 
@@ -54,12 +57,12 @@ export function useGravacoes() {
   const { data: gravacoesList = [], isLoading, error, refetch } = useQuery({
     queryKey: [API_BASE, 'gravacoes', tenantId],
     queryFn: async () => {
-      // Tenta buscar da API local (que por sua vez busca no Supabase se configurado)
-      const response = await apiRequest("GET", `${API_BASE}/gravacoes/list`);
+      // Tenta buscar da API unificada que já lida com Supabase
+      const response = await apiRequest("GET", `/api/gravacoes`);
       return response.data || response;
     },
-    enabled: !!tenantId,
-    staleTime: 30 * 1000,
+    // Removido enabled: !!tenantId para permitir carga inicial
+    staleTime: 10 * 1000,
   });
 
   // Mutation para deletar gravação

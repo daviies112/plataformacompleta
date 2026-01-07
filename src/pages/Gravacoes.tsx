@@ -62,6 +62,8 @@ interface Gravacao {
 
 import { MeetingHeader } from "@/components/MeetingHeader";
 
+import { useGravacoes } from "@/features/reuniao-platform/hooks/useGravacoes";
+
 export default function Gravacoes() {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -70,37 +72,11 @@ export default function Gravacoes() {
   const [playbackUrl, setPlaybackUrl] = useState<string | null>(null);
   const [isLoadingPlayback, setIsLoadingPlayback] = useState(false);
 
+  const { gravacoes = [], isLoading, refetch, deleteGravacao, getPlaybackUrl } = useGravacoes();
+
   const { data: activeRecordings = [] } = useQuery<any[]>({
     queryKey: ["/api/100ms/active-recordings"],
     refetchInterval: 5000,
-  });
-
-  const { data: gravacoes = [], isLoading } = useQuery<Gravacao[]>({
-    queryKey: ["gravacoes"],
-    queryFn: async () => {
-      const response = await api.get("/api/gravacoes");
-      return response.data;
-    },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: async (id: string) => {
-      await api.delete(`/api/gravacoes/${id}`);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["gravacoes"] });
-      toast({
-        title: "Gravação excluída",
-        description: "A gravação foi excluída com sucesso.",
-      });
-    },
-    onError: () => {
-      toast({
-        variant: "destructive",
-        title: "Erro",
-        description: "Não foi possível excluir a gravação.",
-      });
-    },
   });
 
   const refreshMutation = useMutation({
@@ -355,7 +331,7 @@ export default function Gravacoes() {
                             <AlertDialogFooter>
                               <AlertDialogCancel>Cancelar</AlertDialogCancel>
                               <AlertDialogAction
-                                onClick={() => deleteMutation.mutate(gravacao.id)}
+                                onClick={() => deleteGravacao(gravacao.id)}
                                 className="bg-red-500 hover:bg-red-600"
                               >
                                 Excluir
