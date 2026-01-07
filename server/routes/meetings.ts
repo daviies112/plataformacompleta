@@ -583,10 +583,48 @@ meetingsRouter.get('/reunioes/room-design', authenticateToken, requireTenantId, 
   try {
     const tenantId = req.user!.tenantId;
     
-    const [config] = await db.select().from(hms100msConfig)
+    // 1. Get local config
+    let [config] = await db.select().from(hms100msConfig)
       .where(eq(hms100msConfig.tenantId, tenantId))
       .limit(1);
     
+    // 2. Attempt to sync from Supabase
+    try {
+      const supabase = await getClientSupabaseClient(tenantId);
+      if (supabase) {
+        const { data: supabaseConfig, error } = await supabase
+          .from('assinatura_global_config') // Verifique se esta é a tabela correta ou se existe uma específica para design
+          .select('room_design_config')
+          .eq('tenant_id', tenantId)
+          .single();
+
+        // Nota: Se hms100msConfig tiver uma tabela própria no Supabase, use-a.
+        // Baseado no padrão anterior, vamos procurar por 'hms_100ms_config' ou similar se existir
+        
+        if (!error && supabaseConfig && supabaseConfig.room_design_config) {
+          console.log(`[Supabase Sync] Design config encontrado no Supabase para tenant ${tenantId}`);
+          
+          if (!config) {
+            [config] = await db.insert(hms100msConfig)
+              .values({
+                tenantId,
+                appAccessKey: 'pending_configuration',
+                appSecret: 'pending_configuration',
+                roomDesignConfig: supabaseConfig.room_design_config,
+              })
+              .returning();
+          } else {
+            [config] = await db.update(hms100msConfig)
+              .set({ roomDesignConfig: supabaseConfig.room_design_config, updatedAt: new Date() })
+              .where(eq(hms100msConfig.tenantId, tenantId))
+              .returning();
+          }
+        }
+      }
+    } catch (syncErr) {
+      console.warn(`[Supabase Sync] Falha na sincronização de design:`, syncErr);
+    }
+
     if (!config) {
       return res.json({ roomDesignConfig: null });
     }
@@ -635,6 +673,23 @@ meetingsRouter.patch('/reunioes/room-design', authenticateToken, requireTenantId
         .set({ roomDesignConfig: validationResult.data, updatedAt: new Date() })
         .where(eq(hms100msConfig.tenantId, tenantId))
         .returning();
+    }
+
+    // Sync to Supabase
+    try {
+      const supabase = await getClientSupabaseClient(tenantId);
+      if (supabase) {
+        console.log(`[Supabase Design Sync] Sincronizando design para tenant ${tenantId}`);
+        await supabase
+          .from('hms_100ms_config') // Assumindo o nome da tabela no Supabase
+          .upsert({
+            tenant_id: tenantId,
+            room_design_config: validationResult.data,
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'tenant_id' });
+      }
+    } catch (e) {
+      console.error('Erro ao sincronizar design com Supabase:', e);
     }
     
     res.json({ roomDesignConfig: updatedConfig.roomDesignConfig });
