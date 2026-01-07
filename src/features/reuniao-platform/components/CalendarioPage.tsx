@@ -261,9 +261,15 @@ export default function CalendarioPage() {
               <ChevronRight className="w-4 h-4" />
             </Button>
           </div>
-          <h2 className="text-xl font-semibold capitalize">
-            {format(currentDate, 'MMMM yyyy', { locale: ptBR })}
-          </h2>
+          <div className="flex items-center gap-4">
+            <h2 className="text-xl font-semibold capitalize">
+              {format(currentDate, 'MMMM yyyy', { locale: ptBR })}
+            </h2>
+            <div className="flex items-center gap-2 px-3 py-1 bg-secondary/20 rounded-full border border-secondary/30">
+              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+              <span className="text-xs font-medium text-secondary-foreground">Integração 100ms Ativa</span>
+            </div>
+          </div>
         </div>
 
         <div style={{ height: '600px' }}>
@@ -284,7 +290,7 @@ export default function CalendarioPage() {
               date: 'Data',
               time: 'Hora',
               event: 'Evento',
-              noEventsInRange: 'Nenhuma reunião agendada neste período.',
+              noEventsInRange: 'Nenhum compromisso agendado neste período.',
             }}
             onSelectSlot={handleSelectSlot}
             onSelectEvent={handleSelectEvent}
@@ -295,7 +301,7 @@ export default function CalendarioPage() {
           />
         </div>
 
-        <div className="mt-4 flex gap-4 text-sm">
+        <div className="mt-4 flex flex-wrap gap-4 text-sm">
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 bg-primary rounded"></div>
             <span>Reunião Online (100ms)</span>
@@ -303,6 +309,10 @@ export default function CalendarioPage() {
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 bg-secondary rounded"></div>
             <span>Reunião Presencial</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-4 h-4 bg-accent rounded"></div>
+            <span>Workspace</span>
           </div>
         </div>
       </Card>
