@@ -247,6 +247,8 @@ export const SelfieCapture = ({ onCapture, onBack, primaryColor = '#2c3e50', log
                 }}
               />
               
+              {/* Selfie capture is fixed to 'user' camera only, no flip button provided here */}
+              
               {showLoading && (
                 <div className="absolute inset-0 flex items-center justify-center bg-background">
                   <div className="flex flex-col items-center gap-4">

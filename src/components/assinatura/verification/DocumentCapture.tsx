@@ -29,6 +29,8 @@ export const DocumentCapture = ({ onCapture, onBack, primaryColor = '#2c3e50', l
     error: cameraError, 
     startCamera, 
     stopCamera, 
+    switchCamera,
+    facingMode,
     captureImage 
   } = useCamera({ facingMode: 'environment' });
   
@@ -255,7 +257,7 @@ export const DocumentCapture = ({ onCapture, onBack, primaryColor = '#2c3e50', l
           />
         </motion.div>
       )}
-      <div className="absolute top-4 left-4 z-10">
+      <div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
@@ -264,6 +266,23 @@ export const DocumentCapture = ({ onCapture, onBack, primaryColor = '#2c3e50', l
           <FileText className="w-4 h-4 text-muted-foreground" />
           <span className="text-sm font-medium text-foreground">{selectedDocType}</span>
         </motion.div>
+        
+        {isReady && !capturedImage && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+          >
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={switchCamera}
+              className="bg-card/90 backdrop-blur-sm border-border hover:bg-primary/10 rounded-full"
+            >
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Virar Câmera
+            </Button>
+          </motion.div>
+        )}
       </div>
 
       <div className="flex-1 relative bg-foreground/5 overflow-hidden min-h-[400px]">
@@ -306,7 +325,10 @@ export const DocumentCapture = ({ onCapture, onBack, primaryColor = '#2c3e50', l
                 playsInline
                 muted
                 className="w-full h-full object-cover"
-                style={{ display: isReady ? 'block' : 'none' }}
+                style={{ 
+                  display: isReady ? 'block' : 'none',
+                  transform: facingMode === 'user' ? 'scaleX(-1)' : 'none'
+                }}
               />
               
               {showLoading && (

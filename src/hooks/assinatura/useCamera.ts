@@ -12,9 +12,12 @@ export const useCamera = (options: UseCameraOptions = {}) => {
   const [error, setError] = useState<string | null>(null);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [isInitializing, setIsInitializing] = useState(false);
+  const [currentFacingMode, setCurrentFacingMode] = useState<'user' | 'environment'>(facingMode);
   const mountedRef = useRef(true);
 
-  const startCamera = useCallback(async () => {
+  const startCamera = useCallback(async (mode?: 'user' | 'environment') => {
+    const targetFacingMode = mode || currentFacingMode;
+    
     if (isInitializing) {
       console.log('Camera already initializing');
       return;
@@ -29,6 +32,7 @@ export const useCamera = (options: UseCameraOptions = {}) => {
     setIsInitializing(true);
     setError(null);
     setIsReady(false);
+    setCurrentFacingMode(targetFacingMode);
 
     try {
       console.log('Checking camera support...');
@@ -42,7 +46,7 @@ export const useCamera = (options: UseCameraOptions = {}) => {
         console.log('Requesting camera with high quality constraints...');
         stream = await navigator.mediaDevices.getUserMedia({
           video: {
-            facingMode,
+            facingMode: targetFacingMode,
             width: { ideal: 1920, min: 1280 },
             height: { ideal: 1080, min: 720 },
             frameRate: { ideal: 30 },
@@ -54,7 +58,7 @@ export const useCamera = (options: UseCameraOptions = {}) => {
         try {
           stream = await navigator.mediaDevices.getUserMedia({
             video: {
-              facingMode,
+              facingMode: targetFacingMode,
               width: { ideal: 1280 },
               height: { ideal: 720 },
             },
@@ -176,6 +180,11 @@ export const useCamera = (options: UseCameraOptions = {}) => {
     setIsInitializing(false);
   }, []);
 
+  const switchCamera = useCallback(async () => {
+    const newMode = currentFacingMode === 'user' ? 'environment' : 'user';
+    await startCamera(newMode);
+  }, [currentFacingMode, startCamera]);
+
   const captureImage = useCallback((): string | null => {
     const video = videoRef.current;
     if (!video || !isReady) {
@@ -197,7 +206,7 @@ export const useCamera = (options: UseCameraOptions = {}) => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return null;
 
-    if (facingMode === 'user') {
+    if (currentFacingMode === 'user') {
       ctx.translate(canvas.width, 0);
       ctx.scale(-1, 1);
     }
@@ -213,7 +222,7 @@ export const useCamera = (options: UseCameraOptions = {}) => {
 
     console.log('Image captured successfully');
     return canvas.toDataURL('image/jpeg', 0.98);
-  }, [isReady, facingMode]);
+  }, [isReady, currentFacingMode]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -227,10 +236,12 @@ export const useCamera = (options: UseCameraOptions = {}) => {
     videoRef,
     isReady,
     isInitializing,
+    facingMode: currentFacingMode,
     error,
     hasPermission,
     startCamera,
     stopCamera,
+    switchCamera,
     captureImage,
   };
 };
