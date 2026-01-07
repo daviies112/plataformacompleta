@@ -592,17 +592,15 @@ meetingsRouter.get('/reunioes/room-design', authenticateToken, requireTenantId, 
     try {
       const supabase = await getClientSupabaseClient(tenantId);
       if (supabase) {
+        // Tabela correta para configurações de design é hms_100ms_config no Supabase
         const { data: supabaseConfig, error } = await supabase
-          .from('assinatura_global_config') // Verifique se esta é a tabela correta ou se existe uma específica para design
+          .from('hms_100ms_config')
           .select('room_design_config')
           .eq('tenant_id', tenantId)
           .single();
-
-        // Nota: Se hms100msConfig tiver uma tabela própria no Supabase, use-a.
-        // Baseado no padrão anterior, vamos procurar por 'hms_100ms_config' ou similar se existir
         
         if (!error && supabaseConfig && supabaseConfig.room_design_config) {
-          console.log(`[Supabase Sync] Design config encontrado no Supabase para tenant ${tenantId}`);
+          console.log(`[Supabase Sync] Design config encontrado no Supabase (hms_100ms_config) para tenant ${tenantId}`);
           
           if (!config) {
             [config] = await db.insert(hms100msConfig)
