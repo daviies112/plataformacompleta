@@ -753,27 +753,35 @@ meetingsRouter.post('/reunioes/instantanea', authenticateToken, requireTenantId,
       const supabase = await getClientSupabaseClient(tenantId);
       if (supabase) {
         console.log(`[Supabase Sync] Sincronizando reunião instantânea ${newMeeting.id} para tenant ${tenantId}`);
+        
+        // Ensure we are using the correct field names for Supabase
+        const supabaseData = {
+          id: newMeeting.id,
+          tenant_id: tenantId,
+          titulo: newMeeting.titulo,
+          nome: newMeeting.nome || '',
+          email: newMeeting.email || '',
+          data_inicio: newMeeting.dataInicio instanceof Date ? newMeeting.dataInicio.toISOString() : newMeeting.dataInicio,
+          data_fim: newMeeting.dataFim instanceof Date ? newMeeting.dataFim.toISOString() : newMeeting.dataFim,
+          duracao: newMeeting.duracao,
+          status: newMeeting.status,
+          tipo: 'online',
+          room_id_100ms: newMeeting.roomId100ms,
+          link_reuniao: linkReuniao,
+          created_at: newMeeting.createdAt instanceof Date ? newMeeting.createdAt.toISOString() : new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+
+        console.log(`[Supabase Sync] Payload:`, JSON.stringify(supabaseData, null, 2));
+
         const { error: syncError } = await supabase
           .from('reunioes')
-          .upsert({
-            id: newMeeting.id,
-            tenant_id: tenantId,
-            titulo: newMeeting.titulo,
-            nome: newMeeting.nome || '',
-            email: newMeeting.email || '',
-            data_inicio: newMeeting.dataInicio?.toISOString(),
-            data_fim: newMeeting.dataFim?.toISOString(),
-            duracao: newMeeting.duracao,
-            status: newMeeting.status,
-            tipo: 'online',
-            room_id_100ms: newMeeting.roomId100ms,
-            link_reuniao: linkReuniao,
-            created_at: newMeeting.createdAt?.toISOString(),
-            updated_at: newMeeting.updatedAt?.toISOString()
-          }, { onConflict: 'id' });
+          .upsert(supabaseData, { onConflict: 'id' });
 
         if (syncError) {
           console.error(`[Supabase Sync] Erro ao sincronizar reunião instantânea ${newMeeting.id}:`, syncError);
+        } else {
+          console.log(`[Supabase Sync] Reunião instantânea ${newMeeting.id} sincronizada com sucesso`);
         }
       }
     } catch (syncErr) {
@@ -868,28 +876,35 @@ meetingsRouter.post('/reunioes', authenticateToken, requireTenantId, async (req:
       const supabase = await getClientSupabaseClient(tenantId);
       if (supabase) {
         console.log(`[Supabase Sync] Sincronizando reunião agendada ${newMeeting.id} para tenant ${tenantId}`);
+        
+        const supabaseData = {
+          id: newMeeting.id,
+          tenant_id: tenantId,
+          titulo: newMeeting.titulo,
+          nome: newMeeting.nome || '',
+          email: newMeeting.email || '',
+          data_inicio: newMeeting.dataInicio instanceof Date ? newMeeting.dataInicio.toISOString() : newMeeting.dataInicio,
+          data_fim: newMeeting.dataFim instanceof Date ? newMeeting.dataFim.toISOString() : newMeeting.dataFim,
+          duracao: newMeeting.duracao,
+          descricao: newMeeting.descricao || '',
+          status: newMeeting.status,
+          tipo: newMeeting.tipo,
+          room_id_100ms: newMeeting.roomId100ms,
+          link_reuniao: linkReuniao,
+          created_at: newMeeting.createdAt instanceof Date ? newMeeting.createdAt.toISOString() : new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+
+        console.log(`[Supabase Sync] Payload agendada:`, JSON.stringify(supabaseData, null, 2));
+
         const { error: syncError } = await supabase
           .from('reunioes')
-          .upsert({
-            id: newMeeting.id,
-            tenant_id: tenantId,
-            titulo: newMeeting.titulo,
-            nome: newMeeting.nome || '',
-            email: newMeeting.email || '',
-            data_inicio: newMeeting.dataInicio?.toISOString(),
-            data_fim: newMeeting.dataFim?.toISOString(),
-            duracao: newMeeting.duracao,
-            descricao: newMeeting.descricao || '',
-            status: newMeeting.status,
-            tipo: newMeeting.tipo,
-            room_id_100ms: newMeeting.roomId100ms,
-            link_reuniao: linkReuniao, // Now it is correctly initialized
-            created_at: newMeeting.createdAt?.toISOString(),
-            updated_at: newMeeting.updatedAt?.toISOString()
-          }, { onConflict: 'id' });
+          .upsert(supabaseData, { onConflict: 'id' });
 
         if (syncError) {
           console.error(`[Supabase Sync] Erro ao sincronizar reunião agendada ${newMeeting.id}:`, syncError);
+        } else {
+          console.log(`[Supabase Sync] Reunião agendada ${newMeeting.id} sincronizada com sucesso`);
         }
       }
     } catch (syncErr) {
