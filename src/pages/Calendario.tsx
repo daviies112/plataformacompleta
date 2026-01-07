@@ -46,89 +46,67 @@ export default function CalendarioPage() {
   const { data: reunioes = [], isLoading, error, refetch } = useQuery<Reuniao[]>({
     queryKey: ['reunioes-calendario', format(currentMonth, 'yyyy-MM')],
     queryFn: async () => {
-      // Primeiro tentar API local (sempre funciona quando autenticado)
       try {
-        console.log('[Calendario] Buscando reuniões da API...');
-        const res = await fetch('/api/reunioes', { credentials: 'include' });
-        
-        if (res.ok) {
-          const data = await res.json();
-          // A API retorna array diretamente (não { data: [...] })
-          const meetings = Array.isArray(data) ? data : (data.data || []);
-          console.log('[Calendario] API retornou', meetings.length, 'reuniões');
-          
-          // Filtrar pelo mês atual
+        const supabase = await getSupabaseClient();
+        if (supabase) {
           const monthStart = startOfMonth(currentMonth);
           const monthEnd = endOfMonth(currentMonth);
           
-          const filteredMeetings = meetings.filter((m: any) => {
+          console.log('[Calendario] Buscando reuniões do Supabase para', format(currentMonth, 'MMMM yyyy', { locale: ptBR }));
+          
+          const { data, error: sbError } = await supabase
+            .from('reunioes')
+            .select('*')
+            .gte('data_inicio', monthStart.toISOString())
+            .lte('data_inicio', monthEnd.toISOString())
+            .order('data_inicio', { ascending: true });
+
+          if (!sbError && data) {
+            console.log('[Calendario] Encontradas', data.length, 'reuniões no Supabase');
+            return data.map((r: any) => ({
+              id: r.id,
+              tenantId: r.tenant_id,
+              usuarioId: r.usuario_id,
+              nome: r.nome,
+              email: r.email,
+              telefone: r.telefone,
+              titulo: r.titulo,
+              descricao: r.descricao,
+              dataInicio: r.data_inicio,
+              dataFim: r.data_fim,
+              duracao: r.duracao,
+              roomId100ms: r.room_id_100ms,
+              roomCode100ms: r.room_code_100ms,
+              linkReuniao: r.link_reuniao,
+              status: r.status,
+              participantes: r.participantes || [],
+              gravacaoUrl: r.gravacao_url,
+              metadata: r.metadata,
+              createdAt: r.created_at,
+              updatedAt: r.updated_at,
+            }));
+          }
+        }
+      } catch (sbErr) {
+        console.warn('[Calendario] Erro ao acessar Supabase:', sbErr);
+      }
+
+      try {
+        const res = await fetch('/api/reunioes', { credentials: 'include' });
+        if (res.ok) {
+          const data = await res.json();
+          const meetings = Array.isArray(data) ? data : (data.data || []);
+          const monthStart = startOfMonth(currentMonth);
+          const monthEnd = endOfMonth(currentMonth);
+          return meetings.filter((m: any) => {
             const meetingDate = new Date(m.dataInicio);
             return meetingDate >= monthStart && meetingDate <= monthEnd;
           });
-          
-          console.log('[Calendario] Após filtro do mês:', filteredMeetings.length, 'reuniões em', format(currentMonth, 'MMMM yyyy', { locale: ptBR }));
-          return filteredMeetings;
-        }
-        
-        // Se API retornou erro 401, usuário não autenticado
-        if (res.status === 401) {
-          console.log('[Calendario] Não autenticado - retornando array vazio');
-          return [];
         }
       } catch (apiError) {
-        console.warn('[Calendario] Erro na API, tentando Supabase:', apiError);
+        console.warn('[Calendario] Erro na API local:', apiError);
       }
-      
-      // Fallback para Supabase direto
-      const supabase = await getSupabaseClient();
-      if (!supabase) {
-        console.log('[Calendario] Supabase também não disponível');
-        return [];
-      }
-
-      // Buscar do Supabase diretamente
-      const monthStart = startOfMonth(currentMonth);
-      const monthEnd = endOfMonth(currentMonth);
-      
-      console.log('[Calendario] Buscando reuniões do Supabase para', format(currentMonth, 'MMMM yyyy', { locale: ptBR }));
-      
-      const { data, error: sbError } = await supabase
-        .from('reunioes')
-        .select('*')
-        .gte('data_inicio', monthStart.toISOString())
-        .lte('data_inicio', monthEnd.toISOString())
-        .order('data_inicio', { ascending: true });
-
-      if (sbError) {
-        console.error('[Calendario] Erro ao buscar do Supabase:', sbError);
-        return [];
-      }
-
-      console.log('[Calendario] Encontradas', data?.length || 0, 'reuniões no Supabase');
-      
-      // Mapear campos do Supabase para o formato esperado
-      return (data || []).map((r: any) => ({
-        id: r.id,
-        tenantId: r.tenant_id,
-        usuarioId: r.usuario_id,
-        nome: r.nome,
-        email: r.email,
-        telefone: r.telefone,
-        titulo: r.titulo,
-        descricao: r.descricao,
-        dataInicio: r.data_inicio,
-        dataFim: r.data_fim,
-        duracao: r.duracao,
-        roomId100ms: r.room_id_100ms,
-        roomCode100ms: r.room_code_100ms,
-        linkReuniao: r.link_reuniao,
-        status: r.status,
-        participantes: r.participantes || [],
-        gravacaoUrl: r.gravacao_url,
-        metadata: r.metadata,
-        createdAt: r.created_at,
-        updatedAt: r.updated_at,
-      }));
+      return [];
     },
     refetchInterval: 30000, // Polling a cada 30 segundos como fallback
     refetchOnWindowFocus: true,
