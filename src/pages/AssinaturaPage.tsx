@@ -4,7 +4,7 @@ import { useQuery, useMutation } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -601,6 +601,28 @@ const AssinaturaPage = () => {
                 </div>
               </div>
             </CardContent>
+            <CardFooter className="flex justify-end gap-2 border-t pt-4">
+              <Button 
+                variant="outline" 
+                onClick={resetForm}
+                data-testid="button-clear-form"
+              >
+                Limpar
+              </Button>
+              <Button 
+                onClick={handleCreateContract}
+                disabled={createContractMutation.isPending}
+                className="bg-accent hover:bg-accent/90 text-accent-foreground"
+                data-testid="button-create-contract"
+              >
+                {createContractMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <FileSignature className="w-4 h-4 mr-2" />
+                )}
+                Criar Contrato
+              </Button>
+            </CardFooter>
           </Card>
         </TabsContent>
 
