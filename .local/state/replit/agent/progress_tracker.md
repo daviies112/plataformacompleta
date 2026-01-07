@@ -84,3 +84,7 @@
 [x] 81. Adicionado MeetingHeader (botões de ação) ao topo da página de Design
 [x] 82. Removido cabeçalho redundante em RoomDesignSettings para consistência visual
 [x] 83. Verificada a renderização no frontend
+[x] 84. Implementado Preview Interativo Completo (Lobby, Reunião, Fim)
+[x] 85. Sincronização em tempo real das cores, logos e textos no preview
+[x] 86. Adicionadas animações e suporte a preview mobile no design
+[x] 87. Investigação exaustiva do sistema de preview concluída

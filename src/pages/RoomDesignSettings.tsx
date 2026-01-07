@@ -540,21 +540,164 @@ export default function RoomDesignSettings() {
               <div
                 className={
                   devicePreview === "mobile"
-                    ? "mx-auto w-[280px] border-4 border-zinc-800 rounded-3xl overflow-hidden"
-                    : ""
+                    ? "mx-auto w-[280px] border-4 border-zinc-800 rounded-3xl overflow-hidden shadow-2xl"
+                    : "shadow-lg border border-zinc-800 rounded-xl overflow-hidden"
                 }
               >
                 <div
-                  className="rounded-lg min-h-[250px] flex items-center justify-center p-4"
+                  className="relative min-h-[400px] flex flex-col transition-all duration-300"
                   style={{ backgroundColor: config.colors.background }}
                 >
-                  <div className="text-center" style={{ color: config.colors.controlsText }}>
-                    <p className="text-sm opacity-70">Preview: {previewMode}</p>
-                    {config.branding.logo && (
-                      <img src={config.branding.logo} alt="" className="h-10 mx-auto mt-4" />
+                  {/* Branding Header in Preview */}
+                  {(previewMode === "lobby" && config.branding.showLogoInLobby !== false) ||
+                  (previewMode === "meeting" && config.branding.showLogoInMeeting !== false) ? (
+                    <div className="p-4 flex items-center gap-3">
+                      {config.branding.logo && (
+                        <img
+                          src={config.branding.logo}
+                          alt="Logo"
+                          className="h-8 w-auto object-contain"
+                        />
+                      )}
+                      {config.branding.showCompanyName && (
+                        <span className="font-bold" style={{ color: config.colors.controlsText }}>
+                          {config.branding.companyName || "Sua Empresa"}
+                        </span>
+                      )}
+                    </div>
+                  ) : null}
+
+                  {/* Preview Content based on mode */}
+                  <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
+                    {previewMode === "lobby" && (
+                      <div className="space-y-6 w-full max-w-sm animate-in fade-in zoom-in duration-300">
+                        <div className="space-y-2">
+                          <h2
+                            className="text-2xl font-bold"
+                            style={{ color: config.colors.controlsText }}
+                          >
+                            {config.lobby.title || "Pronto para participar?"}
+                          </h2>
+                          <p className="text-sm opacity-70" style={{ color: config.colors.controlsText }}>
+                            A reunião ainda não começou.
+                          </p>
+                        </div>
+                        <div
+                          className="aspect-video bg-zinc-800 rounded-lg flex items-center justify-center border-2 border-dashed border-zinc-700"
+                        >
+                          <Video className="h-12 w-12 text-zinc-600" />
+                        </div>
+                        <Button
+                          className="w-full h-12 text-lg font-semibold"
+                          style={{
+                            backgroundColor: config.colors.primaryButton,
+                            color: "#ffffff",
+                          }}
+                        >
+                          {config.lobby.buttonText || "Participar agora"}
+                        </Button>
+                      </div>
                     )}
-                    {config.branding.showCompanyName && config.branding.companyName && (
-                      <p className="mt-2 font-medium">{config.branding.companyName}</p>
+
+                    {previewMode === "meeting" && (
+                      <div className="w-full h-full flex flex-col animate-in fade-in duration-300">
+                        {/* Participants Grid Simulation */}
+                        <div className="flex-1 grid grid-cols-2 gap-2 p-2">
+                          {[1, 2].map((i) => (
+                            <div
+                              key={i}
+                              className="relative aspect-video bg-zinc-900 rounded-lg flex items-center justify-center overflow-hidden border border-zinc-800"
+                            >
+                              <div
+                                className="w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold"
+                                style={{
+                                  backgroundColor: config.colors.avatarBackground || config.colors.primaryButton,
+                                  color: config.colors.avatarText || "#ffffff",
+                                }}
+                              >
+                                {i === 1 ? "VC" : "JD"}
+                              </div>
+                              <div
+                                className="absolute bottom-2 left-2 px-2 py-0.5 rounded text-[10px] font-medium"
+                                style={{
+                                  backgroundColor: config.colors.participantNameBackground || "rgba(0,0,0,0.6)",
+                                  color: config.colors.participantNameText || "#ffffff",
+                                }}
+                              >
+                                {i === 1 ? "Você" : "João Silva"}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Controls Bar Simulation */}
+                        <div
+                          className="mt-auto p-3 flex items-center justify-center gap-3 border-t"
+                          style={{
+                            backgroundColor: config.colors.controlsBackground,
+                            borderColor: "rgba(255,255,255,0.1)",
+                          }}
+                        >
+                          <div className="flex gap-2">
+                            <div className="h-8 w-8 rounded-full bg-zinc-800 flex items-center justify-center">
+                              <Video className="h-4 w-4" style={{ color: config.colors.controlsText }} />
+                            </div>
+                            <div className="h-8 w-8 rounded-full bg-zinc-800 flex items-center justify-center">
+                              <Monitor className="h-4 w-4" style={{ color: config.colors.controlsText }} />
+                            </div>
+                          </div>
+                          
+                          <div className="h-10 px-4 rounded-full flex items-center justify-center text-xs font-bold"
+                            style={{ backgroundColor: config.colors.dangerButton, color: "#ffffff" }}>
+                            Sair
+                          </div>
+
+                          <div className="flex gap-2">
+                            {config.meeting.enableScreenShare && (
+                              <div className="h-8 w-8 rounded-full bg-zinc-800 flex items-center justify-center opacity-50">
+                                <Monitor className="h-4 w-4" style={{ color: config.colors.controlsText }} />
+                              </div>
+                            )}
+                            {config.meeting.enableReactions && (
+                              <div className="h-8 w-8 rounded-full bg-zinc-800 flex items-center justify-center opacity-50 text-xs" style={{ color: config.colors.controlsText }}>
+                                😊
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {previewMode === "end" && (
+                      <div className="space-y-6 animate-in fade-in zoom-in duration-300">
+                        <div
+                          className="w-20 h-20 rounded-full mx-auto flex items-center justify-center"
+                          style={{ backgroundColor: "rgba(255,255,255,0.1)" }}
+                        >
+                          <LogOut className="h-10 w-10" style={{ color: config.colors.controlsText }} />
+                        </div>
+                        <div className="space-y-2">
+                          <h2
+                            className="text-2xl font-bold"
+                            style={{ color: config.colors.controlsText }}
+                          >
+                            {config.endScreen.title || "Você saiu da reunião"}
+                          </h2>
+                          <p className="text-sm opacity-70" style={{ color: config.colors.controlsText }}>
+                            Obrigado por participar.
+                          </p>
+                        </div>
+                        <Button
+                          variant="outline"
+                          className="h-10"
+                          style={{
+                            borderColor: config.colors.primaryButton,
+                            color: config.colors.primaryButton,
+                          }}
+                        >
+                          Voltar ao Início
+                        </Button>
+                      </div>
                     )}
                   </div>
                 </div>
