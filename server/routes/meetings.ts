@@ -779,9 +779,9 @@ meetingsRouter.post('/reunioes/instantanea', authenticateToken, requireTenantId,
           .upsert(supabaseData, { onConflict: 'id' });
 
         if (syncError) {
-          console.error(`[Supabase Sync] Erro ao sincronizar reunião instantânea ${newMeeting.id}:`, syncError);
+          console.error(`[Supabase Sync] Erro ao sincronizar reunião instantânea ${newMeeting.id}:`, JSON.stringify(syncError, null, 2));
         } else {
-          console.log(`[Supabase Sync] Reunião instantânea ${newMeeting.id} sincronizada com sucesso`);
+          console.log(`[Supabase Sync] Reunião instantânea ${newMeeting.id} sincronizada com sucesso no Supabase`);
         }
       }
     } catch (syncErr) {

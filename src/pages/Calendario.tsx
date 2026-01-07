@@ -149,6 +149,10 @@ export default function CalendarioPage() {
         }
 
         console.log("[Calendario] Configurando Supabase Realtime para 'reunioes'...");
+        
+        // Remover canais antigos antes de criar um novo para evitar duplicatas
+        supabase.removeAllChannels();
+
         channel = supabase
           .channel('reunioes-calendario-changes')
           .on(
