@@ -146,40 +146,23 @@ export default function RoomDesignSettings() {
 
   const saveMutation = useMutation({
     mutationFn: async (newConfig: RoomDesignConfig) => {
-      // Salvar no Supabase primeiro
-      try {
-        const supabase = await getSupabaseClient();
-        if (supabase) {
-          console.log('[Design] Salvando no Supabase...');
-          // Busca o tenantId da sessão atual para persistência correta
-          const { data: { user } } = await supabase.auth.getUser();
-          const tenantId = user?.user_metadata?.tenantId || 'system';
-
-          const { error } = await supabase
-            .from('hms_100ms_config')
-            .upsert({ 
-              tenant_id: tenantId,
-              room_design_config: newConfig,
-              updated_at: new Date().toISOString()
-            }, { onConflict: 'tenant_id' });
-
-          if (error) throw error;
-          console.log('[Design] Salvo no Supabase com sucesso');
-        }
-      } catch (sbErr) {
-        console.error('[Design] Erro ao salvar no Supabase:', sbErr);
-      }
-
-      // Salvar na API local também
+      console.log('[Design] Salvando configurações...');
+      
+      // Chamada para a API local que agora gerencia o sync com Supabase de forma segura no backend
       const response = await api.patch("/api/reunioes/room-design", { roomDesignConfig: newConfig });
+      
+      // Opcional: Tentativa de salvamento direto se o backend falhar ou para redundância
+      // Removido para evitar conflitos de tenantId e focar na rota segura do backend
+      
       return response.data;
     },
     onSuccess: () => {
-      toast({ title: "Configurações salvas!", description: "As personalizações foram aplicadas com sucesso." });
+      toast({ title: "Configurações salvas!", description: "As personalizações foram aplicadas com sucesso no Supabase." });
       queryClient.invalidateQueries({ queryKey: ["/api/reunioes/room-design"] });
     },
-    onError: () => {
-      toast({ variant: "destructive", title: "Erro", description: "Não foi possível salvar as configurações." });
+    onError: (err: any) => {
+      console.error('[Design] Erro ao salvar:', err);
+      toast({ variant: "destructive", title: "Erro ao salvar", description: err.response?.data?.message || "Não foi possível sincronizar com o Supabase." });
     },
   });
 

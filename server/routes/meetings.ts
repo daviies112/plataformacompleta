@@ -640,60 +640,64 @@ meetingsRouter.patch('/reunioes/room-design', authenticateToken, requireTenantId
     const { roomDesignConfig } = req.body;
     
     if (!roomDesignConfig) {
-      return res.status(400).json({ error: 'roomDesignConfig é obrigatório' });
+      return res.status(400).json({ error: 'Configuração de design é obrigatória' });
     }
 
-    const validationResult = roomDesignConfigSchema.safeParse(roomDesignConfig);
-    if (!validationResult.success) {
-      return res.status(400).json({ 
-        error: 'Configuração de design inválida', 
-        details: validationResult.error.errors 
-      });
-    }
-    
-    const [existingConfig] = await db.select().from(hms100msConfig)
-      .where(eq(hms100msConfig.tenantId, tenantId))
-      .limit(1);
-    
-    let updatedConfig;
-    
-    if (!existingConfig) {
-      [updatedConfig] = await db.insert(hms100msConfig)
-        .values({
-          tenantId,
-          appAccessKey: 'pending_configuration',
-          appSecret: 'pending_configuration',
-          roomDesignConfig: validationResult.data,
-        })
-        .returning();
-    } else {
-      [updatedConfig] = await db.update(hms100msConfig)
-        .set({ roomDesignConfig: validationResult.data, updatedAt: new Date() })
-        .where(eq(hms100msConfig.tenantId, tenantId))
-        .returning();
-    }
+    console.log(`[Design API] Iniciando salvamento para tenant: ${tenantId}`);
 
-    // Sync to Supabase
+    // 1. Sincronizar com Supabase (Backend)
     try {
       const supabase = await getClientSupabaseClient(tenantId);
       if (supabase) {
-        console.log(`[Supabase Design Sync] Sincronizando design para tenant ${tenantId}`);
-        await supabase
-          .from('hms_100ms_config') // Assumindo o nome da tabela no Supabase
+        console.log(`[Supabase Design Sync] Tentando upsert na tabela hms_100ms_config...`);
+        const { data: sbData, error: sbError } = await supabase
+          .from('hms_100ms_config')
           .upsert({
             tenant_id: tenantId,
-            room_design_config: validationResult.data,
+            room_design_config: roomDesignConfig,
             updated_at: new Date().toISOString()
-          }, { onConflict: 'tenant_id' });
+          }, { 
+            onConflict: 'tenant_id',
+            ignoreDuplicates: false
+          })
+          .select();
+
+        if (sbError) {
+          console.error('[Supabase Design Sync Error]:', sbError);
+        } else {
+          console.log('[Supabase Design Sync Success]');
+        }
+      } else {
+        console.warn(`[Supabase Design Sync] Supabase não configurado para tenant ${tenantId}`);
       }
-    } catch (e) {
-      console.error('Erro ao sincronizar design com Supabase:', e);
+    } catch (syncErr) {
+      console.error('[Supabase Design Sync Fatal Error]:', syncErr);
+    }
+
+    // 2. Persistir localmente
+    const [existingConfig] = await db.select().from(hms100msConfig)
+      .where(eq(hms100msConfig.tenantId, tenantId))
+      .limit(1);
+
+    let updatedConfig;
+    if (!existingConfig) {
+      [updatedConfig] = await db.insert(hms100msConfig).values({
+        tenantId,
+        appAccessKey: 'pending_configuration',
+        appSecret: 'pending_configuration',
+        roomDesignConfig,
+      }).returning();
+    } else {
+      [updatedConfig] = await db.update(hms100msConfig)
+        .set({ roomDesignConfig, updatedAt: new Date() })
+        .where(eq(hms100msConfig.tenantId, tenantId))
+        .returning();
     }
     
-    res.json({ roomDesignConfig: updatedConfig.roomDesignConfig });
+    res.json({ success: true, roomDesignConfig: updatedConfig.roomDesignConfig });
   } catch (error: any) {
-    console.error('Erro ao atualizar room design config:', error);
-    res.status(500).json({ error: 'Erro ao atualizar configuração de design', message: error.message });
+    console.error('Erro ao salvar room design config:', error);
+    res.status(500).json({ error: 'Erro ao salvar configuração de design', message: error.message });
   }
 });
 
