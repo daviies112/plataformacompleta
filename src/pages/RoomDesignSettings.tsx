@@ -652,12 +652,13 @@ export default function RoomDesignSettings() {
                 </Button>
               </div>
 
-              <div
-                className={`relative border rounded-lg overflow-hidden bg-black mx-auto transition-all duration-300 ${
-                  devicePreview === "mobile" ? "w-[320px] aspect-[9/16]" : "w-full aspect-video"
-                }`}
-                style={{ backgroundColor: config.colors.background }}
-              >
+              <div className="flex-1 flex flex-col items-center justify-center p-2 bg-zinc-900/50 rounded-lg border border-zinc-800/50">
+                <div
+                  className={`relative border rounded-lg overflow-hidden bg-black transition-all duration-300 shadow-2xl ${
+                    devicePreview === "mobile" ? "w-[240px] aspect-[9/16]" : "w-full max-w-full aspect-video"
+                  }`}
+                  style={{ backgroundColor: config.colors.background }}
+                >
                 {/* Lobby Preview */}
                 {previewMode === "lobby" && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-white space-y-6">
@@ -669,11 +670,11 @@ export default function RoomDesignSettings() {
                         )}
                       </div>
                     )}
-                    <div className="w-full max-w-sm aspect-video bg-zinc-800 rounded-lg flex items-center justify-center">
-                      <Video className="h-12 w-12 text-zinc-600" />
+                    <div className="w-full max-w-[200px] aspect-video bg-zinc-800 rounded-lg flex items-center justify-center">
+                      <Video className="h-8 w-8 text-zinc-600" />
                     </div>
                     <div className="text-center space-y-2">
-                      <h3 className="text-xl font-bold">{config.lobby.title || "Pronto para participar?"}</h3>
+                      <h3 className="text-base font-bold leading-tight">{config.lobby.title || "Pronto para participar?"}</h3>
                     </div>
                     <Button
                       style={{ backgroundColor: config.colors.primaryButton }}
@@ -704,16 +705,16 @@ export default function RoomDesignSettings() {
                       )}
                     </header>
 
-                    <div className="flex-1 p-4 flex items-center justify-center">
-                      <div className="w-full max-w-sm aspect-video bg-zinc-800 rounded-lg flex items-center justify-center relative">
+                    <div className="flex-1 p-2 flex items-center justify-center min-h-0">
+                      <div className="w-full max-w-[200px] aspect-video bg-zinc-800 rounded-lg flex items-center justify-center relative">
                         <div
-                          className="absolute top-2 left-2 px-2 py-1 rounded text-[10px]"
+                          className="absolute top-1 left-1 px-1.5 py-0.5 rounded text-[8px]"
                           style={{ backgroundColor: config.colors.participantNameBackground, color: config.colors.participantNameText }}
                         >
                           Você
                         </div>
                         <div
-                          className="w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold"
+                          className="w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold"
                           style={{ backgroundColor: config.colors.avatarBackground, color: config.colors.avatarText }}
                         >
                           V
@@ -722,26 +723,26 @@ export default function RoomDesignSettings() {
                     </div>
 
                     <footer
-                      className="p-4 flex items-center justify-center gap-2"
+                      className="p-2 flex items-center justify-center gap-1.5"
                       style={{ backgroundColor: config.colors.controlsBackground }}
                     >
-                      <Button size="icon" variant="outline" className="h-10 w-10 rounded-full border-zinc-700 bg-zinc-800 text-white">
-                        <Video className="h-5 w-5" />
+                      <Button size="icon" variant="outline" className="h-8 w-8 rounded-full border-zinc-700 bg-zinc-800 text-white">
+                        <Video className="h-4 w-4" />
                       </Button>
-                      <Button size="icon" variant="outline" className="h-10 w-10 rounded-full border-zinc-700 bg-zinc-800 text-white">
-                        <Palette className="h-5 w-5" />
+                      <Button size="icon" variant="outline" className="h-8 w-8 rounded-full border-zinc-700 bg-zinc-800 text-white">
+                        <Palette className="h-4 w-4" />
                       </Button>
                       {config.meeting.enableScreenShare !== false && (
-                        <Button size="icon" variant="outline" className="h-10 w-10 rounded-full border-zinc-700 bg-zinc-800 text-white">
-                          <Monitor className="h-5 w-5" />
+                        <Button size="icon" variant="outline" className="h-8 w-8 rounded-full border-zinc-700 bg-zinc-800 text-white">
+                          <Monitor className="h-4 w-4" />
                         </Button>
                       )}
                       <Button
                         size="icon"
                         style={{ backgroundColor: config.colors.dangerButton }}
-                        className="h-10 w-10 rounded-full border-none hover:opacity-90 text-white"
+                        className="h-8 w-8 rounded-full border-none hover:opacity-90 text-white"
                       >
-                        <LogOut className="h-5 w-5" />
+                        <LogOut className="h-4 w-4" />
                       </Button>
                     </footer>
                   </div>
@@ -756,8 +757,8 @@ export default function RoomDesignSettings() {
                     >
                       <LogOut className="h-8 w-8" />
                     </div>
-                    <div className="text-center space-y-2">
-                      <h3 className="text-xl font-bold">{config.endScreen.title || "Você saiu da reunião"}</h3>
+                    <div className="text-center space-y-1">
+                      <h3 className="text-base font-bold">{config.endScreen.title || "Você saiu da reunião"}</h3>
                     </div>
                     <Button
                       variant="outline"
