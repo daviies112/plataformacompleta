@@ -652,122 +652,123 @@ export default function RoomDesignSettings() {
                 </Button>
               </div>
 
-              <div className="flex-1 flex flex-col items-center justify-center p-2 bg-zinc-900/50 rounded-lg border border-zinc-800/50">
+              <div className="flex-1 min-h-0 flex flex-col items-center justify-center p-2 bg-zinc-900/50 rounded-lg border border-zinc-800/50">
                 <div
                   className={`relative border rounded-lg overflow-hidden bg-black transition-all duration-300 shadow-2xl ${
                     devicePreview === "mobile" ? "w-[240px] aspect-[9/16]" : "w-full max-w-full aspect-video"
                   }`}
                   style={{ backgroundColor: config.colors.background }}
                 >
-                {/* Lobby Preview */}
-                {previewMode === "lobby" && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-white space-y-6">
-                    {config.branding.logo && config.branding.showLogoInLobby !== false && (
-                      <div className="flex items-center gap-2">
-                        <img src={config.branding.logo} alt="Logo" className="h-8 w-auto" />
-                        {config.branding.showCompanyName && (
-                          <span className="font-bold">{config.branding.companyName}</span>
-                        )}
-                      </div>
-                    )}
-                    <div className="w-full max-w-[200px] aspect-video bg-zinc-800 rounded-lg flex items-center justify-center">
-                      <Video className="h-8 w-8 text-zinc-600" />
-                    </div>
-                    <div className="text-center space-y-2">
-                      <h3 className="text-base font-bold leading-tight">{config.lobby.title || "Pronto para participar?"}</h3>
-                    </div>
-                    <Button
-                      style={{ backgroundColor: config.colors.primaryButton }}
-                      className="w-full max-w-xs hover:opacity-90 transition-opacity"
-                    >
-                      {config.lobby.buttonText || "Participar agora"}
-                    </Button>
-                  </div>
-                )}
-
-                {/* Meeting Preview */}
-                {previewMode === "meeting" && (
-                  <div className="absolute inset-0 flex flex-col text-white">
-                    <header className="p-4 flex items-center justify-between">
-                      {config.branding.logo && config.branding.showLogoInMeeting !== false && (
+                  {/* Lobby Preview */}
+                  {previewMode === "lobby" && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-white space-y-6">
+                      {config.branding.logo && config.branding.showLogoInLobby !== false && (
                         <div className="flex items-center gap-2">
-                          <img src={config.branding.logo} alt="Logo" className="h-6 w-auto" />
+                          <img src={config.branding.logo} alt="Logo" className="h-8 w-auto" />
                           {config.branding.showCompanyName && (
-                            <span className="text-sm font-bold">{config.branding.companyName}</span>
+                            <span className="font-bold">{config.branding.companyName}</span>
                           )}
                         </div>
                       )}
-                      {config.meeting.showParticipantCount !== false && (
-                        <div className="bg-black/50 px-2 py-1 rounded text-xs flex items-center gap-1">
-                          <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-                          <span>01</span>
-                        </div>
-                      )}
-                    </header>
+                      <div className="w-full max-w-[200px] aspect-video bg-zinc-800 rounded-lg flex items-center justify-center">
+                        <Video className="h-8 w-8 text-zinc-600" />
+                      </div>
+                      <div className="text-center space-y-2">
+                        <h3 className="text-base font-bold leading-tight">{config.lobby.title || "Pronto para participar?"}</h3>
+                      </div>
+                      <Button
+                        style={{ backgroundColor: config.colors.primaryButton }}
+                        className="w-full max-w-xs hover:opacity-90 transition-opacity"
+                      >
+                        {config.lobby.buttonText || "Participar agora"}
+                      </Button>
+                    </div>
+                  )}
 
-                    <div className="flex-1 p-2 flex items-center justify-center min-h-0">
-                      <div className="w-full max-w-[200px] aspect-video bg-zinc-800 rounded-lg flex items-center justify-center relative">
-                        <div
-                          className="absolute top-1 left-1 px-1.5 py-0.5 rounded text-[8px]"
-                          style={{ backgroundColor: config.colors.participantNameBackground, color: config.colors.participantNameText }}
-                        >
-                          Você
-                        </div>
-                        <div
-                          className="w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold"
-                          style={{ backgroundColor: config.colors.avatarBackground, color: config.colors.avatarText }}
-                        >
-                          V
+                  {/* Meeting Preview */}
+                  {previewMode === "meeting" && (
+                    <div className="absolute inset-0 flex flex-col text-white">
+                      <header className="p-4 flex items-center justify-between">
+                        {config.branding.logo && config.branding.showLogoInMeeting !== false && (
+                          <div className="flex items-center gap-2">
+                            <img src={config.branding.logo} alt="Logo" className="h-6 w-auto" />
+                            {config.branding.showCompanyName && (
+                              <span className="text-sm font-bold">{config.branding.companyName}</span>
+                            )}
+                          </div>
+                        )}
+                        {config.meeting.showParticipantCount !== false && (
+                          <div className="bg-black/50 px-2 py-1 rounded text-xs flex items-center gap-1">
+                            <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                            <span>01</span>
+                          </div>
+                        )}
+                      </header>
+
+                      <div className="flex-1 p-2 flex items-center justify-center min-h-0">
+                        <div className="w-full max-w-[200px] aspect-video bg-zinc-800 rounded-lg flex items-center justify-center relative">
+                          <div
+                            className="absolute top-1 left-1 px-1.5 py-0.5 rounded text-[8px]"
+                            style={{ backgroundColor: config.colors.participantNameBackground, color: config.colors.participantNameText }}
+                          >
+                            Você
+                          </div>
+                          <div
+                            className="w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold"
+                            style={{ backgroundColor: config.colors.avatarBackground, color: config.colors.avatarText }}
+                          >
+                            V
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    <footer
-                      className="p-2 flex items-center justify-center gap-1.5"
-                      style={{ backgroundColor: config.colors.controlsBackground }}
-                    >
-                      <Button size="icon" variant="outline" className="h-8 w-8 rounded-full border-zinc-700 bg-zinc-800 text-white">
-                        <Video className="h-4 w-4" />
-                      </Button>
-                      <Button size="icon" variant="outline" className="h-8 w-8 rounded-full border-zinc-700 bg-zinc-800 text-white">
-                        <Palette className="h-4 w-4" />
-                      </Button>
-                      {config.meeting.enableScreenShare !== false && (
-                        <Button size="icon" variant="outline" className="h-8 w-8 rounded-full border-zinc-700 bg-zinc-800 text-white">
-                          <Monitor className="h-4 w-4" />
-                        </Button>
-                      )}
-                      <Button
-                        size="icon"
-                        style={{ backgroundColor: config.colors.dangerButton }}
-                        className="h-8 w-8 rounded-full border-none hover:opacity-90 text-white"
+                      <footer
+                        className="p-2 flex items-center justify-center gap-1.5"
+                        style={{ backgroundColor: config.colors.controlsBackground }}
                       >
-                        <LogOut className="h-4 w-4" />
-                      </Button>
-                    </footer>
-                  </div>
-                )}
+                        <Button size="icon" variant="outline" className="h-8 w-8 rounded-full border-zinc-700 bg-zinc-800 text-white">
+                          <Video className="h-4 w-4" />
+                        </Button>
+                        <Button size="icon" variant="outline" className="h-8 w-8 rounded-full border-zinc-700 bg-zinc-800 text-white">
+                          <Palette className="h-4 w-4" />
+                        </Button>
+                        {config.meeting.enableScreenShare !== false && (
+                          <Button size="icon" variant="outline" className="h-8 w-8 rounded-full border-zinc-700 bg-zinc-800 text-white">
+                            <Monitor className="h-4 w-4" />
+                          </Button>
+                        )}
+                        <Button
+                          size="icon"
+                          style={{ backgroundColor: config.colors.dangerButton }}
+                          className="h-8 w-8 rounded-full border-none hover:opacity-90 text-white"
+                        >
+                          <LogOut className="h-4 w-4" />
+                        </Button>
+                      </footer>
+                    </div>
+                  )}
 
-                {/* End Screen Preview */}
-                {previewMode === "end" && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-white space-y-6">
-                    <div
-                      className="w-16 h-16 rounded-full flex items-center justify-center"
-                      style={{ backgroundColor: config.colors.controlsBackground }}
-                    >
-                      <LogOut className="h-8 w-8" />
+                  {/* End Screen Preview */}
+                  {previewMode === "end" && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-white space-y-6">
+                      <div
+                        className="w-16 h-16 rounded-full flex items-center justify-center"
+                        style={{ backgroundColor: config.colors.controlsBackground }}
+                      >
+                        <LogOut className="h-8 w-8" />
+                      </div>
+                      <div className="text-center space-y-1">
+                        <h3 className="text-base font-bold">{config.endScreen.title || "Você saiu da reunião"}</h3>
+                      </div>
+                      <Button
+                        variant="outline"
+                        className="w-full max-w-xs border-zinc-700 hover:bg-zinc-800 text-white"
+                      >
+                        {config.endScreen.buttonText || "Voltar ao Início"}
+                      </Button>
                     </div>
-                    <div className="text-center space-y-1">
-                      <h3 className="text-base font-bold">{config.endScreen.title || "Você saiu da reunião"}</h3>
-                    </div>
-                    <Button
-                      variant="outline"
-                      className="w-full max-w-xs border-zinc-700 hover:bg-zinc-800 text-white"
-                    >
-                      {config.endScreen.buttonText || "Voltar ao Início"}
-                    </Button>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>
