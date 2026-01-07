@@ -868,6 +868,77 @@ const AssinaturaPage = () => {
                   <CardDescription>Defina o título e as cláusulas do contrato</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="primaryColor">Cor Primária (Título/Bordas)</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="primaryColor"
+                          type="color"
+                          value={primaryColor}
+                          onChange={(e) => setPrimaryColor(e.target.value)}
+                          className="h-10 w-20"
+                          data-testid="input-contract-primary-color"
+                        />
+                        <Input
+                          value={primaryColor}
+                          onChange={(e) => setPrimaryColor(e.target.value)}
+                          className="flex-1"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="textColor">Cor do Texto</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="textColor"
+                          type="color"
+                          value={textColor}
+                          onChange={(e) => setTextColor(e.target.value)}
+                          className="h-10 w-20"
+                          data-testid="input-contract-text-color"
+                        />
+                        <Input
+                          value={textColor}
+                          onChange={(e) => setTextColor(e.target.value)}
+                          className="flex-1"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="fontFamily">Fonte</Label>
+                      <select
+                        id="fontFamily"
+                        value={fontFamily}
+                        onChange={(e) => setFontFamily(e.target.value)}
+                        className="w-full px-3 py-2 border rounded-md bg-background"
+                        data-testid="select-contract-font"
+                      >
+                        <option value="Arial, sans-serif">Arial</option>
+                        <option value="Georgia, serif">Georgia</option>
+                        <option value="Courier New, monospace">Courier New</option>
+                        <option value="Times New Roman, serif">Times New Roman</option>
+                        <option value="Verdana, sans-serif">Verdana</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="fontSize">Tamanho da Fonte</Label>
+                      <select
+                        id="fontSize"
+                        value={fontSize}
+                        onChange={(e) => setFontSize(e.target.value)}
+                        className="w-full px-3 py-2 border rounded-md bg-background"
+                        data-testid="select-contract-font-size"
+                      >
+                        <option value="12px">Pequeno (12px)</option>
+                        <option value="14px">Normal (14px)</option>
+                        <option value="16px">Médio (16px)</option>
+                        <option value="18px">Grande (18px)</option>
+                        <option value="20px">Extra Grande (20px)</option>
+                      </select>
+                    </div>
+                  </div>
+
                   <div className="space-y-2">
                     <Label htmlFor="contractTitle">Título do Contrato</Label>
                     <Input
@@ -1268,6 +1339,58 @@ const AssinaturaPage = () => {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="parabensBackgroundColor">Cor de Fundo da Página</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="parabensBackgroundColor"
+                          type="color"
+                          value={parabensBackgroundColor}
+                          onChange={(e) => setParabensBackgroundColor(e.target.value)}
+                          className="h-10 w-20"
+                          data-testid="input-parabens-bg-color"
+                        />
+                        <Input
+                          value={parabensBackgroundColor}
+                          onChange={(e) => setParabensBackgroundColor(e.target.value)}
+                          className="flex-1"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="parabensTextColor">Cor do Texto</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="parabensTextColor"
+                          type="color"
+                          value={parabensTextColor}
+                          onChange={(e) => setParabensTextColor(e.target.value)}
+                          className="h-10 w-20"
+                          data-testid="input-parabens-text-color"
+                        />
+                        <Input
+                          value={parabensTextColor}
+                          onChange={(e) => setParabensTextColor(e.target.value)}
+                          className="flex-1"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="parabensFontFamily">Fonte</Label>
+                      <select
+                        id="parabensFontFamily"
+                        value={parabensFontFamily}
+                        onChange={(e) => setParabensFontFamily(e.target.value)}
+                        className="w-full px-3 py-2 border rounded-md bg-background"
+                        data-testid="select-parabens-font"
+                      >
+                        <option value="Arial, sans-serif">Arial</option>
+                        <option value="Georgia, serif">Georgia</option>
+                        <option value="Courier New, monospace">Courier New</option>
+                        <option value="Times New Roman, serif">Times New Roman</option>
+                        <option value="Verdana, sans-serif">Verdana</option>
+                      </select>
+                    </div>
                     <div className="space-y-2">
                       <Label htmlFor="parabensTitle">Título</Label>
                       <Input

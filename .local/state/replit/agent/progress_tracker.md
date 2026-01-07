@@ -99,3 +99,6 @@
 [x] 96. Sincronizados dados do contrato (título e cláusulas) com o preview em tempo real
 [x] 97. Validada renderização e funcionalidade da página de Assinatura no frontend
 [x] 98. Verificada consistência visual e funcional do preview do contrato em tempo real
+[x] 99. Adicionados controles de estilo (cores e fontes) às abas Contrato e Parabéns
+[x] 100. Sincronizados todos os campos de estilo com os previews em tempo real
+[x] 101. Validada a personalização total de cores e tipografia no frontend
