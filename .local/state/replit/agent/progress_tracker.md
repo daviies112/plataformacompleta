@@ -102,3 +102,6 @@
 [x] 99. Adicionados controles de estilo (cores e fontes) às abas Contrato e Parabéns
 [x] 100. Sincronizados todos os campos de estilo com os previews em tempo real
 [x] 101. Validada a personalização total de cores e tipografia no frontend
+[x] 102. Removida tela de boas-vindas duplicada no fluxo de assinatura do cliente
+[x] 103. Configurado início direto na etapa de verificação de identidade
+[x] 104. Verificado fluxo contínuo sem popups de progresso desnecessários no início

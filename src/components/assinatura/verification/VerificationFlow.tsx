@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { useVerificationSession } from '@/hooks/assinatura/useVerificationSession';
 import { useFaceDetection } from '@/hooks/assinatura/useFaceDetection';
@@ -37,6 +37,8 @@ interface VerificationFlowProps {
   headerBackgroundColor?: string;
   headerLogoUrl?: string;
   headerCompanyName?: string;
+  companyName?: string;
+  startAtSelfie?: boolean;
 }
 
 export const VerificationFlow = ({ 
@@ -59,8 +61,10 @@ export const VerificationFlow = ({
   textColor = '#000000',
   headerBackgroundColor = '#2c3e50',
   headerLogoUrl = '',
-  headerCompanyName = ''
-}: VerificationFlowProps & { textColor?: string } = {}) => {
+  headerCompanyName = '',
+  companyName = '',
+  startAtSelfie = true
+}: VerificationFlowProps & { textColor?: string }) => {
   const {
     session,
     currentStep,
@@ -176,6 +180,12 @@ export const VerificationFlow = ({
     handleStart();
   }, [resetSession, handleStart]);
 
+  useEffect(() => {
+    if (startAtSelfie && currentStep === 'welcome') {
+      handleStart();
+    }
+  }, [startAtSelfie, currentStep, handleStart]);
+
   const handleComplete = useCallback(() => {
     setSelfieImage(null);
     setDocumentImage(null);
@@ -253,6 +263,7 @@ export const VerificationFlow = ({
               welcomeText={welcomeText}
               instructionText={instructionText}
               securityText={securityText}
+              companyName={companyName}
             />
           )}
           

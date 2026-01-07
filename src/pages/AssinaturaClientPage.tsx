@@ -232,8 +232,10 @@ const AssinaturaClientContent = () => {
         protocol_number: contract.protocol_number || undefined,
         contract_html: contract.contract_html || undefined
       });
+      // Inicia diretamente na verificação (Step 1), pulando a tela de progresso inicial (Step 0)
+      setCurrentStep(1);
     }
-  }, [contract, currentStep, setGovbrData, setContractData]);
+  }, [contract, currentStep, setGovbrData, setContractData, setCurrentStep]);
 
   const handleVerificationComplete = (success: boolean, selfie?: string, document?: string) => {
     if (success) {
@@ -315,75 +317,7 @@ const AssinaturaClientContent = () => {
   }
 
   if (currentStep === 0) {
-    return (
-      <div className="min-h-screen bg-background p-4">
-        <ProgressTrackerDisplay currentStep={currentStep} contract={contract} />
-        <div className="max-w-2xl mx-auto">
-          {contract.logo_url && (
-            <div className="text-center mb-6">
-              <img 
-                src={contract.logo_url} 
-                alt="Logo" 
-                className="max-h-20 mx-auto"
-              />
-            </div>
-          )}
-
-          <Card style={{ backgroundColor: progressCardColor }}>
-            <div className="p-6 space-y-4">
-              <h2 className="text-xl font-bold" style={{ color: progressTextColor }}>
-                {contract.progress_title || 'Assinatura Digital'}
-              </h2>
-              <p className="text-sm" style={{ color: progressTextColor, opacity: 0.9 }}>
-                {contract.progress_subtitle || 'Conclua os passos abaixo para finalizar o processo.'}
-              </p>
-
-              <div className="space-y-3">
-                {[
-                  { num: 1, title: contract.progress_step1_title || '1. Reconhecimento Facial', desc: contract.progress_step1_description || 'Tire uma selfie para validar sua identidade', icon: Camera },
-                  { num: 2, title: contract.progress_step2_title || '2. Assinar Contrato', desc: contract.progress_step2_description || 'Assine digitalmente o contrato', icon: FileText },
-                  { num: 3, title: contract.progress_step3_title || '3. Baixar Aplicativo', desc: contract.progress_step3_description || 'Baixe o app oficial', icon: Smartphone },
-                ].map((step) => {
-                  const StepIcon = step.icon;
-                  return (
-                    <div 
-                      key={step.num}
-                      className="p-4 rounded-lg border flex items-center gap-4"
-                      style={{ backgroundColor: 'rgba(255,255,255,0.1)', borderColor: progressButtonColor }}
-                    >
-                      <div 
-                        className="w-10 h-10 rounded-full flex items-center justify-center"
-                        style={{ backgroundColor: progressButtonColor, color: 'white' }}
-                      >
-                        <StepIcon className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <h3 className="font-medium" style={{ color: progressTextColor }}>
-                          {step.title}
-                        </h3>
-                        <p className="text-sm" style={{ color: progressTextColor, opacity: 0.8 }}>
-                          {step.desc}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              <Button
-                className="w-full mt-4"
-                style={{ backgroundColor: progressButtonColor }}
-                onClick={() => setCurrentStep(1)}
-                data-testid="button-start-verification"
-              >
-                {contract.progress_button_text || 'Iniciar Verificação'}
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
-            </div>
-          </Card>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   if (currentStep === 1) {
@@ -395,10 +329,9 @@ const AssinaturaClientContent = () => {
           primaryColor={contract.verification_primary_color || primaryColor}
           textColor={contract.verification_text_color || textColor}
           welcomeText={contract.verification_welcome_text || 'Verificação de Identidade'}
-          instructions={contract.verification_instructions || 'Processo seguro e rápido para confirmar sua identidade.'}
+          instructionText={contract.verification_instructions || 'Processo seguro e rápido para confirmar sua identidade.'}
           footerText={contract.verification_footer_text || 'Verificação Segura'}
           securityText={contract.verification_security_text || 'Suas informações são processadas de forma segura.'}
-          companyName={contract.verification_header_company_name || contract.company_name || ''}
           headerBackgroundColor={contract.verification_header_background_color || primaryColor}
           logoUrl={contract.logo_url || undefined}
         />

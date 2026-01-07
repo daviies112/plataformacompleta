@@ -13,6 +13,7 @@ interface WelcomeScreenProps {
   securityText?: string;
   logoUrl?: string;
   logoSize?: 'small' | 'medium' | 'large';
+  companyName?: string;
 }
 
 const steps = [
@@ -43,7 +44,8 @@ export const WelcomeScreen = ({
   instructionText = '',
   securityText = 'Suas informações são processadas de forma segura e criptografada',
   logoUrl = '',
-  logoSize = 'medium'
+  logoSize = 'medium',
+  companyName = ''
 }: WelcomeScreenProps) => {
   return (
     <motion.div
