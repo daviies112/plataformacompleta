@@ -31,6 +31,11 @@ export function createRateLimiter(config: RateLimitConfig = {}) {
     const windowSeconds = Math.ceil(windowMs / 1000);
 
     try {
+      // Skip rate limiting in development mode
+      if (process.env.NODE_ENV !== 'production') {
+        return next();
+      }
+
       // Get current count
       const current = await cache.get<number>(key) || 0;
 
