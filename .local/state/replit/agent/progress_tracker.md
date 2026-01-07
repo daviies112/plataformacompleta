@@ -105,3 +105,8 @@
 [x] 102. Removida tela de boas-vindas duplicada no fluxo de assinatura do cliente
 [x] 103. Configurado início direto na etapa de verificação de identidade
 [x] 104. Verificado fluxo contínuo sem popups de progresso desnecessários no início
+[x] 105. npm install completed - all dependencies restored (January 7, 2026)
+[x] 106. Workflow configured with webview output type for port 5000
+[x] 107. Application running successfully - Express + Vite server on port 5000
+[x] 108. All background jobs, queues, and services initialized
+[x] 109. Final import migration to Replit environment completed
