@@ -860,66 +860,133 @@ const AssinaturaPage = () => {
         </TabsContent>
 
         <TabsContent value="contrato" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Conteúdo do Contrato</CardTitle>
-              <CardDescription>Defina o título e as cláusulas do contrato</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="contractTitle">Título do Contrato</Label>
-                <Input
-                  id="contractTitle"
-                  value={contractTitle}
-                  onChange={(e) => setContractTitle(e.target.value)}
-                  placeholder="Contrato de Prestação de Serviços"
-                  data-testid="input-contract-title"
-                />
-              </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Conteúdo do Contrato</CardTitle>
+                  <CardDescription>Defina o título e as cláusulas do contrato</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="contractTitle">Título do Contrato</Label>
+                    <Input
+                      id="contractTitle"
+                      value={contractTitle}
+                      onChange={(e) => setContractTitle(e.target.value)}
+                      placeholder="Contrato de Prestação de Serviços"
+                      data-testid="input-contract-title"
+                    />
+                  </div>
 
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <Label>Cláusulas</Label>
-                  <Button onClick={addClause} variant="outline" size="sm" data-testid="button-add-clause">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Adicionar Cláusula
-                  </Button>
-                </div>
-
-                {clauses.map((clause, index) => (
-                  <Card key={index} className="p-4">
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <Label>Cláusula {index + 1}</Label>
-                        <Button
-                          onClick={() => removeClause(index)}
-                          variant="ghost"
-                          size="sm"
-                          className="text-destructive"
-                          data-testid={`button-remove-clause-${index}`}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                      <Input
-                        value={clause.title}
-                        onChange={(e) => updateClause(index, 'title', e.target.value)}
-                        placeholder="Título da cláusula"
-                        data-testid={`input-clause-title-${index}`}
-                      />
-                      <Textarea
-                        value={clause.content}
-                        onChange={(e) => updateClause(index, 'content', e.target.value)}
-                        placeholder="Conteúdo da cláusula"
-                        rows={3}
-                        data-testid={`input-clause-content-${index}`}
-                      />
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <Label>Cláusulas</Label>
+                      <Button onClick={addClause} variant="outline" size="sm" data-testid="button-add-clause">
+                        <Plus className="w-4 h-4 mr-2" />
+                        Adicionar Cláusula
+                      </Button>
                     </div>
-                  </Card>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+
+                    {clauses.map((clause, index) => (
+                      <Card key={index} className="p-4">
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <Label>Cláusula {index + 1}</Label>
+                            <Button
+                              onClick={() => removeClause(index)}
+                              variant="ghost"
+                              size="sm"
+                              className="text-destructive"
+                              data-testid={`button-remove-clause-${index}`}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                          <Input
+                            value={clause.title}
+                            onChange={(e) => updateClause(index, 'title', e.target.value)}
+                            placeholder="Título da cláusula"
+                            data-testid={`input-clause-title-${index}`}
+                          />
+                          <Textarea
+                            value={clause.content}
+                            onChange={(e) => updateClause(index, 'content', e.target.value)}
+                            placeholder="Conteúdo da cláusula"
+                            rows={3}
+                            data-testid={`input-clause-content-${index}`}
+                          />
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="sticky top-6 h-fit">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Preview do Contrato</CardTitle>
+                  <CardDescription>Visualização em tempo real do documento</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div 
+                    className="border shadow-sm rounded-lg overflow-hidden bg-white"
+                    style={{ 
+                      fontFamily: fontFamily,
+                      color: textColor
+                    }}
+                  >
+                    <div className="p-8 space-y-6 overflow-y-auto max-h-[600px] text-zinc-900">
+                      {logoUrl && (
+                        <div style={{ textAlign: logoPosition }}>
+                          <img 
+                            src={logoUrl} 
+                            alt="Logo" 
+                            style={{ 
+                              maxWidth: logoSize === 'small' ? '100px' : logoSize === 'large' ? '300px' : '200px',
+                              height: 'auto'
+                            }} 
+                          />
+                        </div>
+                      )}
+
+                      <div className="text-center pb-4 border-b-2" style={{ borderColor: primaryColor }}>
+                        <h1 className="text-2xl font-bold" style={{ color: primaryColor }}>
+                          {contractTitle}
+                        </h1>
+                      </div>
+
+                      <div className="space-y-4">
+                        <h2 className="text-lg font-bold" style={{ color: primaryColor }}>Dados do Contratante</h2>
+                        <div className="grid grid-cols-1 gap-1 text-sm">
+                          <p><strong>Nome:</strong> {clientName || '---'}</p>
+                          <p><strong>CPF:</strong> {clientCpf || '---'}</p>
+                          <p><strong>E-mail:</strong> {clientEmail || '---'}</p>
+                          <p><strong>Telefone:</strong> {clientPhone || '---'}</p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-4">
+                        <h2 className="text-lg font-bold" style={{ color: primaryColor }}>Cláusulas</h2>
+                        {clauses.map((clause, index) => (
+                          <div key={index} className="space-y-2">
+                            <h3 className="font-bold" style={{ color: textColor }}>{clause.title || `Cláusula ${index + 1}`}</h3>
+                            <p className="text-sm text-justify leading-relaxed whitespace-pre-wrap">{clause.content || '...'}</p>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="mt-8 pt-4 border-t text-center text-[10px] text-zinc-400">
+                        {footerText}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </TabsContent>
 
         <TabsContent value="progresso" className="space-y-6">

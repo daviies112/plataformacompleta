@@ -95,3 +95,7 @@
 [x] 92. Implementados campos de Título de Despedida e Botão de Retorno na aba Fim
 [x] 93. Corrigida tipagem RoomDesignConfig para suportar o campo buttonText na tela de fim
 [x] 94. Verificada sincronização completa entre controles, preview e banco de dados
+[x] 95. Implementado layout de duas colunas na aba Contrato (Configurações + Preview)
+[x] 96. Sincronizados dados do contrato (título e cláusulas) com o preview em tempo real
+[x] 97. Validada renderização e funcionalidade da página de Assinatura no frontend
+[x] 98. Verificada consistência visual e funcional do preview do contrato em tempo real
