@@ -10,7 +10,7 @@ export const FaceGuideOverlay = ({ detectionResult, isCapturing }: FaceGuideOver
   const isReady = detectionResult?.detected && 
     detectionResult?.centered && 
     detectionResult?.goodLighting &&
-    detectionResult?.quality >= 70;
+    detectionResult?.quality >= 75;
 
   return (
     <div className="absolute inset-0 pointer-events-none">
@@ -29,19 +29,19 @@ export const FaceGuideOverlay = ({ detectionResult, isCapturing }: FaceGuideOver
           animate={isReady ? { scale: [1, 1.02, 1] } : {}}
           transition={{ duration: 1, repeat: Infinity }}
         >
-          {!isReady && detectionResult?.detected && (
-            <motion.div
-              className="absolute inset-x-0 h-1 bg-gradient-to-r from-transparent via-accent to-transparent rounded-full"
-              animate={{ top: ['0%', '100%', '0%'] }}
-              transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
-            />
-          )}
-
           {isReady && (
             <motion.div
               className="absolute -inset-2 rounded-[50%] border-2 border-accent"
               animate={{ scale: [1, 1.1], opacity: [0.8, 0] }}
               transition={{ duration: 1.5, repeat: Infinity }}
+            />
+          )}
+
+          {!isReady && (
+            <motion.div
+              className="absolute inset-x-0 h-1 bg-gradient-to-r from-transparent via-accent to-transparent rounded-full"
+              animate={{ top: ['0%', '100%', '0%'] }}
+              transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
             />
           )}
         </motion.div>

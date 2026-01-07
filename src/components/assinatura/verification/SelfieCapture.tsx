@@ -67,7 +67,18 @@ export const SelfieCapture = ({ onCapture, onBack, primaryColor = '#2c3e50', log
       if (video && video.readyState >= 2 && video.videoWidth > 0) {
         try {
           const result = await detectFace(video);
-          setDetectionResult(result);
+          
+          // Enhanced messages based on detection result
+          let message = 'Posicione seu rosto na área indicada';
+          if (result.detected) {
+            if (!result.centered) message = 'Centralize seu rosto';
+            else if (!result.goodLighting) message = 'Melhore a iluminação';
+            else if (result.quality < 75) message = 'Aproxime seu rosto';
+            else message = 'Perfeito! Capturando...';
+          }
+          
+          const updatedResult = { ...result, message };
+          setDetectionResult(updatedResult);
           
           const isIdeal = result.detected && 
             result.centered && 
@@ -75,11 +86,13 @@ export const SelfieCapture = ({ onCapture, onBack, primaryColor = '#2c3e50', log
             result.quality >= 75;
           
           if (isIdeal && !autoCapture) {
+            console.log('SelfieCapture: Conditions ideal, starting auto-capture...');
             setAutoCapture(true);
             autoCaptureTimeoutRef.current = setTimeout(() => {
               handleCapture();
             }, 1500);
           } else if (!isIdeal && autoCapture) {
+            console.log('SelfieCapture: Conditions no longer ideal, canceling auto-capture');
             setAutoCapture(false);
             if (autoCaptureTimeoutRef.current) {
               clearTimeout(autoCaptureTimeoutRef.current);
