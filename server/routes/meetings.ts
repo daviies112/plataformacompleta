@@ -1023,6 +1023,7 @@ meetingsRouter.post('/reunioes/:id/start-recording', authenticateToken, async (r
     try {
       const supabase = await getClientSupabaseClient(meeting.tenantId);
       if (supabase) {
+        console.log(`[Recording Start Sync] Sincronizando gravação iniciada ${gravacao.id} para tenant ${tenantId}`);
         const toISOString = (date: Date | string | null | undefined): string | null => {
           if (!date) return null;
           if (date instanceof Date) return date.toISOString();
@@ -1044,10 +1045,14 @@ meetingsRouter.post('/reunioes/:id/start-recording', authenticateToken, async (r
             created_at: toISOString(gravacao.createdAt),
           }, { onConflict: 'id' });
         
-        if (syncError) console.error(`[Recording Sync] Erro Supabase:`, syncError);
+        if (syncError) {
+          console.error(`[Recording Start Sync] Erro Supabase:`, syncError);
+        } else {
+          console.log(`[Recording Start Sync] Sucesso ao sincronizar gravação ${gravacao.id}`);
+        }
       }
     } catch (e) {
-      console.error(`[Recording Sync] Erro:`, e);
+      console.error(`[Recording Start Sync] Erro:`, e);
     }
 
     res.json({ success: true, recording: gravacao, hmsResult: result });
@@ -1081,15 +1086,48 @@ meetingsRouter.post('/reunioes/:id/stop-recording', authenticateToken, async (re
       credentials.appSecret
     );
 
-    await db.update(gravacoes)
+    const [updatedRecording] = await db.update(gravacoes)
       .set({
         status: 'stopped',
         stoppedAt: new Date(),
+        updatedAt: new Date(),
       })
       .where(and(
         eq(gravacoes.reuniaoId, meeting.id),
         eq(gravacoes.status, 'recording')
-      ));
+      ))
+      .returning();
+
+    // Sync updated recording to Supabase
+    if (updatedRecording) {
+      try {
+        const supabase = await getClientSupabaseClient(tenantId);
+        if (supabase) {
+          console.log(`[Recording Stop Sync] Sincronizando gravação encerrada ${updatedRecording.id}`);
+          const toISOString = (date: Date | string | null | undefined): string | null => {
+            if (!date) return null;
+            if (date instanceof Date) return date.toISOString();
+            if (typeof date === 'string') return date;
+            return null;
+          };
+
+          const { error: syncError } = await supabase
+            .from('gravacoes')
+            .upsert({
+              id: updatedRecording.id,
+              reuniao_id: updatedRecording.reuniaoId,
+              tenant_id: updatedRecording.tenantId,
+              status: 'stopped',
+              stopped_at: toISOString(updatedRecording.stoppedAt),
+              updated_at: toISOString(updatedRecording.updatedAt),
+            }, { onConflict: 'id' });
+          
+          if (syncError) console.error(`[Recording Stop Sync] Erro:`, syncError);
+        }
+      } catch (e) {
+        console.error(`[Recording Stop Sync] Erro:`, e);
+      }
+    }
 
     res.json({ success: true, hmsResult: result });
   } catch (error: any) {

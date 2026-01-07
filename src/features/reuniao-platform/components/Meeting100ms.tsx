@@ -526,12 +526,21 @@ export function Meeting100ms({
     setIsRecordingLoading(true);
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(`/api/reunioes/${meetingId}/recording/start`, {
+      // Headers dinâmicos do Supabase (para multi-tenant)
+      const supabaseUrl = window.REACT_APP_SUPABASE_URL || localStorage.getItem('supabase_url');
+      const supabaseKey = window.REACT_APP_SUPABASE_ANON_KEY || localStorage.getItem('supabase_key');
+
+      const headers: Record<string, string> = {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      };
+
+      if (supabaseUrl) headers["x-supabase-url"] = supabaseUrl;
+      if (supabaseKey) headers["x-supabase-key"] = supabaseKey;
+
+      const response = await fetch(`/api/reunioes/${meetingId}/start-recording`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+        headers,
         credentials: 'include',
         body: JSON.stringify({
           meetingUrl: `${window.location.origin}/reuniao/${meetingId}`
@@ -539,10 +548,21 @@ export function Meeting100ms({
       });
 
       if (!response.ok) {
-        throw new Error("Falha ao iniciar gravação");
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Falha ao iniciar gravação");
       }
+      
+      toast({
+        title: "Gravação iniciada",
+        description: "A reunião está sendo gravada.",
+      });
     } catch (err: any) {
       console.error('[Meeting100ms] Erro ao iniciar gravação:', err);
+      toast({
+        variant: "destructive",
+        title: "Erro ao gravar",
+        description: err.message,
+      });
       throw err;
     } finally {
       setIsRecordingLoading(false);
@@ -553,20 +573,40 @@ export function Meeting100ms({
     setIsRecordingLoading(true);
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(`/api/reunioes/${meetingId}/recording/stop`, {
+      // Headers dinâmicos do Supabase (para multi-tenant)
+      const supabaseUrl = window.REACT_APP_SUPABASE_URL || localStorage.getItem('supabase_url');
+      const supabaseKey = window.REACT_APP_SUPABASE_ANON_KEY || localStorage.getItem('supabase_key');
+
+      const headers: Record<string, string> = {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      };
+
+      if (supabaseUrl) headers["x-supabase-url"] = supabaseUrl;
+      if (supabaseKey) headers["x-supabase-key"] = supabaseKey;
+
+      const response = await fetch(`/api/reunioes/${meetingId}/stop-recording`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
+        headers,
         credentials: 'include',
       });
 
       if (!response.ok) {
-        throw new Error("Falha ao parar gravação");
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Falha ao parar gravação");
       }
+
+      toast({
+        title: "Gravação encerrada",
+        description: "A gravação foi salva e está sendo processada.",
+      });
     } catch (err: any) {
       console.error('[Meeting100ms] Erro ao parar gravação:', err);
+      toast({
+        variant: "destructive",
+        title: "Erro ao parar gravação",
+        description: err.message,
+      });
     } finally {
       setIsRecordingLoading(false);
     }
