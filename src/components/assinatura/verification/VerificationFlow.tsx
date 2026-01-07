@@ -250,7 +250,7 @@ export const VerificationFlow = ({
             </div>
           )}
           
-          <div className="flex-1">
+          <div className="flex-1 max-w-4xl mx-auto w-full">
             <AnimatePresence mode="wait">
           {currentStep === 'welcome' && (
             <WelcomeScreen 
