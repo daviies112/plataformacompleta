@@ -63,7 +63,7 @@ export const VerificationFlow = ({
   headerLogoUrl = '',
   headerCompanyName = '',
   companyName = '',
-  startAtSelfie = true
+  startAtSelfie = false
 }: VerificationFlowProps & { textColor?: string }) => {
   const {
     session,
