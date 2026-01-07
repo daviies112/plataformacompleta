@@ -81,3 +81,6 @@
 [x] 78. Application running successfully - Express + Vite server on port 5000
 [x] 79. All background jobs, queues, and services initialized
 [x] 80. Project import to Replit environment completed successfully
+[x] 81. Adicionado MeetingHeader (botões de ação) ao topo da página de Design
+[x] 82. Removido cabeçalho redundante em RoomDesignSettings para consistência visual
+[x] 83. Verificada a renderização no frontend
