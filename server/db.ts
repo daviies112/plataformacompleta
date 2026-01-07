@@ -29,6 +29,7 @@ function initializeDatabase(): void {
   if (connectionAttempted) return;
   connectionAttempted = true;
   
+  console.log('🐘 Initializing database connection...');
   const databaseUrl = getDatabaseUrl();
   
   if (databaseUrl) {
