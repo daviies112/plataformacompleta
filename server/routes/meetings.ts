@@ -1114,11 +1114,58 @@ meetingsRouter.get('/gravacoes', authenticateToken, async (req: AuthRequest, res
   try {
     const tenantId = req.user!.tenantId;
 
-    const recordings = await db.select().from(gravacoes)
+    // 1. Get local recordings
+    let localRecordings = await db.select().from(gravacoes)
       .where(eq(gravacoes.tenantId, tenantId))
       .orderBy(desc(gravacoes.createdAt));
 
-    res.json(recordings);
+    // 2. Attempt to sync from Supabase
+    try {
+      const supabase = await getClientSupabaseClient(tenantId);
+      if (supabase) {
+        const { data: supabaseRecordings, error } = await supabase
+          .from('gravacoes')
+          .select('*')
+          .eq('tenant_id', tenantId);
+
+        if (!error && supabaseRecordings && supabaseRecordings.length > 0) {
+          console.log(`[Supabase Sync] Encontradas ${supabaseRecordings.length} gravações no Supabase para tenant ${tenantId}`);
+          
+          for (const sRec of supabaseRecordings) {
+            const exists = localRecordings.some(m => m.id === sRec.id);
+            if (!exists) {
+              await db.insert(gravacoes).values({
+                id: sRec.id,
+                reuniaoId: sRec.reuniao_id,
+                tenantId: tenantId,
+                roomId100ms: sRec.room_id_100ms,
+                sessionId100ms: sRec.session_id_100ms,
+                recordingId100ms: sRec.recording_id_100ms,
+                assetId: sRec.asset_id,
+                status: sRec.status,
+                startedAt: sRec.started_at ? new Date(sRec.started_at) : null,
+                stoppedAt: sRec.stopped_at ? new Date(sRec.stopped_at) : null,
+                duration: sRec.duration,
+                fileUrl: sRec.file_url,
+                fileSize: sRec.file_size,
+                thumbnailUrl: sRec.thumbnail_url,
+                createdAt: sRec.created_at ? new Date(sRec.created_at) : new Date(),
+                updatedAt: sRec.updated_at ? new Date(sRec.updated_at) : new Date(),
+              }).onConflictDoNothing();
+            }
+          }
+          
+          // Re-fetch local recordings after sync
+          localRecordings = await db.select().from(gravacoes)
+            .where(eq(gravacoes.tenantId, tenantId))
+            .orderBy(desc(gravacoes.createdAt));
+        }
+      }
+    } catch (syncErr) {
+      console.warn(`[Supabase Sync] Falha na sincronização de gravações:`, syncErr);
+    }
+
+    res.json(localRecordings);
   } catch (error: any) {
     console.error('Erro ao listar gravações:', error);
     res.status(500).json({ error: 'Erro ao listar gravações', message: error.message });
