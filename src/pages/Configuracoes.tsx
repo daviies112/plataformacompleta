@@ -53,6 +53,9 @@ export default function Configuracoes() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/tenants/me"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/calendar-events"] });
+      // Disparar evento para outros componentes recarregarem
+      window.dispatchEvent(new CustomEvent('supabase-config-changed'));
       toast({
         title: "Configurações salvas",
         description: "As configurações do tenant foram atualizadas com sucesso.",

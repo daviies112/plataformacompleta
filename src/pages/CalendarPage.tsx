@@ -74,12 +74,23 @@ const CalendarPage = () => {
   
   const { data: calendarData, isLoading, error, refetch } = useQuery({
     queryKey: ['/api/dashboard/calendar-events'],
-    staleTime: 0,
+    staleTime: 30 * 1000,
     refetchOnMount: true,
-    refetchInterval: 5 * 60 * 1000,
+    refetchInterval: 60 * 1000,
     retry: 1,
-    refetchOnWindowFocus: false,
+    refetchOnWindowFocus: true,
   });
+
+  // Listener para recarregar quando as credenciais do Supabase mudarem
+  useEffect(() => {
+    const handleSupabaseConfigChange = () => {
+      console.log('[Calendar] Supabase config changed, refetching...');
+      refetch();
+    };
+
+    window.addEventListener('supabase-config-changed', handleSupabaseConfigChange);
+    return () => window.removeEventListener('supabase-config-changed', handleSupabaseConfigChange);
+  }, [refetch]);
 
   const events = calendarData?.data || [];
 

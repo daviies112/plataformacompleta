@@ -74,6 +74,8 @@ const ClientConfigPage = () => {
       const success = await updateCredentials(integrationType, dataToSave);
       if (success) {
         setSaveMessage('Configurações salvas com sucesso!');
+        // Disparar evento para outros componentes recarregarem dados (como o Calendário)
+        window.dispatchEvent(new CustomEvent('supabase-config-changed'));
       } else {
         setSaveMessage('Erro ao salvar configurações. Tente novamente.');
       }
