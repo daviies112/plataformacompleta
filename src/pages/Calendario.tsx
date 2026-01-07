@@ -159,12 +159,25 @@ export default function CalendarioPage() {
               table: 'reunioes'
             },
             async (payload: any) => {
-              console.log('[Calendario] Mudança detectada em reunioes:', payload.eventType);
+              console.log('[Calendario] Mudança detectada em reunioes:', payload.eventType, payload.new?.id || payload.old?.id);
+              
+              // Verificação adicional para garantir que o payload contenha dados válidos
+              const meetingId = payload.new?.id || payload.old?.id;
               
               // Invalidar todas as queries de calendário para garantir atualização
-              await queryClient.invalidateQueries({ queryKey: ['reunioes-calendario'] });
+              // Usamos invalidateQueries em vez de apenas refetch para garantir que qualquer componente que use esses dados seja atualizado
+              await queryClient.invalidateQueries({ 
+                queryKey: ['reunioes-calendario'],
+                exact: false 
+              });
               
-              // Também trigger refetch direto
+              // Invalidar também queries globais de eventos de calendário se existirem
+              await queryClient.invalidateQueries({ 
+                queryKey: ["/api/dashboard/calendar-events"],
+                exact: false
+              });
+              
+              // Trigger refetch imediato para a query atual
               refetch();
 
               const eventMessages: Record<string, string> = {
@@ -173,10 +186,13 @@ export default function CalendarioPage() {
                 'DELETE': 'removida'
               };
 
-              toast({
-                title: "Calendário atualizado",
-                description: "Uma reunião foi " + (eventMessages[payload.eventType] || 'modificada') + ".",
-              });
+              // Mostrar toast apenas se for uma mudança relevante (opcional, mas bom para UX)
+              if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE' || payload.eventType === 'DELETE') {
+                toast({
+                  title: "Calendário atualizado",
+                  description: `Uma reunião foi ${eventMessages[payload.eventType] || 'modificada'}.`,
+                });
+              }
             }
           )
           .subscribe((status: string) => {
