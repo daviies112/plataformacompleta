@@ -22,6 +22,7 @@ import {
   Users, 
   FileCheck, 
   Gift, 
+  Loader2, 
   AlertCircle, 
   Camera, 
   Shield, 
@@ -343,6 +344,17 @@ const AssinaturaPage = () => {
     const contractHTML = generateContractHTML();
     const protocolNumber = `CONT-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
 
+    // Validar se há conteúdo no contrato
+    if (clauses.length === 0 || clauses.some(c => !c.title.trim() || !c.content.trim())) {
+      setActiveTab('contrato');
+      toast({ 
+        title: 'Aviso', 
+        description: 'Preencha todas as cláusulas do contrato antes de criar.', 
+        variant: 'destructive' 
+      });
+      return;
+    }
+
     createContractMutation.mutate({
       client_name: clientName.trim(),
       client_cpf: cpfNumbers,
@@ -445,7 +457,7 @@ const AssinaturaPage = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 relative pb-20 sm:pb-0">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold" data-testid="text-page-title">
@@ -455,6 +467,26 @@ const AssinaturaPage = () => {
           <p className="text-muted-foreground mt-1">Gerenciador de contratos para assinatura digital</p>
         </div>
       </div>
+
+      {/* Floating Action Button (FAB) for Creating Contract */}
+      {!generatedUrl && activeTab !== 'contratos' && (
+        <div className="fixed bottom-6 right-6 z-[100]">
+          <Button
+            size="lg"
+            onClick={handleCreateContract}
+            disabled={createContractMutation.isPending}
+            className="h-16 px-8 rounded-full shadow-2xl bg-accent hover:bg-accent/90 text-accent-foreground flex items-center gap-3 animate-in fade-in zoom-in duration-300"
+            data-testid="button-create-contract-floating"
+          >
+            {createContractMutation.isPending ? (
+              <Loader2 className="w-6 h-6 animate-spin" />
+            ) : (
+              <FileSignature className="w-6 h-6" />
+            )}
+            <span className="text-lg font-bold">Criar Contrato</span>
+          </Button>
+        </div>
+      )}
 
       {generatedUrl && (
         <Card className="border-green-500/50 bg-green-500/10">
