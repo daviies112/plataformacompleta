@@ -67,7 +67,7 @@ const DEFAULT_LABELS = [
     ativo: true,
   },
   {
-    nome: "Marcação de reunião completo",
+    nome: "Assinatura pendente",
     cor: "hsl(217, 91%, 60%)", // Azul
     formStatus: "meeting_completed",
     qualificationStatus: null,
@@ -75,7 +75,7 @@ const DEFAULT_LABELS = [
     ativo: true,
   },
   {
-    nome: "Consultor",
+    nome: "Revendedora",
     cor: "hsl(280, 70%, 50%)", // Roxo
     formStatus: "consultor",
     qualificationStatus: null,

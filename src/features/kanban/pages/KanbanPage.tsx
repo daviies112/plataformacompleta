@@ -30,8 +30,8 @@ const STAGE_LABELS: Record<string, string> = {
   'reuniao-pendente': 'Reunião Pendente',
   'reuniao-agendada': 'Reunião Agendada',
   'reuniao-nao-compareceu': 'Reunião Não Compareceu',
-  'reuniao-completo': 'Reunião Realizada',
-  'consultor': 'Consultor',
+  'reuniao-completo': 'Assinatura Pendente',
+  'consultor': 'Revendedora',
 };
 
 const STAGE_COLORS: Record<string, string> = {
