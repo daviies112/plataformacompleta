@@ -44,7 +44,7 @@ export default function CalendarioPage() {
   const { toast } = useToast();
   
   // Busca reuniões do banco de dados (100ms)
-  const { meetings, isLoading: loadingMeetings, refetch: refetchMeetings } = useReuniao();
+  const { meetings, loading: loadingMeetings, refetch: refetchMeetings } = useReuniao();
 
   // Busca dados do workspace
   const { data: workspaceData, isLoading: loadingWorkspace } = useQuery({
@@ -266,8 +266,8 @@ export default function CalendarioPage() {
               {format(currentDate, 'MMMM yyyy', { locale: ptBR })}
             </h2>
             <div className="flex items-center gap-2 px-3 py-1 bg-secondary/20 rounded-full border border-secondary/30">
-              <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-              <span className="text-xs font-medium text-secondary-foreground">Integração 100ms Ativa</span>
+              <div className="w-2 h-2 rounded-full bg-green-500" />
+              <span className="text-xs font-medium text-secondary-foreground">Supabase Sincronizado</span>
             </div>
           </div>
         </div>

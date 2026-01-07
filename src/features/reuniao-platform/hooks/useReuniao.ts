@@ -8,8 +8,9 @@ async function apiRequest(method: string, url: string, data?: unknown) {
   const headers: Record<string, string> = {};
   
   // Headers dinâmicos do Supabase (para multi-tenant)
-  const supabaseUrl = localStorage.getItem('supabase_url');
-  const supabaseKey = localStorage.getItem('supabase_key');
+  // Tentar primeiro carregar das configurações globais se disponíveis, senão localStorage
+  const supabaseUrl = window.REACT_APP_SUPABASE_URL || localStorage.getItem('supabase_url');
+  const supabaseKey = window.REACT_APP_SUPABASE_ANON_KEY || localStorage.getItem('supabase_key');
 
   if (data) {
     headers["Content-Type"] = "application/json";
