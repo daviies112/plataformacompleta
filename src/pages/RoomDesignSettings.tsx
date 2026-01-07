@@ -227,30 +227,6 @@ export default function RoomDesignSettings() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between h-16 px-4 border-b -mx-4 -mt-6 mb-6">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/configuracoes")}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div>
-            <h1 className="text-lg font-semibold">Design da Sala de Reunião</h1>
-            <p className="text-sm text-muted-foreground">
-              Personalize a experiência de videoconferência dos seus clientes
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={handleReset}>
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Restaurar Padrão
-          </Button>
-          <Button onClick={handleSave} disabled={saveMutation.isPending}>
-            {saveMutation.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
-            Salvar Alterações
-          </Button>
-        </div>
-      </div>
-
       <MeetingHeader title="Design" description="Personalize o visual das suas salas de reunião." />
 
       <div className="grid lg:grid-cols-2 gap-6">
