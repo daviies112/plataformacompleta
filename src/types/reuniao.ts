@@ -59,6 +59,7 @@ export interface RoomDesignConfig {
   endScreen: {
     title?: string;
     message?: string;
+    buttonText?: string;
     showFeedback?: boolean;
     redirectUrl?: string | null;
   };
@@ -105,6 +106,7 @@ export const DEFAULT_ROOM_DESIGN_CONFIG: RoomDesignConfig = {
   endScreen: {
     title: 'Reunião Encerrada',
     message: 'Obrigado por participar!',
+    buttonText: 'Voltar ao Início',
     showFeedback: false,
     redirectUrl: null,
   },

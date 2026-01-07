@@ -88,3 +88,10 @@
 [x] 85. Sincronização em tempo real das cores, logos e textos no preview
 [x] 86. Adicionadas animações e suporte a preview mobile no design
 [x] 87. Investigação exaustiva do sistema de preview concluída
+[x] 88. Adicionada aba "Fim" aos controles de personalização (TabsContent)
+[x] 89. Implementados campos para Título de Despedida e Botão de Retorno
+[x] 90. Verificada sincronização com o preview em tempo real e persistência no banco
+[x] 91. Adicionada a aba "Fim" aos controles de personalização no painel lateral
+[x] 92. Implementados campos de Título de Despedida e Botão de Retorno na aba Fim
+[x] 93. Corrigida tipagem RoomDesignConfig para suportar o campo buttonText na tela de fim
+[x] 94. Verificada sincronização completa entre controles, preview e banco de dados

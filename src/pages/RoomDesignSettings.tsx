@@ -232,7 +232,7 @@ export default function RoomDesignSettings() {
       <div className="grid lg:grid-cols-2 gap-6">
         <div>
           <Tabs defaultValue="branding" className="space-y-4">
-            <TabsList className="grid grid-cols-4 w-full">
+            <TabsList className="grid grid-cols-5 w-full">
               <TabsTrigger value="branding" className="gap-2">
                 <Image className="h-4 w-4" />
                 <span className="hidden sm:inline">Marca</span>
@@ -248,6 +248,10 @@ export default function RoomDesignSettings() {
               <TabsTrigger value="meeting" className="gap-2">
                 <Video className="h-4 w-4" />
                 <span className="hidden sm:inline">Reunião</span>
+              </TabsTrigger>
+              <TabsTrigger value="end" className="gap-2">
+                <LogOut className="h-4 w-4" />
+                <span className="hidden sm:inline">Fim</span>
               </TabsTrigger>
             </TabsList>
 
@@ -484,6 +488,33 @@ export default function RoomDesignSettings() {
                 </CardContent>
               </Card>
             </TabsContent>
+
+            <TabsContent value="end">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Tela de Encerramento</CardTitle>
+                  <CardDescription>Configure o que o usuário vê após sair da reunião</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Título de Despedida</Label>
+                    <Input
+                      value={config.endScreen.title || ""}
+                      onChange={(e) => updateConfig("endScreen.title", e.target.value)}
+                      placeholder="Você saiu da reunião"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Texto do Botão de Retorno</Label>
+                    <Input
+                      value={config.endScreen.buttonText || ""}
+                      onChange={(e) => updateConfig("endScreen.buttonText", e.target.value)}
+                      placeholder="Voltar ao Início"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
           </Tabs>
         </div>
 
@@ -695,7 +726,7 @@ export default function RoomDesignSettings() {
                             color: config.colors.primaryButton,
                           }}
                         >
-                          Voltar ao Início
+                          {config.endScreen.buttonText || "Voltar ao Início"}
                         </Button>
                       </div>
                     )}
