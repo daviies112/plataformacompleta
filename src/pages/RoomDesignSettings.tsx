@@ -26,6 +26,7 @@ import { useLocation } from "wouter";
 import { api } from "@/lib/api";
 import { RoomDesignConfig, DEFAULT_ROOM_DESIGN_CONFIG } from "@/types/reuniao";
 import { MeetingHeader } from "@/components/MeetingHeader";
+import { getSupabaseClient } from "@/lib/supabase";
 
 const COLOR_PRESETS = [
   {
@@ -105,9 +106,30 @@ export default function RoomDesignSettings() {
   const [devicePreview, setDevicePreview] = useState<"desktop" | "mobile">("desktop");
   const [isUploading, setIsUploading] = useState(false);
 
-  const { data: designData, isLoading } = useQuery({
+  const { data: designData, isLoading, refetch } = useQuery({
     queryKey: ["/api/reunioes/room-design"],
     queryFn: async () => {
+      // Prioridade: Supabase direto para garantir sincronização
+      try {
+        const supabase = await getSupabaseClient();
+        if (supabase) {
+          console.log('[Design] Buscando configurações do Supabase (hms_100ms_config)...');
+          const { data, error } = await supabase
+            .from('hms_100ms_config')
+            .select('room_design_config')
+            .single();
+
+          if (!error && data?.room_design_config) {
+            console.log('[Design] Configurações carregadas do Supabase');
+            return { roomDesignConfig: data.room_design_config };
+          }
+          console.log('[Design] Nenhuma config no Supabase ou erro:', error?.message);
+        }
+      } catch (sbErr) {
+        console.warn('[Design] Erro ao acessar Supabase:', sbErr);
+      }
+
+      // Fallback para API local
       try {
         const response = await api.get("/api/reunioes/room-design");
         return response.data;
@@ -120,6 +142,45 @@ export default function RoomDesignSettings() {
     },
     staleTime: 0,
     refetchOnMount: "always" as const,
+  });
+
+  const saveMutation = useMutation({
+    mutationFn: async (newConfig: RoomDesignConfig) => {
+      // Salvar no Supabase primeiro
+      try {
+        const supabase = await getSupabaseClient();
+        if (supabase) {
+          console.log('[Design] Salvando no Supabase...');
+          // Busca o tenantId da sessão atual para persistência correta
+          const { data: { user } } = await supabase.auth.getUser();
+          const tenantId = user?.user_metadata?.tenantId || 'system';
+
+          const { error } = await supabase
+            .from('hms_100ms_config')
+            .upsert({ 
+              tenant_id: tenantId,
+              room_design_config: newConfig,
+              updated_at: new Date().toISOString()
+            }, { onConflict: 'tenant_id' });
+
+          if (error) throw error;
+          console.log('[Design] Salvo no Supabase com sucesso');
+        }
+      } catch (sbErr) {
+        console.error('[Design] Erro ao salvar no Supabase:', sbErr);
+      }
+
+      // Salvar na API local também
+      const response = await api.patch("/api/reunioes/room-design", { roomDesignConfig: newConfig });
+      return response.data;
+    },
+    onSuccess: () => {
+      toast({ title: "Configurações salvas!", description: "As personalizações foram aplicadas com sucesso." });
+      queryClient.invalidateQueries({ queryKey: ["/api/reunioes/room-design"] });
+    },
+    onError: () => {
+      toast({ variant: "destructive", title: "Erro", description: "Não foi possível salvar as configurações." });
+    },
   });
 
   useEffect(() => {
@@ -138,19 +199,44 @@ export default function RoomDesignSettings() {
     }
   }, [designData]);
 
-  const saveMutation = useMutation({
-    mutationFn: async (newConfig: RoomDesignConfig) => {
-      const response = await api.patch("/api/reunioes/room-design", { roomDesignConfig: newConfig });
-      return response.data;
-    },
-    onSuccess: () => {
-      toast({ title: "Configurações salvas!", description: "As personalizações foram aplicadas com sucesso." });
-      queryClient.invalidateQueries({ queryKey: ["/api/reunioes/room-design"] });
-    },
-    onError: () => {
-      toast({ variant: "destructive", title: "Erro", description: "Não foi possível salvar as configurações." });
-    },
-  });
+  // Supabase Realtime Subscription para Design
+  useEffect(() => {
+    let channel: any;
+
+    const setupRealtime = async () => {
+      try {
+        const supabase = await getSupabaseClient();
+        if (!supabase) return;
+
+        console.log("[Design] Configurando Realtime para 'hms_100ms_config'...");
+        
+        channel = supabase
+          .channel('design-config-changes')
+          .on(
+            'postgres_changes',
+            {
+              event: 'UPDATE',
+              schema: 'public',
+              table: 'hms_100ms_config'
+            },
+            async (payload: any) => {
+              console.log('[Design] Mudança detectada no Supabase:', payload.new?.id);
+              queryClient.invalidateQueries({ queryKey: ["/api/reunioes/room-design"] });
+              refetch();
+            }
+          )
+          .subscribe();
+      } catch (err) {
+        console.error("[Design] Erro ao configurar realtime:", err);
+      }
+    };
+
+    setupRealtime();
+
+    return () => {
+      if (channel) channel.unsubscribe();
+    };
+  }, [queryClient, refetch]);
 
   const updateConfig = (path: string, value: any) => {
     setConfig((prev) => {
@@ -516,6 +602,21 @@ export default function RoomDesignSettings() {
               </Card>
             </TabsContent>
           </Tabs>
+
+          <div className="flex items-center justify-end gap-3 mt-6">
+            <Button variant="outline" onClick={handleReset} className="gap-2">
+              <RefreshCw className="h-4 w-4" />
+              Restaurar Padrão
+            </Button>
+            <Button onClick={handleSave} disabled={saveMutation.isPending} className="gap-2">
+              {saveMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Save className="h-4 w-4" />
+              )}
+              Salvar Alterações
+            </Button>
+          </div>
         </div>
 
         <div className="lg:sticky lg:top-6 space-y-4">
@@ -569,169 +670,120 @@ export default function RoomDesignSettings() {
               </div>
 
               <div
-                className={
-                  devicePreview === "mobile"
-                    ? "mx-auto w-[280px] border-4 border-zinc-800 rounded-3xl overflow-hidden shadow-2xl"
-                    : "shadow-lg border border-zinc-800 rounded-xl overflow-hidden"
-                }
+                className={`relative border rounded-lg overflow-hidden bg-black mx-auto transition-all duration-300 ${
+                  devicePreview === "mobile" ? "w-[320px] aspect-[9/16]" : "w-full aspect-video"
+                }`}
+                style={{ backgroundColor: config.colors.background }}
               >
-                <div
-                  className="relative min-h-[400px] flex flex-col transition-all duration-300"
-                  style={{ backgroundColor: config.colors.background }}
-                >
-                  {/* Branding Header in Preview */}
-                  {(previewMode === "lobby" && config.branding.showLogoInLobby !== false) ||
-                  (previewMode === "meeting" && config.branding.showLogoInMeeting !== false) ? (
-                    <div className="p-4 flex items-center gap-3">
-                      {config.branding.logo && (
-                        <img
-                          src={config.branding.logo}
-                          alt="Logo"
-                          className="h-8 w-auto object-contain"
-                        />
-                      )}
-                      {config.branding.showCompanyName && (
-                        <span className="font-bold" style={{ color: config.colors.controlsText }}>
-                          {config.branding.companyName || "Sua Empresa"}
-                        </span>
-                      )}
+                {/* Lobby Preview */}
+                {previewMode === "lobby" && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-white space-y-6">
+                    {config.branding.logo && config.branding.showLogoInLobby !== false && (
+                      <div className="flex items-center gap-2">
+                        <img src={config.branding.logo} alt="Logo" className="h-8 w-auto" />
+                        {config.branding.showCompanyName && (
+                          <span className="font-bold">{config.branding.companyName}</span>
+                        )}
+                      </div>
+                    )}
+                    <div className="w-full max-w-sm aspect-video bg-zinc-800 rounded-lg flex items-center justify-center">
+                      <Video className="h-12 w-12 text-zinc-600" />
                     </div>
-                  ) : null}
-
-                  {/* Preview Content based on mode */}
-                  <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-                    {previewMode === "lobby" && (
-                      <div className="space-y-6 w-full max-w-sm animate-in fade-in zoom-in duration-300">
-                        <div className="space-y-2">
-                          <h2
-                            className="text-2xl font-bold"
-                            style={{ color: config.colors.controlsText }}
-                          >
-                            {config.lobby.title || "Pronto para participar?"}
-                          </h2>
-                          <p className="text-sm opacity-70" style={{ color: config.colors.controlsText }}>
-                            A reunião ainda não começou.
-                          </p>
-                        </div>
-                        <div
-                          className="aspect-video bg-zinc-800 rounded-lg flex items-center justify-center border-2 border-dashed border-zinc-700"
-                        >
-                          <Video className="h-12 w-12 text-zinc-600" />
-                        </div>
-                        <Button
-                          className="w-full h-12 text-lg font-semibold"
-                          style={{
-                            backgroundColor: config.colors.primaryButton,
-                            color: "#ffffff",
-                          }}
-                        >
-                          {config.lobby.buttonText || "Participar agora"}
-                        </Button>
-                      </div>
-                    )}
-
-                    {previewMode === "meeting" && (
-                      <div className="w-full h-full flex flex-col animate-in fade-in duration-300">
-                        {/* Participants Grid Simulation */}
-                        <div className="flex-1 grid grid-cols-2 gap-2 p-2">
-                          {[1, 2].map((i) => (
-                            <div
-                              key={i}
-                              className="relative aspect-video bg-zinc-900 rounded-lg flex items-center justify-center overflow-hidden border border-zinc-800"
-                            >
-                              <div
-                                className="w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold"
-                                style={{
-                                  backgroundColor: config.colors.avatarBackground || config.colors.primaryButton,
-                                  color: config.colors.avatarText || "#ffffff",
-                                }}
-                              >
-                                {i === 1 ? "VC" : "JD"}
-                              </div>
-                              <div
-                                className="absolute bottom-2 left-2 px-2 py-0.5 rounded text-[10px] font-medium"
-                                style={{
-                                  backgroundColor: config.colors.participantNameBackground || "rgba(0,0,0,0.6)",
-                                  color: config.colors.participantNameText || "#ffffff",
-                                }}
-                              >
-                                {i === 1 ? "Você" : "João Silva"}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-
-                        {/* Controls Bar Simulation */}
-                        <div
-                          className="mt-auto p-3 flex items-center justify-center gap-3 border-t"
-                          style={{
-                            backgroundColor: config.colors.controlsBackground,
-                            borderColor: "rgba(255,255,255,0.1)",
-                          }}
-                        >
-                          <div className="flex gap-2">
-                            <div className="h-8 w-8 rounded-full bg-zinc-800 flex items-center justify-center">
-                              <Video className="h-4 w-4" style={{ color: config.colors.controlsText }} />
-                            </div>
-                            <div className="h-8 w-8 rounded-full bg-zinc-800 flex items-center justify-center">
-                              <Monitor className="h-4 w-4" style={{ color: config.colors.controlsText }} />
-                            </div>
-                          </div>
-                          
-                          <div className="h-10 px-4 rounded-full flex items-center justify-center text-xs font-bold"
-                            style={{ backgroundColor: config.colors.dangerButton, color: "#ffffff" }}>
-                            Sair
-                          </div>
-
-                          <div className="flex gap-2">
-                            {config.meeting.enableScreenShare && (
-                              <div className="h-8 w-8 rounded-full bg-zinc-800 flex items-center justify-center opacity-50">
-                                <Monitor className="h-4 w-4" style={{ color: config.colors.controlsText }} />
-                              </div>
-                            )}
-                            {config.meeting.enableReactions && (
-                              <div className="h-8 w-8 rounded-full bg-zinc-800 flex items-center justify-center opacity-50 text-xs" style={{ color: config.colors.controlsText }}>
-                                😊
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {previewMode === "end" && (
-                      <div className="space-y-6 animate-in fade-in zoom-in duration-300">
-                        <div
-                          className="w-20 h-20 rounded-full mx-auto flex items-center justify-center"
-                          style={{ backgroundColor: "rgba(255,255,255,0.1)" }}
-                        >
-                          <LogOut className="h-10 w-10" style={{ color: config.colors.controlsText }} />
-                        </div>
-                        <div className="space-y-2">
-                          <h2
-                            className="text-2xl font-bold"
-                            style={{ color: config.colors.controlsText }}
-                          >
-                            {config.endScreen.title || "Você saiu da reunião"}
-                          </h2>
-                          <p className="text-sm opacity-70" style={{ color: config.colors.controlsText }}>
-                            Obrigado por participar.
-                          </p>
-                        </div>
-                        <Button
-                          variant="outline"
-                          className="h-10"
-                          style={{
-                            borderColor: config.colors.primaryButton,
-                            color: config.colors.primaryButton,
-                          }}
-                        >
-                          {config.endScreen.buttonText || "Voltar ao Início"}
-                        </Button>
-                      </div>
-                    )}
+                    <div className="text-center space-y-2">
+                      <h3 className="text-xl font-bold">{config.lobby.title || "Pronto para participar?"}</h3>
+                    </div>
+                    <Button
+                      style={{ backgroundColor: config.colors.primaryButton }}
+                      className="w-full max-w-xs hover:opacity-90 transition-opacity"
+                    >
+                      {config.lobby.buttonText || "Participar agora"}
+                    </Button>
                   </div>
-                </div>
+                )}
+
+                {/* Meeting Preview */}
+                {previewMode === "meeting" && (
+                  <div className="absolute inset-0 flex flex-col text-white">
+                    <header className="p-4 flex items-center justify-between">
+                      {config.branding.logo && config.branding.showLogoInMeeting !== false && (
+                        <div className="flex items-center gap-2">
+                          <img src={config.branding.logo} alt="Logo" className="h-6 w-auto" />
+                          {config.branding.showCompanyName && (
+                            <span className="text-sm font-bold">{config.branding.companyName}</span>
+                          )}
+                        </div>
+                      )}
+                      {config.meeting.showParticipantCount !== false && (
+                        <div className="bg-black/50 px-2 py-1 rounded text-xs flex items-center gap-1">
+                          <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                          <span>01</span>
+                        </div>
+                      )}
+                    </header>
+
+                    <div className="flex-1 p-4 flex items-center justify-center">
+                      <div className="w-full max-w-sm aspect-video bg-zinc-800 rounded-lg flex items-center justify-center relative">
+                        <div
+                          className="absolute top-2 left-2 px-2 py-1 rounded text-[10px]"
+                          style={{ backgroundColor: config.colors.participantNameBackground, color: config.colors.participantNameText }}
+                        >
+                          Você
+                        </div>
+                        <div
+                          className="w-16 h-16 rounded-full flex items-center justify-center text-xl font-bold"
+                          style={{ backgroundColor: config.colors.avatarBackground, color: config.colors.avatarText }}
+                        >
+                          V
+                        </div>
+                      </div>
+                    </div>
+
+                    <footer
+                      className="p-4 flex items-center justify-center gap-2"
+                      style={{ backgroundColor: config.colors.controlsBackground }}
+                    >
+                      <Button size="icon" variant="outline" className="h-10 w-10 rounded-full border-zinc-700 bg-zinc-800 text-white">
+                        <Video className="h-5 w-5" />
+                      </Button>
+                      <Button size="icon" variant="outline" className="h-10 w-10 rounded-full border-zinc-700 bg-zinc-800 text-white">
+                        <Palette className="h-5 w-5" />
+                      </Button>
+                      {config.meeting.enableScreenShare !== false && (
+                        <Button size="icon" variant="outline" className="h-10 w-10 rounded-full border-zinc-700 bg-zinc-800 text-white">
+                          <Monitor className="h-5 w-5" />
+                        </Button>
+                      )}
+                      <Button
+                        size="icon"
+                        style={{ backgroundColor: config.colors.dangerButton }}
+                        className="h-10 w-10 rounded-full border-none hover:opacity-90 text-white"
+                      >
+                        <LogOut className="h-5 w-5" />
+                      </Button>
+                    </footer>
+                  </div>
+                )}
+
+                {/* End Screen Preview */}
+                {previewMode === "end" && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-white space-y-6">
+                    <div
+                      className="w-16 h-16 rounded-full flex items-center justify-center"
+                      style={{ backgroundColor: config.colors.controlsBackground }}
+                    >
+                      <LogOut className="h-8 w-8" />
+                    </div>
+                    <div className="text-center space-y-2">
+                      <h3 className="text-xl font-bold">{config.endScreen.title || "Você saiu da reunião"}</h3>
+                    </div>
+                    <Button
+                      variant="outline"
+                      className="w-full max-w-xs border-zinc-700 hover:bg-zinc-800 text-white"
+                    >
+                      {config.endScreen.buttonText || "Voltar ao Início"}
+                    </Button>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
