@@ -33,7 +33,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Video, Play, Trash2, Download, Loader2, Circle, Clock, Calendar, FileVideo, RefreshCw } from "lucide-react";
+import { Video, Play, Trash2, Download, Loader2, Circle, Clock, Calendar, FileVideo, RefreshCw, CheckCircle } from "lucide-react";
 
 interface Gravacao {
   id: string;
@@ -220,10 +220,16 @@ export default function Gravacoes() {
 
   return (
     <div className="space-y-6">
-      <MeetingHeader 
-        title="Gravações" 
-        description="Visualize e gerencie as gravações das suas reuniões." 
-      />
+      <div className="flex justify-between items-center">
+        <MeetingHeader 
+          title="Gravações" 
+          description="Visualize e gerencie as gravações das suas reuniões." 
+        />
+        <div className="flex items-center gap-2 px-3 py-1 bg-secondary/20 rounded-full border border-secondary/30">
+          <div className="w-2 h-2 rounded-full bg-green-500" />
+          <span className="text-xs font-medium text-secondary-foreground">Supabase Sincronizado</span>
+        </div>
+      </div>
 
       {gravacoes.length === 0 ? (
         <Card>
