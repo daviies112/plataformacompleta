@@ -650,10 +650,20 @@ meetingsRouter.patch('/reunioes/room-design', authenticateToken, requireTenantId
       const supabase = await getClientSupabaseClient(tenantId);
       if (supabase) {
         console.log(`[Supabase Design Sync] Tentando upsert na tabela hms_100ms_config...`);
+        
+        // 🔍 [CORREÇÃO] Buscar as credenciais atuais do HMS para o tenant.
+        // A tabela hms_100ms_config no Supabase tem restrições NOT NULL nas chaves.
+        // Precisamos garantir que não estamos enviando null nelas.
+        const [currentConfig] = await db.select().from(hms100msConfig)
+          .where(eq(hms100msConfig.tenantId, tenantId))
+          .limit(1);
+
         const { data: sbData, error: sbError } = await supabase
           .from('hms_100ms_config')
           .upsert({
             tenant_id: tenantId,
+            app_access_key: currentConfig?.appAccessKey || 'pending_configuration',
+            app_secret: currentConfig?.appSecret || 'pending_configuration',
             room_design_config: roomDesignConfig,
             updated_at: new Date().toISOString()
           }, { 
