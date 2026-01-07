@@ -266,23 +266,6 @@ export const DocumentCapture = ({ onCapture, onBack, primaryColor = '#2c3e50', l
           <FileText className="w-4 h-4 text-muted-foreground" />
           <span className="text-sm font-medium text-foreground">{selectedDocType}</span>
         </motion.div>
-        
-        {isReady && !capturedImage && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-          >
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={switchCamera}
-              className="bg-card/90 backdrop-blur-sm border-border hover:bg-primary/10 rounded-full"
-            >
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Virar Câmera
-            </Button>
-          </motion.div>
-        )}
       </div>
 
       <div className="flex-1 relative bg-foreground/5 overflow-hidden min-h-[400px]">
@@ -411,15 +394,29 @@ export const DocumentCapture = ({ onCapture, onBack, primaryColor = '#2c3e50', l
                     ? 'Capturando automaticamente...'
                     : 'Posicione o documento e aguarde a captura automática'}
               </p>
-              <Button
-                size="lg"
-                onClick={handleCapture}
-                disabled={!isReady}
-                className="w-full h-14 bg-primary hover:bg-primary-light text-primary-foreground"
-              >
-                <Camera className="w-5 h-5 mr-2" />
-                {isReady ? 'Capturar Documento' : 'Aguardando...'}
-              </Button>
+              <div className="flex items-center gap-3">
+                <Button
+                  size="lg"
+                  onClick={handleCapture}
+                  disabled={!isReady}
+                  className="flex-1 h-14 bg-primary hover:bg-primary-light text-primary-foreground"
+                >
+                  <Camera className="w-5 h-5 mr-2" />
+                  {isReady ? 'Capturar Documento' : 'Aguardando...'}
+                </Button>
+
+                {isReady && (
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={switchCamera}
+                    className="h-14 w-14 border-primary/20 hover:bg-primary/5 hover:border-primary/40 flex-shrink-0"
+                    title="Virar Câmera"
+                  >
+                    <RefreshCw className="w-6 h-6 text-primary" />
+                  </Button>
+                )}
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
