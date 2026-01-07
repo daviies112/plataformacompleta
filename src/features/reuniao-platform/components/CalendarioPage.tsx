@@ -5,10 +5,11 @@ import { ptBR } from 'date-fns/locale';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Video, MapPin } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Video, MapPin, Briefcase } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useReuniao } from '@/features/reuniao-platform/hooks/useReuniao';
 import CreateEventModal from '../modals/CreateEventModal';
+import { useQuery } from '@tanstack/react-query';
 
 const locales = { 'pt-BR': ptBR };
 
@@ -32,6 +33,7 @@ interface CalendarEvent {
     roomId100ms?: string;
     linkReuniao?: string;
     status?: string;
+    isWorkspace?: boolean;
   };
 }
 
@@ -41,33 +43,35 @@ export default function CalendarioPage() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const { toast } = useToast();
   
-  // Busca reuniões do banco de dados
-  const { meetings, isLoading, refetch } = useReuniao();
+  // Busca reuniões do banco de dados (100ms)
+  const { meetings, isLoading: loadingMeetings, refetch: refetchMeetings } = useReuniao();
 
-  // Converte reuniões para formato do calendário com tratamento de erro
-  const events: CalendarEvent[] = useMemo(() => {
-    if (!meetings || !Array.isArray(meetings)) {
-      console.warn('Meetings não é um array válido:', meetings);
-      return [];
+  // Busca dados do workspace
+  const { data: workspaceData, isLoading: loadingWorkspace } = useQuery({
+    queryKey: ['/api/workspace/tasks'],
+    queryFn: async () => {
+      const response = await fetch('/api/workspace/tasks');
+      if (!response.ok) throw new Error('Falha ao buscar tarefas do workspace');
+      return response.json();
     }
+  });
 
-    try {
-      return meetings
-        .filter(meeting => meeting && meeting.dataInicio && meeting.dataFim)
-        .map(meeting => {
-          try {
-            const startDate = new Date(meeting.dataInicio);
-            const endDate = new Date(meeting.dataFim);
+  const isLoading = loadingMeetings || loadingWorkspace;
 
-            // Valida se as datas são válidas
-            if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-              console.warn('Data inválida na reunião:', meeting.id);
-              return null;
-            }
+  // Converte reuniões e workspace para formato do calendário
+  const events: CalendarEvent[] = useMemo(() => {
+    const calendarEvents: CalendarEvent[] = [];
 
-            return {
-              id: meeting.id,
-              title: meeting.titulo || 'Reunião sem título',
+    // Adiciona reuniões (100ms)
+    if (meetings && Array.isArray(meetings)) {
+      meetings.forEach(meeting => {
+        if (meeting.dataInicio && meeting.dataFim) {
+          const startDate = new Date(meeting.dataInicio);
+          const endDate = new Date(meeting.dataFim);
+          if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime())) {
+            calendarEvents.push({
+              id: `meeting-${meeting.id}`,
+              title: meeting.titulo || 'Reunião 100ms',
               start: startDate,
               end: endDate,
               resource: {
@@ -76,19 +80,39 @@ export default function CalendarioPage() {
                 roomId100ms: meeting.roomId100ms,
                 linkReuniao: meeting.linkReuniao,
                 status: meeting.status,
+                isWorkspace: false,
               },
-            };
-          } catch (err) {
-            console.error('Erro ao processar reunião:', meeting.id, err);
-            return null;
+            });
           }
-        })
-        .filter((event): event is CalendarEvent => event !== null);
-    } catch (err) {
-      console.error('Erro ao mapear eventos:', err);
-      return [];
+        }
+      });
     }
-  }, [meetings]);
+
+    // Adiciona tarefas/eventos do workspace
+    if (workspaceData && Array.isArray(workspaceData)) {
+      workspaceData.forEach((task: any) => {
+        const startDate = task.dueDate ? new Date(task.dueDate) : (task.createdAt ? new Date(task.createdAt) : null);
+        if (startDate && !isNaN(startDate.getTime())) {
+          // Define fim como 1h depois se não houver
+          const endDate = task.endDate ? new Date(task.endDate) : new Date(startDate.getTime() + 60 * 60 * 1000);
+          calendarEvents.push({
+            id: `workspace-${task.id}`,
+            title: task.title || task.content || 'Tarefa Workspace',
+            start: startDate,
+            end: endDate,
+            resource: {
+              tipo: 'workspace',
+              local: task.location || '',
+              status: task.status,
+              isWorkspace: true,
+            },
+          });
+        }
+      });
+    }
+
+    return calendarEvents;
+  }, [meetings, workspaceData]);
 
   const handleNavigate = (action: 'PREV' | 'NEXT' | 'TODAY') => {
     if (action === 'PREV') {
@@ -116,9 +140,15 @@ export default function CalendarioPage() {
             <CalendarIcon className="w-4 h-4" />
             <span>{format(event.start, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</span>
           </div>
-          {resource?.tipo && (
+          
+          {resource?.isWorkspace ? (
             <div className="flex items-center gap-2">
-              {resource.tipo === 'online' ? (
+              <Briefcase className="w-4 h-4" />
+              <span>Workspace: {resource.status || 'Pendente'}</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              {resource?.tipo === 'online' ? (
                 <>
                   <Video className="w-4 h-4" />
                   <span>Reunião Online (100ms)</span>
@@ -126,12 +156,13 @@ export default function CalendarioPage() {
               ) : (
                 <>
                   <MapPin className="w-4 h-4" />
-                  <span>Presencial: {resource.local || 'Local não definido'}</span>
+                  <span>Presencial: {resource?.local || 'Local não definido'}</span>
                 </>
               )}
             </div>
           )}
-          {resource?.linkReuniao && (
+
+          {!resource?.isWorkspace && resource?.linkReuniao && (
             <Button
               size="sm"
               className="w-full mt-2"
@@ -147,10 +178,19 @@ export default function CalendarioPage() {
   };
 
   const eventStyleGetter = (event: CalendarEvent) => {
+    const isWorkspace = event.resource?.isWorkspace;
     const isOnline = event.resource?.tipo === 'online';
+    
+    let backgroundColor = 'hsl(var(--primary))';
+    if (isWorkspace) {
+      backgroundColor = 'hsl(var(--accent))';
+    } else if (!isOnline) {
+      backgroundColor = 'hsl(var(--secondary))';
+    }
+
     return {
       style: {
-        backgroundColor: isOnline ? 'hsl(var(--primary))' : 'hsl(var(--secondary))',
+        backgroundColor,
         borderRadius: '6px',
         opacity: 0.9,
         color: 'white',
@@ -162,7 +202,7 @@ export default function CalendarioPage() {
 
   const handleEventCreated = () => {
     setIsModalOpen(false);
-    refetch(); // Atualiza a lista de reuniões
+    refetchMeetings();
     toast({
       title: 'Sucesso!',
       description: 'Reunião agendada e já aparece no calendário.',
