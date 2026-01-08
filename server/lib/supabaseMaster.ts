@@ -5,6 +5,31 @@ import { supabaseMasterConfig } from '../../shared/db-schema';
 import { eq } from 'drizzle-orm';
 import { decrypt } from './credentialsManager';
 
+function validateServiceRoleKey(key: string): { isValid: boolean; role: string | null; error?: string } {
+  try {
+    const parts = key.split('.');
+    if (parts.length !== 3) {
+      return { isValid: false, role: null, error: 'Chave JWT inválida (formato incorreto)' };
+    }
+    
+    const payloadBase64 = parts[1];
+    const payloadJson = Buffer.from(payloadBase64, 'base64').toString('utf-8');
+    const payload = JSON.parse(payloadJson);
+    
+    const role = payload.role || null;
+    
+    if (role === 'service_role') {
+      return { isValid: true, role };
+    } else if (role === 'anon') {
+      return { isValid: false, role, error: 'Chave é "anon" - use a "service_role" key do Supabase Dashboard' };
+    } else {
+      return { isValid: false, role, error: `Role desconhecido: ${role}` };
+    }
+  } catch (e: any) {
+    return { isValid: false, role: null, error: `Erro ao decodificar JWT: ${e.message}` };
+  }
+}
+
 /*
  * SUPABASE MASTER - CACHE GLOBAL MULTI-TENANT
  * 
@@ -51,7 +76,18 @@ export async function getSupabaseMasterCredentials(tenantId?: string): Promise<S
         const cleanUrl = decryptedUrl;
         const cleanKey = decryptedKey.trim();
 
-        log(`✅ Supabase Master: Credenciais carregadas do banco para tenant ${tenantId}`);
+        // Validate that the key is actually a service_role key
+        const validation = validateServiceRoleKey(cleanKey);
+        if (!validation.isValid) {
+          log(`❌ ERRO: Chave do Supabase Master não é service_role!`);
+          log(`   Role detectado: ${validation.role || 'desconhecido'}`);
+          log(`   Problema: ${validation.error}`);
+          log(`   Solução: No Supabase Dashboard > Settings > API, copie a "service_role" key (NÃO a anon key)`);
+          // Still return credentials but log the warning - the insert will fail with RLS error
+        } else {
+          log(`✅ Supabase Master: Credenciais validadas (role: service_role) para tenant ${tenantId}`);
+        }
+
         return {
           url: cleanUrl,
           serviceRoleKey: cleanKey,
