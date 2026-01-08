@@ -1248,6 +1248,52 @@ export function setupConfigRoutes(app: Express) {
       const cleanKey = supabaseMasterServiceRoleKey.trim();
 
       console.log(`[Supabase Master Test] Testando conexão com URL: ${cleanUrl}`);
+      
+      // Extract project ref from URL (e.g., axrvyrpefpntacuibyds from axrvyrpefpntacuibyds.supabase.co)
+      const urlProjectRef = cleanUrl.replace('https://', '').replace('.supabase.co', '').split('.')[0];
+      
+      // Validate JWT and extract ref
+      try {
+        const jwtParts = cleanKey.split('.');
+        if (jwtParts.length !== 3) {
+          console.log(`[Supabase Master Test] JWT inválido: formato incorreto (${jwtParts.length} partes)`);
+          return res.status(400).json({
+            success: false,
+            error: "Chave inválida: não é um JWT válido. Copie a chave completa do Supabase Dashboard > Settings > API.",
+          });
+        }
+        
+        const payloadJson = Buffer.from(jwtParts[1], 'base64').toString('utf-8');
+        const payload = JSON.parse(payloadJson);
+        
+        console.log(`[Supabase Master Test] JWT payload - role: ${payload.role}, ref: ${payload.ref}`);
+        
+        // Check if key matches URL project
+        if (payload.ref && payload.ref !== urlProjectRef) {
+          console.log(`[Supabase Master Test] ERRO: Chave é de projeto diferente! Key ref: ${payload.ref}, URL ref: ${urlProjectRef}`);
+          return res.status(400).json({
+            success: false,
+            error: `Chave é de projeto diferente! A chave pertence ao projeto "${payload.ref}" mas a URL aponta para "${urlProjectRef}". Copie a chave do projeto correto.`,
+          });
+        }
+        
+        // Check role
+        if (payload.role !== 'service_role') {
+          console.log(`[Supabase Master Test] ERRO: Chave é "${payload.role}", não service_role`);
+          return res.status(400).json({
+            success: false,
+            error: `Você está usando a chave "${payload.role}". Use a "service_role" key do Supabase Dashboard > Settings > API.`,
+          });
+        }
+        
+        console.log(`[Supabase Master Test] JWT válido: role=service_role, ref=${payload.ref}`);
+      } catch (jwtError: any) {
+        console.log(`[Supabase Master Test] Erro ao decodificar JWT: ${jwtError.message}`);
+        return res.status(400).json({
+          success: false,
+          error: "Chave inválida: não foi possível decodificar. Verifique se copiou a chave completa.",
+        });
+      }
 
       // Validate URL format
       try {
