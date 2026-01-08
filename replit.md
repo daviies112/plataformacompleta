@@ -62,7 +62,11 @@ scripts/   → Utilitários (export, import)
 ✅ Dashboard Executivo  
 ✅ Gestão de Leads  
 ✅ Formulários Públicos  
-✅ Validação CPF  
+✅ Validação CPF + Histórico - ATUALIZADO (08/01/2026)
+   - Endpoint: `/api/compliance/history` retorna histórico completo
+   - Dados armazenados na tabela `cpf_compliance_results` (Supabase Cliente)
+   - Campo `nome` mapeado corretamente para `personName`
+   - Fallback chain: Supabase Master → Supabase Cliente → PostgreSQL local  
 ✅ WhatsApp Business  
 ✅ Video Conferencing (100ms) - ATUALIZADO (05/01/2026)
    - API Routes: `/api/reunioes`, `/api/reunioes/instantanea`, `/api/gravacoes`
@@ -139,6 +143,6 @@ Veja [DESENVOLVIMENTO.md](./DESENVOLVIMENTO.md) para documentação técnica com
 
 ---
 
-**Last Updated:** 06 de Janeiro de 2026  
+**Last Updated:** 08 de Janeiro de 2026  
 **Tamanho Otimizado:** ~200MB (sem node_modules)  
 **Economia de Créditos:** 95%

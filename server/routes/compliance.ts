@@ -312,18 +312,19 @@ export function setupComplianceRoutes(): Router {
             
             if (!clienteError && clienteData && clienteData.length > 0) {
               // Mapear campos do Supabase Cliente para o formato esperado (compatível com datacorp_checks)
+              // CORREÇÃO: A tabela cpf_compliance_results usa "nome" não "name" ou "person_name"
               checks = clienteData.map((item: any) => ({
                 id: item.id,
                 cpf_hash: item.cpf_hash || '',
-                cpf_encrypted: item.cpf_encrypted || '',
+                cpf_encrypted: item.cpf_encrypted || item.cpf || '',
                 tenant_id: tenantUUID,
                 status: item.status || 'pending',
-                risk_score: item.risk_score || 0,
+                risk_score: item.risk_score || item.score || 0,
                 consulted_at: item.created_at || item.consulted_at,
-                response_data: item.response_data || item.result_data || {},
-                payload: item.payload || item.result_data || {},
-                name: item.name || item.person_name || '',
-                person_name: item.person_name || item.name || '',
+                response_data: item.response_data || item.result_data || item.payload || {},
+                payload: item.payload || item.result_data || item.response_data || {},
+                name: item.nome || item.name || item.person_name || '',
+                person_name: item.nome || item.person_name || item.name || '',
                 created_by: userUUID,
                 lead_id: item.lead_id,
                 submission_id: item.submission_id,
