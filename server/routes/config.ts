@@ -1259,42 +1259,52 @@ export function setupConfigRoutes(app: Express) {
           persistSession: false
         },
         global: {
-          fetch: (...args: any[]) => import('node-fetch').then(({ default: fetch }) => fetch(...args as [any, any]))
+          fetch: (url: any, options: any) => import('node-fetch').then(({ default: fetch }) => fetch(url, options))
         }
       });
       
       // Try a simple query to verify connection with a short timeout
-      const { error } = await Promise.race([
-        testClient.from('datacorp_checks').select('id').limit(1),
-        new Promise<any>((_, reject) => setTimeout(() => reject(new Error("Timeout ao conectar ao Supabase (verifique DNS/URL)")), 15000))
-      ]);
-      
-      if (error && !error.message.includes('does not exist')) {
-        // If table doesn't exist, that's okay - connection works
-        if (error.code === 'PGRST116' || error.code === '42P01') {
-          return res.json({
-            success: true,
-            message: "Conexão com Supabase Master estabelecida! ✅ (Tabela datacorp_checks não encontrada, mas conexão OK)",
-            connected: true,
+      try {
+        const queryPromise = testClient.from('datacorp_checks').select('id').limit(1);
+        const timeoutPromise = new Promise<any>((_, reject) => 
+          setTimeout(() => reject(new Error("Timeout ao conectar ao Supabase (verifique DNS/URL)")), 15000)
+        );
+
+        const { error } = await Promise.race([queryPromise, timeoutPromise]);
+        
+        if (error) {
+          // PGRST116 (no rows) or 42P01 (relation does not exist) both mean we connected to the DB
+          if (error.code === 'PGRST116' || error.code === '42P01') {
+            return res.json({
+              success: true,
+              message: "Conexão com Supabase Master estabelecida! ✅",
+              connected: true,
+            });
+          }
+          
+          return res.status(400).json({
+            success: false,
+            error: `Erro ao conectar: ${error.message}`,
           });
         }
         
-        return res.status(400).json({
+        return res.json({
+          success: true,
+          message: "Conexão com Supabase Master estabelecida com sucesso! ✅",
+          connected: true,
+        });
+      } catch (error: any) {
+        console.error("Erro ao testar Supabase Master:", error);
+        return res.status(500).json({
           success: false,
-          error: `Erro ao conectar: ${error.message}`,
+          error: error.message || "Erro ao testar conexão",
         });
       }
-      
-      return res.json({
-        success: true,
-        message: "Conexão com Supabase Master estabelecida com sucesso! ✅",
-        connected: true,
-      });
     } catch (error: any) {
-      console.error("Erro ao testar Supabase Master:", error);
+      console.error("Erro geral no teste do Supabase Master:", error);
       return res.status(500).json({
         success: false,
-        error: error.message || "Erro ao testar conexão",
+        error: error.message || "Erro interno ao processar teste",
       });
     }
   });

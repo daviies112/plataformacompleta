@@ -126,7 +126,7 @@ export async function getSupabaseMasterForTenant(tenantId: string): Promise<Supa
     return supabaseMasterClient;
   }
   
-  // Create new client
+  // Create new client with a reliable fetch wrapper
   supabaseMasterClient = createClient(
     credentials.url,
     credentials.serviceRoleKey,
@@ -136,7 +136,7 @@ export async function getSupabaseMasterForTenant(tenantId: string): Promise<Supa
         persistSession: false
       },
       global: {
-        fetch: (...args: any[]) => import('node-fetch').then(({ default: fetch }) => fetch(args[0], args[1]))
+        fetch: (url: any, options: any) => import('node-fetch').then(({ default: fetch }) => fetch(url, options))
       }
     }
   );
@@ -161,6 +161,7 @@ export function getSupabaseMaster(): SupabaseClient {
     );
   }
 
+  // Create new client with a reliable fetch wrapper
   supabaseMasterClient = createClient(
     SUPABASE_MASTER_URL,
     SUPABASE_MASTER_SERVICE_ROLE_KEY,
@@ -170,7 +171,7 @@ export function getSupabaseMaster(): SupabaseClient {
         persistSession: false
       },
       global: {
-        fetch: (...args: any[]) => import('node-fetch').then(({ default: fetch }) => fetch(args[0], args[1]))
+        fetch: (url: any, options: any) => import('node-fetch').then(({ default: fetch }) => fetch(url, options))
       }
     }
   );
