@@ -1237,16 +1237,19 @@ export function setupConfigRoutes(app: Express) {
         });
       }
       
-      // Test connection by attempting to create a Supabase client and query
+      // Test connection using SAME approach as working Supabase Database test
       const { createClient } = await import('@supabase/supabase-js');
       
-      // Clean URL: remove any trailing slashes or spaces
-      const cleanUrl = supabaseMasterUrl.trim().replace(/\/+$/, '');
+      // Normalize URL: ensure https:// prefix and clean trailing slashes
+      let cleanUrl = supabaseMasterUrl.trim().replace(/\/+$/, '');
+      if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
+        cleanUrl = `https://${cleanUrl}`;
+      }
       const cleanKey = supabaseMasterServiceRoleKey.trim();
 
-      console.log(`[Supabase Test] Testando conexão com URL: ${cleanUrl}`);
+      console.log(`[Supabase Master Test] Testando conexão com URL: ${cleanUrl}`);
 
-      // Robust check for URL existence before attempting fetch
+      // Validate URL format
       try {
         const urlObj = new URL(cleanUrl);
         if (!urlObj.hostname.includes('.')) {
@@ -1259,75 +1262,58 @@ export function setupConfigRoutes(app: Express) {
         });
       }
 
-      // Use standard createClient without custom fetch - same as working clienteSupabase.ts
+      // Create client with SAME config as working Supabase Database test
       const testClient = createClient(cleanUrl, cleanKey, {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
+        auth: { persistSession: false }
       });
       
-      // Try a simple query to verify connection with a short timeout
-      try {
-        const queryPromise = testClient.from('datacorp_checks').select('id').limit(1);
-        const timeoutPromise = new Promise<any>((_, reject) => 
-          setTimeout(() => reject(new Error("Timeout ao conectar ao Supabase (verifique DNS/URL)")), 15000)
-        );
-
-        const { error } = await Promise.race([queryPromise, timeoutPromise]);
-        
-        if (error) {
-          // PGRST116 (no rows) or 42P01 (relation does not exist) both mean we connected to the DB
-          if (error.code === 'PGRST116' || error.code === '42P01') {
-            return res.json({
-              success: true,
-              message: "Conexão com Supabase Master estabelecida! ✅",
-              connected: true,
-            });
-          }
-          
-          // Check for DNS/network errors
-          const errorMsg = error.message || '';
-          if (errorMsg.includes('fetch failed') || errorMsg.includes('ENOTFOUND') || errorMsg.includes('getaddrinfo')) {
-            return res.status(400).json({
-              success: false,
-              error: `Projeto Supabase não encontrado! Verifique se a URL está correta. O projeto "${cleanUrl.replace('https://', '').split('.')[0]}" não existe ou foi deletado.`,
-            });
-          }
-          
-          return res.status(400).json({
-            success: false,
-            error: `Erro ao conectar: ${error.message}`,
-          });
-        }
-        
+      // Test connection using SAME approach as working credentials.ts testConnection
+      // Query any table - if table doesn't exist, connection still works
+      const { data, error } = await testClient
+        .from('datacorp_checks')
+        .select('id', { count: 'exact', head: true })
+        .limit(1);
+      
+      // Success conditions: no error, or table doesn't exist (means connection works)
+      if (!error || error.message?.includes('relation') || error.message?.includes('does not exist')) {
+        console.log('[Supabase Master Test] Connection successful!');
         return res.json({
           success: true,
-          message: "Conexão com Supabase Master estabelecida com sucesso! ✅",
+          message: "Conexão com Supabase Master estabelecida com sucesso!",
           connected: true,
         });
-      } catch (error: any) {
-        console.error("Erro ao testar Supabase Master:", error);
-        
-        // Check for DNS/network errors in catch block
-        const errorMsg = error.message || '';
-        if (errorMsg.includes('fetch failed') || errorMsg.includes('ENOTFOUND') || errorMsg.includes('getaddrinfo')) {
-          return res.status(400).json({
-            success: false,
-            error: `Projeto Supabase não encontrado! Verifique se a URL está correta. O projeto "${cleanUrl.replace('https://', '').split('.')[0]}" não existe ou foi deletado.`,
-          });
-        }
-        
-        return res.status(500).json({
+      }
+      
+      // Check for DNS/network errors
+      const errorMsg = error.message || '';
+      console.error('[Supabase Master Test] Connection failed:', error);
+      
+      if (errorMsg.includes('fetch failed') || errorMsg.includes('ENOTFOUND') || errorMsg.includes('getaddrinfo')) {
+        return res.status(400).json({
           success: false,
-          error: error.message || "Erro ao testar conexão",
+          error: `Projeto Supabase não encontrado! Verifique se a URL está correta.`,
         });
       }
+      
+      return res.status(400).json({
+        success: false,
+        error: `Erro na conexão: ${error.message}`,
+      });
+      
     } catch (error: any) {
-      console.error("Erro geral no teste do Supabase Master:", error);
+      console.error("Erro ao testar Supabase Master:", error);
+      
+      const errorMsg = error.message || '';
+      if (errorMsg.includes('fetch failed') || errorMsg.includes('ENOTFOUND') || errorMsg.includes('getaddrinfo')) {
+        return res.status(400).json({
+          success: false,
+          error: `Projeto Supabase não encontrado! Verifique se a URL está correta.`,
+        });
+      }
+      
       return res.status(500).json({
         success: false,
-        error: error.message || "Erro interno ao processar teste",
+        error: error.message || "Erro ao testar conexão",
       });
     }
   });
