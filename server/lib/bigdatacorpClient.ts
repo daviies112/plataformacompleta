@@ -14,29 +14,39 @@ interface BigdatacorpCredentials {
 }
 
 async function getCredentials(tenantId?: string): Promise<BigdatacorpCredentials | null> {
+  console.log(`[bigdatacorp] getCredentials chamado com tenantId: ${tenantId || 'undefined'}`);
+  
   if (tenantId) {
     try {
       const configFromDb = await db.select().from(bigdatacorpConfig)
         .where(eq(bigdatacorpConfig.tenantId, tenantId))
         .limit(1);
       
+      console.log(`[bigdatacorp] Registros encontrados no DB para tenant ${tenantId}: ${configFromDb.length}`);
+      
       if (configFromDb[0]) {
+        console.log(`[bigdatacorp] ✅ Credenciais encontradas no DB para tenant: ${tenantId}`);
         return {
           tokenId: decrypt(configFromDb[0].tokenId),
           chaveToken: decrypt(configFromDb[0].chaveToken),
           supabaseMasterUrl: configFromDb[0].supabaseMasterUrl ? decrypt(configFromDb[0].supabaseMasterUrl) : null,
           supabaseMasterServiceRoleKey: configFromDb[0].supabaseMasterServiceRoleKey ? decrypt(configFromDb[0].supabaseMasterServiceRoleKey) : null,
         };
+      } else {
+        console.log(`[bigdatacorp] ⚠️ Nenhuma credencial no DB para tenant: ${tenantId}`);
       }
     } catch (error) {
       console.log('[bigdatacorp] Erro ao buscar credenciais do DB, usando env vars como fallback:', error);
     }
+  } else {
+    console.log('[bigdatacorp] ⚠️ tenantId não fornecido, tentando env vars');
   }
   
   const tokenId = process.env.TOKEN_ID;
   const chaveToken = process.env.CHAVE_TOKEN;
   
   if (tokenId && chaveToken) {
+    console.log('[bigdatacorp] ✅ Usando credenciais das env vars');
     return {
       tokenId,
       chaveToken,
@@ -45,6 +55,7 @@ async function getCredentials(tenantId?: string): Promise<BigdatacorpCredentials
     };
   }
   
+  console.log('[bigdatacorp] ❌ Nenhuma credencial encontrada (nem DB, nem env vars)');
   return null;
 }
 
@@ -617,16 +628,17 @@ export interface ConsultaCompletaResult {
 export async function consultarCandidatoCompleto(
   cpf: string,
   nome?: string,
-  dataNascimento?: string
+  dataNascimento?: string,
+  tenantId?: string
 ): Promise<ConsultaCompletaResult> {
-  log(`🔍 Iniciando consulta completa para CPF: ${cpf.substring(0, 3)}***`);
+  log(`🔍 Iniciando consulta completa para CPF: ${cpf.substring(0, 3)}*** (tenant: ${tenantId || 'none'})`);
   
   const inicioConsulta = Date.now();
 
   const [dadosCadastrais, presencaCobranca, processosJudiciais] = await Promise.all([
-    consultarDadosCadastrais(cpf, nome, dataNascimento),
-    consultarPresencaCobranca(cpf, dataNascimento),
-    consultarProcessosJudiciais(cpf)
+    consultarDadosCadastrais(cpf, nome, dataNascimento, tenantId),
+    consultarPresencaCobranca(cpf, dataNascimento, tenantId),
+    consultarProcessosJudiciais(cpf, { tenantId })
       .then(data => ({ success: true, data, custo: 0.070 }))
       .catch(error => ({ success: false, error: (error as Error).message, custo: 0.070, data: undefined })),
   ]);

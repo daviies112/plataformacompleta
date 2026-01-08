@@ -1654,10 +1654,11 @@ export async function checkCompliance(
     };
   }
 
-  log(`🔄 Cache MISS - Consultando API Bigdatacorp (3 consultas em paralelo) | CPF hash: ${cpfHash.substring(0, 8)}...`);
+  log(`🔄 Cache MISS - Consultando API Bigdatacorp (3 consultas em paralelo) | CPF hash: ${cpfHash.substring(0, 8)}... | Tenant: ${tenantId || 'none'}`);
   
   // NOVA IMPLEMENTAÇÃO: Consulta completa com 3 APIs em paralelo
-  const consultaCompleta = await consultarCandidatoCompleto(normalizedCPF, userProvidedName);
+  // IMPORTANTE: Passar tenantId para buscar credenciais do banco de dados
+  const consultaCompleta = await consultarCandidatoCompleto(normalizedCPF, userProvidedName, undefined, tenantId);
   
   // Verificar se processosJudiciais retornou dados válidos
   if (!consultaCompleta.processosJudiciais.success || !consultaCompleta.processosJudiciais.data) {
