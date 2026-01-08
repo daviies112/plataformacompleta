@@ -136,7 +136,7 @@ export async function getSupabaseMasterForTenant(tenantId: string): Promise<Supa
         persistSession: false
       },
       global: {
-        fetch: (...args: any[]) => import('node-fetch').then(({ default: fetch }) => fetch(...args as [any, any]))
+        fetch: (...args: any[]) => import('node-fetch').then(({ default: fetch }) => fetch(args[0], args[1]))
       }
     }
   );
@@ -170,7 +170,7 @@ export function getSupabaseMaster(): SupabaseClient {
         persistSession: false
       },
       global: {
-        fetch: (...args: any[]) => import('node-fetch').then(({ default: fetch }) => fetch(...args as [any, any]))
+        fetch: (...args: any[]) => import('node-fetch').then(({ default: fetch }) => fetch(args[0], args[1]))
       }
     }
   );
