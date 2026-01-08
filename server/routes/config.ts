@@ -1246,7 +1246,7 @@ export function setupConfigRoutes(app: Express) {
           persistSession: false
         },
         global: {
-          fetch: (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args as any))
+          fetch: (...args: any[]) => import('node-fetch').then(({ default: fetch }) => fetch(...args as [any, any]))
         }
       });
       
