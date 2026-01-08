@@ -311,7 +311,7 @@ export function setupComplianceRoutes(): Router {
               .limit(limit);
             
             if (!clienteError && clienteData && clienteData.length > 0) {
-              // Mapear campos do Supabase Cliente para o formato esperado
+              // Mapear campos do Supabase Cliente para o formato esperado (compatível com datacorp_checks)
               checks = clienteData.map((item: any) => ({
                 id: item.id,
                 cpf_hash: item.cpf_hash || '',
@@ -319,12 +319,17 @@ export function setupComplianceRoutes(): Router {
                 tenant_id: tenantUUID,
                 status: item.status || 'pending',
                 risk_score: item.risk_score || 0,
-                consulted_at: item.created_at,
-                response_data: item.response_data || item.result_data,
-                name: item.name || '',
+                consulted_at: item.created_at || item.consulted_at,
+                response_data: item.response_data || item.result_data || {},
+                payload: item.payload || item.result_data || {},
+                name: item.name || item.person_name || '',
+                person_name: item.person_name || item.name || '',
                 created_by: userUUID,
                 lead_id: item.lead_id,
                 submission_id: item.submission_id,
+                created_at: item.created_at,
+                updated_at: item.updated_at || item.created_at,
+                source: 'supabase_cliente',
               }));
               console.log('[CPF History] Registros encontrados no Supabase Cliente:', checks.length);
             } else {
