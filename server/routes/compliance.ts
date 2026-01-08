@@ -296,8 +296,14 @@ export function setupComplianceRoutes(): Router {
 
           checks = supabaseData || [];
           console.log('[CPF History] Registros encontrados no Supabase Master:', checks.length);
+          
+          // Se Master não tem dados, buscar também do Cliente
+          if (checks.length === 0) {
+            console.log('[CPF History] Master sem dados, buscando do Supabase Cliente...');
+            throw new Error('Master vazio - tentando Cliente');
+          }
         } catch (err: any) {
-          console.log('[CPF History] Falha na consulta Supabase Master, tentando Supabase Cliente...', err.message);
+          console.log('[CPF History] Fallback para Supabase Cliente...', err.message);
           
           // Fallback 1: Tentar Supabase CLIENTE (onde os dados do CPFPoller ficam)
           try {

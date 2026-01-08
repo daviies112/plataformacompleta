@@ -66,7 +66,9 @@ scripts/   → Utilitários (export, import)
    - Endpoint: `/api/compliance/history` retorna histórico completo
    - Dados armazenados na tabela `cpf_compliance_results` (Supabase Cliente)
    - Campo `nome` mapeado corretamente para `personName`
-   - Fallback chain: Supabase Master → Supabase Cliente → PostgreSQL local  
+   - Fallback chain: Supabase Master (`datacorp_checks`) → Supabase Cliente (`cpf_compliance_results`) → PostgreSQL local
+   - **Credenciais corrigidas:** URL e API Key do projeto `axrvyrpefpntacuibyds` armazenadas criptografadas na tabela `supabase_master_config`
+   - Fallback automático para Cliente quando Master está vazio (0 registros)  
 ✅ WhatsApp Business  
 ✅ Video Conferencing (100ms) - ATUALIZADO (05/01/2026)
    - API Routes: `/api/reunioes`, `/api/reunioes/instantanea`, `/api/gravacoes`

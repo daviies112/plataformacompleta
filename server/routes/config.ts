@@ -1267,15 +1267,41 @@ export function setupConfigRoutes(app: Express) {
         auth: { persistSession: false }
       });
       
-      // Test connection using SAME approach as working credentials.ts testConnection
-      // Query any table - if table doesn't exist, connection still works
+      // Test connection by checking if API key is valid
+      // First, try a simple RPC call or health check
+      console.log(`[Supabase Master Test] Key preview: ${cleanKey.substring(0, 20)}...`);
+      
+      // Test 1: Try to access the database - any error with valid credentials is acceptable
       const { data, error } = await testClient
         .from('datacorp_checks')
-        .select('id', { count: 'exact', head: true })
+        .select('id')
         .limit(1);
       
-      // Success conditions: no error, or table doesn't exist (means connection works)
-      if (!error || error.message?.includes('relation') || error.message?.includes('does not exist')) {
+      // Log full error for debugging
+      if (error) {
+        console.log('[Supabase Master Test] Query result error:', JSON.stringify(error));
+      }
+      
+      // Success conditions:
+      // 1. No error at all (query succeeded)
+      // 2. Table doesn't exist (PGRST116 or message contains "does not exist" - means connection works)
+      // 3. Empty result is OK (data might be [])
+      const errorCode = error?.code || '';
+      const errorMsg = error?.message || '';
+      
+      // PGRST116 = "The result contains 0 rows" - this is actually success
+      // PGRST204 = "No Content" - this is actually success
+      // 42P01 = Table does not exist - connection works, just no table
+      const isTableNotFound = errorCode === 'PGRST116' || errorCode === '42P01' || 
+                              errorMsg.includes('does not exist') || 
+                              errorMsg.includes('relation');
+      
+      // Invalid API key errors
+      const isInvalidKey = errorMsg.toLowerCase().includes('invalid api key') ||
+                           errorMsg.toLowerCase().includes('jwt') ||
+                           errorCode === 'PGRST301';
+      
+      if (!error || isTableNotFound) {
         console.log('[Supabase Master Test] Connection successful!');
         return res.json({
           success: true,
@@ -1284,8 +1310,15 @@ export function setupConfigRoutes(app: Express) {
         });
       }
       
+      if (isInvalidKey) {
+        console.log('[Supabase Master Test] Invalid API key');
+        return res.status(400).json({
+          success: false,
+          error: "API Key inválida. Verifique se você está usando a Service Role Key correta.",
+        });
+      }
+      
       // Check for DNS/network errors
-      const errorMsg = error.message || '';
       console.error('[Supabase Master Test] Connection failed:', error);
       
       if (errorMsg.includes('fetch failed') || errorMsg.includes('ENOTFOUND') || errorMsg.includes('getaddrinfo')) {
