@@ -40,11 +40,15 @@ export async function getSupabaseMasterCredentials(tenantId?: string): Promise<S
         .limit(1);
       
       if (configFromDb[0]) {
-        const decryptedUrl = decrypt(configFromDb[0].supabaseMasterUrl);
+        let decryptedUrl = decrypt(configFromDb[0].supabaseMasterUrl);
         const decryptedKey = decrypt(configFromDb[0].supabaseMasterServiceRoleKey);
         
-        // Clean URL
-        const cleanUrl = decryptedUrl.trim().replace(/\/+$/, '');
+        // Clean URL and ensure it has https:// prefix
+        decryptedUrl = decryptedUrl.trim().replace(/\/+$/, '');
+        if (!decryptedUrl.startsWith('http://') && !decryptedUrl.startsWith('https://')) {
+          decryptedUrl = `https://${decryptedUrl}`;
+        }
+        const cleanUrl = decryptedUrl;
         const cleanKey = decryptedKey.trim();
 
         log(`✅ Supabase Master: Credenciais carregadas do banco para tenant ${tenantId}`);
@@ -60,11 +64,15 @@ export async function getSupabaseMasterCredentials(tenantId?: string): Promise<S
     try {
       const anyConfig = await db.select().from(supabaseMasterConfig).limit(1);
       if (anyConfig[0]) {
-        const decryptedUrl = decrypt(anyConfig[0].supabaseMasterUrl);
+        let decryptedUrl = decrypt(anyConfig[0].supabaseMasterUrl);
         const decryptedKey = decrypt(anyConfig[0].supabaseMasterServiceRoleKey);
         
-        // Clean URL
-        const cleanUrl = decryptedUrl.trim().replace(/\/+$/, '');
+        // Clean URL and ensure it has https:// prefix
+        decryptedUrl = decryptedUrl.trim().replace(/\/+$/, '');
+        if (!decryptedUrl.startsWith('http://') && !decryptedUrl.startsWith('https://')) {
+          decryptedUrl = `https://${decryptedUrl}`;
+        }
+        const cleanUrl = decryptedUrl;
         const cleanKey = decryptedKey.trim();
 
         log(`✅ Supabase Master: Usando credenciais de ${anyConfig[0].tenantId} (fallback para ${tenantId || 'sem tenant'})`);
@@ -121,27 +129,33 @@ export async function getSupabaseMasterForTenant(tenantId: string): Promise<Supa
     );
   }
   
+  // Ensure URL has https:// prefix (final check)
+  let finalUrl = credentials.url;
+  if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
+    finalUrl = `https://${finalUrl}`;
+    log(`⚠️  URL sem protocolo detectada, adicionando https:// -> ${finalUrl}`);
+  }
+  
   // Check if we can reuse cached client
-  if (supabaseMasterClient && cachedCredentials?.url === credentials.url && cachedCredentials?.key === credentials.serviceRoleKey) {
+  if (supabaseMasterClient && cachedCredentials?.url === finalUrl && cachedCredentials?.key === credentials.serviceRoleKey) {
     return supabaseMasterClient;
   }
   
-  // Create new client with a reliable fetch wrapper
+  log(`🔗 Criando cliente Supabase Master com URL: ${finalUrl}`);
+  
+  // Create new client - standard approach like working clienteSupabase.ts
   supabaseMasterClient = createClient(
-    credentials.url,
+    finalUrl,
     credentials.serviceRoleKey,
     {
       auth: {
         autoRefreshToken: false,
         persistSession: false
-      },
-      global: {
-        fetch: (url: any, options: any) => import('node-fetch').then(({ default: fetch }) => fetch(url, options))
       }
     }
   );
   
-  cachedCredentials = { url: credentials.url, key: credentials.serviceRoleKey };
+  cachedCredentials = { url: finalUrl, key: credentials.serviceRoleKey };
   log(`✅ Supabase MESTRE conectado (fonte: ${credentials.source})`);
   return supabaseMasterClient;
 }
@@ -161,7 +175,7 @@ export function getSupabaseMaster(): SupabaseClient {
     );
   }
 
-  // Create new client with a reliable fetch wrapper
+  // Create new client - standard approach like working clienteSupabase.ts
   supabaseMasterClient = createClient(
     SUPABASE_MASTER_URL,
     SUPABASE_MASTER_SERVICE_ROLE_KEY,
@@ -169,9 +183,6 @@ export function getSupabaseMaster(): SupabaseClient {
       auth: {
         autoRefreshToken: false,
         persistSession: false
-      },
-      global: {
-        fetch: (url: any, options: any) => import('node-fetch').then(({ default: fetch }) => fetch(url, options))
       }
     }
   );

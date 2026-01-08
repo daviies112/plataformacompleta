@@ -297,15 +297,50 @@ export function setupComplianceRoutes(): Router {
           checks = supabaseData || [];
           console.log('[CPF History] Registros encontrados no Supabase Master:', checks.length);
         } catch (err: any) {
-          console.log('[CPF History] Falha na consulta Supabase, tentando fallback local...', err.message);
-          // Fallback para PostgreSQL local
-          const data = await db.select()
-            .from(datacorpChecks)
-            .where(or(eq(datacorpChecks.tenantId, tenantUUID), eq(datacorpChecks.createdBy, userUUID)))
-            .orderBy(desc(datacorpChecks.consultedAt))
-            .limit(limit);
-          checks = data || [];
-          console.log('[CPF History] Registros encontrados no PostgreSQL local:', checks.length);
+          console.log('[CPF History] Falha na consulta Supabase Master, tentando Supabase Cliente...', err.message);
+          
+          // Fallback 1: Tentar Supabase CLIENTE (onde os dados do CPFPoller ficam)
+          try {
+            const { getClienteSupabase } = await import('../lib/clienteSupabase.js');
+            const clienteSupabase = await getClienteSupabase();
+            
+            const { data: clienteData, error: clienteError } = await clienteSupabase
+              .from('cpf_compliance_results')
+              .select('*')
+              .order('created_at', { ascending: false })
+              .limit(limit);
+            
+            if (!clienteError && clienteData && clienteData.length > 0) {
+              // Mapear campos do Supabase Cliente para o formato esperado
+              checks = clienteData.map((item: any) => ({
+                id: item.id,
+                cpf_hash: item.cpf_hash || '',
+                cpf_encrypted: item.cpf_encrypted || '',
+                tenant_id: tenantUUID,
+                status: item.status || 'pending',
+                risk_score: item.risk_score || 0,
+                consulted_at: item.created_at,
+                response_data: item.response_data || item.result_data,
+                name: item.name || '',
+                created_by: userUUID,
+                lead_id: item.lead_id,
+                submission_id: item.submission_id,
+              }));
+              console.log('[CPF History] Registros encontrados no Supabase Cliente:', checks.length);
+            } else {
+              throw new Error(clienteError?.message || 'Nenhum dado no Supabase Cliente');
+            }
+          } catch (clienteErr: any) {
+            console.log('[CPF History] Falha no Supabase Cliente, tentando PostgreSQL local...', clienteErr.message);
+            // Fallback 2: PostgreSQL local
+            const data = await db.select()
+              .from(datacorpChecks)
+              .where(or(eq(datacorpChecks.tenantId, tenantUUID), eq(datacorpChecks.createdBy, userUUID)))
+              .orderBy(desc(datacorpChecks.consultedAt))
+              .limit(limit);
+            checks = data || [];
+            console.log('[CPF History] Registros encontrados no PostgreSQL local:', checks.length);
+          }
         }
       } else {
         console.log('[CPF History] Supabase Master não configurado, usando PostgreSQL local');

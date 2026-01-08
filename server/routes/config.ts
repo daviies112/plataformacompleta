@@ -1157,7 +1157,7 @@ export function setupConfigRoutes(app: Express) {
   
   app.post("/api/config/supabase-master", authenticateConfig, async (req: AuthRequest, res) => {
     try {
-      const { supabaseMasterUrl, supabaseMasterServiceRoleKey } = req.body;
+      let { supabaseMasterUrl, supabaseMasterServiceRoleKey } = req.body;
       const tenantId = req.user!.tenantId;
       
       if (!supabaseMasterUrl || !supabaseMasterServiceRoleKey) {
@@ -1171,6 +1171,12 @@ export function setupConfigRoutes(app: Express) {
         return res.status(400).json({
           error: "URL do Supabase inválida. Deve ser uma URL do Supabase.",
         });
+      }
+      
+      // Normalize URL: ensure it has https:// prefix and no trailing slashes
+      supabaseMasterUrl = supabaseMasterUrl.trim().replace(/\/+$/, '');
+      if (!supabaseMasterUrl.startsWith('http://') && !supabaseMasterUrl.startsWith('https://')) {
+        supabaseMasterUrl = `https://${supabaseMasterUrl}`;
       }
       
       const encryptedUrl = encrypt(supabaseMasterUrl);
@@ -1253,13 +1259,11 @@ export function setupConfigRoutes(app: Express) {
         });
       }
 
+      // Use standard createClient without custom fetch - same as working clienteSupabase.ts
       const testClient = createClient(cleanUrl, cleanKey, {
         auth: {
           autoRefreshToken: false,
           persistSession: false
-        },
-        global: {
-          fetch: (url: any, options: any) => import('node-fetch').then(({ default: fetch }) => fetch(url, options))
         }
       });
       
