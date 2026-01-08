@@ -139,6 +139,10 @@ export const CardLabelsSection = ({ card, onUpdate }: CardLabelsSectionProps) =>
                     onClick={() => toggleLabel(label.id)}
                     className="flex-1 flex items-center gap-2 p-2 rounded hover:bg-secondary transition-colors"
                   >
+                    <div 
+                      className="w-3 h-3 rounded-full shrink-0" 
+                      style={{ backgroundColor: label.color }}
+                    />
                     <CardLabel label={label} size="full" />
                     {card.labels.some((l) => l.id === label.id) && (
                       <span className="ml-auto text-xs">✓</span>
