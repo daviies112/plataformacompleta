@@ -276,7 +276,7 @@ export function setupComplianceRoutes(): Router {
       if (await isSupabaseMasterConfigured(finalTenantId)) {
         const supabase = await getSupabaseMasterForTenant(finalTenantId);
         
-      // CORREÇÃO 2025-12: Sistema single-admin
+        // CORREÇÃO 2025-12: Sistema single-admin
         // Buscar TODOS os registros do Supabase Master sem filtro por tenant_id ou created_by
         // Isso garante que consultas automáticas (via formulário) apareçam no histórico
         // mesmo após exportação/reimportação da plataforma (quando os UUIDs mudam)

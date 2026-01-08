@@ -1240,6 +1240,19 @@ export function setupConfigRoutes(app: Express) {
 
       console.log(`[Supabase Test] Testando conexão com URL: ${cleanUrl}`);
 
+      // Robust check for URL existence before attempting fetch
+      try {
+        const urlObj = new URL(cleanUrl);
+        if (!urlObj.hostname.includes('.')) {
+          throw new Error("Hostname inválido");
+        }
+      } catch (e) {
+        return res.status(400).json({
+          success: false,
+          error: "URL do Supabase inválida ou malformada",
+        });
+      }
+
       const testClient = createClient(cleanUrl, cleanKey, {
         auth: {
           autoRefreshToken: false,
@@ -1250,8 +1263,11 @@ export function setupConfigRoutes(app: Express) {
         }
       });
       
-      // Try a simple query to verify connection
-      const { error } = await testClient.from('datacorp_checks').select('id').limit(1);
+      // Try a simple query to verify connection with a short timeout
+      const { error } = await Promise.race([
+        testClient.from('datacorp_checks').select('id').limit(1),
+        new Promise<any>((_, reject) => setTimeout(() => reject(new Error("Timeout ao conectar ao Supabase (verifique DNS/URL)")), 15000))
+      ]);
       
       if (error && !error.message.includes('does not exist')) {
         // If table doesn't exist, that's okay - connection works
