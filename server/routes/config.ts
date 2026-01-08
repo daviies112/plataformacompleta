@@ -1233,7 +1233,12 @@ export function setupConfigRoutes(app: Express) {
       
       // Test connection by attempting to create a Supabase client and query
       const { createClient } = await import('@supabase/supabase-js');
-      const testClient = createClient(supabaseMasterUrl, supabaseMasterServiceRoleKey, {
+      
+      // Clean URL: remove any trailing slashes or spaces
+      const cleanUrl = supabaseMasterUrl.trim().replace(/\/+$/, '');
+      const cleanKey = supabaseMasterServiceRoleKey.trim();
+
+      const testClient = createClient(cleanUrl, cleanKey, {
         auth: {
           autoRefreshToken: false,
           persistSession: false
