@@ -1286,6 +1286,15 @@ export function setupConfigRoutes(app: Express) {
             });
           }
           
+          // Check for DNS/network errors
+          const errorMsg = error.message || '';
+          if (errorMsg.includes('fetch failed') || errorMsg.includes('ENOTFOUND') || errorMsg.includes('getaddrinfo')) {
+            return res.status(400).json({
+              success: false,
+              error: `Projeto Supabase não encontrado! Verifique se a URL está correta. O projeto "${cleanUrl.replace('https://', '').split('.')[0]}" não existe ou foi deletado.`,
+            });
+          }
+          
           return res.status(400).json({
             success: false,
             error: `Erro ao conectar: ${error.message}`,
@@ -1299,6 +1308,16 @@ export function setupConfigRoutes(app: Express) {
         });
       } catch (error: any) {
         console.error("Erro ao testar Supabase Master:", error);
+        
+        // Check for DNS/network errors in catch block
+        const errorMsg = error.message || '';
+        if (errorMsg.includes('fetch failed') || errorMsg.includes('ENOTFOUND') || errorMsg.includes('getaddrinfo')) {
+          return res.status(400).json({
+            success: false,
+            error: `Projeto Supabase não encontrado! Verifique se a URL está correta. O projeto "${cleanUrl.replace('https://', '').split('.')[0]}" não existe ou foi deletado.`,
+          });
+        }
+        
         return res.status(500).json({
           success: false,
           error: error.message || "Erro ao testar conexão",
