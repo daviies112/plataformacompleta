@@ -276,21 +276,28 @@ export function setupComplianceRoutes(): Router {
       if (await isSupabaseMasterConfigured(finalTenantId)) {
         const supabase = await getSupabaseMasterForTenant(finalTenantId);
         
-        // CORREÇÃO 2025-12: Sistema single-admin
+      // CORREÇÃO 2025-12: Sistema single-admin
         // Buscar TODOS os registros do Supabase Master sem filtro por tenant_id ou created_by
         // Isso garante que consultas automáticas (via formulário) apareçam no histórico
         // mesmo após exportação/reimportação da plataforma (quando os UUIDs mudam)
         console.log('[CPF History] Sistema single-admin: Buscando TODOS os registros do Supabase Master');
         
-        const { data: supabaseData, error: supabaseError } = await supabase
-          .from('datacorp_checks')
-          .select('*')
-          .order('consulted_at', { ascending: false })
-          .limit(limit);
-        
-        if (supabaseError) {
-          console.error('[CPF History] Erro ao buscar do Supabase Master:', supabaseError);
-          console.log('[CPF History] Fazendo fallback para PostgreSQL local...');
+        try {
+          const { data: supabaseData, error: supabaseError } = await supabase
+            .from('datacorp_checks')
+            .select('*')
+            .order('consulted_at', { ascending: false })
+            .limit(limit);
+          
+          if (supabaseError) {
+            console.error('[CPF History] Erro ao buscar do Supabase Master:', supabaseError);
+            throw supabaseError;
+          }
+
+          checks = supabaseData || [];
+          console.log('[CPF History] Registros encontrados no Supabase Master:', checks.length);
+        } catch (err: any) {
+          console.log('[CPF History] Falha na consulta Supabase, tentando fallback local...', err.message);
           // Fallback para PostgreSQL local
           const data = await db.select()
             .from(datacorpChecks)
@@ -299,9 +306,6 @@ export function setupComplianceRoutes(): Router {
             .limit(limit);
           checks = data || [];
           console.log('[CPF History] Registros encontrados no PostgreSQL local:', checks.length);
-        } else {
-          checks = supabaseData || [];
-          console.log('[CPF History] Registros encontrados no Supabase Master:', checks.length);
         }
       } else {
         console.log('[CPF History] Supabase Master não configurado, usando PostgreSQL local');

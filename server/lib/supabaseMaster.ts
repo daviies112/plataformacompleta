@@ -43,10 +43,14 @@ export async function getSupabaseMasterCredentials(tenantId?: string): Promise<S
         const decryptedUrl = decrypt(configFromDb[0].supabaseMasterUrl);
         const decryptedKey = decrypt(configFromDb[0].supabaseMasterServiceRoleKey);
         
+        // Clean URL
+        const cleanUrl = decryptedUrl.trim().replace(/\/+$/, '');
+        const cleanKey = decryptedKey.trim();
+
         log(`✅ Supabase Master: Credenciais carregadas do banco para tenant ${tenantId}`);
         return {
-          url: decryptedUrl,
-          serviceRoleKey: decryptedKey,
+          url: cleanUrl,
+          serviceRoleKey: cleanKey,
           source: 'database'
         };
       }
@@ -59,10 +63,14 @@ export async function getSupabaseMasterCredentials(tenantId?: string): Promise<S
         const decryptedUrl = decrypt(anyConfig[0].supabaseMasterUrl);
         const decryptedKey = decrypt(anyConfig[0].supabaseMasterServiceRoleKey);
         
+        // Clean URL
+        const cleanUrl = decryptedUrl.trim().replace(/\/+$/, '');
+        const cleanKey = decryptedKey.trim();
+
         log(`✅ Supabase Master: Usando credenciais de ${anyConfig[0].tenantId} (fallback para ${tenantId || 'sem tenant'})`);
         return {
-          url: decryptedUrl,
-          serviceRoleKey: decryptedKey,
+          url: cleanUrl,
+          serviceRoleKey: cleanKey,
           source: 'database'
         };
       }
@@ -126,6 +134,9 @@ export async function getSupabaseMasterForTenant(tenantId: string): Promise<Supa
       auth: {
         autoRefreshToken: false,
         persistSession: false
+      },
+      global: {
+        fetch: (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args as any))
       }
     }
   );
@@ -157,6 +168,9 @@ export function getSupabaseMaster(): SupabaseClient {
       auth: {
         autoRefreshToken: false,
         persistSession: false
+      },
+      global: {
+        fetch: (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args as any))
       }
     }
   );

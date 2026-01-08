@@ -1238,10 +1238,15 @@ export function setupConfigRoutes(app: Express) {
       const cleanUrl = supabaseMasterUrl.trim().replace(/\/+$/, '');
       const cleanKey = supabaseMasterServiceRoleKey.trim();
 
+      console.log(`[Supabase Test] Testando conexão com URL: ${cleanUrl}`);
+
       const testClient = createClient(cleanUrl, cleanKey, {
         auth: {
           autoRefreshToken: false,
           persistSession: false
+        },
+        global: {
+          fetch: (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args as any))
         }
       });
       
