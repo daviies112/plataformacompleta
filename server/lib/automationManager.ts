@@ -575,7 +575,8 @@ async function syncFormsToMappingTable(): Promise<void> {
                   tenantId,
                   slug: formSlug,
                   companySlug: companySlug,
-                  isPublic: isPublicValue,
+                  // IMPORTANTE: NÃO sobrescrever isPublic - preservar valor local
+                  // isPublic pode ser alterado manualmente pelo admin
                   updatedAt: new Date()
                 }
               });

@@ -113,21 +113,31 @@ export function cloudflareCache(req: Request, res: Response, next: NextFunction)
     }
   }
   
-  // Apply cache headers
+  // Apply cache headers only for successful responses
   if (matchedRule) {
-    const cacheControl = buildCacheControl(matchedRule);
-    res.setHeader('Cache-Control', cacheControl);
-    
-    // Cloudflare specific headers
-    if (!matchedRule.noCache) {
-      // Tell Cloudflare to cache even if origin says no
-      res.setHeader('CDN-Cache-Control', cacheControl);
+    // Intercept response to conditionally apply cache
+    const originalSend = res.send.bind(res);
+    res.send = function(body: any): Response {
+      // Only cache successful responses (2xx), not errors
+      if (res.statusCode >= 200 && res.statusCode < 300) {
+        const cacheControl = buildCacheControl(matchedRule);
+        res.setHeader('Cache-Control', cacheControl);
+        
+        // Cloudflare specific headers
+        if (!matchedRule.noCache) {
+          res.setHeader('CDN-Cache-Control', cacheControl);
+          res.setHeader('Vary', 'Accept-Encoding, Authorization');
+        }
+        
+        console.log(`📦 CF Cache-Control: ${cacheControl}`);
+      } else {
+        // Don't cache error responses
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        console.log(`⚠️ CF No-Cache for error response: ${res.statusCode}`);
+      }
       
-      // Vary header for proper caching
-      res.setHeader('Vary', 'Accept-Encoding, Authorization');
-    }
-    
-    console.log(`📦 CF Cache-Control: ${cacheControl}`);
+      return originalSend(body);
+    };
   }
   
   next();
