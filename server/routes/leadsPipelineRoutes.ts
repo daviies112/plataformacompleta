@@ -381,6 +381,8 @@ function transformJourneyToLead(journey: LeadJourney): Record<string, any> {
     ultimaMensagem: journey.ultimaMensagem,
     ultimoResumoEstruturado: journey.ultimoResumoEstruturado,
     todas_mensagens_chat: journey.todasMensagensChat,
+    // Chat history from n8n_chat_histories
+    chatHistory: journey.chatHistory,
   };
 }
 
