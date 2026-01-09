@@ -1160,57 +1160,73 @@ async function fetchReunioes(tenantId: string): Promise<Map<string, any>> {
 }
 
 /**
- * Fetches data from dashboard_completo_v5_base table
+ * Fetches data from dashboard tables (clientes_completos or dashboard_completo_v5_base)
  * This table contains chat history, message counts, and other engagement data
  */
 async function fetchDashboardCompleto(tenantId: string): Promise<Map<string, any>> {
   const supabase = await getClientSupabaseClient(tenantId);
   if (!supabase) return new Map();
   
-  try {
-    let query = supabase
-      .from('dashboard_completo_v5_base')
-      .select('*')
-      .order('ultimo_contato', { ascending: false })
-      .limit(500);
-    
-    if (tenantId !== 'default-tenant') {
-      query = query.eq('tenant_id', tenantId);
-    }
-    
-    const { data, error } = await query;
-    
-    if (error) {
-      if (error.code === '42P01' || error.message.includes('does not exist')) {
-        console.log('ℹ️ [LeadJourneyAggregator] Tabela dashboard_completo_v5_base não existe');
-        return new Map();
+  const tablesToTry = ['clientes_completos', 'dashboard_completo_v5_base'];
+  
+  for (const tableName of tablesToTry) {
+    try {
+      console.log(`🔄 [LeadJourneyAggregator] Tentando buscar dados de dashboard da tabela: ${tableName}`);
+      
+      let query = supabase
+        .from(tableName)
+        .select('*')
+        .order('ultimo_contato', { ascending: false })
+        .limit(500);
+      
+      if (tenantId !== 'default-tenant') {
+        query = query.eq('tenant_id', tenantId);
       }
       
-      console.error('❌ [LeadJourneyAggregator] Erro ao buscar dashboard_completo_v5_base:', error.message);
-      return new Map();
-    }
-    
-    const dashboardMap = new Map<string, any>();
-    const rawData = data || [];
-    console.log(`📊 [LeadJourneyAggregator] dashboard_completo_v5_base raw count: ${rawData.length}`);
-    
-    for (const record of rawData) {
-      const telefoneNorm = normalizeTelefone(record.telefone);
-      console.log(`📞 [Dashboard] Raw: ${record.telefone?.substring(0, 15)}... → Normalized: ${telefoneNorm}`);
-      if (telefoneNorm && !dashboardMap.has(telefoneNorm)) {
-        dashboardMap.set(telefoneNorm, record);
+      const { data, error } = await query;
+      
+      if (error) {
+        if (error.code === '42P01' || error.message.includes('does not exist')) {
+          console.log(`ℹ️ [LeadJourneyAggregator] Tabela ${tableName} não existe, tentando próxima...`);
+          continue;
+        }
+        
+        console.error(`❌ [LeadJourneyAggregator] Erro ao buscar ${tableName}:`, error.message);
+        continue;
       }
+      
+      const dashboardMap = new Map<string, any>();
+      const rawData = data || [];
+      console.log(`📊 [LeadJourneyAggregator] ${tableName} raw count: ${rawData.length}`);
+      
+      for (const record of rawData) {
+        // Map fields from clientes_completos to the internal structure if needed
+        // The expected structure is defined in DashboardData interface
+        const mappedRecord = {
+          ...record,
+          // Field mapping for clientes_completos (fallback to record fields if already correctly named)
+          total_mensagens_chat: record.total_mensagens_chat ?? record.mensagens_total ?? 0,
+          primeiro_contato: record.primeiro_contato ?? record.created_at,
+          ultimo_contato: record.ultimo_contato ?? record.updated_at ?? record.created_at,
+          status_atendimento: record.status_atendimento ?? record.status
+        };
+
+        const telefoneNorm = normalizeTelefone(record.telefone);
+        if (telefoneNorm && !dashboardMap.has(telefoneNorm)) {
+          dashboardMap.set(telefoneNorm, mappedRecord);
+        }
+      }
+      
+      console.log(`✅ [LeadJourneyAggregator] Carregados ${dashboardMap.size} registros de ${tableName}`);
+      return dashboardMap;
+    } catch (error: any) {
+      console.error(`❌ [LeadJourneyAggregator] Exceção ao buscar ${tableName}:`, error.message);
+      continue;
     }
-    
-    console.log(`✅ [LeadJourneyAggregator] Carregados ${dashboardMap.size} registros de dashboard_completo_v5_base`);
-    if (dashboardMap.size > 0) {
-      console.log(`📋 [Dashboard] Phones in map: ${Array.from(dashboardMap.keys()).join(', ')}`);
-    }
-    return dashboardMap;
-  } catch (error: any) {
-    console.error('❌ [LeadJourneyAggregator] Exceção ao buscar dashboard_completo_v5_base:', error.message);
-    return new Map();
   }
+
+  console.warn('⚠️ [LeadJourneyAggregator] Nenhuma tabela de dashboard encontrada');
+  return new Map();
 }
 
 /**
