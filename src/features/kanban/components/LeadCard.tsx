@@ -166,6 +166,21 @@ export interface Lead {
   ultimaMensagem?: string;
   ultimoResumoEstruturado?: string;
   todas_mensagens_chat?: string;
+  chatHistory?: {
+    sessionId: string;
+    telefone: string;
+    telefoneNormalizado: string;
+    messages: Array<{
+      id: number;
+      type: 'human' | 'ai';
+      content: string;
+      timestamp?: string;
+    }>;
+    totalMessages: number;
+    extractedName?: string;
+    firstMessageAt?: string;
+    lastMessageAt?: string;
+  };
   cpf?: string;
   resultadoReuniao?: string;
   form?: {
@@ -286,6 +301,18 @@ interface ChatMessage {
 }
 
 function formatWhatsAppMessages(lead: Lead): ChatMessage[] {
+  // Priority 1: Use chatHistory from n8n_chat_histories (direct messages)
+  if (lead.chatHistory?.messages && lead.chatHistory.messages.length > 0) {
+    return lead.chatHistory.messages.map((msg, index) => ({
+      id: msg.id || index,
+      text: msg.content,
+      isClient: msg.type === 'human',
+      sender: msg.type === 'human' ? 'Cliente' : 'Agente',
+      originalOrder: index
+    }));
+  }
+  
+  // Priority 2: Use todas_mensagens_chat from dashboard
   if (!lead.todas_mensagens_chat) return [];
   
   const messages: ChatMessage[] = [];

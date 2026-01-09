@@ -155,6 +155,7 @@ function transformApiLead(apiLead: any): Lead {
     ultimaMensagem: apiLead.ultima_mensagem || apiLead.ultimaMensagem,
     ultimoResumoEstruturado: apiLead.ultimo_resumo_estruturado || apiLead.ultimoResumoEstruturado,
     todas_mensagens_chat: apiLead.todas_mensagens_chat || apiLead.todasMensagensChat,
+    chatHistory: apiLead.chatHistory,
     cpf: apiLead.cpf,
     cpfData: apiLead.cpfData || apiLead.cpf_data,
     resultadoReuniao: apiLead.resultado_reuniao || apiLead.resultadoReuniao,
