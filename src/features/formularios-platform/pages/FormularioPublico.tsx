@@ -147,8 +147,30 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
   const companySlugParam = params.companySlug?.split('?')[0]; // Slug da empresa da URL
   
   // 🔥 FIX: Extrair telefone da URL query params (wouter não tem useSearchParams)
-  const urlParams = new URLSearchParams(window.location.search);
-  const telefoneFromUrl = urlParams.get('telefone');
+  // IMPORTANTE: Em alguns casos o React Router codifica "?" como "%3F" no path
+  // então precisamos verificar tanto window.location.search quanto o href completo
+  const extractTelefone = (): string | null => {
+    // Primeiro tenta via search params (forma padrão)
+    if (window.location.search) {
+      const params = new URLSearchParams(window.location.search);
+      const tel = params.get('telefone');
+      if (tel) return tel;
+    }
+    
+    // Fallback: verificar se o telefone está codificado no path (%3F = ?)
+    const href = decodeURIComponent(window.location.href);
+    const match = href.match(/[?&]telefone=([^&]+)/);
+    if (match) return match[1];
+    
+    // Fallback 2: verificar no pathname se %3F foi usado
+    const pathname = decodeURIComponent(window.location.pathname);
+    const matchPath = pathname.match(/[?]telefone=([^&]+)/);
+    if (matchPath) return matchPath[1];
+    
+    return null;
+  };
+  
+  const telefoneFromUrl = extractTelefone();
   
   // Função para formatar telefone brasileiro
   const formatarTelefone = (numero: string): string => {
