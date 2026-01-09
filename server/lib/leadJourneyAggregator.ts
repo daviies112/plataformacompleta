@@ -153,6 +153,24 @@ export interface AssinaturaData {
   updatedAt?: string;
 }
 
+export interface ChatMessage {
+  id: number;
+  type: 'human' | 'ai';
+  content: string;
+  timestamp?: string;
+}
+
+export interface ChatHistoryData {
+  sessionId: string;
+  telefone: string;
+  telefoneNormalizado: string;
+  messages: ChatMessage[];
+  totalMessages: number;
+  extractedName?: string;
+  firstMessageAt?: string;
+  lastMessageAt?: string;
+}
+
 export interface LeadJourney {
   id: string;
   tenantId: string;
@@ -170,6 +188,7 @@ export interface LeadJourney {
   dashboard?: DashboardData;
   formularioEnvio?: FormularioEnvioData;
   assinatura?: AssinaturaData;
+  chatHistory?: ChatHistoryData;
   timeline: TimelineEvent[];
   createdAt: string;
   updatedAt: string;
@@ -601,6 +620,133 @@ async function fetchDadosCliente(tenantId: string): Promise<Map<string, any>> {
     console.error('❌ [LeadJourneyAggregator] Exceção ao buscar dados_cliente:', error.message);
     return new Map();
   }
+}
+
+/**
+ * Fetches data from n8n_chat_histories table
+ * Returns a map keyed by normalized phone number (extracted from session_id)
+ */
+async function fetchN8nChatHistories(tenantId: string): Promise<Map<string, ChatHistoryData>> {
+  let supabase = await getClientSupabaseClient(tenantId);
+  
+  // Fallback: Use getClienteSupabase when getClientSupabaseClient returns null
+  if (!supabase) {
+    try {
+      const isConfigured = await isClienteSupabaseConfigured();
+      if (isConfigured) {
+        supabase = await getClienteSupabase();
+        console.log('ℹ️ [LeadJourneyAggregator] Usando getClienteSupabase como fallback para n8n_chat_histories');
+      }
+    } catch (fallbackError: any) {
+      console.log(`⚠️ [LeadJourneyAggregator] Fallback getClienteSupabase falhou: ${fallbackError.message}`);
+    }
+  }
+  
+  if (!supabase) return new Map();
+  
+  try {
+    const { data, error } = await supabase
+      .from('n8n_chat_histories')
+      .select('*')
+      .order('id', { ascending: true })
+      .limit(5000);
+    
+    if (error) {
+      console.error('❌ [LeadJourneyAggregator] Erro ao buscar n8n_chat_histories:', error.message);
+      return new Map();
+    }
+    
+    // Group messages by session_id (phone number)
+    const chatMap = new Map<string, ChatHistoryData>();
+    
+    for (const record of (data || [])) {
+      // Extract phone from session_id (e.g., "553192267220@s.whatsapp.net" -> "553192267220")
+      const sessionId = record.session_id || '';
+      const phoneMatch = sessionId.match(/^(\d+)@/);
+      const telefone = phoneMatch ? phoneMatch[1] : sessionId;
+      const telefoneNorm = normalizeTelefone(telefone);
+      
+      if (!telefoneNorm) continue;
+      
+      // Parse message content
+      const messageData = record.message || {};
+      const messageType = messageData.type as 'human' | 'ai';
+      const messageContent = messageData.content || '';
+      
+      const chatMessage: ChatMessage = {
+        id: record.id,
+        type: messageType,
+        content: messageContent
+      };
+      
+      if (chatMap.has(telefoneNorm)) {
+        const existing = chatMap.get(telefoneNorm)!;
+        existing.messages.push(chatMessage);
+        existing.totalMessages++;
+        
+        // Try to extract name from human messages
+        if (!existing.extractedName && messageType === 'human') {
+          const extractedName = extractNameFromMessage(messageContent);
+          if (extractedName) {
+            existing.extractedName = extractedName;
+          }
+        }
+      } else {
+        // Try to extract name from first human message
+        let extractedName: string | undefined;
+        if (messageType === 'human') {
+          extractedName = extractNameFromMessage(messageContent);
+        }
+        
+        chatMap.set(telefoneNorm, {
+          sessionId,
+          telefone,
+          telefoneNormalizado: telefoneNorm,
+          messages: [chatMessage],
+          totalMessages: 1,
+          extractedName
+        });
+      }
+    }
+    
+    console.log(`✅ [LeadJourneyAggregator] Carregados ${chatMap.size} sessões de chat de n8n_chat_histories`);
+    return chatMap;
+  } catch (error: any) {
+    console.error('❌ [LeadJourneyAggregator] Exceção ao buscar n8n_chat_histories:', error.message);
+    return new Map();
+  }
+}
+
+/**
+ * Tries to extract a name from a chat message content
+ * Looks for patterns like "Meu nome é X", "Me chamo X", etc.
+ */
+function extractNameFromMessage(content: string): string | undefined {
+  if (!content) return undefined;
+  
+  const patterns = [
+    /meu nome [eé] (.+?)(?:\.|,|!|\?|$)/i,
+    /me chamo (.+?)(?:\.|,|!|\?|$)/i,
+    /sou (?:o |a )?(.+?)(?:\.|,|!|\?|$)/i,
+    /(?:^|\s)nome[:\s]+(.+?)(?:\.|,|!|\?|$)/i,
+    /aqui [eé] (?:o |a )?(.+?)(?:\.|,|!|\?|$)/i
+  ];
+  
+  for (const pattern of patterns) {
+    const match = content.match(pattern);
+    if (match && match[1]) {
+      const name = match[1].trim();
+      // Validate: name should be 2-50 chars, contain only letters/spaces
+      if (name.length >= 2 && name.length <= 50 && /^[a-zA-ZÀ-ÿ\s]+$/.test(name)) {
+        // Capitalize first letter of each word
+        return name.split(' ')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+          .join(' ');
+      }
+    }
+  }
+  
+  return undefined;
 }
 
 /**
@@ -1402,19 +1548,23 @@ export async function aggregateLeadJourneys(tenantId: string): Promise<LeadJourn
   
   console.log(`🔄 [LeadJourneyAggregator] Agregando jornadas para tenant: ${tenantId}`);
   
-  const [clientesMap, submissionsMap, cpfMap, reunioesMap, dashboardMap, formularioEnviosMap, assinaturaMap] = await Promise.all([
+  const [clientesMap, submissionsMap, cpfMap, reunioesMap, dashboardMap, formularioEnviosMap, assinaturaMap, chatHistoriesMap] = await Promise.all([
     fetchDadosCliente(tenantId),
     fetchFormSubmissions(tenantId),
     fetchCpfComplianceResults(tenantId),
     fetchReunioes(tenantId),
     fetchDashboardCompleto(tenantId),
     fetchFormularioEnvios(tenantId),
-    fetchAssinaturaContracts(tenantId)
+    fetchAssinaturaContracts(tenantId),
+    fetchN8nChatHistories(tenantId)
   ]);
   
   const allPhones = new Set<string>();
   
   for (const phone of clientesMap.keys()) allPhones.add(phone);
+  
+  // Add phones from chat histories (n8n_chat_histories)
+  for (const phone of chatHistoriesMap.keys()) allPhones.add(phone);
   
   // submissionsMap now has prefixed keys (tel:, cpf:, name:) - extract only phone numbers
   for (const key of submissionsMap.keys()) {
@@ -1657,21 +1807,25 @@ export async function aggregateLeadJourneys(tenantId: string): Promise<LeadJourn
     const assinaturaData = assinaturaMap.get(`tel:${telefoneNorm}`) || 
                            (cpfNorm ? assinaturaMap.get(`cpf:${cpfNorm}`) : undefined);
     
-    const partialJourney: Partial<LeadJourney> & { formularioEnvio?: any; assinatura?: AssinaturaData } = {
+    // Get chat history data for this phone
+    const chatHistoryData = chatHistoriesMap.get(telefoneNorm);
+    
+    const partialJourney: Partial<LeadJourney> & { formularioEnvio?: any; assinatura?: AssinaturaData; chatHistory?: ChatHistoryData } = {
       contact: contactData,
       form: formData,
       cpfData,
       meeting: meetingData,
       dashboard: dashboardData,
       formularioEnvio,
-      assinatura: assinaturaData
+      assinatura: assinaturaData,
+      chatHistory: chatHistoryData
     };
     
     const pipelineStatus = determinePipelineStatus(partialJourney);
     const timeline = createTimeline(partialJourney);
     
-    // Include formularioEnvio.nome in the name resolution chain
-    const nome = cliente?.nome || submission?.contact_name || cpfResult?.nome || formularioEnvio?.nome || dashboardRecord?.nome_cliente || dashboardRecord?.nome || 'Sem nome';
+    // Include chatHistory.extractedName and formularioEnvio.nome in the name resolution chain
+    const nome = cliente?.nome || submission?.contact_name || cpfResult?.nome || formularioEnvio?.nome || chatHistoryData?.extractedName || dashboardRecord?.nome_cliente || dashboardRecord?.nome || 'Sem nome';
     const email = cliente?.email || submission?.contact_email;
     const cpf = cliente?.cpf || submission?.contact_cpf || cpfResult?.cpf;
     const telefone = cliente?.telefone || submission?.contact_phone || cpfResult?.telefone || telefoneNorm;
@@ -1717,6 +1871,7 @@ export async function aggregateLeadJourneys(tenantId: string): Promise<LeadJourn
       dashboard: dashboardData,
       formularioEnvio: formularioEnvioData,
       assinatura: assinaturaData,
+      chatHistory: chatHistoryData,
       timeline,
       createdAt,
       updatedAt: updatedAt > 0 ? new Date(updatedAt).toISOString() : createdAt,
