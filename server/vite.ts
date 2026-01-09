@@ -39,16 +39,28 @@ export async function setupVite(app: Express, server: Server) {
   const vite = await Promise.race([vitePromise, timeoutPromise]);
   console.log('[VITE] Vite server created successfully');
 
+  // Use Vite middleware only for non-API routes
+  // API routes are registered BEFORE this middleware in server/index.ts, so they have priority
   app.use(vite.middlewares);
-  app.use(async (req, res, next) => {
+  
+  // HTML fallback handler for SPA - skip API routes!
+  app.use((req, res, next) => {
+    // CRITICAL: Skip API routes - they're already handled by Express routers
+    if (req.path.startsWith('/api/')) {
+      return res.status(404).json({ error: 'API endpoint not found - reached SPA fallback' });
+    }
+    
     const url = req.originalUrl;
 
     try {
       const clientTemplate = path.resolve(process.cwd(), "index.html");
       let template = fs.readFileSync(clientTemplate, "utf-8");
-      template = await vite.transformIndexHtml(url, template);
-
-      res.status(200).set({ "Content-Type": "text/html" }).end(template);
+      vite.transformIndexHtml(url, template).then(transformedTemplate => {
+        res.status(200).set({ "Content-Type": "text/html" }).end(transformedTemplate);
+      }).catch(e => {
+        vite.ssrFixStacktrace(e as Error);
+        next(e);
+      });
     } catch (e) {
       vite.ssrFixStacktrace(e as Error);
       next(e);

@@ -139,6 +139,20 @@ export interface FormularioEnvioData {
   createdAt?: string;
 }
 
+export interface AssinaturaData {
+  id: string;
+  clientName: string;
+  clientCpf?: string;
+  clientEmail?: string;
+  clientPhone?: string;
+  status: 'pending' | 'signed' | 'completed' | string;
+  accessToken?: string;
+  protocolNumber?: string;
+  createdAt?: string;
+  signedAt?: string;
+  updatedAt?: string;
+}
+
 export interface LeadJourney {
   id: string;
   tenantId: string;
@@ -155,6 +169,7 @@ export interface LeadJourney {
   meeting?: MeetingData;
   dashboard?: DashboardData;
   formularioEnvio?: FormularioEnvioData;
+  assinatura?: AssinaturaData;
   timeline: TimelineEvent[];
   createdAt: string;
   updatedAt: string;
@@ -193,6 +208,8 @@ const PIPELINE_STAGES = [
   'reuniao-agendada',
   'reuniao-nao-compareceu',
   'reuniao-completo',
+  'assinatura-pendente',
+  'revendedora',
   'consultor'
 ] as const;
 
@@ -207,6 +224,8 @@ const STAGE_LABELS: Record<string, string> = {
   'reuniao-agendada': 'Reunião Agendada',
   'reuniao-nao-compareceu': 'Reunião Não Compareceu',
   'reuniao-completo': 'Reunião Completa',
+  'assinatura-pendente': 'Assinatura Pendente',
+  'revendedora': 'Revendedora',
   'consultor': 'Consultor'
 };
 
@@ -222,11 +241,21 @@ function normalizeCPF(cpf: string | null | undefined): string {
   return cpf.replace(/\D/g, '');
 }
 
-function determinePipelineStatus(journey: Partial<LeadJourney> & { formularioEnvio?: any }): string {
-  const { meeting, cpfData, form, formularioEnvio } = journey;
+function determinePipelineStatus(journey: Partial<LeadJourney> & { formularioEnvio?: any; assinatura?: AssinaturaData }): string {
+  const { meeting, cpfData, form, formularioEnvio, assinatura } = journey;
   
   if (meeting?.resultadoReuniao) {
     return 'consultor';
+  }
+  
+  if (assinatura) {
+    const statusLower = (assinatura.status || '').toLowerCase().trim();
+    if (statusLower === 'completed' || statusLower === 'signed') {
+      return 'revendedora';
+    }
+    if (statusLower === 'pending') {
+      return 'assinatura-pendente';
+    }
   }
   
   if (meeting?.status === 'realizada') {
@@ -1287,6 +1316,72 @@ async function fetchFormularioEnvios(tenantId: string): Promise<Map<string, any>
 }
 
 /**
+ * Fetches data from assinatura_contracts table
+ * Used for Assinatura Pendente and Revendedora stages
+ */
+async function fetchAssinaturaContracts(tenantId: string): Promise<Map<string, AssinaturaData>> {
+  const supabase = await getClientSupabaseClient(tenantId);
+  if (!supabase) return new Map();
+  
+  try {
+    let query = supabase
+      .from('assinatura_contracts')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(500);
+    
+    if (tenantId !== 'default-tenant') {
+      query = query.eq('tenant_id', tenantId);
+    }
+    
+    const { data, error } = await query;
+    
+    if (error) {
+      if (error.code === '42P01' || error.message.includes('does not exist') || error.message.includes('schema cache')) {
+        console.log('ℹ️ [LeadJourneyAggregator] Tabela assinatura_contracts não existe');
+        return new Map();
+      }
+      
+      console.error('❌ [LeadJourneyAggregator] Erro ao buscar assinatura_contracts:', error.message);
+      return new Map();
+    }
+    
+    const assinaturaMap = new Map<string, AssinaturaData>();
+    for (const contract of (data || [])) {
+      const telefoneNorm = normalizeTelefone(contract.client_phone);
+      const cpfNorm = normalizeCPF(contract.client_cpf);
+      
+      const assinaturaData: AssinaturaData = {
+        id: contract.id,
+        clientName: contract.client_name,
+        clientCpf: contract.client_cpf,
+        clientEmail: contract.client_email,
+        clientPhone: contract.client_phone,
+        status: contract.status || 'pending',
+        accessToken: contract.access_token,
+        protocolNumber: contract.protocol_number,
+        createdAt: contract.created_at,
+        signedAt: contract.signed_at,
+        updatedAt: contract.updated_at
+      };
+      
+      if (telefoneNorm && !assinaturaMap.has(`tel:${telefoneNorm}`)) {
+        assinaturaMap.set(`tel:${telefoneNorm}`, assinaturaData);
+      }
+      if (cpfNorm && !assinaturaMap.has(`cpf:${cpfNorm}`)) {
+        assinaturaMap.set(`cpf:${cpfNorm}`, assinaturaData);
+      }
+    }
+    
+    console.log(`✅ [LeadJourneyAggregator] Carregados ${(data || []).length} contratos de assinatura_contracts`);
+    return assinaturaMap;
+  } catch (error: any) {
+    console.error('❌ [LeadJourneyAggregator] Exceção ao buscar assinatura_contracts:', error.message);
+    return new Map();
+  }
+}
+
+/**
  * Aggregates lead journeys from all Supabase tables
  * 
  * @param tenantId - Required tenant ID for multi-tenant isolation
@@ -1307,13 +1402,14 @@ export async function aggregateLeadJourneys(tenantId: string): Promise<LeadJourn
   
   console.log(`🔄 [LeadJourneyAggregator] Agregando jornadas para tenant: ${tenantId}`);
   
-  const [clientesMap, submissionsMap, cpfMap, reunioesMap, dashboardMap, formularioEnviosMap] = await Promise.all([
+  const [clientesMap, submissionsMap, cpfMap, reunioesMap, dashboardMap, formularioEnviosMap, assinaturaMap] = await Promise.all([
     fetchDadosCliente(tenantId),
     fetchFormSubmissions(tenantId),
     fetchCpfComplianceResults(tenantId),
     fetchReunioes(tenantId),
     fetchDashboardCompleto(tenantId),
-    fetchFormularioEnvios(tenantId)
+    fetchFormularioEnvios(tenantId),
+    fetchAssinaturaContracts(tenantId)
   ]);
   
   const allPhones = new Set<string>();
@@ -1556,13 +1652,19 @@ export async function aggregateLeadJourneys(tenantId: string): Promise<LeadJourn
     // Get formulario_envios data for this phone
     const formularioEnvio = formularioEnviosMap.get(telefoneNorm);
     
-    const partialJourney: Partial<LeadJourney> & { formularioEnvio?: any } = {
+    // Get assinatura data for this phone or CPF
+    const cpfNorm = normalizeCPF(cliente?.cpf || submission?.contact_cpf || cpfResult?.cpf);
+    const assinaturaData = assinaturaMap.get(`tel:${telefoneNorm}`) || 
+                           (cpfNorm ? assinaturaMap.get(`cpf:${cpfNorm}`) : undefined);
+    
+    const partialJourney: Partial<LeadJourney> & { formularioEnvio?: any; assinatura?: AssinaturaData } = {
       contact: contactData,
       form: formData,
       cpfData,
       meeting: meetingData,
       dashboard: dashboardData,
-      formularioEnvio
+      formularioEnvio,
+      assinatura: assinaturaData
     };
     
     const pipelineStatus = determinePipelineStatus(partialJourney);
@@ -1614,6 +1716,7 @@ export async function aggregateLeadJourneys(tenantId: string): Promise<LeadJourn
       meeting: meetingData,
       dashboard: dashboardData,
       formularioEnvio: formularioEnvioData,
+      assinatura: assinaturaData,
       timeline,
       createdAt,
       updatedAt: updatedAt > 0 ? new Date(updatedAt).toISOString() : createdAt,

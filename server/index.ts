@@ -54,36 +54,53 @@ app.use(attachUserData);
 
 // FREE Tier optimizations - Cloudflare cache headers and compression
 app.use(cloudflareCache);
-app.use(smartCompression);
+// TEMPORARILY DISABLED: smartCompression causing issues with async response handling
+// app.use(smartCompression);
 
+// Debug middleware for leads-pipeline to trace request flow
+app.use((req, res, next) => {
+  if (req.path.includes('leads-pipeline')) {
+    console.log(`[PIPELINE-DEBUG] ${new Date().toISOString()} ${req.method} ${req.path} - Request received`);
+    
+    // Track when headers are sent
+    const originalWriteHead = res.writeHead.bind(res);
+    res.writeHead = function(statusCode: number, ...args: any[]) {
+      console.log(`[PIPELINE-DEBUG] writeHead called with status ${statusCode}`);
+      return originalWriteHead(statusCode, ...args);
+    };
+    
+    // Track when response ends
+    const originalEnd = res.end.bind(res);
+    res.end = function(...args: any[]) {
+      console.log(`[PIPELINE-DEBUG] res.end called`);
+      return originalEnd(...args);
+    };
+    
+    res.on('close', () => {
+      console.log(`[PIPELINE-DEBUG] Response closed (client disconnected?)`);
+    });
+    
+    res.on('finish', () => {
+      console.log(`[PIPELINE-DEBUG] Response finished successfully`);
+    });
+  }
+  next();
+});
+
+// Request logging middleware using res.on("finish") to avoid breaking streaming
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
 
-  const originalResJson = res.json.bind(res);
-  res.json = function (bodyJson: any) {
-    capturedJsonResponse = bodyJson;
-    return originalResJson(bodyJson);
-  };
-
-  const originalEnd = res.end.bind(res);
-  res.end = function (chunk?: any, encoding?: any, callback?: any): Response {
+  // Use "finish" event instead of monkey-patching res.end/res.json
+  // This prevents breaking chunked/streaming responses for large payloads
+  res.on('finish', () => {
     const duration = Date.now() - start;
     if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-      }
-
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
-      }
-
+      const logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
       log(logLine);
     }
-    return originalEnd(chunk, encoding, callback);
-  };
+  });
 
   next();
 });

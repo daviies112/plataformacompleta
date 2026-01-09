@@ -17,6 +17,8 @@ const PIPELINE_STAGES = [
   'reuniao-agendada',
   'reuniao-nao-compareceu',
   'reuniao-completo',
+  'assinatura-pendente',
+  'revendedora',
   'consultor'
 ] as const;
 
@@ -30,8 +32,10 @@ const STAGE_LABELS: Record<string, string> = {
   'reuniao-pendente': 'Reunião Pendente',
   'reuniao-agendada': 'Reunião Agendada',
   'reuniao-nao-compareceu': 'Reunião Não Compareceu',
-  'reuniao-completo': 'Assinatura Pendente',
-  'consultor': 'Revendedora',
+  'reuniao-completo': 'Reunião Completa',
+  'assinatura-pendente': 'Assinatura Pendente',
+  'revendedora': 'Revendedora',
+  'consultor': 'Consultor',
 };
 
 const STAGE_COLORS: Record<string, string> = {
@@ -45,7 +49,9 @@ const STAGE_COLORS: Record<string, string> = {
   'reuniao-agendada': 'bg-amber-200',
   'reuniao-nao-compareceu': 'bg-red-300',
   'reuniao-completo': 'bg-lime-200',
-  'consultor': 'bg-purple-200',
+  'assinatura-pendente': 'bg-emerald-200',
+  'revendedora': 'bg-purple-200',
+  'consultor': 'bg-indigo-200',
 };
 
 const COLUMNS = PIPELINE_STAGES.map(stage => ({
@@ -170,30 +176,89 @@ export default function KanbanPage() {
   const { data: leads = [], isLoading, error, refetch, isFetching } = useQuery<Lead[]>({
     queryKey: ['/api/leads-pipeline', tenantId],
     queryFn: async () => {
-      console.log('[KanbanPage] Fetching leads for tenant:', tenantId);
-      const response = await fetch(`/api/leads-pipeline/${tenantId}`, {
-        credentials: 'include',
-      });
+      const startTime = Date.now();
+      console.log('[KanbanPage] START Fetching leads for tenant:', tenantId);
       
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('[KanbanPage] API error:', errorText);
-        throw new Error(errorText || 'Failed to fetch leads');
+      const fetchPage = async (page: number, retry = 0): Promise<any> => {
+        try {
+          const response = await fetch(`/api/leads-pipeline/${tenantId}?page=${page}&pageSize=50`, {
+            credentials: 'include',
+          });
+          
+          // Handle 202 Accepted (data still loading) - respect Retry-After header
+          if (response.status === 202 && retry < 10) {
+            const retryAfter = parseInt(response.headers.get('Retry-After') || '2', 10);
+            console.log(`[KanbanPage] Server returned 202, retrying in ${retryAfter}s (attempt ${retry + 1}/10)...`);
+            await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
+            return fetchPage(page, retry + 1);
+          }
+          
+          if (!response.ok && response.status !== 202) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+          
+          const data = await response.json();
+          
+          // Fallback check for loading state in response body
+          if (data.status === 'loading' && retry < 10) {
+            console.log(`[KanbanPage] Server loading data, retry ${retry + 1}/10 in 2s...`);
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            return fetchPage(page, retry + 1);
+          }
+          
+          return data;
+        } catch (err) {
+          if (retry < 3) {
+            console.log(`[KanbanPage] Fetch error, retry ${retry + 1}/3...`);
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            return fetchPage(page, retry + 1);
+          }
+          throw err;
+        }
+      };
+      
+      try {
+        console.log('[KanbanPage] Fetching first page...');
+        const firstPageData = await fetchPage(1);
+        console.log('[KanbanPage] First page received:', firstPageData.data?.leads?.length, 'leads, total pages:', firstPageData.data?.pagination?.totalPages, 'source:', firstPageData.data?.source);
+        
+        if (!firstPageData.success) {
+          throw new Error(firstPageData.error || 'Failed to fetch leads');
+        }
+        
+        let allLeads = [...(firstPageData.data?.leads || [])];
+        const totalPages = firstPageData.data?.pagination?.totalPages || 1;
+        
+        // Fetch remaining pages in parallel if needed
+        if (totalPages > 1) {
+          console.log(`[KanbanPage] Fetching pages 2-${totalPages} in parallel...`);
+          const pagePromises = [];
+          for (let page = 2; page <= totalPages; page++) {
+            pagePromises.push(fetchPage(page));
+          }
+          
+          const pageResults = await Promise.all(pagePromises);
+          pageResults.forEach((pageData, idx) => {
+            if (pageData.success && pageData.data?.leads) {
+              console.log(`[KanbanPage] Page ${idx + 2} received:`, pageData.data.leads.length, 'leads');
+              allLeads = allLeads.concat(pageData.data.leads);
+            }
+          });
+        }
+        
+        console.log('[KanbanPage] Transforming', allLeads.length, 'leads...');
+        const transformedLeads: Lead[] = allLeads.map(transformApiLead);
+        console.log('[KanbanPage] DONE in', Date.now() - startTime, 'ms, transformed:', transformedLeads.length);
+        return transformedLeads;
+      } catch (err: any) {
+        console.error('[KanbanPage] ERROR after', Date.now() - startTime, 'ms:', err?.name, err?.message);
+        throw err;
       }
-      
-      const result = await response.json();
-      console.log('[KanbanPage] API response received, success:', result.success, 'leads count:', result.data?.leads?.length);
-      
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to fetch leads');
-      }
-      
-      const transformedLeads = (result.data?.leads || []).map(transformApiLead);
-      console.log('[KanbanPage] Transformed leads count:', transformedLeads.length);
-      return transformedLeads;
     },
     staleTime: 30000,
     refetchOnWindowFocus: false,
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
   });
 
   useEffect(() => {

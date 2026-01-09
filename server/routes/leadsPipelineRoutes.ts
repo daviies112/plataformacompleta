@@ -9,6 +9,87 @@ import { normalizePhone } from '../formularios/utils/phoneNormalizer.js';
 
 const router = express.Router();
 
+// In-memory cache for leads data to avoid long Supabase fetches on every request
+// This prevents browser timeouts in Replit's proxy environment
+interface LeadsCacheEntry {
+  data: any[];
+  timestamp: number;
+  tenantId: string;
+}
+
+const leadsCache = new Map<string, LeadsCacheEntry>();
+const CACHE_TTL_MS = 60 * 1000; // 1 minute cache
+const CACHE_WAIT_TIMEOUT_MS = 4500; // Wait up to 4.5s for cache (Replit proxy timeout is ~5s)
+
+// Export function to invalidate cache (used by mutations)
+export function invalidateLeadsCache(tenantId?: string) {
+  if (tenantId) {
+    leadsCache.delete(tenantId);
+    console.log(`[LeadsCache] Invalidated cache for tenant: ${tenantId}`);
+  } else {
+    leadsCache.clear();
+    console.log('[LeadsCache] Invalidated all caches');
+  }
+}
+
+// Background refresh function - non-blocking
+async function refreshLeadsCacheBackground(tenantId: string) {
+  try {
+    console.log(`[LeadsCache] Background refresh for tenant: ${tenantId}`);
+    const journeys = await aggregateLeadJourneys(tenantId);
+    const transformedLeads = journeys.map(journey => transformJourneyToLead(journey));
+    
+    leadsCache.set(tenantId, {
+      data: transformedLeads,
+      timestamp: Date.now(),
+      tenantId
+    });
+    console.log(`[LeadsCache] Cached ${transformedLeads.length} leads for tenant: ${tenantId}`);
+  } catch (error) {
+    console.error(`[LeadsCache] Background refresh failed:`, error);
+  }
+}
+
+// Track pending refreshes to avoid duplicate fetches
+const pendingRefreshes = new Map<string, Promise<void>>();
+
+// Get cached leads or fetch synchronously if cache miss
+function getCachedLeads(tenantId: string): { data: any[] | null; isStale: boolean; isPending: boolean } {
+  const cached = leadsCache.get(tenantId);
+  const isPending = pendingRefreshes.has(tenantId);
+  
+  if (!cached) {
+    return { data: null, isStale: true, isPending };
+  }
+  
+  const age = Date.now() - cached.timestamp;
+  const isStale = age > CACHE_TTL_MS;
+  
+  return { data: cached.data, isStale, isPending };
+}
+
+// Wait for pending refresh with timeout
+async function waitForPendingRefresh(tenantId: string, timeoutMs: number = CACHE_WAIT_TIMEOUT_MS): Promise<boolean> {
+  const pending = pendingRefreshes.get(tenantId);
+  if (!pending) return false;
+  
+  try {
+    await Promise.race([
+      pending,
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), timeoutMs))
+    ]);
+    return true; // Refresh completed
+  } catch {
+    return false; // Timeout
+  }
+}
+
+// Debug endpoint to test if basic responses work
+router.get('/ping', (req, res) => {
+  console.log('[LeadsPipeline] PING received');
+  res.json({ success: true, message: 'pong', timestamp: new Date().toISOString() });
+});
+
 const PIPELINE_STAGES = [
   'contato-inicial',
   'formulario-nao-preenchido',
@@ -20,6 +101,8 @@ const PIPELINE_STAGES = [
   'reuniao-agendada',
   'reuniao-nao-compareceu',
   'reuniao-completo',
+  'assinatura-pendente',
+  'revendedora',
   'consultor'
 ] as const;
 
@@ -238,7 +321,21 @@ function transformJourneyToLead(journey: LeadJourney): Record<string, any> {
     timeline: journey.timeline,
     contact: journey.contact,
     form: journey.form,
-    cpfData: journey.cpfData,
+    cpfData: journey.cpfData ? {
+      id: journey.cpfData.id,
+      cpf: journey.cpfData.cpf,
+      nome: journey.cpfData.nome,
+      telefone: journey.cpfData.telefone,
+      status: journey.cpfData.status,
+      risco: journey.cpfData.risco,
+      processos: journey.cpfData.processos,
+      aprovado: journey.cpfData.aprovado,
+      dataConsulta: journey.cpfData.dataConsulta,
+      checkId: journey.cpfData.checkId,
+      queryId: journey.cpfData.queryId,
+      comoAutor: journey.cpfData.comoAutor,
+      comoReu: journey.cpfData.comoReu,
+    } : undefined,
     meeting: journey.meeting,
     hasContact: !!journey.contact,
     hasForm: !!journey.form,
@@ -469,6 +566,12 @@ const UNIFIED_PIPELINE_QUERY = `
 router.get('/:tenantId', async (req, res) => {
   try {
     const { tenantId } = req.params;
+    
+    // Pagination parameters - default 50 leads per page to avoid proxy buffering
+    const page = parseInt(req.query.page as string) || 1;
+    const pageSize = Math.min(parseInt(req.query.pageSize as string) || 50, 100); // Max 100 per page
+    const stage = req.query.stage as string || null; // Optional filter by stage
+    const forceRefresh = req.query.refresh === 'true';
 
     if (!tenantId) {
       return res.status(400).json({
@@ -488,71 +591,162 @@ router.get('/:tenantId', async (req, res) => {
     let allLeads: any[] = [];
     let source = 'supabase-aggregated';
 
-    // Use the new aggregator to fetch data from all 4 Supabase tables
-    // This provides accumulated data showing the complete lead journey
-    console.log('🔄 [LeadsPipeline] Usando agregador de jornadas para buscar dados acumulados...');
-    const journeys = await aggregateLeadJourneys(tenantId);
+    // Check cache first to avoid browser timeout (Replit proxy has ~5s timeout)
+    const cacheState = getCachedLeads(tenantId);
     
-    if (journeys.length > 0) {
-      allLeads = journeys.map(journey => transformJourneyToLead(journey));
-      console.log(`✅ [LeadsPipeline] Retornando ${allLeads.length} leads com dados acumulados (tenant: ${tenantId})`);
-    } else {
-      // Fallback to legacy method if aggregator returns nothing
-      console.log('⚠️ [LeadsPipeline] Agregador retornou vazio, tentando método legado...');
+    if (cacheState.data && !forceRefresh) {
+      // Use cached data for immediate response
+      allLeads = cacheState.data;
+      source = cacheState.isStale ? 'cache-stale' : 'cache-fresh';
+      console.log(`[LeadsPipeline] Using ${source} data (${allLeads.length} leads)`);
       
-      // Try local PostgreSQL first (if db is available)
-      if (db) {
-        try {
-          const result = await db
-            .select()
-            .from(leads)
-            .where(eq(leads.tenantId, tenantId))
-            .orderBy(sql`${leads.updatedAt} DESC`);
-          
-          if (result.length > 0) {
-            allLeads = result.map(row => transformRowToCamelCase(row as Record<string, any>));
-            source = 'local';
-          }
-        } catch (localError: any) {
-          if (localError.message?.includes('does not exist') || localError.cause?.code === '42P01') {
-            console.log('ℹ️ [LeadsPipeline] Tabela leads local não existe - usando Supabase-only');
-          } else {
-            console.error('❌ [LeadsPipeline] Erro ao buscar leads locais:', localError.message);
-          }
+      // Trigger background refresh if stale
+      if (cacheState.isStale && !cacheState.isPending) {
+        refreshLeadsCacheBackground(tenantId);
+      }
+    } else if (cacheState.isPending) {
+      // A refresh is already pending - wait for it with full timeout
+      console.log('[LeadsPipeline] Waiting for pending refresh...');
+      const completed = await waitForPendingRefresh(tenantId);
+      
+      if (completed) {
+        const refreshedCache = getCachedLeads(tenantId);
+        if (refreshedCache.data) {
+          allLeads = refreshedCache.data;
+          source = 'cache-fresh';
+          console.log(`[LeadsPipeline] Using freshly cached data (${allLeads.length} leads)`);
         }
       }
       
-      // Try legacy Supabase fetch if still empty
+      // If still no data after waiting, return 202 Accepted with retry-after header
       if (allLeads.length === 0) {
-        const supabaseLeads = await fetchLeadsFromSupabase(tenantId);
-        if (supabaseLeads.length > 0) {
-          allLeads = supabaseLeads;
-          source = 'supabase-legacy';
+        console.log('[LeadsPipeline] Timeout waiting for data - returning 202 Accepted');
+        res.setHeader('Retry-After', '2');
+        return res.status(202).json({
+          success: true,
+          status: 'loading',
+          message: 'Data is being prepared. Please retry in 2 seconds.',
+          data: {
+            stages: [...PIPELINE_STAGES],
+            leads: [],
+            counts: Object.fromEntries(PIPELINE_STAGES.map(s => [s, 0])),
+            source: 'loading',
+            pagination: { page: 1, pageSize, totalLeads: 0, totalPages: 0, hasMore: false, isLoading: true }
+          }
+        });
+      }
+    } else {
+      // No cache - start refresh and wait for it
+      console.log('[LeadsPipeline] No cache - starting data fetch...');
+      
+      // Start refresh promise
+      const refreshPromise = (async () => {
+        try {
+          const journeys = await aggregateLeadJourneys(tenantId);
+          const transformedLeads = journeys.map(journey => transformJourneyToLead(journey));
+          leadsCache.set(tenantId, { data: transformedLeads, timestamp: Date.now(), tenantId });
+          console.log(`[LeadsCache] Initial load: ${transformedLeads.length} leads cached`);
+        } catch (error) {
+          console.error('[LeadsCache] Initial load failed:', error);
+        } finally {
+          pendingRefreshes.delete(tenantId);
         }
+      })();
+      
+      pendingRefreshes.set(tenantId, refreshPromise);
+      
+      // Wait for data with full timeout (4.5s to stay under Replit's 5s proxy limit)
+      const completed = await waitForPendingRefresh(tenantId);
+      
+      if (completed) {
+        const refreshedCache = getCachedLeads(tenantId);
+        if (refreshedCache.data) {
+          allLeads = refreshedCache.data;
+          source = 'fresh';
+          console.log(`[LeadsPipeline] Fresh data loaded (${allLeads.length} leads)`);
+        }
+      }
+      
+      // If still no data after waiting, return 202 Accepted
+      if (allLeads.length === 0) {
+        console.log('[LeadsPipeline] Returning 202 - data still loading');
+        res.setHeader('Retry-After', '2');
+        return res.status(202).json({
+          success: true,
+          status: 'loading',
+          message: 'Data is being prepared. Please retry in 2 seconds.',
+          data: {
+            stages: [...PIPELINE_STAGES],
+            leads: [],
+            counts: Object.fromEntries(PIPELINE_STAGES.map(s => [s, 0])),
+            source: 'loading',
+            pagination: { page: 1, pageSize, totalLeads: 0, totalPages: 0, hasMore: false, isLoading: true }
+          }
+        });
       }
     }
 
+    // Calculate counts BEFORE pagination (always include full counts)
     const counts: Record<string, number> = {};
-    PIPELINE_STAGES.forEach(stage => {
-      counts[stage] = 0;
+    PIPELINE_STAGES.forEach(stg => {
+      counts[stg] = 0;
     });
 
     allLeads.forEach(lead => {
-      const stage = lead.calculatedStage || lead.pipelineStatus || 'contato-inicial';
-      if (counts[stage] !== undefined) {
-        counts[stage]++;
+      const leadStage = lead.calculatedStage || lead.pipelineStatus || 'contato-inicial';
+      if (counts[leadStage] !== undefined) {
+        counts[leadStage]++;
       }
     });
 
-    res.json({
+    // Filter by stage if specified
+    let filteredLeads = allLeads;
+    if (stage && PIPELINE_STAGES.includes(stage)) {
+      filteredLeads = allLeads.filter(lead => {
+        const leadStage = lead.calculatedStage || lead.pipelineStatus || 'contato-inicial';
+        return leadStage === stage;
+      });
+    }
+
+    // Apply pagination
+    const totalLeads = filteredLeads.length;
+    const totalPages = Math.ceil(totalLeads / pageSize);
+    const startIndex = (page - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    const paginatedLeads = filteredLeads.slice(startIndex, endIndex);
+
+    // Prepare response data with pagination metadata
+    const responseData = {
       success: true,
       data: {
         stages: [...PIPELINE_STAGES],
-        leads: allLeads,
+        leads: paginatedLeads,
         counts,
-        source: source
+        source: source,
+        pagination: {
+          page,
+          pageSize,
+          totalLeads,
+          totalPages,
+          hasMore: page < totalPages,
+          stageFilter: stage
+        }
       }
-    });
+    };
+    
+    // Log before sending
+    console.log(`[LeadsPipeline] Sending page ${page}/${totalPages} with ${paginatedLeads.length}/${totalLeads} leads...`);
+    
+    // Set headers to prevent proxy buffering and caching in Replit's environment
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.setHeader('X-Accel-Buffering', 'no'); // Disable nginx buffering
+    
+    // Use res.json() - Express handles Content-Type and serialization
+    res.json(responseData);
+    
+    console.log(`[LeadsPipeline] Response sent successfully`);
   } catch (error) {
     console.error('Error fetching leads pipeline:', error);
     res.status(500).json({
@@ -772,6 +966,9 @@ router.patch('/:leadId', async (req, res) => {
       
       console.log(`✅ [LeadsPipeline] Lead ${leadId} atualizado no Supabase (tenant: ${tenantId}) com sucesso`);
       
+      // Invalidate cache after mutation
+      invalidateLeadsCache(tenantId);
+      
       return res.json({
         success: true,
         data: updated,
@@ -912,6 +1109,11 @@ router.patch('/:leadId', async (req, res) => {
       motivo_recusa: meetingRecord?.motivoRecusa,
     });
 
+    // Invalidate cache after local DB mutation
+    if (existingLead?.tenantId) {
+      invalidateLeadsCache(existingLead.tenantId);
+    }
+    
     res.json({
       success: true,
       data: responseData
@@ -1051,6 +1253,9 @@ router.patch('/supabase/:leadId', async (req, res) => {
       
       console.log(`✅ [LeadsPipeline] Lead atualizado em ${alternativeTable} (tenant: ${tenantId}) com sucesso`);
       
+      // Invalidate cache after Supabase mutation
+      invalidateLeadsCache(tenantId);
+      
       return res.json({
         success: true,
         data: altRecord,
@@ -1059,6 +1264,9 @@ router.patch('/supabase/:leadId', async (req, res) => {
     }
     
     console.log(`✅ [LeadsPipeline] Lead ${leadId} atualizado em ${targetTable} (tenant: ${tenantId}) com sucesso`);
+    
+    // Invalidate cache after Supabase mutation
+    invalidateLeadsCache(tenantId);
     
     res.json({
       success: true,
@@ -1139,6 +1347,9 @@ router.post('/supabase/dados-cliente', async (req, res) => {
     }
     
     console.log(`✅ [LeadsPipeline] Cliente criado com ID: ${newClient.id}`);
+    
+    // Invalidate cache after creating new client
+    invalidateLeadsCache(tenantId);
     
     res.json({
       success: true,

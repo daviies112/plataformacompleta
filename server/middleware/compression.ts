@@ -42,9 +42,23 @@ const COMPRESSION_CONFIG = {
 };
 
 /**
+ * Paths to skip compression (known issues with async compression)
+ */
+const SKIP_COMPRESSION_PATHS = [
+  '/api/leads-pipeline',
+];
+
+/**
  * Check if response should be compressed
  */
 function shouldCompress(req: Request, res: Response): boolean {
+  // Skip specific paths that have issues with async compression
+  // Use originalUrl for full path including router mounts
+  const fullPath = req.originalUrl || req.path;
+  if (SKIP_COMPRESSION_PATHS.some(path => fullPath.startsWith(path))) {
+    return false;
+  }
+  
   // Skip if client doesn't support compression
   const acceptEncoding = req.headers['accept-encoding'] || '';
   if (!acceptEncoding.includes('gzip') && !acceptEncoding.includes('br')) {
