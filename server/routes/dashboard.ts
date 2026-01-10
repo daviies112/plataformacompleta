@@ -416,26 +416,38 @@ router.get('/calendar-events', authenticateToken, async (req, res) => {
             if (supabaseMeetings && supabaseMeetings.length > 0) {
               console.log(`🎥 Encontradas ${supabaseMeetings.length} reuniões no Supabase para o calendário`);
               for (const meeting of supabaseMeetings) {
-                // Suportar data_inicio (snake_case) ou dataHora (camelCase)
+                // Suportar data_inicio (snake_case) ou dataHora (camelCase) ou data_hora
                 const startDate = meeting.data_inicio || meeting.dataHora || meeting.data_hora;
                 if (!startDate) {
-                  console.log(`⚠️ Reunião ${meeting.id} sem data de início definida`);
+                  console.log(`⚠️ Reunião ${meeting.id} sem data de início definida. Dados:`, JSON.stringify(meeting));
                   continue;
                 }
 
                 try {
+                  // Tratar a data para garantir que seja interpretada corretamente como local ou UTC conforme necessário
                   const dateObj = new Date(startDate);
                   if (isNaN(dateObj.getTime())) {
                     console.log(`⚠️ Data inválida para reunião ${meeting.id}: ${startDate}`);
                     continue;
                   }
 
-                  const dateOnly = dateObj.toISOString().split('T')[0];
+                  // ISO string gera UTC, precisamos ajustar para o fuso local antes de dar split
+                  // Usando o fuso de São Paulo explicitamente
+                  const dateFormatter = new Intl.DateTimeFormat('sv-SE', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    timeZone: 'America/Sao_Paulo'
+                  });
+                  const dateOnly = dateFormatter.format(dateObj);
+
                   const timeOnly = dateObj.toLocaleTimeString('pt-BR', {
                     hour: '2-digit',
                     minute: '2-digit',
                     timeZone: 'America/Sao_Paulo'
                   });
+
+                  console.log(`📅 Reunião processada: ${meeting.titulo} em ${dateOnly} ${timeOnly}`);
 
                   workspaceEvents.push({
                     id: `supabase_meeting_${meeting.id}`,
