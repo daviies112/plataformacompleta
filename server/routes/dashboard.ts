@@ -417,41 +417,35 @@ router.get('/calendar-events', authenticateToken, async (req, res) => {
             }
 
             if (supabaseMeetings && supabaseMeetings.length > 0) {
-              console.log(`🎥 Encontradas ${supabaseMeetings.length} reuniões no Supabase (TOTAL)`);
+              console.log(`🎥 Encontradas ${supabaseMeetings.length} reuniões no Supabase (EXIBIÇÃO TOTAL ATIVA)`);
               
               for (const meeting of supabaseMeetings) {
-                // Suportar data_inicio (snake_case) ou dataHora (camelCase) ou data_hora
-                const startDate = meeting.data_inicio || meeting.dataHora || meeting.data_hora;
+                // Suportar múltiplos formatos de campo de data
+                const startDate = meeting.data_inicio || meeting.dataHora || meeting.data_hora || meeting.created_at;
+                
                 if (!startDate) {
-                  console.log(`⚠️ Reunião ${meeting.id} sem data de início definida. Dados:`, JSON.stringify(meeting));
+                  console.log(`⚠️ Reunião ${meeting.id} sem data. Dados:`, JSON.stringify(meeting));
                   continue;
                 }
 
                 try {
-                  // Tratar a data para garantir que seja interpretada corretamente como local ou UTC conforme necessário
                   const dateObj = new Date(startDate);
                   if (isNaN(dateObj.getTime())) {
                     console.log(`⚠️ Data inválida para reunião ${meeting.id}: ${startDate}`);
                     continue;
                   }
 
-                  // ISO string gera UTC, precisamos ajustar para o fuso local antes de dar split
-                  // Usando o fuso de São Paulo explicitamente
-                  const dateFormatter = new Intl.DateTimeFormat('sv-SE', {
-                    year: 'numeric',
-                    month: '2-digit',
-                    day: '2-digit',
-                    timeZone: 'America/Sao_Paulo'
-                  });
-                  const dateOnly = dateFormatter.format(dateObj);
+                  // Formatação robusta para o calendário (YYYY-MM-DD)
+                  const year = dateObj.getFullYear();
+                  const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+                  const day = String(dateObj.getDate()).padStart(2, '0');
+                  const dateOnly = `${year}-${month}-${day}`;
 
                   const timeOnly = dateObj.toLocaleTimeString('pt-BR', {
                     hour: '2-digit',
                     minute: '2-digit',
                     timeZone: 'America/Sao_Paulo'
                   });
-
-                  console.log(`📅 Reunião processada: ${meeting.titulo} em ${dateOnly} ${timeOnly}`);
 
                   workspaceEvents.push({
                     id: `supabase_meeting_${meeting.id}`,
@@ -469,7 +463,7 @@ router.get('/calendar-events', authenticateToken, async (req, res) => {
                     source: 'supabase_meeting'
                   });
                 } catch (err) {
-                  console.error(`❌ Erro ao processar data da reunião ${meeting.id}:`, err);
+                  console.error(`❌ Erro ao processar reunião ${meeting.id}:`, err);
                 }
               }
             }
