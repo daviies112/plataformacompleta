@@ -152,6 +152,12 @@ export function Meeting100ms({
   const isVideoEnabled = useHMSStore(selectIsLocalVideoEnabled);
   const isScreenShared = useHMSStore(selectIsLocalScreenShared);
   const room = useHMSStore(selectRoom);
+  const hmsStore = useHMSStore();
+
+  const localPeer = useHMSStore((store) => store.localPeer);
+  const isHost = localPeer?.roleName === 'host';
+  const canRecord = isHost;
+  const canShare = isHost || config.meeting?.enableScreenShare;
   
   const [localRecordingStatus, setLocalRecordingStatus] = useState<boolean | 'loading'>(false);
 
@@ -532,6 +538,10 @@ export function Meeting100ms({
                 <Button
                   onClick={() => {
                     console.log("[Meeting100ms] Click Tela Direto");
+                    if (!canShare) {
+                      toast.error("Somente o administrador pode compartilhar tela nesta sala.");
+                      return;
+                    }
                     toggleScreenShare();
                   }}
                   variant="ghost"
@@ -542,18 +552,20 @@ export function Meeting100ms({
                   {isScreenShared ? <MonitorOff className="h-5 w-5 pointer-events-none" /> : <MonitorUp className="h-5 w-5 pointer-events-none" />}
                 </Button>
 
-                <Button
-                  onClick={handleToggleRecording}
-                  variant={isRecording ? "destructive" : "ghost"}
-                  size="icon"
-                  className={cn(
-                    "h-12 w-12 rounded-2xl transition-all duration-300 relative z-50", 
-                    isRecording ? "bg-red-500 text-white shadow-lg shadow-red-500/20" : "bg-zinc-800/50 text-white hover:bg-zinc-700"
-                  )}
-                  title={isRecording ? "Parar gravação" : "Iniciar gravação"}
-                >
-                  <Circle className={cn("h-5 w-5 pointer-events-none", isRecording && "fill-white animate-pulse")} />
-                </Button>
+                {canRecord && (
+                  <Button
+                    onClick={handleToggleRecording}
+                    variant={isRecording ? "destructive" : "ghost"}
+                    size="icon"
+                    className={cn(
+                      "h-12 w-12 rounded-2xl transition-all duration-300 relative z-50", 
+                      isRecording ? "bg-red-500 text-white shadow-lg shadow-red-500/20" : "bg-zinc-800/50 text-white hover:bg-zinc-700"
+                    )}
+                    title={isRecording ? "Parar gravação" : "Iniciar gravação"}
+                  >
+                    <Circle className={cn("h-5 w-5 pointer-events-none", isRecording && "fill-white animate-pulse")} />
+                  </Button>
+                )}
 
                 <div className="h-8 w-[1px] bg-white/10 mx-1" />
 

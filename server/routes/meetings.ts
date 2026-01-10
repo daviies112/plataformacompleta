@@ -142,7 +142,7 @@ publicRoomDesignRouter.get('/reunioes/:id/public', async (req: Request, res: Res
 publicRoomDesignRouter.post('/reunioes/:id/token-public', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { userName, role } = req.body;
+    const { userName } = req.body;
 
     const [meeting] = await db.select().from(reunioes)
       .where(eq(reunioes.id, id))
@@ -162,9 +162,9 @@ publicRoomDesignRouter.post('/reunioes/:id/token-public', async (req: Request, r
       return res.status(400).json({ error: 'Credenciais do 100ms não configuradas para este tenant' });
     }
 
-    // Determine role - recording bot gets special role, others get guest
-    const participantRole = role === 'recorder' ? 'recorder' : 'guest';
-    const participantName = userName || 'Participante';
+    // For public link, role is always guest unless it's a recorder
+    const participantRole = 'guest';
+    const participantName = userName || 'Visitante';
 
     console.log(`[Token Public] Gerando token para ${participantName} (${participantRole}) na sala ${meeting.roomId100ms}`);
 
@@ -912,6 +912,39 @@ meetingsRouter.post('/reunioes', authenticateToken, requireTenantId, async (req:
   } catch (error: any) {
     console.error('Erro ao criar reunião:', error);
     res.status(500).json({ error: 'Erro ao criar reunião', message: error.message });
+  }
+});
+
+// GET /api/100ms/get-token - Get 100ms token for authenticated users (always HOST)
+meetingsRouter.post('/100ms/get-token', authenticateToken, requireTenantId, async (req: AuthRequest, res: Response) => {
+  try {
+    const { roomId, name } = req.body;
+    const tenantId = req.user!.tenantId;
+
+    if (!roomId) {
+      return res.status(400).json({ error: 'roomId é obrigatório' });
+    }
+
+    const credentials = await get100msCredentials(tenantId);
+    if (!credentials) {
+      return res.status(400).json({ error: 'Credenciais do 100ms não configuradas' });
+    }
+
+    // Authenticated users entering through the platform are always hosts
+    const role = 'host';
+
+    const token = gerarTokenParticipante(
+      roomId,
+      name || req.user?.nome || 'Admin',
+      role,
+      credentials.appAccessKey,
+      credentials.appSecret
+    );
+
+    res.json({ token, role });
+  } catch (error: any) {
+    console.error('Erro ao gerar token:', error);
+    res.status(500).json({ error: 'Erro ao gerar token', message: error.message });
   }
 });
 

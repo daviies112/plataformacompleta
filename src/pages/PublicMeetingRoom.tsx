@@ -339,14 +339,24 @@ function MeetingWrapper({
 
         const response = await api.post("/api/100ms/get-token", {
           roomId: reuniao.roomId100ms,
-          name: participantName || `guest-${Date.now()}`,
-          role: "host",
+          name: participantName || `Admin-${Date.now()}`,
           tenantSlug: companySlug,
         });
         setAuthToken(response.data.token);
       } catch (err: any) {
-        console.error("Erro ao gerar token:", err);
-        setTokenError(err.response?.data?.message || "Erro ao gerar token de acesso");
+        console.error("Erro ao gerar token admin:", err);
+        // Fallback para token público se falhar (ex: token expirado ou sem permissão)
+        try {
+          const pubResponse = await fetch(`/api/reunioes/${reuniao.id}/token-public`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userName: participantName || 'Convidado' })
+          });
+          const pubData = await pubResponse.json();
+          setAuthToken(pubData.token);
+        } catch (pubErr) {
+          setTokenError("Erro ao gerar token de acesso");
+        }
       }
     };
 
