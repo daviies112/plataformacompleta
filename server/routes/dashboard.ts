@@ -416,32 +416,45 @@ router.get('/calendar-events', authenticateToken, async (req, res) => {
             if (supabaseMeetings && supabaseMeetings.length > 0) {
               console.log(`🎥 Encontradas ${supabaseMeetings.length} reuniões no Supabase para o calendário`);
               for (const meeting of supabaseMeetings) {
-                const startDate = meeting.data_inicio || meeting.dataHora;
-                if (!startDate) continue;
+                // Suportar data_inicio (snake_case) ou dataHora (camelCase)
+                const startDate = meeting.data_inicio || meeting.dataHora || meeting.data_hora;
+                if (!startDate) {
+                  console.log(`⚠️ Reunião ${meeting.id} sem data de início definida`);
+                  continue;
+                }
 
-                const dateObj = new Date(startDate);
-                const dateOnly = dateObj.toISOString().split('T')[0];
-                const timeOnly = dateObj.toLocaleTimeString('pt-BR', {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  timeZone: 'America/Sao_Paulo'
-                });
+                try {
+                  const dateObj = new Date(startDate);
+                  if (isNaN(dateObj.getTime())) {
+                    console.log(`⚠️ Data inválida para reunião ${meeting.id}: ${startDate}`);
+                    continue;
+                  }
 
-                workspaceEvents.push({
-                  id: `supabase_meeting_${meeting.id}`,
-                  title: `🎥 Reunião: ${meeting.titulo || 'Sem título'}`,
-                  description: meeting.descricao || `Reunião vinda do Supabase`,
-                  date: dateOnly,
-                  time: timeOnly,
-                  duration: meeting.duracao || 60,
-                  isAllDay: false,
-                  type: 'meeting',
-                  client: meeting.nome || 'Cliente',
-                  status: meeting.status || 'agendada',
-                  location: meeting.link_reuniao || '',
-                  meetLink: meeting.link_reuniao || '',
-                  source: 'supabase_meeting'
-                });
+                  const dateOnly = dateObj.toISOString().split('T')[0];
+                  const timeOnly = dateObj.toLocaleTimeString('pt-BR', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    timeZone: 'America/Sao_Paulo'
+                  });
+
+                  workspaceEvents.push({
+                    id: `supabase_meeting_${meeting.id}`,
+                    title: `🎥 Reunião: ${meeting.titulo || 'Sem título'}`,
+                    description: meeting.descricao || `Reunião vinda do Supabase`,
+                    date: dateOnly,
+                    time: timeOnly,
+                    duration: meeting.duracao || 60,
+                    isAllDay: false,
+                    type: 'meeting',
+                    client: meeting.nome || 'Cliente',
+                    status: meeting.status || 'agendada',
+                    location: meeting.link_reuniao || meeting.link || '',
+                    meetLink: meeting.link_reuniao || meeting.link || '',
+                    source: 'supabase_meeting'
+                  });
+                } catch (err) {
+                  console.error(`❌ Erro ao processar data da reunião ${meeting.id}:`, err);
+                }
               }
             }
         
