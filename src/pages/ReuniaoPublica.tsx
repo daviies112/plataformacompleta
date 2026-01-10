@@ -49,8 +49,8 @@ export default function ReuniaoPublica() {
       return response.data;
     },
     enabled: !!meetingId,
-    staleTime: 0,
-    refetchOnMount: 'always',
+    staleTime: 1000 * 60 * 5, // Cache de 5 minutos para dados públicos
+    refetchOnMount: false,
   });
 
   const meeting = meetingData?.meeting;
@@ -58,19 +58,16 @@ export default function ReuniaoPublica() {
   const { data: designData } = useQuery({
     queryKey: ["/api/reunioes", meetingId, "room-design-public"],
     queryFn: async () => {
-      if (!meetingId) {
-        return { roomDesignConfig: null };
-      }
+      if (!meetingId) return { roomDesignConfig: null };
       try {
         const response = await api.get(`/api/reunioes/${meetingId}/room-design-public`);
         return response.data;
-      } catch (error: any) {
-        console.error("[ReuniaoPublica] Erro ao carregar room design:", error);
+      } catch (error) {
         return { roomDesignConfig: null };
       }
     },
     enabled: !!meetingId,
-    staleTime: 0,
+    staleTime: 1000 * 60 * 10, // Cache de 10 minutos para design
   });
 
   const roomConfig: RoomDesignConfig = useMemo(() => {

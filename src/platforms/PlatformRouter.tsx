@@ -1,32 +1,42 @@
-import DesktopApp from './desktop/DesktopApp';
-import MobileApp from './mobile/MobileApp';
-import ReuniaoPublica from '@/pages/ReuniaoPublica';
 import { useLocation } from 'wouter';
-import { usePlatform } from './shared/hooks/usePlatform';
-import { Suspense } from 'react';
+import { lazy, Suspense } from 'react';
+
+// Lazy load apps and pages for better performance
+const DesktopApp = lazy(() => import('./desktop/DesktopApp'));
+const MobileApp = lazy(() => import('./mobile/MobileApp'));
+const ReuniaoPublica = lazy(() => import('@/pages/ReuniaoPublica'));
+
+// Pre-load ReuniaoPublica as it's a priority for external links
+const prefetchReuniao = () => {
+  const link = document.createElement('link');
+  link.rel = 'prefetch';
+  link.href = '/src/pages/ReuniaoPublica.tsx';
+  document.head.appendChild(link);
+};
 
 /**
  * PlatformRouter - Roteador inteligente que decide qual app renderizar
- * Baseado na detecção da plataforma (mobile vs desktop)
  */
 const PlatformRouter = () => {
-  const { isMobile } = usePlatform();
   const [location] = useLocation();
 
-  console.log('[PlatformRouter] Location:', location, 'isMobile:', isMobile);
-
-  // Se for uma rota pública de reunião, renderizar diretamente
-  // Suporta /reuniao/:id, /reuniao/:tenant/:id, /reuniao-publica/:id
+  // Se for uma rota pública de reunião, renderizar diretamente com prioridade
   if (location.startsWith('/reuniao/') || location.startsWith('/reuniao-publica/')) {
     return (
-      <Suspense fallback={<div className="h-screen w-screen flex items-center justify-center bg-background text-foreground">Carregando reunião...</div>}>
+      <Suspense fallback={<div className="h-screen w-screen flex items-center justify-center bg-background text-foreground animate-pulse">Iniciando reunião...</div>}>
         <ReuniaoPublica />
       </Suspense>
     );
   }
 
-  // Renderiza o app apropriado baseado na plataforma
-  return isMobile ? <MobileApp /> : <DesktopApp />;
+  // Importar usePlatform sob demanda para evitar bloqueio inicial
+  const { isMobile } = require('./shared/hooks/usePlatform').usePlatform();
+
+  return (
+    <Suspense fallback={<div className="h-screen w-screen flex items-center justify-center bg-background">Carregando plataforma...</div>}>
+      {isMobile ? <MobileApp /> : <DesktopApp />}
+    </Suspense>
+  );
 };
 
 export default PlatformRouter;
