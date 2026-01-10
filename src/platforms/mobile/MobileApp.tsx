@@ -20,6 +20,7 @@ import LoginPage from "./pages/LoginPage";
 import NotionBoardsPage from "@/pages/notion/BoardsWrapper";
 import NotionHomePage from "@/pages/notion/Home";
 import NotionTemplatesPage from "@/pages/notion/Templates";
+import ReuniaoPublica from "@/pages/ReuniaoPublica";
 import ConsultarCPFPage from "@/pages/consultar-cpf";
 import HistoricoConsultasPage from "@/pages/historico-consultas";
 import ExportDataPage from "@/pages/ExportData";
@@ -62,6 +63,7 @@ const MobileApp = () => {
       <Route path="/:companySlug/form/:id" element={<FormularioPublicoWrapper />} />
       <Route path="/f/:token" element={<FormularioPublicoWrapper />} />
       <Route path="/reuniao/:id" element={<ReuniaoPublica />} />
+      <Route path="/reuniao/:companySlug/:id" element={<ReuniaoPublica />} />
       <Route path="/reuniao-publica/:id" element={<ReuniaoPublica />} />
       
       {/* Protected routes with Mobile Layout */}
