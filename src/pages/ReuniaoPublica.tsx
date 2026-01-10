@@ -41,6 +41,7 @@ export default function ReuniaoPublica() {
   
   const hasAutoJoinedRef = useRef(false);
 
+  // Pre-load design and meeting data to avoid blank screen
   const { data: meetingData, isLoading: meetingLoading, error: meetingError } = useQuery({
     queryKey: ["/api/reunioes-public", meetingId],
     queryFn: async () => {
