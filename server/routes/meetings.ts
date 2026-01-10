@@ -643,131 +643,33 @@ meetingsRouter.patch('/reunioes/room-design', authenticateToken, requireTenantId
       return res.status(400).json({ error: 'Configuração de design é obrigatória' });
     }
 
-    console.log(`[Design API] Iniciando salvamento para tenant: ${tenantId}`);
+    const validatedConfig = roomDesignConfigSchema.parse(roomDesignConfig);
 
-    // 1. Sincronizar com Supabase (Backend)
+    const [config] = await db.update(hms100msConfig)
+      .set({ roomDesignConfig: validatedConfig, updatedAt: new Date() })
+      .where(eq(hms100msConfig.tenantId, tenantId))
+      .returning();
+
+    // Sincronizar com Supabase
     try {
       const supabase = await getClientSupabaseClient(tenantId);
       if (supabase) {
-        console.log(`[Supabase Design Sync] Tentando upsert na tabela hms_100ms_config...`);
-        
-        // 🔍 [CORREÇÃO] Buscar as credenciais atuais do HMS para o tenant.
-        // A tabela hms_100ms_config no Supabase tem restrições NOT NULL nas chaves.
-        // Precisamos garantir que não estamos enviando null nelas.
-        const [currentConfig] = await db.select().from(hms100msConfig)
-          .where(eq(hms100msConfig.tenantId, tenantId))
-          .limit(1);
-
-        const { data: sbData, error: sbError } = await supabase
+        await supabase
           .from('hms_100ms_config')
           .upsert({
             tenant_id: tenantId,
-            app_access_key: currentConfig?.appAccessKey || 'pending_configuration',
-            app_secret: currentConfig?.appSecret || 'pending_configuration',
-            room_design_config: roomDesignConfig,
+            room_design_config: validatedConfig,
             updated_at: new Date().toISOString()
-          }, { 
-            onConflict: 'tenant_id',
-            ignoreDuplicates: false
-          })
-          .select();
-
-        if (sbError) {
-          console.error('[Supabase Design Sync Error]:', sbError);
-        } else {
-          console.log('[Supabase Design Sync Success]');
-        }
-      } else {
-        console.warn(`[Supabase Design Sync] Supabase não configurado para tenant ${tenantId}`);
+          }, { onConflict: 'tenant_id' });
       }
-    } catch (syncErr) {
-      console.error('[Supabase Design Sync Fatal Error]:', syncErr);
+    } catch (e) {
+      console.error('Erro ao sincronizar design com Supabase:', e);
     }
 
-    // 2. Persistir localmente
-    const [existingConfig] = await db.select().from(hms100msConfig)
-      .where(eq(hms100msConfig.tenantId, tenantId))
-      .limit(1);
-
-    let updatedConfig;
-    if (!existingConfig) {
-      [updatedConfig] = await db.insert(hms100msConfig).values({
-        tenantId,
-        appAccessKey: 'pending_configuration',
-        appSecret: 'pending_configuration',
-        roomDesignConfig,
-      }).returning();
-    } else {
-      [updatedConfig] = await db.update(hms100msConfig)
-        .set({ roomDesignConfig, updatedAt: new Date() })
-        .where(eq(hms100msConfig.tenantId, tenantId))
-        .returning();
-    }
-    
-    res.json({ success: true, roomDesignConfig: updatedConfig.roomDesignConfig });
+    res.json({ roomDesignConfig: config.roomDesignConfig });
   } catch (error: any) {
-    console.error('Erro ao salvar room design config:', error);
-    res.status(500).json({ error: 'Erro ao salvar configuração de design', message: error.message });
-  }
-});
-
-meetingsRouter.get('/reunioes/:id', authenticateToken, requireTenantId, async (req: AuthRequest, res: Response) => {
-  try {
-    const tenantId = req.user!.tenantId;
-    const { id } = req.params;
-
-    const [meeting] = await db.select().from(reunioes)
-      .where(and(eq(reunioes.id, id), eq(reunioes.tenantId, tenantId)))
-      .limit(1);
-
-    if (!meeting) {
-      return res.status(404).json({ error: 'Reunião não encontrada' });
-    }
-
-    res.json(meeting);
-  } catch (error: any) {
-    console.error('Erro ao buscar reunião:', error);
-    res.status(500).json({ error: 'Erro ao buscar reunião', message: error.message });
-  }
-});
-
-meetingsRouter.get('/reunioes/:id/token-100ms', authenticateToken, requireTenantId, async (req: AuthRequest, res: Response) => {
-  try {
-    const tenantId = req.user!.tenantId;
-    const { id } = req.params;
-    const role = (req.query.role as string) || 'guest';
-
-    const [meeting] = await db.select().from(reunioes)
-      .where(and(eq(reunioes.id, id), eq(reunioes.tenantId, tenantId)))
-      .limit(1);
-
-    if (!meeting || !meeting.roomId100ms) {
-      return res.status(404).json({ error: 'Reunião não encontrada ou sem sala 100ms' });
-    }
-
-    const credentials = await get100msCredentials(tenantId);
-    if (!credentials) {
-      return res.status(400).json({ error: 'Credenciais do 100ms não configuradas' });
-    }
-
-    const userId = nanoid(8);
-    const token = gerarTokenParticipante(
-      meeting.roomId100ms,
-      userId,
-      role,
-      credentials.appAccessKey,
-      credentials.appSecret
-    );
-
-    res.json({ 
-      token, 
-      roomId: meeting.roomId100ms,
-      userId,
-      role
-    });
-  } catch (error: any) {
-    console.error('Erro ao gerar token 100ms:', error);
-    res.status(500).json({ error: 'Erro ao gerar token', message: error.message });
+    console.error('Erro ao atualizar room design config:', error);
+    res.status(500).json({ error: 'Erro ao atualizar configuração de design', message: error.message });
   }
 });
 
@@ -812,6 +714,9 @@ meetingsRouter.post('/reunioes/instantanea', authenticateToken, requireTenantId,
 
     // Update with the correct meeting link using the generated UUID
     const linkReuniao = `https://${baseUrl}/reuniao/${newMeeting.id}`;
+    
+    // Fallback: Se for uma URL do 100ms.live (n8n), redirecionamos internamente
+    // mas aqui garantimos que o link local sempre aponte para a plataforma
     await db.update(reunioes).set({ linkReuniao }).where(eq(reunioes.id, newMeeting.id));
     newMeeting.linkReuniao = linkReuniao;
 
@@ -927,16 +832,11 @@ meetingsRouter.post('/reunioes', authenticateToken, requireTenantId, async (req:
       status: 'agendada',
       tipo: tipo || 'online',
       roomId100ms,
-      linkReuniao: '', // Will be updated after we get the ID
+      linkReuniao: '', // Placeholder updated later
     }).returning();
 
-    // Update with the correct meeting link using the generated UUID
-    let linkReuniao = '';
-    if (tipo === 'online') {
-      linkReuniao = `https://${baseUrl}/reuniao/${newMeeting.id}`;
-    } else {
-      linkReuniao = descricao || 'Presencial'; // Or some other default for presencial
-    }
+    // Link real com o ID do banco
+    const linkReuniao = `https://${baseUrl}/reuniao/${newMeeting.id}`;
 
     // Sincronizar com Supabase (Tenant) se configurado
     try {
@@ -1111,18 +1011,16 @@ meetingsRouter.post('/reunioes/:id/start-recording', authenticateToken, async (r
             started_at: toISOString(gravacao.startedAt),
             created_at: toISOString(gravacao.createdAt),
           }, { onConflict: 'id' });
-        
+
         if (syncError) {
-          console.error(`[Recording Start Sync] Erro Supabase:`, syncError);
-        } else {
-          console.log(`[Recording Start Sync] Sucesso ao sincronizar gravação ${gravacao.id}`);
+          console.error(`[Recording Start Sync] Erro ao sincronizar gravação ${gravacao.id}:`, syncError);
         }
       }
     } catch (e) {
-      console.error(`[Recording Start Sync] Erro:`, e);
+      console.error('Erro ao sincronizar gravação inicial com Supabase:', e);
     }
 
-    res.json({ success: true, recording: gravacao, hmsResult: result });
+    res.json({ success: true, recording: gravacao });
   } catch (error: any) {
     console.error('Erro ao iniciar gravação:', error);
     res.status(500).json({ error: 'Erro ao iniciar gravação', message: error.message });
@@ -1153,9 +1051,10 @@ meetingsRouter.post('/reunioes/:id/stop-recording', authenticateToken, async (re
       credentials.appSecret
     );
 
-    const [updatedRecording] = await db.update(gravacoes)
+    // Update the recording record
+    const [gravacao] = await db.update(gravacoes)
       .set({
-        status: 'stopped',
+        status: 'processing',
         stoppedAt: new Date(),
         updatedAt: new Date(),
       })
@@ -1165,12 +1064,12 @@ meetingsRouter.post('/reunioes/:id/stop-recording', authenticateToken, async (re
       ))
       .returning();
 
-    // Sync updated recording to Supabase
-    if (updatedRecording) {
+    // Sync to Supabase (async, non-blocking)
+    if (gravacao) {
       try {
-        const supabase = await getClientSupabaseClient(tenantId);
+        const supabase = await getClientSupabaseClient(meeting.tenantId);
         if (supabase) {
-          console.log(`[Recording Stop Sync] Sincronizando gravação encerrada ${updatedRecording.id}`);
+          console.log(`[Recording Stop Sync] Sincronizando gravação parada ${gravacao.id} para tenant ${tenantId}`);
           const toISOString = (date: Date | string | null | undefined): string | null => {
             if (!date) return null;
             if (date instanceof Date) return date.toISOString();
@@ -1181,44 +1080,92 @@ meetingsRouter.post('/reunioes/:id/stop-recording', authenticateToken, async (re
           const { error: syncError } = await supabase
             .from('gravacoes')
             .upsert({
-              id: updatedRecording.id,
-              reuniao_id: updatedRecording.reuniaoId,
-              tenant_id: updatedRecording.tenantId,
-              status: 'stopped',
-              stopped_at: toISOString(updatedRecording.stoppedAt),
-              updated_at: toISOString(updatedRecording.updatedAt),
+              id: gravacao.id,
+              status: 'processing',
+              stopped_at: toISOString(gravacao.stoppedAt),
+              updated_at: toISOString(gravacao.updatedAt),
             }, { onConflict: 'id' });
-          
-          if (syncError) console.error(`[Recording Stop Sync] Erro:`, syncError);
+
+          if (syncError) {
+            console.error(`[Recording Stop Sync] Erro ao sincronizar gravação ${gravacao.id}:`, syncError);
+          }
         }
       } catch (e) {
-        console.error(`[Recording Stop Sync] Erro:`, e);
+        console.error('Erro ao sincronizar parada de gravação com Supabase:', e);
       }
     }
 
-    res.json({ success: true, hmsResult: result });
+    res.json({ success: true, result });
   } catch (error: any) {
     console.error('Erro ao parar gravação:', error);
     res.status(500).json({ error: 'Erro ao parar gravação', message: error.message });
   }
 });
 
-// Helper function to find the best video asset from recording_assets array
-function findVideoAsset(recordingAssets: any[]): any | null {
-  if (!recordingAssets || !Array.isArray(recordingAssets)) return null;
-  
-  // Find the largest completed room-composite asset (video file)
-  const videoAssets = recordingAssets
-    .filter(asset => asset.type === 'room-composite' && asset.status === 'completed' && asset.size > 0)
-    .sort((a, b) => (b.size || 0) - (a.size || 0));
-  
-  return videoAssets[0] || null;
-}
-
-meetingsRouter.get('/gravacoes', authenticateToken, async (req: AuthRequest, res: Response) => {
+// GET /api/reunioes/:id - Get single meeting
+meetingsRouter.get('/reunioes/:id', authenticateToken, requireTenantId, async (req: AuthRequest, res: Response) => {
   try {
     const tenantId = req.user!.tenantId;
+    const { id } = req.params;
 
+    const [meeting] = await db.select().from(reunioes)
+      .where(and(eq(reunioes.id, id), eq(reunioes.tenantId, tenantId)))
+      .limit(1);
+
+    if (!meeting) {
+      return res.status(404).json({ error: 'Reunião não encontrada' });
+    }
+
+    res.json(meeting);
+  } catch (error: any) {
+    console.error('Erro ao obter reunião:', error);
+    res.status(500).json({ error: 'Erro ao obter reunião', message: error.message });
+  }
+});
+
+// DELETE /api/reunioes/:id - Delete meeting
+meetingsRouter.delete('/reunioes/:id', authenticateToken, requireTenantId, async (req: AuthRequest, res: Response) => {
+  try {
+    const tenantId = req.user!.tenantId;
+    const { id } = req.params;
+
+    // Delete locally
+    const [meeting] = await db.delete(reunioes)
+      .where(and(eq(reunioes.id, id), eq(reunioes.tenantId, tenantId)))
+      .returning();
+
+    if (!meeting) {
+      return res.status(404).json({ error: 'Reunião não encontrada' });
+    }
+
+    // Delete from Supabase
+    try {
+      const supabase = await getClientSupabaseClient(tenantId);
+      if (supabase) {
+        await supabase
+          .from('reunioes')
+          .delete()
+          .eq('id', id);
+      }
+    } catch (e) {
+      console.error('Erro ao excluir do Supabase:', e);
+    }
+
+    // Invalidar cache
+    await cache.delPattern(`dashboard:*:${tenantId}:*`);
+
+    res.json({ success: true, meeting });
+  } catch (error: any) {
+    console.error('Erro ao excluir reunião:', error);
+    res.status(500).json({ error: 'Erro ao excluir reunião', message: error.message });
+  }
+});
+
+// GET /api/gravacoes - List recordings
+meetingsRouter.get('/gravacoes', authenticateToken, requireTenantId, async (req: AuthRequest, res: Response) => {
+  try {
+    const tenantId = req.user!.tenantId;
+    
     // 1. Get local recordings
     let localRecordings = await db.select().from(gravacoes)
       .where(eq(gravacoes.tenantId, tenantId))
@@ -1234,10 +1181,9 @@ meetingsRouter.get('/gravacoes', authenticateToken, async (req: AuthRequest, res
           .eq('tenant_id', tenantId);
 
         if (!error && supabaseRecordings && supabaseRecordings.length > 0) {
-          console.log(`[Supabase Sync] Encontradas ${supabaseRecordings.length} gravações no Supabase para tenant ${tenantId}`);
-          
+          // Sync missing recordings
           for (const sRec of supabaseRecordings) {
-            const exists = localRecordings.some(m => m.id === sRec.id);
+            const exists = localRecordings.some(r => r.id === sRec.id);
             if (!exists) {
               await db.insert(gravacoes).values({
                 id: sRec.id,
@@ -1248,14 +1194,14 @@ meetingsRouter.get('/gravacoes', authenticateToken, async (req: AuthRequest, res
                 recordingId100ms: sRec.recording_id_100ms,
                 assetId: sRec.asset_id,
                 status: sRec.status,
-                startedAt: sRec.started_at ? new Date(sRec.started_at) : null,
+                startedAt: sRec.started_at ? new Date(sRec.started_at) : new Date(),
                 stoppedAt: sRec.stopped_at ? new Date(sRec.stopped_at) : null,
                 duration: sRec.duration,
                 fileUrl: sRec.file_url,
                 fileSize: sRec.file_size,
                 thumbnailUrl: sRec.thumbnail_url,
+                metadata: sRec.metadata,
                 createdAt: sRec.created_at ? new Date(sRec.created_at) : new Date(),
-                updatedAt: sRec.updated_at ? new Date(sRec.updated_at) : new Date(),
               }).onConflictDoNothing();
             }
           }
@@ -1274,186 +1220,5 @@ meetingsRouter.get('/gravacoes', authenticateToken, async (req: AuthRequest, res
   } catch (error: any) {
     console.error('Erro ao listar gravações:', error);
     res.status(500).json({ error: 'Erro ao listar gravações', message: error.message });
-  }
-});
-
-meetingsRouter.get('/gravacoes/:id/playback', authenticateToken, async (req: AuthRequest, res: Response) => {
-  try {
-    const tenantId = req.user!.tenantId;
-    const { id } = req.params;
-
-    const [recording] = await db.select().from(gravacoes)
-      .where(and(eq(gravacoes.id, id), eq(gravacoes.tenantId, tenantId)))
-      .limit(1);
-
-    if (!recording) {
-      return res.status(404).json({ error: 'Gravação não encontrada' });
-    }
-
-    if (recording.fileUrl) {
-      return res.json({ url: recording.fileUrl });
-    }
-
-    const credentials = await get100msCredentials(tenantId);
-    if (!credentials || !recording.recordingId100ms) {
-      return res.status(400).json({ error: 'Não foi possível obter URL de playback' });
-    }
-
-    const recordingDetails = await obterGravacao(
-      recording.recordingId100ms,
-      credentials.appAccessKey,
-      credentials.appSecret
-    );
-
-    // Find the best video asset from recording_assets array
-    const videoAsset = findVideoAsset(recordingDetails.recording_assets);
-    
-    if (videoAsset) {
-      const presigned = await obterUrlPresignadaAsset(
-        videoAsset.id,
-        credentials.appAccessKey,
-        credentials.appSecret
-      );
-      
-      // Also update the database with the asset info
-      await db.update(gravacoes)
-        .set({
-          status: 'completed',
-          fileUrl: presigned.url,
-          duration: videoAsset.duration || recording.duration,
-          fileSize: videoAsset.size || recording.fileSize,
-          assetId: videoAsset.id,
-          updatedAt: new Date(),
-        })
-        .where(eq(gravacoes.id, id));
-      
-      return res.json({ url: presigned.url });
-    }
-
-    res.status(404).json({ error: 'URL de playback não disponível ainda', status: 'processing' });
-  } catch (error: any) {
-    console.error('Erro ao obter playback:', error);
-    res.status(500).json({ error: 'Erro ao obter playback', message: error.message });
-  }
-});
-
-meetingsRouter.delete('/gravacoes/:id', authenticateToken, async (req: AuthRequest, res: Response) => {
-  try {
-    const tenantId = req.user!.tenantId;
-    const { id } = req.params;
-
-    const [recording] = await db.select().from(gravacoes)
-      .where(and(eq(gravacoes.id, id), eq(gravacoes.tenantId, tenantId)))
-      .limit(1);
-
-    if (!recording) {
-      return res.status(404).json({ error: 'Gravação não encontrada' });
-    }
-
-    await db.delete(gravacoes).where(eq(gravacoes.id, id));
-
-    res.json({ success: true, message: 'Gravação excluída' });
-  } catch (error: any) {
-    console.error('Erro ao excluir gravação:', error);
-    res.status(500).json({ error: 'Erro ao excluir gravação', message: error.message });
-  }
-});
-
-meetingsRouter.get('/100ms/active-recordings', authenticateToken, async (req: AuthRequest, res: Response) => {
-  try {
-    const tenantId = req.user!.tenantId;
-
-    const activeRecordings = await db.select().from(gravacoes)
-      .where(and(
-        eq(gravacoes.tenantId, tenantId),
-        eq(gravacoes.status, 'recording')
-      ));
-
-    res.json(activeRecordings);
-  } catch (error: any) {
-    console.error('Erro ao listar gravações ativas:', error);
-    res.status(500).json({ error: 'Erro ao listar gravações ativas', message: error.message });
-  }
-});
-
-// POST /api/gravacoes/:id/refresh - Refresh recording status from 100ms
-meetingsRouter.post('/gravacoes/:id/refresh', authenticateToken, async (req: AuthRequest, res: Response) => {
-  try {
-    const tenantId = req.user!.tenantId;
-    const { id } = req.params;
-
-    const [recording] = await db.select().from(gravacoes)
-      .where(and(eq(gravacoes.id, id), eq(gravacoes.tenantId, tenantId)))
-      .limit(1);
-
-    if (!recording) {
-      return res.status(404).json({ error: 'Gravacao nao encontrada' });
-    }
-
-    // If already completed, return current data
-    if (recording.status === 'completed' && recording.fileUrl) {
-      return res.json({ success: true, recording, message: 'Gravacao ja esta pronta' });
-    }
-
-    const credentials = await get100msCredentials(tenantId);
-    if (!credentials) {
-      return res.status(400).json({ error: 'Credenciais 100ms nao configuradas' });
-    }
-
-    // Try to get recording details from 100ms
-    if (recording.recordingId100ms) {
-      try {
-        const recordingDetails = await obterGravacao(
-          recording.recordingId100ms,
-          credentials.appAccessKey,
-          credentials.appSecret
-        );
-
-        console.log('[Recording Refresh] Details from 100ms:', recordingDetails);
-
-        // Find the best video asset from recording_assets array
-        const videoAsset = findVideoAsset(recordingDetails.recording_assets);
-
-        if (videoAsset) {
-          console.log('[Recording Refresh] Found video asset:', videoAsset.id, 'size:', videoAsset.size);
-          
-          const presigned = await obterUrlPresignadaAsset(
-            videoAsset.id,
-            credentials.appAccessKey,
-            credentials.appSecret
-          );
-
-          // Update recording with asset info
-          const [updated] = await db.update(gravacoes)
-            .set({
-              status: 'completed',
-              fileUrl: presigned.url,
-              duration: videoAsset.duration || recording.duration,
-              fileSize: videoAsset.size || recording.fileSize,
-              assetId: videoAsset.id,
-              updatedAt: new Date(),
-            })
-            .where(eq(gravacoes.id, id))
-            .returning();
-
-          return res.json({ success: true, recording: updated, message: 'Gravacao atualizada com sucesso' });
-        } else if (recordingDetails.status === 'failed') {
-          await db.update(gravacoes)
-            .set({ status: 'failed', updatedAt: new Date() })
-            .where(eq(gravacoes.id, id));
-
-          return res.json({ success: false, message: 'Gravacao falhou no processamento' });
-        } else {
-          console.log('[Recording Refresh] No video asset found yet, recording status:', recordingDetails.status);
-        }
-      } catch (apiError: any) {
-        console.error('[Recording Refresh] Error fetching from 100ms:', apiError.message);
-      }
-    }
-
-    res.json({ success: false, message: 'Gravacao ainda esta sendo processada' });
-  } catch (error: any) {
-    console.error('Erro ao atualizar gravacao:', error);
-    res.status(500).json({ error: 'Erro ao atualizar gravacao', message: error.message });
   }
 });

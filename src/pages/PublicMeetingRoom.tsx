@@ -260,11 +260,18 @@ export default function PublicMeetingRoom() {
     );
   }
 
-  if (step === "meeting" && reuniao.roomId100ms) {
+  if (step === "meeting" && (reuniao.roomId100ms || reuniao.linkReuniao?.includes('100ms.live'))) {
+    // Extração de roomId de links n8n/100ms.live se necessário
+    let finalRoomId = reuniao.roomId100ms;
+    if (!finalRoomId && reuniao.linkReuniao?.includes('100ms.live')) {
+      const parts = reuniao.linkReuniao.split('/');
+      finalRoomId = parts[parts.length - 1];
+    }
+
     return (
       <HMSProvider>
         <MeetingWrapper
-          reuniao={reuniao}
+          reuniao={{...reuniao, roomId100ms: finalRoomId}}
           tenant={tenant}
           roomDesignConfig={roomDesignConfig}
           participantName={participantName}
