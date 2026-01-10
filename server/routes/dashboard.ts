@@ -397,17 +397,55 @@ router.get('/calendar-events', authenticateToken, async (req, res) => {
         try {
           const supabase = await getDynamicSupabaseClient(authClientId);
           if (supabase) {
-        // Buscar databases com colunas de data
-        const { data: databases } = await supabase
-          .from('workspace_databases')
-          .select('*');
+            // Buscar databases com colunas de data
+            const { data: databases } = await supabase
+              .from('workspace_databases')
+              .select('*');
+            
+            // Buscar boards com cards que tem due dates
+            const { data: boards } = await supabase
+              .from('workspace_boards')
+              .select('*');
+            
+            // Buscar reuniões do Supabase para o calendário
+            const { data: supabaseMeetings } = await supabase
+              .from('reunioes')
+              .select('*')
+              .eq('tenant_id', tenantId);
+
+            if (supabaseMeetings && supabaseMeetings.length > 0) {
+              console.log(`🎥 Encontradas ${supabaseMeetings.length} reuniões no Supabase para o calendário`);
+              for (const meeting of supabaseMeetings) {
+                const startDate = meeting.data_inicio || meeting.dataHora;
+                if (!startDate) continue;
+
+                const dateObj = new Date(startDate);
+                const dateOnly = dateObj.toISOString().split('T')[0];
+                const timeOnly = dateObj.toLocaleTimeString('pt-BR', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  timeZone: 'America/Sao_Paulo'
+                });
+
+                workspaceEvents.push({
+                  id: `supabase_meeting_${meeting.id}`,
+                  title: `🎥 Reunião: ${meeting.titulo || 'Sem título'}`,
+                  description: meeting.descricao || `Reunião vinda do Supabase`,
+                  date: dateOnly,
+                  time: timeOnly,
+                  duration: meeting.duracao || 60,
+                  isAllDay: false,
+                  type: 'meeting',
+                  client: meeting.nome || 'Cliente',
+                  status: meeting.status || 'agendada',
+                  location: meeting.link_reuniao || '',
+                  meetLink: meeting.link_reuniao || '',
+                  source: 'supabase_meeting'
+                });
+              }
+            }
         
-        // Buscar boards com cards que tem due dates
-        const { data: boards } = await supabase
-          .from('workspace_boards')
-          .select('*');
-        
-        // Extrair eventos de databases (rows com colunas tipo date)
+            // Extrair eventos de databases (rows com colunas tipo date)
         if (databases && databases.length > 0) {
           for (const db of databases) {
             try {
