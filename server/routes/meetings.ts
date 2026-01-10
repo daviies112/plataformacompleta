@@ -117,6 +117,10 @@ publicRoomDesignRouter.get('/reunioes/:id/public', async (req: Request, res: Res
     }
 
     // Return limited meeting info for public access
+    const protocol = req.headers['x-forwarded-proto'] || 'http';
+    const host = req.headers.host;
+    const publicUrl = `${protocol}://${host}/reuniao/${meeting.tenantId}/${meeting.id}`;
+
     res.json({ 
       meeting: {
         id: meeting.id,
@@ -124,7 +128,8 @@ publicRoomDesignRouter.get('/reunioes/:id/public', async (req: Request, res: Res
         roomId100ms: meeting.roomId100ms,
         status: meeting.status,
         dataHora: meeting.dataHora,
-        tenantId: meeting.tenantId
+        tenantId: meeting.tenantId,
+        publicUrl
       }
     });
   } catch (error: any) {
