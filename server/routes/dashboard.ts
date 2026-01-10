@@ -408,13 +408,17 @@ router.get('/calendar-events', authenticateToken, async (req, res) => {
               .select('*');
             
             // Buscar reuniões do Supabase para o calendário
-            const { data: supabaseMeetings } = await supabase
+            const { data: supabaseMeetings, error: meetingsError } = await supabase
               .from('reunioes')
-              .select('*')
-              .eq('tenant_id', tenantId);
+              .select('*');
+
+            if (meetingsError) {
+              console.error(`❌ Erro ao buscar reuniões do Supabase:`, meetingsError);
+            }
 
             if (supabaseMeetings && supabaseMeetings.length > 0) {
-              console.log(`🎥 Encontradas ${supabaseMeetings.length} reuniões no Supabase para o calendário`);
+              console.log(`🎥 Encontradas ${supabaseMeetings.length} reuniões no Supabase (TOTAL)`);
+              
               for (const meeting of supabaseMeetings) {
                 // Suportar data_inicio (snake_case) ou dataHora (camelCase) ou data_hora
                 const startDate = meeting.data_inicio || meeting.dataHora || meeting.data_hora;
