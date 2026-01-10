@@ -71,6 +71,7 @@ export async function registerRoutes(app: Express) {
   // Must be registered BEFORE routes with requireTenant middleware
   const { publicRoomDesignRouter } = await import("./routes/meetings");
   app.use("/api", publicRoomDesignRouter);
+  app.use("/api/reunioes", publicRoomDesignRouter); // Certificar que /api/reunioes também é tratado pelo publicRouter
   
   // Compliance routes (CPF check) - public access allowed with DEMO fallback
   // Must be registered BEFORE routes that apply requireTenant to all /api paths

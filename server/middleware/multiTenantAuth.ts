@@ -76,6 +76,9 @@ export function isPublicRoute(path: string): boolean {
   
   const publicRoutes = [
     '/login',
+    '/reuniao/',
+    '/api/reunioes/',
+    '/api/public/reuniao/',
     '/api/auth/',
     '/api/config/',
     '/health',

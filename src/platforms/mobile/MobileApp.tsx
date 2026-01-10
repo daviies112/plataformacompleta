@@ -61,6 +61,8 @@ const MobileApp = () => {
       <Route path="/formulario/:companySlug/form/:id" element={<FormularioPublicoWrapper />} />
       <Route path="/:companySlug/form/:id" element={<FormularioPublicoWrapper />} />
       <Route path="/f/:token" element={<FormularioPublicoWrapper />} />
+      <Route path="/reuniao/:id" element={<ReuniaoPublica />} />
+      <Route path="/reuniao-publica/:id" element={<ReuniaoPublica />} />
       
       {/* Protected routes with Mobile Layout */}
       {/* Formulário Page - Plataforma completa com header completo */}
