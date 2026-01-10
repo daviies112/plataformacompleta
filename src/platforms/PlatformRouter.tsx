@@ -13,6 +13,7 @@ const PlatformRouter = () => {
   const [location] = useLocation();
 
   // Se for uma rota pública de reunião, renderizar diretamente
+  // Suporta /reuniao/:id, /reuniao/:tenant/:id, /reuniao-publica/:id
   if (location.startsWith('/reuniao/') || location.startsWith('/reuniao-publica/')) {
     return <ReuniaoPublica />;
   }

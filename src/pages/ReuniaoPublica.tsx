@@ -13,7 +13,16 @@ type MeetingStep = "lobby" | "meeting" | "ended";
 export default function ReuniaoPublica() {
   const params = useParams();
   const [searchParams] = useSearchParams();
-  const meetingId = params.id;
+  
+  // Extrair o ID da reunião corretamente, suportando /reuniao/:id ou /reuniao/:tenantId/:id
+  const meetingId = useMemo(() => {
+    // Se temos params.id, usamos ele (rota /reuniao/:id ou /reuniao-publica/:id)
+    if (params.id) return params.id;
+    
+    // Se a URL for /reuniao/:tenantId/:id, o id virá no final do path
+    const pathParts = window.location.pathname.split('/');
+    return pathParts[pathParts.length - 1];
+  }, [params.id]);
   
   const isRecordingBot = searchParams.get("recording_bot") === "true" || 
                          searchParams.get("recording") === "true";
