@@ -7,16 +7,18 @@ import { apiRequest } from '@/lib/queryClient';
 
 interface Contract {
   id: string;
-  client_name: string;
-  client_cpf: string;
-  client_email: string;
-  client_phone?: string;
-  selfie_photo?: string;
-  document_photo?: string;
-  signed_contract_html?: string;
-  protocol_number?: string;
-  company_name?: string;
-}
+    client_name: string;
+    client_cpf: string;
+    client_email: string;
+    client_phone?: string;
+    selfie_photo?: string;
+    document_photo?: string;
+    document_back_photo?: string;
+    signed_contract_html?: string;
+    protocol_number?: string;
+    company_name?: string;
+    created_at?: string;
+  }
 
 interface ContractDetailsModalProps {
   contract: Contract | null;
@@ -132,8 +134,17 @@ export const ContractDetailsModal = ({ contract, open, onOpenChange }: ContractD
         if (contractData?.document_photo) {
           contentHTML += `
             <div style="margin-bottom: 12px;">
-              <p style="font-weight: 600; font-size: 11px; color: #666; margin: 0 0 5px 0;">Documento</p>
+              <p style="font-weight: 600; font-size: 11px; color: #666; margin: 0 0 5px 0;">Documento (Frente)</p>
               <img src="${contractData.document_photo}" style="width: 100%; max-width: 350px; height: auto; border: 1px solid #ddd;" />
+            </div>
+          `;
+        }
+
+        if (contractData?.document_back_photo) {
+          contentHTML += `
+            <div style="margin-bottom: 12px;">
+              <p style="font-weight: 600; font-size: 11px; color: #666; margin: 0 0 5px 0;">Documento (Verso)</p>
+              <img src="${contractData.document_back_photo}" style="width: 100%; max-width: 350px; height: auto; border: 1px solid #ddd;" />
             </div>
           `;
         }
@@ -264,10 +275,20 @@ export const ContractDetailsModal = ({ contract, open, onOpenChange }: ContractD
                     )}
                     {displayContract?.document_photo && (
                       <div className="space-y-2">
-                        <p className="font-semibold text-sm text-gray-600">Documento</p>
+                        <p className="font-semibold text-sm text-gray-600">Documento (Frente)</p>
                         <img 
                           src={displayContract.document_photo} 
-                          alt="Documento" 
+                          alt="Documento Frente" 
+                          className="w-full rounded border border-gray-200 max-h-64 object-cover"
+                        />
+                      </div>
+                    )}
+                    {displayContract?.document_back_photo && (
+                      <div className="space-y-2">
+                        <p className="font-semibold text-sm text-gray-600">Documento (Verso)</p>
+                        <img 
+                          src={displayContract.document_back_photo} 
+                          alt="Documento Verso" 
                           className="w-full rounded border border-gray-200 max-h-64 object-cover"
                         />
                       </div>
@@ -279,7 +300,7 @@ export const ContractDetailsModal = ({ contract, open, onOpenChange }: ContractD
               {displayContract?.signed_contract_html && (
                 <Card className="p-4">
                   <h3 className="font-bold text-lg mb-3">Contrato Assinado</h3>
-                  <div className="bg-gray-50 p-4 rounded border border-gray-200 max-h-96 overflow-y-auto text-sm">
+                  <div className="bg-gray-50 p-4 rounded border border-gray-200 text-sm">
                     <div 
                       dangerouslySetInnerHTML={{ __html: displayContract.signed_contract_html }}
                       className="prose prose-sm max-w-none"
