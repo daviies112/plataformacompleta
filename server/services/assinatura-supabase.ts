@@ -229,6 +229,8 @@ class AssinaturaSupabaseService {
         .upsert({
           ...config,
           tenant_id: tenantId,
+          app_store_url: config.app_store_url,
+          google_play_url: config.google_play_url,
           updated_at: new Date().toISOString()
         }, { onConflict: 'tenant_id' })
         .select()
@@ -236,7 +238,7 @@ class AssinaturaSupabaseService {
       
       if (error) throw error;
       
-      console.log('[AssinaturaSupabase] Config global salva');
+      console.log('[AssinaturaSupabase] Config global salva com links de apps');
       return data;
     } catch (error) {
       console.error('[AssinaturaSupabase] Erro ao salvar config global:', error);

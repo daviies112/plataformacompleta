@@ -148,6 +148,49 @@ const AssinaturaPage = () => {
   const [appStoreUrl, setAppStoreUrl] = useState('');
   const [googlePlayUrl, setGooglePlayUrl] = useState('');
 
+  // Carregar Configurações Globais (incluindo links de apps)
+  const { data: globalConfig } = useQuery<any>({
+    queryKey: ['/api/assinatura/global-config'],
+    onSuccess: (data) => {
+      if (data) {
+        if (data.app_store_url) setAppStoreUrl(data.app_store_url);
+        if (data.google_play_url) setGooglePlayUrl(data.google_play_url);
+        // Preencher outros campos se necessário
+        if (data.logo_url) setLogoUrl(data.logo_url);
+        if (data.company_name) setCompanyName(data.company_name);
+      }
+    }
+  });
+
+  const saveGlobalConfigMutation = useMutation({
+    mutationFn: async (configData: any) => {
+      const response = await apiRequest('PUT', '/api/assinatura/global-config', configData);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/assinatura/global-config'] });
+      toast({
+        title: 'Configurações salvas',
+        description: 'Os links dos aplicativos foram atualizados com sucesso.',
+      });
+    },
+    onError: () => {
+      toast({
+        title: 'Erro ao salvar',
+        description: 'Não foi possível salvar as configurações dos aplicativos.',
+        variant: 'destructive',
+      });
+    }
+  });
+
+  const handleSaveAppLinks = () => {
+    saveGlobalConfigMutation.mutate({
+      ...globalConfig,
+      app_store_url: appStoreUrl,
+      google_play_url: googlePlayUrl
+    });
+  };
+
   const { data: contracts = [], isLoading: isLoadingContracts } = useQuery<Contract[]>({
     queryKey: ['/api/assinatura/contracts'],
   });
