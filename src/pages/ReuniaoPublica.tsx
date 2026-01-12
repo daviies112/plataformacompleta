@@ -5,7 +5,7 @@ import { Meeting100ms } from "@/components/Meeting100ms";
 import { MeetingLobby } from "@/components/MeetingLobby";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
-import { api } from "@/lib/api";
+import { api, getAuthToken } from "@/lib/api";
 import { DEFAULT_ROOM_DESIGN_CONFIG, type RoomDesignConfig } from "@/types/reuniao";
 
 type MeetingStep = "lobby" | "meeting" | "ended";
@@ -98,10 +98,34 @@ export default function ReuniaoPublica() {
     setTokenError(null);
 
     try {
-      const response = await api.post(`/api/public/reunioes/${meetingId}/token-public`, {
-        userName: userName || "Participante",
-        role: isRecordingBot ? "recorder" : "guest"
-      });
+      // Check if user is authenticated - if so, use authenticated endpoint for host role
+      const authToken = getAuthToken();
+      let response;
+      
+      if (authToken && !isRecordingBot) {
+        // Authenticated user: gets "host" role (can record)
+        console.log("[ReuniaoPublica] Usuário autenticado - usando endpoint autenticado para role host");
+        try {
+          response = await api.post(`/api/reunioes/${meetingId}/token`, {
+            userName: userName || "Admin"
+          });
+          console.log("[ReuniaoPublica] Token gerado com role:", response.data.role);
+        } catch (authErr: any) {
+          // If authenticated endpoint fails (e.g., not owner of meeting), fallback to public
+          console.log("[ReuniaoPublica] Fallback para endpoint público:", authErr.response?.status);
+          response = await api.post(`/api/public/reunioes/${meetingId}/token-public`, {
+            userName: userName || "Participante",
+            role: "guest"
+          });
+        }
+      } else {
+        // Public user or recording bot: gets "guest" or "recorder" role
+        console.log("[ReuniaoPublica] Usuário público - usando endpoint público para role guest");
+        response = await api.post(`/api/public/reunioes/${meetingId}/token-public`, {
+          userName: userName || "Participante",
+          role: isRecordingBot ? "recorder" : "guest"
+        });
+      }
       
       if (response.data.token) {
         setToken100ms(response.data.token);

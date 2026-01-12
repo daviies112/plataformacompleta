@@ -1,0 +1,493 @@
+Sistema de Gravação de Reuniões 100ms
+📋 Visão Geral
+Este sistema permite que administradores gravem reuniões manualmente através de um botão toggle. As gravações são processadas pelo servidor 100ms (SFU - Server-Side) e salvas automaticamente no banco de dados local e no Supabase.
+
+🎯 Funcionalidades
+Comportamento do Botão de Gravação
+Estado	Visual	Ação ao Clicar
+Não Gravando	Botão cinza escuro 🔘	Inicia gravação
+Gravando	Botão vermelho pulsante 🔴	Para gravação
+Características
+✅ Manual: Não inicia automaticamente
+✅ Visual Feedback: Botão muda de cor (cinza → vermelho)
+✅ Indicador: Texto "GRAVANDO" no header com animação pulse
+✅ SFU Recording: Gravação server-side (sem browser)
+✅ Sincronização: Salva local (PostgreSQL) + Supabase
+✅ Toast Notifications: Feedback ao usuário
+
+🏗️ Arquitetura do Sistema
+Fluxo Completo
+Supabase
+PostgreSQL
+100ms API
+/api/100ms/recording/*
+Meeting100ms.tsx
+Administrador
+Supabase
+PostgreSQL
+100ms API
+/api/100ms/recording/*
+Meeting100ms.tsx
+Administrador
+Clica no botão (🔘 → 🔴)
+POST /100ms/recording/start
+Busca reunião por roomId
+Busca credenciais 100ms do tenant
+Inicia gravação SFU
+Retorna recording ID
+Salva gravação (status: 'recording')
+Sincro niza gravação (async)
+Retorna success
+Atualiza estado (isRecording = true)
+Mostra "GRAVANDO" no header
+Clica novamente (🔴 → 🔘)
+POST /100ms/recording/stop
+Para gravação
+Processa e retorna asset
+Atualiza gravação (status: 'completed')
+Sincroniza atualização (async)
+Retorna success
+Atualiza estado (isRecording = false)
+Mostra toast "Gravação parada"
+💻 Código Fonte
+Frontend: 
+Meeting100ms.tsx
+Estados
+const [isRecording, setIsRecording] = useState(false);
+const [recordingId, setRecordingId] = useState<string | null>(null);
+Função de Toggle
+const handleToggleRecording = async () => {
+  try {
+    const currentRoomId = roomId || window.location.pathname.split('/').pop();
+    if (!isRecording) {
+      // INICIAR GRAVAÇÃO
+      setIsRecording(true); // Feedback visual imediato
+      
+      const response = await fetch('/api/100ms/recording/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roomId: currentRoomId }),
+      });
+      if (!response.ok) {
+        setIsRecording(false);
+        throw new Error('Erro ao iniciar gravação');
+      }
+      const data = await response.json();
+      setRecordingId(data.recordingId);
+      toast.success("✅ Gravação iniciada!");
+      
+    } else {
+      // PARAR GRAVAÇÃO
+      const response = await fetch('/api/100ms/recording/stop', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roomId: currentRoomId }),
+      });
+      if (!response.ok) throw new Error('Erro ao parar gravação');
+      setIsRecording(false);
+      setRecordingId(null);
+      toast.success("⏸️ Gravação parada! O vídeo será processado em breve.");
+    }
+  } catch (err: any) {
+    toast.error("❌ " + err.message);
+  }
+};
+Botão de Gravação
+<Button
+  onClick={handleToggleRecording}
+  variant={isRecording ? "destructive" : "ghost"}
+  size="icon"
+  className={cn(
+    "h-12 w-12 rounded-2xl transition-all duration-300",
+    isRecording 
+      ? "bg-red-500 text-white shadow-lg shadow-red-500/20" 
+      : "bg-zinc-800/50 text-white hover:bg-zinc-700"
+  )}
+  title={isRecording ? "Parar gravação" : "Iniciar gravação"}
+>
+  <Circle className={cn(
+    "h-5 w-5", 
+    isRecording && "fill-white animate-pulse"
+  )} />
+</Button>
+Indicador no Header
+{isRecordingOn && (
+  <div className="flex items-center gap-1 mt-0.5 animate-pulse">
+    <Circle className="h-1.5 w-1.5 fill-red-500 text-red-500" />
+    <span className="text-[9px] text-red-500 font-bold uppercase tracking-wider">
+      Gravando
+    </span>
+  </div>
+)}
+Backend: 
+server/routes/meetings.ts
+Endpoint: Iniciar Gravação
+// POST /api/100ms/recording/start
+publicRoomDesignRouter.post('/100ms/recording/start', async (req, res) => {
+  try {
+    const { roomId } = req.body;
+    if (!roomId) {
+      return res.status(400).json({ error: 'roomId é obrigatório' });
+    }
+    console.log(`[Recording] Iniciando gravação para roomId: ${roomId}`);
+    // 1. Buscar reunião
+    const [meeting] = await db.select().from(reunioes)
+      .where(eq(reunioes.roomId100ms, roomId))
+      .limit(1);
+    if (!meeting) {
+      return res.status(404).json({ error: 'Reunião não encontrada' });
+    }
+    // 2. Buscar credenciais 100ms do tenant
+    const credentials = await get100msCredentialsForTenant(meeting.tenantId);
+    if (!credentials) {
+      return res.status(400).json({ 
+        error: 'Credenciais do 100ms não configuradas' 
+      });
+    }
+    // 3. Iniciar gravação SFU (Server-Side) via 100ms API
+    const result = await iniciarGravacao(
+      roomId,
+      credentials.appAccessKey,
+      credentials.appSecret
+    );
+    console.log(`[Recording] Gravação iniciada:`, result);
+    // 4. Salvar no banco local
+    const [gravacao] = await db.insert(gravacoes).values({
+      reuniaoId: meeting.id,
+      tenantId: meeting.tenantId,
+      roomId100ms: roomId,
+      sessionId100ms: result.session_id,
+      recordingId100ms: result.id,
+      status: 'recording',
+      startedAt: new Date(),
+    }).returning();
+    // 5. Sincronizar com Supabase (async, não bloqueia resposta)
+    syncRecordingToSupabase(meeting.tenantId, gravacao).catch(console.error);
+    // 6. Retornar sucesso
+    res.json({ 
+      success: true, 
+      recording: gravacao, 
+      recordingId: result.id,
+      hmsResult: result 
+    });
+    
+  } catch (error: any) {
+    console.error('[Recording] Erro:', error);
+    res.status(500).json({ 
+      error: 'Erro ao iniciar gravação', 
+      message: error.message 
+    });
+  }
+});
+Endpoint: Parar Gravação
+// POST /api/100ms/recording/stop
+publicRoomDesignRouter.post('/100ms/recording/stop', async (req, res) => {
+  try {
+    const { roomId } = req.body;
+    if (!roomId) {
+      return res.status(400).json({ error: 'roomId é obrigatório' });
+    }
+    // 1. Buscar reunião
+    const [meeting] = await db.select().from(reunioes)
+      .where(eq(reunioes.roomId100ms, roomId))
+      .limit(1);
+    if (!meeting) {
+      return res.status(404).json({ error: 'Reunião não encontrada' });
+    }
+    // 2. Buscar credenciais
+    const credentials = await get100msCredentialsForTenant(meeting.tenantId);
+    
+    // 3. Parar gravação via 100ms API
+    const result = await pararGravacao(
+      roomId,
+      credentials.appAccessKey,
+      credentials.appSecret
+    );
+    console.log(`[Recording] Gravação parada:`, result);
+    // 4. Tentar obter asset imediatamente
+    let finalStatus = 'processing';
+    let fileUrl = null;
+    let duration = null;
+    let fileSize = null;
+    if (result.asset?.id) {
+      try {
+        const presigned = await obterUrlPresignadaAsset(
+          result.asset.id,
+          credentials.appAccessKey,
+          credentials.appSecret
+        );
+        fileUrl = presigned.url;
+        finalStatus = 'completed';
+        duration = result.asset.duration || null;
+        fileSize = result.asset.size || null;
+      } catch (assetError) {
+        console.log(`[Recording] Asset ainda não pronto, status: processing`);
+      }
+    }
+    // 5. Atualizar gravação no banco local
+    const [updatedRecording] = await db.update(gravacoes)
+      .set({
+        status: finalStatus,
+        stoppedAt: new Date(),
+        updatedAt: new Date(),
+        fileUrl: fileUrl,
+        duration: duration,
+        fileSize: fileSize,
+        assetId: result.asset?.id || null,
+      })
+      .where(and(
+        eq(gravacoes.roomId100ms, roomId),
+        eq(gravacoes.status, 'recording')
+      ))
+      .returning();
+    // 6. Sincronizar atualização no Supabase (async)
+    if (updatedRecording) {
+      syncRecordingToSupabase(meeting.tenantId, updatedRecording)
+        .catch(console.error);
+    }
+    res.json({ success: true, status: finalStatus, hmsResult: result });
+    
+  } catch (error: any) {
+    console.error('[Recording] Erro ao parar:', error);
+    res.status(500).json({ 
+      error: 'Erro ao parar gravação', 
+      message: error.message 
+    });
+  }
+});
+Função de Sincronização com Supabase
+async function syncRecordingToSupabase(tenantId: string, recording: any) {
+  try {
+    const supabase = await getClientSupabaseClient(tenantId);
+    if (!supabase) {
+      console.log(`[Recording Sync] Supabase não configurado para tenant ${tenantId}`);
+      return;
+    }
+    // Serializar datas para ISO strings
+    const toISOString = (date: Date | string | null | undefined): string | null => {
+      if (!date) return null;
+      if (date instanceof Date) return date.toISOString();
+      if (typeof date === 'string') return date;
+      return null;
+    };
+    const { error } = await supabase
+      .from('gravacoes')
+      .upsert({
+        id: recording.id,
+        reuniao_id: recording.reuniaoId,
+        tenant_id: recording.tenantId,
+        room_id_100ms: recording.roomId100ms || null,
+        session_id_100ms: recording.sessionId100ms || null,
+        recording_id_100ms: recording.recordingId100ms || null,
+        asset_id: recording.assetId || null,
+        status: recording.status || 'recording',
+        started_at: toISOString(recording.startedAt),
+        stopped_at: toISOString(recording.stoppedAt),
+        duration: recording.duration || null,
+        file_url: recording.fileUrl || null,
+        file_size: recording.fileSize || null,
+        thumbnail_url: recording.thumbnailUrl || null,
+        metadata: recording.metadata || {},
+        created_at: toISOString(recording.createdAt),
+        updated_at: toISOString(recording.updatedAt),
+      }, { onConflict: 'id' });
+    if (error) {
+      console.error(`[Recording Sync] Erro:`, error);
+    } else {
+      console.log(`[Recording Sync] Sucesso para gravação ${recording.id}`);
+    }
+  } catch (err) {
+    console.error(`[Recording Sync] Erro inesperado:`, err);
+  }
+}
+🗄️ Estrutura do Banco de Dados
+Tabela: gravacoes
+Campo	Tipo	Descrição
+id
+UUID	ID único da gravação
+reuniao_id	UUID	ID da reunião
+tenant_id	TEXT	ID do tenant (multi-tenant)
+room_id_100ms	TEXT	Room ID do 100ms
+session_id_100ms	TEXT	Session ID retornado pela API
+recording_id_100ms	TEXT	Recording ID retornado pela API
+asset_id	TEXT	Asset ID do vídeo processado
+status	TEXT	recording / processing / completed / failed
+started_at	TIMESTAMP	Data/hora de início
+stopped_at	TIMESTAMP	Data/hora de parada
+duration	INTEGER	Duração em segundos
+file_url	TEXT	URL presignada do vídeo
+file_size	BIGINT	Tamanho do arquivo em bytes
+thumbnail_url	TEXT	URL da thumbnail
+metadata	JSONB	Metadados adicionais
+created_at	TIMESTAMP	Data de criação
+updated_at	TIMESTAMP	Data de atualização
+Ciclo de Vida de uma Gravação
+1. [Iniciar] → Status: 'recording'
+   - started_at: NOW()
+   - recording_id_100ms: [ID da API]
+2. [Parar] → Status: 'processing' ou 'completed'
+   - stopped_at: NOW()
+   - Tenta obter asset imediatamente
+   - Se asset disponível: status = 'completed'
+   - Se não: status = 'processing'
+3. [Processamento concluído] → Status: 'completed'
+   - file_url: [URL presignada]
+   - duration: [segundos]
+   - file_size: [bytes]
+✅ Checklist de Verificação
+Antes de Gravar
+ Administrador está logado
+ Reunião está ativa (ao menos 1 participante)
+ Credenciais 100ms configuradas para o tenant
+ Template 100ms tem role "recorder" configurada
+Durante a Gravação
+ Botão está vermelho 🔴
+ Indicador "GRAVANDO" visível no header
+ Console mostra logs [Recording] Iniciando gravação...
+Após Parar
+ Botão volta para cinza 🔘
+ Toast "Gravação parada" aparece
+ Registro aparece na tabela gravacoes (local)
+ Registro sincronizado no Supabase
+🐛 Troubleshooting
+Problema: Botão não muda de cor
+Sintomas:
+
+Clica no botão mas continua cinza
+Sem toast de confirmação
+Diagnóstico:
+
+# No console do navegador:
+1. Abra F12 > Console
+2. Procure por erros tipo "404" ou "500"
+3. Verifique se `roomId` está sendo enviado
+Soluções:
+
+Verifique se roomId está definido:
+console.log("RoomId:", roomId || window.location.pathname.split('/').pop());
+Verifique se a reunião existe no banco:
+SELECT * FROM reunioes WHERE room_id_100ms = 'SEU_ROOM_ID';
+Problema: Erro "Credenciais não configuradas"
+Sintomas:
+
+Toast vermelho: "Erro ao iniciar gravação"
+Console backend: Credenciais do 100ms não configuradas
+Solução:
+
+Acesse Configurações > Integrações > 100ms
+Preencha:
+App Access Key
+App Secret
+Template ID
+Clique em "Testar Conexão 100ms"
+Salve
+Problema: Gravação não aparece no Supabase
+Sintomas:
+
+Gravação salva localmente
+Não aparece no Supabase
+Diagnóstico:
+
+// Backend logs:
+[Recording Sync] Supabase não configurado para tenant X
+Solução:
+
+Verifique se o Supabase está configurado para o tenant:
+SELECT * FROM supabase_config WHERE tenant_id = 'SEU_TENANT_ID';
+Configure as credenciais do Supabase em Configurações
+Problema: Vídeo em "processing" por muito tempo
+Sintomas:
+
+Status fica "processing" por mais de 10 minutos
+Solução:
+
+Use o endpoint de refresh:
+POST /api/gravacoes/:id/refresh
+Ou verifique no dashboard do 100ms:
+Acesse dashboard.100ms.live
+Vá em Sessions
+Procure a sessão da reunião
+Verifique se a gravação terminou
+🧪 Como Testar
+Teste Manual Completo
+Iniciar Reunião
+
+1. Faça login como administrador
+2. Crie uma reunião instantânea
+3. Entre na reunião
+Iniciar Gravação
+
+1. Clique no botão de gravação (círculo cinza)
+2. Verifique se fica vermelho
+3. Verifique se aparece "GRAVANDO" no header
+4. Fale algo ou mova a câmera
+Parar Gravação
+
+1. Clique novamente no botão (agora vermelho)
+2. Verifique se volta para cinza
+3. Aguarde o toast "Gravação parada"
+Verificar Gravação
+
+-- No banco de dados
+SELECT * FROM gravacoes 
+WHERE status IN ('recording', 'processing', 'completed')
+ORDER BY created_at DESC 
+LIMIT 1;
+Aguardar Processamento
+
+Aguarde 2-5 minutos
+A gravação será processada pelo 100ms
+Status mudará de 'processing' para 'completed'
+Acessar Vídeo
+
+1. Vá para /gravacoes
+2. Encontre a gravação
+3. Clique para assistir
+📊 Logs Importantes
+Backend (Console do Servidor)
+[Recording] Iniciando gravação para roomId: room_abc123
+[Recording] Reunião encontrada: uuid-reuniao, tenant: tenant_xyz
+[Recording] Iniciando gravação SFU (Server-Side) para roomId: room_abc123
+[Recording] Gravação iniciada com sucesso: { id: 'rec_xyz', session_id: 'sess_abc' }
+[Recording Sync] Gravação rec_xyz sincronizada com Supabase para tenant tenant_xyz
+Frontend (Console do Navegador)
+[Meeting100ms] Click no botão de gravação
+Toast: ✅ Gravação iniciada!
+Toast: ⏸️ Gravação parada! O vídeo será processado em breve.
+🎬 Diferença: SFU vs Browser Recording
+SFU (Server-Side) - USADO ATUALMENTE ✅
+Aspecto	Detalhes
+Onde grava	Servidor 100ms
+Requisitos	Nenhum (sem bot de gravação)
+Qualidade	Alta (composição server-side)
+Confiabilidade	Alta (não depende do browser)
+Browser Recording - NÃO USADO ❌
+Aspecto	Detalhes
+Onde grava	Browser do bot
+Requisitos	Bot precisa entrar na reunião
+Qualidade	Depende do bot
+Confiabilidade	Menor (depende de internet do bot)
+🔑 Permissões Necessárias
+No Template 100ms
+A role recorder deve existir com:
+
+✅ Can publish audio
+✅ Can publish video
+✅ Can subscribe to all roles
+✅ Can join room
+⚠️ Nota: Para SFU recording, a role recorder não é usada diretamente (o servidor grava sem entrar como peer), mas é boa prática tê-la configurada.
+
+📚 Referências
+100ms Recording Documentation
+SFU Recording Guide
+Arquivo: server/services/meetings/hms100ms.ts (funções 
+iniciarGravacao
+ e 
+pararGravacao
+)
+Arquivo: 
+src/components/Meeting100ms.tsx
+ (botão e estado)
+Documentação criada em: 12 de Janeiro de 2026
+Versão: 1.0
+Status do Sistema: ✅ Funcionando (conforme código auditado)
