@@ -90,6 +90,12 @@ scripts/   → Utilitários (export, import)
    - Acessível via menu "Reunião" no header
    - Configure credenciais do 100ms em Configurações antes de criar reuniões
    - **Reuniões Públicas:** Link compartilhável para usuários externos (sem autenticação)
+   - **Correção de Roles (12/01/2026):**
+     - Usuários autenticados: SEMPRE recebem role "host" (podem gravar)
+     - Usuários públicos: Recebem role "guest" (apenas assistem)
+     - Endpoint autenticado: `POST /api/reunioes/:id/token` → role="host"
+     - Endpoint público: `POST /api/public/reunioes/:id/token-public` → role="guest"
+     - Botão de gravação aparece apenas para role="host" (`isHost = localPeer?.roleName === 'host'`)
    - **Correção Tela Preta (v3):** Melhorias na conexão do SDK v0.11.0
      - Verificação de token válido antes de tentar conexão
      - Conexão inicia com áudio/vídeo MUTADOS para evitar problemas de dispositivos
@@ -99,6 +105,7 @@ scripts/   → Utilitários (export, import)
    - **React Hooks:** Corrigida ordem de chamadas para evitar violações das regras de hooks
    - **IMPORTANTE - Configuração do Dashboard 100ms:**
      - A role "guest" deve existir no template e ter permissões de subscribe
+     - A role "host" deve existir e ter permissões de publish + record
      - A sala deve estar ativa (enabled: true)
      - Veja: `DOCUMENTACAO_CORRECAO_100MS.md` (detalhado)
 ✅ **Calendário de Reuniões** - NOVO (05/01/2026)

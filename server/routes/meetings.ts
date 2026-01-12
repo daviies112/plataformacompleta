@@ -995,7 +995,7 @@ meetingsRouter.post('/reunioes/:id/token', authenticateToken, async (req: AuthRe
   try {
     const tenantId = req.user!.tenantId;
     const { id } = req.params;
-    const { userName, role = 'guest' } = req.body;
+    const { userName } = req.body;
 
     const [meeting] = await db.select().from(reunioes)
       .where(and(eq(reunioes.id, id), eq(reunioes.tenantId, tenantId)))
@@ -1010,7 +1010,11 @@ meetingsRouter.post('/reunioes/:id/token', authenticateToken, async (req: AuthRe
       return res.status(400).json({ error: 'Credenciais do 100ms não configuradas' });
     }
 
-    const userId = nanoid(8);
+    // Authenticated users through the platform are ALWAYS hosts (can record)
+    const role = 'host';
+    const userId = userName || req.user?.nome || nanoid(8);
+    console.log(`[Token Authenticated] Gerando token para ${userId} (${role}) na sala ${meeting.roomId100ms}`);
+    
     const token = gerarTokenParticipante(
       meeting.roomId100ms,
       userId,

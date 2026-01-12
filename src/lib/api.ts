@@ -48,7 +48,7 @@ export const reunioesApi = {
   update: (id: string, data: any) => api.patch(`/api/reunioes/${id}`, data),
   delete: (id: string) => api.delete(`/api/reunioes/${id}`),
   checkAvailability: (data: any) => api.post('/api/reunioes/verificar-disponibilidade', data),
-  getToken100ms: (id: string) => api.get(`/api/reunioes/${id}/token-100ms`),
+  getToken100ms: (id: string) => api.post(`/api/reunioes/${id}/token`),
   createInstant: (data?: any) => api.post('/api/reunioes/instantanea', data || {}),
 };
 
