@@ -173,8 +173,15 @@ const createMeetingSchema = z.object({
     tenantId: z.string().optional(),
     titulo: z.string(),
     nome: z.string().optional(),
-    email: z.string().email().optional(),
-    telefone: z.string().optional(),
+    // Aceita string vazia, email valido ou undefined
+    email: z.string().optional().transform(val => {
+        if (!val || val.trim() === '') return undefined;
+        return val;
+    }).pipe(z.string().email().optional()),
+    telefone: z.string().optional().transform(val => {
+        if (!val || val.trim() === '') return undefined;
+        return val;
+    }),
     dataInicio: z.string().optional(),
     duracao: z.number().min(15).max(480).optional().default(60),
     roomDesignConfig: z.any().optional()
