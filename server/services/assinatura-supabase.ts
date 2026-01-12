@@ -30,6 +30,7 @@ interface AssinaturaContract {
   address_zipcode?: string | null;
   selfie_photo?: string | null;
   document_photo?: string | null;
+  document_back_photo?: string | null;
   logo_url?: string | null;
   logo_size?: string | null;
   logo_position?: string | null;
@@ -419,6 +420,7 @@ class AssinaturaSupabaseService {
     address_zipcode?: string;
     selfie_photo?: string;
     document_photo?: string;
+    document_back_photo?: string;
     signed_contract_html?: string;
     status?: string;
   }): Promise<AssinaturaContract | null> {
@@ -439,7 +441,8 @@ class AssinaturaSupabaseService {
       if (data.address_zipcode) updates.address_zipcode = data.address_zipcode;
       if (data.selfie_photo) updates.selfie_photo = data.selfie_photo;
       if (data.document_photo) updates.document_photo = data.document_photo;
-      if (data.signed_contract_html) updates.contract_html = data.signed_contract_html;
+      if (data.document_back_photo) updates.document_back_photo = data.document_back_photo;
+      if (data.signed_contract_html) updates.signed_contract_html = data.signed_contract_html;
       
       const { data: result, error } = await this.supabase
         .from('assinatura_contracts')

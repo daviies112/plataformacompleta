@@ -249,8 +249,12 @@ export const ContractDetailsModal = ({ contract, open, onOpenChange }: ContractD
                     <p className="text-gray-800">{displayContract?.client_email}</p>
                   </div>
                   <div>
-                    <p className="font-semibold text-gray-600">Telefone:</p>
-                    <p className="text-gray-800">{displayContract?.client_phone || 'Não informado'}</p>
+                    <p className="font-semibold text-gray-600">Protocolo:</p>
+                    <p className="text-gray-800 font-mono">{displayContract?.protocol_number || 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-600">Empresa:</p>
+                    <p className="text-gray-800">{displayContract?.company_name || 'N/A'}</p>
                   </div>
                 </div>
               </Card>

@@ -21,6 +21,7 @@ interface LocalContract {
   signed_at?: string | null;
   protocol_number?: string | null;
   contract_html?: string | null;
+  signed_contract_html?: string | null;
   logo_url?: string | null;
   logo_size?: string | null;
   logo_position?: string | null;
@@ -82,6 +83,7 @@ interface LocalContract {
   } | null;
   selfie_photo?: string | null;
   document_photo?: string | null;
+  document_back_photo?: string | null;
 }
 
 function ensureDataDir(): void {
@@ -452,7 +454,7 @@ router.patch('/contracts/:id', async (req: Request, res: Response) => {
 router.post('/contracts/:id/finalize', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { address, selfie_photo, document_photo, signed_contract_html, status } = req.body;
+    const { address, selfie_photo, document_photo, document_back_photo, signed_contract_html, status } = req.body;
 
     if (assinaturaSupabaseService.isConnected()) {
       const addressData = address ? {
@@ -468,6 +470,7 @@ router.post('/contracts/:id/finalize', async (req: Request, res: Response) => {
         ...addressData,
         selfie_photo,
         document_photo,
+        document_back_photo,
         signed_contract_html,
         status
       });
@@ -480,9 +483,10 @@ router.post('/contracts/:id/finalize', async (req: Request, res: Response) => {
             status: status || 'signed',
             signed_at: new Date().toISOString(),
             address: address || localContract.address,
-            contract_html: signed_contract_html || localContract.contract_html,
-            selfie_photo,
-            document_photo
+            signed_contract_html: signed_contract_html || localContract.signed_contract_html,
+            selfie_photo: selfie_photo || localContract.selfie_photo,
+            document_photo: document_photo || localContract.document_photo,
+            document_back_photo: document_back_photo || localContract.document_back_photo
           });
           saveLocalContracts(localContractsStore);
         }
@@ -505,9 +509,10 @@ router.post('/contracts/:id/finalize', async (req: Request, res: Response) => {
       status: status || 'signed',
       signed_at: new Date().toISOString(),
       address: address || contract.address || null,
-      contract_html: signed_contract_html || contract.contract_html,
+      signed_contract_html: signed_contract_html || contract.signed_contract_html,
       selfie_photo: selfie_photo || contract.selfie_photo,
-      document_photo: document_photo || contract.document_photo
+      document_photo: document_photo || contract.document_photo,
+      document_back_photo: document_back_photo || contract.document_back_photo
     };
 
     localContractsStore.set(id, updatedContract);
