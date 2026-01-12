@@ -204,10 +204,18 @@ publicRoomDesignRouter.post('/reunioes/:id/token-public', async (req: Request, r
       // Continue anyway - the room might still work
     }
 
-    // For public link, role is always guest unless it's a recorder
-    const participantRole = 'guest';
-    const participantName = userName || 'Visitante';
+    // Check if user has a valid session - if so, they get host role
+    const sessionUserId = (req as any).session?.userId;
+    const sessionTenantId = (req as any).session?.tenantId;
+    const isAuthenticatedUser = sessionUserId && sessionTenantId && sessionTenantId === meeting.tenantId;
+    
+    // Authenticated users from the same tenant get host role (can record)
+    // Public visitors get guest role (cannot record)
+    const participantRole = isAuthenticatedUser ? 'host' : 'guest';
+    const participantName = userName || (isAuthenticatedUser ? 'Administrador' : 'Visitante');
 
+    console.log(`[Token Public] Sessão detectada: userId=${sessionUserId}, tenantId=${sessionTenantId}, meetingTenant=${meeting.tenantId}`);
+    console.log(`[Token Public] Usuário autenticado: ${isAuthenticatedUser ? 'SIM → role=host' : 'NÃO → role=guest'}`);
     console.log(`[Token Public] Gerando token para ${participantName} (${participantRole}) na sala ${meeting.roomId100ms}`);
     console.log(`[Token Public] Usando template_id: ${credentials.templateId || 'NÃO CONFIGURADO'}`);
 
