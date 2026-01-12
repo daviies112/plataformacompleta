@@ -3,15 +3,19 @@ import {
   useHMSStore,
   useHMSActions,
   useVideo,
+  useHMSNotifications,
+  HMSNotificationTypes,
   selectPeers,
   selectIsConnectedToRoom,
   selectIsLocalAudioEnabled,
   selectIsLocalVideoEnabled,
   selectIsLocalScreenShared,
   selectRoom,
+  selectRoomState,
   HMSPeer,
+  HMSRoomState,
 } from "@100mslive/react-sdk";
-import { Mic, MicOff, Video, VideoOff, PhoneOff, Users, MonitorUp, MonitorOff, Circle, Copy, Check, Share2, FileSignature } from "lucide-react";
+import { Mic, MicOff, Video, VideoOff, PhoneOff, Users, MonitorUp, MonitorOff, Circle, Copy, Check, Share2, FileSignature, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -152,7 +156,11 @@ export function Meeting100ms({
   const isVideoEnabled = useHMSStore(selectIsLocalVideoEnabled);
   const isScreenShared = useHMSStore(selectIsLocalScreenShared);
   const room = useHMSStore(selectRoom);
+  const roomState = useHMSStore(selectRoomState);
   const hmsStore = useHMSStore();
+  
+  // CRÍTICO: Capturar notificações/erros do SDK 100ms
+  const notification = useHMSNotifications();
   
   // DEBUG: Ativar logs verbose do 100ms SDK
   useEffect(() => {
@@ -173,13 +181,18 @@ export function Meeting100ms({
     console.log("[Meeting100ms] 📊 Room state atualizado:", {
       roomId: room?.id,
       roomName: room?.name,
-      roomState: (room as any)?.state,
+      roomState: roomState,
       sessionId: room?.sessionId,
       isConnected,
       peersCount: peers?.length,
       localPeerId: room?.localPeer,
     });
-  }, [room, isConnected, peers]);
+    
+    // Se o roomState for "Connected" mas isConnected é false, logar isso
+    if (roomState === HMSRoomState.Connected && !isConnected) {
+      console.warn("[Meeting100ms] ⚠️ INCONSISTÊNCIA: roomState=Connected mas isConnected=false!");
+    }
+  }, [room, roomState, isConnected, peers]);
 
   const localPeer = useHMSStore((store) => store.localPeer);
   const isHost = localPeer?.roleName === 'host';
@@ -215,8 +228,63 @@ export function Meeting100ms({
   const [isCopied, setIsCopied] = useState(false);
   const [connectionAttempts, setConnectionAttempts] = useState(0);
   const [canRetry, setCanRetry] = useState(false);
+  const [sdkError, setSdkError] = useState<{ code: string; message: string } | null>(null);
+  const [isReconnecting, setIsReconnecting] = useState(false);
   const hasAttemptedJoin = useRef(false);
   const joinTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Processar notificações do SDK para debug e tratamento de erros
+  useEffect(() => {
+    if (!notification) return;
+    
+    console.log("[Meeting100ms] 🔔 Notificação recebida:", notification.type, notification.data);
+    
+    switch (notification.type) {
+      case HMSNotificationTypes.ERROR:
+        console.error("[Meeting100ms] ❌ ERRO DO SDK:", notification.data);
+        const errorData = notification.data as any;
+        const errorMsg = errorData?.message || errorData?.description || "Erro de conexão com a sala";
+        const errorCode = errorData?.code?.toString() || "UNKNOWN";
+        console.error(`[Meeting100ms] Código: ${errorCode}, Mensagem: ${errorMsg}`);
+        
+        // Erros críticos que devem ser mostrados ao usuário
+        const criticalCodes = ['401', '403', '404', '500', '4001', '4002', '4003', '4004', '4005', '4100', '4101'];
+        const isCritical = criticalCodes.some(code => errorCode.includes(code)) || 
+                          errorMsg.toLowerCase().includes('token') ||
+                          errorMsg.toLowerCase().includes('permission') ||
+                          errorMsg.toLowerCase().includes('room');
+        
+        if (isCritical) {
+          setSdkError({ code: errorCode, message: errorMsg });
+          setIsJoining(false);
+          setCanRetry(true);
+        }
+        break;
+        
+      case HMSNotificationTypes.RECONNECTING:
+        console.warn("[Meeting100ms] 🔄 Reconectando...");
+        setIsReconnecting(true);
+        break;
+        
+      case HMSNotificationTypes.RECONNECTED:
+        console.log("[Meeting100ms] ✅ Reconectado com sucesso!");
+        setIsReconnecting(false);
+        setSdkError(null);
+        break;
+        
+      case HMSNotificationTypes.PEER_JOINED:
+        console.log("[Meeting100ms] 👤 Peer entrou:", (notification.data as any)?.name);
+        break;
+        
+      case HMSNotificationTypes.PEER_LEFT:
+        console.log("[Meeting100ms] 👋 Peer saiu:", (notification.data as any)?.name);
+        break;
+        
+      case HMSNotificationTypes.ROOM_ENDED:
+        console.log("[Meeting100ms] 🏁 Sala encerrada");
+        break;
+    }
+  }, [notification]);
 
   useEffect(() => {
     // CRÍTICO: Não tentar join se não temos token válido
@@ -595,6 +663,39 @@ export function Meeting100ms({
     });
   }, [isJoining, isConnected, error, peers, authToken, roomId, connectionAttempts, room]);
 
+  // Mostrar tela de erro do SDK se houver
+  if (sdkError) {
+    console.log("[Meeting100ms] Mostrando erro do SDK:", sdkError);
+    return (
+      <div className="h-screen flex items-center justify-center p-4 bg-[#09090b]">
+        <Card className="p-8 max-w-md w-full text-center bg-zinc-900 border-zinc-800">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-500/20 flex items-center justify-center">
+            <AlertCircle className="h-8 w-8 text-red-500" />
+          </div>
+          <h2 className="text-xl font-bold mb-2 text-white">Erro de Conexao</h2>
+          <p className="text-zinc-400 mb-2 text-sm">{sdkError.message}</p>
+          <p className="text-zinc-500 mb-6 text-xs font-mono">Codigo: {sdkError.code}</p>
+          <div className="flex flex-col gap-3">
+            <Button onClick={handleRetry} className="w-full" data-testid="button-retry-sdk-error">
+              Tentar Novamente
+            </Button>
+            <Button 
+              onClick={() => window.location.reload()} 
+              variant="outline"
+              className="w-full"
+              data-testid="button-reload-sdk-error"
+            >
+              Recarregar Pagina
+            </Button>
+          </div>
+          <p className="text-zinc-600 text-[10px] mt-4">
+            Se o problema persistir, entre em contato com o organizador da reuniao.
+          </p>
+        </Card>
+      </div>
+    );
+  }
+
   // Mostrar tela de erro se houver
   if (error) {
     console.log("[Meeting100ms] Mostrando tela de erro:", error, "canRetry:", canRetry);
@@ -615,7 +716,7 @@ export function Meeting100ms({
               className="w-full"
               data-testid="button-reload-page"
             >
-              Recarregar Página
+              Recarregar Pagina
             </Button>
           </div>
         </Card>

@@ -7,6 +7,7 @@ import { decrypt } from '../lib/credentialsManager';
 import { 
   gerarTokenParticipante, 
   criarSala, 
+  obterSala,
   iniciarGravacao, 
   pararGravacao,
   obterGravacao,
@@ -162,11 +163,38 @@ publicRoomDesignRouter.post('/reunioes/:id/token-public', async (req: Request, r
       return res.status(400).json({ error: 'Credenciais do 100ms não configuradas para este tenant' });
     }
 
+    // Verify room status in 100ms before generating token
+    try {
+      const roomInfo = await obterSala(
+        meeting.roomId100ms,
+        credentials.appAccessKey,
+        credentials.appSecret
+      );
+      
+      console.log(`[Token Public] 100ms Room Info:`, JSON.stringify({
+        id: roomInfo.id,
+        name: roomInfo.name,
+        enabled: roomInfo.enabled,
+        template_id: roomInfo.template_id,
+        customer_id: roomInfo.customer_id
+      }, null, 2));
+
+      if (!roomInfo.enabled) {
+        console.warn(`[Token Public] AVISO: Sala ${meeting.roomId100ms} está DESATIVADA no 100ms!`);
+        // Optionally re-enable the room
+        // await ativarSala(meeting.roomId100ms, credentials.appAccessKey, credentials.appSecret);
+      }
+    } catch (roomError: any) {
+      console.error(`[Token Public] Erro ao verificar sala no 100ms:`, roomError.response?.data || roomError.message);
+      // Continue anyway - the room might still work
+    }
+
     // For public link, role is always guest unless it's a recorder
     const participantRole = 'guest';
     const participantName = userName || 'Visitante';
 
     console.log(`[Token Public] Gerando token para ${participantName} (${participantRole}) na sala ${meeting.roomId100ms}`);
+    console.log(`[Token Public] Usando template_id: ${credentials.templateId || 'NÃO CONFIGURADO'}`);
 
     const token = gerarTokenParticipante(
       meeting.roomId100ms,
