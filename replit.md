@@ -70,6 +70,16 @@ scripts/   → Utilitários (export, import)
    - **Credenciais corrigidas:** URL e API Key do projeto `axrvyrpefpntacuibyds` armazenadas criptografadas na tabela `supabase_master_config`
    - Fallback automático para Cliente quando Master está vazio (0 registros)  
 ✅ WhatsApp Business  
+✅ **Integração N8N** - NOVO (12/01/2026)
+   - **API Key por Tenant:** Cada tenant pode gerar sua própria API key para N8N
+   - **Endpoints:** 
+     - `POST /api/n8n/api-key/generate` - Gera nova API key (autenticado)
+     - `DELETE /api/n8n/api-key` - Revoga API key (autenticado)
+     - `GET /api/n8n/api-key/status` - Verifica status (autenticado)
+     - `POST /api/n8n/reunioes` - Cria reunião via N8N
+   - **Autenticação:** Header `X-N8N-API-Key` com API key do tenant
+   - **Design Automático:** Reuniões herdam automaticamente configuração de branding do tenant
+   - **Compatibilidade:** Suporte legacy para `N8N_API_KEY` global (auto-seleciona tenant único)
 ✅ Video Conferencing (100ms) - ATUALIZADO (12/01/2026)
    - API Routes: `/api/reunioes`, `/api/reunioes/instantanea`, `/api/gravacoes`
    - Acessível via menu "Reunião" no header
