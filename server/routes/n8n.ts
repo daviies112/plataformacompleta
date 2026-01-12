@@ -11,7 +11,13 @@ const n8nRouter = Router();
 
 const authenticateN8N = (req: Request, res: Response, next: any) => {
     const apiKey = req.headers['x-n8n-api-key'];
-    const masterKey = process.env.N8N_API_KEY || 'nexus_n8n_secure_key_2024';
+    const masterKey = process.env.N8N_API_KEY;
+
+    // SEGURANÇA: Não permitir acesso se N8N_API_KEY não estiver configurada
+    if (!masterKey) {
+        console.warn('[N8N] N8N_API_KEY não configurada. Configure nos Replit Secrets para habilitar esta rota.');
+        return res.status(503).json({ error: 'N8N API não configurada. Configure N8N_API_KEY nos Secrets.' });
+    }
 
     if (!apiKey || apiKey !== masterKey) {
         return res.status(401).json({ error: 'Não autorizado. API Key inválida ou ausente.' });

@@ -75,12 +75,17 @@ scripts/   → Utilitários (export, import)
    - Acessível via menu "Reunião" no header
    - Configure credenciais do 100ms em Configurações antes de criar reuniões
    - **Reuniões Públicas:** Link compartilhável para usuários externos (sem autenticação)
-   - **Correção Tela Preta (v2):** Refatorada lógica de conexão para manter loading spinner até conexão confirmada
-     - `isJoining` permanece `true` até `isConnected` ser confirmado pelo SDK
-     - Removido hook `useHMSNotifications` incompatível com SDK v0.11.0
+   - **Correção Tela Preta (v3):** Melhorias na conexão do SDK v0.11.0
+     - Verificação de token válido antes de tentar conexão
+     - Conexão inicia com áudio/vídeo MUTADOS para evitar problemas de dispositivos
+     - Logs de debug detalhados para diagnóstico (`[Meeting100ms]` no console)
      - Timeout de 30s com retry automático (até 3 tentativas)
+     - Botão "Tentar Novamente" para retry manual sem recarregar página
    - **React Hooks:** Corrigida ordem de chamadas para evitar violações das regras de hooks
-   - Veja: `DOCUMENTACAO_CORRECAO_100MS.md` (detalhado)
+   - **IMPORTANTE - Configuração do Dashboard 100ms:**
+     - A role "guest" deve existir no template e ter permissões de subscribe
+     - A sala deve estar ativa (enabled: true)
+     - Veja: `DOCUMENTACAO_CORRECAO_100MS.md` (detalhado)
 ✅ **Calendário de Reuniões** - NOVO (05/01/2026)
    - Visualiza todas as reuniões agendadas na página Calendário (header)
    - Grid mensal com navegação e detalhes de cada reunião

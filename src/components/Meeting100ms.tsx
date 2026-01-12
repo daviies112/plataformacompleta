@@ -153,6 +153,33 @@ export function Meeting100ms({
   const isScreenShared = useHMSStore(selectIsLocalScreenShared);
   const room = useHMSStore(selectRoom);
   const hmsStore = useHMSStore();
+  
+  // DEBUG: Ativar logs verbose do 100ms SDK
+  useEffect(() => {
+    console.log("[Meeting100ms] 🔧 Ativando logs de debug do SDK 100ms...");
+    try {
+      // Tenta configurar log level para debug se disponível
+      if ((hmsActions as any).setLogLevel) {
+        (hmsActions as any).setLogLevel('debug');
+        console.log("[Meeting100ms] ✅ Log level setado para debug");
+      }
+    } catch (e) {
+      console.warn("[Meeting100ms] ⚠️ Não foi possível setar log level:", e);
+    }
+  }, [hmsActions]);
+  
+  // DEBUG: Monitorar estado do room continuamente
+  useEffect(() => {
+    console.log("[Meeting100ms] 📊 Room state atualizado:", {
+      roomId: room?.id,
+      roomName: room?.name,
+      roomState: (room as any)?.state,
+      sessionId: room?.sessionId,
+      isConnected,
+      peersCount: peers?.length,
+      localPeerId: room?.localPeer,
+    });
+  }, [room, isConnected, peers]);
 
   const localPeer = useHMSStore((store) => store.localPeer);
   const isHost = localPeer?.roleName === 'host';
@@ -192,7 +219,16 @@ export function Meeting100ms({
   const joinTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    if (hasAttemptedJoin.current) return;
+    // CRÍTICO: Não tentar join se não temos token válido
+    if (!authToken || authToken.length < 10) {
+      console.error("[Meeting100ms] ❌ Token inválido ou vazio! Aguardando token válido...");
+      return;
+    }
+    
+    if (hasAttemptedJoin.current) {
+      console.log("[Meeting100ms] Join já foi tentado, ignorando...");
+      return;
+    }
     hasAttemptedJoin.current = true;
     
     const isBot = window.location.search.includes("recording_bot=true") || 
@@ -210,8 +246,8 @@ export function Meeting100ms({
       if (!isMounted) return;
       
       try {
-        console.log(`[Meeting100ms] Tentativa ${attempt + 1} de entrar na sala...`);
-        console.log("[Meeting100ms] Token:", authToken.substring(0, 20) + "...");
+        console.log(`[Meeting100ms] 🚀 Tentativa ${attempt + 1} de entrar na sala...`);
+        console.log("[Meeting100ms] Token válido:", authToken.substring(0, 30) + "...");
         console.log("[Meeting100ms] userName:", userName);
         console.log("[Meeting100ms] roomId:", roomId);
         
@@ -221,35 +257,47 @@ export function Meeting100ms({
         
         joinTimeoutRef.current = setTimeout(() => {
           if (isMounted && attempt < 2) {
-            console.warn(`[Meeting100ms] Timeout de conexão (30s) - tentativa ${attempt + 2}...`);
+            console.warn(`[Meeting100ms] ⚠️ Timeout de conexão (30s) - tentativa ${attempt + 2}...`);
             setConnectionAttempts(attempt + 1);
             hasAttemptedJoin.current = false;
             joinRoom(attempt + 1);
           } else if (isMounted) {
-            console.error("[Meeting100ms] Todas as tentativas falharam");
+            console.error("[Meeting100ms] ❌ Todas as tentativas falharam após 3 tentativas");
             setError("Timeout ao conectar à reunião. Verifique sua conexão e tente novamente.");
             setIsJoining(false);
             setCanRetry(true);
           }
         }, 30000);
         
+        console.log("[Meeting100ms] Chamando hmsActions.join()...");
+        // IMPORTANTE: Iniciar com áudio/vídeo MUTADOS para evitar problemas de dispositivos de mídia
+        // O SDK pode falhar na conexão se tentar acessar dispositivos de mídia indisponíveis
         await hmsActions.join({
           userName,
           authToken,
-          settings: { isAudioMuted: false, isVideoMuted: false },
+          settings: { 
+            isAudioMuted: true,  // Começa mutado para garantir conexão
+            isVideoMuted: true   // Começa com vídeo off para garantir conexão
+          },
           rememberDeviceSelection: true
         });
         
-        console.log("[Meeting100ms] join() resolveu - aguardando confirmação de conexão...");
+        console.log("[Meeting100ms] ✅ join() resolveu com sucesso!");
+        
+        // Verificar estado após join
+        setTimeout(() => {
+          console.log("[Meeting100ms] 📊 Estado 2s após join - verificando conexão...");
+        }, 2000);
+        
       } catch (err: any) {
-        console.error("[Meeting100ms] Erro ao entrar na sala:", err);
+        console.error("[Meeting100ms] ❌ Erro ao entrar na sala:", err);
         if (joinTimeoutRef.current) {
           clearTimeout(joinTimeoutRef.current);
           joinTimeoutRef.current = null;
         }
         if (isMounted) {
           const errorMessage = err.message || "Erro ao conectar";
-          console.error("[Meeting100ms] Detalhes do erro:", {
+          console.error("[Meeting100ms] 📋 Detalhes do erro:", {
             name: err.name,
             message: err.message,
             code: err.code,
@@ -262,6 +310,7 @@ export function Meeting100ms({
       }
     };
     
+    console.log("[Meeting100ms] 🎬 Iniciando processo de join...");
     joinRoom(0);
     
     return () => { 
@@ -274,15 +323,22 @@ export function Meeting100ms({
   }, [hmsActions, authToken, userName, roomId]);
 
   useEffect(() => {
+    console.log("[Meeting100ms] 🔍 Estado de conexão atualizado:", { isConnected, isJoining, peersCount: peers?.length });
+    
     if (isConnected && isJoining) {
-      console.log("[Meeting100ms] Conexão confirmada! isConnected:", isConnected);
+      console.log("[Meeting100ms] ✅ CONEXÃO CONFIRMADA! Removendo spinner de loading...");
       if (joinTimeoutRef.current) {
         clearTimeout(joinTimeoutRef.current);
         joinTimeoutRef.current = null;
       }
       setIsJoining(false);
     }
-  }, [isConnected, isJoining]);
+    
+    // Se estamos conectados mas isJoining ainda é true por algum motivo, corrigir
+    if (isConnected && !isJoining && peers && peers.length > 0) {
+      console.log("[Meeting100ms] 👥 Conexão estável com", peers.length, "participante(s)");
+    }
+  }, [isConnected, isJoining, peers]);
 
   useEffect(() => {
     return () => {
@@ -507,7 +563,10 @@ export function Meeting100ms({
       await hmsActions.join({
         userName,
         authToken,
-        settings: { isAudioMuted: false, isVideoMuted: false },
+        settings: { 
+          isAudioMuted: true,  // Começa mutado para garantir conexão
+          isVideoMuted: true   // Começa com vídeo off para garantir conexão
+        },
         rememberDeviceSelection: true
       });
       clearTimeout(retryTimeout);
