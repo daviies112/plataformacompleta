@@ -337,7 +337,7 @@ function MeetingWrapper({
           return;
         }
 
-        const pubResponse = await fetch(`/api/reunioes/${reuniao.id}/token-public`, {
+        const pubResponse = await fetch(`/api/public/reunioes/${reuniao.id}/token-public`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ userName: participantName || 'Convidado' })

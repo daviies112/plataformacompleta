@@ -73,7 +73,7 @@ export const meetingsRouter = Router();
 export const publicRoomDesignRouter = Router();
 
 // PUBLIC endpoint - Get room design config by meeting ID (no auth required)
-// This allows meeting participants to see the correct room design colors
+// Adjusted path to work with /api/public prefix from routes.ts
 publicRoomDesignRouter.get('/reunioes/:id/room-design-public', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;

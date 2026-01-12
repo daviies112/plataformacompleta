@@ -43,9 +43,9 @@ export default function ReuniaoPublica() {
 
   // Pre-load design and meeting data to avoid blank screen
   const { data: meetingData, isLoading: meetingLoading, error: meetingError } = useQuery({
-    queryKey: ["/api/reunioes-public", meetingId],
+    queryKey: ["/api/public/reunioes", meetingId],
     queryFn: async () => {
-      const response = await api.get(`/api/reunioes/${meetingId}/public`);
+      const response = await api.get(`/api/public/reunioes/${meetingId}/public`);
       return response.data;
     },
     enabled: !!meetingId,
@@ -56,11 +56,11 @@ export default function ReuniaoPublica() {
   const meeting = meetingData?.meeting;
 
   const { data: designData } = useQuery({
-    queryKey: ["/api/reunioes", meetingId, "room-design-public"],
+    queryKey: ["/api/public/reunioes", meetingId, "room-design-public"],
     queryFn: async () => {
       if (!meetingId) return { roomDesignConfig: null };
       try {
-        const response = await api.get(`/api/reunioes/${meetingId}/room-design-public`);
+        const response = await api.get(`/api/public/reunioes/${meetingId}/room-design-public`);
         return response.data;
       } catch (error) {
         return { roomDesignConfig: null };
@@ -98,7 +98,7 @@ export default function ReuniaoPublica() {
     setTokenError(null);
 
     try {
-      const response = await api.post(`/api/reunioes/${meetingId}/token-public`, {
+      const response = await api.post(`/api/public/reunioes/${meetingId}/token-public`, {
         userName: userName || "Participante",
         role: isRecordingBot ? "recorder" : "guest"
       });
