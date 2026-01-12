@@ -34,7 +34,7 @@ export const ContractDetailsModal = ({ contract, open, onOpenChange }: ContractD
   useEffect(() => {
     if (open && contract?.id) {
       setIsLoading(true);
-      apiRequest('GET', `/api/contracts/by-id/${contract.id}`)
+      apiRequest('GET', `/api/assinatura/contracts/${contract.id}`)
         .then(res => res.json())
         .then(data => setFreshContract(data))
         .catch(err => {
@@ -232,7 +232,7 @@ export const ContractDetailsModal = ({ contract, open, onOpenChange }: ContractD
           </div>
         </DialogHeader>
 
-        <div id="contract-details-content" className="space-y-6 bg-white p-6">
+        <div id="contract-details-content" className="space-y-6 bg-white p-6 text-black">
           {isLoading && <p className="text-sm text-gray-500">Carregando detalhes...</p>}
           
           {!isLoading && (
@@ -300,10 +300,11 @@ export const ContractDetailsModal = ({ contract, open, onOpenChange }: ContractD
               {displayContract?.signed_contract_html && (
                 <Card className="p-4">
                   <h3 className="font-bold text-lg mb-3">Contrato Assinado</h3>
-                  <div className="bg-gray-50 p-4 rounded border border-gray-200 text-sm">
+                  <div className="bg-white p-4 rounded border border-gray-200 text-sm overflow-visible text-black">
                     <div 
                       dangerouslySetInnerHTML={{ __html: displayContract.signed_contract_html }}
-                      className="prose prose-sm max-w-none"
+                      className="prose prose-sm max-w-none text-black"
+                      style={{ color: 'black' }}
                     />
                   </div>
                 </Card>

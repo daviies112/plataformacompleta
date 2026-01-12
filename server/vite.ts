@@ -26,6 +26,7 @@ export async function setupVite(app: Express, server: Server) {
       hmr: {
         server: server,
       },
+      allowedHosts: true,
     },
     appType: "spa",
     clearScreen: false,
