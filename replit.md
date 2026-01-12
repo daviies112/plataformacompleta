@@ -75,7 +75,10 @@ scripts/   → Utilitários (export, import)
    - Acessível via menu "Reunião" no header
    - Configure credenciais do 100ms em Configurações antes de criar reuniões
    - **Reuniões Públicas:** Link compartilhável para usuários externos (sem autenticação)
-   - **Correção Tela Preta:** Adicionado tratamento de erros do SDK 100ms (useHMSNotifications)
+   - **Correção Tela Preta (v2):** Refatorada lógica de conexão para manter loading spinner até conexão confirmada
+     - `isJoining` permanece `true` até `isConnected` ser confirmado pelo SDK
+     - Removido hook `useHMSNotifications` incompatível com SDK v0.11.0
+     - Timeout de 30s com retry automático (até 3 tentativas)
    - **React Hooks:** Corrigida ordem de chamadas para evitar violações das regras de hooks
    - Veja: `DOCUMENTACAO_CORRECAO_100MS.md` (detalhado)
 ✅ **Calendário de Reuniões** - NOVO (05/01/2026)

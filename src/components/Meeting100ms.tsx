@@ -3,8 +3,6 @@ import {
   useHMSStore,
   useHMSActions,
   useVideo,
-  useHMSNotifications,
-  HMSNotificationTypes,
   selectPeers,
   selectIsConnectedToRoom,
   selectIsLocalAudioEnabled,
@@ -192,46 +190,6 @@ export function Meeting100ms({
   const hasAttemptedJoin = useRef(false);
   const joinTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Capturar notificações de erro do SDK 100ms
-  const notification = useHMSNotifications(HMSNotificationTypes.ERROR);
-  
-  // Handler para erros do SDK
-  useEffect(() => {
-    if (!notification) return;
-    
-    const errorData = notification.data as any;
-    console.error("[Meeting100ms] Erro do SDK 100ms:", errorData);
-    console.error("[Meeting100ms] Código:", errorData?.code);
-    console.error("[Meeting100ms] Mensagem:", errorData?.message);
-    console.error("[Meeting100ms] Descrição:", errorData?.description);
-    console.error("[Meeting100ms] isTerminal:", errorData?.isTerminal);
-    
-    // Mensagens de erro amigáveis
-    let userMessage = "Ocorreu um erro na conexão.";
-    
-    if (errorData?.code === 1003) {
-      userMessage = "Falha na reconexão após 60 segundos. Por favor, tente novamente.";
-    } else if (errorData?.code === 4005 || errorData?.isTerminal) {
-      userMessage = "Erro crítico na conexão. Por favor, tente entrar novamente.";
-    } else if (errorData?.code === 2001) {
-      userMessage = "Token de autenticação inválido. Por favor, recarregue a página.";
-    } else if (errorData?.code === 5001) {
-      userMessage = "Você foi removido da reunião pelo organizador.";
-    } else if (errorData?.message) {
-      userMessage = `Erro: ${errorData.message}`;
-    } else if (errorData?.description) {
-      userMessage = `Erro: ${errorData.description}`;
-    }
-    
-    setError(userMessage);
-    setIsJoining(false);
-    
-    // Limpar timeout se houver erro
-    if (joinTimeoutRef.current) {
-      clearTimeout(joinTimeoutRef.current);
-    }
-  }, [notification]);
-
   useEffect(() => {
     if (hasAttemptedJoin.current) return;
     hasAttemptedJoin.current = true;
@@ -261,11 +219,11 @@ export function Meeting100ms({
         }
         
         joinTimeoutRef.current = setTimeout(() => {
-          if (isMounted && !isConnected && attempt < 2) {
+          if (isMounted && attempt < 2) {
             console.warn(`[Meeting100ms] Timeout de conexão (30s) - tentativa ${attempt + 2}...`);
             setConnectionAttempts(attempt + 1);
             joinRoom(attempt + 1);
-          } else if (isMounted && !isConnected) {
+          } else if (isMounted) {
             setError("Timeout ao conectar à reunião. Verifique sua conexão e tente novamente.");
             setIsJoining(false);
           }
@@ -278,14 +236,7 @@ export function Meeting100ms({
           rememberDeviceSelection: true
         });
         
-        console.log("[Meeting100ms] Join bem-sucedido!");
-        if (isMounted) {
-          if (joinTimeoutRef.current) {
-            clearTimeout(joinTimeoutRef.current);
-            joinTimeoutRef.current = null;
-          }
-          setIsJoining(false);
-        }
+        console.log("[Meeting100ms] join() resolveu - aguardando confirmação de conexão...");
       } catch (err: any) {
         console.error("[Meeting100ms] Erro ao entrar na sala:", err);
         if (joinTimeoutRef.current) {
@@ -316,6 +267,17 @@ export function Meeting100ms({
       }
     };
   }, [hmsActions, authToken, userName, roomId]);
+
+  useEffect(() => {
+    if (isConnected && isJoining) {
+      console.log("[Meeting100ms] Conexão confirmada! isConnected:", isConnected);
+      if (joinTimeoutRef.current) {
+        clearTimeout(joinTimeoutRef.current);
+        joinTimeoutRef.current = null;
+      }
+      setIsJoining(false);
+    }
+  }, [isConnected, isJoining]);
 
   useEffect(() => {
     return () => {
@@ -523,15 +485,18 @@ export function Meeting100ms({
 
   // Log de debug para entender o estado atual - DEVE estar antes de qualquer return condicional
   useEffect(() => {
-    console.log("[Meeting100ms] Estado atual:", {
+    console.log("[Meeting100ms] 🔄 Estado atual:", {
       isJoining,
       isConnected,
       hasError: !!error,
+      errorMessage: error,
       peersCount: peers?.length || 0,
       authTokenExists: !!authToken,
-      roomIdExists: !!roomId
+      roomIdExists: !!roomId,
+      connectionAttempts,
+      roomState: room ? 'exists' : 'null'
     });
-  }, [isJoining, isConnected, error, peers, authToken, roomId]);
+  }, [isJoining, isConnected, error, peers, authToken, roomId, connectionAttempts, room]);
 
   // Mostrar tela de erro se houver
   if (error) {
