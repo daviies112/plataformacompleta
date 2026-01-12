@@ -75,11 +75,11 @@ export const publicRoomDesignRouter = Router();
 
 // PUBLIC endpoint - Get room design config by meeting ID (no auth required)
 // Adjusted path to work with /api/public prefix from routes.ts
+// PRIORITY: 1) Meeting metadata config, 2) Tenant config, 3) null
 publicRoomDesignRouter.get('/reunioes/:id/room-design-public', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
 
-    // First, get the meeting to find its tenantId
     const [meeting] = await db.select().from(reunioes)
       .where(eq(reunioes.id, id))
       .limit(1);
@@ -88,16 +88,31 @@ publicRoomDesignRouter.get('/reunioes/:id/room-design-public', async (req: Reque
       return res.status(404).json({ error: 'Reunião não encontrada', roomDesignConfig: null });
     }
 
-    // Get the room design config for this tenant
+    // PRIORITY 1: Check if meeting has custom roomDesignConfig in metadata
+    const meetingMetadata = meeting.metadata as any;
+    if (meetingMetadata?.roomDesignConfig) {
+      console.log(`[RoomDesign] Using meeting-specific config for meeting ${id}`);
+      return res.json({ 
+        roomDesignConfig: meetingMetadata.roomDesignConfig,
+        source: 'meeting'
+      });
+    }
+
+    // PRIORITY 2: Fall back to tenant's default config
     const [config] = await db.select().from(hms100msConfig)
       .where(eq(hms100msConfig.tenantId, meeting.tenantId))
       .limit(1);
     
-    if (!config) {
-      return res.json({ roomDesignConfig: null });
+    if (!config || !config.roomDesignConfig) {
+      console.log(`[RoomDesign] No config found for meeting ${id} or tenant ${meeting.tenantId}`);
+      return res.json({ roomDesignConfig: null, source: 'none' });
     }
     
-    res.json({ roomDesignConfig: config.roomDesignConfig });
+    console.log(`[RoomDesign] Using tenant config for meeting ${id}`);
+    res.json({ 
+      roomDesignConfig: config.roomDesignConfig,
+      source: 'tenant'
+    });
   } catch (error: any) {
     console.error('Erro ao obter room design config público:', error);
     res.status(500).json({ error: 'Erro ao obter configuração de design', roomDesignConfig: null });

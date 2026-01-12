@@ -1,0 +1,93 @@
+Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+supabase.ts:37 🔄 Tentativa 1/5 de carregar credenciais Supabase...
+client.ts:14 [Supabase] No credentials provided. Using stub client.
+createSupabaseClient @ client.ts:14Understand this warning
+usePWAInstall.ts:112 📱 [PWA] Device Info: Object
+usePWAInstall.ts:176 🧪 [PWA] Modo desenvolvimento detectado - botão sempre visível para testes
+AuthContext.tsx:69 [AuthContext] Checking session...
+usePWAInstall.ts:125 ✅ [PWA] Service Worker registrado: https://863db27b-299f-4f4f-ae93-4678cbe1589b-00-2521mi8n9pvo9.kirk.replit.dev/
+/api/config/supabase/credentials:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)Understand this error
+supabase.ts:96 ℹ️ [SUPABASE] Usuário não autenticado - credenciais serão carregadas após login
+supabase.ts:185 ℹ️ [SUPABASE] Credenciais não disponíveis - usuário pode não estar autenticado
+workspaceStorage.ts:440 👤 Usuário não autenticado - usando localStorage
+workspaceStorage.ts:455 📭 Nenhum dado encontrado
+sentry.ts:34 ⚠️ Sentry não configurado - Monitoramento desativado
+AuthContext.tsx:73 [AuthContext] Session check response: Object
+AuthContext.tsx:129 [AuthContext] Setting isLoading to false
+/api/notifications/vapid-public-key:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)Understand this error
+NotificationContext.tsx:186 [Notifications] Não autenticado - limpando dados
+c8d44ec1-0b0d-4112-b9ed-d4318717ec80:1 <meta name="apple-mobile-web-app-capable" content="yes"> is deprecated. Please include <meta name="mobile-web-app-capable" content="yes">Understand this warning
+c8d44ec1-0b0d-4112-b9ed-d4318717ec80:1 Error while trying to use the following icon from the Manifest: https://863db27b-299f-4f4f-ae93-4678cbe1589b-00-2521mi8n9pvo9.kirk.replit.dev/icons/icon-192x192.png (Download error or resource isn't a valid image)Understand this warning
+MeetingLobby.tsx:64 ✅ Mídia inicializada no lobby
+MeetingLobby.tsx:127 🔄 Parando preview do lobby antes de entrar...
+MeetingLobby.tsx:130 ✅ Track parado: audio
+MeetingLobby.tsx:130 ✅ Track parado: video
+ReuniaoPublica.tsx:210 [ReuniaoPublica] Renderizando Meeting100ms com: {token: 'eyJhbGciOiJIUzI1NiIs...', roomId: '696549d8ced4c7d03313057f', userName: 'fdsfdsds'}
+Meeting100ms.tsx:728 [Meeting100ms] Mostrando tela de conexão. isJoining: true isConnected: false
+Meeting100ms.tsx:166 [Meeting100ms] 🔧 Ativando logs de debug do SDK 100ms...
+Meeting100ms.tsx:171 [Meeting100ms] ✅ Log level setado para debug
+Meeting100ms.tsx:180 [Meeting100ms] 📊 Room state atualizado: {roomId: '', roomName: '', roomState: 'Disconnected', sessionId: '', isConnected: false, …}
+Meeting100ms.tsx:380 [Meeting100ms] 🎬 Iniciando processo de join...
+Meeting100ms.tsx:316 [Meeting100ms] 🚀 Tentativa 1 de entrar na sala...
+Meeting100ms.tsx:317 [Meeting100ms] Token válido: eyJhbGciOiJIUzI1NiIsInR5cCI6Ik...
+Meeting100ms.tsx:318 [Meeting100ms] userName: fdsfdsds
+Meeting100ms.tsx:319 [Meeting100ms] roomId: 696549d8ced4c7d03313057f
+Meeting100ms.tsx:339 [Meeting100ms] Chamando hmsActions.join()...
+Meeting100ms.tsx:393 [Meeting100ms] 🔍 Estado de conexão atualizado: {isConnected: false, isJoining: true, peersCount: 0}
+Meeting100ms.tsx:652 [Meeting100ms] 🔄 Estado atual: {isJoining: true, isConnected: false, hasError: false, errorMessage: null, peersCount: 0, …}
+Meeting100ms.tsx:728 [Meeting100ms] Mostrando tela de conexão. isJoining: true isConnected: false
+Meeting100ms.tsx:180 [Meeting100ms] 📊 Room state atualizado: {roomId: '', roomName: '', roomState: 'Connecting', sessionId: '', isConnected: false, …}
+Meeting100ms.tsx:652 [Meeting100ms] 🔄 Estado atual: {isJoining: true, isConnected: false, hasError: false, errorMessage: null, peersCount: 0, …}
+Meeting100ms.tsx:547  GET https://863db27b-299f-4f4f-ae93-4678cbe1589b-00-2521mi8n9pvo9.kirk.replit.dev/api/100ms/recording/696549d8ced4c7d03313057f 401 (Unauthorized)
+checkRecordingStatus @ Meeting100ms.tsx:547
+(anonymous) @ Meeting100ms.tsx:560
+commitHookEffectListMount @ chunk-I3COAS7K.js?v=5e55dc20:16915
+commitPassiveMountOnFiber @ chunk-I3COAS7K.js?v=5e55dc20:18156
+commitPassiveMountEffects_complete @ chunk-I3COAS7K.js?v=5e55dc20:18129
+commitPassiveMountEffects_begin @ chunk-I3COAS7K.js?v=5e55dc20:18119
+commitPassiveMountEffects @ chunk-I3COAS7K.js?v=5e55dc20:18109
+flushPassiveEffectsImpl @ chunk-I3COAS7K.js?v=5e55dc20:19490
+flushPassiveEffects @ chunk-I3COAS7K.js?v=5e55dc20:19447
+(anonymous) @ chunk-I3COAS7K.js?v=5e55dc20:19328
+workLoop @ chunk-I3COAS7K.js?v=5e55dc20:197
+flushWork @ chunk-I3COAS7K.js?v=5e55dc20:176
+performWorkUntilDeadline @ chunk-I3COAS7K.js?v=5e55dc20:384Understand this error
+Meeting100ms.tsx:728 [Meeting100ms] Mostrando tela de conexão. isJoining: true isConnected: false
+Meeting100ms.tsx:180 [Meeting100ms] 📊 Room state atualizado: {roomId: '696549d8ced4c7d03313057f', roomName: 'instantanea-1768245720073', roomState: 'Connecting', sessionId: '', isConnected: false, …}
+Meeting100ms.tsx:652 [Meeting100ms] 🔄 Estado atual: {isJoining: true, isConnected: false, hasError: false, errorMessage: null, peersCount: 0, …}
+Meeting100ms.tsx:728 [Meeting100ms] Mostrando tela de conexão. isJoining: true isConnected: true
+Meeting100ms.tsx:180 [Meeting100ms] 📊 Room state atualizado: {roomId: '696549d8ced4c7d03313057f', roomName: 'instantanea-1768245720073', roomState: 'Connected', sessionId: '', isConnected: true, …}
+Meeting100ms.tsx:393 [Meeting100ms] 🔍 Estado de conexão atualizado: {isConnected: true, isJoining: true, peersCount: 1}
+Meeting100ms.tsx:396 [Meeting100ms] ✅ CONEXÃO CONFIRMADA! Removendo spinner de loading...
+Meeting100ms.tsx:652 [Meeting100ms] 🔄 Estado atual: {isJoining: true, isConnected: true, hasError: false, errorMessage: null, peersCount: 1, …}
+Meeting100ms.tsx:393 [Meeting100ms] 🔍 Estado de conexão atualizado: {isConnected: true, isJoining: false, peersCount: 1}
+Meeting100ms.tsx:406 [Meeting100ms] 👥 Conexão estável com 1 participante(s)
+Meeting100ms.tsx:652 [Meeting100ms] 🔄 Estado atual: {isJoining: false, isConnected: true, hasError: false, errorMessage: null, peersCount: 1, …}
+Meeting100ms.tsx:180 [Meeting100ms] 📊 Room state atualizado: {roomId: '696549d8ced4c7d03313057f', roomName: 'instantanea-1768245720073', roomState: 'Connected', sessionId: '69654ac71a62892d57e9a270', isConnected: true, …}
+Meeting100ms.tsx:652 [Meeting100ms] 🔄 Estado atual: {isJoining: false, isConnected: true, hasError: false, errorMessage: null, peersCount: 1, …}
+Meeting100ms.tsx:180 [Meeting100ms] 📊 Room state atualizado: {roomId: '696549d8ced4c7d03313057f', roomName: 'instantanea-1768245720073', roomState: 'Connected', sessionId: '69654ac71a62892d57e9a270', isConnected: true, …}
+Meeting100ms.tsx:239 [Meeting100ms] 🔔 Notificação recebida: TRACK_ADDED {id: '9794000f-9eb5-4a5c-b723-6976ef6046e9', source: 'regular', type: 'audio', enabled: false, displayEnabled: false, …}
+Meeting100ms.tsx:393 [Meeting100ms] 🔍 Estado de conexão atualizado: {isConnected: true, isJoining: false, peersCount: 1}
+Meeting100ms.tsx:406 [Meeting100ms] 👥 Conexão estável com 1 participante(s)
+Meeting100ms.tsx:652 [Meeting100ms] 🔄 Estado atual: {isJoining: false, isConnected: true, hasError: false, errorMessage: null, peersCount: 1, …}
+Meeting100ms.tsx:352 [Meeting100ms] ✅ join() resolveu com sucesso!
+Meeting100ms.tsx:180 [Meeting100ms] 📊 Room state atualizado: {roomId: '696549d8ced4c7d03313057f', roomName: 'instantanea-1768245720073', roomState: 'Connected', sessionId: '69654ac71a62892d57e9a270', isConnected: true, …}
+Meeting100ms.tsx:239 [Meeting100ms] 🔔 Notificação recebida: TRACK_ADDED {id: 'aa4c1a55-4fc8-4fff-8f82-329be0a69e82', source: 'regular', type: 'video', enabled: false, displayEnabled: false, …}
+Meeting100ms.tsx:393 [Meeting100ms] 🔍 Estado de conexão atualizado: {isConnected: true, isJoining: false, peersCount: 1}
+Meeting100ms.tsx:406 [Meeting100ms] 👥 Conexão estável com 1 participante(s)
+Meeting100ms.tsx:652 [Meeting100ms] 🔄 Estado atual: {isJoining: false, isConnected: true, hasError: false, errorMessage: null, peersCount: 1, …}
+Meeting100ms.tsx:356 [Meeting100ms] 📊 Estado 2s após join - verificando conexão...
+Meeting100ms.tsx:180 [Meeting100ms] 📊 Room state atualizado: {roomId: '696549d8ced4c7d03313057f', roomName: 'instantanea-1768245720073', roomState: 'Connected', sessionId: '69654ac71a62892d57e9a270', isConnected: true, …}
+Meeting100ms.tsx:652 [Meeting100ms] 🔄 Estado atual: {isJoining: false, isConnected: true, hasError: false, errorMessage: null, peersCount: 1, …}
+Meeting100ms.tsx:825 [Meeting100ms] Click Vídeo Direto
+Meeting100ms.tsx:431 [Meeting100ms] Executando toggle vídeo... Estado atual: false
+Meeting100ms.tsx:433 [Meeting100ms] SDK Processou Vídeo
+Meeting100ms.tsx:180 [Meeting100ms] 📊 Room state atualizado: {roomId: '696549d8ced4c7d03313057f', roomName: 'instantanea-1768245720073', roomState: 'Connected', sessionId: '69654ac71a62892d57e9a270', isConnected: true, …}
+Meeting100ms.tsx:239 [Meeting100ms] 🔔 Notificação recebida: TRACK_UNMUTED {id: 'aa4c1a55-4fc8-4fff-8f82-329be0a69e82', source: 'regular', type: 'video', enabled: true, displayEnabled: true, …}
+Meeting100ms.tsx:652 [Meeting100ms] 🔄 Estado atual: {isJoining: false, isConnected: true, hasError: false, errorMessage: null, peersCount: 1, …}
+Meeting100ms.tsx:812 [Meeting100ms] Click Áudio Direto
+Meeting100ms.tsx:420 [Meeting100ms] Executando toggle áudio... Estado atual: false
+Meeting100ms.tsx:422 [Meeting100ms] SDK Processou Áudio
+Meeting100ms.tsx:180 [Meeting100ms] 📊 Room state atualizado: {roomId: '696549d8ced4c7d03313057f', roomName: 'instantanea-1768245720073', roomState: 'Connected', sessionId: '69654ac71a62892d57e9a270', isConnected: true, …}
+Meeting100ms.tsx:239 [Meeting100ms] 🔔 Notificação recebida: TRACK_UNMUTED {id: '9794000f-9eb5-4a5c-b723-6976ef6046e9', source: 'regular', type: 'audio', enabled: true, displayEnabled: true, …}
+Meeting100ms.tsx:652 [Meeting100ms] 🔄 Estado atual: {isJoining: false, isConnected: true, hasError: false, errorMessage: null, peersCount: 1, …}
