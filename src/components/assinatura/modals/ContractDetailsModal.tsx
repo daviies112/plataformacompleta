@@ -255,38 +255,56 @@ export const ContractDetailsModal = ({ contract, open, onOpenChange }: ContractD
                 </div>
               </Card>
 
-              {(displayContract?.selfie_photo || displayContract?.document_photo) && (
+              {(displayContract?.selfie_photo || displayContract?.document_photo || displayContract?.document_back_photo) && (
                 <Card className="p-4">
                   <h3 className="font-bold text-lg mb-3">Fotos do Processo</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex flex-wrap gap-4">
                     {displayContract?.selfie_photo && (
-                      <div className="space-y-2">
+                      <div className="space-y-2 flex-1 min-w-[200px]">
                         <p className="font-semibold text-sm text-gray-600">Selfie do Cliente</p>
-                        <img 
-                          src={displayContract.selfie_photo} 
-                          alt="Selfie" 
-                          className="w-full rounded border border-gray-200 max-h-64 object-cover"
-                        />
+                        <div className="bg-gray-100 rounded border border-gray-200 overflow-hidden flex items-center justify-center min-h-[200px]">
+                          <img 
+                            src={displayContract.selfie_photo} 
+                            alt="Selfie" 
+                            className="max-w-full max-h-64 object-contain"
+                            onError={(e) => {
+                              console.error('Error loading selfie:', e);
+                              (e.target as HTMLImageElement).style.display = 'none';
+                            }}
+                          />
+                        </div>
                       </div>
                     )}
                     {displayContract?.document_photo && (
-                      <div className="space-y-2">
+                      <div className="space-y-2 flex-1 min-w-[200px]">
                         <p className="font-semibold text-sm text-gray-600">Documento (Frente)</p>
-                        <img 
-                          src={displayContract.document_photo} 
-                          alt="Documento Frente" 
-                          className="w-full rounded border border-gray-200 max-h-64 object-cover"
-                        />
+                        <div className="bg-gray-100 rounded border border-gray-200 overflow-hidden flex items-center justify-center min-h-[200px]">
+                          <img 
+                            src={displayContract.document_photo} 
+                            alt="Documento Frente" 
+                            className="max-w-full max-h-64 object-contain"
+                            onError={(e) => {
+                              console.error('Error loading front document:', e);
+                              (e.target as HTMLImageElement).style.display = 'none';
+                            }}
+                          />
+                        </div>
                       </div>
                     )}
                     {displayContract?.document_back_photo && (
-                      <div className="space-y-2">
+                      <div className="space-y-2 flex-1 min-w-[200px]">
                         <p className="font-semibold text-sm text-gray-600">Documento (Verso)</p>
-                        <img 
-                          src={displayContract.document_back_photo} 
-                          alt="Documento Verso" 
-                          className="w-full rounded border border-gray-200 max-h-64 object-cover"
-                        />
+                        <div className="bg-gray-100 rounded border border-gray-200 overflow-hidden flex items-center justify-center min-h-[200px]">
+                          <img 
+                            src={displayContract.document_back_photo} 
+                            alt="Documento Verso" 
+                            className="max-w-full max-h-64 object-contain"
+                            onError={(e) => {
+                              console.error('Error loading back document:', e);
+                              (e.target as HTMLImageElement).style.display = 'none';
+                            }}
+                          />
+                        </div>
                       </div>
                     )}
                   </div>
