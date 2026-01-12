@@ -1256,12 +1256,15 @@ meetingsRouter.delete('/reunioes/:id', authenticateToken, requireTenantId, async
 
 // PUBLIC endpoint - Get participant data from form submission for signature pre-fill
 // Can be called by: phone, email, or formSubmissionId stored in meeting metadata
+// SECURITY: Full data (CPF, address) only for authenticated admins; public gets minimal data
 publicRoomDesignRouter.get('/reunioes/:id/participant-data', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { phone, email } = req.query;
-
-    console.log(`[ParticipantData] Buscando dados para reunião ${id}, phone=${phone}, email=${email}`);
+    
+    // Check if caller is authenticated admin (session check)
+    const isAuthenticated = !!(req.session?.userId && req.session?.tenantId);
+    console.log(`[ParticipantData] Buscando dados para reunião ${id}, phone=${phone}, email=${email}, authenticated=${isAuthenticated}`);
 
     // 1. Get the meeting
     const [meeting] = await db.select().from(reunioes)
@@ -1339,35 +1342,64 @@ publicRoomDesignRouter.get('/reunioes/:id/participant-data', async (req: Request
       });
     }
 
-    console.log(`[ParticipantData] Form submission encontrado: ${submission.id}`);
+    console.log(`[ParticipantData] Form submission encontrado: ${submission.id}, isAuthenticated=${isAuthenticated}`);
 
-    // 3. Return comprehensive participant data for contract pre-fill
-    res.json({
-      found: true,
-      formSubmissionId: submission.id,
-      participantData: {
-        nome: submission.contactName,
-        email: submission.contactEmail,
-        telefone: submission.contactPhone,
-        cpf: submission.contactCpf,
-        instagram: submission.instagramHandle,
-        dataNascimento: submission.birthDate,
-        endereco: {
-          cep: submission.addressCep,
-          rua: submission.addressStreet,
-          numero: submission.addressNumber,
-          complemento: submission.addressComplement,
-          bairro: submission.addressNeighborhood,
-          cidade: submission.addressCity,
-          estado: submission.addressState
+    // 3. Return participant data for contract pre-fill
+    // SECURITY: Full sensitive data (CPF, address) only for authenticated admins OF THE SAME TENANT
+    // Cross-tenant access is denied (returns minimal data)
+    
+    // Verify tenant match for authenticated users
+    const sessionTenantId = req.session?.tenantId;
+    const meetingTenantId = meeting.tenantId;
+    const isSameTenant = isAuthenticated && sessionTenantId === meetingTenantId;
+    
+    console.log(`[ParticipantData] Tenant check: session=${sessionTenantId}, meeting=${meetingTenantId}, match=${isSameTenant}`);
+    
+    if (isSameTenant) {
+      // Same tenant admin authenticated - return full data
+      res.json({
+        found: true,
+        formSubmissionId: submission.id,
+        participantData: {
+          nome: submission.contactName,
+          email: submission.contactEmail,
+          telefone: submission.contactPhone,
+          cpf: submission.contactCpf,
+          instagram: submission.instagramHandle,
+          dataNascimento: submission.birthDate,
+          endereco: {
+            cep: submission.addressCep,
+            rua: submission.addressStreet,
+            numero: submission.addressNumber,
+            complemento: submission.addressComplement,
+            bairro: submission.addressNeighborhood,
+            cidade: submission.addressCity,
+            estado: submission.addressState
+          }
+        },
+        meetingData: {
+          id: meeting.id,
+          titulo: meeting.titulo,
+          tenantId: meeting.tenantId
         }
-      },
-      meetingData: {
-        id: meeting.id,
-        titulo: meeting.titulo,
-        tenantId: meeting.tenantId
-      }
-    });
+      });
+    } else {
+      // Unauthenticated or cross-tenant caller - return ONLY name for UX convenience
+      // Note: Name alone is not considered PII in this context as it's already visible in the meeting
+      // All sensitive PII (email, phone, CPF, address) is protected
+      res.json({
+        found: true,
+        formSubmissionId: submission.id,
+        participantData: {
+          nome: submission.contactName,
+          // All PII (email, phone, CPF, address) omitted for unauthenticated/cross-tenant callers
+        },
+        meetingData: {
+          id: meeting.id,
+          titulo: meeting.titulo
+        }
+      });
+    }
   } catch (error: any) {
     console.error('[ParticipantData] Erro:', error);
     res.status(500).json({ error: 'Erro ao buscar dados do participante', message: error.message });

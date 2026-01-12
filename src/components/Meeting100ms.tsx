@@ -875,13 +875,35 @@ export function Meeting100ms({
                       onClick={async () => {
                         console.log("[Meeting100ms] Click Assinar Contrato");
                         try {
+                          // Primeiro buscar dados do participante da submissão do formulário
+                          const currentRoomId = roomId || window.location.pathname.split('/').pop();
+                          let participantData: any = {};
+                          
+                          try {
+                            const participantResponse = await fetch(`/api/public/reunioes/${currentRoomId}/participant-data`, {
+                              credentials: 'include',
+                            });
+                            if (participantResponse.ok) {
+                              const result = await participantResponse.json();
+                              if (result.found && result.participantData) {
+                                participantData = result.participantData;
+                              }
+                              console.log("[Meeting100ms] Dados do participante encontrados:", participantData);
+                            }
+                          } catch (e) {
+                            console.log("[Meeting100ms] Nenhum dado de formulário encontrado, usando nome da reunião");
+                          }
+                          
+                          // Criar contrato com dados pré-preenchidos
+                          // Campos retornados em português: nome, email, telefone, cpf
                           const response = await fetch('/api/assinatura/public/contracts', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
-                              client_name: userName || 'Novo Revendedor',
-                              client_cpf: '',
-                              client_email: '',
+                              client_name: participantData.nome || userName || 'Novo Revendedor',
+                              client_cpf: participantData.cpf || '',
+                              client_email: participantData.email || '',
+                              client_phone: participantData.telefone || '',
                             }),
                           });
                           

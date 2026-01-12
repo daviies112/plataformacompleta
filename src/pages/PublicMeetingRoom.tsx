@@ -81,11 +81,34 @@ export default function PublicMeetingRoom() {
     if (!isRecordingBot && !contractToken) {
       setIsCreatingContract(true);
       try {
+        // Primeiro buscar dados do participante da submissão do formulário
+        let participantDataFromForm: any = {};
+        
+        try {
+          const participantResponse = await fetch(`/api/public/reunioes/${roomId}/participant-data`, {
+            credentials: 'include',
+          });
+          if (participantResponse.ok) {
+            const result = await participantResponse.json();
+            if (result.found && result.participantData) {
+              participantDataFromForm = result.participantData;
+            }
+            console.log("[PublicMeetingRoom] Dados do participante encontrados:", participantDataFromForm);
+          }
+        } catch (e) {
+          console.log("[PublicMeetingRoom] Nenhum dado de formulário encontrado, usando nome da reunião");
+        }
+        
+        // Criar contrato com dados pré-preenchidos
+        // Campos retornados em português: nome, email, telefone, cpf
         const response = await fetch('/api/assinatura/public/contracts', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            client_name: participantName || 'Novo Revendedor',
+            client_name: participantDataFromForm.nome || participantName || 'Novo Revendedor',
+            client_cpf: participantDataFromForm.cpf || '',
+            client_email: participantDataFromForm.email || '',
+            client_phone: participantDataFromForm.telefone || '',
           }),
         });
         
