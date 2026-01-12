@@ -3,6 +3,8 @@ import {
   useHMSStore,
   useHMSActions,
   useVideo,
+  useHMSNotifications,
+  HMSNotificationTypes,
   selectPeers,
   selectIsConnectedToRoom,
   selectIsLocalAudioEnabled,
@@ -189,6 +191,46 @@ export function Meeting100ms({
   const [connectionAttempts, setConnectionAttempts] = useState(0);
   const hasAttemptedJoin = useRef(false);
   const joinTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Capturar notificações de erro do SDK 100ms
+  const notification = useHMSNotifications(HMSNotificationTypes.ERROR);
+  
+  // Handler para erros do SDK
+  useEffect(() => {
+    if (!notification) return;
+    
+    const errorData = notification.data as any;
+    console.error("[Meeting100ms] Erro do SDK 100ms:", errorData);
+    console.error("[Meeting100ms] Código:", errorData?.code);
+    console.error("[Meeting100ms] Mensagem:", errorData?.message);
+    console.error("[Meeting100ms] Descrição:", errorData?.description);
+    console.error("[Meeting100ms] isTerminal:", errorData?.isTerminal);
+    
+    // Mensagens de erro amigáveis
+    let userMessage = "Ocorreu um erro na conexão.";
+    
+    if (errorData?.code === 1003) {
+      userMessage = "Falha na reconexão após 60 segundos. Por favor, tente novamente.";
+    } else if (errorData?.code === 4005 || errorData?.isTerminal) {
+      userMessage = "Erro crítico na conexão. Por favor, tente entrar novamente.";
+    } else if (errorData?.code === 2001) {
+      userMessage = "Token de autenticação inválido. Por favor, recarregue a página.";
+    } else if (errorData?.code === 5001) {
+      userMessage = "Você foi removido da reunião pelo organizador.";
+    } else if (errorData?.message) {
+      userMessage = `Erro: ${errorData.message}`;
+    } else if (errorData?.description) {
+      userMessage = `Erro: ${errorData.description}`;
+    }
+    
+    setError(userMessage);
+    setIsJoining(false);
+    
+    // Limpar timeout se houver erro
+    if (joinTimeoutRef.current) {
+      clearTimeout(joinTimeoutRef.current);
+    }
+  }, [notification]);
 
   useEffect(() => {
     if (hasAttemptedJoin.current) return;
@@ -479,7 +521,21 @@ export function Meeting100ms({
     onLeave();
   }, [hmsActions, onLeave]);
 
+  // Log de debug para entender o estado atual - DEVE estar antes de qualquer return condicional
+  useEffect(() => {
+    console.log("[Meeting100ms] Estado atual:", {
+      isJoining,
+      isConnected,
+      hasError: !!error,
+      peersCount: peers?.length || 0,
+      authTokenExists: !!authToken,
+      roomIdExists: !!roomId
+    });
+  }, [isJoining, isConnected, error, peers, authToken, roomId]);
+
+  // Mostrar tela de erro se houver
   if (error) {
+    console.log("[Meeting100ms] Mostrando tela de erro:", error);
     return (
       <div className="h-screen flex items-center justify-center p-4 bg-[#09090b]">
         <Card className="p-8 max-w-md w-full text-center bg-zinc-900 border-zinc-800">
@@ -491,7 +547,9 @@ export function Meeting100ms({
     );
   }
 
+  // Mostrar tela de conexão enquanto está conectando
   if (isJoining || !isConnected) {
+    console.log("[Meeting100ms] Mostrando tela de conexão. isJoining:", isJoining, "isConnected:", isConnected);
     return (
       <div className="h-screen flex flex-col items-center justify-center" style={{ backgroundColor: "#09090b" }}>
         <div 

@@ -135,6 +135,14 @@ export default function ReuniaoPublica() {
     setToken100ms(null);
   }, []);
 
+  // useEffect para detectar estado inconsistente e voltar ao lobby (deve estar antes de qualquer return)
+  useEffect(() => {
+    if (step === "meeting" && !token100ms && !tokenLoading && !autoJoin) {
+      console.warn("[ReuniaoPublica] Step é 'meeting' mas falta token. Voltando ao lobby.");
+      setStep("lobby");
+    }
+  }, [step, token100ms, tokenLoading, autoJoin]);
+
   if (meetingLoading) {
     return (
       <div className="flex items-center justify-center h-screen bg-background">
@@ -178,7 +186,32 @@ export default function ReuniaoPublica() {
     );
   }
 
+  // Erro ao obter token - mostrar antes de tentar renderizar meeting
+  if (tokenError) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-background">
+        <Card>
+          <CardContent className="p-6 text-center">
+            <p className="text-destructive mb-4">{tokenError}</p>
+            <button 
+              onClick={() => { setTokenError(null); setStep("lobby"); }}
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-md"
+            >
+              Tentar novamente
+            </button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Conectando à reunião
   if (step === "meeting" && token100ms && meeting.roomId100ms) {
+    console.log("[ReuniaoPublica] Renderizando Meeting100ms com:", {
+      token: token100ms?.substring(0, 20) + "...",
+      roomId: meeting.roomId100ms,
+      userName: userName || "Participante"
+    });
     return (
       <Meeting100ms
         authToken={token100ms}
@@ -212,18 +245,6 @@ export default function ReuniaoPublica() {
             >
               {roomConfig.endScreen.message}
             </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (tokenError) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-background">
-        <Card>
-          <CardContent className="p-6">
-            <p className="text-destructive">{tokenError}</p>
           </CardContent>
         </Card>
       </div>

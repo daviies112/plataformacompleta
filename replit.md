@@ -70,10 +70,13 @@ scripts/   → Utilitários (export, import)
    - **Credenciais corrigidas:** URL e API Key do projeto `axrvyrpefpntacuibyds` armazenadas criptografadas na tabela `supabase_master_config`
    - Fallback automático para Cliente quando Master está vazio (0 registros)  
 ✅ WhatsApp Business  
-✅ Video Conferencing (100ms) - ATUALIZADO (05/01/2026)
+✅ Video Conferencing (100ms) - ATUALIZADO (12/01/2026)
    - API Routes: `/api/reunioes`, `/api/reunioes/instantanea`, `/api/gravacoes`
    - Acessível via menu "Reunião" no header
    - Configure credenciais do 100ms em Configurações antes de criar reuniões
+   - **Reuniões Públicas:** Link compartilhável para usuários externos (sem autenticação)
+   - **Correção Tela Preta:** Adicionado tratamento de erros do SDK 100ms (useHMSNotifications)
+   - **React Hooks:** Corrigida ordem de chamadas para evitar violações das regras de hooks
    - Veja: `DOCUMENTACAO_CORRECAO_100MS.md` (detalhado)
 ✅ **Calendário de Reuniões** - NOVO (05/01/2026)
    - Visualiza todas as reuniões agendadas na página Calendário (header)
