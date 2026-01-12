@@ -90,12 +90,21 @@ scripts/   → Utilitários (export, import)
    - Acessível via menu "Reunião" no header
    - Configure credenciais do 100ms em Configurações antes de criar reuniões
    - **Reuniões Públicas:** Link compartilhável para usuários externos (sem autenticação)
+   - **Correção de Sessão (12/01/2026):**
+     - Login agora chama `req.session.save()` explicitamente antes de responder
+     - Resolve problema de sessão não persistindo com `saveUninitialized: false`
+     - Sessão agora é detectada corretamente em endpoints públicos
    - **Correção de Roles (12/01/2026):**
-     - Usuários autenticados: SEMPRE recebem role "host" (podem gravar)
-     - Usuários públicos: Recebem role "guest" (apenas assistem)
+     - Usuários autenticados do mesmo tenant: role "host" (podem gravar)
+     - Usuários públicos ou cross-tenant: role "guest" (apenas assistem)
      - Endpoint autenticado: `POST /api/reunioes/:id/token` → role="host"
-     - Endpoint público: `POST /api/public/reunioes/:id/token-public` → role="guest"
+     - Endpoint público: `POST /api/public/reunioes/:id/token-public` → verifica sessão para role
      - Botão de gravação aparece apenas para role="host" (`isHost = localPeer?.roleName === 'host'`)
+   - **Pré-preenchimento de Contratos:**
+     - Endpoint: `GET /api/public/reunioes/:id/participant-data`
+     - Busca dados do form_submission por phone/email/formSubmissionId
+     - Segurança: admins do mesmo tenant recebem dados completos (CPF, endereço)
+     - Visitantes e cross-tenant recebem apenas nome (sem PII)
    - **Correção Tela Preta (v3):** Melhorias na conexão do SDK v0.11.0
      - Verificação de token válido antes de tentar conexão
      - Conexão inicia com áudio/vídeo MUTADOS para evitar problemas de dispositivos
