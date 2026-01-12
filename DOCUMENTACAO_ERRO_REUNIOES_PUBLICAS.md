@@ -40,15 +40,31 @@ O acesso externo às reuniões (via link compartilhado com clientes) não estava
 - Adicionado logging detalhado para diagnóstico de erros.
 
 ## 5. Arquivos Modificados
-- `server/routes.ts` - Reorganização de rotas públicas
+- `server/routes.ts` - Reorganização de rotas públicas para `/api/public/`
 - `server/routes/meetings.ts` - Atualização de comentários
-- `src/platforms/PlatformRouter.tsx` - Correção do hook useLocation
-- `src/pages/ReuniaoPublica.tsx` - Atualização das URLs de API
-- `src/pages/PublicMeetingRoom.tsx` - Atualização das URLs de API
+- `src/platforms/PlatformRouter.tsx` - Correção do hook useLocation (wouter → react-router-dom)
+- `src/pages/ReuniaoPublica.tsx` - URLs de API corrigidas para `/api/public/`
+- `src/pages/PublicMeetingRoom.tsx` - Migrado de wouter para react-router-dom
 - `src/components/Meeting100ms.tsx` - Timeout, retries e melhor feedback visual
 
-## 6. Validação
+## 6. Problemas Críticos Corrigidos
+
+### 6.1 HMSRoomProvider Global (Verificado)
+O `App.tsx` já envolve toda a aplicação com `HMSRoomProvider` do `@100mslive/react-sdk`, então o Meeting100ms já tem acesso aos hooks do SDK globalmente. Não é necessário adicionar providers adicionais nos componentes de reunião.
+
+### 6.2 Conflito wouter vs react-router-dom (Corrigido)
+O `PublicMeetingRoom.tsx` usava hooks do `wouter` (useParams, useSearch) enquanto o resto do app usa `react-router-dom`, causando incompatibilidade nos parâmetros de rota.
+
+**Correção:** Alterado para usar `useParams` e `useSearchParams` do `react-router-dom`.
+
+### 6.3 Melhorias no Meeting100ms (Implementado)
+- Timeout de 30 segundos com até 3 tentativas de reconexão
+- Feedback visual melhorado durante conexão
+- Logging detalhado para diagnóstico de erros
+
+## 7. Validação
 - Testada a geração de token sem autenticação: OK
 - Verificado o carregamento do lobby para usuários externos: OK
 - Confirmado que o spinner de loading aparece durante a conexão: OK
 - Timeout implementado para evitar tela preta infinita: OK
+- HMSRoomProvider global funcionando corretamente: OK

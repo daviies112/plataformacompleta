@@ -65,11 +65,15 @@ export function MeetingLobby({
       } catch (err: any) {
         console.error("❌ Erro ao acessar mídia:", err);
         if (isMounted) {
-          setError(
-            err.name === "NotAllowedError"
-              ? "Permissão negada. Por favor, permita acesso à câmera e microfone."
-              : "Erro ao acessar câmera/microfone. Verifique se estão conectados."
-          );
+          if (err.name === "NotAllowedError") {
+            setError("Permissão negada. Por favor, permita acesso à câmera e microfone.");
+          } else if (err.name === "NotFoundError") {
+            console.log("ℹ️ Dispositivos de mídia não encontrados - continuando sem preview");
+            setIsVideoEnabled(false);
+            setIsAudioEnabled(false);
+          } else {
+            setError("Erro ao acessar câmera/microfone. Verifique se estão conectados.");
+          }
         }
       }
     };

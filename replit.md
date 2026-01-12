@@ -145,6 +145,6 @@ Veja [DESENVOLVIMENTO.md](./DESENVOLVIMENTO.md) para documentação técnica com
 
 ---
 
-**Last Updated:** 08 de Janeiro de 2026  
+**Last Updated:** 12 de Janeiro de 2026  
 **Tamanho Otimizado:** ~200MB (sem node_modules)  
 **Economia de Créditos:** 95%

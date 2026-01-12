@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
-import { useParams, useSearch } from "wouter";
+import { useParams, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2, Video, Clock, AlertCircle, Calendar, Star, ThumbsUp, ThumbsDown, FileSignature } from "lucide-react";
 import { toast } from "sonner";
@@ -8,7 +8,6 @@ import { ptBR } from "date-fns/locale";
 
 import { Meeting100ms } from "@/components/Meeting100ms";
 import { MeetingLobby } from "@/components/MeetingLobby";
-import { HMSProvider } from "@/contexts/HMSContext";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -45,8 +44,7 @@ type RoomStep = "lobby" | "meeting" | "ended";
 
 export default function PublicMeetingRoom() {
   const { companySlug, roomId } = useParams<{ companySlug: string; roomId: string }>();
-  const searchString = useSearch();
-  const searchParams = new URLSearchParams(searchString);
+  const [searchParams] = useSearchParams();
   const autoJoin = searchParams.get("autoJoin") === "true" || searchParams.get("auto_join") === "true";
   const isRecordingBot = searchParams.get("recording") === "true" || searchParams.get("recording_bot") === "true";
   
@@ -261,7 +259,6 @@ export default function PublicMeetingRoom() {
   }
 
   if (step === "meeting" && (reuniao.roomId100ms || reuniao.linkReuniao?.includes('100ms.live'))) {
-    // Extração de roomId de links n8n/100ms.live se necessário
     let finalRoomId = reuniao.roomId100ms;
     if (!finalRoomId && reuniao.linkReuniao?.includes('100ms.live')) {
       const parts = reuniao.linkReuniao.split('/');
@@ -269,18 +266,16 @@ export default function PublicMeetingRoom() {
     }
 
     return (
-      <HMSProvider>
-        <MeetingWrapper
-          reuniao={{...reuniao, roomId100ms: finalRoomId}}
-          tenant={tenant}
-          roomDesignConfig={roomDesignConfig}
-          participantName={participantName}
-          mediaSettings={mediaSettings}
-          companySlug={companySlug}
-          isRecordingBot={isRecordingBot}
-          onLeave={handleLeaveMeeting}
-        />
-      </HMSProvider>
+      <MeetingWrapper
+        reuniao={{...reuniao, roomId100ms: finalRoomId}}
+        tenant={tenant}
+        roomDesignConfig={roomDesignConfig}
+        participantName={participantName}
+        mediaSettings={mediaSettings}
+        companySlug={companySlug}
+        isRecordingBot={isRecordingBot}
+        onLeave={handleLeaveMeeting}
+      />
     );
   }
 
@@ -362,22 +357,60 @@ function MeetingWrapper({
 
   if (tokenError) {
     return (
-      <Card className="p-8 text-center">
-        <h2 className="text-2xl font-bold text-red-600 mb-4">Erro</h2>
-        <p className="text-gray-600 mb-4">{tokenError}</p>
-        <Button onClick={() => window.location.reload()}>
-          Tentar Novamente
-        </Button>
-      </Card>
+      <div 
+        className="min-h-screen flex items-center justify-center p-4"
+        style={{ backgroundColor: roomDesignConfig.colors.background }}
+      >
+        <Card 
+          className="p-8 text-center max-w-md border-0"
+          style={{ backgroundColor: roomDesignConfig.colors.controlsBackground }}
+        >
+          <h2 
+            className="text-2xl font-bold mb-4"
+            style={{ color: "#ef4444" }}
+          >
+            Erro ao conectar
+          </h2>
+          <p 
+            className="mb-6"
+            style={{ color: roomDesignConfig.colors.controlsText }}
+          >
+            {tokenError}
+          </p>
+          <Button 
+            onClick={() => window.location.reload()}
+            style={{ 
+              backgroundColor: roomDesignConfig.colors.primaryButton,
+              color: "#ffffff"
+            }}
+          >
+            Tentar Novamente
+          </Button>
+        </Card>
+      </div>
     );
   }
 
   if (!authToken) {
     return (
-      <Card className="p-8 text-center">
-        <h2 className="text-2xl font-bold mb-4">Gerando acesso...</h2>
-        <p className="text-gray-600">Preparando sua sessão</p>
-      </Card>
+      <div 
+        className="min-h-screen flex flex-col items-center justify-center p-4"
+        style={{ backgroundColor: roomDesignConfig.colors.background }}
+      >
+        <Loader2 
+          className="h-12 w-12 animate-spin mb-6" 
+          style={{ color: roomDesignConfig.colors.primaryButton }}
+        />
+        <h2 
+          className="text-xl font-bold mb-2"
+          style={{ color: roomDesignConfig.colors.controlsText }}
+        >
+          Gerando acesso...
+        </h2>
+        <p style={{ color: `${roomDesignConfig.colors.controlsText}99` }}>
+          Preparando sua sessão na reunião
+        </p>
+      </div>
     );
   }
 
