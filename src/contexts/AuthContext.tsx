@@ -176,6 +176,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         setUser(userData);
         setClient(clientData);
         
+        // Save JWT token for authenticated API requests (critical for host role in meetings)
+        if (data.token) {
+          localStorage.setItem('authToken', data.token);
+          console.log('[AuthContext] Token JWT salvo para requisições autenticadas');
+        }
+        
         // Salvar no localStorage
         localStorage.setItem('user_data', JSON.stringify(userData));
         localStorage.setItem('client_data', JSON.stringify(clientData));
