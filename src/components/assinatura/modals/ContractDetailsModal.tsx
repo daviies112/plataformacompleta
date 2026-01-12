@@ -173,7 +173,7 @@ export const ContractDetailsModal = ({ contract, open, onOpenChange }: ContractD
       const opt = {
         margin: 0,
         filename: `contrato-${contractData?.client_name}-${new Date().getTime()}.pdf`,
-        image: { type: 'jpeg', quality: 0.95 },
+        image: { type: 'jpeg' as const, quality: 0.95 },
         html2canvas: { 
           scale: 3,
           useCORS: true,
