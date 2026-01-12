@@ -186,8 +186,14 @@ export function Meeting100ms({
   const [error, setError] = useState<string | null>(null);
   const [isJoining, setIsJoining] = useState(true);
   const [isCopied, setIsCopied] = useState(false);
+  const [connectionAttempts, setConnectionAttempts] = useState(0);
+  const hasAttemptedJoin = useRef(false);
+  const joinTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
+    if (hasAttemptedJoin.current) return;
+    hasAttemptedJoin.current = true;
+    
     const isBot = window.location.search.includes("recording_bot=true") || 
                   window.location.search.includes("recording=true");
     
@@ -198,27 +204,76 @@ export function Meeting100ms({
     }
 
     let isMounted = true;
-    const joinRoom = async () => {
+    
+    const joinRoom = async (attempt: number = 0) => {
+      if (!isMounted) return;
+      
       try {
-        console.log("[Meeting100ms] Tentando entrar na sala com token:", authToken.substring(0, 10) + "...");
+        console.log(`[Meeting100ms] Tentativa ${attempt + 1} de entrar na sala...`);
+        console.log("[Meeting100ms] Token:", authToken.substring(0, 20) + "...");
+        console.log("[Meeting100ms] userName:", userName);
+        console.log("[Meeting100ms] roomId:", roomId);
+        
+        if (joinTimeoutRef.current) {
+          clearTimeout(joinTimeoutRef.current);
+        }
+        
+        joinTimeoutRef.current = setTimeout(() => {
+          if (isMounted && !isConnected && attempt < 2) {
+            console.warn(`[Meeting100ms] Timeout de conexão (30s) - tentativa ${attempt + 2}...`);
+            setConnectionAttempts(attempt + 1);
+            joinRoom(attempt + 1);
+          } else if (isMounted && !isConnected) {
+            setError("Timeout ao conectar à reunião. Verifique sua conexão e tente novamente.");
+            setIsJoining(false);
+          }
+        }, 30000);
+        
         await hmsActions.join({
           userName,
           authToken,
           settings: { isAudioMuted: false, isVideoMuted: false },
           rememberDeviceSelection: true
         });
-        if (isMounted) setIsJoining(false);
+        
+        console.log("[Meeting100ms] Join bem-sucedido!");
+        if (isMounted) {
+          if (joinTimeoutRef.current) {
+            clearTimeout(joinTimeoutRef.current);
+            joinTimeoutRef.current = null;
+          }
+          setIsJoining(false);
+        }
       } catch (err: any) {
         console.error("[Meeting100ms] Erro ao entrar na sala:", err);
+        if (joinTimeoutRef.current) {
+          clearTimeout(joinTimeoutRef.current);
+          joinTimeoutRef.current = null;
+        }
         if (isMounted) {
-          setError(err.message || "Erro ao conectar");
+          const errorMessage = err.message || "Erro ao conectar";
+          console.error("[Meeting100ms] Detalhes do erro:", {
+            name: err.name,
+            message: err.message,
+            code: err.code,
+            description: err.description
+          });
+          setError(errorMessage);
           setIsJoining(false);
         }
       }
     };
-    joinRoom();
-    return () => { isMounted = false; };
-  }, [hmsActions, authToken, userName]);
+    
+    joinRoom(0);
+    
+    return () => { 
+      isMounted = false; 
+      if (joinTimeoutRef.current) {
+        clearTimeout(joinTimeoutRef.current);
+        joinTimeoutRef.current = null;
+      }
+    };
+  }, [hmsActions, authToken, userName, roomId]);
 
   useEffect(() => {
     return () => {
@@ -438,9 +493,20 @@ export function Meeting100ms({
 
   if (isJoining || !isConnected) {
     return (
-      <div className="h-screen flex flex-col items-center justify-center bg-[#09090b]">
-        <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent animate-spin rounded-full mb-4"></div>
-        <p className="text-white font-bold">Conectando...</p>
+      <div className="h-screen flex flex-col items-center justify-center" style={{ backgroundColor: "#09090b" }}>
+        <div 
+          className="w-16 h-16 border-4 border-t-transparent animate-spin rounded-full mb-6"
+          style={{ borderColor: "#3b82f6", borderTopColor: "transparent" }}
+        />
+        <p className="text-xl font-bold mb-2" style={{ color: "#ffffff" }}>Conectando à reunião...</p>
+        <p className="text-sm opacity-70" style={{ color: "#94a3b8" }}>
+          {connectionAttempts > 0 ? `Tentativa ${connectionAttempts + 1}...` : "Aguarde enquanto preparamos a sala"}
+        </p>
+        {connectionAttempts > 0 && (
+          <p className="text-xs mt-4 opacity-50" style={{ color: "#94a3b8" }}>
+            Se demorar muito, verifique sua conexão com a internet
+          </p>
+        )}
       </div>
     );
   }
