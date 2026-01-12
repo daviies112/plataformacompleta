@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -18,7 +18,8 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Video } from "lucide-react";
+import { Loader2, Video, Workflow, Copy, RefreshCw, Trash2, Check, Eye, EyeOff } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 const configSchema = z.object({
   nome_empresa: z.string().min(2, "Nome muito curto"),
@@ -37,6 +38,9 @@ const configSchema = z.object({
 export default function Configuracoes() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [generatedApiKey, setGeneratedApiKey] = useState<string | null>(null);
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const { data: tenant, isLoading } = useQuery({
     queryKey: ["/api/tenants/me"],
@@ -202,6 +206,93 @@ export default function Configuracoes() {
       });
     },
   });
+
+  const { data: n8nApiKeyStatus, isLoading: isLoadingN8nStatus } = useQuery({
+    queryKey: ["/api/n8n/api-key/status"],
+    queryFn: async () => {
+      const response = await fetch("/api/n8n/api-key/status", {
+        headers: { "Authorization": `Bearer ${localStorage.getItem('token')}` },
+      });
+      if (!response.ok) return { hasApiKey: false, hasConfig: false };
+      return response.json();
+    },
+  });
+
+  const generateN8nApiKeyMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch("/api/n8n/api-key/generate", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem('token')}`
+        },
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || error.error || "Erro ao gerar API Key");
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      setGeneratedApiKey(data.apiKey);
+      setShowApiKey(true);
+      queryClient.invalidateQueries({ queryKey: ["/api/n8n/api-key/status"] });
+      toast({
+        title: "API Key gerada!",
+        description: "Copie e guarde em local seguro. Ela não será mostrada novamente.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const revokeN8nApiKeyMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch("/api/n8n/api-key", {
+        method: "DELETE",
+        headers: { 
+          "Authorization": `Bearer ${localStorage.getItem('token')}`
+        },
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || error.error || "Erro ao revogar API Key");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      setGeneratedApiKey(null);
+      queryClient.invalidateQueries({ queryKey: ["/api/n8n/api-key/status"] });
+      toast({
+        title: "API Key revogada",
+        description: "A chave foi desativada. Gere uma nova se necessário.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const copyApiKey = async () => {
+    if (generatedApiKey) {
+      await navigator.clipboard.writeText(generatedApiKey);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+      toast({
+        title: "Copiado!",
+        description: "API Key copiada para a área de transferência",
+      });
+    }
+  };
 
   function onSubmit(values: z.infer<typeof configSchema>) {
     updateMutation.mutate({
@@ -489,6 +580,146 @@ export default function Configuracoes() {
                   </ul>
                 </div>
 
+              </CardContent>
+            </Card>
+
+            <Card className="md:col-span-2">
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <Workflow className="h-5 w-5 text-orange-500" />
+                  <div>
+                    <CardTitle>Integração N8N</CardTitle>
+                    <CardDescription>
+                      Gere uma API Key para criar reuniões automaticamente via N8N ou outras automações
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {!n8nApiKeyStatus?.hasConfig ? (
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                    <p className="text-sm text-amber-900">
+                      Configure primeiro as credenciais do 100ms acima para poder gerar a API Key do N8N.
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm font-medium">Status da API Key:</span>
+                        {isLoadingN8nStatus ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : n8nApiKeyStatus?.hasApiKey ? (
+                          <Badge variant="default" className="bg-green-500">Ativa</Badge>
+                        ) : (
+                          <Badge variant="secondary">Não configurada</Badge>
+                        )}
+                      </div>
+                      {n8nApiKeyStatus?.createdAt && (
+                        <span className="text-xs text-muted-foreground">
+                          Criada em: {new Date(n8nApiKeyStatus.createdAt).toLocaleDateString('pt-BR')}
+                        </span>
+                      )}
+                    </div>
+
+                    {generatedApiKey && (
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-4 space-y-3">
+                        <p className="text-sm font-medium text-green-900">
+                          Sua nova API Key foi gerada! Copie e guarde em local seguro:
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            readOnly
+                            type={showApiKey ? "text" : "password"}
+                            value={generatedApiKey}
+                            className="font-mono text-sm bg-white"
+                            data-testid="input-n8n-api-key"
+                          />
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="outline"
+                            onClick={() => setShowApiKey(!showApiKey)}
+                            data-testid="button-toggle-api-key"
+                          >
+                            {showApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </Button>
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="outline"
+                            onClick={copyApiKey}
+                            data-testid="button-copy-api-key"
+                          >
+                            {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                          </Button>
+                        </div>
+                        <p className="text-xs text-amber-700">
+                          Esta chave não será mostrada novamente. Se perder, gere uma nova.
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant={n8nApiKeyStatus?.hasApiKey ? "outline" : "default"}
+                        disabled={generateN8nApiKeyMutation.isPending}
+                        onClick={() => generateN8nApiKeyMutation.mutate()}
+                        data-testid="button-generate-n8n-key"
+                      >
+                        {generateN8nApiKeyMutation.isPending ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Gerando...
+                          </>
+                        ) : (
+                          <>
+                            <RefreshCw className="mr-2 h-4 w-4" />
+                            {n8nApiKeyStatus?.hasApiKey ? "Regenerar API Key" : "Gerar API Key"}
+                          </>
+                        )}
+                      </Button>
+
+                      {n8nApiKeyStatus?.hasApiKey && (
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          disabled={revokeN8nApiKeyMutation.isPending}
+                          onClick={() => revokeN8nApiKeyMutation.mutate()}
+                          data-testid="button-revoke-n8n-key"
+                        >
+                          {revokeN8nApiKeyMutation.isPending ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Revogando...
+                            </>
+                          ) : (
+                            <>
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Revogar API Key
+                            </>
+                          )}
+                        </Button>
+                      )}
+                    </div>
+
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-2">
+                      <p className="text-sm font-medium text-blue-900">
+                        Como usar no N8N:
+                      </p>
+                      <ul className="text-sm text-blue-800 space-y-1 ml-4 list-disc">
+                        <li>Use o nó <strong>HTTP Request</strong> com método <strong>POST</strong></li>
+                        <li>URL: <code className="bg-blue-100 px-1 rounded">/api/n8n/reunioes</code></li>
+                        <li>Header: <code className="bg-blue-100 px-1 rounded">X-N8N-API-Key: sua_chave_aqui</code></li>
+                        <li>Body (JSON): <code className="bg-blue-100 px-1 rounded">{`{"titulo": "Nome da Reunião", "nome": "Participante"}`}</code></li>
+                      </ul>
+                      <p className="text-xs text-blue-700 mt-2">
+                        As reuniões criadas automaticamente herdam o design e cores da sua configuração.
+                      </p>
+                    </div>
+                  </>
+                )}
               </CardContent>
             </Card>
 
