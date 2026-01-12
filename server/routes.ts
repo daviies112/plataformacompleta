@@ -24,6 +24,7 @@ import { requireTenant } from "./middleware/requireTenant";
 import { leadsPipelineRoutes } from "./routes/leadsPipelineRoutes";
 import { meetingsRouter } from "./routes/meetings";
 import assinaturaRoutes from "./routes/assinatura";
+import n8nRouter from "./routes/n8n";
 
 // Configure multer for logo uploads
 const logoStorage = multer.diskStorage({
@@ -71,6 +72,9 @@ export async function registerRoutes(app: Express) {
   // Must be registered BEFORE routes with requireTenant middleware
   const { publicRoomDesignRouter } = await import("./routes/meetings");
   app.use("/api/public", publicRoomDesignRouter); // Usar prefixo /api/public para evitar conflito com /api/reunioes protegido
+  
+  // N8N integration routes - allows external automation to create meetings
+  app.use("/api/n8n", n8nRouter);
   
   // Compliance routes (CPF check) - public access allowed with DEMO fallback
   // Must be registered BEFORE routes that apply requireTenant to all /api paths

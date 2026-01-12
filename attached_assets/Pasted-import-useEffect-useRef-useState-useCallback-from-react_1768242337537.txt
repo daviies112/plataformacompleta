@@ -1,0 +1,647 @@
+import { useEffect, useRef, useState, useCallback } from "react";
+import {
+  useHMSStore,
+  useHMSActions,
+  useVideo,
+  selectPeers,
+  selectIsConnectedToRoom,
+  selectIsLocalAudioEnabled,
+  selectIsLocalVideoEnabled,
+  selectIsLocalScreenShared,
+  selectRoom,
+  HMSPeer,
+} from "@100mslive/react-sdk";
+import { Mic, MicOff, Video, VideoOff, PhoneOff, Users, MonitorUp, MonitorOff, Circle, Copy, Check, Share2, FileSignature } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { toast } from "sonner";
+import type { RoomDesignConfig } from "@/types/reuniao";
+import { cn } from "@/lib/utils";
+import { api } from "@/lib/api";
+
+interface Meeting100msProps {
+  roomId: string;
+  userName: string;
+  authToken: string;
+  onLeave: () => void;
+  config: RoomDesignConfig;
+}
+
+function PeerVideo({
+  peer,
+  config,
+  totalPeers,
+}: {
+  peer: HMSPeer;
+  config: RoomDesignConfig;
+  totalPeers: number;
+}) {
+  const { videoRef } = useVideo({
+    trackId: peer.videoTrack,
+  });
+
+  const isVideoOff = !peer.videoTrack;
+
+  const isRecordingBot = window.location.search.includes("recording_bot=true") ||
+    window.location.search.includes("recording=true") ||
+    window.location.search.includes("auto_join=true");
+
+  return (
+    <Card
+      className={cn(
+        "relative aspect-video overflow-hidden bg-zinc-900 border-white/5 shadow-2xl transition-all duration-300",
+        totalPeers === 1 ? "w-full max-w-4xl mx-auto" : "w-full",
+        isRecordingBot && "border-none shadow-none"
+      )}
+      style={{
+        backgroundColor: isRecordingBot ? "#000000" : (config?.colors?.controlsBackground || "#18181b"),
+      }}
+    >
+      <div
+        className={cn(
+          "absolute inset-0 flex items-center justify-center transition-opacity duration-500 z-0",
+          (!isVideoOff || isRecordingBot) ? "opacity-0" : "opacity-100"
+        )}
+        style={{ backgroundColor: config?.colors?.avatarBackground || "#3b82f6" }}
+      >
+        <div
+          className="w-20 h-20 rounded-full flex items-center justify-center text-3xl font-bold border-4 border-white/10 shadow-xl"
+          style={{
+            backgroundColor: config?.colors?.avatarBackground || "#3b82f6",
+            color: config?.colors?.avatarText || "#ffffff"
+          }}
+        >
+          {peer.name?.charAt(0).toUpperCase() || "?"}
+        </div>
+      </div>
+
+      <video
+        ref={videoRef}
+        autoPlay
+        muted={peer.isLocal}
+        playsInline
+        className={cn(
+          "absolute inset-0 w-full h-full object-cover transition-opacity duration-500 z-10",
+          (isVideoOff && !isRecordingBot) ? "opacity-0" : "opacity-100",
+          peer.isLocal && "transform scale-x-[-1]"
+        )}
+      />
+
+      {!isRecordingBot && (
+        <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between z-20 pointer-events-none">
+          <div
+            className="px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2 backdrop-blur-md border border-white/10 shadow-lg"
+            style={{
+              backgroundColor: config?.colors?.participantNameBackground || "rgba(0, 0, 0, 0.6)",
+              color: config?.colors?.participantNameText || "#ffffff"
+            }}
+          >
+            <span className="truncate max-w-[150px]">{peer.name} {peer.isLocal && "(Você)"}</span>
+            {!peer.audioTrack && <MicOff className="w-3 h-3 text-red-500" />}
+          </div>
+        </div>
+      )}
+    </Card>
+  );
+}
+
+function ScreenShare({
+  peer,
+  trackId,
+}: {
+  peer: HMSPeer;
+  trackId: string;
+}) {
+  const { videoRef } = useVideo({
+    trackId,
+  });
+
+  return (
+    <Card className="relative w-full aspect-video overflow-hidden bg-black border-blue-500/30 border-2 shadow-2xl col-span-full max-w-5xl mx-auto">
+      <video
+        ref={videoRef}
+        autoPlay
+        muted
+        playsInline
+        className="absolute inset-0 w-full h-full object-contain z-10"
+      />
+      <div className="absolute bottom-3 left-3 px-3 py-1.5 rounded-lg text-xs font-bold bg-black/60 text-white backdrop-blur-md z-20">
+        Tela de {peer.name}
+      </div>
+    </Card>
+  );
+}
+
+export function Meeting100ms({
+  roomId,
+  userName,
+  authToken,
+  onLeave,
+  config,
+}: Meeting100msProps) {
+  const hmsActions = useHMSActions();
+  const isConnected = useHMSStore(selectIsConnectedToRoom);
+  const peers = useHMSStore(selectPeers);
+  const isAudioEnabled = useHMSStore(selectIsLocalAudioEnabled);
+  const isVideoEnabled = useHMSStore(selectIsLocalVideoEnabled);
+  const isScreenShared = useHMSStore(selectIsLocalScreenShared);
+  const room = useHMSStore(selectRoom);
+
+  const [localRecordingStatus, setLocalRecordingStatus] = useState<boolean | 'loading'>(false);
+
+  // No SDK v0.11.0, o estado de gravação pode estar em outro lugar ou ser nulo
+  // Vamos usar uma verificação segura para evitar o erro de tipagem
+  const sdkRecordingOn = (room as any)?.recording?.browser?.running ||
+    (room as any)?.browserRecordingState?.running ||
+    (room as any)?.recording?.server?.running ||
+    (room as any)?.recording?.hls?.running ||
+    ['starting', 'started', 'recording'].includes((room as any)?.recording?.status) ||
+    false;
+
+  // Sincronizar o estado local com o SDK quando o SDK mudar
+  useEffect(() => {
+    setLocalRecordingStatus(sdkRecordingOn);
+  }, [sdkRecordingOn]);
+
+  const isRecordingOn = localRecordingStatus === 'loading' ? sdkRecordingOn : localRecordingStatus;
+
+  const tenantId = (room as any)?.tenantId;
+
+  // Encontrar o track de compartilhamento de tela
+  const screenSharePeer = peers.find(p => p.auxiliaryTracks.length > 0);
+  const screenShareTrackId = screenSharePeer?.auxiliaryTracks[0];
+
+  const [error, setError] = useState<string | null>(null);
+  const [isJoining, setIsJoining] = useState(true);
+  const [isCopied, setIsCopied] = useState(false);
+
+  useEffect(() => {
+    const isBot = window.location.search.includes("recording_bot=true") ||
+      window.location.search.includes("recording=true");
+
+    if (isBot) {
+      console.log("[Meeting100ms] Bot de gravação detectado, forçando início de áudio/vídeo e desativando overlay");
+      hmsActions.setLocalAudioEnabled(true).catch(console.error);
+      hmsActions.setLocalVideoEnabled(true).catch(console.error);
+    }
+
+    let isMounted = true;
+    let joinTimer: ReturnType<typeof setTimeout>;
+
+    const joinRoom = async () => {
+      try {
+        console.log("[Meeting100ms] Iniciando joinRoom...");
+        console.log(`[Meeting100ms] Token: ${authToken.substring(0, 10)}... RoomId: ${roomId}`);
+
+        await hmsActions.join({
+          userName,
+          authToken,
+          settings: { isAudioMuted: false, isVideoMuted: false },
+          rememberDeviceSelection: true
+        });
+
+        console.log("[Meeting100ms] hmsActions.join() completado. Aguardando conexão...");
+
+        // Não setamos isJoining=false aqui. Esperamos o useEffect do isConnected.
+
+        // Timeout de segurança: se não conectar em 20s, mostra erro
+        joinTimer = setTimeout(() => {
+          if (isMounted && isJoining) {
+            console.error("[Meeting100ms] Timeout ao conectar (20s)");
+            setError("Não foi possível conectar à sala. Verifique sua conexão.");
+            setIsJoining(false);
+          }
+        }, 20000);
+
+      } catch (err: any) {
+        console.error("[Meeting100ms] Erro fatal no joinRoom:", err);
+        if (isMounted) {
+          setError(err.message || "Erro ao conectar à reunião");
+          setIsJoining(false);
+        }
+      }
+    };
+
+    joinRoom();
+
+    return () => {
+      isMounted = false;
+      if (joinTimer) clearTimeout(joinTimer);
+      // O leave deve ser feito no outro useEffect que monitora isConnected
+    };
+  }, [hmsActions, authToken, userName, roomId]); // Adicionado roomId nas deps
+
+  // Novo useEffect: Monitorar conexão bem sucedida
+  useEffect(() => {
+    if (isConnected && isJoining) {
+      console.log("[Meeting100ms] ✅ Conectado com sucesso! Removendo loading.");
+      setIsJoining(false);
+    }
+  }, [isConnected, isJoining]);
+
+  useEffect(() => {
+    return () => {
+      if (isConnected) {
+        hmsActions.leave().catch(() => { });
+      }
+    };
+  }, [hmsActions, isConnected]);
+
+  const toggleAudio = useCallback(async () => {
+    try {
+      console.log("[Meeting100ms] Executando toggle áudio... Estado atual:", isAudioEnabled);
+      await hmsActions.setLocalAudioEnabled(!isAudioEnabled);
+      console.log("[Meeting100ms] SDK Processou Áudio");
+    } catch (err: any) {
+      console.error("[Meeting100ms] Erro no SDK (Áudio):", err);
+      toast.error("Erro no áudio: " + err.message);
+    }
+  }, [hmsActions, isAudioEnabled]);
+
+  const toggleVideo = useCallback(async () => {
+    try {
+      console.log("[Meeting100ms] Executando toggle vídeo... Estado atual:", isVideoEnabled);
+      await hmsActions.setLocalVideoEnabled(!isVideoEnabled);
+      console.log("[Meeting100ms] SDK Processou Vídeo");
+    } catch (err: any) {
+      console.error("[Meeting100ms] Erro no SDK (Vídeo):", err);
+      toast.error("Erro no vídeo: " + err.message);
+    }
+  }, [hmsActions, isVideoEnabled]);
+
+  const toggleScreenShare = useCallback(async () => {
+    try {
+      console.log("[Meeting100ms] Executando toggle tela... Estado atual:", isScreenShared);
+      // Para o SDK v0.11.0, o método correto é setScreenShareEnabled
+      await hmsActions.setScreenShareEnabled(!isScreenShared);
+      console.log("[Meeting100ms] SDK Processou Tela");
+      if (!isScreenShared) {
+        toast.success("Compartilhamento de tela iniciado");
+      } else {
+        toast.success("Compartilhamento de tela encerrado");
+      }
+    } catch (err: any) {
+      console.error("[Meeting100ms] Erro no SDK (Tela):", err);
+      // Verificando se o erro é de permissão ou cancelamento
+      if (err.message?.includes("Permission denied") || err.message?.includes("cancelled")) {
+        toast.error("Compartilhamento cancelado ou negado");
+      } else {
+        // Se o erro for de permissão da role, avisar o usuário
+        if (err.message?.includes("not allowed to publish screen")) {
+          toast.error("Sua permissão não permite compartilhar tela.");
+        } else {
+          toast.error("Erro na tela: " + err.message);
+        }
+      }
+    }
+  }, [hmsActions, isScreenShared]);
+
+  const [companySlug, setCompanySlug] = useState<string>("");
+
+  useEffect(() => {
+    // Tenta extrair o company slug da URL se não estiver no config
+    const pathParts = window.location.pathname.split("/");
+    const reuniaoIdx = pathParts.indexOf("reuniao");
+    if (reuniaoIdx !== -1 && pathParts[reuniaoIdx + 1]) {
+      setCompanySlug(pathParts[reuniaoIdx + 1]);
+    } else if (config?.branding?.companyName) {
+      setCompanySlug(config.branding.companyName.toLowerCase().replace(/\s+/g, "-"));
+    }
+  }, [config]);
+
+  const toggleRecording = useCallback(async () => {
+    if (localRecordingStatus === 'loading') return;
+
+    try {
+      const isCurrentlyRecording = isRecordingOn;
+      console.log("[Meeting100ms] Executando toggle gravação... Estado atual:", isCurrentlyRecording);
+
+      const currentRoomId = roomId || window.location.pathname.split('/').pop();
+      const currentUrl = window.location.href;
+
+      setLocalRecordingStatus('loading');
+
+      if (isCurrentlyRecording) {
+        console.log('[Meeting] Parando gravação...');
+        const response = await fetch('/api/100ms/recording/stop', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            roomId: currentRoomId
+          }),
+        });
+
+        if (!response.ok) {
+          const errData = await response.json();
+          console.error('[Meeting] Erro ao parar gravação:', errData);
+          setLocalRecordingStatus(true); // Reverter se der erro
+          throw new Error(errData.message || errData.error || 'Erro ao parar gravação');
+        }
+
+        toast.success("Gravação parada! O vídeo será processado em breve.");
+        setLocalRecordingStatus(false);
+      } else {
+        console.log('[Meeting] Iniciando gravação...');
+        const response = await fetch('/api/100ms/recording/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            roomId: currentRoomId,
+            meetingUrl: currentUrl,
+            tenantSlug: companySlug
+          }),
+        });
+
+        if (!response.ok) {
+          const errData = await response.json();
+          console.error('[Meeting] Erro ao iniciar gravação:', errData);
+          setLocalRecordingStatus(false); // Reverter se der erro
+          throw new Error(errData.message || errData.error || 'Erro ao iniciar gravação');
+        }
+
+        toast.success("Gravação iniciada!");
+        setLocalRecordingStatus(true);
+      }
+    } catch (err: any) {
+      console.error('[Meeting] Erro exaustivo na gravação:', err);
+      toast.error(err.message || 'Erro ao controlar gravação');
+    }
+  }, [isRecordingOn, localRecordingStatus, roomId, companySlug]);
+
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingId, setRecordingId] = useState<string | null>(null);
+
+  // Sincronizar estado de gravação com o backend ao carregar
+  useEffect(() => {
+    const checkRecordingStatus = async () => {
+      try {
+        const currentRoomId = roomId || window.location.pathname.split('/').pop();
+        const response = await fetch(`/api/100ms/recording/${currentRoomId}`);
+        if (response.ok) {
+          const list = await response.json();
+          const active = list.find((r: any) => r.status === 'recording');
+          if (active) {
+            setIsRecording(true);
+            setRecordingId(active.recordingId100ms);
+          }
+        }
+      } catch (err) {
+        console.error("Erro ao verificar status da gravação:", err);
+      }
+    };
+    checkRecordingStatus();
+  }, [roomId]);
+
+  const handleToggleRecording = async () => {
+    try {
+      const currentRoomId = roomId || window.location.pathname.split('/').pop();
+
+      if (!isRecording) {
+        setIsRecording(true); // Feedback visual imediato
+        const response = await fetch('/api/100ms/recording/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ roomId: currentRoomId }),
+        });
+
+        if (!response.ok) {
+          setIsRecording(false);
+          throw new Error('Erro ao iniciar gravação');
+        }
+
+        const data = await response.json();
+        setRecordingId(data.recordingId);
+        toast.success("✅ Gravação iniciada!");
+      } else {
+        const response = await fetch('/api/100ms/recording/stop', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ roomId: currentRoomId }),
+        });
+
+        if (!response.ok) throw new Error('Erro ao parar gravação');
+
+        setIsRecording(false);
+        setRecordingId(null);
+        toast.success("⏸️ Gravação parada! O vídeo será processado em breve.");
+      }
+    } catch (err: any) {
+      toast.error("❌ " + err.message);
+    }
+  };
+
+  const copyLink = useCallback(() => {
+    const url = window.location.href;
+    navigator.clipboard.writeText(url);
+    setIsCopied(true);
+    toast.success("Link da reunião copiado!");
+    setTimeout(() => setIsCopied(false), 2000);
+  }, []);
+
+  const handleLeave = useCallback(async () => {
+    await hmsActions.leave();
+    onLeave();
+  }, [hmsActions, onLeave]);
+
+  if (error) {
+    return (
+      <div className="h-screen flex items-center justify-center p-4 bg-[#09090b]">
+        <Card className="p-8 max-w-md w-full text-center bg-zinc-900 border-zinc-800">
+          <h2 className="text-xl font-bold mb-2 text-white">Erro</h2>
+          <p className="text-zinc-400 mb-6 text-sm">{error}</p>
+          <Button onClick={() => window.location.reload()}>Tentar Novamente</Button>
+        </Card>
+      </div>
+    );
+  }
+
+  if (isJoining || !isConnected) {
+    return (
+      <div className="h-screen flex flex-col items-center justify-center bg-[#09090b]">
+        <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent animate-spin rounded-full mb-4"></div>
+        <p className="text-white font-bold">Conectando...</p>
+      </div>
+    );
+  }
+
+  const gridClass = peers.length === 1 ? "max-w-4xl" :
+    peers.length === 2 ? "grid-cols-1 md:grid-cols-2" :
+      peers.length <= 4 ? "grid-cols-2" : "grid-cols-2 lg:grid-cols-3";
+
+  const isRecordingBot = window.location.search.includes("recording_bot=true") ||
+    window.location.search.includes("recording=true") ||
+    window.location.search.includes("auto_join=true");
+
+  return (
+    <TooltipProvider>
+      <div className={cn("flex flex-col h-screen overflow-hidden bg-[#09090b]", isRecordingBot && "bg-black")}>
+        {!isRecordingBot && (
+          <header className="h-14 px-6 border-b border-white/5 flex items-center justify-between bg-zinc-900/40 backdrop-blur-xl z-20">
+            <div className="flex items-center gap-3">
+              <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg">
+                <Video className="h-4 w-4 text-white" />
+              </div>
+              <div className="flex flex-col">
+                <span className="font-bold text-white text-xs leading-none">MeetFlow</span>
+                {isRecordingOn && (
+                  <div className="flex items-center gap-1 mt-0.5 animate-pulse">
+                    <Circle className="h-1.5 w-1.5 fill-red-500 text-red-500" />
+                    <span className="text-[9px] text-red-500 font-bold uppercase tracking-wider">Gravando</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={copyLink}
+                className="bg-zinc-800/40 hover:bg-zinc-700/60 px-3 py-1.5 h-8 rounded-full flex items-center gap-2 text-[10px] font-bold text-white transition-all"
+              >
+                {isCopied ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
+                <span>{isCopied ? "COPIADO" : "COPIAR LINK"}</span>
+              </Button>
+
+              <div className="bg-zinc-800/40 px-3 py-1.5 h-8 rounded-full flex items-center gap-2 text-[10px] font-bold text-zinc-400 border border-white/5">
+                <Users className="h-3 w-3" />
+                <span>{peers.length} PARTICIPANTES</span>
+              </div>
+            </div>
+          </header>
+        )}
+
+        <main className={cn("flex-1 overflow-y-auto p-4 flex flex-col items-center justify-center gap-6", isRecordingBot && "p-0")}>
+          {screenSharePeer && screenShareTrackId && (
+            <ScreenShare peer={screenSharePeer} trackId={screenShareTrackId} />
+          )}
+          <div className={cn("grid gap-6 w-full h-fit mx-auto", gridClass, isRecordingBot && "gap-0 max-w-full h-full")}>
+            {peers.map((peer) => (
+              <PeerVideo key={peer.id} peer={peer} config={config} totalPeers={peers.length} />
+            ))}
+          </div>
+        </main>
+
+        {!isRecordingBot && (
+          <footer className="h-24 px-6 flex items-center justify-center z-50">
+            <div className="px-6 py-3 rounded-3xl flex items-center gap-3 bg-zinc-900/90 border border-white/20 backdrop-blur-2xl shadow-2xl relative">
+              <div className="flex items-center gap-3 relative z-50">
+                <Button
+                  onClick={() => {
+                    console.log("[Meeting100ms] Click Áudio Direto");
+                    toggleAudio();
+                  }}
+                  variant="ghost"
+                  size="icon"
+                  className={cn("h-12 w-12 rounded-2xl transition-all duration-300 relative z-50", isAudioEnabled ? "bg-zinc-800/50 text-white hover:bg-zinc-700" : "bg-red-500 text-white hover:bg-red-600")}
+                  title={isAudioEnabled ? "Mudar áudio" : "Ativar áudio"}
+                >
+                  {isAudioEnabled ? <Mic className="h-5 w-5 pointer-events-none" /> : <MicOff className="h-5 w-5 pointer-events-none" />}
+                </Button>
+
+                <Button
+                  onClick={() => {
+                    console.log("[Meeting100ms] Click Vídeo Direto");
+                    toggleVideo();
+                  }}
+                  variant="ghost"
+                  size="icon"
+                  className={cn("h-12 w-12 rounded-2xl transition-all duration-300 relative z-50", isVideoEnabled ? "bg-zinc-800/50 text-white hover:bg-zinc-700" : "bg-red-500 text-white hover:bg-red-600")}
+                  title={isVideoEnabled ? "Desligar câmera" : "Ligar câmera"}
+                >
+                  {isVideoEnabled ? <Video className="h-5 w-5 pointer-events-none" /> : <VideoOff className="h-5 w-5 pointer-events-none" />}
+                </Button>
+
+                <div className="h-8 w-[1px] bg-white/10 mx-1" />
+
+                <Button
+                  onClick={() => {
+                    console.log("[Meeting100ms] Click Tela Direto");
+                    toggleScreenShare();
+                  }}
+                  variant="ghost"
+                  size="icon"
+                  className={cn("h-12 w-12 rounded-2xl transition-all duration-300 relative z-50", isScreenShared ? "bg-blue-600 text-white" : "bg-zinc-800/50 text-white hover:bg-zinc-700")}
+                  title={isScreenShared ? "Parar compartilhamento" : "Compartilhar tela"}
+                >
+                  {isScreenShared ? <MonitorOff className="h-5 w-5 pointer-events-none" /> : <MonitorUp className="h-5 w-5 pointer-events-none" />}
+                </Button>
+
+                <Button
+                  onClick={handleToggleRecording}
+                  variant={isRecording ? "destructive" : "ghost"}
+                  size="icon"
+                  className={cn(
+                    "h-12 w-12 rounded-2xl transition-all duration-300 relative z-50",
+                    isRecording ? "bg-red-500 text-white shadow-lg shadow-red-500/20" : "bg-zinc-800/50 text-white hover:bg-zinc-700"
+                  )}
+                  title={isRecording ? "Parar gravação" : "Iniciar gravação"}
+                >
+                  <Circle className={cn("h-5 w-5 pointer-events-none", isRecording && "fill-white animate-pulse")} />
+                </Button>
+
+                <div className="h-8 w-[1px] bg-white/10 mx-1" />
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      onClick={async () => {
+                        console.log("[Meeting100ms] Click Assinar Contrato");
+                        try {
+                          const response = await fetch('/api/assinatura/public/contracts', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              client_name: userName || 'Novo Revendedor',
+                              client_cpf: '',
+                              client_email: '',
+                            }),
+                          });
+
+                          if (!response.ok) throw new Error('Erro ao criar contrato');
+
+                          const contract = await response.json();
+                          window.open(`/assinar/${contract.access_token}`, '_blank');
+                          toast.success("Página de assinatura aberta!");
+                        } catch (err: any) {
+                          console.error("[Meeting100ms] Erro ao criar contrato:", err);
+                          toast.error("Erro ao abrir página de assinatura");
+                        }
+                      }}
+                      variant="ghost"
+                      className="h-12 px-4 rounded-2xl font-bold bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg shadow-emerald-500/20 hover:scale-105 transition-transform relative z-50 flex items-center gap-2"
+                      data-testid="button-assinar-contrato"
+                    >
+                      <FileSignature className="h-5 w-5" />
+                      <span className="hidden sm:inline">Assinar</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Abrir página de assinatura de contrato</p>
+                  </TooltipContent>
+                </Tooltip>
+
+                <Button
+                  onClick={() => {
+                    console.log("[Meeting100ms] Click Sair Direto");
+                    handleLeave();
+                  }}
+                  variant="destructive"
+                  className="h-12 px-6 rounded-2xl font-bold shadow-lg shadow-red-500/20 hover:scale-105 transition-transform relative z-50"
+                >
+                  Sair
+                </Button>
+              </div>
+            </div>
+          </footer>
+        )}
+      </div>
+    </TooltipProvider>
+  );
+}

@@ -1,0 +1,40 @@
+Solução: Correção da Tela Preta no 100ms
+✅ Problemas Identificados e Corrigidos
+1. Endpoint de Token Incorreto
+Diagnóstico: O frontend estava chamando /api/100ms/get-token, que não existia no backend. O endpoint correto para acesso público é /api/public/reunioes/:id/token-public.
+Correção: Atualizado 
+PublicMeetingRoom.tsx
+ para usar o endpoint correto.
+2. Race Condition na Conexão
+Diagnóstico: O componente 
+Meeting100ms.tsx
+ removia o estado de loading (setIsJoining(false)) imediatamente após chamar hmsActions.join(). Como o 
+join
+ é assíncrono e a conexão não é instantânea, o componente tentava renderizar a sala antes de estar conectado, resultando em tela preta ou estado inconsistente.
+Correção: Implementado novo fluxo que aguarda isConnected tornar-se verdadeiro antes de remover o loading. Adicionado timeout de 20s para evitar loading infinito.
+3. Duplicidade de Provider (HMSRoomProvider)
+Diagnóstico: O arquivo 
+App.tsx
+ já envolve a aplicação com HMSRoomProvider. O arquivo 
+PublicMeetingRoom.tsx
+ estava adicionando um segundo <HMSProvider>, o que causa conflitos no SDK do 100ms (perda de contexto/estado).
+Correção: Removido wrapper <HMSProvider> de 
+PublicMeetingRoom.tsx
+.
+📄 Arquivos Modificados
+src/pages/PublicMeetingRoom.tsx
+Removido <HMSProvider> duplicado.
+Alterada chamada de API de /api/100ms/get-token para /api/public/reunioes/${id}/token-public.
+Melhorada exibição de erro e loading com estilos consistentes.
+src/components/Meeting100ms.tsx
+Refatorado useEffect de join.
+Adicionado novo useEffect para monitorar isConnected.
+Adicionado timeout de segurança.
+Melhorado logs para debugging.
+🧪 Como Testar
+Acesse uma URL pública de reunião (ex: /reuniao/uuid-da-reuniao).
+Digite um nome e clique em "Participar".
+Verifique se o loading "Conectando..." aparece.
+Aguarde a conexão ser estabelecida de fato (o loading só deve sumir quando o vídeo aparecer).
+Verifique se não há erros no console como "Provider already initialized".
+Isso deve resolver definitivamente o problema de tela preta e falha no carregamento.
