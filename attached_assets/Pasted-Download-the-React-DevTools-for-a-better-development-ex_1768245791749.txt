@@ -1,0 +1,53 @@
+Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+supabase.ts:37 🔄 Tentativa 1/5 de carregar credenciais Supabase...
+client.ts:14 [Supabase] No credentials provided. Using stub client.
+createSupabaseClient @ client.ts:14
+(anonymous) @ client.ts:27Understand this warning
+usePWAInstall.ts:112 📱 [PWA] Device Info: {platform: 'desktop', browser: 'chrome', isMobile: false, isTablet: false, isStandalone: false}browser: "chrome"isMobile: falseisStandalone: falseisTablet: falseplatform: "desktop"[[Prototype]]: Object
+usePWAInstall.ts:176 🧪 [PWA] Modo desenvolvimento detectado - botão sempre visível para testes
+AuthContext.tsx:69 [AuthContext] Checking session...
+usePWAInstall.ts:125 ✅ [PWA] Service Worker registrado: https://863db27b-299f-4f4f-ae93-4678cbe1589b-00-2521mi8n9pvo9.kirk.replit.dev/
+supabase.ts:86  GET https://863db27b-299f-4f4f-ae93-4678cbe1589b-00-2521mi8n9pvo9.kirk.replit.dev/api/config/supabase/credentials 401 (Unauthorized)
+(anonymous) @ supabase.ts:86
+fetchWithRetry @ supabase.ts:39
+fetchSupabaseConfig @ supabase.ts:85
+(anonymous) @ supabase.ts:180
+getSupabaseClient @ supabase.ts:216
+getItem @ workspaceStorage.ts:288
+(anonymous) @ zustand_middleware.js?v=5e55dc20:303
+hydrate @ zustand_middleware.js?v=5e55dc20:384
+(anonymous) @ zustand_middleware.js?v=5e55dc20:455
+createStoreImpl @ zustand.js?v=5e55dc20:27
+createStore @ zustand.js?v=5e55dc20:30
+createImpl @ zustand.js?v=5e55dc20:45
+(anonymous) @ notionStore.ts:178Understand this error
+supabase.ts:96 ℹ️ [SUPABASE] Usuário não autenticado - credenciais serão carregadas após login
+supabase.ts:185 ℹ️ [SUPABASE] Credenciais não disponíveis - usuário pode não estar autenticado
+workspaceStorage.ts:440 👤 Usuário não autenticado - usando localStorage
+workspaceStorage.ts:455 📭 Nenhum dado encontrado
+NotificationContext.tsx:86  GET https://863db27b-299f-4f4f-ae93-4678cbe1589b-00-2521mi8n9pvo9.kirk.replit.dev/api/notifications/vapid-public-key 401 (Unauthorized)
+fetchVapidKey @ NotificationContext.tsx:86
+initNotifications @ NotificationContext.tsx:175
+(anonymous) @ NotificationContext.tsx:194
+commitHookEffectListMount @ chunk-I3COAS7K.js?v=5e55dc20:16915
+commitPassiveMountOnFiber @ chunk-I3COAS7K.js?v=5e55dc20:18156
+commitPassiveMountEffects_complete @ chunk-I3COAS7K.js?v=5e55dc20:18129
+commitPassiveMountEffects_begin @ chunk-I3COAS7K.js?v=5e55dc20:18119
+commitPassiveMountEffects @ chunk-I3COAS7K.js?v=5e55dc20:18109
+flushPassiveEffectsImpl @ chunk-I3COAS7K.js?v=5e55dc20:19490
+flushPassiveEffects @ chunk-I3COAS7K.js?v=5e55dc20:19447
+performSyncWorkOnRoot @ chunk-I3COAS7K.js?v=5e55dc20:18868
+flushSyncCallbacks @ chunk-I3COAS7K.js?v=5e55dc20:9119
+commitRootImpl @ chunk-I3COAS7K.js?v=5e55dc20:19432
+commitRoot @ chunk-I3COAS7K.js?v=5e55dc20:19277
+finishConcurrentRender @ chunk-I3COAS7K.js?v=5e55dc20:18805
+performConcurrentWorkOnRoot @ chunk-I3COAS7K.js?v=5e55dc20:18718
+workLoop @ chunk-I3COAS7K.js?v=5e55dc20:197
+flushWork @ chunk-I3COAS7K.js?v=5e55dc20:176
+performWorkUntilDeadline @ chunk-I3COAS7K.js?v=5e55dc20:384Understand this error
+sentry.ts:34 ⚠️ Sentry não configurado - Monitoramento desativado
+AuthContext.tsx:73 [AuthContext] Session check response: {authenticated: false}
+AuthContext.tsx:129 [AuthContext] Setting isLoading to false
+NotificationContext.tsx:186 [Notifications] Não autenticado - limpando dados
+c8d44ec1-0b0d-4112-b9ed-d4318717ec80:1 <meta name="apple-mobile-web-app-capable" content="yes"> is deprecated. Please include <meta name="mobile-web-app-capable" content="yes">Understand this warning
+c8d44ec1-0b0d-4112-b9ed-d4318717ec80:1 Error while trying to use the following icon from the Manifest: https://863db27b-299f-4f4f-ae93-4678cbe1589b-00-2521mi8n9pvo9.kirk.replit.dev/icons/icon-192x192.png (Download error or resource isn't a valid image)

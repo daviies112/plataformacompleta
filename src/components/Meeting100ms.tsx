@@ -157,7 +157,6 @@ export function Meeting100ms({
   const isScreenShared = useHMSStore(selectIsLocalScreenShared);
   const room = useHMSStore(selectRoom);
   const roomState = useHMSStore(selectRoomState);
-  const hmsStore = useHMSStore();
   
   // CRÍTICO: Capturar notificações/erros do SDK 100ms
   const notification = useHMSNotifications();
