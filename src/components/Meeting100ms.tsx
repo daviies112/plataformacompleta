@@ -187,6 +187,7 @@ export function Meeting100ms({
   const [isJoining, setIsJoining] = useState(true);
   const [isCopied, setIsCopied] = useState(false);
   const [connectionAttempts, setConnectionAttempts] = useState(0);
+  const [canRetry, setCanRetry] = useState(false);
   const hasAttemptedJoin = useRef(false);
   const joinTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -222,10 +223,13 @@ export function Meeting100ms({
           if (isMounted && attempt < 2) {
             console.warn(`[Meeting100ms] Timeout de conexão (30s) - tentativa ${attempt + 2}...`);
             setConnectionAttempts(attempt + 1);
+            hasAttemptedJoin.current = false;
             joinRoom(attempt + 1);
           } else if (isMounted) {
+            console.error("[Meeting100ms] Todas as tentativas falharam");
             setError("Timeout ao conectar à reunião. Verifique sua conexão e tente novamente.");
             setIsJoining(false);
+            setCanRetry(true);
           }
         }, 30000);
         
@@ -253,6 +257,7 @@ export function Meeting100ms({
           });
           setError(errorMessage);
           setIsJoining(false);
+          setCanRetry(true);
         }
       }
     };
@@ -483,6 +488,39 @@ export function Meeting100ms({
     onLeave();
   }, [hmsActions, onLeave]);
 
+  const handleRetry = useCallback(async () => {
+    console.log("[Meeting100ms] Retry manual solicitado");
+    setError(null);
+    setIsJoining(true);
+    setCanRetry(false);
+    setConnectionAttempts(0);
+    
+    const retryTimeout = setTimeout(() => {
+      console.warn("[Meeting100ms] Timeout no retry (30s)");
+      setError("Timeout ao reconectar. Verifique sua conexão.");
+      setIsJoining(false);
+      setCanRetry(true);
+    }, 30000);
+    
+    try {
+      console.log("[Meeting100ms] Re-tentando conexão...");
+      await hmsActions.join({
+        userName,
+        authToken,
+        settings: { isAudioMuted: false, isVideoMuted: false },
+        rememberDeviceSelection: true
+      });
+      clearTimeout(retryTimeout);
+      console.log("[Meeting100ms] join() resolveu após retry");
+    } catch (err: any) {
+      clearTimeout(retryTimeout);
+      console.error("[Meeting100ms] Erro no retry:", err);
+      setError(err.message || "Erro ao reconectar");
+      setIsJoining(false);
+      setCanRetry(true);
+    }
+  }, [hmsActions, userName, authToken]);
+
   // Log de debug para entender o estado atual - DEVE estar antes de qualquer return condicional
   useEffect(() => {
     console.log("[Meeting100ms] 🔄 Estado atual:", {
@@ -500,13 +538,27 @@ export function Meeting100ms({
 
   // Mostrar tela de erro se houver
   if (error) {
-    console.log("[Meeting100ms] Mostrando tela de erro:", error);
+    console.log("[Meeting100ms] Mostrando tela de erro:", error, "canRetry:", canRetry);
     return (
       <div className="h-screen flex items-center justify-center p-4 bg-[#09090b]">
         <Card className="p-8 max-w-md w-full text-center bg-zinc-900 border-zinc-800">
-          <h2 className="text-xl font-bold mb-2 text-white">Erro</h2>
+          <h2 className="text-xl font-bold mb-2 text-white">Erro ao conectar</h2>
           <p className="text-zinc-400 mb-6 text-sm">{error}</p>
-          <Button onClick={() => window.location.reload()}>Tentar Novamente</Button>
+          <div className="flex flex-col gap-3">
+            {canRetry && (
+              <Button onClick={handleRetry} className="w-full" data-testid="button-retry-connection">
+                Tentar Novamente
+              </Button>
+            )}
+            <Button 
+              onClick={() => window.location.reload()} 
+              variant={canRetry ? "outline" : "default"}
+              className="w-full"
+              data-testid="button-reload-page"
+            >
+              Recarregar Página
+            </Button>
+          </div>
         </Card>
       </div>
     );
