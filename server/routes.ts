@@ -73,6 +73,10 @@ export async function registerRoutes(app: Express) {
   const { publicRoomDesignRouter } = await import("./routes/meetings");
   app.use("/api/public", publicRoomDesignRouter); // Usar prefixo /api/public para evitar conflito com /api/reunioes protegido
   
+  // Recording routes also need to be accessible at /api/100ms/recording/... for frontend compatibility
+  // This allows the recording button in Meeting100ms.tsx to work correctly
+  app.use("/api", publicRoomDesignRouter);
+  
   // N8N integration routes - allows external automation to create meetings
   app.use("/api/n8n", n8nRouter);
   
