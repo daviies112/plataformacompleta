@@ -14,6 +14,7 @@ interface Contract {
     selfie_photo?: string;
     document_photo?: string;
     document_back_photo?: string;
+    contract_html?: string;
     signed_contract_html?: string;
     protocol_number?: string;
     company_name?: string;
@@ -46,13 +47,13 @@ export const ContractDetailsModal = ({ contract, open, onOpenChange }: ContractD
   }, [open, contract?.id]);
 
   const generatePDF = async () => {
-    if (!freshContract && !contract) return;
+    const contractData = freshContract || contract;
+    if (!contractData) return;
     
     setIsGeneratingPdf(true);
     try {
-      const contractData = freshContract || contract;
-      
       const addPageBreaksToContract = (html: string): string => {
+        if (!html) return '';
         const parts = html.split(/(<h3[^>]*>.*?<\/h3>)/);
         let clauseCount = 0;
         let result = '';
@@ -89,8 +90,8 @@ export const ContractDetailsModal = ({ contract, open, onOpenChange }: ContractD
       contentHTML += `
         <div style="margin: 0 0 15px 0; padding-bottom: 10px; border-bottom: 2px solid #333;">
           <h1 style="font-size: 18px; font-weight: bold; margin: 0 0 5px 0;">Detalhes do Contrato</h1>
-          <p style="margin: 0 0 2px 0; font-size: 12px;"><strong>Protocolo:</strong> ${contractData?.protocol_number || 'N/A'}</p>
-          <p style="margin: 0; font-size: 12px;"><strong>Empresa:</strong> ${contractData?.company_name || 'Sem empresa'}</p>
+          <p style="margin: 0 0 2px 0; font-size: 12px;"><strong>Protocolo:</strong> ${contractData.protocol_number || 'N/A'}</p>
+          <p style="margin: 0; font-size: 12px;"><strong>Empresa:</strong> ${contractData.company_name || 'Sem empresa'}</p>
         </div>
       `;
       
@@ -100,29 +101,29 @@ export const ContractDetailsModal = ({ contract, open, onOpenChange }: ContractD
           <table style="width: 100%; font-size: 12px; border-collapse: collapse;">
             <tr style="display: table-row;">
               <td style="font-weight: 600; color: #666; padding: 3px 0; width: 30%;">Nome:</td>
-              <td style="color: #333; padding: 3px 0;">${contractData?.client_name || 'N/A'}</td>
+              <td style="color: #333; padding: 3px 0;">${contractData.client_name || 'N/A'}</td>
             </tr>
             <tr style="display: table-row;">
               <td style="font-weight: 600; color: #666; padding: 3px 0;">CPF:</td>
-              <td style="color: #333; padding: 3px 0;">${contractData?.client_cpf || 'N/A'}</td>
+              <td style="color: #333; padding: 3px 0;">${contractData.client_cpf || 'N/A'}</td>
             </tr>
             <tr style="display: table-row;">
               <td style="font-weight: 600; color: #666; padding: 3px 0;">Email:</td>
-              <td style="color: #333; padding: 3px 0;">${contractData?.client_email || 'N/A'}</td>
+              <td style="color: #333; padding: 3px 0;">${contractData.client_email || 'N/A'}</td>
             </tr>
             <tr style="display: table-row;">
               <td style="font-weight: 600; color: #666; padding: 3px 0;">Telefone:</td>
-              <td style="color: #333; padding: 3px 0;">${contractData?.client_phone || 'Não informado'}</td>
+              <td style="color: #333; padding: 3px 0;">${contractData.client_phone || 'Não informado'}</td>
             </tr>
           </table>
         </div>
       `;
       
-      if (contractData?.selfie_photo || contractData?.document_photo) {
+      if (contractData.selfie_photo || contractData.document_photo || contractData.document_back_photo) {
         contentHTML += '<div style="margin: 0 0 15px 0; padding-bottom: 10px;">';
         contentHTML += '<h2 style="font-size: 14px; font-weight: bold; margin: 0 0 10px 0;">Fotos do Processo</h2>';
         
-        if (contractData?.selfie_photo) {
+        if (contractData.selfie_photo) {
           contentHTML += `
             <div style="margin-bottom: 12px;">
               <p style="font-weight: 600; font-size: 11px; color: #666; margin: 0 0 5px 0;">Selfie do Cliente</p>
@@ -131,7 +132,7 @@ export const ContractDetailsModal = ({ contract, open, onOpenChange }: ContractD
           `;
         }
         
-        if (contractData?.document_photo) {
+        if (contractData.document_photo) {
           contentHTML += `
             <div style="margin-bottom: 12px;">
               <p style="font-weight: 600; font-size: 11px; color: #666; margin: 0 0 5px 0;">Documento (Frente)</p>
@@ -140,7 +141,7 @@ export const ContractDetailsModal = ({ contract, open, onOpenChange }: ContractD
           `;
         }
 
-        if (contractData?.document_back_photo) {
+        if (contractData.document_back_photo) {
           contentHTML += `
             <div style="margin-bottom: 12px;">
               <p style="font-weight: 600; font-size: 11px; color: #666; margin: 0 0 5px 0;">Documento (Verso)</p>
@@ -152,8 +153,9 @@ export const ContractDetailsModal = ({ contract, open, onOpenChange }: ContractD
         contentHTML += '</div>';
       }
 
-      if (contractData?.signed_contract_html) {
-        const optimizedContractHTML = addPageBreaksToContract(contractData.signed_contract_html);
+      const finalHtml = contractData.signed_contract_html || contractData.contract_html;
+      if (finalHtml) {
+        const optimizedContractHTML = addPageBreaksToContract(finalHtml);
         contentHTML += `
           <div style="page-break-before: always; margin: 0; padding-top: 0;">
             <h2 style="font-size: 12px; font-weight: bold; margin: 0 0 6px 0;">Contrato Assinado</h2>
@@ -165,14 +167,12 @@ export const ContractDetailsModal = ({ contract, open, onOpenChange }: ContractD
       }
       
       pdfHtml.innerHTML = contentHTML;
-      
       document.body.appendChild(pdfHtml);
 
       const html2pdf = (await import('html2pdf.js')).default;
-      
       const opt = {
         margin: 0,
-        filename: `contrato-${contractData?.client_name}-${new Date().getTime()}.pdf`,
+        filename: `contrato-${contractData.client_name}-${new Date().getTime()}.pdf`,
         image: { type: 'jpeg' as const, quality: 0.95 },
         html2canvas: { 
           scale: 3,
@@ -185,18 +185,14 @@ export const ContractDetailsModal = ({ contract, open, onOpenChange }: ContractD
           windowHeight: document.body.scrollHeight,
         },
         jsPDF: { 
-          orientation: 'portrait', 
-          unit: 'mm', 
+          orientation: 'portrait' as const, 
+          unit: 'mm' as const, 
           format: 'a4',
           compress: true,
         },
       };
 
-      await html2pdf()
-        .set(opt)
-        .from(pdfHtml)
-        .save();
-      
+      await html2pdf().set(opt).from(pdfHtml).save();
       document.body.removeChild(pdfHtml);
     } catch (error) {
       console.error('Erro ao gerar PDF:', error);
@@ -297,12 +293,12 @@ export const ContractDetailsModal = ({ contract, open, onOpenChange }: ContractD
                 </Card>
               )}
 
-              {displayContract?.signed_contract_html && (
+              {(displayContract?.signed_contract_html || displayContract?.contract_html) && (
                 <Card className="p-4">
                   <h3 className="font-bold text-lg mb-3">Contrato Assinado</h3>
                   <div className="bg-white p-4 rounded border border-gray-200 text-sm overflow-visible text-black">
                     <div 
-                      dangerouslySetInnerHTML={{ __html: displayContract.signed_contract_html }}
+                      dangerouslySetInnerHTML={{ __html: displayContract?.signed_contract_html || displayContract?.contract_html || '' }}
                       className="prose prose-sm max-w-none text-black"
                       style={{ color: 'black' }}
                     />
