@@ -29,13 +29,21 @@ router.post('/login', async (req: Request, res: Response) => {
       console.log(`⚠️ AVISO: Login de desenvolvimento aceito (auth desabilitado) - tenantId: ${tenantId}`);
       console.log(`🔐 [MULTI-TENANT] Tenant isolado criado para: ${email}`);
       
-      return res.json({ 
-        success: true, 
-        redirect: '/dashboard',
-        user: {
-          nome: `Dev User (${email})`,
-          email: email
+      // IMPORTANT: Save session explicitly before responding to ensure cookie is persisted
+      return req.session.save((err) => {
+        if (err) {
+          console.error('[Session] Erro ao salvar sessão:', err);
+          return res.status(500).json({ error: 'Erro ao criar sessão' });
         }
+        console.log(`✅ [Session] Sessão salva para tenant: ${tenantId}`);
+        return res.json({ 
+          success: true, 
+          redirect: '/dashboard',
+          user: {
+            nome: `Dev User (${email})`,
+            email: email
+          }
+        });
       });
     }
 
@@ -100,13 +108,21 @@ router.post('/login', async (req: Request, res: Response) => {
       mensagem: 'Login bem-sucedido'
     }).then().catch(console.error);
 
-    res.json({ 
-      success: true, 
-      redirect: '/',
-      user: {
-        nome: admin.nome,
-        email: admin.email
+    // IMPORTANT: Save session explicitly before responding to ensure cookie is persisted
+    req.session.save((err) => {
+      if (err) {
+        console.error('[Session] Erro ao salvar sessão:', err);
+        return res.status(500).json({ error: 'Erro ao criar sessão' });
       }
+      console.log(`✅ [Session] Sessão salva para tenant: ${admin.id}`);
+      res.json({ 
+        success: true, 
+        redirect: '/',
+        user: {
+          nome: admin.nome,
+          email: admin.email
+        }
+      });
     });
 
   } catch (error) {

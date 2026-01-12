@@ -1,8 +1,8 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { authenticateToken } from '../middleware/auth';
 import { db } from '../db';
-import { reunioes, gravacoes, hms100msConfig } from '../../shared/db-schema';
-import { eq, and, desc } from 'drizzle-orm';
+import { reunioes, gravacoes, hms100msConfig, formSubmissions } from '../../shared/db-schema';
+import { eq, and, desc, sql } from 'drizzle-orm';
 import { decrypt } from '../lib/credentialsManager';
 import { 
   gerarTokenParticipante, 
@@ -1251,6 +1251,126 @@ meetingsRouter.delete('/reunioes/:id', authenticateToken, requireTenantId, async
   } catch (error: any) {
     console.error('Erro ao excluir reunião:', error);
     res.status(500).json({ error: 'Erro ao excluir reunião', message: error.message });
+  }
+});
+
+// PUBLIC endpoint - Get participant data from form submission for signature pre-fill
+// Can be called by: phone, email, or formSubmissionId stored in meeting metadata
+publicRoomDesignRouter.get('/reunioes/:id/participant-data', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { phone, email } = req.query;
+
+    console.log(`[ParticipantData] Buscando dados para reunião ${id}, phone=${phone}, email=${email}`);
+
+    // 1. Get the meeting
+    const [meeting] = await db.select().from(reunioes)
+      .where(eq(reunioes.id, id))
+      .limit(1);
+
+    if (!meeting) {
+      return res.status(404).json({ error: 'Reunião não encontrada' });
+    }
+
+    // 2. Try to find form submission by different methods
+    let submission = null;
+    const metadata = (meeting.metadata as any) || {};
+
+    // Method A: If meeting has formSubmissionId in metadata, use it directly
+    if (metadata.formSubmissionId) {
+      console.log(`[ParticipantData] Buscando por formSubmissionId: ${metadata.formSubmissionId}`);
+      const [sub] = await db.select().from(formSubmissions)
+        .where(eq(formSubmissions.id, metadata.formSubmissionId))
+        .limit(1);
+      submission = sub;
+    }
+
+    // Method B: If phone provided (normalized), search by phone
+    if (!submission && phone) {
+      const normalizedPhone = String(phone).replace(/\D/g, '');
+      console.log(`[ParticipantData] Buscando por telefone: ${normalizedPhone}`);
+      const [sub] = await db.select().from(formSubmissions)
+        .where(sql`REPLACE(REPLACE(REPLACE(REPLACE(${formSubmissions.contactPhone}, '-', ''), ' ', ''), '(', ''), ')', '') LIKE '%' || ${normalizedPhone} || '%'`)
+        .orderBy(desc(formSubmissions.createdAt))
+        .limit(1);
+      submission = sub;
+    }
+
+    // Method C: If email provided, search by email
+    if (!submission && email) {
+      console.log(`[ParticipantData] Buscando por email: ${email}`);
+      const [sub] = await db.select().from(formSubmissions)
+        .where(sql`LOWER(${formSubmissions.contactEmail}) = LOWER(${email})`)
+        .orderBy(desc(formSubmissions.createdAt))
+        .limit(1);
+      submission = sub;
+    }
+
+    // Method D: Try meeting's own phone/email as fallback
+    if (!submission && meeting.telefone) {
+      const normalizedPhone = meeting.telefone.replace(/\D/g, '');
+      console.log(`[ParticipantData] Fallback - buscando pelo telefone da reunião: ${normalizedPhone}`);
+      const [sub] = await db.select().from(formSubmissions)
+        .where(sql`REPLACE(REPLACE(REPLACE(REPLACE(${formSubmissions.contactPhone}, '-', ''), ' ', ''), '(', ''), ')', '') LIKE '%' || ${normalizedPhone} || '%'`)
+        .orderBy(desc(formSubmissions.createdAt))
+        .limit(1);
+      submission = sub;
+    }
+
+    if (!submission && meeting.email) {
+      console.log(`[ParticipantData] Fallback - buscando pelo email da reunião: ${meeting.email}`);
+      const [sub] = await db.select().from(formSubmissions)
+        .where(sql`LOWER(${formSubmissions.contactEmail}) = LOWER(${meeting.email})`)
+        .orderBy(desc(formSubmissions.createdAt))
+        .limit(1);
+      submission = sub;
+    }
+
+    if (!submission) {
+      console.log(`[ParticipantData] Nenhum form_submission encontrado para reunião ${id}`);
+      return res.json({ 
+        found: false,
+        message: 'Nenhum formulário encontrado para este participante',
+        meetingData: {
+          nome: meeting.nome,
+          email: meeting.email,
+          telefone: meeting.telefone
+        }
+      });
+    }
+
+    console.log(`[ParticipantData] Form submission encontrado: ${submission.id}`);
+
+    // 3. Return comprehensive participant data for contract pre-fill
+    res.json({
+      found: true,
+      formSubmissionId: submission.id,
+      participantData: {
+        nome: submission.contactName,
+        email: submission.contactEmail,
+        telefone: submission.contactPhone,
+        cpf: submission.contactCpf,
+        instagram: submission.instagramHandle,
+        dataNascimento: submission.birthDate,
+        endereco: {
+          cep: submission.addressCep,
+          rua: submission.addressStreet,
+          numero: submission.addressNumber,
+          complemento: submission.addressComplement,
+          bairro: submission.addressNeighborhood,
+          cidade: submission.addressCity,
+          estado: submission.addressState
+        }
+      },
+      meetingData: {
+        id: meeting.id,
+        titulo: meeting.titulo,
+        tenantId: meeting.tenantId
+      }
+    });
+  } catch (error: any) {
+    console.error('[ParticipantData] Erro:', error);
+    res.status(500).json({ error: 'Erro ao buscar dados do participante', message: error.message });
   }
 });
 

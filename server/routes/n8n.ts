@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { db } from '../db';
-import { reunioes, hms100msConfig } from '../../shared/db-schema';
-import { eq } from 'drizzle-orm';
+import { reunioes, hms100msConfig, formSubmissions } from '../../shared/db-schema';
+import { eq, desc, sql } from 'drizzle-orm';
 import { decrypt, encrypt } from '../lib/credentialsManager';
 import { criarSala, gerarTokenParticipante } from '../services/meetings/hms100ms';
 import { getClientSupabaseClient } from '../lib/multiTenantSupabase';
@@ -267,10 +267,45 @@ n8nRouter.post('/reunioes', authenticateN8NByTenantKey, async (req: Request, res
 
         let finalDesignConfig = customDesignConfig || config.roomDesignConfig || null;
 
+        // Try to find form submission by phone or email for automatic contract pre-fill
+        let formSubmissionId: string | null = null;
+        
+        if (telefone) {
+            const normalizedPhone = telefone.replace(/\D/g, '');
+            console.log(`[N8N] Buscando form_submission por telefone: ${normalizedPhone}`);
+            const [sub] = await db.select({ id: formSubmissions.id }).from(formSubmissions)
+                .where(sql`REPLACE(REPLACE(REPLACE(REPLACE(${formSubmissions.contactPhone}, '-', ''), ' ', ''), '(', ''), ')', '') LIKE '%' || ${normalizedPhone} || '%'`)
+                .orderBy(desc(formSubmissions.createdAt))
+                .limit(1);
+            if (sub) {
+                formSubmissionId = sub.id;
+                console.log(`[N8N] Form submission encontrado por telefone: ${formSubmissionId}`);
+            }
+        }
+        
+        if (!formSubmissionId && email) {
+            console.log(`[N8N] Buscando form_submission por email: ${email}`);
+            const [sub] = await db.select({ id: formSubmissions.id }).from(formSubmissions)
+                .where(sql`LOWER(${formSubmissions.contactEmail}) = LOWER(${email})`)
+                .orderBy(desc(formSubmissions.createdAt))
+                .limit(1);
+            if (sub) {
+                formSubmissionId = sub.id;
+                console.log(`[N8N] Form submission encontrado por email: ${formSubmissionId}`);
+            }
+        }
+
         const metadata: any = {
             source: 'n8n',
             createdVia: 'n8n-api'
         };
+        
+        // Store formSubmissionId in metadata for signature pre-fill
+        if (formSubmissionId) {
+            metadata.formSubmissionId = formSubmissionId;
+            console.log(`[N8N] formSubmissionId armazenado no metadata: ${formSubmissionId}`);
+        }
+        
         if (finalDesignConfig) {
             metadata.roomDesignConfig = finalDesignConfig;
         }
