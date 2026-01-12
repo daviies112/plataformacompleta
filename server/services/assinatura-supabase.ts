@@ -248,12 +248,25 @@ class AssinaturaSupabaseService {
     if (!this.supabase) return [];
     
     try {
-      const { data, error } = await this.supabase
+      console.log(`[AssinaturaSupabase] Fetching contracts for tenant: ${tenantId}`);
+      // Try both table names just in case
+      let { data, error } = await this.supabase
         .from('assinatura_contracts')
         .select('*')
         .eq('tenant_id', tenantId)
         .order('created_at', { ascending: false });
       
+      if (error && error.code === 'PGRST205') {
+        console.warn('[AssinaturaSupabase] Table assinatura_contracts not found, trying "contracts"');
+        const fallback = await this.supabase
+          .from('contracts')
+          .select('*')
+          .eq('tenant_id', tenantId)
+          .order('created_at', { ascending: false });
+        data = fallback.data;
+        error = fallback.error;
+      }
+
       if (error) throw error;
       
       return data || [];
@@ -267,15 +280,36 @@ class AssinaturaSupabaseService {
     if (!this.supabase) return null;
     
     try {
-      const { data, error } = await this.supabase
+      console.log(`[AssinaturaSupabase] Fetching contract by ID: ${id}`);
+      let { data, error } = await this.supabase
         .from('assinatura_contracts')
-        .select('*')
+        .select('*, selfie_photo, document_photo, document_back_photo, signed_contract_html, contract_html')
         .eq('id', id)
         .single();
       
+      if (error && error.code === 'PGRST205') {
+        console.warn('[AssinaturaSupabase] Table assinatura_contracts not found for ID lookup, trying "contracts"');
+        const fallback = await this.supabase
+          .from('contracts')
+          .select('*, selfie_photo, document_photo, document_back_photo, signed_contract_html, contract_html')
+          .eq('id', id)
+          .single();
+        data = fallback.data;
+        error = fallback.error;
+      }
+
       if (error) {
         if (error.code === 'PGRST116') return null;
         throw error;
+      }
+      
+      if (data) {
+        console.log('[AssinaturaSupabase] Contract data found:', {
+          id: data.id,
+          has_selfie: !!data.selfie_photo,
+          has_doc: !!data.document_photo,
+          has_doc_back: !!data.document_back_photo
+        });
       }
       
       return data;
@@ -444,6 +478,15 @@ class AssinaturaSupabaseService {
       if (data.document_back_photo) updates.document_back_photo = data.document_back_photo;
       if (data.signed_contract_html) updates.signed_contract_html = data.signed_contract_html;
       
+      console.log('[AssinaturaSupabase] Updates being sent to Supabase:', {
+        id,
+        status: updates.status,
+        has_selfie: !!updates.selfie_photo,
+        has_doc: !!updates.document_photo,
+        has_doc_back: !!updates.document_back_photo,
+        has_signed_html: !!updates.signed_contract_html
+      });
+
       const { data: result, error } = await this.supabase
         .from('assinatura_contracts')
         .update(updates)

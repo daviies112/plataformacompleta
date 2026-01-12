@@ -484,6 +484,7 @@ router.post('/contracts/:id/finalize', async (req: Request, res: Response) => {
             signed_at: new Date().toISOString(),
             address: address || localContract.address,
             signed_contract_html: signed_contract_html || localContract.signed_contract_html,
+            contract_html: signed_contract_html || localContract.contract_html, // Ensure both are updated for legacy compatibility
             selfie_photo: selfie_photo || localContract.selfie_photo,
             document_photo: document_photo || localContract.document_photo,
             document_back_photo: document_back_photo || localContract.document_back_photo
@@ -510,6 +511,7 @@ router.post('/contracts/:id/finalize', async (req: Request, res: Response) => {
       signed_at: new Date().toISOString(),
       address: address || contract.address || null,
       signed_contract_html: signed_contract_html || contract.signed_contract_html,
+      contract_html: signed_contract_html || contract.contract_html, // Ensure legacy field is also updated
       selfie_photo: selfie_photo || contract.selfie_photo,
       document_photo: document_photo || contract.document_photo,
       document_back_photo: document_back_photo || contract.document_back_photo

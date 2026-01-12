@@ -7,19 +7,19 @@ import { apiRequest } from '@/lib/queryClient';
 
 interface Contract {
   id: string;
-    client_name: string;
-    client_cpf: string;
-    client_email: string;
-    client_phone?: string;
-    selfie_photo?: string;
-    document_photo?: string;
-    document_back_photo?: string;
-    contract_html?: string;
-    signed_contract_html?: string;
-    protocol_number?: string;
-    company_name?: string;
-    created_at?: string;
-  }
+  client_name: string;
+  client_cpf: string;
+  client_email: string;
+  client_phone?: string;
+  selfie_photo?: string;
+  document_photo?: string;
+  document_back_photo?: string;
+  contract_html?: string;
+  signed_contract_html?: string;
+  protocol_number?: string;
+  company_name?: string;
+  created_at?: string;
+}
 
 interface ContractDetailsModalProps {
   contract: Contract | null;
@@ -271,9 +271,18 @@ export const ContractDetailsModal = ({ contract, open, onOpenChange }: ContractD
                             src={displayContract.selfie_photo} 
                             alt="Selfie" 
                             className="max-w-full max-h-64 object-contain"
+                            crossOrigin="anonymous"
+                            loading="lazy"
+                            onLoad={() => console.log('Selfie loaded successfully')}
                             onError={(e) => {
                               console.error('Error loading selfie:', e);
-                              (e.target as HTMLImageElement).style.display = 'none';
+                              const target = e.target as HTMLImageElement;
+                              // Try forcing a reload with timestamp if it failed
+                              if (!target.src.includes('t=')) {
+                                target.src = displayContract.selfie_photo + (displayContract.selfie_photo?.includes('?') ? '&' : '?') + 't=' + Date.now();
+                              } else if (!target.src.includes('placeholder')) {
+                                target.src = 'https://placehold.co/400x300?text=Erro+no+carregamento';
+                              }
                             }}
                           />
                         </div>
@@ -287,9 +296,17 @@ export const ContractDetailsModal = ({ contract, open, onOpenChange }: ContractD
                             src={displayContract.document_photo} 
                             alt="Documento Frente" 
                             className="max-w-full max-h-64 object-contain"
+                            crossOrigin="anonymous"
+                            loading="lazy"
+                            onLoad={() => console.log('Doc Front loaded successfully')}
                             onError={(e) => {
                               console.error('Error loading front document:', e);
-                              (e.target as HTMLImageElement).style.display = 'none';
+                              const target = e.target as HTMLImageElement;
+                              if (!target.src.includes('t=')) {
+                                target.src = displayContract.document_photo + (displayContract.document_photo?.includes('?') ? '&' : '?') + 't=' + Date.now();
+                              } else if (!target.src.includes('placeholder')) {
+                                target.src = 'https://placehold.co/400x300?text=Erro+no+carregamento';
+                              }
                             }}
                           />
                         </div>
@@ -303,9 +320,17 @@ export const ContractDetailsModal = ({ contract, open, onOpenChange }: ContractD
                             src={displayContract.document_back_photo} 
                             alt="Documento Verso" 
                             className="max-w-full max-h-64 object-contain"
+                            crossOrigin="anonymous"
+                            loading="lazy"
+                            onLoad={() => console.log('Doc Back loaded successfully')}
                             onError={(e) => {
                               console.error('Error loading back document:', e);
-                              (e.target as HTMLImageElement).style.display = 'none';
+                              const target = e.target as HTMLImageElement;
+                              if (!target.src.includes('t=')) {
+                                target.src = displayContract.document_back_photo + (displayContract.document_back_photo?.includes('?') ? '&' : '?') + 't=' + Date.now();
+                              } else if (!target.src.includes('placeholder')) {
+                                target.src = 'https://placehold.co/400x300?text=Erro+no+carregamento';
+                              }
                             }}
                           />
                         </div>
@@ -319,6 +344,11 @@ export const ContractDetailsModal = ({ contract, open, onOpenChange }: ContractD
                 <Card className="p-4">
                   <h3 className="font-bold text-lg mb-3">Contrato Assinado</h3>
                   <div className="bg-white p-4 rounded border border-gray-200 text-sm overflow-visible text-black">
+                    {/* Debug indicator */}
+                    <div className="text-[10px] text-gray-400 mb-2 border-b pb-1 flex gap-2">
+                      <span>Status: {displayContract?.signed_contract_html ? 'Assinado' : 'Rascunho'}</span>
+                      <span>| Protocolo: {displayContract?.protocol_number}</span>
+                    </div>
                     <div 
                       dangerouslySetInnerHTML={{ __html: displayContract?.signed_contract_html || displayContract?.contract_html || '' }}
                       className="prose prose-sm max-w-none text-black"
