@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 const CONFIG_FILE = path.join(process.cwd(), 'data', 'supabase-config.json');
+const GLOBAL_CONFIG_FILE = path.join(process.cwd(), 'data', 'assinatura_global_config.json');
 
 interface SupabaseConfig {
   url: string;
@@ -21,6 +22,7 @@ interface AssinaturaContract {
   access_token?: string;
   protocol_number?: string;
   contract_html?: string | null;
+  signed_contract_html?: string | null;
   contract_pdf_url?: string | null;
   address_street?: string | null;
   address_number?: string | null;
@@ -196,80 +198,67 @@ class AssinaturaSupabaseService {
     return this.initialized && this.supabase !== null;
   }
   
-  async getGlobalConfig(tenantId: string = 'default'): Promise<AssinaturaGlobalConfig | null> {
-    if (!this.supabase) return null;
-    
+  private loadLocalGlobalConfig(): AssinaturaGlobalConfig | null {
     try {
-      const { data, error } = await this.supabase
-        .from('assinatura_global_config')
-        .select('*')
-        .eq('tenant_id', tenantId)
-        .single();
-      
-      if (error) {
-        if (error.code === 'PGRST116') {
-          return null;
-        }
-        throw error;
+      if (fs.existsSync(GLOBAL_CONFIG_FILE)) {
+        const data = fs.readFileSync(GLOBAL_CONFIG_FILE, 'utf-8');
+        return JSON.parse(data);
       }
-      
-      return data;
     } catch (error) {
-      console.error('[AssinaturaSupabase] Erro ao buscar config global:', error);
-      return null;
+      console.error('[AssinaturaSupabase] Erro ao carregar config global local:', error);
+    }
+    return null;
+  }
+  
+  private saveLocalGlobalConfig(config: AssinaturaGlobalConfig): void {
+    try {
+      const dataDir = path.dirname(GLOBAL_CONFIG_FILE);
+      if (!fs.existsSync(dataDir)) {
+        fs.mkdirSync(dataDir, { recursive: true });
+      }
+      fs.writeFileSync(GLOBAL_CONFIG_FILE, JSON.stringify(config, null, 2));
+    } catch (error) {
+      console.error('[AssinaturaSupabase] Erro ao salvar config global local:', error);
     }
   }
   
-  async saveGlobalConfig(config: AssinaturaGlobalConfig, tenantId: string = 'default'): Promise<AssinaturaGlobalConfig | null> {
-    if (!this.supabase) return null;
-    
-    try {
-      const { data, error } = await this.supabase
-        .from('assinatura_global_config')
-        .upsert({
-          ...config,
-          tenant_id: tenantId,
-          app_store_url: config.app_store_url,
-          google_play_url: config.google_play_url,
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'tenant_id' })
-        .select()
-        .single();
-      
-      if (error) throw error;
-      
-      console.log('[AssinaturaSupabase] Config global salva com links de apps');
-      return data;
-    } catch (error) {
-      console.error('[AssinaturaSupabase] Erro ao salvar config global:', error);
-      return null;
+  async getGlobalConfig(tenantId: string = 'default'): Promise<AssinaturaGlobalConfig | null> {
+    const localConfig = this.loadLocalGlobalConfig();
+    if (localConfig) {
+      return localConfig;
     }
+    return null;
+  }
+  
+  async saveGlobalConfig(config: AssinaturaGlobalConfig, tenantId: string = 'default'): Promise<AssinaturaGlobalConfig | null> {
+    const updatedConfig = {
+      ...config,
+      tenant_id: tenantId,
+      updated_at: new Date().toISOString()
+    };
+    this.saveLocalGlobalConfig(updatedConfig);
+    console.log('[AssinaturaSupabase] Config global salva localmente');
+    return updatedConfig;
   }
   
   async getAllContracts(tenantId: string = 'default'): Promise<AssinaturaContract[]> {
     if (!this.supabase) return [];
     
     try {
-      console.log(`[AssinaturaSupabase] Fetching contracts for tenant: ${tenantId}`);
+      console.log(`[AssinaturaSupabase] Fetching contracts from 'contracts' table`);
       
-      // Try 'assinatura_contracts' first
-      let result = await this.supabase
-        .from('assinatura_contracts')
+      const { data, error } = await this.supabase
+        .from('contracts')
         .select('*')
-        .eq('tenant_id', tenantId)
         .order('created_at', { ascending: false });
-      
-      if (result.error && (result.error.code === 'PGRST205' || result.error.message?.includes('not found'))) {
-        console.warn('[AssinaturaSupabase] Table assinatura_contracts not found, trying "contracts"');
-        result = await this.supabase
-          .from('contracts')
-          .select('*')
-          .order('created_at', { ascending: false });
-      }
 
-      if (result.error) throw result.error;
+      if (error) {
+        console.error('[AssinaturaSupabase] Erro ao buscar contratos:', error);
+        return [];
+      }
       
-      return result.data || [];
+      console.log(`[AssinaturaSupabase] Encontrados ${data?.length || 0} contratos no Supabase`);
+      return data || [];
     } catch (error) {
       console.error('[AssinaturaSupabase] Erro ao buscar contratos:', error);
       return [];
@@ -281,38 +270,29 @@ class AssinaturaSupabaseService {
     
     try {
       console.log(`[AssinaturaSupabase] Fetching contract by ID: ${id}`);
-      let result = await this.supabase
-        .from('assinatura_contracts')
+      
+      const { data, error } = await this.supabase
+        .from('contracts')
         .select('*')
         .eq('id', id)
         .single();
-      
-      if (result.error && (result.error.code === 'PGRST205' || result.error.message?.includes('not found'))) {
-        console.warn('[AssinaturaSupabase] Table assinatura_contracts not found, trying "contracts"');
-        result = await this.supabase
-          .from('contracts')
-          .select('*')
-          .eq('id', id)
-          .single();
-      }
 
-      if (result.error) {
-        if (result.error.code === 'PGRST116') return null;
-        console.error('[AssinaturaSupabase] Supabase error:', result.error);
-        throw result.error;
+      if (error) {
+        if (error.code === 'PGRST116') return null;
+        console.error('[AssinaturaSupabase] Supabase error:', error);
+        return null;
       }
       
-      if (result.data) {
-        console.log('[AssinaturaSupabase] Contract data found:', {
-          id: result.data.id,
-          has_selfie: !!result.data.selfie_photo,
-          has_doc: !!result.data.document_photo,
-          has_doc_back: !!result.data.document_back_photo,
-          has_signed_html: !!result.data.signed_contract_html
+      if (data) {
+        console.log('[AssinaturaSupabase] Contract found by ID:', {
+          id: data.id,
+          has_selfie: !!data.selfie_photo,
+          has_doc: !!data.document_photo,
+          has_signed_html: !!data.signed_contract_html
         });
       }
       
-      return result.data;
+      return data;
     } catch (error) {
       console.error('[AssinaturaSupabase] Erro ao buscar contrato:', error);
       return null;
@@ -323,15 +303,32 @@ class AssinaturaSupabaseService {
     if (!this.supabase) return null;
     
     try {
+      console.log(`[AssinaturaSupabase] Fetching contract by access_token: ${token}`);
+      
       const { data, error } = await this.supabase
-        .from('assinatura_contracts')
+        .from('contracts')
         .select('*')
         .eq('access_token', token)
         .single();
       
       if (error) {
-        if (error.code === 'PGRST116') return null;
-        throw error;
+        if (error.code === 'PGRST116') {
+          console.log(`[AssinaturaSupabase] No contract found with access_token: ${token}`);
+          return null;
+        }
+        console.error('[AssinaturaSupabase] Erro ao buscar contrato por token:', error);
+        return null;
+      }
+      
+      if (data) {
+        console.log('[AssinaturaSupabase] Contract found by token:', {
+          id: data.id,
+          client_name: data.client_name,
+          status: data.status,
+          has_selfie: !!data.selfie_photo,
+          has_doc: !!data.document_photo,
+          has_signed_html: !!data.signed_contract_html
+        });
       }
       
       return data;
@@ -347,11 +344,15 @@ class AssinaturaSupabaseService {
     try {
       const globalConfig = await this.getGlobalConfig(tenantId);
       
-      const contractData = {
-        ...contract,
-        tenant_id: tenantId,
+      const contractData: any = {
+        client_name: contract.client_name,
+        client_cpf: contract.client_cpf || null,
+        client_email: contract.client_email || null,
+        client_phone: contract.client_phone || null,
         status: contract.status || 'pending',
+        access_token: contract.access_token,
         protocol_number: contract.protocol_number || `CONT-${Date.now()}`,
+        contract_html: contract.contract_html || null,
         logo_url: contract.logo_url ?? globalConfig?.logo_url,
         logo_size: contract.logo_size ?? globalConfig?.logo_size,
         logo_position: contract.logo_position ?? globalConfig?.logo_position,
@@ -403,20 +404,64 @@ class AssinaturaSupabaseService {
         parabens_button_text: contract.parabens_button_text ?? globalConfig?.parabens_button_text,
         app_store_url: contract.app_store_url ?? globalConfig?.app_store_url,
         google_play_url: contract.google_play_url ?? globalConfig?.google_play_url,
+        created_at: new Date().toISOString()
       };
       
+      console.log('[AssinaturaSupabase] Creating contract in Supabase contracts table:', {
+        client_name: contractData.client_name,
+        access_token: contractData.access_token,
+        protocol_number: contractData.protocol_number
+      });
+      
       const { data, error } = await this.supabase
-        .from('assinatura_contracts')
+        .from('contracts')
         .insert(contractData)
         .select()
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error('[AssinaturaSupabase] Error creating contract:', error);
+        return null;
+      }
       
-      console.log('[AssinaturaSupabase] Contrato criado:', data.id);
+      console.log('[AssinaturaSupabase] Contrato criado no Supabase:', data.id);
       return data;
     } catch (error) {
       console.error('[AssinaturaSupabase] Erro ao criar contrato:', error);
+      return null;
+    }
+  }
+  
+  async updateContractByToken(token: string, updates: Partial<AssinaturaContract>): Promise<AssinaturaContract | null> {
+    if (!this.supabase) return null;
+    
+    try {
+      console.log('[AssinaturaSupabase] Updating contract by access_token:', token, {
+        has_selfie: !!updates.selfie_photo,
+        has_doc: !!updates.document_photo,
+        has_signed_html: !!updates.signed_contract_html,
+        status: updates.status
+      });
+      
+      const { data, error } = await this.supabase
+        .from('contracts')
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString()
+        })
+        .eq('access_token', token)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('[AssinaturaSupabase] Error updating contract:', error);
+        return null;
+      }
+      
+      console.log('[AssinaturaSupabase] Contrato atualizado:', data.id);
+      return data;
+    } catch (error) {
+      console.error('[AssinaturaSupabase] Erro ao atualizar contrato:', error);
       return null;
     }
   }
@@ -425,8 +470,10 @@ class AssinaturaSupabaseService {
     if (!this.supabase) return null;
     
     try {
+      console.log('[AssinaturaSupabase] Updating contract by ID:', id);
+      
       const { data, error } = await this.supabase
-        .from('assinatura_contracts')
+        .from('contracts')
         .update({
           ...updates,
           updated_at: new Date().toISOString()
@@ -435,12 +482,77 @@ class AssinaturaSupabaseService {
         .select()
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error('[AssinaturaSupabase] Error updating contract by ID:', error);
+        return null;
+      }
       
       console.log('[AssinaturaSupabase] Contrato atualizado:', id);
       return data;
     } catch (error) {
       console.error('[AssinaturaSupabase] Erro ao atualizar contrato:', error);
+      return null;
+    }
+  }
+  
+  async finalizeContractByToken(token: string, data: {
+    address_street?: string;
+    address_number?: string;
+    address_complement?: string;
+    address_city?: string;
+    address_state?: string;
+    address_zipcode?: string;
+    selfie_photo?: string;
+    document_photo?: string;
+    document_back_photo?: string;
+    signed_contract_html?: string;
+    status?: string;
+  }): Promise<AssinaturaContract | null> {
+    if (!this.supabase) return null;
+    
+    try {
+      const updates: any = {
+        status: data.status || 'signed',
+        signed_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      
+      if (data.address_street) updates.address_street = data.address_street;
+      if (data.address_number) updates.address_number = data.address_number;
+      if (data.address_complement) updates.address_complement = data.address_complement;
+      if (data.address_city) updates.address_city = data.address_city;
+      if (data.address_state) updates.address_state = data.address_state;
+      if (data.address_zipcode) updates.address_zipcode = data.address_zipcode;
+      if (data.selfie_photo) updates.selfie_photo = data.selfie_photo;
+      if (data.document_photo) updates.document_photo = data.document_photo;
+      if (data.document_back_photo) updates.document_back_photo = data.document_back_photo;
+      if (data.signed_contract_html) updates.signed_contract_html = data.signed_contract_html;
+      
+      console.log('[AssinaturaSupabase] Finalizing contract by token:', token, {
+        status: updates.status,
+        has_selfie: !!updates.selfie_photo,
+        has_doc: !!updates.document_photo,
+        has_doc_back: !!updates.document_back_photo,
+        has_signed_html: !!updates.signed_contract_html,
+        has_address: !!(updates.address_street || updates.address_city)
+      });
+
+      const { data: result, error } = await this.supabase
+        .from('contracts')
+        .update(updates)
+        .eq('access_token', token)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('[AssinaturaSupabase] Error finalizing contract:', error);
+        return null;
+      }
+      
+      console.log('[AssinaturaSupabase] Contrato finalizado:', result.id);
+      return result;
+    } catch (error) {
+      console.error('[AssinaturaSupabase] Erro ao finalizar contrato:', error);
       return null;
     }
   }
@@ -478,8 +590,7 @@ class AssinaturaSupabaseService {
       if (data.document_back_photo) updates.document_back_photo = data.document_back_photo;
       if (data.signed_contract_html) updates.signed_contract_html = data.signed_contract_html;
       
-      console.log('[AssinaturaSupabase] Updates being sent to Supabase:', {
-        id,
+      console.log('[AssinaturaSupabase] Finalizing contract by ID:', id, {
         status: updates.status,
         has_selfie: !!updates.selfie_photo,
         has_doc: !!updates.document_photo,
@@ -488,15 +599,16 @@ class AssinaturaSupabaseService {
       });
 
       const { data: result, error } = await this.supabase
-        .from('assinatura_contracts')
+        .from('contracts')
         .update(updates)
         .eq('id', id)
         .select()
         .single();
       
-      if (error) throw error;
-      
-      await this.logSignature(id, 'contract_signed', { status: updates.status });
+      if (error) {
+        console.error('[AssinaturaSupabase] Error finalizing contract by ID:', error);
+        return null;
+      }
       
       console.log('[AssinaturaSupabase] Contrato finalizado:', id);
       return result;
@@ -511,11 +623,14 @@ class AssinaturaSupabaseService {
     
     try {
       const { error } = await this.supabase
-        .from('assinatura_contracts')
+        .from('contracts')
         .delete()
         .eq('id', id);
       
-      if (error) throw error;
+      if (error) {
+        console.error('[AssinaturaSupabase] Error deleting contract:', error);
+        return false;
+      }
       
       console.log('[AssinaturaSupabase] Contrato deletado:', id);
       return true;
@@ -525,19 +640,25 @@ class AssinaturaSupabaseService {
     }
   }
   
-  async logSignature(contractId: string, action: string, metadata?: any): Promise<void> {
-    if (!this.supabase) return;
+  async deleteContractByToken(token: string): Promise<boolean> {
+    if (!this.supabase) return false;
     
     try {
-      await this.supabase
-        .from('assinatura_signature_logs')
-        .insert({
-          contract_id: contractId,
-          action,
-          metadata
-        });
+      const { error } = await this.supabase
+        .from('contracts')
+        .delete()
+        .eq('access_token', token);
+      
+      if (error) {
+        console.error('[AssinaturaSupabase] Error deleting contract by token:', error);
+        return false;
+      }
+      
+      console.log('[AssinaturaSupabase] Contrato deletado por token:', token);
+      return true;
     } catch (error) {
-      console.error('[AssinaturaSupabase] Erro ao logar assinatura:', error);
+      console.error('[AssinaturaSupabase] Erro ao deletar contrato por token:', error);
+      return false;
     }
   }
 }

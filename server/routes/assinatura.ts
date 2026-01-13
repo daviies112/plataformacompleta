@@ -234,19 +234,41 @@ router.put('/global-config', async (req: Request, res: Response) => {
 
 router.get('/contracts', async (req: Request, res: Response) => {
   try {
+    const allContracts: any[] = [];
+    const seenTokens = new Set<string>();
+    
     if (assinaturaSupabaseService.isConnected()) {
-      const contracts = await assinaturaSupabaseService.getAllContracts();
-      if (contracts.length > 0) {
-        return res.json(contracts);
+      const supabaseContracts = await assinaturaSupabaseService.getAllContracts();
+      console.log(`[Assinatura] Supabase retornou ${supabaseContracts.length} contratos`);
+      
+      for (const contract of supabaseContracts) {
+        if (contract.access_token) {
+          seenTokens.add(contract.access_token);
+        }
+        allContracts.push(contract);
       }
     }
     
-    const contracts = Array.from(localContractsStore.values()).sort((a, b) => {
+    const localContracts = Array.from(localContractsStore.values());
+    console.log(`[Assinatura] Local storage tem ${localContracts.length} contratos`);
+    
+    for (const localContract of localContracts) {
+      if (localContract.access_token && !seenTokens.has(localContract.access_token)) {
+        allContracts.push(localContract);
+        seenTokens.add(localContract.access_token);
+      } else if (!localContract.access_token) {
+        allContracts.push(localContract);
+      }
+    }
+    
+    allContracts.sort((a, b) => {
       const dateA = new Date(a.created_at || 0).getTime();
       const dateB = new Date(b.created_at || 0).getTime();
       return dateB - dateA;
     });
-    res.json(contracts);
+    
+    console.log(`[Assinatura] Retornando ${allContracts.length} contratos (Supabase + Local merged)`);
+    res.json(allContracts);
   } catch (error) {
     console.error('[Assinatura] Erro ao buscar contratos:', error);
     res.status(500).json({ error: 'Falha ao buscar contratos' });
@@ -257,12 +279,18 @@ router.get('/contracts/:token', async (req: Request, res: Response) => {
   try {
     const { token } = req.params;
     
+    console.log(`[Assinatura] Buscando contrato por token/id: ${token}`);
+    
     if (assinaturaSupabaseService.isConnected()) {
       let contract = await assinaturaSupabaseService.getContractByToken(token);
-      if (!contract) {
-        contract = await assinaturaSupabaseService.getContractById(token);
-      }
       if (contract) {
+        console.log(`[Assinatura] Contrato encontrado no Supabase por access_token`);
+        return res.json(contract);
+      }
+      
+      contract = await assinaturaSupabaseService.getContractById(token);
+      if (contract) {
+        console.log(`[Assinatura] Contrato encontrado no Supabase por ID`);
         return res.json(contract);
       }
     }
@@ -276,9 +304,11 @@ router.get('/contracts/:token', async (req: Request, res: Response) => {
     }
 
     if (!contract) {
+      console.log(`[Assinatura] Contrato não encontrado: ${token}`);
       return res.status(404).json({ error: 'Contrato não encontrado' });
     }
 
+    console.log(`[Assinatura] Contrato encontrado no local storage`);
     res.json(contract);
   } catch (error) {
     console.error('[Assinatura] Erro ao buscar contrato:', error);
@@ -307,42 +337,10 @@ router.post('/contracts', async (req: Request, res: Response) => {
     const access_token = nanoid(32);
     const protocolNum = protocol_number || `CONT-${Date.now()}-${nanoid(9).toUpperCase()}`;
 
-    if (assinaturaSupabaseService.isConnected()) {
-      const contract = await assinaturaSupabaseService.createContract({
-        client_name,
-        client_cpf: client_cpf || null,
-        client_email: client_email || null,
-        client_phone: client_phone || null,
-        contract_html: contract_html || null,
-        protocol_number: protocolNum,
-        status: status || 'pending',
-        ...customizations
-      });
-      
-      if (contract) {
-        const localContract: LocalContract = {
-          id: contract.id || id,
-          client_name,
-          client_cpf: client_cpf || null,
-          client_email: client_email || null,
-          client_phone: client_phone || null,
-          contract_html: contract_html || null,
-          protocol_number: protocolNum,
-          status: status || 'pending',
-          access_token: contract.access_token || access_token,
-          created_at: contract.created_at || new Date().toISOString(),
-          signed_at: null,
-          ...customizations
-        };
-        localContractsStore.set(contract.id || id, localContract);
-        saveLocalContracts(localContractsStore);
-        
-        return res.status(201).json(contract);
-      }
-    }
+    console.log(`[Assinatura] Criando novo contrato para ${client_name}, access_token: ${access_token}`);
 
     const globalConfig = localGlobalConfig;
-    const contract: LocalContract = {
+    const localContract: LocalContract = {
       id,
       client_name,
       client_cpf: client_cpf || null,
@@ -407,10 +405,34 @@ router.post('/contracts', async (req: Request, res: Response) => {
       google_play_url: customizations.google_play_url ?? globalConfig.google_play_url,
     };
 
-    localContractsStore.set(id, contract);
+    localContractsStore.set(id, localContract);
     saveLocalContracts(localContractsStore);
 
-    res.status(201).json(contract);
+    if (assinaturaSupabaseService.isConnected()) {
+      const supabaseContract = await assinaturaSupabaseService.createContract({
+        client_name,
+        client_cpf: client_cpf || null,
+        client_email: client_email || null,
+        client_phone: client_phone || null,
+        contract_html: contract_html || null,
+        protocol_number: protocolNum,
+        status: status || 'pending',
+        access_token,
+        ...customizations
+      });
+      
+      if (supabaseContract) {
+        console.log(`[Assinatura] Contrato também salvo no Supabase com ID: ${supabaseContract.id}`);
+        return res.status(201).json({
+          ...localContract,
+          supabase_id: supabaseContract.id
+        });
+      } else {
+        console.log(`[Assinatura] Falha ao salvar no Supabase, usando apenas local`);
+      }
+    }
+
+    res.status(201).json(localContract);
   } catch (error) {
     console.error('[Assinatura] Erro ao criar contrato:', error);
     res.status(500).json({ error: 'Falha ao criar contrato' });
@@ -421,30 +443,35 @@ router.patch('/contracts/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const updates = req.body;
+    
+    console.log(`[Assinatura] PATCH contrato: ${id}`);
+
+    const localContract = localContractsStore.get(id);
+    const accessToken = localContract?.access_token || id;
 
     if (assinaturaSupabaseService.isConnected()) {
-      const contract = await assinaturaSupabaseService.updateContract(id, updates);
+      const contract = await assinaturaSupabaseService.updateContractByToken(accessToken, updates);
       if (contract) {
-        const localContract = localContractsStore.get(id);
-        if (localContract) {
-          localContractsStore.set(id, { ...localContract, ...updates });
-          saveLocalContracts(localContractsStore);
-        }
-        return res.json(contract);
+        console.log(`[Assinatura] Contrato atualizado no Supabase`);
       }
     }
 
-    const contract = localContractsStore.get(id);
-
-    if (!contract) {
-      return res.status(404).json({ error: 'Contrato não encontrado' });
+    if (localContract) {
+      const updatedContract = { ...localContract, ...updates };
+      localContractsStore.set(id, updatedContract);
+      saveLocalContracts(localContractsStore);
+      return res.json(updatedContract);
     }
 
-    const updatedContract = { ...contract, ...updates };
-    localContractsStore.set(id, updatedContract);
-    saveLocalContracts(localContractsStore);
+    const tokenContract = Array.from(localContractsStore.values()).find(c => c.access_token === id);
+    if (tokenContract) {
+      const updatedContract = { ...tokenContract, ...updates };
+      localContractsStore.set(tokenContract.id, updatedContract);
+      saveLocalContracts(localContractsStore);
+      return res.json(updatedContract);
+    }
 
-    res.json(updatedContract);
+    return res.status(404).json({ error: 'Contrato não encontrado' });
   } catch (error) {
     console.error('[Assinatura] Erro ao atualizar contrato:', error);
     res.status(500).json({ error: 'Falha ao atualizar contrato' });
@@ -456,6 +483,27 @@ router.post('/contracts/:id/finalize', async (req: Request, res: Response) => {
     const { id } = req.params;
     const { address, selfie_photo, document_photo, document_back_photo, signed_contract_html, status } = req.body;
 
+    console.log(`[Assinatura] Finalizando contrato: ${id}`);
+    console.log(`[Assinatura] Dados recebidos:`, {
+      has_address: !!address,
+      has_selfie: !!selfie_photo,
+      selfie_length: selfie_photo?.length,
+      has_doc: !!document_photo,
+      doc_length: document_photo?.length,
+      has_doc_back: !!document_back_photo,
+      has_signed_html: !!signed_contract_html,
+      signed_html_length: signed_contract_html?.length,
+      status
+    });
+
+    let localContract = localContractsStore.get(id);
+    
+    if (!localContract) {
+      localContract = Array.from(localContractsStore.values()).find(c => c.access_token === id) || undefined;
+    }
+    
+    const accessToken = localContract?.access_token || id;
+
     if (assinaturaSupabaseService.isConnected()) {
       const addressData = address ? {
         address_street: address.street,
@@ -466,62 +514,57 @@ router.post('/contracts/:id/finalize', async (req: Request, res: Response) => {
         address_zipcode: address.zipcode,
       } : {};
       
-      const contract = await assinaturaSupabaseService.finalizeContract(id, {
+      const supabaseResult = await assinaturaSupabaseService.finalizeContractByToken(accessToken, {
         ...addressData,
         selfie_photo,
         document_photo,
         document_back_photo,
         signed_contract_html,
-        status
+        status: status || 'signed'
       });
       
-      if (contract) {
-        const localContract = localContractsStore.get(id);
+      if (supabaseResult) {
+        console.log(`[Assinatura] Contrato finalizado no Supabase com sucesso`);
+      } else {
+        console.log(`[Assinatura] Falha ao finalizar no Supabase, tentando por ID`);
+        
         if (localContract) {
-          localContractsStore.set(id, {
-            ...localContract,
-            status: status || 'signed',
-            signed_at: new Date().toISOString(),
-            address: address || localContract.address,
-            signed_contract_html: signed_contract_html || localContract.signed_contract_html,
-            contract_html: signed_contract_html || localContract.contract_html, // Ensure both are updated for legacy compatibility
-            selfie_photo: selfie_photo || localContract.selfie_photo,
-            document_photo: document_photo || localContract.document_photo,
-            document_back_photo: document_back_photo || localContract.document_back_photo
+          const byIdResult = await assinaturaSupabaseService.finalizeContract(localContract.id, {
+            ...addressData,
+            selfie_photo,
+            document_photo,
+            document_back_photo,
+            signed_contract_html,
+            status: status || 'signed'
           });
-          saveLocalContracts(localContractsStore);
+          if (byIdResult) {
+            console.log(`[Assinatura] Contrato finalizado no Supabase por ID`);
+          }
         }
-        return res.json(contract);
       }
     }
 
-    const contract = localContractsStore.get(id);
+    if (localContract) {
+      const updatedContract: LocalContract = {
+        ...localContract,
+        status: status || 'signed',
+        signed_at: new Date().toISOString(),
+        address: address || localContract.address || null,
+        signed_contract_html: signed_contract_html || localContract.signed_contract_html,
+        contract_html: signed_contract_html || localContract.contract_html,
+        selfie_photo: selfie_photo || localContract.selfie_photo,
+        document_photo: document_photo || localContract.document_photo,
+        document_back_photo: document_back_photo || localContract.document_back_photo
+      };
 
-    if (!contract) {
-      return res.status(404).json({ error: 'Contrato não encontrado' });
+      localContractsStore.set(localContract.id, updatedContract);
+      saveLocalContracts(localContractsStore);
+
+      console.log(`[Assinatura] Contrato ${localContract.id} finalizado com sucesso localmente`);
+      return res.json(updatedContract);
     }
 
-    if (contract.status === 'signed') {
-      return res.status(400).json({ error: 'Contrato já assinado' });
-    }
-
-    const updatedContract: LocalContract = {
-      ...contract,
-      status: status || 'signed',
-      signed_at: new Date().toISOString(),
-      address: address || contract.address || null,
-      signed_contract_html: signed_contract_html || contract.signed_contract_html,
-      contract_html: signed_contract_html || contract.contract_html, // Ensure legacy field is also updated
-      selfie_photo: selfie_photo || contract.selfie_photo,
-      document_photo: document_photo || contract.document_photo,
-      document_back_photo: document_back_photo || contract.document_back_photo
-    };
-
-    localContractsStore.set(id, updatedContract);
-    saveLocalContracts(localContractsStore);
-
-    console.log(`[Assinatura] Contrato ${id} assinado com sucesso`);
-    res.json(updatedContract);
+    return res.status(404).json({ error: 'Contrato não encontrado' });
   } catch (error) {
     console.error('[Assinatura] Erro ao finalizar contrato:', error);
     res.status(500).json({ error: 'Falha ao finalizar contrato' });
@@ -534,7 +577,6 @@ router.get('/contracts/:token/participant-data', async (req: Request, res: Respo
     
     console.log(`[Assinatura] Buscando participant-data para token ${token}`);
     
-    // Get the contract
     let contract: LocalContract | null = null;
     
     if (assinaturaSupabaseService.isConnected()) {
@@ -567,11 +609,9 @@ router.get('/contracts/:token/participant-data', async (req: Request, res: Respo
     
     console.log(`[Assinatura] Contrato encontrado: ${contract.id}, telefone: ${contractPhone}, email: ${contractEmail}`);
     
-    // Try to find form submission in Supabase
     let submission: any = null;
     let supabaseClient: any = null;
     
-    // Get Supabase client
     try {
       const { getClienteSupabase, isClienteSupabaseConfigured } = await import('../lib/clienteSupabase.js');
       if (await isClienteSupabaseConfigured()) {
@@ -582,14 +622,11 @@ router.get('/contracts/:token/participant-data', async (req: Request, res: Respo
       console.log('[Assinatura] Supabase do cliente não disponível');
     }
     
-    // Normalize phone for search
     const normalizePhone = (p: string | null | undefined) => p?.replace(/@s\.whatsapp\.net/g, '').replace(/\D/g, '') || '';
     const searchPhone = normalizePhone(contractPhone);
     const searchEmail = (contractEmail || '').toLowerCase();
     
-    // Try Supabase first
     if (supabaseClient) {
-      // Try by phone
       if (searchPhone && !submission) {
         console.log(`[Assinatura] Supabase: buscando por telefone: ${searchPhone}`);
         const { data: subs, error } = await supabaseClient
@@ -604,7 +641,6 @@ router.get('/contracts/:token/participant-data', async (req: Request, res: Respo
         }
       }
       
-      // Try by email
       if (!submission && searchEmail) {
         console.log(`[Assinatura] Supabase: buscando por email: ${searchEmail}`);
         const { data: subs, error } = await supabaseClient
@@ -620,7 +656,6 @@ router.get('/contracts/:token/participant-data', async (req: Request, res: Respo
       }
     }
     
-    // Fallback to local DB if available
     if (!submission) {
       try {
         const { db } = await import('../db.js');
@@ -663,7 +698,6 @@ router.get('/contracts/:token/participant-data', async (req: Request, res: Respo
       });
     }
 
-    // Normalize submission field names (Supabase uses snake_case)
     const contactName = submission.contact_name || submission.contactName;
     const contactEmail = submission.contact_email || submission.contactEmail;
     const contactPhone = submission.contact_phone || submission.contactPhone;
@@ -715,23 +749,33 @@ router.get('/contracts/:token/participant-data', async (req: Request, res: Respo
 router.delete('/contracts/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    
+    console.log(`[Assinatura] Deletando contrato: ${id}`);
+
+    const localContract = localContractsStore.get(id);
+    const accessToken = localContract?.access_token || id;
 
     if (assinaturaSupabaseService.isConnected()) {
-      const deleted = await assinaturaSupabaseService.deleteContract(id);
+      const deleted = await assinaturaSupabaseService.deleteContractByToken(accessToken);
       if (deleted) {
-        localContractsStore.delete(id);
-        saveLocalContracts(localContractsStore);
-        return res.status(204).send();
+        console.log(`[Assinatura] Contrato deletado do Supabase`);
       }
     }
 
-    if (!localContractsStore.has(id)) {
-      return res.status(404).json({ error: 'Contrato não encontrado' });
+    if (localContractsStore.has(id)) {
+      localContractsStore.delete(id);
+      saveLocalContracts(localContractsStore);
+      return res.status(204).send();
     }
 
-    localContractsStore.delete(id);
-    saveLocalContracts(localContractsStore);
-    res.status(204).send();
+    const tokenContract = Array.from(localContractsStore.values()).find(c => c.access_token === id);
+    if (tokenContract) {
+      localContractsStore.delete(tokenContract.id);
+      saveLocalContracts(localContractsStore);
+      return res.status(204).send();
+    }
+
+    return res.status(404).json({ error: 'Contrato não encontrado' });
   } catch (error) {
     console.error('[Assinatura] Erro ao deletar contrato:', error);
     res.status(500).json({ error: 'Falha ao deletar contrato' });
