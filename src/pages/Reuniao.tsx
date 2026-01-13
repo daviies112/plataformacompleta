@@ -45,7 +45,9 @@ export default function Reuniao() {
         return { roomDesignConfig: null };
       }
       try {
-        const response = await api.get(`/api/reunioes/${meetingId}/room-design-public`);
+        console.log("[Reuniao] Buscando configuração de design para reunião:", meetingId);
+        // Usar o endpoint público que é mais resiliente e não requer autenticação de tenant
+        const response = await api.get(`/api/public/reunioes/${meetingId}/room-design-public`);
         return response.data;
       } catch (error: any) {
         console.error("[Reuniao] Erro ao carregar room design:", error);

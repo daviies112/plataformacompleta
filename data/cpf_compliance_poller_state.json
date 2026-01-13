@@ -1,6 +1,6 @@
 {
-  "lastPolledAt": "2026-01-13T16:41:35.104Z",
+  "lastPolledAt": "2026-01-13T17:39:08.153Z",
   "totalProcessed": 15442,
   "totalErrors": 117,
-  "lastError": "Supabase MESTRE não configurado. Para produção multi-tenant, você precisa configurar um Supabase separado para cache centralizado."
+  "lastError": null
 }

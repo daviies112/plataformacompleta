@@ -60,7 +60,7 @@ function PeerVideo({
   return (
     <Card 
       className={cn(
-        "relative aspect-video overflow-hidden bg-zinc-900 border-white/5 shadow-2xl transition-all duration-300",
+        "relative aspect-video overflow-hidden border-white/5 shadow-2xl transition-all duration-300",
         totalPeers === 1 ? "w-full max-w-4xl mx-auto" : "w-full",
         isRecordingBot && "border-none shadow-none"
       )}
@@ -73,7 +73,7 @@ function PeerVideo({
           "absolute inset-0 flex items-center justify-center transition-opacity duration-500 z-0",
           (!isVideoOff || isRecordingBot) ? "opacity-0" : "opacity-100"
         )}
-        style={{ backgroundColor: config?.colors?.avatarBackground || "#3b82f6" }}
+        style={{ backgroundColor: isRecordingBot ? "#000000" : (config?.colors?.background || "#0f172a") }}
       >
         <div 
           className="w-20 h-20 rounded-full flex items-center justify-center text-3xl font-bold border-4 border-white/10 shadow-xl"
@@ -199,6 +199,13 @@ export function Meeting100ms({
   const canRecord = isHost;
   const canShare = isHost || config.meeting?.enableScreenShare;
   
+  // Usar cores da configuração para os controles
+  const controlStyles = {
+    backgroundColor: config.colors.controlsBackground,
+    color: config.colors.controlsText,
+    borderColor: `${config.colors.controlsText}20`
+  };
+
   const [localRecordingStatus, setLocalRecordingStatus] = useState<boolean | 'loading'>(false);
 
   // No SDK v0.11.0, o estado de gravação pode estar em outro lugar ou ser nulo
@@ -754,17 +761,53 @@ export function Meeting100ms({
                         window.location.search.includes("recording=true") ||
                         window.location.search.includes("auto_join=true");
 
+  const containerStyle = {
+    backgroundColor: isRecordingBot ? "#000000" : config?.colors?.background || "#09090b",
+  };
+
+  const headerStyle = {
+    backgroundColor: `${config?.colors?.controlsBackground || "#18181b"}66`,
+    borderColor: `${config?.colors?.controlsText || "#ffffff"}0d`,
+    backdropFilter: 'blur(24px)',
+  };
+
+  const footerStyle = {
+    backgroundColor: `${config?.colors?.controlsBackground || "#18181b"}e6`,
+    borderColor: `${config?.colors?.controlsText || "#ffffff"}33`,
+    backdropFilter: 'blur(24px)',
+  };
+
+  const controlButtonStyle = (active: boolean = false, isDanger: boolean = false) => ({
+    backgroundColor: isDanger 
+      ? config?.colors?.dangerButton || "#ef4444" 
+      : active 
+        ? config?.colors?.primaryButton || "#3b82f6" 
+        : `${config?.colors?.controlsBackground || "#18181b"}80`,
+    color: "#ffffff",
+  });
+
   return (
     <TooltipProvider>
-      <div className={cn("flex flex-col h-screen overflow-hidden bg-[#09090b]", isRecordingBot && "bg-black")}>
+      <div 
+        className={cn("flex flex-col h-screen overflow-hidden", isRecordingBot && "bg-black")}
+        style={containerStyle}
+      >
         {!isRecordingBot && (
-          <header className="h-14 px-6 border-b border-white/5 flex items-center justify-between bg-zinc-900/40 backdrop-blur-xl z-20">
+          <header 
+            className="h-14 px-6 border-b flex items-center justify-between z-20"
+            style={headerStyle}
+          >
             <div className="flex items-center gap-3">
-              <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg">
+              <div 
+                className="w-7 h-7 rounded-lg flex items-center justify-center shadow-lg"
+                style={{ backgroundColor: config?.colors?.primaryButton || "#3b82f6" }}
+              >
                 <Video className="h-4 w-4 text-white" />
               </div>
               <div className="flex flex-col">
-                <span className="font-bold text-white text-xs leading-none">MeetFlow</span>
+                <span className="font-bold text-white text-xs leading-none">
+                  {config?.branding?.companyName || "MeetFlow"}
+                </span>
                 {isRecordingOn && (
                   <div className="flex items-center gap-1 mt-0.5 animate-pulse">
                     <Circle className="h-1.5 w-1.5 fill-red-500 text-red-500" />
@@ -779,13 +822,21 @@ export function Meeting100ms({
                 variant="ghost" 
                 size="sm" 
                 onClick={copyLink}
-                className="bg-zinc-800/40 hover:bg-zinc-700/60 px-3 py-1.5 h-8 rounded-full flex items-center gap-2 text-[10px] font-bold text-white transition-all"
+                className="px-3 py-1.5 h-8 rounded-full flex items-center gap-2 text-[10px] font-bold text-white transition-all"
+                style={{ backgroundColor: `${config?.colors?.controlsBackground || "#18181b"}66` }}
               >
                 {isCopied ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
                 <span>{isCopied ? "COPIADO" : "COPIAR LINK"}</span>
               </Button>
               
-              <div className="bg-zinc-800/40 px-3 py-1.5 h-8 rounded-full flex items-center gap-2 text-[10px] font-bold text-zinc-400 border border-white/5">
+              <div 
+                className="px-3 py-1.5 h-8 rounded-full flex items-center gap-2 text-[10px] font-bold border"
+                style={{ 
+                  backgroundColor: `${config?.colors?.controlsBackground || "#18181b"}66`,
+                  color: `${config?.colors?.controlsText || "#ffffff"}99`,
+                  borderColor: `${config?.colors?.controlsText || "#ffffff"}0d`
+                }}
+              >
                 <Users className="h-3 w-3" />
                 <span>{peers.length} PARTICIPANTES</span>
               </div>
@@ -806,7 +857,10 @@ export function Meeting100ms({
 
         {!isRecordingBot && (
           <footer className="h-24 px-6 flex items-center justify-center z-50">
-            <div className="px-6 py-3 rounded-3xl flex items-center gap-3 bg-zinc-900/90 border border-white/20 backdrop-blur-2xl shadow-2xl relative">
+            <div 
+              className="px-6 py-3 rounded-3xl flex items-center gap-3 border shadow-2xl relative"
+              style={footerStyle}
+            >
               <div className="flex items-center gap-3 relative z-50">
                 <Button
                   onClick={() => {
@@ -815,7 +869,8 @@ export function Meeting100ms({
                   }}
                   variant="ghost"
                   size="icon"
-                  className={cn("h-12 w-12 rounded-2xl transition-all duration-300 relative z-50", isAudioEnabled ? "bg-zinc-800/50 text-white hover:bg-zinc-700" : "bg-red-500 text-white hover:bg-red-600")}
+                  className={cn("h-12 w-12 rounded-2xl transition-all duration-300 relative z-50")}
+                  style={controlButtonStyle(isAudioEnabled, !isAudioEnabled)}
                   title={isAudioEnabled ? "Mudar áudio" : "Ativar áudio"}
                 >
                   {isAudioEnabled ? <Mic className="h-5 w-5 pointer-events-none" /> : <MicOff className="h-5 w-5 pointer-events-none" />}
@@ -828,13 +883,17 @@ export function Meeting100ms({
                   }}
                   variant="ghost"
                   size="icon"
-                  className={cn("h-12 w-12 rounded-2xl transition-all duration-300 relative z-50", isVideoEnabled ? "bg-zinc-800/50 text-white hover:bg-zinc-700" : "bg-red-500 text-white hover:bg-red-600")}
+                  className={cn("h-12 w-12 rounded-2xl transition-all duration-300 relative z-50")}
+                  style={controlButtonStyle(isVideoEnabled, !isVideoEnabled)}
                   title={isVideoEnabled ? "Desligar câmera" : "Ligar câmera"}
                 >
                   {isVideoEnabled ? <Video className="h-5 w-5 pointer-events-none" /> : <VideoOff className="h-5 w-5 pointer-events-none" />}
                 </Button>
 
-                <div className="h-8 w-[1px] bg-white/10 mx-1" />
+                <div 
+                  className="h-8 w-[1px] mx-1" 
+                  style={{ backgroundColor: `${config?.colors?.controlsText || "#ffffff"}1a` }}
+                />
 
                 <Button
                   onClick={() => {
@@ -847,7 +906,8 @@ export function Meeting100ms({
                   }}
                   variant="ghost"
                   size="icon"
-                  className={cn("h-12 w-12 rounded-2xl transition-all duration-300 relative z-50", isScreenShared ? "bg-blue-600 text-white" : "bg-zinc-800/50 text-white hover:bg-zinc-700")}
+                  className={cn("h-12 w-12 rounded-2xl transition-all duration-300 relative z-50")}
+                  style={controlButtonStyle(isScreenShared)}
                   title={isScreenShared ? "Parar compartilhamento" : "Compartilhar tela"}
                 >
                   {isScreenShared ? <MonitorOff className="h-5 w-5 pointer-events-none" /> : <MonitorUp className="h-5 w-5 pointer-events-none" />}
@@ -860,15 +920,19 @@ export function Meeting100ms({
                     size="icon"
                     className={cn(
                       "h-12 w-12 rounded-2xl transition-all duration-300 relative z-50", 
-                      isRecording ? "bg-red-500 text-white shadow-lg shadow-red-500/20" : "bg-zinc-800/50 text-white hover:bg-zinc-700"
+                      isRecording && "shadow-lg shadow-red-500/20"
                     )}
+                    style={controlButtonStyle(isRecording, isRecording)}
                     title={isRecording ? "Parar gravação" : "Iniciar gravação"}
                   >
                     <Circle className={cn("h-5 w-5 pointer-events-none", isRecording && "fill-white animate-pulse")} />
                   </Button>
                 )}
 
-                <div className="h-8 w-[1px] bg-white/10 mx-1" />
+                <div 
+                  className="h-8 w-[1px] mx-1" 
+                  style={{ backgroundColor: `${config?.colors?.controlsText || "#ffffff"}1a` }}
+                />
 
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -942,7 +1006,11 @@ export function Meeting100ms({
                         }
                       }}
                       variant="ghost"
-                      className="h-12 px-4 rounded-2xl font-bold bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg shadow-emerald-500/20 hover:scale-105 transition-transform relative z-50 flex items-center gap-2"
+                      className="h-12 px-4 rounded-2xl font-bold text-white shadow-lg hover:scale-105 transition-transform relative z-50 flex items-center gap-2"
+                      style={{ 
+                        backgroundColor: config?.colors?.primaryButton || "#059669",
+                        boxShadow: `0 10px 15px -3px ${config?.colors?.primaryButton}33`
+                      }}
                       data-testid="button-assinar-contrato"
                     >
                       <FileSignature className="h-5 w-5" />
@@ -960,7 +1028,11 @@ export function Meeting100ms({
                     handleLeave();
                   }}
                   variant="destructive" 
-                  className="h-12 px-6 rounded-2xl font-bold shadow-lg shadow-red-500/20 hover:scale-105 transition-transform relative z-50"
+                  className="h-12 px-6 rounded-2xl font-bold shadow-lg hover:scale-105 transition-transform relative z-50"
+                  style={{ 
+                    backgroundColor: config?.colors?.dangerButton || "#ef4444",
+                    boxShadow: `0 10px 15px -3px ${config?.colors?.dangerButton || "#ef4444"}33`
+                  }}
                 >
                   Sair
                 </Button>
