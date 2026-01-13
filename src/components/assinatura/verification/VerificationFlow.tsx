@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { useVerificationSession } from '@/hooks/assinatura/useVerificationSession';
 import { useFaceDetection } from '@/hooks/assinatura/useFaceDetection';
@@ -82,7 +82,8 @@ export const VerificationFlow = ({
   const [documentImage, setDocumentImage] = useState<string | null>(null);
   const [verificationResult, setVerificationResult] = useState<VerificationResult | null>(null);
   const [showBranding, setShowBranding] = useState(!!(logoUrl || backgroundImage));
-  const [hasCompletedCallback, setHasCompletedCallback] = useState(false);
+  const hasCompletedCallbackRef = useRef(false);
+  const autoAdvanceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleStart = useCallback(() => {
     startSession();
@@ -162,9 +163,14 @@ export const VerificationFlow = ({
       
       // Auto-advance after 2 seconds if passed (user can also click "Concluir" button)
       if (onComplete && result.passed) {
-        setTimeout(() => {
-          if (!hasCompletedCallback) {
-            setHasCompletedCallback(true);
+        // Clear any existing timeout
+        if (autoAdvanceTimeoutRef.current) {
+          clearTimeout(autoAdvanceTimeoutRef.current);
+        }
+        autoAdvanceTimeoutRef.current = setTimeout(() => {
+          // Use ref to check current value (not stale closure)
+          if (!hasCompletedCallbackRef.current) {
+            hasCompletedCallbackRef.current = true;
             onComplete({
               success: true,
               selfie: selfieImage,
@@ -183,6 +189,13 @@ export const VerificationFlow = ({
   }, [selfieImage, documentImage, compareFacesAdvanced, completeVerification, goToStep, saveVerification]);
 
   const handleRetry = useCallback(() => {
+    // Reset refs for new attempt
+    hasCompletedCallbackRef.current = false;
+    if (autoAdvanceTimeoutRef.current) {
+      clearTimeout(autoAdvanceTimeoutRef.current);
+      autoAdvanceTimeoutRef.current = null;
+    }
+    
     setSelfieImage(null);
     setDocumentImage(null);
     setVerificationResult(null);
@@ -196,11 +209,27 @@ export const VerificationFlow = ({
     }
   }, [startAtSelfie, currentStep, handleStart]);
 
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (autoAdvanceTimeoutRef.current) {
+        clearTimeout(autoAdvanceTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const handleComplete = useCallback(() => {
     // When user clicks "Concluir" after approval, call parent onComplete
     // Don't reset session - let parent handle the navigation
-    if (verificationResult && verificationResult.passed && onComplete && !hasCompletedCallback) {
-      setHasCompletedCallback(true);
+    if (verificationResult && verificationResult.passed && onComplete && !hasCompletedCallbackRef.current) {
+      // Set flag BEFORE calling callback to prevent race conditions
+      hasCompletedCallbackRef.current = true;
+      
+      // Cancel auto-advance timeout if it exists
+      if (autoAdvanceTimeoutRef.current) {
+        clearTimeout(autoAdvanceTimeoutRef.current);
+        autoAdvanceTimeoutRef.current = null;
+      }
       
       // Store images for parent before clearing
       const selfie = selfieImage;
@@ -226,7 +255,7 @@ export const VerificationFlow = ({
       resetSession();
     }
     // If already completed callback, do nothing (prevents double calls)
-  }, [resetSession, verificationResult, selfieImage, documentImage, onComplete, hasCompletedCallback]);
+  }, [resetSession, verificationResult, selfieImage, documentImage, onComplete]);
 
   return (
     <>
