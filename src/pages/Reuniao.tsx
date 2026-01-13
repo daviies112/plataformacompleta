@@ -66,11 +66,26 @@ export default function Reuniao() {
     // Deep merge with defaults to ensure all fields exist
     const serverConfig = designData.roomDesignConfig;
     return {
-      branding: { ...DEFAULT_ROOM_DESIGN_CONFIG.branding, ...serverConfig.branding },
-      colors: { ...DEFAULT_ROOM_DESIGN_CONFIG.colors, ...serverConfig.colors },
-      lobby: { ...DEFAULT_ROOM_DESIGN_CONFIG.lobby, ...serverConfig.lobby },
-      meeting: { ...DEFAULT_ROOM_DESIGN_CONFIG.meeting, ...serverConfig.meeting },
-      endScreen: { ...DEFAULT_ROOM_DESIGN_CONFIG.endScreen, ...serverConfig.endScreen },
+      branding: { 
+        ...DEFAULT_ROOM_DESIGN_CONFIG.branding, 
+        ...(serverConfig.branding || {}) 
+      },
+      colors: { 
+        ...DEFAULT_ROOM_DESIGN_CONFIG.colors, 
+        ...(serverConfig.colors || {}) 
+      },
+      lobby: { 
+        ...DEFAULT_ROOM_DESIGN_CONFIG.lobby, 
+        ...(serverConfig.lobby || {}) 
+      },
+      meeting: { 
+        ...DEFAULT_ROOM_DESIGN_CONFIG.meeting, 
+        ...(serverConfig.meeting || {}) 
+      },
+      endScreen: { 
+        ...DEFAULT_ROOM_DESIGN_CONFIG.endScreen, 
+        ...(serverConfig.endScreen || {}) 
+      },
     };
   }, [designData]);
 
