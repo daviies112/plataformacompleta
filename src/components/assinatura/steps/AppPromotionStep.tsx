@@ -4,6 +4,11 @@ import { ShoppingBag, Trophy, TrendingUp, Smartphone, ArrowRight, CheckCircle2, 
 import { useContract } from "@/contexts/ContractContext";
 import { useQuery } from "@tanstack/react-query";
 
+// Import jewelry images
+import boutiqueImage from "@assets/generated_images/elegant_semi-jewelry_boutique_display.png";
+import analyticsImage from "@assets/generated_images/jewelry_with_business_analytics.png";
+import trophyImage from "@assets/generated_images/trophy_with_luxury_jewelry.png";
+
 interface AppPromotionConfig {
   app_store_url: string;
   google_play_url: string;
@@ -31,19 +36,22 @@ export const AppPromotionStep = () => {
       icon: <ShoppingBag className="w-8 h-8 text-amber-600" />,
       title: "Sua Boutique Digital Exclusive",
       description: "Transforme seu smartphone em uma vitrine de alto luxo. Acesse nosso catálogo completo de semijoias premium com design exclusivo e qualidade impecável.",
-      points: ["Catálogo em tempo real", "Preços exclusivos de revenda", "Fotos profissionais para compartilhar"]
+      points: ["Catálogo em tempo real", "Preços exclusivos de revenda", "Fotos profissionais para compartilhar"],
+      image: boutiqueImage
     },
     {
       icon: <TrendingUp className="w-8 h-8 text-emerald-600" />,
       title: "Gestão de Alta Performance",
       description: "Tenha o controle total do seu império. Acompanhe lucros, datas de recebimento e histórico de vendas com transparência absoluta e relatórios detalhados.",
-      points: ["Previsão de ganhos", "Controle de estoque", "Relatórios financeiros diários"]
+      points: ["Previsão de ganhos", "Controle de estoque", "Relatórios financeiros diários"],
+      image: analyticsImage
     },
     {
       icon: <Trophy className="w-8 h-8 text-amber-500" />,
       title: "Clube de Elite & Reconhecimento",
       description: "Você não é apenas uma revendedora, é parte de um ecossistema de sucesso. Participe de rankings nacionais, ganhe viagens, bônus e prêmios de luxo.",
-      points: ["Rankings de performance", "Metas com prêmios reais", "Comunidade VIP de suporte"]
+      points: ["Rankings de performance", "Metas com prêmios reais", "Comunidade VIP de suporte"],
+      image: trophyImage
     }
   ];
 
@@ -104,9 +112,13 @@ export const AppPromotionStep = () => {
               }`}
             >
               <div className="flex-1 group">
-                <div className="relative overflow-hidden rounded-3xl shadow-2xl transition-all duration-700 group-hover:scale-[1.02] bg-gradient-to-br from-amber-100 to-amber-50 h-[400px] flex items-center justify-center">
-                  {feature.icon}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-60"></div>
+                <div className="relative overflow-hidden rounded-3xl shadow-2xl transition-all duration-700 group-hover:scale-[1.02] h-[400px]">
+                  <img 
+                    src={feature.image} 
+                    alt={feature.title}
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-40"></div>
                 </div>
               </div>
 
