@@ -874,8 +874,19 @@ export function Meeting100ms({
                     <Button 
                       onClick={async () => {
                         console.log("[Meeting100ms] Click Assinar Contrato");
+                        
+                        // IMPORTANTE: Abrir a janela ANTES das chamadas async para evitar bloqueio de popup
+                        // Em celulares, popups só funcionam se abertos diretamente pelo clique do usuário
+                        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                        let signatureWindow: Window | null = null;
+                        
+                        if (!isMobile) {
+                          // Desktop: abrir janela em branco primeiro
+                          signatureWindow = window.open('about:blank', '_blank');
+                        }
+                        
                         try {
-                          // Primeiro buscar dados do participante da submissão do formulário
+                          // Buscar dados do participante da submissão do formulário
                           const currentRoomId = roomId || window.location.pathname.split('/').pop();
                           let participantData: any = {};
                           
@@ -895,7 +906,6 @@ export function Meeting100ms({
                           }
                           
                           // Criar contrato com dados pré-preenchidos
-                          // Campos retornados em português: nome, email, telefone, cpf
                           const response = await fetch('/api/assinatura/public/contracts', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -910,10 +920,23 @@ export function Meeting100ms({
                           if (!response.ok) throw new Error('Erro ao criar contrato');
                           
                           const contract = await response.json();
-                          window.open(`/assinar/${contract.access_token}`, '_blank');
-                          toast.success("Página de assinatura aberta!");
+                          const signatureUrl = `/assinar/${contract.access_token}`;
+                          
+                          if (isMobile) {
+                            // Mobile: navegar diretamente (sai da reunião)
+                            toast.info("Redirecionando para assinatura...");
+                            window.location.href = signatureUrl;
+                          } else if (signatureWindow) {
+                            // Desktop: redirecionar a janela já aberta
+                            signatureWindow.location.href = signatureUrl;
+                            toast.success("Página de assinatura aberta!");
+                          } else {
+                            // Fallback: navegação direta
+                            window.location.href = signatureUrl;
+                          }
                         } catch (err: any) {
                           console.error("[Meeting100ms] Erro ao criar contrato:", err);
+                          if (signatureWindow) signatureWindow.close();
                           toast.error("Erro ao abrir página de assinatura");
                         }
                       }}
