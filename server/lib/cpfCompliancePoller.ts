@@ -571,7 +571,9 @@ async function processCPFResultFromCliente(result: CPFComplianceResultFromClient
     // Se não encontrou por nenhuma estratégia
     if (matchedLeads.length === 0) {
       console.log(`ℹ️ [CPFPoller] Lead não encontrado por CPF ou telefone - pulando resultado #${result.id}`);
-      await markCPFResultAsProcessed(result.id);
+      // Usar apenas cache local - NÃO marcar processado_whatsapp=true
+      // O N8N usa processado_whatsapp para detectar registros pendentes de notificação WhatsApp
+      await markLocallyProcessedCPFResult(result.id);
       return true;
     }
 
@@ -588,10 +590,13 @@ async function processCPFResultFromCliente(result: CPFComplianceResultFromClient
       }
     }
 
-    // Marcar resultado como processado
+    // Marcar resultado como processado APENAS no cache local
+    // IMPORTANTE: NÃO marcar processado_whatsapp=true aqui!
+    // O N8N precisa detectar registros com processado_whatsapp=FALSE para enviar notificações WhatsApp
+    // Após o N8N enviar a notificação, ELE marcará processado_whatsapp=TRUE
     if (allSuccess) {
-      await markCPFResultAsProcessed(result.id);
-      console.log(`✅ [CPFPoller] Resultado #${result.id} marcado como processado`);
+      await markLocallyProcessedCPFResult(result.id);
+      console.log(`✅ [CPFPoller] Resultado #${result.id} marcado como processado (cache local)`);
     }
 
     return allSuccess;
