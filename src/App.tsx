@@ -4,7 +4,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
-import { HMSRoomProvider } from "@100mslive/react-sdk";
 import { AuthProvider } from "./contexts/AuthContext";
 import { NotificationProvider } from "./contexts/NotificationContext";
 import { queryClient } from "./lib/queryClient";
@@ -21,40 +20,41 @@ import { InstallPWAButton } from "./components/InstallPWAButton";
  * - Desktop: Header horizontal + navegação superior
  * - Mobile: Header compacto + navegação inferior (bottom nav)
  * - Roteamento completamente separado e independente
+ * 
+ * NOTA: HMSRoomProvider foi movido para Meeting100ms para evitar carregar o SDK 100ms
+ * em todas as páginas, melhorando significativamente o tempo de carregamento no mobile.
  */
 const App = () => (
-  <HMSRoomProvider>
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider 
-        attribute="class" 
-        defaultTheme="dark" 
-        enableSystem={false} 
-        storageKey="nexus-theme" 
-        disableTransitionOnChange
-      >
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter
-            future={{
-              v7_startTransition: true,
-              v7_relativeSplatPath: true,
-            }}
-          >
-            <AuthProvider>
-              <NotificationProvider>
-                {/* Platform Router - Detecta e renderiza Desktop ou Mobile App */}
-                <PlatformRouter />
-                
-                {/* PWA Install Button - Aparece em todas as páginas no canto inferior direito (desktop only) */}
-                <InstallPWAButton />
-              </NotificationProvider>
-            </AuthProvider>
-          </BrowserRouter>
-        </TooltipProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
-  </HMSRoomProvider>
+  <QueryClientProvider client={queryClient}>
+    <ThemeProvider 
+      attribute="class" 
+      defaultTheme="dark" 
+      enableSystem={false} 
+      storageKey="nexus-theme" 
+      disableTransitionOnChange
+    >
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter
+          future={{
+            v7_startTransition: true,
+            v7_relativeSplatPath: true,
+          }}
+        >
+          <AuthProvider>
+            <NotificationProvider>
+              {/* Platform Router - Detecta e renderiza Desktop ou Mobile App */}
+              <PlatformRouter />
+              
+              {/* PWA Install Button - Aparece em todas as páginas no canto inferior direito (desktop only) */}
+              <InstallPWAButton />
+            </NotificationProvider>
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </ThemeProvider>
+  </QueryClientProvider>
 );
 
 export default App;

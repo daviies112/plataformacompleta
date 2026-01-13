@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-import { Meeting100ms } from "@/components/Meeting100ms";
+import { Meeting100msWithProvider } from "@/components/Meeting100ms";
 import { MeetingLobby } from "@/components/MeetingLobby";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -438,7 +438,7 @@ function MeetingWrapper({
   }
 
   return (
-    <Meeting100ms
+    <Meeting100msWithProvider
       roomId={reuniao.roomId100ms}
       authToken={authToken}
       userName={participantName}

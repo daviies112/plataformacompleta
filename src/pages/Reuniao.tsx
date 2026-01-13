@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Meeting100ms } from "@/components/Meeting100ms";
+import { Meeting100msWithProvider } from "@/components/Meeting100ms";
 import { MeetingLobby } from "@/components/MeetingLobby";
 import { useReuniao } from "@/hooks/useReuniao";
 import { Button } from "@/components/ui/button";
@@ -504,7 +504,7 @@ export default function Reuniao() {
         </div>
         
         <div className="flex-1 min-h-0">
-           <Meeting100ms 
+           <Meeting100msWithProvider 
              roomId={meeting.roomId100ms} 
              userName={userName}
              authToken={token100ms}

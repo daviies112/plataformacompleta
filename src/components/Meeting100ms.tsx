@@ -14,6 +14,7 @@ import {
   selectRoomState,
   HMSPeer,
   HMSRoomState,
+  HMSRoomProvider,
 } from "@100mslive/react-sdk";
 import { Mic, MicOff, Video, VideoOff, PhoneOff, Users, MonitorUp, MonitorOff, Circle, Copy, Check, Share2, FileSignature, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -969,5 +970,18 @@ export function Meeting100ms({
         )}
       </div>
     </TooltipProvider>
+  );
+}
+
+/**
+ * Wrapper component that provides HMSRoomProvider context
+ * This ensures the 100ms SDK is only loaded when the meeting component is used,
+ * improving initial page load times significantly on mobile devices.
+ */
+export function Meeting100msWithProvider(props: Meeting100msProps) {
+  return (
+    <HMSRoomProvider>
+      <Meeting100ms {...props} />
+    </HMSRoomProvider>
   );
 }

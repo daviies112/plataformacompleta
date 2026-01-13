@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Meeting100ms } from "@/components/Meeting100ms";
+import { Meeting100msWithProvider } from "@/components/Meeting100ms";
 import { MeetingLobby } from "@/components/MeetingLobby";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
@@ -237,7 +237,7 @@ export default function ReuniaoPublica() {
       userName: userName || "Participante"
     });
     return (
-      <Meeting100ms
+      <Meeting100msWithProvider
         authToken={token100ms}
         roomId={meeting.roomId100ms}
         userName={userName || "Participante"}
