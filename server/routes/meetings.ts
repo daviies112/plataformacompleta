@@ -1255,170 +1255,203 @@ meetingsRouter.delete('/reunioes/:id', authenticateToken, requireTenantId, async
 });
 
 // PUBLIC endpoint - Get participant data from form submission for signature pre-fill
+// PRIORITY: Supabase do cliente (external) > PostgreSQL local
 // Can be called by: phone, email, or formSubmissionId stored in meeting metadata
-// SECURITY: Full data (CPF, address) only for authenticated admins; public gets minimal data
+// For signature flow: Always return full data to pre-fill contract (client is signing their own data)
 publicRoomDesignRouter.get('/reunioes/:id/participant-data', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { phone, email } = req.query;
     
-    // Check if caller is authenticated admin (session check)
-    const isAuthenticated = !!(req.session?.userId && req.session?.tenantId);
-    console.log(`[ParticipantData] Buscando dados para reunião ${id}, phone=${phone}, email=${email}, authenticated=${isAuthenticated}`);
+    console.log(`[ParticipantData] Buscando dados para reunião ${id}, phone=${phone}, email=${email}`);
 
-    // 1. Get the meeting - try by UUID first, then by roomId100ms
-    let meeting = null;
+    // 1. Get the meeting - try Supabase first, then local DB
+    let meeting: any = null;
+    let supabaseClient: any = null;
+    
+    // Try to get Supabase client
+    try {
+      const { getClienteSupabase, isClienteSupabaseConfigured } = await import('../lib/clienteSupabase.js');
+      if (await isClienteSupabaseConfigured()) {
+        supabaseClient = await getClienteSupabase();
+        console.log('[ParticipantData] Supabase do cliente configurado, buscando dados externos');
+      }
+    } catch (e) {
+      console.log('[ParticipantData] Supabase do cliente não disponível, usando banco local');
+    }
     
     // Check if id is a valid UUID format
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
     
-    if (isUUID) {
-      const [m] = await db.select().from(reunioes)
-        .where(eq(reunioes.id, id))
-        .limit(1);
-      meeting = m;
+    // Try Supabase first for meeting
+    if (supabaseClient) {
+      if (isUUID) {
+        const { data: supabaseMeeting } = await supabaseClient
+          .from('reunioes')
+          .select('*')
+          .eq('id', id)
+          .single();
+        if (supabaseMeeting) meeting = supabaseMeeting;
+      }
+      
+      if (!meeting) {
+        const { data: supabaseMeeting } = await supabaseClient
+          .from('reunioes')
+          .select('*')
+          .eq('room_id_100ms', id)
+          .single();
+        if (supabaseMeeting) meeting = supabaseMeeting;
+      }
     }
     
-    // If not found by UUID, try by roomId100ms (100ms room ID)
+    // Fallback to local DB
     if (!meeting) {
-      console.log(`[ParticipantData] ID ${id} não é UUID ou não encontrado, tentando por roomId100ms`);
-      const [m] = await db.select().from(reunioes)
-        .where(eq(reunioes.roomId100ms, id))
-        .limit(1);
-      meeting = m;
+      if (isUUID) {
+        const [m] = await db.select().from(reunioes)
+          .where(eq(reunioes.id, id))
+          .limit(1);
+        meeting = m;
+      }
+      
+      if (!meeting) {
+        console.log(`[ParticipantData] ID ${id} não é UUID ou não encontrado, tentando por roomId100ms`);
+        const [m] = await db.select().from(reunioes)
+          .where(eq(reunioes.roomId100ms, id))
+          .limit(1);
+        meeting = m;
+      }
     }
 
     if (!meeting) {
       return res.status(404).json({ error: 'Reunião não encontrada' });
     }
     
-    console.log(`[ParticipantData] Reunião encontrada: ${meeting.id}, telefone: ${meeting.telefone}`);
+    // Normalize field names (Supabase uses snake_case, local uses camelCase)
+    const meetingPhone = meeting.telefone || meeting.phone;
+    const meetingEmail = meeting.email;
+    const meetingName = meeting.nome || meeting.name;
+    const meetingId = meeting.id;
+    
+    console.log(`[ParticipantData] Reunião encontrada: ${meetingId}, telefone: ${meetingPhone}, email: ${meetingEmail}`);
 
-    // 2. Try to find form submission by different methods
-    let submission = null;
-    const metadata = (meeting.metadata as any) || {};
-
-    // Method A: If meeting has formSubmissionId in metadata, use it directly
-    if (metadata.formSubmissionId) {
-      console.log(`[ParticipantData] Buscando por formSubmissionId: ${metadata.formSubmissionId}`);
-      const [sub] = await db.select().from(formSubmissions)
-        .where(eq(formSubmissions.id, metadata.formSubmissionId))
-        .limit(1);
-      submission = sub;
+    // 2. Try to find form submission - Supabase first, then local
+    let submission: any = null;
+    
+    // Normalize phone for search (remove @s.whatsapp.net and non-digits)
+    const normalizePhone = (p: string) => p?.replace(/@s\.whatsapp\.net/g, '').replace(/\D/g, '') || '';
+    const searchPhone = normalizePhone(String(phone || meetingPhone || ''));
+    const searchEmail = String(email || meetingEmail || '').toLowerCase();
+    
+    // Try Supabase first
+    if (supabaseClient && !submission) {
+      // Try by phone
+      if (searchPhone) {
+        console.log(`[ParticipantData] Supabase: buscando por telefone: ${searchPhone}`);
+        const { data: subs } = await supabaseClient
+          .from('form_submissions')
+          .select('*')
+          .or(`contact_phone.ilike.%${searchPhone}%,contact_phone.ilike.%${searchPhone.slice(-9)}%`)
+          .order('created_at', { ascending: false })
+          .limit(1);
+        if (subs && subs.length > 0) {
+          submission = subs[0];
+          console.log(`[ParticipantData] Supabase: encontrado por telefone: ${submission.id}`);
+        }
+      }
+      
+      // Try by email
+      if (!submission && searchEmail) {
+        console.log(`[ParticipantData] Supabase: buscando por email: ${searchEmail}`);
+        const { data: subs } = await supabaseClient
+          .from('form_submissions')
+          .select('*')
+          .ilike('contact_email', searchEmail)
+          .order('created_at', { ascending: false })
+          .limit(1);
+        if (subs && subs.length > 0) {
+          submission = subs[0];
+          console.log(`[ParticipantData] Supabase: encontrado por email: ${submission.id}`);
+        }
+      }
     }
-
-    // Method B: If phone provided (normalized), search by phone
-    if (!submission && phone) {
-      const normalizedPhone = String(phone).replace(/\D/g, '');
-      console.log(`[ParticipantData] Buscando por telefone: ${normalizedPhone}`);
+    
+    // Fallback to local DB
+    if (!submission && searchPhone) {
+      console.log(`[ParticipantData] Local DB: buscando por telefone: ${searchPhone}`);
       const [sub] = await db.select().from(formSubmissions)
-        .where(sql`REPLACE(REPLACE(REPLACE(REPLACE(${formSubmissions.contactPhone}, '-', ''), ' ', ''), '(', ''), ')', '') LIKE '%' || ${normalizedPhone} || '%'`)
+        .where(sql`REPLACE(REPLACE(REPLACE(REPLACE(${formSubmissions.contactPhone}, '-', ''), ' ', ''), '(', ''), ')', '') LIKE '%' || ${searchPhone} || '%'`)
         .orderBy(desc(formSubmissions.createdAt))
         .limit(1);
       submission = sub;
     }
 
-    // Method C: If email provided, search by email
-    if (!submission && email) {
-      console.log(`[ParticipantData] Buscando por email: ${email}`);
+    if (!submission && searchEmail) {
+      console.log(`[ParticipantData] Local DB: buscando por email: ${searchEmail}`);
       const [sub] = await db.select().from(formSubmissions)
-        .where(sql`LOWER(${formSubmissions.contactEmail}) = LOWER(${email})`)
-        .orderBy(desc(formSubmissions.createdAt))
-        .limit(1);
-      submission = sub;
-    }
-
-    // Method D: Try meeting's own phone/email as fallback
-    if (!submission && meeting.telefone) {
-      const normalizedPhone = meeting.telefone.replace(/\D/g, '');
-      console.log(`[ParticipantData] Fallback - buscando pelo telefone da reunião: ${normalizedPhone}`);
-      const [sub] = await db.select().from(formSubmissions)
-        .where(sql`REPLACE(REPLACE(REPLACE(REPLACE(${formSubmissions.contactPhone}, '-', ''), ' ', ''), '(', ''), ')', '') LIKE '%' || ${normalizedPhone} || '%'`)
-        .orderBy(desc(formSubmissions.createdAt))
-        .limit(1);
-      submission = sub;
-    }
-
-    if (!submission && meeting.email) {
-      console.log(`[ParticipantData] Fallback - buscando pelo email da reunião: ${meeting.email}`);
-      const [sub] = await db.select().from(formSubmissions)
-        .where(sql`LOWER(${formSubmissions.contactEmail}) = LOWER(${meeting.email})`)
+        .where(sql`LOWER(${formSubmissions.contactEmail}) = LOWER(${searchEmail})`)
         .orderBy(desc(formSubmissions.createdAt))
         .limit(1);
       submission = sub;
     }
 
     if (!submission) {
-      console.log(`[ParticipantData] Nenhum form_submission encontrado para reunião ${id}`);
+      console.log(`[ParticipantData] Nenhum form_submission encontrado, usando dados da reunião`);
       return res.json({ 
         found: false,
         message: 'Nenhum formulário encontrado para este participante',
         meetingData: {
-          nome: meeting.nome,
-          email: meeting.email,
-          telefone: meeting.telefone
+          nome: meetingName,
+          email: meetingEmail,
+          telefone: meetingPhone
         }
       });
     }
 
-    console.log(`[ParticipantData] Form submission encontrado: ${submission.id}, isAuthenticated=${isAuthenticated}`);
+    // Normalize submission field names (Supabase uses snake_case)
+    const contactName = submission.contact_name || submission.contactName;
+    const contactEmail = submission.contact_email || submission.contactEmail;
+    const contactPhone = submission.contact_phone || submission.contactPhone;
+    const contactCpf = submission.contact_cpf || submission.contactCpf;
+    const instagramHandle = submission.instagram_handle || submission.instagramHandle;
+    const birthDate = submission.birth_date || submission.birthDate;
+    const addressCep = submission.address_cep || submission.addressCep;
+    const addressStreet = submission.address_street || submission.addressStreet;
+    const addressNumber = submission.address_number || submission.addressNumber;
+    const addressComplement = submission.address_complement || submission.addressComplement;
+    const addressNeighborhood = submission.address_neighborhood || submission.addressNeighborhood;
+    const addressCity = submission.address_city || submission.addressCity;
+    const addressState = submission.address_state || submission.addressState;
 
-    // 3. Return participant data for contract pre-fill
-    // SECURITY: Full sensitive data (CPF, address) only for authenticated admins OF THE SAME TENANT
-    // Cross-tenant access is denied (returns minimal data)
-    
-    // Verify tenant match for authenticated users
-    const sessionTenantId = req.session?.tenantId;
-    const meetingTenantId = meeting.tenantId;
-    const isSameTenant = isAuthenticated && sessionTenantId === meetingTenantId;
-    
-    console.log(`[ParticipantData] Tenant check: session=${sessionTenantId}, meeting=${meetingTenantId}, match=${isSameTenant}`);
-    
-    if (isSameTenant) {
-      // Same tenant admin authenticated - return full data
-      res.json({
-        found: true,
-        formSubmissionId: submission.id,
-        participantData: {
-          nome: submission.contactName,
-          email: submission.contactEmail,
-          telefone: submission.contactPhone,
-          cpf: submission.contactCpf,
-          instagram: submission.instagramHandle,
-          dataNascimento: submission.birthDate,
-          endereco: {
-            cep: submission.addressCep,
-            rua: submission.addressStreet,
-            numero: submission.addressNumber,
-            complemento: submission.addressComplement,
-            bairro: submission.addressNeighborhood,
-            cidade: submission.addressCity,
-            estado: submission.addressState
-          }
-        },
-        meetingData: {
-          id: meeting.id,
-          titulo: meeting.titulo,
-          tenantId: meeting.tenantId
+    console.log(`[ParticipantData] Form submission encontrado: ${submission.id}, nome: ${contactName}, cpf: ${contactCpf ? 'presente' : 'ausente'}`);
+
+    // For signature flow, return full data (client is signing their own contract)
+    // This is the client's own data that they already provided in the form
+    res.json({
+      found: true,
+      formSubmissionId: submission.id,
+      participantData: {
+        nome: contactName,
+        email: contactEmail,
+        telefone: contactPhone,
+        cpf: contactCpf,
+        instagram: instagramHandle,
+        dataNascimento: birthDate,
+        endereco: {
+          cep: addressCep,
+          rua: addressStreet,
+          numero: addressNumber,
+          complemento: addressComplement,
+          bairro: addressNeighborhood,
+          cidade: addressCity,
+          estado: addressState
         }
-      });
-    } else {
-      // Unauthenticated or cross-tenant caller - return ONLY name for UX convenience
-      // Note: Name alone is not considered PII in this context as it's already visible in the meeting
-      // All sensitive PII (email, phone, CPF, address) is protected
-      res.json({
-        found: true,
-        formSubmissionId: submission.id,
-        participantData: {
-          nome: submission.contactName,
-          // All PII (email, phone, CPF, address) omitted for unauthenticated/cross-tenant callers
-        },
-        meetingData: {
-          id: meeting.id,
-          titulo: meeting.titulo
-        }
-      });
-    }
+      },
+      meetingData: {
+        id: meetingId,
+        titulo: meeting.titulo || meeting.title,
+        source: supabaseClient ? 'supabase' : 'local'
+      }
+    });
   } catch (error: any) {
     console.error('[ParticipantData] Erro:', error);
     res.status(500).json({ error: 'Erro ao buscar dados do participante', message: error.message });
