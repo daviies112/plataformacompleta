@@ -869,18 +869,19 @@ export function setupComplianceRoutes(): Router {
     }
   });
 
-  // PATCH /api/compliance/whatsapp-status/:id - Update processado_whatsapp status
+  // PATCH /api/compliance/whatsapp-n8n/:id - Update processado_whatsapp_n8n status
   // Used by N8N to mark records as processed after sending WhatsApp notification
-  router.patch("/api/compliance/whatsapp-status/:id", async (req: Request, res: Response) => {
+  // N8N queries WHERE processado_whatsapp_n8n=FALSE, then marks TRUE after sending
+  router.patch("/api/compliance/whatsapp-n8n/:id", async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
-      const { processado_whatsapp } = req.body;
+      const { processado_whatsapp_n8n } = req.body;
       
-      if (typeof processado_whatsapp !== 'boolean') {
-        return res.status(400).json({ error: "processado_whatsapp must be a boolean" });
+      if (typeof processado_whatsapp_n8n !== 'boolean') {
+        return res.status(400).json({ error: "processado_whatsapp_n8n must be a boolean" });
       }
       
-      console.log(`[WhatsApp Status] Atualizando registro ${id} para processado_whatsapp=${processado_whatsapp}`);
+      console.log(`[WhatsApp N8N] Atualizando registro ${id} para processado_whatsapp_n8n=${processado_whatsapp_n8n}`);
       
       // Update in Supabase Cliente
       const { getClienteSupabase, isClienteSupabaseConfigured } = await import('../lib/clienteSupabase.js');
@@ -893,12 +894,12 @@ export function setupComplianceRoutes(): Router {
       
       const { data, error } = await supabase
         .from('cpf_compliance_results')
-        .update({ processado_whatsapp })
+        .update({ processado_whatsapp_n8n })
         .eq('id', id)
         .select();
       
       if (error) {
-        console.error('[WhatsApp Status] Erro:', error);
+        console.error('[WhatsApp N8N] Erro:', error);
         return res.status(500).json({ error: error.message });
       }
       
@@ -906,10 +907,10 @@ export function setupComplianceRoutes(): Router {
         return res.status(404).json({ error: "Registro não encontrado" });
       }
       
-      console.log(`[WhatsApp Status] Registro ${id} atualizado com sucesso`);
+      console.log(`[WhatsApp N8N] Registro ${id} atualizado com sucesso`);
       return res.json({ success: true, data: data[0] });
     } catch (error: any) {
-      console.error('[WhatsApp Status] Erro:', error);
+      console.error('[WhatsApp N8N] Erro:', error);
       return res.status(500).json({ error: error.message });
     }
   });

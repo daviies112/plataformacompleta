@@ -281,6 +281,7 @@ export async function saveComplianceToClienteSupabase(result: CPFComplianceResul
     
     // INSERT simples para manter histórico completo de cada consulta
     // Cada consulta gera um novo registro, permitindo ver todo o histórico
+    // IMPORTANTE: processado_whatsapp_n8n=FALSE para N8N detectar e enviar notificação WhatsApp
     const { data, error } = await supabase
       .from('cpf_compliance_results')
       .insert({
@@ -293,7 +294,8 @@ export async function saveComplianceToClienteSupabase(result: CPFComplianceResul
         processos: result.processos,
         aprovado: result.aprovado,
         data_consulta: result.data_consulta,
-        check_id: result.check_id
+        check_id: result.check_id,
+        processado_whatsapp_n8n: false  // N8N detecta FALSE e marca TRUE após enviar WhatsApp
       })
       .select();
 
@@ -315,6 +317,7 @@ CREATE TABLE IF NOT EXISTS cpf_compliance_results (
   data_consulta TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   check_id UUID,
   processado_whatsapp BOOLEAN DEFAULT false,
+  processado_whatsapp_n8n BOOLEAN DEFAULT false,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -324,6 +327,7 @@ CREATE INDEX IF NOT EXISTS idx_cpf_compliance_results_aprovado ON cpf_compliance
 CREATE INDEX IF NOT EXISTS idx_cpf_compliance_results_data ON cpf_compliance_results(data_consulta DESC);
 CREATE INDEX IF NOT EXISTS idx_cpf_compliance_results_telefone ON cpf_compliance_results(telefone);
 CREATE INDEX IF NOT EXISTS idx_cpf_compliance_results_processado ON cpf_compliance_results(processado_whatsapp);
+CREATE INDEX IF NOT EXISTS idx_cpf_compliance_results_n8n ON cpf_compliance_results(processado_whatsapp_n8n);
         `);
         return { success: false, error: 'Tabela cpf_compliance_results não existe. Crie a tabela no Supabase do Cliente.' };
       }
