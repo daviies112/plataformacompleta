@@ -28,6 +28,7 @@ import { Navigate } from "react-router-dom";
 import { RootRedirect } from "@/components/RootRedirect";
 import PublicForm from "@/features/formularios-platform/pages/PublicForm";
 import FormularioPublicoWrapper from "@/features/formularios-platform/pages/FormularioPublicoWrapper";
+import AssinaturaClientPage from "@/pages/AssinaturaClientPage";
 
 // Import Revendedora Platform
 import RevendedoraApp from "@/features/revendedora/RevendedoraApp";
@@ -65,6 +66,9 @@ const MobileApp = () => {
       <Route path="/reuniao/:id" element={<ReuniaoPublica />} />
       <Route path="/reuniao/:companySlug/:id" element={<ReuniaoPublica />} />
       <Route path="/reuniao-publica/:id" element={<ReuniaoPublica />} />
+      
+      {/* Assinatura Digital - Client signing page (public) */}
+      <Route path="/assinar/:token" element={<AssinaturaClientPage />} />
       
       {/* Protected routes with Mobile Layout */}
       {/* Formulário Page - Plataforma completa com header completo */}
