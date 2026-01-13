@@ -1266,14 +1266,33 @@ publicRoomDesignRouter.get('/reunioes/:id/participant-data', async (req: Request
     const isAuthenticated = !!(req.session?.userId && req.session?.tenantId);
     console.log(`[ParticipantData] Buscando dados para reunião ${id}, phone=${phone}, email=${email}, authenticated=${isAuthenticated}`);
 
-    // 1. Get the meeting
-    const [meeting] = await db.select().from(reunioes)
-      .where(eq(reunioes.id, id))
-      .limit(1);
+    // 1. Get the meeting - try by UUID first, then by roomId100ms
+    let meeting = null;
+    
+    // Check if id is a valid UUID format
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    
+    if (isUUID) {
+      const [m] = await db.select().from(reunioes)
+        .where(eq(reunioes.id, id))
+        .limit(1);
+      meeting = m;
+    }
+    
+    // If not found by UUID, try by roomId100ms (100ms room ID)
+    if (!meeting) {
+      console.log(`[ParticipantData] ID ${id} não é UUID ou não encontrado, tentando por roomId100ms`);
+      const [m] = await db.select().from(reunioes)
+        .where(eq(reunioes.roomId100ms, id))
+        .limit(1);
+      meeting = m;
+    }
 
     if (!meeting) {
       return res.status(404).json({ error: 'Reunião não encontrada' });
     }
+    
+    console.log(`[ParticipantData] Reunião encontrada: ${meeting.id}, telefone: ${meeting.telefone}`);
 
     // 2. Try to find form submission by different methods
     let submission = null;
