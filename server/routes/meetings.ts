@@ -79,19 +79,36 @@ export const publicRoomDesignRouter = Router();
 publicRoomDesignRouter.get('/reunioes/:id/room-design-public', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    console.log(`[RoomDesign] Buscando config para ID: ${id}`);
 
-    const [meeting] = await db.select().from(reunioes)
+    // First try to find by meeting ID (UUID)
+    let meeting;
+    const [meetingById] = await db.select().from(reunioes)
       .where(eq(reunioes.id, id))
       .limit(1);
+    
+    meeting = meetingById;
+
+    // If not found, try to find by roomId100ms
+    if (!meeting) {
+      console.log(`[RoomDesign] Não encontrado por UUID, tentando por roomId100ms...`);
+      const [meetingByRoomId] = await db.select().from(reunioes)
+        .where(eq(reunioes.roomId100ms, id))
+        .limit(1);
+      meeting = meetingByRoomId;
+    }
 
     if (!meeting) {
+      console.log(`[RoomDesign] Reunião não encontrada para ID: ${id}`);
       return res.status(404).json({ error: 'Reunião não encontrada', roomDesignConfig: null });
     }
+
+    console.log(`[RoomDesign] Reunião encontrada: ${meeting.id}, tenantId: ${meeting.tenantId}`);
 
     // PRIORITY 1: Check if meeting has custom roomDesignConfig in metadata
     const meetingMetadata = meeting.metadata as any;
     if (meetingMetadata?.roomDesignConfig) {
-      console.log(`[RoomDesign] Using meeting-specific config for meeting ${id}`);
+      console.log(`[RoomDesign] Using meeting-specific config for meeting ${meeting.id}`);
       return res.json({ 
         roomDesignConfig: meetingMetadata.roomDesignConfig,
         source: 'meeting'
@@ -104,11 +121,11 @@ publicRoomDesignRouter.get('/reunioes/:id/room-design-public', async (req: Reque
       .limit(1);
     
     if (!config || !config.roomDesignConfig) {
-      console.log(`[RoomDesign] No config found for meeting ${id} or tenant ${meeting.tenantId}`);
+      console.log(`[RoomDesign] No config found for meeting ${meeting.id} or tenant ${meeting.tenantId}`);
       return res.json({ roomDesignConfig: null, source: 'none' });
     }
     
-    console.log(`[RoomDesign] Using tenant config for meeting ${id}`);
+    console.log(`[RoomDesign] Using tenant config for meeting ${meeting.id}:`, JSON.stringify(config.roomDesignConfig).substring(0, 200));
     res.json({ 
       roomDesignConfig: config.roomDesignConfig,
       source: 'tenant'
@@ -116,6 +133,158 @@ publicRoomDesignRouter.get('/reunioes/:id/room-design-public', async (req: Reque
   } catch (error: any) {
     console.error('Erro ao obter room design config público:', error);
     res.status(500).json({ error: 'Erro ao obter configuração de design', roomDesignConfig: null });
+  }
+});
+
+// Default room design config for fallback
+const DEFAULT_ROOM_DESIGN = {
+  branding: {
+    logo: null,
+    logoUrl: null,
+    companyName: '',
+    logoPosition: 'left',
+    logoSize: 40,
+    showLogoInLobby: true,
+    showLogoInMeeting: true,
+    showLogoInEnd: true,
+    showCompanyName: true,
+  },
+  colors: {
+    background: '#0f172a',
+    controlsBackground: '#18181b',
+    controlsText: '#ffffff',
+    primaryButton: '#3b82f6',
+    dangerButton: '#ef4444',
+    avatarBackground: '#3b82f6',
+    avatarText: '#ffffff',
+    participantNameBackground: 'rgba(0, 0, 0, 0.6)',
+    participantNameText: '#ffffff',
+  },
+  lobby: {
+    title: 'Pronto para participar?',
+    subtitle: '',
+    buttonText: 'Participar agora',
+    showCameraPreview: true,
+    showDeviceSelectors: true,
+    backgroundImage: null,
+  },
+  meeting: {
+    enableChat: true,
+    enableScreenShare: true,
+    enableRaiseHand: true,
+    enableReactions: true,
+    showParticipantCount: true,
+    showMeetingCode: true,
+    showRecordingIndicator: true,
+  },
+  endScreen: {
+    title: 'Reunião Encerrada',
+    message: 'Obrigado por participar!',
+    showFeedback: false,
+    redirectUrl: null,
+  },
+};
+
+// Helper function to deep merge room design configs
+function mergeRoomDesignConfigs(base: any, override: any): any {
+  if (!override) return base;
+  return {
+    branding: { ...base.branding, ...(override.branding || {}) },
+    colors: { ...base.colors, ...(override.colors || {}) },
+    lobby: { ...base.lobby, ...(override.lobby || {}) },
+    meeting: { ...base.meeting, ...(override.meeting || {}) },
+    endScreen: { ...base.endScreen, ...(override.endScreen || {}) },
+  };
+}
+
+// PUBLIC endpoint - Get full meeting room data for PublicMeetingRoom.tsx
+// This endpoint is called by the frontend to get meeting + tenant + roomDesignConfig
+publicRoomDesignRouter.get('/reunioes/public/:companySlug/:roomId', async (req: Request, res: Response) => {
+  try {
+    const { companySlug, roomId } = req.params;
+    console.log(`[PublicMeetingRoom] Buscando reunião: companySlug=${companySlug}, roomId=${roomId}`);
+
+    // Determine if roomId looks like a UUID
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(roomId);
+    
+    let meeting;
+    
+    // Try by roomId100ms first (most common for 100ms room IDs)
+    const [meetingByRoomId] = await db.select().from(reunioes)
+      .where(eq(reunioes.roomId100ms, roomId))
+      .limit(1);
+    meeting = meetingByRoomId;
+
+    // If not found and looks like UUID, try by ID
+    if (!meeting && isUUID) {
+      const [meetingById] = await db.select().from(reunioes)
+        .where(eq(reunioes.id, roomId))
+        .limit(1);
+      meeting = meetingById;
+    }
+
+    if (!meeting) {
+      console.log(`[PublicMeetingRoom] Reunião não encontrada para roomId=${roomId}`);
+      return res.status(404).json({ error: 'Reunião não encontrada' });
+    }
+
+    console.log(`[PublicMeetingRoom] Reunião encontrada: ${meeting.id}, tenantId=${meeting.tenantId}`);
+
+    // Get tenant info from 100ms config (includes tenant name/logo)
+    const [tenantConfig] = await db.select().from(hms100msConfig)
+      .where(eq(hms100msConfig.tenantId, meeting.tenantId))
+      .limit(1);
+
+    // Build complete room design config using deep merge:
+    // 1. Start with defaults
+    // 2. Merge with tenant config
+    // 3. Merge with meeting-specific overrides (if any)
+    let finalConfig = { ...DEFAULT_ROOM_DESIGN };
+    
+    if (tenantConfig?.roomDesignConfig) {
+      finalConfig = mergeRoomDesignConfigs(finalConfig, tenantConfig.roomDesignConfig);
+      console.log(`[PublicMeetingRoom] Usando config do tenant`);
+    }
+    
+    const meetingMetadata = meeting.metadata as any;
+    if (meetingMetadata?.roomDesignConfig) {
+      finalConfig = mergeRoomDesignConfigs(finalConfig, meetingMetadata.roomDesignConfig);
+      console.log(`[PublicMeetingRoom] Aplicando overrides da reunião`);
+    }
+
+    // Normalize logo field (support both 'logo' and 'logoUrl')
+    const logoUrl = finalConfig.branding?.logoUrl || finalConfig.branding?.logo || null;
+
+    console.log(`[PublicMeetingRoom] Cores finais: primaryButton=${finalConfig.colors?.primaryButton}, background=${finalConfig.colors?.background}`);
+
+    // Build response matching PublicMeetingData interface
+    res.json({
+      reuniao: {
+        id: meeting.id,
+        titulo: meeting.titulo || 'Reunião',
+        descricao: meeting.descricao || '',
+        dataInicio: meeting.dataHora?.toISOString() || new Date().toISOString(),
+        dataFim: meeting.dataHoraFim?.toISOString() || new Date().toISOString(),
+        duracao: meeting.duracao || 60,
+        status: meeting.status || 'agendada',
+        roomId100ms: meeting.roomId100ms,
+        roomCode100ms: meeting.roomCode100ms,
+        linkReuniao: meeting.linkReuniao,
+        nome: (meeting.metadata as any)?.participantName,
+        email: (meeting.metadata as any)?.participantEmail,
+      },
+      tenant: {
+        id: meeting.tenantId,
+        nome: finalConfig.branding?.companyName || companySlug,
+        slug: companySlug,
+        logoUrl: logoUrl,
+      },
+      designConfig: {}, // Legacy field
+      roomDesignConfig: finalConfig,
+    });
+  } catch (error: any) {
+    console.error('[PublicMeetingRoom] Erro ao buscar reunião pública:', error);
+    res.status(500).json({ error: 'Erro ao buscar reunião' });
   }
 });
 
