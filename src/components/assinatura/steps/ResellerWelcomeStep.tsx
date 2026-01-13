@@ -1,15 +1,25 @@
+import { useEffect, useState } from 'react';
 import { Gift, MapPin, Truck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useContract } from '@/contexts/ContractContext';
 import { useToast } from '@/hooks/use-toast';
-import { useState, useEffect } from 'react';
 
 const brazilianStates = [
   'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA',
   'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN',
   'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'
 ];
+
+interface InitialAddress {
+  street?: string;
+  number?: string;
+  neighborhood?: string;
+  city?: string;
+  state?: string;
+  zipcode?: string;
+  complement?: string;
+}
 
 interface ResellerWelcomeStepProps {
   client_name?: string;
@@ -23,6 +33,7 @@ interface ResellerWelcomeStepProps {
   parabens_font_family?: string;
   parabens_form_title?: string;
   parabens_button_text?: string;
+  initialAddress?: InitialAddress;
 }
 
 export const ResellerWelcomeStep = (props: ResellerWelcomeStepProps = {}) => {
@@ -30,14 +41,30 @@ export const ResellerWelcomeStep = (props: ResellerWelcomeStepProps = {}) => {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
-    street: '',
-    number: '',
-    neighborhood: '',
-    city: '',
-    state: '',
-    zipcode: '',
-    complement: ''
+    street: props.initialAddress?.street || '',
+    number: props.initialAddress?.number || '',
+    neighborhood: props.initialAddress?.neighborhood || '',
+    city: props.initialAddress?.city || '',
+    state: props.initialAddress?.state || '',
+    zipcode: props.initialAddress?.zipcode || '',
+    complement: props.initialAddress?.complement || ''
   });
+
+  useEffect(() => {
+    if (props.initialAddress) {
+      console.log('[ResellerWelcomeStep] Preenchendo endereço inicial:', props.initialAddress);
+      setFormData(prev => ({
+        ...prev,
+        street: props.initialAddress?.street || prev.street,
+        number: props.initialAddress?.number || prev.number,
+        neighborhood: props.initialAddress?.neighborhood || prev.neighborhood,
+        city: props.initialAddress?.city || prev.city,
+        state: props.initialAddress?.state || prev.state,
+        zipcode: props.initialAddress?.zipcode || prev.zipcode,
+        complement: props.initialAddress?.complement || prev.complement
+      }));
+    }
+  }, [props.initialAddress]);
 
   const clientName = props.client_name || 'Nova Revendedora';
   const parabensTitle = props.parabens_title || `Parabéns, ${clientName}!`;

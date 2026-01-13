@@ -194,6 +194,28 @@ const ProgressTrackerDisplay = ({ currentStep, contract }: ProgressTrackerDispla
   );
 };
 
+interface ParticipantData {
+  found: boolean;
+  formSubmissionId?: string;
+  participantData?: {
+    nome?: string;
+    email?: string;
+    telefone?: string;
+    cpf?: string;
+    instagram?: string;
+    dataNascimento?: string;
+    endereco?: {
+      cep?: string;
+      rua?: string;
+      numero?: string;
+      complemento?: string;
+      bairro?: string;
+      cidade?: string;
+      estado?: string;
+    };
+  };
+}
+
 const AssinaturaClientContent = () => {
   const { token } = useParams<{ token: string }>();
   const { toast } = useToast();
@@ -215,6 +237,28 @@ const AssinaturaClientContent = () => {
         throw new Error(`Failed to fetch contract: ${res.status}`);
       }
       return await res.json();
+    }
+  });
+
+  const { data: participantData } = useQuery<ParticipantData | null>({
+    queryKey: ['/api/assinatura/public/contracts', token, 'participant-data'],
+    enabled: !!token && !!contract,
+    queryFn: async () => {
+      try {
+        const res = await fetch(`/api/assinatura/public/contracts/${token}/participant-data`, {
+          credentials: 'include'
+        });
+        if (!res.ok) {
+          console.log('[AssinaturaClientPage] Erro ao buscar participant-data:', res.status);
+          return null;
+        }
+        const data = await res.json();
+        console.log('[AssinaturaClientPage] Participant data:', data);
+        return data;
+      } catch (err) {
+        console.error('[AssinaturaClientPage] Erro ao buscar participant-data:', err);
+        return null;
+      }
     }
   });
 
@@ -394,6 +438,15 @@ const AssinaturaClientContent = () => {
           parabens_font_family={contract.parabens_font_family || undefined}
           parabens_form_title={contract.parabens_form_title || undefined}
           parabens_button_text={contract.parabens_button_text || undefined}
+          initialAddress={participantData?.participantData?.endereco ? {
+            street: participantData.participantData.endereco.rua || '',
+            number: participantData.participantData.endereco.numero || '',
+            neighborhood: participantData.participantData.endereco.bairro || '',
+            city: participantData.participantData.endereco.cidade || '',
+            state: participantData.participantData.endereco.estado || '',
+            zipcode: participantData.participantData.endereco.cep || '',
+            complement: participantData.participantData.endereco.complemento || ''
+          } : undefined}
         />
       </div>
     );

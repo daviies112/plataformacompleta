@@ -528,6 +528,190 @@ router.post('/contracts/:id/finalize', async (req: Request, res: Response) => {
   }
 });
 
+router.get('/contracts/:token/participant-data', async (req: Request, res: Response) => {
+  try {
+    const { token } = req.params;
+    
+    console.log(`[Assinatura] Buscando participant-data para token ${token}`);
+    
+    // Get the contract
+    let contract: LocalContract | null = null;
+    
+    if (assinaturaSupabaseService.isConnected()) {
+      let c = await assinaturaSupabaseService.getContractByToken(token);
+      if (!c) {
+        c = await assinaturaSupabaseService.getContractById(token);
+      }
+      if (c) {
+        contract = c as unknown as LocalContract;
+      }
+    }
+    
+    if (!contract) {
+      contract = Array.from(localContractsStore.values()).find(
+        (c) => c.access_token === token
+      ) || null;
+    }
+    
+    if (!contract) {
+      contract = localContractsStore.get(token) || null;
+    }
+
+    if (!contract) {
+      console.log(`[Assinatura] Contrato não encontrado para token: ${token}`);
+      return res.status(404).json({ error: 'Contrato não encontrado' });
+    }
+    
+    const contractPhone = contract.client_phone;
+    const contractEmail = contract.client_email;
+    
+    console.log(`[Assinatura] Contrato encontrado: ${contract.id}, telefone: ${contractPhone}, email: ${contractEmail}`);
+    
+    // Try to find form submission in Supabase
+    let submission: any = null;
+    let supabaseClient: any = null;
+    
+    // Get Supabase client
+    try {
+      const { getClienteSupabase, isClienteSupabaseConfigured } = await import('../lib/clienteSupabase.js');
+      if (await isClienteSupabaseConfigured()) {
+        supabaseClient = await getClienteSupabase();
+        console.log('[Assinatura] Supabase do cliente configurado para busca de dados');
+      }
+    } catch (e) {
+      console.log('[Assinatura] Supabase do cliente não disponível');
+    }
+    
+    // Normalize phone for search
+    const normalizePhone = (p: string | null | undefined) => p?.replace(/@s\.whatsapp\.net/g, '').replace(/\D/g, '') || '';
+    const searchPhone = normalizePhone(contractPhone);
+    const searchEmail = (contractEmail || '').toLowerCase();
+    
+    // Try Supabase first
+    if (supabaseClient) {
+      // Try by phone
+      if (searchPhone && !submission) {
+        console.log(`[Assinatura] Supabase: buscando por telefone: ${searchPhone}`);
+        const { data: subs, error } = await supabaseClient
+          .from('form_submissions')
+          .select('*')
+          .or(`contact_phone.ilike.%${searchPhone}%,contact_phone.ilike.%${searchPhone.slice(-9)}%`)
+          .order('created_at', { ascending: false })
+          .limit(1);
+        if (!error && subs && subs.length > 0) {
+          submission = subs[0];
+          console.log(`[Assinatura] Supabase: encontrado por telefone: ${submission.id}`);
+        }
+      }
+      
+      // Try by email
+      if (!submission && searchEmail) {
+        console.log(`[Assinatura] Supabase: buscando por email: ${searchEmail}`);
+        const { data: subs, error } = await supabaseClient
+          .from('form_submissions')
+          .select('*')
+          .ilike('contact_email', searchEmail)
+          .order('created_at', { ascending: false })
+          .limit(1);
+        if (!error && subs && subs.length > 0) {
+          submission = subs[0];
+          console.log(`[Assinatura] Supabase: encontrado por email: ${submission.id}`);
+        }
+      }
+    }
+    
+    // Fallback to local DB if available
+    if (!submission) {
+      try {
+        const { db } = await import('../db.js');
+        const { formSubmissions } = await import('../../shared/db-schema.js');
+        const { desc, sql } = await import('drizzle-orm');
+        
+        if (searchPhone) {
+          console.log(`[Assinatura] Local DB: buscando por telefone: ${searchPhone}`);
+          const [sub] = await db.select().from(formSubmissions)
+            .where(sql`REPLACE(REPLACE(REPLACE(REPLACE(${formSubmissions.contactPhone}, '-', ''), ' ', ''), '(', ''), ')', '') LIKE '%' || ${searchPhone} || '%'`)
+            .orderBy(desc(formSubmissions.createdAt))
+            .limit(1);
+          if (sub) submission = sub;
+        }
+
+        if (!submission && searchEmail) {
+          console.log(`[Assinatura] Local DB: buscando por email: ${searchEmail}`);
+          const [sub] = await db.select().from(formSubmissions)
+            .where(sql`LOWER(${formSubmissions.contactEmail}) = LOWER(${searchEmail})`)
+            .orderBy(desc(formSubmissions.createdAt))
+            .limit(1);
+          if (sub) submission = sub;
+        }
+      } catch (dbError) {
+        console.log('[Assinatura] Erro ao buscar no DB local:', dbError);
+      }
+    }
+
+    if (!submission) {
+      console.log(`[Assinatura] Nenhum form_submission encontrado para contrato ${contract.id}`);
+      return res.json({ 
+        found: false,
+        message: 'Nenhum formulário encontrado para este participante',
+        contractData: {
+          nome: contract.client_name,
+          email: contract.client_email,
+          telefone: contract.client_phone,
+          cpf: contract.client_cpf
+        }
+      });
+    }
+
+    // Normalize submission field names (Supabase uses snake_case)
+    const contactName = submission.contact_name || submission.contactName;
+    const contactEmail = submission.contact_email || submission.contactEmail;
+    const contactPhone = submission.contact_phone || submission.contactPhone;
+    const contactCpf = submission.contact_cpf || submission.contactCpf;
+    const instagramHandle = submission.instagram_handle || submission.instagramHandle;
+    const birthDate = submission.birth_date || submission.birthDate;
+    const addressCep = submission.address_cep || submission.addressCep;
+    const addressStreet = submission.address_street || submission.addressStreet;
+    const addressNumber = submission.address_number || submission.addressNumber;
+    const addressComplement = submission.address_complement || submission.addressComplement;
+    const addressNeighborhood = submission.address_neighborhood || submission.addressNeighborhood;
+    const addressCity = submission.address_city || submission.addressCity;
+    const addressState = submission.address_state || submission.addressState;
+
+    console.log(`[Assinatura] Form submission encontrado: ${submission.id}, endereco: rua=${addressStreet}, cidade=${addressCity}`);
+
+    res.json({
+      found: true,
+      formSubmissionId: submission.id,
+      participantData: {
+        nome: contactName || contract.client_name,
+        email: contactEmail || contract.client_email,
+        telefone: contactPhone || contract.client_phone,
+        cpf: contactCpf || contract.client_cpf,
+        instagram: instagramHandle,
+        dataNascimento: birthDate,
+        endereco: {
+          cep: addressCep,
+          rua: addressStreet,
+          numero: addressNumber,
+          complemento: addressComplement,
+          bairro: addressNeighborhood,
+          cidade: addressCity,
+          estado: addressState
+        }
+      },
+      contractData: {
+        id: contract.id,
+        nome: contract.client_name,
+        source: supabaseClient ? 'supabase' : 'local'
+      }
+    });
+  } catch (error) {
+    console.error('[Assinatura] Erro ao buscar participant-data:', error);
+    res.status(500).json({ error: 'Falha ao buscar dados do participante' });
+  }
+});
+
 router.delete('/contracts/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
