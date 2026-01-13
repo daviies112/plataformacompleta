@@ -746,6 +746,182 @@ router.get('/contracts/:token/participant-data', async (req: Request, res: Respo
   }
 });
 
+// App Promotion Configs - Global config for app store URLs
+const APP_PROMOTION_CONFIG_FILE = path.join(process.cwd(), 'data', 'app_promotion_config.json');
+const GLOBAL_CONTRACT_ID = '550e8400-e29b-41d4-a716-446655440000';
+
+interface AppPromotionConfig {
+  id?: string;
+  contract_id: string;
+  app_store_url: string;
+  google_play_url: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
+function loadLocalAppPromotionConfig(): AppPromotionConfig | null {
+  try {
+    ensureDataDir();
+    if (fs.existsSync(APP_PROMOTION_CONFIG_FILE)) {
+      const data = fs.readFileSync(APP_PROMOTION_CONFIG_FILE, 'utf-8');
+      return JSON.parse(data);
+    }
+  } catch (error) {
+    console.error('[Assinatura] Erro ao carregar app promotion config local:', error);
+  }
+  return null;
+}
+
+function saveLocalAppPromotionConfig(config: AppPromotionConfig): void {
+  try {
+    ensureDataDir();
+    fs.writeFileSync(APP_PROMOTION_CONFIG_FILE, JSON.stringify(config, null, 2));
+  } catch (error) {
+    console.error('[Assinatura] Erro ao salvar app promotion config local:', error);
+  }
+}
+
+// GET /api/assinatura/app-promotion - Load app promotion URLs (public endpoint)
+router.get('/app-promotion', async (req: Request, res: Response) => {
+  try {
+    console.log('[Assinatura] Buscando app promotion config');
+    
+    // Try Supabase first
+    if (assinaturaSupabaseService.isConnected()) {
+      try {
+        const supabase = (assinaturaSupabaseService as any).supabase;
+        if (supabase) {
+          const { data, error } = await supabase
+            .from('app_promotion_configs')
+            .select('*')
+            .eq('contract_id', GLOBAL_CONTRACT_ID)
+            .single();
+          
+          if (!error && data) {
+            console.log('[Assinatura] App promotion config encontrado no Supabase');
+            return res.json({
+              app_store_url: data.app_store_url || '',
+              google_play_url: data.google_play_url || ''
+            });
+          }
+        }
+      } catch (supaError) {
+        console.log('[Assinatura] Erro ao buscar do Supabase:', supaError);
+      }
+    }
+    
+    // Fallback to local storage
+    const localConfig = loadLocalAppPromotionConfig();
+    if (localConfig) {
+      console.log('[Assinatura] App promotion config carregado do local');
+      return res.json({
+        app_store_url: localConfig.app_store_url || '',
+        google_play_url: localConfig.google_play_url || ''
+      });
+    }
+    
+    // Return empty defaults
+    console.log('[Assinatura] Sem app promotion config, retornando defaults');
+    res.json({
+      app_store_url: '',
+      google_play_url: ''
+    });
+  } catch (error) {
+    console.error('[Assinatura] Erro ao buscar app promotion config:', error);
+    res.json({
+      app_store_url: '',
+      google_play_url: ''
+    });
+  }
+});
+
+// PUT /api/assinatura/app-promotion - Save app promotion URLs (UPSERT)
+router.put('/app-promotion', async (req: Request, res: Response) => {
+  try {
+    const { app_store_url, google_play_url } = req.body;
+    
+    console.log('[Assinatura] Salvando app promotion config:', { app_store_url, google_play_url });
+    
+    const now = new Date().toISOString();
+    const config: AppPromotionConfig = {
+      contract_id: GLOBAL_CONTRACT_ID,
+      app_store_url: app_store_url || '',
+      google_play_url: google_play_url || '',
+      updated_at: now
+    };
+    
+    // Save to Supabase
+    if (assinaturaSupabaseService.isConnected()) {
+      try {
+        const supabase = (assinaturaSupabaseService as any).supabase;
+        if (supabase) {
+          // Try upsert
+          const { data, error } = await supabase
+            .from('app_promotion_configs')
+            .upsert({
+              contract_id: GLOBAL_CONTRACT_ID,
+              app_store_url: config.app_store_url,
+              google_play_url: config.google_play_url,
+              updated_at: now
+            }, { onConflict: 'contract_id' })
+            .select()
+            .single();
+          
+          if (!error && data) {
+            console.log('[Assinatura] App promotion config salvo no Supabase');
+            // Also save locally as backup
+            saveLocalAppPromotionConfig({ ...config, id: data.id });
+            return res.json({
+              success: true,
+              app_store_url: data.app_store_url,
+              google_play_url: data.google_play_url
+            });
+          } else if (error) {
+            console.log('[Assinatura] Erro no upsert Supabase:', error.message);
+            // If upsert fails, try insert
+            const { data: insertData, error: insertError } = await supabase
+              .from('app_promotion_configs')
+              .insert({
+                contract_id: GLOBAL_CONTRACT_ID,
+                app_store_url: config.app_store_url,
+                google_play_url: config.google_play_url,
+                created_at: now,
+                updated_at: now
+              })
+              .select()
+              .single();
+            
+            if (!insertError && insertData) {
+              console.log('[Assinatura] App promotion config inserido no Supabase');
+              saveLocalAppPromotionConfig({ ...config, id: insertData.id });
+              return res.json({
+                success: true,
+                app_store_url: insertData.app_store_url,
+                google_play_url: insertData.google_play_url
+              });
+            }
+          }
+        }
+      } catch (supaError) {
+        console.log('[Assinatura] Erro ao salvar no Supabase:', supaError);
+      }
+    }
+    
+    // Fallback: save locally
+    saveLocalAppPromotionConfig(config);
+    console.log('[Assinatura] App promotion config salvo localmente');
+    
+    res.json({
+      success: true,
+      app_store_url: config.app_store_url,
+      google_play_url: config.google_play_url
+    });
+  } catch (error) {
+    console.error('[Assinatura] Erro ao salvar app promotion config:', error);
+    res.status(500).json({ error: 'Falha ao salvar configurações de apps' });
+  }
+});
+
 router.delete('/contracts/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;

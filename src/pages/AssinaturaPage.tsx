@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import * as React from 'react';
 import { useLocation } from 'wouter';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -151,41 +152,55 @@ const AssinaturaPage = () => {
   // Carregar Configurações Globais (incluindo links de apps)
   const { data: globalConfig } = useQuery<any>({
     queryKey: ['/api/assinatura/global-config'],
-    onSuccess: (data) => {
-      if (data) {
-        if (data.app_store_url) setAppStoreUrl(data.app_store_url);
-        if (data.google_play_url) setGooglePlayUrl(data.google_play_url);
-        // Preencher outros campos se necessário
-        if (data.logo_url) setLogoUrl(data.logo_url);
-        if (data.company_name) setCompanyName(data.company_name);
-      }
-    }
+  });
+  
+  // Carregar URLs de Apps da nova tabela app_promotion_configs
+  const { data: appPromotionConfig, isLoading: isLoadingAppPromotion } = useQuery<{
+    app_store_url: string;
+    google_play_url: string;
+  }>({
+    queryKey: ['/api/assinatura/app-promotion'],
   });
 
-  const saveGlobalConfigMutation = useMutation({
-    mutationFn: async (configData: any) => {
-      const response = await apiRequest('PUT', '/api/assinatura/global-config', configData);
+  // Atualizar campos quando config global carregar
+  React.useEffect(() => {
+    if (globalConfig) {
+      if (globalConfig.logo_url) setLogoUrl(globalConfig.logo_url);
+      if (globalConfig.company_name) setCompanyName(globalConfig.company_name);
+    }
+  }, [globalConfig]);
+
+  // Atualizar campos de app quando app promotion config carregar
+  React.useEffect(() => {
+    if (appPromotionConfig) {
+      if (appPromotionConfig.app_store_url) setAppStoreUrl(appPromotionConfig.app_store_url);
+      if (appPromotionConfig.google_play_url) setGooglePlayUrl(appPromotionConfig.google_play_url);
+    }
+  }, [appPromotionConfig]);
+
+  const saveAppPromotionMutation = useMutation({
+    mutationFn: async (configData: { app_store_url: string; google_play_url: string }) => {
+      const response = await apiRequest('PUT', '/api/assinatura/app-promotion', configData);
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/assinatura/global-config'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/assinatura/app-promotion'] });
       toast({
-        title: 'Configurações salvas',
-        description: 'Os links dos aplicativos foram atualizados com sucesso.',
+        title: 'Links salvos',
+        description: 'Os links dos aplicativos foram atualizados com sucesso no Supabase.',
       });
     },
     onError: () => {
       toast({
         title: 'Erro ao salvar',
-        description: 'Não foi possível salvar as configurações dos aplicativos.',
+        description: 'Não foi possível salvar os links dos aplicativos.',
         variant: 'destructive',
       });
     }
   });
 
   const handleSaveAppLinks = () => {
-    saveGlobalConfigMutation.mutate({
-      ...globalConfig,
+    saveAppPromotionMutation.mutate({
       app_store_url: appStoreUrl,
       google_play_url: googlePlayUrl
     });
@@ -1658,31 +1673,63 @@ const AssinaturaPage = () => {
         <TabsContent value="aplicativos" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Links dos Aplicativos</CardTitle>
-              <CardDescription>URLs das lojas de aplicativos</CardDescription>
+              <CardTitle className="flex items-center gap-2">
+                <Smartphone className="w-5 h-5" />
+                Links dos Aplicativos
+              </CardTitle>
+              <CardDescription>URLs das lojas de aplicativos para download. Essas URLs serão exibidas na tela de promoção do app após a assinatura.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="appStoreUrl">App Store (iOS)</Label>
-                <Input
-                  id="appStoreUrl"
-                  value={appStoreUrl}
-                  onChange={(e) => setAppStoreUrl(e.target.value)}
-                  placeholder="https://apps.apple.com/..."
-                  data-testid="input-app-store-url"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="googlePlayUrl">Google Play (Android)</Label>
-                <Input
-                  id="googlePlayUrl"
-                  value={googlePlayUrl}
-                  onChange={(e) => setGooglePlayUrl(e.target.value)}
-                  placeholder="https://play.google.com/..."
-                  data-testid="input-google-play-url"
-                />
-              </div>
+              {isLoadingAppPromotion ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+                  <span className="ml-2 text-muted-foreground">Carregando...</span>
+                </div>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="appStoreUrl">App Store (iOS)</Label>
+                    <Input
+                      id="appStoreUrl"
+                      value={appStoreUrl}
+                      onChange={(e) => setAppStoreUrl(e.target.value)}
+                      placeholder="https://apps.apple.com/..."
+                      data-testid="input-app-store-url"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="googlePlayUrl">Google Play (Android)</Label>
+                    <Input
+                      id="googlePlayUrl"
+                      value={googlePlayUrl}
+                      onChange={(e) => setGooglePlayUrl(e.target.value)}
+                      placeholder="https://play.google.com/..."
+                      data-testid="input-google-play-url"
+                    />
+                  </div>
+                </>
+              )}
             </CardContent>
+            <CardFooter>
+              <Button 
+                onClick={handleSaveAppLinks}
+                disabled={saveAppPromotionMutation.isPending || isLoadingAppPromotion}
+                className="w-full"
+                data-testid="button-save-app-links"
+              >
+                {saveAppPromotionMutation.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Salvando...
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-4 h-4 mr-2" />
+                    Salvar Links
+                  </>
+                )}
+              </Button>
+            </CardFooter>
           </Card>
         </TabsContent>
 

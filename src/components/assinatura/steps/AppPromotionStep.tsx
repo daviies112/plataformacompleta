@@ -1,13 +1,30 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ShoppingBag, Trophy, TrendingUp, Smartphone, ArrowRight, CheckCircle2 } from "lucide-react";
+import { ShoppingBag, Trophy, TrendingUp, Smartphone, ArrowRight, CheckCircle2, Loader2 } from "lucide-react";
 import { useContract } from "@/contexts/ContractContext";
+import { useQuery } from "@tanstack/react-query";
+
+interface AppPromotionConfig {
+  app_store_url: string;
+  google_play_url: string;
+}
 
 export const AppPromotionStep = () => {
   const { setCurrentStep, contractData } = useContract();
   
-  const googlePlayUrl = (contractData as any)?.google_play_url || 'https://play.google.com/store';
-  const appStoreUrl = (contractData as any)?.app_store_url || 'https://www.apple.com/app-store/';
+  // Fetch app promotion URLs from API (public endpoint - no auth required)
+  const { data: appPromotionConfig, isLoading } = useQuery<AppPromotionConfig>({
+    queryKey: ['/api/assinatura/public/app-promotion'],
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
+  
+  // Use API URLs first, fallback to contractData, then to defaults
+  const googlePlayUrl = appPromotionConfig?.google_play_url || 
+    (contractData as any)?.google_play_url || 
+    'https://play.google.com/store';
+  const appStoreUrl = appPromotionConfig?.app_store_url || 
+    (contractData as any)?.app_store_url || 
+    'https://www.apple.com/app-store/';
 
   const features = [
     {
