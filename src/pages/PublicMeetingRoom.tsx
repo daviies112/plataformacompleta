@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, lazy, Suspense } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Loader2, Video, Clock, AlertCircle, Calendar, Star, ThumbsUp, ThumbsDown, FileSignature } from "lucide-react";
@@ -6,7 +6,6 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 
-import { Meeting100msWithProvider } from "@/components/Meeting100ms";
 import { MeetingLobby } from "@/components/MeetingLobby";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -14,6 +13,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Textarea } from "@/components/ui/textarea";
 import { DesignConfig, RoomDesignConfig, DEFAULT_ROOM_DESIGN_CONFIG } from "@/types/reuniao";
 import { publicApi } from "@/lib/api";
+
+const Meeting100msWithProvider = lazy(() => 
+  import("@/components/Meeting100ms").then(module => ({ 
+    default: module.Meeting100msWithProvider 
+  }))
+);
 
 interface PublicMeetingData {
   reuniao: {
@@ -438,12 +443,32 @@ function MeetingWrapper({
   }
 
   return (
-    <Meeting100msWithProvider
-      roomId={reuniao.roomId100ms}
-      authToken={authToken}
-      userName={participantName}
-      config={roomDesignConfig}
-      onLeave={onLeave}
-    />
+    <Suspense 
+      fallback={
+        <div 
+          className="min-h-screen flex flex-col items-center justify-center p-4"
+          style={{ backgroundColor: roomDesignConfig.colors.background }}
+        >
+          <Loader2 
+            className="h-12 w-12 animate-spin mb-6" 
+            style={{ color: roomDesignConfig.colors.primaryButton }}
+          />
+          <h2 
+            className="text-xl font-bold mb-2"
+            style={{ color: roomDesignConfig.colors.controlsText }}
+          >
+            Carregando sala de reunião...
+          </h2>
+        </div>
+      }
+    >
+      <Meeting100msWithProvider
+        roomId={reuniao.roomId100ms}
+        authToken={authToken}
+        userName={participantName}
+        config={roomDesignConfig}
+        onLeave={onLeave}
+      />
+    </Suspense>
   );
 }

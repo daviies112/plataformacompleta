@@ -1,7 +1,6 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Meeting100msWithProvider } from "@/components/Meeting100ms";
 import { MeetingLobby } from "@/components/MeetingLobby";
 import { useReuniao } from "@/hooks/useReuniao";
 import { Button } from "@/components/ui/button";
@@ -15,6 +14,12 @@ import { ptBR } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
 import { api } from "@/lib/api";
 import { DEFAULT_ROOM_DESIGN_CONFIG, type RoomDesignConfig } from "@/types/reuniao";
+
+const Meeting100msWithProvider = lazy(() => 
+  import("@/components/Meeting100ms").then(module => ({ 
+    default: module.Meeting100msWithProvider 
+  }))
+);
 
 type MeetingStep = "lobby" | "meeting" | "ended";
 
@@ -521,13 +526,43 @@ export default function Reuniao() {
         </div>
         
         <div className="flex-1 min-h-0">
-           <Meeting100msWithProvider 
-             roomId={meeting.roomId100ms} 
-             userName={userName}
-             authToken={token100ms}
-             onLeave={handleLeaveMeeting} 
-             config={roomConfig}
-           />
+           <Suspense 
+             fallback={
+               <div 
+                 className="w-full h-full min-h-[50vh] flex flex-col items-center justify-center p-4"
+                 style={{ 
+                   backgroundColor: roomConfig.colors.controlsBackground,
+                   borderRadius: '8px',
+                   margin: '16px'
+                 }}
+               >
+                 <Loader2 
+                   className="h-12 w-12 animate-spin mb-6" 
+                   style={{ color: roomConfig.colors.primaryButton }}
+                 />
+                 <h2 
+                   className="text-xl font-bold mb-2 text-center"
+                   style={{ color: roomConfig.colors.controlsText }}
+                 >
+                   Carregando sala de reunião...
+                 </h2>
+                 <p 
+                   className="text-sm opacity-70 text-center"
+                   style={{ color: roomConfig.colors.controlsText }}
+                 >
+                   Preparando sua videoconferência
+                 </p>
+               </div>
+             }
+           >
+             <Meeting100msWithProvider 
+               roomId={meeting.roomId100ms} 
+               userName={userName}
+               authToken={token100ms}
+               onLeave={handleLeaveMeeting} 
+               config={roomConfig}
+             />
+           </Suspense>
         </div>
       </div>
     );
