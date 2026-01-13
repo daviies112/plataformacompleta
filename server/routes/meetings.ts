@@ -231,9 +231,58 @@ publicRoomDesignRouter.get('/reunioes/public/:companySlug/:roomId', async (req: 
     console.log(`[PublicMeetingRoom] Reunião encontrada: ${meeting.id}, tenantId=${meeting.tenantId}`);
 
     // Get tenant info from 100ms config (includes tenant name/logo)
-    const [tenantConfig] = await db.select().from(hms100msConfig)
+    let [tenantConfig] = await db.select().from(hms100msConfig)
       .where(eq(hms100msConfig.tenantId, meeting.tenantId))
       .limit(1);
+
+    console.log(`[PublicMeetingRoom] PostgreSQL config found: ${!!tenantConfig}, has roomDesignConfig: ${!!tenantConfig?.roomDesignConfig}`);
+
+    // Supabase fallback: If no roomDesignConfig in PostgreSQL, try fetching from Supabase
+    if (!tenantConfig?.roomDesignConfig) {
+      console.log(`[PublicMeetingRoom] No roomDesignConfig in PostgreSQL, trying Supabase fallback...`);
+      try {
+        const supabase = await getClientSupabaseClient(meeting.tenantId);
+        if (supabase) {
+          const { data: supabaseConfig, error } = await supabase
+            .from('hms_100ms_config')
+            .select('room_design_config')
+            .eq('tenant_id', meeting.tenantId)
+            .single();
+
+          if (!error && supabaseConfig?.room_design_config) {
+            console.log(`[PublicMeetingRoom] Found roomDesignConfig in Supabase, caching to PostgreSQL...`);
+            
+            // Cache back to PostgreSQL
+            if (!tenantConfig) {
+              // INSERT new row
+              const [inserted] = await db.insert(hms100msConfig)
+                .values({
+                  tenantId: meeting.tenantId,
+                  appAccessKey: 'pending_configuration',
+                  appSecret: 'pending_configuration',
+                  roomDesignConfig: supabaseConfig.room_design_config,
+                })
+                .returning();
+              tenantConfig = inserted;
+            } else {
+              // UPDATE existing row
+              const [updated] = await db.update(hms100msConfig)
+                .set({ roomDesignConfig: supabaseConfig.room_design_config, updatedAt: new Date() })
+                .where(eq(hms100msConfig.tenantId, meeting.tenantId))
+                .returning();
+              tenantConfig = updated;
+            }
+            console.log(`[PublicMeetingRoom] Cached Supabase config to PostgreSQL`);
+          } else {
+            console.log(`[PublicMeetingRoom] Supabase fallback: no config found or error:`, error?.message);
+          }
+        } else {
+          console.log(`[PublicMeetingRoom] Supabase client not available for tenant ${meeting.tenantId}`);
+        }
+      } catch (supabaseErr: any) {
+        console.warn(`[PublicMeetingRoom] Supabase fallback error:`, supabaseErr.message);
+      }
+    }
 
     // Build complete room design config using deep merge:
     // 1. Start with defaults
@@ -243,7 +292,9 @@ publicRoomDesignRouter.get('/reunioes/public/:companySlug/:roomId', async (req: 
     
     if (tenantConfig?.roomDesignConfig) {
       finalConfig = mergeRoomDesignConfigs(finalConfig, tenantConfig.roomDesignConfig);
-      console.log(`[PublicMeetingRoom] Usando config do tenant`);
+      console.log(`[PublicMeetingRoom] Usando config do tenant (colors: ${JSON.stringify(tenantConfig.roomDesignConfig?.colors).substring(0, 80)}...)`);
+    } else {
+      console.log(`[PublicMeetingRoom] No tenant config found, using defaults`);
     }
     
     const meetingMetadata = meeting.metadata as any;
@@ -864,36 +915,76 @@ meetingsRouter.patch('/reunioes/room-design', authenticateToken, requireTenantId
     const tenantId = req.user!.tenantId;
     const { roomDesignConfig } = req.body;
     
+    console.log(`[RoomDesign PATCH] Salvando config para tenant: ${tenantId}`);
+    
     if (!roomDesignConfig) {
       return res.status(400).json({ error: 'Configuração de design é obrigatória' });
     }
 
     const validatedConfig = roomDesignConfigSchema.parse(roomDesignConfig);
+    console.log(`[RoomDesign PATCH] Config validada:`, JSON.stringify(validatedConfig.colors).substring(0, 100));
 
-    const [config] = await db.update(hms100msConfig)
-      .set({ roomDesignConfig: validatedConfig, updatedAt: new Date() })
+    // Check if row exists for this tenant
+    const [existingConfig] = await db.select().from(hms100msConfig)
       .where(eq(hms100msConfig.tenantId, tenantId))
-      .returning();
+      .limit(1);
+
+    let config;
+    
+    if (existingConfig) {
+      // UPDATE existing row
+      console.log(`[RoomDesign PATCH] Row exists, updating...`);
+      const [updated] = await db.update(hms100msConfig)
+        .set({ roomDesignConfig: validatedConfig, updatedAt: new Date() })
+        .where(eq(hms100msConfig.tenantId, tenantId))
+        .returning();
+      config = updated;
+    } else {
+      // INSERT new row
+      console.log(`[RoomDesign PATCH] No row exists, inserting new row...`);
+      const [inserted] = await db.insert(hms100msConfig)
+        .values({
+          tenantId,
+          appAccessKey: 'pending_configuration',
+          appSecret: 'pending_configuration',
+          roomDesignConfig: validatedConfig,
+        })
+        .returning();
+      config = inserted;
+    }
+
+    if (!config) {
+      console.error(`[RoomDesign PATCH] ERRO: Falha ao salvar config no PostgreSQL para tenant ${tenantId}`);
+      return res.status(500).json({ error: 'Falha ao salvar configuração no banco de dados' });
+    }
+
+    console.log(`[RoomDesign PATCH] Config salva com sucesso no PostgreSQL para tenant ${tenantId}`);
 
     // Sincronizar com Supabase
     try {
       const supabase = await getClientSupabaseClient(tenantId);
       if (supabase) {
-        await supabase
+        const { error: supabaseError } = await supabase
           .from('hms_100ms_config')
           .upsert({
             tenant_id: tenantId,
             room_design_config: validatedConfig,
             updated_at: new Date().toISOString()
           }, { onConflict: 'tenant_id' });
+        
+        if (supabaseError) {
+          console.error(`[RoomDesign PATCH] Erro ao sincronizar com Supabase:`, supabaseError);
+        } else {
+          console.log(`[RoomDesign PATCH] Config sincronizada com Supabase para tenant ${tenantId}`);
+        }
       }
     } catch (e) {
-      console.error('Erro ao sincronizar design com Supabase:', e);
+      console.error('[RoomDesign PATCH] Erro ao sincronizar design com Supabase:', e);
     }
 
     res.json({ roomDesignConfig: config.roomDesignConfig });
   } catch (error: any) {
-    console.error('Erro ao atualizar room design config:', error);
+    console.error('[RoomDesign PATCH] Erro ao atualizar room design config:', error);
     res.status(500).json({ error: 'Erro ao atualizar configuração de design', message: error.message });
   }
 });
