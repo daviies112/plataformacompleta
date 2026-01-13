@@ -82,6 +82,7 @@ export const VerificationFlow = ({
   const [documentImage, setDocumentImage] = useState<string | null>(null);
   const [verificationResult, setVerificationResult] = useState<VerificationResult | null>(null);
   const [showBranding, setShowBranding] = useState(!!(logoUrl || backgroundImage));
+  const [hasCompletedCallback, setHasCompletedCallback] = useState(false);
 
   const handleStart = useCallback(() => {
     startSession();
@@ -159,9 +160,18 @@ export const VerificationFlow = ({
       completeVerification(result.similarity, result.passed, verificationResult);
       goToStep('result');
       
+      // Auto-advance after 2 seconds if passed (user can also click "Concluir" button)
       if (onComplete && result.passed) {
         setTimeout(() => {
-          onComplete(verificationResult);
+          if (!hasCompletedCallback) {
+            setHasCompletedCallback(true);
+            onComplete({
+              success: true,
+              selfie: selfieImage,
+              document: documentImage,
+              result: verificationResult
+            });
+          }
         }, 2000);
       }
 
@@ -187,11 +197,36 @@ export const VerificationFlow = ({
   }, [startAtSelfie, currentStep, handleStart]);
 
   const handleComplete = useCallback(() => {
-    setSelfieImage(null);
-    setDocumentImage(null);
-    setVerificationResult(null);
-    resetSession();
-  }, [resetSession]);
+    // When user clicks "Concluir" after approval, call parent onComplete
+    // Don't reset session - let parent handle the navigation
+    if (verificationResult && verificationResult.passed && onComplete && !hasCompletedCallback) {
+      setHasCompletedCallback(true);
+      
+      // Store images for parent before clearing
+      const selfie = selfieImage;
+      const document = documentImage;
+      
+      // Clear local state
+      setSelfieImage(null);
+      setDocumentImage(null);
+      setVerificationResult(null);
+      
+      // Call parent with success and images
+      onComplete({
+        success: true,
+        selfie,
+        document,
+        result: verificationResult
+      });
+    } else if (!verificationResult?.passed) {
+      // Failed or cancelled - reset session
+      setSelfieImage(null);
+      setDocumentImage(null);
+      setVerificationResult(null);
+      resetSession();
+    }
+    // If already completed callback, do nothing (prevents double calls)
+  }, [resetSession, verificationResult, selfieImage, documentImage, onComplete, hasCompletedCallback]);
 
   return (
     <>

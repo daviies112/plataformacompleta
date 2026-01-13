@@ -237,7 +237,15 @@ const AssinaturaClientContent = () => {
     }
   }, [contract, currentStep, setGovbrData, setContractData, setCurrentStep]);
 
-  const handleVerificationComplete = (success: boolean, selfie?: string, document?: string) => {
+  const handleVerificationComplete = (result: any) => {
+    // Handle both old format (success, selfie, document) and new format ({ success, selfie, document, result })
+    const isNewFormat = result && typeof result === 'object' && 'success' in result;
+    const success = isNewFormat ? result.success : (result?.passed ?? !!result);
+    const selfie = isNewFormat ? result.selfie : null;
+    const document = isNewFormat ? result.document : null;
+    
+    console.log('[AssinaturaClientPage] Verification complete:', { success, hasSelfie: !!selfie, hasDocument: !!document });
+    
     if (success) {
       if (selfie) setSelfiePhoto(selfie);
       if (document) setDocumentPhoto(document);
