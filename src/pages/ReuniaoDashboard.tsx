@@ -30,7 +30,7 @@ export default function ReuniaoDashboard() {
   const meetingsArray = Array.isArray(meetings) ? meetings : [];
   
   const upcomingMeetings = meetingsArray
-    .filter((m: Meeting) => new Date(m.dataInicio) > new Date() && m.status === 'agendada')
+    .filter((m: Meeting) => new Date(m.dataInicio) > new Date() && (m.status === 'agendada' || m.status === 'reagendada'))
     .sort((a: Meeting, b: Meeting) => new Date(a.dataInicio).getTime() - new Date(b.dataInicio).getTime())
     .slice(0, 5);
 
