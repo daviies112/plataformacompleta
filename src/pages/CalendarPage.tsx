@@ -3,8 +3,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Calendar, Clock, Video, Phone, Users, MapPin, Bell, Loader2, Play, Plus, RefreshCw, ExternalLink, CalendarCheck, CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { Calendar, Clock, Video, Phone, Users, MapPin, Bell, Loader2, Play, Plus, RefreshCw, ExternalLink, CalendarCheck, CalendarDays, ChevronLeft, ChevronRight, XCircle, CalendarClock, Trash2, Copy, Check, Share2 } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format, parseISO, isToday, isTomorrow, isYesterday, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale/pt-BR';
 import { useAuth } from '@/contexts/AuthContext';
@@ -16,6 +16,28 @@ import { CreateEventModal } from '@/components/calendar/CreateEventModal';
 import { useLocation } from 'wouter';
 import { toast } from 'sonner';
 import { useNotionStore } from '@/stores/notionStore';
+import { apiRequest } from '@/lib/queryClient';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 const CalendarPage = () => {
   const { user } = useAuth();
@@ -24,9 +46,111 @@ const CalendarPage = () => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [createEventOpen, setCreateEventOpen] = useState(false);
+  const [copiedLink, setCopiedLink] = useState<string | null>(null);
+  const [showRescheduleDialog, setShowRescheduleDialog] = useState(false);
+  const [rescheduleDate, setRescheduleDate] = useState('');
+  const [rescheduleTime, setRescheduleTime] = useState('');
+  const [selectedMeetingId, setSelectedMeetingId] = useState<string | null>(null);
+  const queryClient = useQueryClient();
   
   // Zustand store para controlar workspace ativo
   const { setCurrentBoard, setCurrentDatabase } = useNotionStore();
+
+  // Helper to check if event is a database reunião
+  const isReuniaoEvent = (event: any) => {
+    return event.meetLink && (
+      event.meetLink.startsWith('/reuniao/') ||
+      event.meetLink.includes('/reuniao/')
+    );
+  };
+
+  // Extract meeting ID from meetLink
+  const getMeetingIdFromLink = (meetLink: string): string | null => {
+    const match = meetLink.match(/\/reuniao\/([a-f0-9-]+)/i);
+    return match ? match[1] : null;
+  };
+
+  // Cancel meeting mutation
+  const cancelMeetingMutation = useMutation({
+    mutationFn: async (meetingId: string) => {
+      const response = await apiRequest('DELETE', `/api/reunioes/${meetingId}`);
+      return response.json();
+    },
+    onSuccess: () => {
+      toast.success('Reunião cancelada com sucesso');
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/calendar-events'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/reunioes'] });
+      queryClient.invalidateQueries({ queryKey: ['reunioes-calendario'] });
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Erro ao cancelar reunião');
+    },
+  });
+
+  // Reschedule meeting mutation
+  const rescheduleMeetingMutation = useMutation({
+    mutationFn: async ({ meetingId, dataInicio }: { meetingId: string; dataInicio: string }) => {
+      const response = await apiRequest('PATCH', `/api/reunioes/${meetingId}`, {
+        dataInicio,
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      toast.success('Reunião reagendada com sucesso');
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/calendar-events'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/reunioes'] });
+      queryClient.invalidateQueries({ queryKey: ['reunioes-calendario'] });
+      setShowRescheduleDialog(false);
+      setRescheduleDate('');
+      setRescheduleTime('');
+      setSelectedMeetingId(null);
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Erro ao reagendar reunião');
+    },
+  });
+
+  const handleCopyLink = async (link: string) => {
+    try {
+      // Build full URL if it's a relative path
+      const fullLink = link.startsWith('/') ? `${window.location.origin}${link}` : link;
+      await navigator.clipboard.writeText(fullLink);
+      setCopiedLink(link);
+      toast.success('Link copiado!');
+      setTimeout(() => setCopiedLink(null), 2000);
+    } catch (err) {
+      toast.error('Erro ao copiar link');
+    }
+  };
+
+  const openRescheduleDialog = (meetingId: string, currentDate: string, currentTime: string) => {
+    setSelectedMeetingId(meetingId);
+    setRescheduleDate(currentDate);
+    setRescheduleTime(currentTime);
+    setShowRescheduleDialog(true);
+  };
+
+  const handleRescheduleMeeting = () => {
+    if (!selectedMeetingId || !rescheduleDate || !rescheduleTime) {
+      toast.error('Por favor, selecione a nova data e horário');
+      return;
+    }
+
+    const newDateTime = new Date(`${rescheduleDate}T${rescheduleTime}`);
+    if (isNaN(newDateTime.getTime())) {
+      toast.error('Data ou horário inválido');
+      return;
+    }
+
+    rescheduleMeetingMutation.mutate({
+      meetingId: selectedMeetingId,
+      dataInicio: newDateTime.toISOString(),
+    });
+  };
+
+  const handleCancelMeeting = (meetingId: string) => {
+    cancelMeetingMutation.mutate(meetingId);
+  };
 
   useEffect(() => {
     document.title = "Calendário de Reuniões | NEXUS Intelligence";
@@ -712,6 +836,89 @@ const CalendarPage = () => {
                                     <ExternalLink className="w-4 h-4 mr-2" />
                                     Abrir Workspace
                                   </Button>
+                                ) : isReuniaoEvent(event) ? (
+                                  <>
+                                    <Button
+                                      onClick={(e) => { e.stopPropagation(); openMeetLink(event.meetLink); }}
+                                      className="w-full min-h-[44px] bg-green-600 hover:bg-green-700 text-white font-semibold text-sm touch-manipulation active:scale-95"
+                                      data-testid={`button-meet-${event.id || index}`}
+                                    >
+                                      <Play className="w-4 h-4 mr-2" />
+                                      Entrar na Reunião
+                                    </Button>
+                                    <div className="flex gap-2">
+                                      <Button
+                                        variant="outline"
+                                        onClick={(e) => { e.stopPropagation(); handleCopyLink(event.meetLink); }}
+                                        className="flex-1 min-h-[44px] touch-manipulation active:scale-95"
+                                        data-testid={`button-share-mobile-${event.id || index}`}
+                                      >
+                                        {copiedLink === event.meetLink ? (
+                                          <Check className="w-4 h-4 mr-2 text-green-500" />
+                                        ) : (
+                                          <Share2 className="w-4 h-4 mr-2" />
+                                        )}
+                                        Compartilhar
+                                      </Button>
+                                      {event.status !== 'cancelado' && event.status !== 'cancelada' && (
+                                        <>
+                                          <Button
+                                            variant="outline"
+                                            size="icon"
+                                            onClick={(e) => { 
+                                              e.stopPropagation(); 
+                                              const meetingId = getMeetingIdFromLink(event.meetLink);
+                                              if (meetingId) {
+                                                openRescheduleDialog(meetingId, event.date, event.time?.split(' ')[0] || '10:00');
+                                              }
+                                            }}
+                                            className="min-h-[44px] min-w-[44px] touch-manipulation active:scale-95"
+                                            title="Reagendar"
+                                            data-testid={`button-reschedule-mobile-${event.id || index}`}
+                                          >
+                                            <CalendarClock className="w-4 h-4" />
+                                          </Button>
+                                          <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                              <Button
+                                                variant="outline"
+                                                size="icon"
+                                                onClick={(e) => e.stopPropagation()}
+                                                className="min-h-[44px] min-w-[44px] touch-manipulation active:scale-95"
+                                                title="Cancelar"
+                                                data-testid={`button-cancel-mobile-${event.id || index}`}
+                                              >
+                                                <XCircle className="w-4 h-4 text-destructive" />
+                                              </Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                                              <AlertDialogHeader>
+                                                <AlertDialogTitle>Cancelar Reunião</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                  Tem certeza que deseja cancelar esta reunião?
+                                                </AlertDialogDescription>
+                                              </AlertDialogHeader>
+                                              <AlertDialogFooter>
+                                                <AlertDialogCancel>Voltar</AlertDialogCancel>
+                                                <AlertDialogAction
+                                                  onClick={() => {
+                                                    const meetingId = getMeetingIdFromLink(event.meetLink);
+                                                    if (meetingId) {
+                                                      handleCancelMeeting(meetingId);
+                                                    }
+                                                  }}
+                                                  className="bg-destructive text-destructive-foreground"
+                                                >
+                                                  <Trash2 className="mr-2 h-4 w-4" />
+                                                  Cancelar Reunião
+                                                </AlertDialogAction>
+                                              </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                          </AlertDialog>
+                                        </>
+                                      )}
+                                    </div>
+                                  </>
                                 ) : event.meetLink ? (
                                   <Button
                                     onClick={(e) => { e.stopPropagation(); openMeetLink(event.meetLink); }}
@@ -862,7 +1069,7 @@ const CalendarPage = () => {
                               )}
                             </div>
 
-                            <div className="flex gap-3">
+                            <div className="flex flex-wrap gap-3">
                               {isWorkspaceEvent ? (
                                 <Button
                                   onClick={(e) => { 
@@ -876,6 +1083,93 @@ const CalendarPage = () => {
                                   <ExternalLink className="w-4 h-4 mr-2" />
                                   Abrir Workspace
                                 </Button>
+                              ) : isReuniaoEvent(event) ? (
+                                <>
+                                  <Button
+                                    onClick={(e) => { e.stopPropagation(); openMeetLink(event.meetLink); }}
+                                    className="bg-green-600 hover:bg-green-700 text-white font-semibold"
+                                    data-testid={`button-meet-${event.id || index}`}
+                                  >
+                                    <Play className="w-4 h-4 mr-2" />
+                                    Entrar na Reunião
+                                  </Button>
+                                  
+                                  <Button
+                                    variant="outline"
+                                    size="icon"
+                                    onClick={(e) => { e.stopPropagation(); handleCopyLink(event.meetLink); }}
+                                    title="Compartilhar link"
+                                    data-testid={`button-share-${event.id || index}`}
+                                  >
+                                    {copiedLink === event.meetLink ? (
+                                      <Check className="w-4 h-4 text-green-500" />
+                                    ) : (
+                                      <Share2 className="w-4 h-4" />
+                                    )}
+                                  </Button>
+                                  
+                                  {event.status !== 'cancelado' && event.status !== 'cancelada' && (
+                                    <>
+                                      <Button
+                                        variant="outline"
+                                        size="icon"
+                                        onClick={(e) => { 
+                                          e.stopPropagation(); 
+                                          const meetingId = getMeetingIdFromLink(event.meetLink);
+                                          if (meetingId) {
+                                            openRescheduleDialog(meetingId, event.date, event.time?.split(' ')[0] || '10:00');
+                                          }
+                                        }}
+                                        title="Reagendar reunião"
+                                        data-testid={`button-reschedule-${event.id || index}`}
+                                      >
+                                        <CalendarClock className="w-4 h-4" />
+                                      </Button>
+                                      
+                                      <AlertDialog>
+                                        <AlertDialogTrigger asChild>
+                                          <Button
+                                            variant="outline"
+                                            size="icon"
+                                            onClick={(e) => e.stopPropagation()}
+                                            title="Cancelar reunião"
+                                            data-testid={`button-cancel-${event.id || index}`}
+                                          >
+                                            <XCircle className="w-4 h-4 text-destructive" />
+                                          </Button>
+                                        </AlertDialogTrigger>
+                                        <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                                          <AlertDialogHeader>
+                                            <AlertDialogTitle>Cancelar Reunião</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                              Tem certeza que deseja cancelar esta reunião? Esta ação não pode ser desfeita.
+                                              A sala de vídeo também será desativada.
+                                            </AlertDialogDescription>
+                                          </AlertDialogHeader>
+                                          <AlertDialogFooter>
+                                            <AlertDialogCancel>Voltar</AlertDialogCancel>
+                                            <AlertDialogAction
+                                              onClick={() => {
+                                                const meetingId = getMeetingIdFromLink(event.meetLink);
+                                                if (meetingId) {
+                                                  handleCancelMeeting(meetingId);
+                                                }
+                                              }}
+                                              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                            >
+                                              {cancelMeetingMutation.isPending ? (
+                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                              ) : (
+                                                <Trash2 className="mr-2 h-4 w-4" />
+                                              )}
+                                              Confirmar Cancelamento
+                                            </AlertDialogAction>
+                                          </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                      </AlertDialog>
+                                    </>
+                                  )}
+                                </>
                               ) : (
                                 <>
                                   {event.meetLink ? (
@@ -1000,6 +1294,61 @@ const CalendarPage = () => {
       </div>
       
       {isMobile && <BottomNav />}
+      
+      {/* Reschedule Dialog */}
+      <Dialog open={showRescheduleDialog} onOpenChange={setShowRescheduleDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reagendar Reunião</DialogTitle>
+            <DialogDescription>
+              Escolha uma nova data e horário para esta reunião.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="new-date">Nova Data</Label>
+              <Input
+                id="new-date"
+                type="date"
+                value={rescheduleDate}
+                onChange={(e) => setRescheduleDate(e.target.value)}
+                data-testid="input-reschedule-date"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="new-time">Novo Horário</Label>
+              <Input
+                id="new-time"
+                type="time"
+                value={rescheduleTime}
+                onChange={(e) => setRescheduleTime(e.target.value)}
+                data-testid="input-reschedule-time"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowRescheduleDialog(false)}
+              data-testid="button-cancel-reschedule"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleRescheduleMeeting}
+              disabled={rescheduleMeetingMutation.isPending}
+              data-testid="button-confirm-reschedule"
+            >
+              {rescheduleMeetingMutation.isPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <CalendarClock className="mr-2 h-4 w-4" />
+              )}
+              Reagendar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
