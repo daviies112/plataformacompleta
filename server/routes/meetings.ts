@@ -833,6 +833,7 @@ meetingsRouter.get('/reunioes', authenticateToken, requireTenantId, async (req: 
                 tipo: sMeeting.tipo || 'online',
                 roomId100ms: sMeeting.room_id_100ms,
                 linkReuniao: sMeeting.link_reuniao,
+                compareceu: sMeeting.compareceu ?? false, // Preserve attendance from Supabase or default to false
                 createdAt: sMeeting.created_at ? new Date(sMeeting.created_at) : new Date(),
               }).onConflictDoNothing();
             }
@@ -1026,6 +1027,7 @@ meetingsRouter.post('/reunioes/instantanea', authenticateToken, requireTenantId,
       status: 'em_andamento',
       roomId100ms: sala.id,
       linkReuniao: '', // Will be updated after we get the ID
+      compareceu: false, // Default: not attended until someone joins
     }).returning();
 
     // Update with the correct meeting link using the generated UUID
@@ -1056,6 +1058,7 @@ meetingsRouter.post('/reunioes/instantanea', authenticateToken, requireTenantId,
           tipo: 'online',
           room_id_100ms: newMeeting.roomId100ms,
           link_reuniao: linkReuniao,
+          compareceu: false, // Default: not attended until someone joins
           created_at: newMeeting.createdAt instanceof Date ? newMeeting.createdAt.toISOString() : new Date().toISOString(),
           updated_at: new Date().toISOString()
         };
@@ -1149,6 +1152,7 @@ meetingsRouter.post('/reunioes', authenticateToken, requireTenantId, async (req:
       tipo: tipo || 'online',
       roomId100ms,
       linkReuniao: '', // Placeholder updated later
+      compareceu: false, // Default: not attended until someone joins
     }).returning();
 
     // Link real com o ID do banco
@@ -1174,6 +1178,7 @@ meetingsRouter.post('/reunioes', authenticateToken, requireTenantId, async (req:
           tipo: newMeeting.tipo,
           room_id_100ms: newMeeting.roomId100ms,
           link_reuniao: linkReuniao,
+          compareceu: false, // Default: not attended until someone joins
           created_at: newMeeting.createdAt instanceof Date ? newMeeting.createdAt.toISOString() : new Date().toISOString(),
           updated_at: new Date().toISOString()
         };

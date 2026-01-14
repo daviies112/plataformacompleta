@@ -325,6 +325,7 @@ n8nRouter.post('/reunioes', authenticateN8NByTenantKey, async (req: Request, res
             roomId100ms: sala.id,
             linkReuniao: '',
             metadata: metadata,
+            compareceu: false, // Default: not attended until someone joins
         }).returning();
 
         const baseUrl = process.env.REPLIT_DOMAINS?.split(',')[0] || req.get('host') || 'localhost:5000';
@@ -352,7 +353,8 @@ n8nRouter.post('/reunioes', authenticateN8NByTenantKey, async (req: Request, res
                         status: 'agendada',
                         room_id_100ms: sala.id,
                         link_reuniao: linkReuniao,
-                        metadata: metadata
+                        metadata: metadata,
+                        compareceu: false // Default: not attended until someone joins
                     }, { onConflict: 'id' });
                     console.log(`[N8N Sync] Reunião ${newMeeting.id} sincronizada com Supabase`);
                 }

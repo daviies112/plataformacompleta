@@ -415,6 +415,36 @@ export function Meeting100ms({
     }
   }, [isConnected, isJoining, peers]);
 
+  // Registrar presença automática quando entrar na reunião (uma única vez por sessão)
+  const hasRegisteredAttendance = useRef(false);
+  useEffect(() => {
+    if (isConnected && !hasRegisteredAttendance.current && roomId) {
+      hasRegisteredAttendance.current = true;
+      console.log("[Meeting100ms] 📋 Registrando presença automática na sala:", roomId);
+      
+      // Fire and forget - não bloquear a UI
+      fetch('/api/public/reunioes/registrar-presenca', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          room_id_100ms: roomId,
+          nome: userName
+        })
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            console.log("[Meeting100ms] ✅ Presença registrada:", data.message);
+          } else {
+            console.warn("[Meeting100ms] ⚠️ Falha ao registrar presença:", data.error);
+          }
+        })
+        .catch(err => {
+          console.error("[Meeting100ms] ❌ Erro ao registrar presença:", err);
+        });
+    }
+  }, [isConnected, roomId, userName]);
+
   useEffect(() => {
     return () => {
       if (isConnected) {
