@@ -521,28 +521,117 @@ export default function CalendarioPage() {
                 {selectedDateMeetings.map((reuniao) => (
                   <div
                     key={reuniao.id}
-                    className="p-3 border rounded-lg space-y-2 hover-elevate cursor-pointer"
-                    onClick={() => setSelectedMeeting(reuniao)}
+                    className="p-3 border rounded-lg space-y-2 hover-elevate"
                     data-testid={`meeting-card-${reuniao.id}`}
                   >
-                    <div className="flex items-start justify-between gap-2">
-                      <h4 className="font-medium truncate">
-                        {reuniao.titulo || 'Reunião sem título'}
-                      </h4>
-                      {getStatusBadge(reuniao.status)}
-                    </div>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        {format(parseISO(reuniao.dataInicio), 'HH:mm')} - {format(parseISO(reuniao.dataFim), 'HH:mm')}
-                      </span>
-                    </div>
-                    {reuniao.nome && (
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                        <User className="h-3 w-3" />
-                        {reuniao.nome}
+                    <div 
+                      className="cursor-pointer"
+                      onClick={() => setSelectedMeeting(reuniao)}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <h4 className="font-medium truncate">
+                          {reuniao.titulo || 'Reunião sem título'}
+                        </h4>
+                        {getStatusBadge(reuniao.status)}
                       </div>
-                    )}
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground mt-2">
+                        <span className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {format(parseISO(reuniao.dataInicio), 'HH:mm')} - {format(parseISO(reuniao.dataFim), 'HH:mm')}
+                        </span>
+                      </div>
+                      {reuniao.nome && (
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
+                          <User className="h-3 w-3" />
+                          {reuniao.nome}
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Botões de Ação Rápida */}
+                    <div className="flex items-center gap-2 pt-2 border-t">
+                      <Button
+                        size="sm"
+                        onClick={() => handleJoinMeeting(reuniao)}
+                        disabled={reuniao.status === 'cancelada'}
+                        className="flex-1"
+                        data-testid={`button-entrar-quick-${reuniao.id}`}
+                      >
+                        <Video className="h-3 w-3 mr-1" />
+                        Entrar
+                      </Button>
+                      
+                      {reuniao.linkReuniao && (
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => {
+                            navigator.clipboard.writeText(reuniao.linkReuniao!);
+                            toast({ title: 'Link copiado!' });
+                          }}
+                          title="Copiar link"
+                          data-testid={`button-copiar-quick-${reuniao.id}`}
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                        </Button>
+                      )}
+                      
+                      {reuniao.status !== 'cancelada' && reuniao.status !== 'concluida' && reuniao.status !== 'finalizada' && (
+                        <>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => {
+                              setSelectedMeeting(reuniao);
+                              setTimeout(() => openRescheduleDialog(), 100);
+                            }}
+                            title="Reagendar"
+                            data-testid={`button-reagendar-quick-${reuniao.id}`}
+                          >
+                            <CalendarClock className="h-3 w-3" />
+                          </Button>
+                          
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                className="h-8 w-8"
+                                title="Cancelar"
+                                data-testid={`button-cancelar-quick-${reuniao.id}`}
+                              >
+                                <XCircle className="h-3 w-3 text-destructive" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Cancelar Reunião</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Tem certeza que deseja cancelar "{reuniao.titulo || 'esta reunião'}"? 
+                                  Esta ação não pode ser desfeita.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Voltar</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleCancelMeeting(reuniao.id)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  {cancelMeetingMutation.isPending ? (
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                  )}
+                                  Confirmar Cancelamento
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
