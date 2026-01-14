@@ -85,11 +85,19 @@ scripts/   → Utilitários (export, import)
    - **Autenticação:** Header `X-N8N-API-Key` com API key do tenant
    - **Design Automático:** Reuniões herdam automaticamente configuração de branding do tenant
    - **Compatibilidade:** Suporte legacy para `N8N_API_KEY` global (auto-seleciona tenant único)
-✅ Video Conferencing (100ms) - ATUALIZADO (12/01/2026)
+✅ Video Conferencing (100ms) - ATUALIZADO (14/01/2026)
    - API Routes: `/api/reunioes`, `/api/reunioes/instantanea`, `/api/gravacoes`
    - Acessível via menu "Reunião" no header
    - Configure credenciais do 100ms em Configurações antes de criar reuniões
    - **Reuniões Públicas:** Link compartilhável para usuários externos (sem autenticação)
+   - **Check-in Automático (14/01/2026):**
+     - Coluna `compareceu` (boolean) adicionada à tabela `reunioes`
+     - TODAS reuniões (agendadas, instantâneas, N8N) criadas com `compareceu = FALSE`
+     - Ao entrar na sala, o frontend detecta conexão e chama API automaticamente
+     - Endpoint: `POST /api/public/reunioes/registrar-presenca`
+     - Body: `{ "room_id_100ms": "...", "nome": "..." }`
+     - Sincronização automática com Supabase (não-bloqueante)
+     - Usado para determinar se cliente compareceu ou não à reunião
    - **Correção de Sessão (12/01/2026):**
      - Login agora chama `req.session.save()` explicitamente antes de responder
      - Resolve problema de sessão não persistindo com `saveUninitialized: false`
@@ -187,6 +195,6 @@ Veja [DESENVOLVIMENTO.md](./DESENVOLVIMENTO.md) para documentação técnica com
 
 ---
 
-**Last Updated:** 12 de Janeiro de 2026  
+**Last Updated:** 14 de Janeiro de 2026  
 **Tamanho Otimizado:** ~200MB (sem node_modules)  
 **Economia de Créditos:** 95%
