@@ -1173,15 +1173,98 @@ const CalendarPage = () => {
                               ) : (
                                 <>
                                   {event.meetLink ? (
-                                    <Button
-                                      onClick={(e) => { e.stopPropagation(); openMeetLink(event.meetLink); }}
-                                      className="bg-green-600 hover:bg-green-700 text-white font-semibold"
-                                      data-testid={`button-meet-${event.id || index}`}
-                                      data-tour={index === 0 ? "google-meet-link" : undefined}
-                                    >
-                                      <Play className="w-4 h-4 mr-2" />
-                                      Entrar no Meet
-                                    </Button>
+                                    <>
+                                      <Button
+                                        onClick={(e) => { e.stopPropagation(); openMeetLink(event.meetLink); }}
+                                        className="bg-green-600 hover:bg-green-700 text-white font-semibold"
+                                        data-testid={`button-meet-${event.id || index}`}
+                                        data-tour={index === 0 ? "google-meet-link" : undefined}
+                                      >
+                                        <Play className="w-4 h-4 mr-2" />
+                                        {event.meetLink.includes('/reuniao/') ? 'Entrar na Reunião' : 'Entrar no Meet'}
+                                      </Button>
+                                      
+                                      {/* Botões de ação para reuniões com link /reuniao/ */}
+                                      {event.meetLink.includes('/reuniao/') && (
+                                        <>
+                                          <Button
+                                            variant="outline"
+                                            size="icon"
+                                            onClick={(e) => { e.stopPropagation(); handleCopyLink(event.meetLink); }}
+                                            title="Compartilhar link"
+                                            data-testid={`button-share-alt-${event.id || index}`}
+                                          >
+                                            {copiedLink === event.meetLink ? (
+                                              <Check className="w-4 h-4 text-green-500" />
+                                            ) : (
+                                              <Share2 className="w-4 h-4" />
+                                            )}
+                                          </Button>
+                                          
+                                          {event.status !== 'cancelado' && event.status !== 'cancelada' && (
+                                            <>
+                                              <Button
+                                                variant="outline"
+                                                size="icon"
+                                                onClick={(e) => { 
+                                                  e.stopPropagation(); 
+                                                  const meetingId = getMeetingIdFromLink(event.meetLink);
+                                                  if (meetingId) {
+                                                    openRescheduleDialog(meetingId, event.date, event.time?.split(' ')[0] || '10:00');
+                                                  }
+                                                }}
+                                                title="Reagendar reunião"
+                                                data-testid={`button-reschedule-alt-${event.id || index}`}
+                                              >
+                                                <CalendarClock className="w-4 h-4" />
+                                              </Button>
+                                              
+                                              <AlertDialog>
+                                                <AlertDialogTrigger asChild>
+                                                  <Button
+                                                    variant="outline"
+                                                    size="icon"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    title="Cancelar reunião"
+                                                    data-testid={`button-cancel-alt-${event.id || index}`}
+                                                  >
+                                                    <XCircle className="w-4 h-4 text-destructive" />
+                                                  </Button>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                                                  <AlertDialogHeader>
+                                                    <AlertDialogTitle>Cancelar Reunião</AlertDialogTitle>
+                                                    <AlertDialogDescription>
+                                                      Tem certeza que deseja cancelar esta reunião? Esta ação não pode ser desfeita.
+                                                      A sala de vídeo também será desativada.
+                                                    </AlertDialogDescription>
+                                                  </AlertDialogHeader>
+                                                  <AlertDialogFooter>
+                                                    <AlertDialogCancel>Voltar</AlertDialogCancel>
+                                                    <AlertDialogAction
+                                                      onClick={() => {
+                                                        const meetingId = getMeetingIdFromLink(event.meetLink);
+                                                        if (meetingId) {
+                                                          handleCancelMeeting(meetingId);
+                                                        }
+                                                      }}
+                                                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                                    >
+                                                      {cancelMeetingMutation.isPending ? (
+                                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                      ) : (
+                                                        <Trash2 className="mr-2 h-4 w-4" />
+                                                      )}
+                                                      Confirmar Cancelamento
+                                                    </AlertDialogAction>
+                                                  </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                              </AlertDialog>
+                                            </>
+                                          )}
+                                        </>
+                                      )}
+                                    </>
                                   ) : (
                                     <Button
                                       onClick={(e) => { e.stopPropagation(); openGoogleCalendar(); }}
@@ -1193,14 +1276,16 @@ const CalendarPage = () => {
                                     </Button>
                                   )}
                                   
-                                  <Button 
-                                    variant="outline" 
-                                    onClick={(e) => { e.stopPropagation(); openGoogleCalendar(); }}
-                                    data-testid={`button-view-google-${event.id || index}`}
-                                  >
-                                    <ExternalLink className="w-4 h-4 mr-2" />
-                                    Ver no Google Calendar
-                                  </Button>
+                                  {!event.meetLink?.includes('/reuniao/') && (
+                                    <Button 
+                                      variant="outline" 
+                                      onClick={(e) => { e.stopPropagation(); openGoogleCalendar(); }}
+                                      data-testid={`button-view-google-${event.id || index}`}
+                                    >
+                                      <ExternalLink className="w-4 h-4 mr-2" />
+                                      Ver no Google Calendar
+                                    </Button>
+                                  )}
                                 </>
                               )}
                             </div>
