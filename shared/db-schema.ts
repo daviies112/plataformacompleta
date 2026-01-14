@@ -1717,6 +1717,7 @@ export const reunioes = pgTable("reunioes", {
   participantes: jsonb("participantes").default([]),
   gravacaoUrl: text("gravacao_url"),
   metadata: jsonb("metadata").default({}),
+  compareceu: boolean("compareceu").default(false),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at"),
 }, (table) => ({
@@ -1725,6 +1726,7 @@ export const reunioes = pgTable("reunioes", {
   dataInicioIdx: index("idx_reunioes_data_inicio").on(table.dataInicio),
   statusIdx: index("idx_reunioes_status").on(table.status),
   roomIdIdx: index("idx_reunioes_room_id").on(table.roomId100ms),
+  compareceuIdx: index("idx_reunioes_compareceu").on(table.compareceu),
 }));
 
 // Transcricoes Table - Meeting transcriptions

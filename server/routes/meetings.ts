@@ -1779,3 +1779,98 @@ meetingsRouter.get('/gravacoes', authenticateToken, requireTenantId, async (req:
     res.status(500).json({ error: 'Erro ao listar gravações', message: error.message });
   }
 });
+
+// POST /api/reunioes/registrar-presenca - Register attendance (public endpoint)
+// This endpoint is called by the frontend when a user joins a meeting
+publicRoomDesignRouter.post('/reunioes/registrar-presenca', async (req: Request, res: Response) => {
+  try {
+    const { room_id, room_id_100ms, usuario_id, nome } = req.body;
+    
+    // Accept either room_id or room_id_100ms
+    const roomId = room_id_100ms || room_id;
+    
+    if (!roomId) {
+      return res.status(400).json({ 
+        error: 'room_id ou room_id_100ms é obrigatório',
+        message: 'Informe o ID da sala para registrar a presença'
+      });
+    }
+
+    console.log(`[Presença] Registrando presença na sala ${roomId} para usuário: ${nome || usuario_id || 'anônimo'}`);
+
+    // Find the meeting by 100ms room ID
+    const [meeting] = await db.select().from(reunioes)
+      .where(eq(reunioes.roomId100ms, roomId))
+      .limit(1);
+
+    if (!meeting) {
+      console.warn(`[Presença] Reunião não encontrada para roomId: ${roomId}`);
+      return res.status(404).json({ 
+        error: 'Reunião não encontrada',
+        message: 'Nenhuma reunião encontrada com este room_id'
+      });
+    }
+
+    // Check if already marked as attended
+    if (meeting.compareceu === true) {
+      console.log(`[Presença] Presença já registrada para reunião ${meeting.id}`);
+      return res.json({ 
+        success: true, 
+        message: 'Presença já estava registrada',
+        meetingId: meeting.id,
+        alreadyRegistered: true
+      });
+    }
+
+    // Update compareceu to true in PostgreSQL
+    await db.update(reunioes)
+      .set({ 
+        compareceu: true,
+        updatedAt: new Date()
+      })
+      .where(eq(reunioes.id, meeting.id));
+
+    console.log(`✅ [Presença] Presença registrada com sucesso para reunião ${meeting.id} (sala: ${roomId})`);
+
+    // Sync to Supabase (async, non-blocking)
+    const syncToSupabase = async () => {
+      try {
+        const supabase = await getClientSupabaseClient(meeting.tenantId);
+        if (supabase) {
+          const { error } = await supabase
+            .from('reunioes')
+            .update({ 
+              compareceu: true,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', meeting.id);
+
+          if (error) {
+            console.error(`[Presença Sync] Erro ao sincronizar presença com Supabase:`, error);
+          } else {
+            console.log(`✅ [Presença Sync] Presença sincronizada com Supabase para reunião ${meeting.id}`);
+          }
+        }
+      } catch (err) {
+        console.error(`[Presença Sync] Erro inesperado:`, err);
+      }
+    };
+
+    // Fire and forget - don't block the response
+    syncToSupabase();
+
+    res.json({ 
+      success: true, 
+      message: `Presença registrada para ${nome || usuario_id || 'participante'} na sala ${roomId}`,
+      meetingId: meeting.id,
+      alreadyRegistered: false
+    });
+
+  } catch (error: any) {
+    console.error('[Presença] Erro ao registrar presença:', error);
+    res.status(500).json({ 
+      error: 'Erro ao registrar presença',
+      message: error.message 
+    });
+  }
+});
