@@ -90,6 +90,14 @@ scripts/   → Utilitários (export, import)
    - Acessível via menu "Reunião" no header
    - Configure credenciais do 100ms em Configurações antes de criar reuniões
    - **Reuniões Públicas:** Link compartilhável para usuários externos (sem autenticação)
+   - **Cancelar/Reagendar Reuniões (14/01/2026):**
+     - Endpoint: `DELETE /api/reunioes/:id` - Cancela reunião, desativa sala 100ms
+     - Endpoint: `PATCH /api/reunioes/:id` - Reagenda reunião com nova data/hora
+     - Status 'cancelada' (vermelho) e 'reagendada' (laranja) na UI
+     - Botões de Cancelar/Reagendar no dialog de detalhes do Calendário
+     - AlertDialog de confirmação para evitar cancelamentos acidentais
+     - Sincronização automática com Supabase (fire-and-forget)
+     - Não é possível reagendar reuniões canceladas
    - **Check-in Automático (14/01/2026):**
      - Coluna `compareceu` (boolean) adicionada à tabela `reunioes`
      - TODAS reuniões (agendadas, instantâneas, N8N) criadas com `compareceu = FALSE`
