@@ -1231,6 +1231,227 @@ meetingsRouter.post('/reunioes', authenticateToken, requireTenantId, async (req:
   }
 });
 
+// ============================================
+// CANCELAR REUNIÃO - DELETE /api/reunioes/:id
+// ============================================
+meetingsRouter.delete('/reunioes/:id', authenticateToken, requireTenantId, async (req: AuthRequest, res: Response) => {
+  try {
+    const tenantId = req.user!.tenantId;
+    const { id } = req.params;
+    console.log(`[Meetings] Cancelando reunião: ${id} (tenant: ${tenantId})`);
+
+    // Buscar reunião
+    const [meeting] = await db.select().from(reunioes)
+      .where(and(eq(reunioes.id, id), eq(reunioes.tenantId, tenantId)))
+      .limit(1);
+
+    if (!meeting) {
+      return res.status(404).json({
+        success: false,
+        error: 'Reunião não encontrada'
+      });
+    }
+
+    // Se já cancelada, retornar sucesso
+    if (meeting.status === 'cancelada') {
+      return res.json({
+        success: true,
+        message: 'Reunião já estava cancelada',
+        data: meeting
+      });
+    }
+
+    // Desativar sala no 100ms (se existir)
+    if (meeting.roomId100ms) {
+      try {
+        const credentials = await get100msCredentials(tenantId);
+        if (credentials) {
+          const { desativarSala } = await import('../services/meetings/hms100ms');
+          console.log(`[Meetings] Desativando sala 100ms: ${meeting.roomId100ms}`);
+          await desativarSala(meeting.roomId100ms, credentials.appAccessKey, credentials.appSecret);
+          console.log(`[Meetings] Sala 100ms desativada`);
+        }
+      } catch (hmsError: any) {
+        console.error(`[Meetings] Erro ao desativar sala 100ms:`, hmsError.message);
+      }
+    }
+
+    // Atualizar no PostgreSQL
+    const [updatedMeeting] = await db.update(reunioes)
+      .set({
+        status: 'cancelada',
+        updatedAt: new Date()
+      })
+      .where(eq(reunioes.id, id))
+      .returning();
+
+    // Sincronizar com Supabase (fire-and-forget)
+    const syncToSupabase = async () => {
+      try {
+        const supabase = await getClientSupabaseClient(tenantId);
+        if (supabase) {
+          const { error } = await supabase
+            .from('reunioes')
+            .update({
+              status: 'cancelada',
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', id);
+
+          if (error) {
+            console.error(`[Meetings Sync] Erro ao sincronizar cancelamento:`, error);
+          } else {
+            console.log(`[Meetings Sync] Cancelamento sincronizado com Supabase`);
+          }
+        }
+      } catch (err) {
+        console.error(`[Meetings Sync] Erro ao sincronizar cancelamento:`, err);
+      }
+    };
+
+    syncToSupabase();
+
+    // Invalidar cache
+    try {
+      await cache.delPattern(`dashboard:*:${tenantId}:*`);
+    } catch (cacheError) {
+      console.error('Erro ao invalidar cache:', cacheError);
+    }
+
+    res.json({
+      success: true,
+      message: 'Reunião cancelada com sucesso',
+      data: updatedMeeting
+    });
+
+  } catch (error: any) {
+    console.error('[Meetings] Erro ao cancelar reunião:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erro ao cancelar reunião',
+      message: error.message
+    });
+  }
+});
+
+// ============================================
+// REAGENDAR REUNIÃO - PATCH /api/reunioes/:id
+// ============================================
+meetingsRouter.patch('/reunioes/:id', authenticateToken, requireTenantId, async (req: AuthRequest, res: Response) => {
+  try {
+    const tenantId = req.user!.tenantId;
+    const { id } = req.params;
+    const { dataInicio, dataFim, duracao } = req.body;
+    console.log(`[Meetings] Reagendando reunião: ${id} (tenant: ${tenantId})`);
+
+    if (!dataInicio) {
+      return res.status(400).json({
+        success: false,
+        error: 'dataInicio é obrigatório'
+      });
+    }
+
+    // Buscar reunião
+    const [meeting] = await db.select().from(reunioes)
+      .where(and(eq(reunioes.id, id), eq(reunioes.tenantId, tenantId)))
+      .limit(1);
+
+    if (!meeting) {
+      return res.status(404).json({
+        success: false,
+        error: 'Reunião não encontrada'
+      });
+    }
+
+    // Não reagendar canceladas
+    if (meeting.status === 'cancelada') {
+      return res.status(400).json({
+        success: false,
+        error: 'Não é possível reagendar uma reunião cancelada'
+      });
+    }
+
+    // Calcular novas datas
+    const newDataInicio = new Date(dataInicio);
+    let newDataFim: Date;
+
+    if (dataFim) {
+      newDataFim = new Date(dataFim);
+    } else if (duracao) {
+      newDataFim = new Date(newDataInicio.getTime() + (duracao * 60 * 1000));
+    } else {
+      const originalDuration = meeting.duracao || 60;
+      newDataFim = new Date(newDataInicio.getTime() + (originalDuration * 60 * 1000));
+    }
+
+    const newDuracao = Math.round((newDataFim.getTime() - newDataInicio.getTime()) / (1000 * 60));
+
+    // Atualizar no PostgreSQL
+    const [updatedMeeting] = await db.update(reunioes)
+      .set({
+        dataInicio: newDataInicio,
+        dataFim: newDataFim,
+        duracao: newDuracao,
+        status: 'reagendada',
+        updatedAt: new Date()
+      })
+      .where(eq(reunioes.id, id))
+      .returning();
+
+    console.log(`[Meetings] Reunião ${id} reagendada: ${newDataInicio.toISOString()}`);
+
+    // Sincronizar com Supabase (fire-and-forget)
+    const syncToSupabase = async () => {
+      try {
+        const supabase = await getClientSupabaseClient(tenantId);
+        if (supabase) {
+          const { error } = await supabase
+            .from('reunioes')
+            .update({
+              data_inicio: newDataInicio.toISOString(),
+              data_fim: newDataFim.toISOString(),
+              duracao: newDuracao,
+              status: 'reagendada',
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', id);
+
+          if (error) {
+            console.error(`[Meetings Sync] Erro ao sincronizar reagendamento:`, error);
+          } else {
+            console.log(`[Meetings Sync] Reagendamento sincronizado com Supabase`);
+          }
+        }
+      } catch (err) {
+        console.error(`[Meetings Sync] Erro ao sincronizar reagendamento:`, err);
+      }
+    };
+
+    syncToSupabase();
+
+    // Invalidar cache
+    try {
+      await cache.delPattern(`dashboard:*:${tenantId}:*`);
+    } catch (cacheError) {
+      console.error('Erro ao invalidar cache:', cacheError);
+    }
+
+    res.json({
+      success: true,
+      message: 'Reunião reagendada com sucesso',
+      data: updatedMeeting
+    });
+
+  } catch (error: any) {
+    console.error('[Meetings] Erro ao reagendar reunião:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erro ao reagendar reunião',
+      message: error.message
+    });
+  }
+});
+
 // GET /api/100ms/get-token - Get 100ms token for authenticated users (always HOST)
 meetingsRouter.post('/100ms/get-token', authenticateToken, requireTenantId, async (req: AuthRequest, res: Response) => {
   try {

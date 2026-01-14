@@ -3,7 +3,7 @@ import { db } from '../db';
 import { reunioes, hms100msConfig, formSubmissions } from '../../shared/db-schema';
 import { eq, desc, sql } from 'drizzle-orm';
 import { decrypt, encrypt } from '../lib/credentialsManager';
-import { criarSala, gerarTokenParticipante } from '../services/meetings/hms100ms';
+import { criarSala, gerarTokenParticipante, desativarSala } from '../services/meetings/hms100ms';
 import { getClientSupabaseClient } from '../lib/multiTenantSupabase';
 import { z } from 'zod';
 import crypto from 'crypto';
@@ -450,6 +450,278 @@ n8nRouter.get('/reunioes/:id', authenticateN8NByTenantKey, async (req: Request, 
     }
 });
 
+// ============================================
+// CANCELAR REUNIÃO - DELETE /api/n8n/reunioes/:id
+// ============================================
+n8nRouter.delete('/reunioes/:id', authenticateN8NByTenantKey, async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        console.log(`[N8N] Cancelando reunião: ${id}`);
+
+        // Buscar reunião no banco de dados
+        const [meeting] = await db.select().from(reunioes)
+            .where(eq(reunioes.id, id))
+            .limit(1);
+
+        if (!meeting) {
+            return res.status(404).json({
+                success: false,
+                error: 'Reunião não encontrada',
+                message: `Nenhuma reunião com ID ${id} foi encontrada`
+            });
+        }
+
+        // Verificar se pertence ao tenant correto (se autenticado por tenant key)
+        const config = (req as any).tenantConfig;
+        if (config && meeting.tenantId !== config.tenantId) {
+            return res.status(403).json({
+                success: false,
+                error: 'Acesso negado',
+                message: 'Esta reunião pertence a outro tenant'
+            });
+        }
+
+        // Se já está cancelada, retornar sucesso sem fazer nada
+        if (meeting.status === 'cancelada') {
+            return res.json({
+                success: true,
+                message: 'Reunião já estava cancelada',
+                data: {
+                    id: meeting.id,
+                    status: meeting.status
+                }
+            });
+        }
+
+        // Desativar sala no 100ms (se existir room_id_100ms)
+        if (meeting.roomId100ms) {
+            try {
+                // Buscar credenciais do tenant
+                const [hmsConfig] = await db.select().from(hms100msConfig)
+                    .where(eq(hms100msConfig.tenantId, meeting.tenantId))
+                    .limit(1);
+
+                if (hmsConfig && hmsConfig.appAccessKey && hmsConfig.appSecret) {
+                    const appAccessKey = decrypt(hmsConfig.appAccessKey);
+                    const appSecret = decrypt(hmsConfig.appSecret);
+
+                    if (appAccessKey && appSecret) {
+                        console.log(`[N8N] Desativando sala 100ms: ${meeting.roomId100ms}`);
+                        await desativarSala(meeting.roomId100ms, appAccessKey, appSecret);
+                        console.log(`[N8N] Sala 100ms desativada com sucesso`);
+                    }
+                }
+            } catch (hmsError: any) {
+                // Log erro mas continua com o cancelamento no banco
+                console.error(`[N8N] Erro ao desativar sala no 100ms (continuando cancelamento):`, hmsError.message);
+            }
+        }
+
+        // Atualizar status no PostgreSQL
+        const [updatedMeeting] = await db.update(reunioes)
+            .set({
+                status: 'cancelada',
+                updatedAt: new Date()
+            })
+            .where(eq(reunioes.id, id))
+            .returning();
+
+        console.log(`[N8N] Reunião ${id} cancelada no PostgreSQL`);
+
+        // Sincronizar com Supabase (fire-and-forget)
+        const syncToSupabase = async () => {
+            try {
+                const supabase = await getClientSupabaseClient(meeting.tenantId);
+                if (supabase) {
+                    const { error } = await supabase
+                        .from('reunioes')
+                        .update({
+                            status: 'cancelada',
+                            updated_at: new Date().toISOString()
+                        })
+                        .eq('id', id);
+
+                    if (error) {
+                        console.error(`[N8N Sync] Erro ao sincronizar cancelamento com Supabase:`, error);
+                    } else {
+                        console.log(`[N8N Sync] Cancelamento sincronizado com Supabase para reunião ${id}`);
+                    }
+                }
+            } catch (err) {
+                console.error(`[N8N Sync] Erro ao sincronizar cancelamento:`, err);
+            }
+        };
+
+        syncToSupabase();
+
+        res.json({
+            success: true,
+            message: 'Reunião cancelada com sucesso',
+            data: {
+                id: updatedMeeting.id,
+                titulo: updatedMeeting.titulo,
+                status: updatedMeeting.status,
+                cancelledAt: updatedMeeting.updatedAt
+            }
+        });
+
+    } catch (error: any) {
+        console.error('[N8N] Erro ao cancelar reunião:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Erro interno ao cancelar reunião',
+            message: error.message
+        });
+    }
+});
+
+// ============================================
+// REAGENDAR REUNIÃO - PATCH /api/n8n/reunioes/:id
+// ============================================
+const rescheduleSchema = z.object({
+    dataInicio: z.string().refine((val) => !isNaN(Date.parse(val)), {
+        message: 'dataInicio deve ser uma data válida no formato ISO 8601'
+    }),
+    dataFim: z.string().optional().refine((val) => !val || !isNaN(Date.parse(val)), {
+        message: 'dataFim deve ser uma data válida no formato ISO 8601'
+    }),
+    duracao: z.number().min(15).max(480).optional()
+});
+
+n8nRouter.patch('/reunioes/:id', authenticateN8NByTenantKey, async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        console.log(`[N8N] Reagendando reunião: ${id}`);
+
+        // Validar body
+        const validatedData = rescheduleSchema.parse(req.body);
+
+        // Buscar reunião no banco de dados
+        const [meeting] = await db.select().from(reunioes)
+            .where(eq(reunioes.id, id))
+            .limit(1);
+
+        if (!meeting) {
+            return res.status(404).json({
+                success: false,
+                error: 'Reunião não encontrada',
+                message: `Nenhuma reunião com ID ${id} foi encontrada`
+            });
+        }
+
+        // Verificar se pertence ao tenant correto (se autenticado por tenant key)
+        const config = (req as any).tenantConfig;
+        if (config && meeting.tenantId !== config.tenantId) {
+            return res.status(403).json({
+                success: false,
+                error: 'Acesso negado',
+                message: 'Esta reunião pertence a outro tenant'
+            });
+        }
+
+        // Verificar se pode ser reagendada (não pode reagendar cancelada ou finalizada)
+        if (meeting.status === 'cancelada') {
+            return res.status(400).json({
+                success: false,
+                error: 'Operação não permitida',
+                message: 'Não é possível reagendar uma reunião cancelada. Crie uma nova reunião.'
+            });
+        }
+
+        // Calcular novas datas
+        const newDataInicio = new Date(validatedData.dataInicio);
+        let newDataFim: Date;
+
+        if (validatedData.dataFim) {
+            newDataFim = new Date(validatedData.dataFim);
+        } else if (validatedData.duracao) {
+            newDataFim = new Date(newDataInicio.getTime() + (validatedData.duracao * 60 * 1000));
+        } else {
+            // Manter duração original
+            const originalDuration = meeting.duracao || 60;
+            newDataFim = new Date(newDataInicio.getTime() + (originalDuration * 60 * 1000));
+        }
+
+        // Calcular duração em minutos
+        const newDuracao = Math.round((newDataFim.getTime() - newDataInicio.getTime()) / (1000 * 60));
+
+        // Atualizar no PostgreSQL
+        const [updatedMeeting] = await db.update(reunioes)
+            .set({
+                dataInicio: newDataInicio,
+                dataFim: newDataFim,
+                duracao: newDuracao,
+                status: 'reagendada',
+                updatedAt: new Date()
+            })
+            .where(eq(reunioes.id, id))
+            .returning();
+
+        console.log(`[N8N] Reunião ${id} reagendada no PostgreSQL: ${newDataInicio.toISOString()} - ${newDataFim.toISOString()}`);
+
+        // Sincronizar com Supabase (fire-and-forget)
+        const syncToSupabase = async () => {
+            try {
+                const supabase = await getClientSupabaseClient(meeting.tenantId);
+                if (supabase) {
+                    const { error } = await supabase
+                        .from('reunioes')
+                        .update({
+                            data_inicio: newDataInicio.toISOString(),
+                            data_fim: newDataFim.toISOString(),
+                            duracao: newDuracao,
+                            status: 'reagendada',
+                            updated_at: new Date().toISOString()
+                        })
+                        .eq('id', id);
+
+                    if (error) {
+                        console.error(`[N8N Sync] Erro ao sincronizar reagendamento com Supabase:`, error);
+                    } else {
+                        console.log(`[N8N Sync] Reagendamento sincronizado com Supabase para reunião ${id}`);
+                    }
+                }
+            } catch (err) {
+                console.error(`[N8N Sync] Erro ao sincronizar reagendamento:`, err);
+            }
+        };
+
+        syncToSupabase();
+
+        res.json({
+            success: true,
+            message: 'Reunião reagendada com sucesso',
+            data: {
+                id: updatedMeeting.id,
+                titulo: updatedMeeting.titulo,
+                dataInicio: updatedMeeting.dataInicio,
+                dataFim: updatedMeeting.dataFim,
+                duracao: updatedMeeting.duracao,
+                status: updatedMeeting.status,
+                linkReuniao: updatedMeeting.linkReuniao,
+                rescheduledAt: updatedMeeting.updatedAt
+            }
+        });
+
+    } catch (error: any) {
+        console.error('[N8N] Erro ao reagendar reunião:', error);
+        
+        if (error instanceof z.ZodError) {
+            return res.status(400).json({
+                success: false,
+                error: 'Dados inválidos',
+                details: error.errors
+            });
+        }
+        
+        res.status(500).json({
+            success: false,
+            error: 'Erro interno ao reagendar reunião',
+            message: error.message
+        });
+    }
+});
+
 n8nRouter.get('/health', (req: Request, res: Response) => {
     res.json({
         status: 'ok',
@@ -462,6 +734,8 @@ n8nRouter.get('/health', (req: Request, res: Response) => {
         endpoints: {
             createMeeting: 'POST /api/n8n/reunioes',
             getMeeting: 'GET /api/n8n/reunioes/:id',
+            cancelMeeting: 'DELETE /api/n8n/reunioes/:id',
+            rescheduleMeeting: 'PATCH /api/n8n/reunioes/:id',
             generateApiKey: 'POST /api/n8n/api-key/generate (autenticado)',
             revokeApiKey: 'DELETE /api/n8n/api-key (autenticado)',
             checkApiKeyStatus: 'GET /api/n8n/api-key/status (autenticado)',
@@ -516,18 +790,72 @@ n8nRouter.get('/schema', (req: Request, res: Response) => {
                 }
             }
         },
-        example: {
-            simple: {
+        cancelMeeting: {
+            endpoint: 'DELETE /api/n8n/reunioes/:id',
+            description: 'Cancela uma reunião existente e desativa a sala no 100ms',
+            headers: {
+                'X-N8N-API-Key': 'sua_api_key_do_tenant'
+            },
+            urlParams: {
+                id: { type: 'UUID', required: true, description: 'ID da reunião a ser cancelada' }
+            },
+            response: {
+                success: 'boolean',
+                message: 'string',
+                data: {
+                    id: 'UUID da reunião',
+                    titulo: 'Título',
+                    status: 'cancelada',
+                    cancelledAt: 'Data do cancelamento'
+                }
+            }
+        },
+        rescheduleMeeting: {
+            endpoint: 'PATCH /api/n8n/reunioes/:id',
+            description: 'Reagenda uma reunião existente para nova data/hora',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-N8N-API-Key': 'sua_api_key_do_tenant'
+            },
+            urlParams: {
+                id: { type: 'UUID', required: true, description: 'ID da reunião a ser reagendada' }
+            },
+            body: {
+                dataInicio: { type: 'string (ISO 8601)', required: true, description: 'Nova data/hora de início' },
+                dataFim: { type: 'string (ISO 8601)', required: false, description: 'Nova data/hora de fim (opcional)' },
+                duracao: { type: 'number', required: false, description: 'Duração em minutos (15-480). Usado se dataFim não for fornecido' }
+            },
+            response: {
+                success: 'boolean',
+                message: 'string',
+                data: {
+                    id: 'UUID da reunião',
+                    titulo: 'Título',
+                    dataInicio: 'Nova data/hora de início',
+                    dataFim: 'Nova data/hora de fim',
+                    duracao: 'Duração em minutos',
+                    status: 'reagendada',
+                    linkReuniao: 'Link para participar (inalterado)',
+                    rescheduledAt: 'Data do reagendamento'
+                }
+            }
+        },
+        examples: {
+            createSimple: {
                 titulo: 'Reunião com Cliente',
                 nome: 'João Silva',
                 email: 'joao@email.com',
                 telefone: '+5511999999999'
             },
-            withDate: {
+            createWithDate: {
                 titulo: 'Reunião Agendada',
                 nome: 'Maria Santos',
                 dataInicio: '2026-01-15T14:00:00.000Z',
                 duracao: 45
+            },
+            reschedule: {
+                dataInicio: '2026-01-20T10:00:00.000Z',
+                duracao: 60
             }
         }
     });
