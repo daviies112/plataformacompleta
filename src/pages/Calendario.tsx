@@ -1,15 +1,19 @@
 import { useState, useMemo, useEffect } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Video, Clock, User, Calendar as CalendarIcon, Loader2, Plus, ExternalLink, RefreshCw } from "lucide-react";
+import { ChevronLeft, ChevronRight, Video, Clock, User, Calendar as CalendarIcon, Loader2, Plus, ExternalLink, RefreshCw, XCircle, CalendarClock, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
 import { getSupabaseClient } from "@/lib/supabase";
+import { apiRequest } from "@/lib/queryClient";
 
 interface Reuniao {
   id: string;
@@ -38,9 +42,100 @@ export default function CalendarioPage() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedMeeting, setSelectedMeeting] = useState<Reuniao | null>(null);
+  const [showRescheduleDialog, setShowRescheduleDialog] = useState(false);
+  const [rescheduleDate, setRescheduleDate] = useState('');
+  const [rescheduleTime, setRescheduleTime] = useState('');
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const queryClient = useQueryClient();
+
+  const cancelMeetingMutation = useMutation({
+    mutationFn: async (meetingId: string) => {
+      const response = await apiRequest('DELETE', `/api/reunioes/${meetingId}`);
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Reunião cancelada',
+        description: 'A reunião foi cancelada com sucesso.',
+      });
+      queryClient.invalidateQueries({ queryKey: ['reunioes-calendario'] });
+      setSelectedMeeting(null);
+    },
+    onError: (error: any) => {
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao cancelar',
+        description: error.message || 'Não foi possível cancelar a reunião.',
+      });
+    },
+  });
+
+  const rescheduleMeetingMutation = useMutation({
+    mutationFn: async ({ meetingId, dataInicio }: { meetingId: string; dataInicio: string }) => {
+      const response = await apiRequest('PATCH', `/api/reunioes/${meetingId}`, {
+        dataInicio,
+      });
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Reunião reagendada',
+        description: 'A reunião foi reagendada com sucesso.',
+      });
+      queryClient.invalidateQueries({ queryKey: ['reunioes-calendario'] });
+      setSelectedMeeting(null);
+      setShowRescheduleDialog(false);
+      setRescheduleDate('');
+      setRescheduleTime('');
+    },
+    onError: (error: any) => {
+      toast({
+        variant: 'destructive',
+        title: 'Erro ao reagendar',
+        description: error.message || 'Não foi possível reagendar a reunião.',
+      });
+    },
+  });
+
+  const handleCancelMeeting = (meetingId: string) => {
+    cancelMeetingMutation.mutate(meetingId);
+  };
+
+  const handleRescheduleMeeting = () => {
+    if (!selectedMeeting || !rescheduleDate || !rescheduleTime) {
+      toast({
+        variant: 'destructive',
+        title: 'Dados incompletos',
+        description: 'Por favor, selecione a nova data e horário.',
+      });
+      return;
+    }
+    
+    const newDateTime = new Date(`${rescheduleDate}T${rescheduleTime}`);
+    if (isNaN(newDateTime.getTime())) {
+      toast({
+        variant: 'destructive',
+        title: 'Data inválida',
+        description: 'Por favor, verifique a data e horário selecionados.',
+      });
+      return;
+    }
+
+    rescheduleMeetingMutation.mutate({
+      meetingId: selectedMeeting.id,
+      dataInicio: newDateTime.toISOString(),
+    });
+  };
+
+  const openRescheduleDialog = () => {
+    if (selectedMeeting) {
+      const date = parseISO(selectedMeeting.dataInicio);
+      setRescheduleDate(format(date, 'yyyy-MM-dd'));
+      setRescheduleTime(format(date, 'HH:mm'));
+      setShowRescheduleDialog(true);
+    }
+  };
 
   // Buscar reuniões diretamente do Supabase
   const { data: reunioes = [], isLoading, error, refetch } = useQuery<Reuniao[]>({
@@ -238,6 +333,8 @@ export default function CalendarioPage() {
         return <Badge variant="outline">Concluída</Badge>;
       case 'cancelada':
         return <Badge variant="destructive">Cancelada</Badge>;
+      case 'reagendada':
+        return <Badge className="bg-orange-500/20 text-orange-700 dark:text-orange-400">Reagendada</Badge>;
       default:
         return <Badge variant="secondary">{status}</Badge>;
     }
@@ -505,31 +602,138 @@ export default function CalendarioPage() {
                 {getStatusBadge(selectedMeeting.status)}
               </div>
               
-              <div className="flex gap-2 pt-4">
-                <Button
-                  onClick={() => handleJoinMeeting(selectedMeeting)}
-                  className="flex-1"
-                  data-testid="button-entrar-reuniao"
-                >
-                  <Video className="mr-2 h-4 w-4" />
-                  Entrar na Reunião
-                </Button>
-                {selectedMeeting.linkReuniao && (
+              <div className="flex flex-col gap-3 pt-4">
+                <div className="flex gap-2">
                   <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => {
-                      navigator.clipboard.writeText(selectedMeeting.linkReuniao!);
-                      toast({ title: 'Link copiado!' });
-                    }}
-                    data-testid="button-copiar-link"
+                    onClick={() => handleJoinMeeting(selectedMeeting)}
+                    className="flex-1"
+                    disabled={selectedMeeting.status === 'cancelada'}
+                    data-testid="button-entrar-reuniao"
                   >
-                    <ExternalLink className="h-4 w-4" />
+                    <Video className="mr-2 h-4 w-4" />
+                    Entrar na Reunião
                   </Button>
+                  {selectedMeeting.linkReuniao && (
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => {
+                        navigator.clipboard.writeText(selectedMeeting.linkReuniao!);
+                        toast({ title: 'Link copiado!' });
+                      }}
+                      data-testid="button-copiar-link"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+                
+                {selectedMeeting.status !== 'cancelada' && selectedMeeting.status !== 'concluida' && (
+                  <div className="flex gap-2 border-t pt-3">
+                    <Button
+                      variant="outline"
+                      onClick={openRescheduleDialog}
+                      className="flex-1"
+                      data-testid="button-reagendar-reuniao"
+                    >
+                      <CalendarClock className="mr-2 h-4 w-4" />
+                      Reagendar
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="destructive"
+                          className="flex-1"
+                          data-testid="button-cancelar-reuniao"
+                        >
+                          <XCircle className="mr-2 h-4 w-4" />
+                          Cancelar
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Cancelar Reunião</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Tem certeza que deseja cancelar esta reunião? Esta ação não pode ser desfeita.
+                            A sala de vídeo também será desativada.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Voltar</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => handleCancelMeeting(selectedMeeting.id)}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            {cancelMeetingMutation.isPending ? (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="mr-2 h-4 w-4" />
+                            )}
+                            Confirmar Cancelamento
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
                 )}
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showRescheduleDialog} onOpenChange={setShowRescheduleDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <CalendarClock className="h-5 w-5" />
+              Reagendar Reunião
+            </DialogTitle>
+            <DialogDescription>
+              Escolha a nova data e horário para a reunião.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="reschedule-date">Nova Data</Label>
+              <Input
+                id="reschedule-date"
+                type="date"
+                value={rescheduleDate}
+                onChange={(e) => setRescheduleDate(e.target.value)}
+                data-testid="input-reschedule-date"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="reschedule-time">Novo Horário</Label>
+              <Input
+                id="reschedule-time"
+                type="time"
+                value={rescheduleTime}
+                onChange={(e) => setRescheduleTime(e.target.value)}
+                data-testid="input-reschedule-time"
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowRescheduleDialog(false)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleRescheduleMeeting}
+              disabled={rescheduleMeetingMutation.isPending || !rescheduleDate || !rescheduleTime}
+              data-testid="button-confirmar-reagendamento"
+            >
+              {rescheduleMeetingMutation.isPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <CalendarClock className="mr-2 h-4 w-4" />
+              )}
+              Confirmar Reagendamento
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
