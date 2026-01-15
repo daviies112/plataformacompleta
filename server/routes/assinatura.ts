@@ -509,46 +509,75 @@ router.post('/contracts/:id/finalize', async (req: Request, res: Response) => {
     if (!localContract) {
       localContract = Array.from(localContractsStore.values()).find(c => c.access_token === id) || undefined;
     }
-    
-    const accessToken = localContract?.access_token || id;
+
+    const addressData = address ? {
+      address_street: address.street,
+      address_number: address.number,
+      address_complement: address.complement,
+      address_city: address.city,
+      address_state: address.state,
+      address_zipcode: address.zipcode,
+    } : {};
 
     if (assinaturaSupabaseService.isConnected()) {
-      const addressData = address ? {
-        address_street: address.street,
-        address_number: address.number,
-        address_complement: address.complement,
-        address_city: address.city,
-        address_state: address.state,
-        address_zipcode: address.zipcode,
-      } : {};
+      // First, try to get the contract from Supabase to find the correct access_token
+      let supabaseContract = await assinaturaSupabaseService.getContractByToken(id);
+      if (!supabaseContract) {
+        supabaseContract = await assinaturaSupabaseService.getContractById(id);
+      }
       
-      const supabaseResult = await assinaturaSupabaseService.finalizeContractByToken(accessToken, {
+      const updateData = {
         ...addressData,
         selfie_photo,
         document_photo,
         document_back_photo,
         signed_contract_html,
         status: status || 'signed'
-      });
+      };
+      
+      let supabaseResult = null;
+      
+      // Try by access_token first if we found the contract
+      if (supabaseContract?.access_token) {
+        console.log(`[Assinatura] Tentando finalizar por access_token: ${supabaseContract.access_token}`);
+        supabaseResult = await assinaturaSupabaseService.finalizeContractByToken(supabaseContract.access_token, updateData);
+      }
+      
+      // If that failed, try by ID
+      if (!supabaseResult && supabaseContract?.id) {
+        console.log(`[Assinatura] Tentando finalizar por ID: ${supabaseContract.id}`);
+        supabaseResult = await assinaturaSupabaseService.finalizeContract(supabaseContract.id, updateData);
+      }
+      
+      // Last resort: try with the original id parameter
+      if (!supabaseResult) {
+        console.log(`[Assinatura] Tentando finalizar diretamente por param ID: ${id}`);
+        supabaseResult = await assinaturaSupabaseService.finalizeContract(id, updateData);
+      }
       
       if (supabaseResult) {
-        console.log(`[Assinatura] Contrato finalizado no Supabase com sucesso`);
-      } else {
-        console.log(`[Assinatura] Falha ao finalizar no Supabase, tentando por ID`);
+        console.log(`[Assinatura] Contrato finalizado no Supabase com sucesso:`, supabaseResult.id);
         
+        // Update local store too if it exists
         if (localContract) {
-          const byIdResult = await assinaturaSupabaseService.finalizeContract(localContract.id, {
-            ...addressData,
-            selfie_photo,
-            document_photo,
-            document_back_photo,
-            signed_contract_html,
-            status: status || 'signed'
-          });
-          if (byIdResult) {
-            console.log(`[Assinatura] Contrato finalizado no Supabase por ID`);
-          }
+          const updatedContract: LocalContract = {
+            ...localContract,
+            status: status || 'signed',
+            signed_at: new Date().toISOString(),
+            address: address || localContract.address || null,
+            signed_contract_html: signed_contract_html || localContract.signed_contract_html,
+            contract_html: signed_contract_html || localContract.contract_html,
+            selfie_photo: selfie_photo || localContract.selfie_photo,
+            document_photo: document_photo || localContract.document_photo,
+            document_back_photo: document_back_photo || localContract.document_back_photo
+          };
+          localContractsStore.set(localContract.id, updatedContract);
+          saveLocalContracts(localContractsStore);
         }
+        
+        return res.json(supabaseResult);
+      } else {
+        console.log(`[Assinatura] Falha ao finalizar no Supabase`);
       }
     }
 
