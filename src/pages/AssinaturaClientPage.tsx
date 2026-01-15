@@ -288,17 +288,26 @@ const AssinaturaClientContent = () => {
     const selfie = isNewFormat ? result.selfie : null;
     const document = isNewFormat ? result.document : null;
     
-    console.log('[AssinaturaClientPage] Verification complete:', { success, hasSelfie: !!selfie, hasDocument: !!document });
+    console.log('[AssinaturaClientPage] handleVerificationComplete called:', { 
+      success, 
+      hasSelfie: !!selfie, 
+      hasDocument: !!document,
+      currentStepBefore: currentStep
+    });
     
     if (success) {
       if (selfie) setSelfiePhoto(selfie);
       if (document) setDocumentPhoto(document);
+      
+      console.log('[AssinaturaClientPage] Advancing to step 2 (Contract)');
       setCurrentStep(2);
+      
       toast({
         title: 'Verificação concluída!',
         description: 'Sua identidade foi verificada com sucesso.',
       });
     } else {
+      console.log('[AssinaturaClientPage] Verification failed, showing error');
       toast({
         title: 'Verificação falhou',
         description: 'Por favor, tente novamente.',
@@ -369,7 +378,19 @@ const AssinaturaClientContent = () => {
   }
 
   if (currentStep === 0) {
-    return null;
+    // Step 0 is transitional - show loading while contract data is being loaded and step advances to 1
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background" data-testid="step-initial-container">
+        <Card className="w-full max-w-md">
+          <CardContent className="pt-6 text-center">
+            <Loader2 className="w-12 h-12 mx-auto animate-spin text-muted-foreground" data-testid="status-initial-loading" />
+            <p className="mt-4 text-muted-foreground" data-testid="text-initial-loading">
+              Preparando verificação...
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   if (currentStep === 1) {
@@ -469,7 +490,28 @@ const AssinaturaClientContent = () => {
     );
   }
 
-  return null;
+  // Fallback for unexpected steps - prevents black screen
+  console.warn('[AssinaturaClientPage] Unexpected step:', currentStep, '- showing loading fallback');
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background" data-testid="step-fallback-container">
+      <Card className="w-full max-w-md">
+        <CardContent className="pt-6 text-center">
+          <Loader2 className="w-12 h-12 mx-auto animate-spin text-muted-foreground" data-testid="status-step-loading" />
+          <p className="mt-4 text-muted-foreground" data-testid="text-step-loading">
+            Carregando etapa {currentStep}...
+          </p>
+          <Button 
+            variant="outline" 
+            className="mt-4"
+            onClick={() => setCurrentStep(1)}
+            data-testid="button-restart-verification"
+          >
+            Reiniciar verificação
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
 };
 
 const AssinaturaClientPage = () => {
