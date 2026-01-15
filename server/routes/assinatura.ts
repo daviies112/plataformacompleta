@@ -336,8 +336,13 @@ router.post('/contracts', async (req: Request, res: Response) => {
     const id = nanoid();
     const access_token = nanoid(32);
     const protocolNum = protocol_number || `CONT-${Date.now()}-${nanoid(9).toUpperCase()}`;
+    
+    // Gerar URL completa para o fluxo de assinatura (para envio via WhatsApp/N8N)
+    const domain = process.env.REPLIT_DOMAINS?.split(',')[0] || process.env.REPLIT_DEV_DOMAIN || 'localhost:5000';
+    const protocol = domain.includes('localhost') ? 'http' : 'https';
+    const signature_url = `${protocol}://${domain}/assinar/${access_token}`;
 
-    console.log(`[Assinatura] Criando novo contrato para ${client_name}, access_token: ${access_token}`);
+    console.log(`[Assinatura] Criando novo contrato para ${client_name}, access_token: ${access_token}, signature_url: ${signature_url}`);
 
     const globalConfig = localGlobalConfig;
     const localContract: LocalContract = {
@@ -418,6 +423,7 @@ router.post('/contracts', async (req: Request, res: Response) => {
         protocol_number: protocolNum,
         status: status || 'pending',
         access_token,
+        signature_url, // URL completa para envio via WhatsApp/N8N
         ...customizations
       });
       
