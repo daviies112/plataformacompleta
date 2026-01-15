@@ -146,7 +146,7 @@ scripts/   → Utilitários (export, import)
    - Scripts de limpeza preservam a pasta `data/` para manter credenciais.
    - Veja: `DOCUMENTACAO_PERSISTENCIA_EXPORT.md`
 ✅ Label Designer
-✅ **Assinatura Digital** - ATUALIZADO (06/01/2026)
+✅ **Assinatura Digital** - ATUALIZADO (15/01/2026)
    - Plataforma completa para contratos digitais com verificação biométrica
    - Reconhecimento facial (ArcFace, TripletLoss, CosFace, SphereFace)
    - Captura de documentos e validação de identidade
@@ -158,14 +158,20 @@ scripts/   → Utilitários (export, import)
    - **API Routes Público (sem auth):** `/api/assinatura/public/contracts` (POST criar), `/api/assinatura/public/contracts/:token` (GET buscar)
    - **Rotas Frontend:** `/assinatura` (admin), `/assinar/:token` (cliente - acesso público)
    - **Persistência Supabase + Fallback Local:** 
-     - Usa Supabase como armazenamento principal (tabelas: `assinatura_global_config`, `assinatura_contracts`, `assinatura_signature_logs`)
+     - Usa Supabase como armazenamento principal (tabela: `contracts`)
      - Fallback automático para arquivo local `data/assinatura_contracts.json` quando Supabase indisponível
      - Configuração em `data/supabase-config.json` (propriedades: `supabaseUrl`, `supabaseAnonKey`)
-     - Execute `supabase-assinatura-tables.sql` no Supabase SQL Editor para criar tabelas
    - **Integração com Reuniões:** 
      - Botão "Assinar" na barra de controles da reunião (Meeting100ms.tsx)
      - Botão "Assinar Contrato de Revendedor" na tela de Reunião Encerrada (PublicMeetingRoom.tsx)
      - Criação automática de contrato ao encerrar reunião
+   - **Integração WhatsApp/N8N (15/01/2026):**
+     - Tabela `contracts` no Supabase com campos `signature_url`, `whatsapp_enviado`, `whatsapp_enviado_at`
+     - `signature_url` gerada automaticamente na criação: `https://dominio/assinar/{uuid}`
+     - `access_token` usa UUID (crypto.randomUUID()) para compatibilidade Supabase
+     - **Fluxo N8N:** Polling WHERE whatsapp_enviado = FALSE AND signature_url IS NOT NULL
+     - Quando contrato assinado: `whatsapp_enviado = TRUE` automaticamente
+     - Valores padrão para colunas NOT NULL (client_cpf, client_email, client_phone)
 
 ## Desenvolvimento
 
@@ -203,6 +209,6 @@ Veja [DESENVOLVIMENTO.md](./DESENVOLVIMENTO.md) para documentação técnica com
 
 ---
 
-**Last Updated:** 14 de Janeiro de 2026  
+**Last Updated:** 15 de Janeiro de 2026  
 **Tamanho Otimizado:** ~200MB (sem node_modules)  
 **Economia de Créditos:** 95%

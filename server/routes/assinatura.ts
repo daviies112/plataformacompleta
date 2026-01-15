@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { nanoid } from 'nanoid';
+import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
 import { assinaturaSupabaseService, AssinaturaContract, AssinaturaGlobalConfig } from '../services/assinatura-supabase';
@@ -334,13 +335,14 @@ router.post('/contracts', async (req: Request, res: Response) => {
     }
 
     const id = nanoid();
-    const access_token = nanoid(32);
+    // Usar UUID para access_token (compatível com Supabase que espera UUID)
+    const access_token = crypto.randomUUID();
     const protocolNum = protocol_number || `CONT-${Date.now()}-${nanoid(9).toUpperCase()}`;
     
     // Gerar URL completa para o fluxo de assinatura (para envio via WhatsApp/N8N)
     const domain = process.env.REPLIT_DOMAINS?.split(',')[0] || process.env.REPLIT_DEV_DOMAIN || 'localhost:5000';
-    const protocol = domain.includes('localhost') ? 'http' : 'https';
-    const signature_url = `${protocol}://${domain}/assinar/${access_token}`;
+    const protocolScheme = domain.includes('localhost') ? 'http' : 'https';
+    const signature_url = `${protocolScheme}://${domain}/assinar/${access_token}`;
 
     console.log(`[Assinatura] Criando novo contrato para ${client_name}, access_token: ${access_token}, signature_url: ${signature_url}`);
 

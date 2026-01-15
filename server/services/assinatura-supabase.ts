@@ -348,15 +348,16 @@ class AssinaturaSupabaseService {
     try {
       const globalConfig = await this.getGlobalConfig(tenantId);
       
+      // Valores padrão para colunas NOT NULL no Supabase
       const contractData: any = {
         client_name: contract.client_name,
-        client_cpf: contract.client_cpf || null,
-        client_email: contract.client_email || null,
-        client_phone: contract.client_phone || null,
+        client_cpf: contract.client_cpf || '', // NOT NULL no Supabase
+        client_email: contract.client_email || '', // NOT NULL no Supabase
+        client_phone: contract.client_phone || '', // NOT NULL no Supabase
         status: contract.status || 'pending',
         access_token: contract.access_token,
         protocol_number: contract.protocol_number || `CONT-${Date.now()}`,
-        contract_html: contract.contract_html || null,
+        contract_html: contract.contract_html || '<p>Contrato pendente de configuração</p>',
         logo_url: contract.logo_url ?? globalConfig?.logo_url,
         logo_size: contract.logo_size ?? globalConfig?.logo_size,
         logo_position: contract.logo_position ?? globalConfig?.logo_position,
