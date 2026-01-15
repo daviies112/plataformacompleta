@@ -96,9 +96,18 @@ export default function PublicMeetingRoom() {
           if (participantResponse.ok) {
             const result = await participantResponse.json();
             if (result.found && result.participantData) {
+              // Usar dados do form_submission
               participantDataFromForm = result.participantData;
+              console.log("[PublicMeetingRoom] Dados do form_submission encontrados:", participantDataFromForm);
+            } else if (result.meetingData) {
+              // Fallback para dados da reunião quando não há form_submission
+              participantDataFromForm = {
+                nome: result.meetingData.nome,
+                email: result.meetingData.email,
+                telefone: result.meetingData.telefone?.replace(/@s\.whatsapp\.net/g, '') || '',
+              };
+              console.log("[PublicMeetingRoom] Usando dados da reunião como fallback:", participantDataFromForm);
             }
-            console.log("[PublicMeetingRoom] Dados do participante encontrados:", participantDataFromForm);
           }
         } catch (e) {
           console.log("[PublicMeetingRoom] Nenhum dado de formulário encontrado, usando nome da reunião");
