@@ -147,6 +147,7 @@ scripts/   → Utilitários (export, import)
    - Veja: `DOCUMENTACAO_PERSISTENCIA_EXPORT.md`
 ✅ Label Designer
 ✅ **Assinatura Digital** - ATUALIZADO (15/01/2026)
+   - **📚 DOCUMENTAÇÃO COMPLETA:** Veja `DOCUMENTACAO_FLUXO_ASSINATURA_COMPLETO.md`
    - Plataforma completa para contratos digitais com verificação biométrica
    - Reconhecimento facial (ArcFace, TripletLoss, CosFace, SphereFace)
    - Captura de documentos e validação de identidade
@@ -165,6 +166,7 @@ scripts/   → Utilitários (export, import)
      - Botão "Assinar" na barra de controles da reunião (Meeting100ms.tsx)
      - Botão "Assinar Contrato de Revendedor" na tela de Reunião Encerrada (PublicMeetingRoom.tsx)
      - Criação automática de contrato ao encerrar reunião
+     - **Busca automática de dados do form_submissions por telefone/email**
    - **Integração WhatsApp/N8N (15/01/2026):**
      - Tabela `contracts` no Supabase com campos `signature_url`, `whatsapp_enviado`, `whatsapp_enviado_at`
      - `signature_url` gerada automaticamente na criação: `https://dominio/assinar/{uuid}`
@@ -172,6 +174,10 @@ scripts/   → Utilitários (export, import)
      - **Fluxo N8N:** Polling WHERE whatsapp_enviado = FALSE AND signature_url IS NOT NULL
      - Quando contrato assinado: `whatsapp_enviado = TRUE` automaticamente
      - Valores padrão para colunas NOT NULL (client_cpf, client_email, client_phone)
+   - **Correções Críticas (15/01/2026):**
+     - Fix PGRST116: Busca contrato antes de finalizar para obter access_token correto
+     - Fix tela preta mobile: Imagens base64 mantidas em React state (não sessionStorage)
+     - ErrorBoundary para captura de erros de runtime
 
 ## Desenvolvimento
 
