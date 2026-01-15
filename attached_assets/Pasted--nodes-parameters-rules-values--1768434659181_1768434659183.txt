@@ -1,0 +1,442 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "cond-aprovado",
+                    "leftValue": "={{ $json.aprovado }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Aprovado"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "cond-reprovado",
+                    "leftValue": "={{ $json.reprovado }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "false",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Reprovado"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        560,
+        5120
+      ],
+      "id": "872d4b44-c4c6-49dc-8b74-bb34d5876da6",
+      "name": "Switch - Aprovado ou Reprovado"
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "teste",
+        "remoteJid": "={{ $json.telefone }}",
+        "messageText": "={{ $json.mensagem }}",
+        "options_message": {
+          "delay": 2000,
+          "linkPreview": false
+        }
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        1008,
+        5040
+      ],
+      "id": "5c8da8cf-9a20-44e8-8a17-78bc056e54c4",
+      "name": "Enviar WhatsApp - Aprovado",
+      "credentials": {
+        "evolutionApi": {
+          "id": "A8lJVGUjAAR1ZRfV",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "teste",
+        "remoteJid": "={{ $json.telefone }}",
+        "messageText": "={{ $json.mensagem }}",
+        "options_message": {
+          "delay": 2000,
+          "linkPreview": false
+        }
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        1008,
+        5248
+      ],
+      "id": "f9a3cd87-6346-49d8-aab5-8e9c9a23940e",
+      "name": "Enviar WhatsApp - Reprovado",
+      "credentials": {
+        "evolutionApi": {
+          "id": "A8lJVGUjAAR1ZRfV",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "cpf_compliance_results",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $('Preparar Mensagem Aprovado2').item.json.id }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "processado_whatsapp_n8n",
+              "fieldValue": true
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1232,
+        5040
+      ],
+      "id": "4c52f38c-96ee-422b-b55a-b9acd1e4381d",
+      "name": "Marcar Como Processado - Aprovado",
+      "credentials": {
+        "supabaseApi": {
+          "id": "huldkk2UMf07U3qF",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "cpf_compliance_results",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $json.id }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "processado_whatsapp_n8n",
+              "fieldValue": true
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1232,
+        5248
+      ],
+      "id": "977e149e-3099-4469-9ebf-fcfee1130d07",
+      "name": "Marcar Como Processado - Reprovado",
+      "credentials": {
+        "supabaseApi": {
+          "id": "huldkk2UMf07U3qF",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 1
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        112,
+        5120
+      ],
+      "id": "63d0a68f-7671-4860-b09b-92f7cd20b622",
+      "name": "Schedule Trigger - Monitor",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "cpf_compliance_results",
+        "returnAll": true,
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "processado_whatsapp_n8n",
+              "condition": "eq",
+              "keyValue": "false"
+            },
+            {
+              "keyName": "data_consulta",
+              "condition": "gte",
+              "keyValue": "={{ $now.minus({hours: 24}).toISO() }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        336,
+        5120
+      ],
+      "id": "ef17bad3-0329-4dae-afc4-7a8788967908",
+      "name": "Buscar Status Pendentes",
+      "credentials": {
+        "supabaseApi": {
+          "id": "huldkk2UMf07U3qF",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "field-telefone-aprovado",
+              "name": "telefone",
+              "value": "={{ $json.telefone }}",
+              "type": "string"
+            },
+            {
+              "id": "field-nome-aprovado",
+              "name": "nome",
+              "value": "={{ $json.nome }}",
+              "type": "string"
+            },
+            {
+              "id": "field-id",
+              "name": "id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "field-mensagem-aprovado",
+              "name": "mensagem",
+              "value": "=Olá {{ $json.nome }}!\nÓtima notícia! Seu formulário foi *APROVADO* ✅ e passou por todas as verificações necessárias.\n\nAgora vamos para a próxima etapa: agendar uma reunião para conversarmos melhor.\n\nPodemos seguir o processo e marcarmos nosso agendamento para fazermos a reunião?",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        784,
+        5040
+      ],
+      "id": "6d6de46c-92e3-44ae-bb30-eb50a9d417b3",
+      "name": "Preparar Mensagem Aprovado2"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "field-telefone-reprovado",
+              "name": "telefone",
+              "value": "={{ $json.telefone }}",
+              "type": "string"
+            },
+            {
+              "id": "field-nome-reprovado",
+              "name": "nome",
+              "value": "={{ $json.nome }}",
+              "type": "string"
+            },
+            {
+              "id": "field-id",
+              "name": "id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "field-mensagem-reprovado",
+              "name": "mensagem",
+              "value": "=Olá {{ $json.nome }}!\nInfelizmente, seu formulário não foi aprovado no momento ❌\n\nCaso tenha dúvidas ou queira mais informações sobre os critérios de aprovação, estou à disposição para ajudar.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        784,
+        5248
+      ],
+      "id": "e5c4964c-6c6d-4df6-80f4-31d47386d5de",
+      "name": "Preparar Mensagem Reprovado1"
+    }
+  ],
+  "connections": {
+    "Switch - Aprovado ou Reprovado": {
+      "main": [
+        [
+          {
+            "node": "Preparar Mensagem Aprovado2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Preparar Mensagem Reprovado1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar WhatsApp - Aprovado": {
+      "main": [
+        [
+          {
+            "node": "Marcar Como Processado - Aprovado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar WhatsApp - Reprovado": {
+      "main": [
+        [
+          {
+            "node": "Marcar Como Processado - Reprovado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger - Monitor": {
+      "main": [
+        [
+          {
+            "node": "Buscar Status Pendentes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Status Pendentes": {
+      "main": [
+        [
+          {
+            "node": "Switch - Aprovado ou Reprovado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Mensagem Aprovado2": {
+      "main": [
+        [
+          {
+            "node": "Enviar WhatsApp - Aprovado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Mensagem Reprovado1": {
+      "main": [
+        [
+          {
+            "node": "Enviar WhatsApp - Reprovado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {
+    "Schedule Trigger - Monitor": [
+      {
+        "timestamp": "2026-01-13T09:13:02.011-05:00",
+        "Readable date": "January 13th 2026, 9:13:02 am",
+        "Readable time": "9:13:02 am",
+        "Day of week": "Tuesday",
+        "Year": "2026",
+        "Month": "January",
+        "Day of month": "13",
+        "Hour": "09",
+        "Minute": "13",
+        "Second": "02",
+        "Timezone": "America/New_York (UTC-05:00)"
+      }
+    ]
+  },
+  "meta": {
+    "instanceId": "041fc3787017e7278f042d7c91fc560a5875bc5f4b072032b9b3ee5905f18f43"
+  }
+}

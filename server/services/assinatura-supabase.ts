@@ -87,6 +87,10 @@ interface AssinaturaContract {
   created_at?: string;
   signed_at?: string | null;
   updated_at?: string;
+  // Campos para controle de envio WhatsApp via N8N
+  signature_url?: string | null;
+  whatsapp_enviado?: boolean;
+  whatsapp_enviado_at?: string | null;
 }
 
 interface AssinaturaGlobalConfig {
@@ -404,7 +408,10 @@ class AssinaturaSupabaseService {
         parabens_button_text: contract.parabens_button_text ?? globalConfig?.parabens_button_text,
         app_store_url: contract.app_store_url ?? globalConfig?.app_store_url,
         google_play_url: contract.google_play_url ?? globalConfig?.google_play_url,
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
+        // Campos para controle de envio WhatsApp via N8N
+        signature_url: contract.signature_url || null,
+        whatsapp_enviado: false // Começa como FALSE, N8N vai enviar WhatsApp
       };
       
       console.log('[AssinaturaSupabase] Creating contract in Supabase contracts table:', {
@@ -514,7 +521,10 @@ class AssinaturaSupabaseService {
       const updates: any = {
         status: data.status || 'signed',
         signed_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
+        // Marca como TRUE porque a pessoa completou o fluxo de assinatura
+        whatsapp_enviado: true,
+        whatsapp_enviado_at: new Date().toISOString()
       };
       
       if (data.address_street) updates.address_street = data.address_street;
@@ -576,7 +586,10 @@ class AssinaturaSupabaseService {
       const updates: any = {
         status: data.status || 'signed',
         signed_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
+        // Marca como TRUE porque a pessoa completou o fluxo de assinatura
+        whatsapp_enviado: true,
+        whatsapp_enviado_at: new Date().toISOString()
       };
       
       if (data.address_street) updates.address_street = data.address_street;
