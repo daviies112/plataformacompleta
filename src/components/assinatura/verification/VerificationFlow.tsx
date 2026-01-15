@@ -100,14 +100,24 @@ export const VerificationFlow = ({
   const handleSelfieCapture = useCallback((imageData: string) => {
     setSelfieImage(imageData);
     saveSelfie(imageData);
-    sessionStorage.setItem('verification_selfie', imageData);
+    // Safely try to save to sessionStorage - may fail on mobile due to quota limits
+    try {
+      sessionStorage.setItem('verification_selfie', imageData);
+    } catch (e) {
+      console.warn('[VerificationFlow] Failed to save selfie to sessionStorage:', e);
+    }
     goToStep('document');
   }, [saveSelfie, goToStep]);
 
   const handleDocumentCapture = useCallback((imageData: string, documentType: DocumentType) => {
     setDocumentImage(imageData);
     saveDocument(imageData, documentType);
-    sessionStorage.setItem('verification_document', imageData);
+    // Safely try to save to sessionStorage - may fail on mobile due to quota limits
+    try {
+      sessionStorage.setItem('verification_document', imageData);
+    } catch (e) {
+      console.warn('[VerificationFlow] Failed to save document to sessionStorage:', e);
+    }
     goToStep('processing');
   }, [saveDocument, goToStep]);
 

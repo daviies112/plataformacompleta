@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { ContractProvider, useContract } from '@/contexts/ContractContext';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { VerificationFlow } from '@/components/assinatura/verification/VerificationFlow';
 import { ContractStep } from '@/components/assinatura/steps/ContractStep';
 import { ResellerWelcomeStep } from '@/components/assinatura/steps/ResellerWelcomeStep';
@@ -516,9 +517,11 @@ const AssinaturaClientContent = () => {
 
 const AssinaturaClientPage = () => {
   return (
-    <ContractProvider>
-      <AssinaturaClientContent />
-    </ContractProvider>
+    <ErrorBoundary>
+      <ContractProvider>
+        <AssinaturaClientContent />
+      </ContractProvider>
+    </ErrorBoundary>
   );
 };
 
