@@ -1,5 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
+import { CheckCircle, XCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { useVerificationSession } from '@/hooks/assinatura/useVerificationSession';
 import { useFaceDetection } from '@/hooks/assinatura/useFaceDetection';
 import { useVerificationStorage } from '@/hooks/assinatura/useVerificationStorage';
@@ -247,6 +249,14 @@ export const VerificationFlow = ({
         document,
         result: verificationResult
       });
+    } else if (verificationResult && verificationResult.passed && !onComplete) {
+      // Fallback: if onComplete not provided but verification passed, reset to allow retry
+      // This prevents dead-end state when session is cleared
+      toast.success('Verificação concluída com sucesso!');
+      setSelfieImage(null);
+      setDocumentImage(null);
+      setVerificationResult(null);
+      resetSession();
     } else if (!verificationResult?.passed) {
       // Failed or cancelled - reset session
       setSelfieImage(null);
@@ -377,6 +387,65 @@ export const VerificationFlow = ({
               logoUrl={logoUrl}
               logoSize={logoSize}
             />
+          )}
+          {currentStep === 'result' && !session && (
+            <motion.div
+              key="result-fallback"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="flex flex-col items-center justify-center min-h-[80vh] px-6 py-8"
+              data-testid="verification-result-fallback"
+            >
+              {verificationResult?.passed ? (
+                <>
+                  <div className="w-28 h-28 rounded-full flex items-center justify-center mb-8 bg-accent/10" data-testid="status-verification-passed">
+                    <CheckCircle className="w-16 h-16 text-accent" />
+                  </div>
+                  <h1 className="text-2xl font-bold mb-2 text-accent" data-testid="text-verification-title">
+                    Verificação Aprovada!
+                  </h1>
+                  <p className="text-muted-foreground text-center max-w-md mb-8" data-testid="text-verification-message">
+                    Sua identidade foi verificada com sucesso.
+                  </p>
+                  <Button 
+                    onClick={handleComplete} 
+                    className="bg-accent text-accent-foreground"
+                    data-testid="button-continue-verification"
+                  >
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    Continuar
+                  </Button>
+                </>
+              ) : verificationResult && !verificationResult.passed ? (
+                <>
+                  <div className="w-28 h-28 rounded-full flex items-center justify-center mb-8 bg-destructive/10" data-testid="status-verification-failed">
+                    <XCircle className="w-16 h-16 text-destructive" />
+                  </div>
+                  <h1 className="text-2xl font-bold mb-2 text-destructive" data-testid="text-verification-failed-title">
+                    Verificação Não Aprovada
+                  </h1>
+                  <p className="text-muted-foreground text-center max-w-md mb-8" data-testid="text-verification-failed-message">
+                    Não foi possível verificar sua identidade. Tente novamente com melhor iluminação.
+                  </p>
+                  <Button onClick={handleRetry} data-testid="button-retry-verification">
+                    Tentar Novamente
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <div className="w-16 h-16 border-4 border-muted-foreground border-t-primary rounded-full animate-spin mb-8" data-testid="status-verification-processing" />
+                  <h1 className="text-xl font-semibold mb-2 text-foreground" data-testid="text-processing-title">
+                    Processando resultado...
+                  </h1>
+                  <p className="text-muted-foreground text-center max-w-md mb-6" data-testid="text-processing-message">
+                    Aguarde enquanto finalizamos a verificação.
+                  </p>
+                  <Button variant="outline" onClick={handleRetry} data-testid="button-retry-processing">
+                    Tentar Novamente
+                  </Button>
+                </>
+              )}
+            </motion.div>
           )}
         </AnimatePresence>
       </div>

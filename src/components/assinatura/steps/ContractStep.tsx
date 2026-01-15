@@ -5,7 +5,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useContract } from '@/contexts/ContractContext';
 import { useToast } from '@/hooks/use-toast';
 import { generateProtocolNumber, formatDate, maskCPF, maskPhone } from '@/lib/validators';
-import { apiRequest } from '@/lib/queryClient';
+import { apiRequest, queryClient } from '@/lib/queryClient';
 import { brandConfig, contractConfig } from '@/config/branding';
 
 interface ClientData {
@@ -41,6 +41,17 @@ export const ContractStep = ({ clientData, selfiePhoto, documentPhoto, currentSt
   const [agreed, setAgreed] = useState(false);
   const [isSigning, setIsSigning] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  if (!clientData) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background" data-testid="contract-loading-container">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 mx-auto animate-spin text-muted-foreground" data-testid="status-contract-loading" />
+          <p className="mt-4 text-muted-foreground" data-testid="text-contract-loading">Carregando dados do contrato...</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleScroll = () => {
     if (scrollRef.current) {
@@ -181,6 +192,8 @@ export const ContractStep = ({ clientData, selfiePhoto, documentPhoto, currentSt
         title: contractConfig.toastSuccessTitle,
         description: contractConfig.toastSuccessDescription,
       });
+
+      queryClient.invalidateQueries({ queryKey: ['/api/assinatura/contracts'] });
 
       setCurrentStep(3);
     } catch (error: any) {
