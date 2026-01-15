@@ -98,26 +98,18 @@ export const VerificationFlow = ({
   }, [handleStart]);
 
   const handleSelfieCapture = useCallback((imageData: string) => {
+    console.log('[VerificationFlow] Selfie captured, advancing to document step');
     setSelfieImage(imageData);
     saveSelfie(imageData);
-    // Safely try to save to sessionStorage - may fail on mobile due to quota limits
-    try {
-      sessionStorage.setItem('verification_selfie', imageData);
-    } catch (e) {
-      console.warn('[VerificationFlow] Failed to save selfie to sessionStorage:', e);
-    }
+    // Images are kept in React state only - no sessionStorage to avoid mobile quota issues
     goToStep('document');
   }, [saveSelfie, goToStep]);
 
   const handleDocumentCapture = useCallback((imageData: string, documentType: DocumentType) => {
+    console.log('[VerificationFlow] Document captured, advancing to processing step');
     setDocumentImage(imageData);
     saveDocument(imageData, documentType);
-    // Safely try to save to sessionStorage - may fail on mobile due to quota limits
-    try {
-      sessionStorage.setItem('verification_document', imageData);
-    } catch (e) {
-      console.warn('[VerificationFlow] Failed to save document to sessionStorage:', e);
-    }
+    // Images are kept in React state only - no sessionStorage to avoid mobile quota issues
     goToStep('processing');
   }, [saveDocument, goToStep]);
 

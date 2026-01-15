@@ -5,6 +5,42 @@ const generateSessionId = () => {
   return `vs_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 };
 
+// Safe localStorage wrapper that won't crash on mobile quota exceeded
+const safeLocalStorage = {
+  setItem: (key: string, value: string) => {
+    try {
+      localStorage.setItem(key, value);
+    } catch (e) {
+      console.warn('[useVerificationSession] localStorage.setItem failed:', e);
+    }
+  },
+  getItem: (key: string): string | null => {
+    try {
+      return localStorage.getItem(key);
+    } catch (e) {
+      console.warn('[useVerificationSession] localStorage.getItem failed:', e);
+      return null;
+    }
+  },
+  removeItem: (key: string) => {
+    try {
+      localStorage.removeItem(key);
+    } catch (e) {
+      console.warn('[useVerificationSession] localStorage.removeItem failed:', e);
+    }
+  }
+};
+
+// Helper to create a session metadata object WITHOUT large image data
+const createSessionMetadata = (session: VerificationSession) => {
+  const { selfieImage, documentImage, ...metadata } = session;
+  return {
+    ...metadata,
+    hasSelfie: !!selfieImage,
+    hasDocument: !!documentImage,
+  };
+};
+
 export const useVerificationSession = () => {
   const [session, setSession] = useState<VerificationSession | null>(null);
   const [currentStep, setCurrentStep] = useState<VerificationStep>('welcome');
@@ -18,7 +54,8 @@ export const useVerificationSession = () => {
     setSession(newSession);
     setCurrentStep('welcome');
     
-    localStorage.setItem('currentVerificationSession', JSON.stringify(newSession));
+    // Only save metadata (no images) to localStorage
+    safeLocalStorage.setItem('currentVerificationSession', JSON.stringify(createSessionMetadata(newSession)));
     
     return newSession;
   }, []);
@@ -31,7 +68,8 @@ export const useVerificationSession = () => {
         selfieImage: imageData,
         selfieTimestamp: new Date(),
       };
-      localStorage.setItem('currentVerificationSession', JSON.stringify(updated));
+      // Only save metadata (no images) to localStorage
+      safeLocalStorage.setItem('currentVerificationSession', JSON.stringify(createSessionMetadata(updated)));
       return updated;
     });
   }, []);
@@ -45,7 +83,8 @@ export const useVerificationSession = () => {
         documentType,
         documentTimestamp: new Date(),
       };
-      localStorage.setItem('currentVerificationSession', JSON.stringify(updated));
+      // Only save metadata (no images) to localStorage
+      safeLocalStorage.setItem('currentVerificationSession', JSON.stringify(createSessionMetadata(updated)));
       return updated;
     });
   }, []);
@@ -61,11 +100,19 @@ export const useVerificationSession = () => {
         result,
       };
       
-      localStorage.setItem('currentVerificationSession', JSON.stringify(updated));
+      // Only save metadata (no images) to localStorage
+      safeLocalStorage.setItem('currentVerificationSession', JSON.stringify(createSessionMetadata(updated)));
       
-      const history = JSON.parse(localStorage.getItem('verificationHistory') || '[]');
-      history.push(updated);
-      localStorage.setItem('verificationHistory', JSON.stringify(history));
+      // Save to history without images
+      const historyJson = safeLocalStorage.getItem('verificationHistory');
+      const history = historyJson ? JSON.parse(historyJson) : [];
+      history.push(createSessionMetadata(updated));
+      
+      // Keep history small - only last 10 entries
+      if (history.length > 10) {
+        history.shift();
+      }
+      safeLocalStorage.setItem('verificationHistory', JSON.stringify(history));
       
       return updated;
     });
@@ -74,7 +121,7 @@ export const useVerificationSession = () => {
   const resetSession = useCallback(() => {
     setSession(null);
     setCurrentStep('welcome');
-    localStorage.removeItem('currentVerificationSession');
+    safeLocalStorage.removeItem('currentVerificationSession');
   }, []);
 
   const goToStep = useCallback((step: VerificationStep) => {
