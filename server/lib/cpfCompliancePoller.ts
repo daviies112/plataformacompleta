@@ -785,12 +785,20 @@ export async function pollCPFCompliance(): Promise<{
 
     // ESTRATÉGIA 2: Fallback para Supabase Master (compatibilidade com dados antigos)
     // Processa TODOS os checks (com ou sem submission_id) para permitir fallback via CPF→telefone
-    // Usa verificação sem tenantId para checagem global via variáveis de ambiente
+    // Usa verificação sem tenantId para checagem global
     if (processedCount === 0 && await isSupabaseMasterConfigured()) {
       console.log('🔄 [CPFPoller] Verificando Supabase Master (compatibilidade)...');
       
-      // Para polling global, usa getSupabaseMaster() que lê variáveis de ambiente
-      const supabase = getSupabaseMaster();
+      // Busca credenciais do banco de dados primeiro, depois env vars
+      let supabase: ReturnType<typeof getSupabaseMaster>;
+      try {
+        // Tenta buscar do banco usando fallback (passa undefined para pegar qualquer config)
+        supabase = await getSupabaseMasterForTenant('system');
+      } catch (e: any) {
+        // Fallback para variáveis de ambiente se banco falhar
+        console.log('⚠️ [CPFPoller] Fallback para env vars:', e.message);
+        supabase = getSupabaseMaster();
+      }
       
       const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
       
@@ -1209,21 +1217,65 @@ export async function checkApprovedSubmissionsWithoutCPF(): Promise<{
     const fallbackTenantId = tenantsWithBigdata.length > 0 ? tenantsWithBigdata[0].tenantId : (process.env.DEFAULT_TENANT_ID || 'system');
 
     // 4. Fetch approved submissions with CPF that haven't been processed yet
-    const { data: submissions, error: fetchError } = await supabase
+    // Suporta múltiplos critérios de aprovação: passed=true (campo principal)
+    let submissions: any[] = [];
+    let fetchError: any = null;
+    
+    // Estratégia 1: Tentar com passed=true (campo padrão do sistema)
+    const { data: passedSubmissions, error: passedError } = await supabase
       .from('form_submissions')
-      .select('id, contact_cpf, contact_name, contact_phone, form_id, created_at')
+      .select('id, contact_cpf, contact_name, contact_phone, form_id, created_at, passed')
       .eq('passed', true)
       .not('contact_cpf', 'is', null)
       .order('created_at', { ascending: false })
       .limit(50);
+    
+    if (!passedError && passedSubmissions && passedSubmissions.length > 0) {
+      submissions = passedSubmissions;
+      console.log(`📊 [CPFAutoCheck] Encontradas ${submissions.length} submissions com passed=true`);
+    } else {
+      if (passedError) {
+        console.log(`⚠️ [CPFAutoCheck] Erro na query passed=true: ${passedError.message}`);
+      }
+      
+      // Estratégia 2: Buscar TODAS submissions com CPF (para debug)
+      const { data: allSubmissions, error: allError } = await supabase
+        .from('form_submissions')
+        .select('id, contact_cpf, contact_name, passed')
+        .not('contact_cpf', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(10);
+      
+      if (allSubmissions && allSubmissions.length > 0) {
+        // Verificar se alguma está aprovada
+        const approvedOnes = allSubmissions.filter((s: any) => s.passed === true);
+        if (approvedOnes.length > 0) {
+          submissions = approvedOnes;
+          console.log(`📊 [CPFAutoCheck] Encontradas ${submissions.length} submissions aprovadas via fallback`);
+        } else {
+          console.log(`⚠️ [CPFAutoCheck] ${allSubmissions.length} submissions com CPF existem, mas nenhuma aprovada (passed=true). Exemplo:`, {
+            id: allSubmissions[0].id,
+            passed: allSubmissions[0].passed,
+            contact_cpf: allSubmissions[0].contact_cpf ? '***' + allSubmissions[0].contact_cpf.slice(-3) : null
+          });
+        }
+      } else {
+        if (allError) {
+          console.log(`⚠️ [CPFAutoCheck] Erro ao buscar submissions: ${allError.message}`);
+          fetchError = allError;
+        } else {
+          console.log(`ℹ️ [CPFAutoCheck] Nenhuma submission com contact_cpf encontrada na tabela form_submissions`);
+        }
+      }
+    }
 
     if (fetchError) {
       console.error('❌ [CPFAutoCheck] Erro ao buscar submissions:', fetchError.message);
       return { success: false, processedCount: 0, errors: 1 };
     }
 
-    if (!submissions || submissions.length === 0) {
-      console.log('ℹ️ [CPFAutoCheck] Nenhuma submission aprovada com CPF encontrada');
+    if (submissions.length === 0) {
+      console.log('ℹ️ [CPFAutoCheck] Nenhuma submission aprovada com CPF encontrada para processar');
       return { success: true, processedCount: 0, errors: 0 };
     }
 

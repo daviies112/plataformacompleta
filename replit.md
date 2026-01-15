@@ -62,13 +62,18 @@ scripts/   → Utilitários (export, import)
 ✅ Dashboard Executivo  
 ✅ Gestão de Leads  
 ✅ Formulários Públicos  
-✅ Validação CPF + Histórico - ATUALIZADO (08/01/2026)
+✅ Validação CPF + Histórico - ATUALIZADO (15/01/2026)
    - Endpoint: `/api/compliance/history` retorna histórico completo
    - Dados armazenados na tabela `cpf_compliance_results` (Supabase Cliente)
    - Campo `nome` mapeado corretamente para `personName`
    - Fallback chain: Supabase Master (`datacorp_checks`) → Supabase Cliente (`cpf_compliance_results`) → PostgreSQL local
    - **Credenciais corrigidas:** URL e API Key do projeto `axrvyrpefpntacuibyds` armazenadas criptografadas na tabela `supabase_master_config`
-   - Fallback automático para Cliente quando Master está vazio (0 registros)  
+   - Fallback automático para Cliente quando Master está vazio (0 registros)
+   - **AUTOMAÇÃO CPF CORRIGIDA (15/01/2026):**
+     - `pollCPFCompliance` agora busca credenciais do banco (`getSupabaseMasterForTenant`) antes de env vars
+     - `checkApprovedSubmissionsWithoutCPF` busca submissions com `passed=true` e `contact_cpf` não nulo
+     - Quando form_submission é aprovado (passed=true), consulta CPF é disparada automaticamente
+     - Resultado salvo em Supabase Master (`datacorp_checks`) e Cliente (`cpf_compliance_results`)  
 ✅ WhatsApp Business  
 ✅ **Integração N8N para Criação de Reuniões** - NOVO (12/01/2026)
    - **Documentação Completa:** Veja `DOCUMENTACAO_N8N_REUNIOES_API.md`
