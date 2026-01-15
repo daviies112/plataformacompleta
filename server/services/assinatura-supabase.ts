@@ -519,41 +519,71 @@ class AssinaturaSupabaseService {
     if (!this.supabase) return null;
     
     try {
-      const updates: any = {
+      // Core updates that should always exist
+      const coreUpdates: any = {
         status: data.status || 'signed',
         signed_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-        // Marca como TRUE porque a pessoa completou o fluxo de assinatura
         whatsapp_enviado: true,
         whatsapp_enviado_at: new Date().toISOString()
       };
       
-      if (data.address_street) updates.address_street = data.address_street;
-      if (data.address_number) updates.address_number = data.address_number;
-      if (data.address_complement) updates.address_complement = data.address_complement;
-      if (data.address_city) updates.address_city = data.address_city;
-      if (data.address_state) updates.address_state = data.address_state;
-      if (data.address_zipcode) updates.address_zipcode = data.address_zipcode;
-      if (data.selfie_photo) updates.selfie_photo = data.selfie_photo;
-      if (data.document_photo) updates.document_photo = data.document_photo;
-      if (data.document_back_photo) updates.document_back_photo = data.document_back_photo;
-      if (data.signed_contract_html) updates.signed_contract_html = data.signed_contract_html;
+      // Optional updates that may or may not have columns in the table
+      const optionalUpdates: any = {};
+      
+      if (data.address_street) optionalUpdates.address_street = data.address_street;
+      if (data.address_number) optionalUpdates.address_number = data.address_number;
+      if (data.address_complement) optionalUpdates.address_complement = data.address_complement;
+      if (data.address_city) optionalUpdates.address_city = data.address_city;
+      if (data.address_state) optionalUpdates.address_state = data.address_state;
+      if (data.address_zipcode) optionalUpdates.address_zipcode = data.address_zipcode;
+      if (data.selfie_photo) optionalUpdates.selfie_photo = data.selfie_photo;
+      if (data.document_photo) optionalUpdates.document_photo = data.document_photo;
+      if (data.document_back_photo) optionalUpdates.document_back_photo = data.document_back_photo;
+      if (data.signed_contract_html) optionalUpdates.signed_contract_html = data.signed_contract_html;
+      
+      const fullUpdates = { ...coreUpdates, ...optionalUpdates };
       
       console.log('[AssinaturaSupabase] Finalizing contract by token:', token, {
-        status: updates.status,
-        has_selfie: !!updates.selfie_photo,
-        has_doc: !!updates.document_photo,
-        has_doc_back: !!updates.document_back_photo,
-        has_signed_html: !!updates.signed_contract_html,
-        has_address: !!(updates.address_street || updates.address_city)
+        status: fullUpdates.status,
+        has_selfie: !!optionalUpdates.selfie_photo,
+        has_doc: !!optionalUpdates.document_photo,
+        has_doc_back: !!optionalUpdates.document_back_photo,
+        has_signed_html: !!optionalUpdates.signed_contract_html,
+        has_address: !!(optionalUpdates.address_street || optionalUpdates.address_city)
       });
 
-      const { data: result, error } = await this.supabase
+      // Try full update first
+      let { data: result, error } = await this.supabase
         .from('contracts')
-        .update(updates)
+        .update(fullUpdates)
         .eq('access_token', token)
         .select()
         .single();
+      
+      // If column not found error, retry with minimal updates
+      if (error && error.code === 'PGRST204') {
+        console.warn('[AssinaturaSupabase] Column not found, retrying with minimal updates:', error.message);
+        
+        // Try with just core updates + signed_contract_html
+        const minimalUpdates = { ...coreUpdates };
+        if (data.signed_contract_html) minimalUpdates.signed_contract_html = data.signed_contract_html;
+        
+        const retryResult = await this.supabase
+          .from('contracts')
+          .update(minimalUpdates)
+          .eq('access_token', token)
+          .select()
+          .single();
+        
+        if (retryResult.error) {
+          console.error('[AssinaturaSupabase] Retry also failed:', retryResult.error);
+          return null;
+        }
+        
+        console.log('[AssinaturaSupabase] Contrato finalizado (minimal):', retryResult.data.id);
+        return retryResult.data;
+      }
       
       if (error) {
         console.error('[AssinaturaSupabase] Error finalizing contract:', error);
@@ -584,40 +614,70 @@ class AssinaturaSupabaseService {
     if (!this.supabase) return null;
     
     try {
-      const updates: any = {
+      // Core updates that should always exist
+      const coreUpdates: any = {
         status: data.status || 'signed',
         signed_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-        // Marca como TRUE porque a pessoa completou o fluxo de assinatura
         whatsapp_enviado: true,
         whatsapp_enviado_at: new Date().toISOString()
       };
       
-      if (data.address_street) updates.address_street = data.address_street;
-      if (data.address_number) updates.address_number = data.address_number;
-      if (data.address_complement) updates.address_complement = data.address_complement;
-      if (data.address_city) updates.address_city = data.address_city;
-      if (data.address_state) updates.address_state = data.address_state;
-      if (data.address_zipcode) updates.address_zipcode = data.address_zipcode;
-      if (data.selfie_photo) updates.selfie_photo = data.selfie_photo;
-      if (data.document_photo) updates.document_photo = data.document_photo;
-      if (data.document_back_photo) updates.document_back_photo = data.document_back_photo;
-      if (data.signed_contract_html) updates.signed_contract_html = data.signed_contract_html;
+      // Optional updates that may or may not have columns in the table
+      const optionalUpdates: any = {};
+      
+      if (data.address_street) optionalUpdates.address_street = data.address_street;
+      if (data.address_number) optionalUpdates.address_number = data.address_number;
+      if (data.address_complement) optionalUpdates.address_complement = data.address_complement;
+      if (data.address_city) optionalUpdates.address_city = data.address_city;
+      if (data.address_state) optionalUpdates.address_state = data.address_state;
+      if (data.address_zipcode) optionalUpdates.address_zipcode = data.address_zipcode;
+      if (data.selfie_photo) optionalUpdates.selfie_photo = data.selfie_photo;
+      if (data.document_photo) optionalUpdates.document_photo = data.document_photo;
+      if (data.document_back_photo) optionalUpdates.document_back_photo = data.document_back_photo;
+      if (data.signed_contract_html) optionalUpdates.signed_contract_html = data.signed_contract_html;
+      
+      const fullUpdates = { ...coreUpdates, ...optionalUpdates };
       
       console.log('[AssinaturaSupabase] Finalizing contract by ID:', id, {
-        status: updates.status,
-        has_selfie: !!updates.selfie_photo,
-        has_doc: !!updates.document_photo,
-        has_doc_back: !!updates.document_back_photo,
-        has_signed_html: !!updates.signed_contract_html
+        status: fullUpdates.status,
+        has_selfie: !!optionalUpdates.selfie_photo,
+        has_doc: !!optionalUpdates.document_photo,
+        has_doc_back: !!optionalUpdates.document_back_photo,
+        has_signed_html: !!optionalUpdates.signed_contract_html
       });
 
-      const { data: result, error } = await this.supabase
+      // Try full update first
+      let { data: result, error } = await this.supabase
         .from('contracts')
-        .update(updates)
+        .update(fullUpdates)
         .eq('id', id)
         .select()
         .single();
+      
+      // If column not found error, retry with minimal updates
+      if (error && error.code === 'PGRST204') {
+        console.warn('[AssinaturaSupabase] Column not found, retrying with minimal updates:', error.message);
+        
+        // Try with just core updates + signed_contract_html
+        const minimalUpdates = { ...coreUpdates };
+        if (data.signed_contract_html) minimalUpdates.signed_contract_html = data.signed_contract_html;
+        
+        const retryResult = await this.supabase
+          .from('contracts')
+          .update(minimalUpdates)
+          .eq('id', id)
+          .select()
+          .single();
+        
+        if (retryResult.error) {
+          console.error('[AssinaturaSupabase] Retry also failed:', retryResult.error);
+          return null;
+        }
+        
+        console.log('[AssinaturaSupabase] Contrato finalizado (minimal):', retryResult.data.id);
+        return retryResult.data;
+      }
       
       if (error) {
         console.error('[AssinaturaSupabase] Error finalizing contract by ID:', error);
