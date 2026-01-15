@@ -553,44 +553,25 @@ class AssinaturaSupabaseService {
         has_address: !!(optionalUpdates.address_street || optionalUpdates.address_city)
       });
 
-      // Try full update first
-      let { data: result, error } = await this.supabase
+      // Execute full update with all fields
+      const { data: result, error } = await this.supabase
         .from('contracts')
         .update(fullUpdates)
         .eq('access_token', token)
         .select()
         .single();
       
-      // If column not found error, retry with minimal updates
-      if (error && error.code === 'PGRST204') {
-        console.warn('[AssinaturaSupabase] Column not found, retrying with minimal updates:', error.message);
-        
-        // Try with just core updates + signed_contract_html
-        const minimalUpdates = { ...coreUpdates };
-        if (data.signed_contract_html) minimalUpdates.signed_contract_html = data.signed_contract_html;
-        
-        const retryResult = await this.supabase
-          .from('contracts')
-          .update(minimalUpdates)
-          .eq('access_token', token)
-          .select()
-          .single();
-        
-        if (retryResult.error) {
-          console.error('[AssinaturaSupabase] Retry also failed:', retryResult.error);
-          return null;
-        }
-        
-        console.log('[AssinaturaSupabase] Contrato finalizado (minimal):', retryResult.data.id);
-        return retryResult.data;
-      }
-      
       if (error) {
         console.error('[AssinaturaSupabase] Error finalizing contract:', error);
         return null;
       }
       
-      console.log('[AssinaturaSupabase] Contrato finalizado:', result.id);
+      console.log('[AssinaturaSupabase] Contrato finalizado com sucesso:', result.id, {
+        status: result.status,
+        signed_at: result.signed_at,
+        has_selfie: !!result.selfie_photo,
+        has_document: !!result.document_photo
+      });
       return result;
     } catch (error) {
       console.error('[AssinaturaSupabase] Erro ao finalizar contrato:', error);
@@ -647,44 +628,25 @@ class AssinaturaSupabaseService {
         has_signed_html: !!optionalUpdates.signed_contract_html
       });
 
-      // Try full update first
-      let { data: result, error } = await this.supabase
+      // Execute full update with all fields
+      const { data: result, error } = await this.supabase
         .from('contracts')
         .update(fullUpdates)
         .eq('id', id)
         .select()
         .single();
       
-      // If column not found error, retry with minimal updates
-      if (error && error.code === 'PGRST204') {
-        console.warn('[AssinaturaSupabase] Column not found, retrying with minimal updates:', error.message);
-        
-        // Try with just core updates + signed_contract_html
-        const minimalUpdates = { ...coreUpdates };
-        if (data.signed_contract_html) minimalUpdates.signed_contract_html = data.signed_contract_html;
-        
-        const retryResult = await this.supabase
-          .from('contracts')
-          .update(minimalUpdates)
-          .eq('id', id)
-          .select()
-          .single();
-        
-        if (retryResult.error) {
-          console.error('[AssinaturaSupabase] Retry also failed:', retryResult.error);
-          return null;
-        }
-        
-        console.log('[AssinaturaSupabase] Contrato finalizado (minimal):', retryResult.data.id);
-        return retryResult.data;
-      }
-      
       if (error) {
         console.error('[AssinaturaSupabase] Error finalizing contract by ID:', error);
         return null;
       }
       
-      console.log('[AssinaturaSupabase] Contrato finalizado:', id);
+      console.log('[AssinaturaSupabase] Contrato finalizado com sucesso:', id, {
+        status: result.status,
+        signed_at: result.signed_at,
+        has_selfie: !!result.selfie_photo,
+        has_document: !!result.document_photo
+      });
       return result;
     } catch (error) {
       console.error('[AssinaturaSupabase] Erro ao finalizar contrato:', error);

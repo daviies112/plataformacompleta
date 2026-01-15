@@ -1,0 +1,274 @@
+[
+  {
+    "column_name": "id",
+    "data_type": "uuid"
+  },
+  {
+    "column_name": "user_id",
+    "data_type": "uuid"
+  },
+  {
+    "column_name": "contract_html",
+    "data_type": "text"
+  },
+  {
+    "column_name": "contract_pdf_url",
+    "data_type": "text"
+  },
+  {
+    "column_name": "status",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "created_at",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "column_name": "signed_at",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "column_name": "protocol_number",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "client_name",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "client_cpf",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "client_email",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "client_phone",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "access_token",
+    "data_type": "uuid"
+  },
+  {
+    "column_name": "logo_url",
+    "data_type": "text"
+  },
+  {
+    "column_name": "primary_color",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "secondary_color",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "font_family",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "font_size",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "company_name",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "footer_text",
+    "data_type": "text"
+  },
+  {
+    "column_name": "logo_size",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "logo_position",
+    "data_type": "character varying"
+  },
+  {
+    "column_name": "whatsapp_enviado",
+    "data_type": "boolean"
+  },
+  {
+    "column_name": "signature_url",
+    "data_type": "text"
+  },
+  {
+    "column_name": "whatsapp_enviado_at",
+    "data_type": "timestamp with time zone"
+  },
+  {
+    "column_name": "follow_up_count",
+    "data_type": "integer"
+  },
+  {
+    "column_name": "selfie_photo",
+    "data_type": "text"
+  },
+  {
+    "column_name": "document_photo",
+    "data_type": "text"
+  },
+  {
+    "column_name": "document_back_photo",
+    "data_type": "text"
+  },
+  {
+    "column_name": "address_street",
+    "data_type": "text"
+  },
+  {
+    "column_name": "address_number",
+    "data_type": "text"
+  },
+  {
+    "column_name": "address_complement",
+    "data_type": "text"
+  },
+  {
+    "column_name": "address_city",
+    "data_type": "text"
+  },
+  {
+    "column_name": "address_state",
+    "data_type": "text"
+  },
+  {
+    "column_name": "address_zipcode",
+    "data_type": "text"
+  },
+  {
+    "column_name": "signed_contract_html",
+    "data_type": "text"
+  },
+  {
+    "column_name": "text_color",
+    "data_type": "text"
+  },
+  {
+    "column_name": "verification_primary_color",
+    "data_type": "text"
+  },
+  {
+    "column_name": "verification_text_color",
+    "data_type": "text"
+  },
+  {
+    "column_name": "verification_welcome_text",
+    "data_type": "text"
+  },
+  {
+    "column_name": "verification_instructions",
+    "data_type": "text"
+  },
+  {
+    "column_name": "verification_footer_text",
+    "data_type": "text"
+  },
+  {
+    "column_name": "verification_security_text",
+    "data_type": "text"
+  },
+  {
+    "column_name": "verification_header_company_name",
+    "data_type": "text"
+  },
+  {
+    "column_name": "verification_header_background_color",
+    "data_type": "text"
+  },
+  {
+    "column_name": "progress_title",
+    "data_type": "text"
+  },
+  {
+    "column_name": "progress_subtitle",
+    "data_type": "text"
+  },
+  {
+    "column_name": "progress_step1_title",
+    "data_type": "text"
+  },
+  {
+    "column_name": "progress_step1_description",
+    "data_type": "text"
+  },
+  {
+    "column_name": "progress_step2_title",
+    "data_type": "text"
+  },
+  {
+    "column_name": "progress_step2_description",
+    "data_type": "text"
+  },
+  {
+    "column_name": "progress_step3_title",
+    "data_type": "text"
+  },
+  {
+    "column_name": "progress_step3_description",
+    "data_type": "text"
+  },
+  {
+    "column_name": "progress_card_color",
+    "data_type": "text"
+  },
+  {
+    "column_name": "progress_button_color",
+    "data_type": "text"
+  },
+  {
+    "column_name": "progress_text_color",
+    "data_type": "text"
+  },
+  {
+    "column_name": "progress_font_family",
+    "data_type": "text"
+  },
+  {
+    "column_name": "progress_button_text",
+    "data_type": "text"
+  },
+  {
+    "column_name": "parabens_title",
+    "data_type": "text"
+  },
+  {
+    "column_name": "parabens_subtitle",
+    "data_type": "text"
+  },
+  {
+    "column_name": "parabens_description",
+    "data_type": "text"
+  },
+  {
+    "column_name": "parabens_button_text",
+    "data_type": "text"
+  },
+  {
+    "column_name": "parabens_button_color",
+    "data_type": "text"
+  },
+  {
+    "column_name": "parabens_card_color",
+    "data_type": "text"
+  },
+  {
+    "column_name": "parabens_background_color",
+    "data_type": "text"
+  },
+  {
+    "column_name": "app_store_url",
+    "data_type": "text"
+  },
+  {
+    "column_name": "google_play_url",
+    "data_type": "text"
+  },
+  {
+    "column_name": "updated_at",
+    "data_type": "timestamp with time zone"
+  }
+]
