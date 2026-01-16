@@ -41,8 +41,8 @@ export function HistoryTable({ data, isLoading, onViewDetails }: HistoryTablePro
     if (!searchTerm) return true;
     const term = searchTerm.toLowerCase();
     const checkAny = check as any;
-    const displayName = checkAny.personName || (checkAny.payload as any)?._basic_data?.Result?.[0]?.BasicData?.Name || "";
-    const displayCpf = checkAny.personCpf || (checkAny.payload as any)?._basic_data?.Result?.[0]?.BasicData?.TaxIdNumber || "";
+    const displayName = checkAny.personName || checkAny.name || (checkAny.payload as any)?._basic_data?.Result?.[0]?.BasicData?.Name || "";
+    const displayCpf = checkAny.personCpf || checkAny.cpf || (checkAny.payload as any)?._basic_data?.Result?.[0]?.BasicData?.TaxIdNumber || "";
 
     return check.id.toLowerCase().includes(term) ||
            check.status.toLowerCase().includes(term) ||
