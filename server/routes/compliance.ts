@@ -22,7 +22,7 @@ const checkCpfSchema = z.object({
 });
 
 function convertSupabaseCheckToCamelCase(check: any) {
-  let formattedCpf = check.person_cpf || null;
+  let formattedCpf = check.person_cpf || check.cpf || null;
   
   if (!formattedCpf) {
     if (check.cpf_encrypted) {
@@ -53,19 +53,19 @@ function convertSupabaseCheckToCamelCase(check: any) {
     id: check.id,
     cpfHash: check.cpf_hash,
     cpfEncrypted: check.cpf_encrypted,
-    personName: check.person_name,
+    personName: check.person_name || check.nome || check.name || null,
     personCpf: formattedCpf,
-    personPhone: check.person_phone || null,
+    personPhone: check.person_phone || check.telefone || null,
     tenantId: check.tenant_id,
     leadId: check.lead_id,
     submissionId: check.submission_id,
     status: check.status,
-    riskScore: check.risk_score,
-    payload: check.payload,
-    consultedAt: check.consulted_at,
-    expiresAt: check.expires_at,
+    riskScore: check.risk_score || check.risco || 0,
+    payload: check.payload || {},
+    consultedAt: check.consulted_at || check.data_consulta || check.created_at,
+    expiresAt: check.expires_at || check.data_consulta || check.created_at,
     source: check.source,
-    apiCost: check.api_cost,
+    apiCost: check.api_cost || "0.00",
     createdBy: check.created_by,
     createdAt: check.created_at,
     updatedAt: check.updated_at,
