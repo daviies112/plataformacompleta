@@ -48,6 +48,25 @@ function convertSupabaseCheckToCamelCase(check: any) {
       }
     }
   }
+
+  // Extrair processos e risco do payload BigDataCorp de forma automática
+  let processCount = 0;
+  try {
+    const payload = check.payload || {};
+    // Prioridade 1: Extrair do helper subjectInfo se o payload estiver formatado
+    // Prioridade 2: Buscar em diferentes caminhos possíveis do payload BigDataCorp
+    const processes = payload?.Processes?.Result || payload?.Result?.[0]?.Processes?.Result || [];
+    processCount = processes.length;
+    
+    // Fallback: Se o payload for o objeto final já processado (BigDataCorp raw)
+    if (processCount === 0 && payload?.Result?.[0]?.Processes?.Result) {
+       processCount = payload.Result[0].Processes.Result.length;
+    }
+  } catch (e) {
+    // Silent fail
+  }
+  
+  const riskScore = check.risk_score || check.risco || 0;
   
   return {
     id: check.id,
@@ -60,12 +79,13 @@ function convertSupabaseCheckToCamelCase(check: any) {
     leadId: check.lead_id,
     submissionId: check.submission_id,
     status: check.status,
-    riskScore: check.risk_score || check.risco || 0,
+    riskScore: riskScore,
+    processCount: processCount, // Novo campo automático
     payload: check.payload || {},
     consultedAt: check.consulted_at || check.data_consulta || check.created_at,
     expiresAt: check.expires_at || check.data_consulta || check.created_at,
     source: check.source,
-    apiCost: check.api_cost || "0.00",
+    apiCost: check.api_cost || (check.source === 'supabase_master' ? "0.17" : "0.00"),
     createdBy: check.created_by,
     createdAt: check.created_at,
     updatedAt: check.updated_at,
