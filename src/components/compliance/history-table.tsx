@@ -39,8 +39,15 @@ export function HistoryTable({ data, isLoading, onViewDetails }: HistoryTablePro
 
   const filteredData = data.filter(check => {
     if (!searchTerm) return true;
-    return check.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-           check.status.toLowerCase().includes(searchTerm.toLowerCase());
+    const term = searchTerm.toLowerCase();
+    const checkAny = check as any;
+    const displayName = checkAny.personName || (checkAny.payload as any)?._basic_data?.Result?.[0]?.BasicData?.Name || "";
+    const displayCpf = checkAny.personCpf || (checkAny.payload as any)?._basic_data?.Result?.[0]?.BasicData?.TaxIdNumber || "";
+
+    return check.id.toLowerCase().includes(term) ||
+           check.status.toLowerCase().includes(term) ||
+           displayName.toLowerCase().includes(term) ||
+           displayCpf.toLowerCase().includes(term);
   });
 
   console.log('[HistoryTable] Dados filtrados:', filteredData.length, 'registros');
