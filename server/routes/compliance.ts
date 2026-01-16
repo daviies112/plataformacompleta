@@ -297,11 +297,58 @@ export function setupComplianceRoutes(): Router {
           checks = supabaseData || [];
           console.log('[CPF History] Registros encontrados no Supabase Master:', checks.length);
           
-          // Se Master não tem dados, buscar também do Cliente
-          if (checks.length === 0) {
-            console.log('[CPF History] Master sem dados, buscando do Supabase Cliente...');
-            throw new Error('Master vazio - tentando Cliente');
+          // BUSCA COMPLEMENTAR: Sempre buscar também do Supabase Cliente para garantir dados de hoje
+          try {
+            const { getClienteSupabase } = await import('../lib/clienteSupabase.js');
+            const clienteSupabase = await getClienteSupabase();
+            
+            const { data: clienteData, error: clienteError } = await clienteSupabase
+              .from('cpf_compliance_results')
+              .select('*')
+              .order('created_at', { ascending: false })
+              .limit(limit);
+            
+            if (!clienteError && clienteData && clienteData.length > 0) {
+              const clienteChecksMapped = clienteData.map((item: any) => ({
+                id: item.id,
+                cpf_hash: item.cpf_hash || '',
+                cpf_encrypted: item.cpf_encrypted || item.cpf || '',
+                tenant_id: tenantUUID,
+                status: item.status || 'pending',
+                risk_score: item.risco || item.risk_score || item.score || 0,
+                consulted_at: item.data_consulta || item.created_at || item.consulted_at,
+                response_data: item.response_data || item.result_data || item.payload || {},
+                payload: item.payload || item.result_data || item.response_data || {},
+                name: item.nome || item.name || item.person_name || '',
+                person_name: item.nome || item.person_name || item.name || '',
+                person_cpf: item.cpf || item.person_cpf || '',
+                created_by: item.created_by || userUUID,
+                lead_id: item.lead_id,
+                submission_id: item.submission_id,
+                created_at: item.created_at,
+                updated_at: item.updated_at || item.created_at,
+                source: 'supabase_cliente',
+              }));
+              
+              // Mesclar e remover duplicados por ID
+              const existingIds = new Set(checks.map(c => c.id));
+              const newChecks = clienteChecksMapped.filter(c => !existingIds.has(c.id));
+              checks = [...checks, ...newChecks];
+              console.log('[CPF History] Registros complementares do Cliente:', newChecks.length);
+            }
+          } catch (clienteErr: any) {
+            console.log('[CPF History] Erro na busca complementar do Cliente:', clienteErr.message);
           }
+
+          // RE-ORDENAÇÃO GLOBAL: Garante que os mais recentes (inclusive do Cliente) fiquem no topo
+          checks.sort((a, b) => {
+            const dateA = new Date(a.consulted_at || a.created_at).getTime();
+            const dateB = new Date(b.consulted_at || b.created_at).getTime();
+            return dateB - dateA;
+          });
+
+          // Limita ao solicitado
+          checks = checks.slice(0, limit);
         } catch (err: any) {
           console.log('[CPF History] Fallback para Supabase Cliente...', err.message);
           
