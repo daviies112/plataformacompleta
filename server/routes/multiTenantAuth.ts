@@ -1,129 +1,157 @@
 import express, { Request, Response } from 'express';
 import { supabaseOwner, SUPABASE_CONFIGURED } from '../config/supabaseOwner';
+import bcrypt from 'bcryptjs';
+import * as fs from 'fs';
+import * as path from 'path';
 
 const router = express.Router();
+
+// Funcao helper para carregar credenciais do arquivo
+function loadCredentialsFromFile(): { email: string; passwordHash: string } | null {
+  try {
+    // Primeiro tentar arquivo dedicado de login admin
+    const adminLoginPath = path.join(process.cwd(), 'data', 'admin_login.json');
+    if (fs.existsSync(adminLoginPath)) {
+      const credentials = JSON.parse(fs.readFileSync(adminLoginPath, 'utf-8'));
+      if (credentials.email && credentials.passwordHash) {
+        console.log('[AUTH] Credenciais de admin carregadas do arquivo');
+        return credentials;
+      }
+    }
+  } catch (e) {
+    console.warn('[AUTH] Erro ao carregar credenciais do arquivo:', e);
+  }
+  return null;
+}
+
+// Funcao helper para login via arquivo local (fallback)
+async function tryLocalLogin(email: string, senha: string): Promise<{ success: boolean; user?: any }> {
+  const localCredentials = loadCredentialsFromFile();
+  
+  if (!localCredentials) {
+    return { success: false };
+  }
+  
+  if (localCredentials.email !== email) {
+    return { success: false };
+  }
+  
+  const senhaValida = await bcrypt.compare(senha, localCredentials.passwordHash);
+  if (!senhaValida) {
+    return { success: false };
+  }
+  
+  const tenantId = `dev-${email.replace(/[^a-z0-9]/gi, '_').toLowerCase()}`;
+  
+  return {
+    success: true,
+    user: {
+      id: tenantId,
+      email: email,
+      nome: email.split('@')[0],
+      supabase_url: null,
+      supabase_anon_key: null
+    }
+  };
+}
 
 // Rota de Login
 router.post('/login', async (req: Request, res: Response) => {
   try {
-    // DEVELOPMENT BYPASS: Quando auth não está configurado, permitir login mock
-    if (!SUPABASE_CONFIGURED) {
-      const { email, senha } = req.body;
-      
-      if (!email || !senha) {
-        return res.status(400).json({ error: 'Email e senha são obrigatórios' });
-      }
-      
-      // 🔐 MULTI-TENANT: Gerar tenantId único baseado no email
-      // Garantir que cada email tem seu próprio tenant, mesmo em modo dev
-      const tenantId = `dev-${email.replace(/[^a-z0-9]/gi, '_').toLowerCase()}`;
-      
-      // Criar sessão mock para desenvolvimento
-      req.session.userId = tenantId;
-      req.session.userEmail = email;
-      req.session.userName = `Dev User (${email})`;
-      req.session.tenantId = tenantId; // Cada email é um tenant 100% independente
-      req.session.supabaseUrl = null;
-      req.session.supabaseKey = null;
-      
-      console.log(`⚠️ AVISO: Login de desenvolvimento aceito (auth desabilitado) - tenantId: ${tenantId}`);
-      console.log(`🔐 [MULTI-TENANT] Tenant isolado criado para: ${email}`);
-      
-      // IMPORTANT: Save session explicitly before responding to ensure cookie is persisted
-      return req.session.save((err) => {
-        if (err) {
-          console.error('[Session] Erro ao salvar sessão:', err);
-          return res.status(500).json({ error: 'Erro ao criar sessão' });
-        }
-        console.log(`✅ [Session] Sessão salva para tenant: ${tenantId}`);
-        return res.json({ 
-          success: true, 
-          redirect: '/dashboard',
-          user: {
-            nome: `Dev User (${email})`,
-            email: email
-          }
-        });
-      });
-    }
-
     const { email, senha } = req.body;
 
     if (!email || !senha) {
       return res.status(400).json({ error: 'Email e senha são obrigatórios' });
     }
 
-    // Verificar credenciais no Supabase Principal usando a função verificar_login
-    const { data, error } = await supabaseOwner!
-      .rpc('verificar_login', { 
-        p_email: email, 
-        p_senha: senha 
-      });
-
-    if (error) {
-      console.error('Erro ao verificar login:', error);
+    // SEMPRE tentar login local primeiro (fallback garantido)
+    const localResult = await tryLocalLogin(email, senha);
+    
+    if (localResult.success && localResult.user) {
+      const user = localResult.user;
+      const tenantId = user.id;
       
-      // Registrar log de falha
-      supabaseOwner!.from('logs_acesso').insert({
-        email: email,
-        sucesso: false,
-        ip_address: req.ip,
-        user_agent: req.headers['user-agent'],
-        mensagem: 'Erro no sistema'
-      }).then().catch(console.error);
+      req.session.userId = tenantId;
+      req.session.userEmail = user.email;
+      req.session.userName = user.nome;
+      req.session.tenantId = tenantId;
+      req.session.userRole = 'admin';
+      req.session.supabaseUrl = user.supabase_url;
+      req.session.supabaseKey = user.supabase_anon_key;
       
-      return res.status(500).json({ error: 'Erro ao processar login' });
-    }
-
-    if (!data || data.length === 0 || !data[0].sucesso) {
-      // Registrar log de falha
-      supabaseOwner!.from('logs_acesso').insert({
-        email: email,
-        sucesso: false,
-        ip_address: req.ip,
-        user_agent: req.headers['user-agent'],
-        mensagem: 'Credenciais inválidas'
-      }).then().catch(console.error);
+      console.log(`✅ [AUTH] Login local bem-sucedido para: ${email}`);
       
-      return res.status(401).json({ error: 'Email ou senha incorretos' });
-    }
-
-    const admin = data[0];
-
-    // Criar sessão
-    req.session.userId = admin.id;
-    req.session.userEmail = admin.email;
-    req.session.userName = admin.nome;
-    req.session.tenantId = admin.id; // Cada usuário é um tenant independente
-    req.session.supabaseUrl = admin.supabase_url;
-    req.session.supabaseKey = admin.supabase_anon_key;
-
-    // Registrar log de sucesso
-    supabaseOwner.from('logs_acesso').insert({
-      admin_id: admin.id,
-      email: email,
-      sucesso: true,
-      ip_address: req.ip,
-      user_agent: req.headers['user-agent'],
-      mensagem: 'Login bem-sucedido'
-    }).then().catch(console.error);
-
-    // IMPORTANT: Save session explicitly before responding to ensure cookie is persisted
-    req.session.save((err) => {
-      if (err) {
-        console.error('[Session] Erro ao salvar sessão:', err);
-        return res.status(500).json({ error: 'Erro ao criar sessão' });
-      }
-      console.log(`✅ [Session] Sessão salva para tenant: ${admin.id}`);
-      res.json({ 
-        success: true, 
-        redirect: '/',
-        user: {
-          nome: admin.nome,
-          email: admin.email
+      return req.session.save((err) => {
+        if (err) {
+          console.error('[Session] Erro ao salvar sessão:', err);
+          return res.status(500).json({ error: 'Erro ao criar sessão' });
         }
+        return res.json({ 
+          success: true, 
+          redirect: '/dashboard',
+          user: {
+            nome: user.nome,
+            email: user.email
+          }
+        });
       });
-    });
+    }
+
+    // Se nao tem Supabase configurado e login local falhou, retornar erro
+    if (!SUPABASE_CONFIGURED || !supabaseOwner) {
+      console.log(`❌ [AUTH] Login falhou para: ${email} (sem Supabase e credenciais locais nao conferem)`);
+      return res.status(401).json({ error: 'Email ou senha inválidos' });
+    }
+
+    // Tentar login via Supabase (verificar_login function)
+    try {
+      const { data, error } = await supabaseOwner
+        .rpc('verificar_login', { 
+          p_email: email, 
+          p_senha: senha 
+        });
+
+      if (error) {
+        // Se a funcao nao existe, ja tentamos local acima - retornar erro
+        console.error('Erro ao verificar login no Supabase:', error);
+        return res.status(401).json({ error: 'Email ou senha inválidos' });
+      }
+
+      if (!data || data.length === 0 || !data[0].sucesso) {
+        return res.status(401).json({ error: 'Email ou senha inválidos' });
+      }
+
+      const admin = data[0];
+
+      req.session.userId = admin.id;
+      req.session.userEmail = admin.email;
+      req.session.userName = admin.nome;
+      req.session.tenantId = admin.id;
+      req.session.userRole = 'admin';
+      req.session.supabaseUrl = admin.supabase_url;
+      req.session.supabaseKey = admin.supabase_anon_key;
+
+      console.log(`✅ [AUTH] Login Supabase bem-sucedido para: ${email}`);
+
+      return req.session.save((err) => {
+        if (err) {
+          console.error('[Session] Erro ao salvar sessão:', err);
+          return res.status(500).json({ error: 'Erro ao criar sessão' });
+        }
+        res.json({ 
+          success: true, 
+          redirect: '/',
+          user: {
+            nome: admin.nome,
+            email: admin.email
+          }
+        });
+      });
+      
+    } catch (supabaseError) {
+      console.error('Erro de conexao com Supabase:', supabaseError);
+      return res.status(401).json({ error: 'Email ou senha inválidos' });
+    }
 
   } catch (error) {
     console.error('Erro no login:', error);
