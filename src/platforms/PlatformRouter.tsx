@@ -6,6 +6,7 @@ import ReuniaoPublica from '@/pages/ReuniaoPublica';
 import { usePlatform } from './shared/hooks/usePlatform';
 
 const ResellerApp = lazy(() => import('./reseller/ResellerApp'));
+const RevendedoraApp = lazy(() => import('@/features/revendedora/RevendedoraApp'));
 
 /**
  * PlatformRouter - Roteador inteligente que decide qual app renderizar
@@ -29,11 +30,11 @@ const PlatformRouter = () => {
   }
 
   // ===== NEXUS: Plataforma Revendedora =====
-  // Se for rota de revendedora, renderizar ResellerApp
-  if (location.pathname.startsWith('/reseller') || location.pathname === '/reseller-login') {
+  // Se for rota de revendedora, renderizar RevendedoraApp diretamente (fora do DesktopApp/MobileApp)
+  if (location.pathname.startsWith('/revendedora') || location.pathname.startsWith('/reseller') || location.pathname === '/reseller-login') {
     return (
       <Suspense fallback={<div className="h-screen w-screen flex items-center justify-center bg-background text-foreground font-sans">Carregando portal...</div>}>
-        <ResellerApp />
+        <RevendedoraApp />
       </Suspense>
     );
   }

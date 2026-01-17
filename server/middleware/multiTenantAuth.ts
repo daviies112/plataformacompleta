@@ -95,6 +95,7 @@ export function isPublicRoute(path: string): boolean {
     '/api/stripe/webhook',
     '/api/stripe/checkout',
     '/reseller-login',
+    '/revendedora',  // NEXUS: Plataforma de revendedoras tem login próprio
     '/health',
     '/assets'
   ];

@@ -33,8 +33,7 @@ import { RootRedirect } from "@/components/RootRedirect";
 import PublicForm from "@/features/formularios-platform/pages/PublicForm";
 import FormularioPublicoWrapper from "@/features/formularios-platform/pages/FormularioPublicoWrapper";
 
-// Import Revendedora Platform
-import RevendedoraApp from "@/features/revendedora/RevendedoraApp";
+// Revendedora Platform - NOTA: RevendedoraApp é tratado diretamente no PlatformRouter
 
 // Import Assinatura Platform
 import AssinaturaPage from "@/pages/AssinaturaPage";
@@ -491,16 +490,9 @@ const DesktopApp = () => {
         } 
       />
 
-      <Route 
-        path="/revendedora/*" 
-        element={
-          <ProtectedRoute>
-            <DesktopLayout>
-              <RevendedoraApp />
-            </DesktopLayout>
-          </ProtectedRoute>
-        } 
-      />
+      {/* Plataforma Revendedora - REMOVIDO do DesktopApp 
+          Rota /revendedora/* é tratada diretamente no PlatformRouter 
+          para evitar interferência do AuthContext */}
 
       {/* Assinatura Digital - Admin */}
       <Route 
