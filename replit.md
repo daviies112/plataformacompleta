@@ -1,257 +1,65 @@
 # ExecutiveAI Pro - Replit Project Guide
 
-## Project Overview
+## Overview
 
-ExecutiveAI Pro é uma plataforma SaaS multi-tenant para gestão de leads, formulários, validação CPF e WhatsApp Business.
+ExecutiveAI Pro is a multi-tenant SaaS platform designed for comprehensive business management, offering lead management, form handling, CPF validation, and WhatsApp Business integration. Its vision is to provide an all-in-one solution for businesses to streamline their operations, enhance customer engagement, and improve sales processes. Key capabilities include a robust executive dashboard, lead and form management, real-time CPF validation with history, and advanced communication features via WhatsApp Business. Recent expansions include a shipping platform, a reselling platform (NEXUS), n8n integration for meeting automation, and a sophisticated digital signature system with biometric verification. The project aims to offer a competitive edge in the market by consolidating essential business tools into a single, efficient, and scalable platform.
 
-**Status:** ✅ Rodando  
-**Port:** 5000  
-**Database:** PostgreSQL (Replit)  
+## User Preferences
 
-## Quick Start
+- I prefer simple language and clear explanations.
+- I like iterative development with regular updates.
+- Please ask before making major architectural changes.
+- Do not make changes to the `data/` folder unless explicitly instructed, as it contains sensitive credentials.
+- I prefer to be informed about credit optimization strategies for Replit deployments.
 
-```bash
-npm install
-npm run db:push
-npm run dev
-```
+## System Architecture
 
-## 🚀 Otimização de Créditos (IMPORTANTE!)
+ExecutiveAI Pro utilizes a modern web stack designed for scalability and maintainability.
 
-**Problema:** Exportar sem otimização gasta ~500 créditos  
-**Solução:** Com otimização, gasta ~25 créditos (95% menos!)
+**Frontend:**
+- Developed with React 18, TypeScript, and Vite for a fast and type-safe development experience.
+- UI/UX is built using TailwindCSS and shadcn/ui, providing a consistent and customizable design system.
+- State management is handled by TanStack Query for server state and Zustand for client state, ensuring efficient data fetching and global state management.
 
-### Como Exportar
+**Backend:**
+- Powered by Express.js with TypeScript, offering a robust and scalable API layer.
+- Implements JWT for secure authentication and session management.
 
-1. **ANTES de exportar (Replit atual):**
-   ```bash
-   npm run export:clean
-   git add .
-   git commit -m "Otimizado para export"
-   git push origin main
-   ```
+**Database:**
+- PostgreSQL is used as the primary database, managed with Drizzle ORM for type-safe database interactions.
+- Utilizes Supabase for certain functionalities, acting as both a primary and fallback data store, especially for features like digital signatures and CPF validation.
 
-2. **DEPOIS de importar (Replit novo):**
-   ```bash
-   npm run setup:import
-   npm run dev
-   ```
+**Core Features & Technical Implementations:**
 
-**Resultado:** Projeto cai de 1.2GB para ~200MB
+- **Shipping Platform:** Integrates with multiple carriers (Correios, Jadlog, Loggi, Azul Cargo) for freight quotation and tracking.
+- **NEXUS Reseller Platform:** A separate authenticated portal for resellers with dashboards, sales tracking, financial summaries, and product catalogs. It uses dedicated authentication and manages reseller-specific data.
+- **CPF Validation:** Features a multi-tiered fallback system (Supabase Master -> Supabase Client -> Local PostgreSQL) for CPF data retrieval and compliance checks, with automated validation triggers upon form approval.
+- **WhatsApp Business:** Integration for automated messaging and communication workflows.
+- **n8n Integration:** Allows tenants to generate API keys for n8n workflows, enabling custom automation for meeting creation and other tasks. Meetings automatically inherit tenant branding.
+- **Video Conferencing (100ms):** Provides robust video conferencing capabilities with dynamic role assignments (host/guest), public meeting links, and features for canceling/rescheduling meetings. Includes automatic participant check-in and pre-filling of contract data from form submissions.
+- **Calendar:** A monthly grid view for visualizing and managing scheduled meetings.
+- **SFU Recording System:** Server-side recording of video conferences to ensure accurate capture of meeting content, synchronized with Supabase.
+- **Digital Signature System:** A comprehensive platform for digital contracts with biometric (facial recognition) verification, document capture, and identity validation. Features a multi-step client signing process, real-time previews for admin, and automatic contract generation upon meeting conclusion. Integrates with Supabase for data persistence and N8N for WhatsApp notifications.
+- **Optimized Export System:** Includes scripts to significantly reduce the project size for export, preserving essential configurations.
 
-## Tecnologia
+**System Design Choices:**
 
-- **Frontend:** React 18 + TypeScript + Vite
-- **Backend:** Express.js + TypeScript  
-- **Database:** PostgreSQL + Drizzle ORM
-- **Estado:** TanStack Query + Zustand
-- **UI:** TailwindCSS + shadcn/ui
+- Multi-tenant architecture allowing each client to manage their data securely.
+- API-driven design for flexible frontend and backend communication.
+- Emphasis on automation (e.g., CPF checks, N8N integration, contract generation).
+- Robust error handling with mechanisms like `ErrorBoundary` for critical flows.
+- Session management explicitly saved to ensure persistence across requests.
+- Role-based access control for features like meeting recording and data access.
 
-## Estrutura
+## External Dependencies
 
-```
-src/       → Frontend (React components)
-server/    → Backend (Express routes/services)
-shared/    → Schema Drizzle (db-schema.ts)
-public/    → Arquivos estáticos
-scripts/   → Utilitários (export, import)
-```
-
-## Recursos Principais
-
-✅ Dashboard Executivo  
-✅ Gestão de Leads  
-✅ Formulários Públicos  
-✅ **Sistema NEXUS - Plataforma Revendedora** - ATUALIZADO (17/01/2026)
-   - **Acesso:** `/revendedora` → Tela de login "UP Vendas"
-   - **Autenticação:** API `/api/reseller/login` com Email + CPF (NÃO usa Supabase Auth)
-   - **Modo Dev:** Credenciais teste@upvendas.com + CPF 123.456.789-00 funcionam quando NODE_ENV != production
-   - **Produção:** Revendedoras devem estar cadastradas na tabela `revendedoras` do Supabase com email e cpf
-   - **Criação Automática de Revendedora (17/01/2026):**
-     - Quando contrato é assinado (status='signed'), revendedora é criada automaticamente
-     - Dados copiados: client_name→nome, client_cpf→cpf, client_email→email, client_phone→telefone
-     - tenant_id obtido via form_submission (busca por email/CPF normalizado)
-     - **MIGRAÇÃO NECESSÁRIA:** Execute no Supabase:
-       ```sql
-       ALTER TABLE revendedoras ALTER COLUMN admin_id TYPE TEXT;
-       ALTER TABLE vendas_revendedora ALTER COLUMN admin_id TYPE TEXT;
-       ALTER TABLE config_split ALTER COLUMN admin_id TYPE TEXT;
-       ```
-   - **Rotas Revendedora (após login):**
-     - `/revendedora/reseller/dashboard` → Dashboard da revendedora
-     - `/revendedora/reseller/sales` → Histórico de vendas
-     - `/revendedora/reseller/financial` → Resumo financeiro
-     - `/revendedora/reseller/store` → Loja virtual
-   - **Rotas Admin (gestão interna):**
-     - `/revendedora/admin/resellers` → Lista e gerencia revendedoras
-     - `/revendedora/admin/products` → Catálogo de produtos
-     - `/revendedora/admin/orders` → Pedidos
-     - `/revendedora/admin/commissions` → Comissões
-     - `/revendedora/admin/gamification` → Sistema de gamificação
-   - Autenticacao separada para revendedoras (tabela `revendedoras` no Supabase)
-   - Catalogo de produtos herdado do admin
-   - Integracao Stripe Connect para split de pagamentos
-   - **Rotas Backend:** `/api/reseller/*`, `/api/stripe/*`
-   - **Tabelas Supabase:** `revendedoras`, `vendas_revendedora`, `config_split`
-   - **SQL Schema:** `supabase-nexus-tables.sql`
-✅ Validação CPF + Histórico - ATUALIZADO (15/01/2026)
-   - Endpoint: `/api/compliance/history` retorna histórico completo
-   - Dados armazenados na tabela `cpf_compliance_results` (Supabase Cliente)
-   - Campo `nome` mapeado corretamente para `personName`
-   - Fallback chain: Supabase Master (`datacorp_checks`) → Supabase Cliente (`cpf_compliance_results`) → PostgreSQL local
-   - **Credenciais corrigidas:** URL e API Key do projeto `axrvyrpefpntacuibyds` armazenadas criptografadas na tabela `supabase_master_config`
-   - Fallback automático para Cliente quando Master está vazio (0 registros)
-   - **AUTOMAÇÃO CPF CORRIGIDA (15/01/2026):**
-     - `pollCPFCompliance` agora busca credenciais do banco (`getSupabaseMasterForTenant`) antes de env vars
-     - `checkApprovedSubmissionsWithoutCPF` busca submissions com `passed=true` e `contact_cpf` não nulo
-     - Quando form_submission é aprovado (passed=true), consulta CPF é disparada automaticamente
-     - Resultado salvo em Supabase Master (`datacorp_checks`) e Cliente (`cpf_compliance_results`)  
-✅ WhatsApp Business  
-✅ **Integração N8N para Criação de Reuniões** - NOVO (12/01/2026)
-   - **Documentação Completa:** Veja `DOCUMENTACAO_N8N_REUNIOES_API.md`
-   - **API Key por Tenant:** Cada tenant pode gerar sua própria API key para N8N
-   - **Interface:** Seção "Automação de Reuniões (N8N)" em Configurações
-   - **Endpoints:** 
-     - `POST /api/n8n/api-key/generate` - Gera nova API key (autenticado)
-     - `DELETE /api/n8n/api-key` - Revoga API key (autenticado)
-     - `GET /api/n8n/api-key/status` - Verifica status (autenticado)
-     - `POST /api/n8n/reunioes` - Cria reunião via N8N
-     - `GET /api/n8n/reunioes/:id` - Busca reunião via N8N
-     - `GET /api/n8n/health` - Verifica se API está funcionando
-     - `GET /api/n8n/schema` - Documentação dos endpoints
-   - **Autenticação:** Header `X-N8N-API-Key` com API key do tenant
-   - **Design Automático:** Reuniões herdam automaticamente configuração de branding do tenant
-   - **Compatibilidade:** Suporte legacy para `N8N_API_KEY` global (auto-seleciona tenant único)
-✅ Video Conferencing (100ms) - ATUALIZADO (14/01/2026)
-   - API Routes: `/api/reunioes`, `/api/reunioes/instantanea`, `/api/gravacoes`
-   - Acessível via menu "Reunião" no header
-   - Configure credenciais do 100ms em Configurações antes de criar reuniões
-   - **Reuniões Públicas:** Link compartilhável para usuários externos (sem autenticação)
-   - **Cancelar/Reagendar Reuniões (14/01/2026):**
-     - Endpoint: `DELETE /api/reunioes/:id` - Cancela reunião, desativa sala 100ms
-     - Endpoint: `PATCH /api/reunioes/:id` - Reagenda reunião com nova data/hora
-     - Status 'cancelada' (vermelho) e 'reagendada' (laranja) na UI
-     - Botões de Cancelar/Reagendar no dialog de detalhes do Calendário
-     - AlertDialog de confirmação para evitar cancelamentos acidentais
-     - Sincronização automática com Supabase (fire-and-forget)
-     - Não é possível reagendar reuniões canceladas
-   - **Check-in Automático (14/01/2026):**
-     - Coluna `compareceu` (boolean) adicionada à tabela `reunioes`
-     - TODAS reuniões (agendadas, instantâneas, N8N) criadas com `compareceu = FALSE`
-     - Ao entrar na sala, o frontend detecta conexão e chama API automaticamente
-     - Endpoint: `POST /api/public/reunioes/registrar-presenca`
-     - Body: `{ "room_id_100ms": "...", "nome": "..." }`
-     - Sincronização automática com Supabase (não-bloqueante)
-     - Usado para determinar se cliente compareceu ou não à reunião
-   - **Correção de Sessão (12/01/2026):**
-     - Login agora chama `req.session.save()` explicitamente antes de responder
-     - Resolve problema de sessão não persistindo com `saveUninitialized: false`
-     - Sessão agora é detectada corretamente em endpoints públicos
-   - **Correção de Roles (12/01/2026):**
-     - Usuários autenticados do mesmo tenant: role "host" (podem gravar)
-     - Usuários públicos ou cross-tenant: role "guest" (apenas assistem)
-     - Endpoint autenticado: `POST /api/reunioes/:id/token` → role="host"
-     - Endpoint público: `POST /api/public/reunioes/:id/token-public` → verifica sessão para role
-     - Botão de gravação aparece apenas para role="host" (`isHost = localPeer?.roleName === 'host'`)
-   - **Pré-preenchimento de Contratos:**
-     - Endpoint: `GET /api/public/reunioes/:id/participant-data`
-     - Busca dados do form_submission por phone/email/formSubmissionId
-     - Segurança: admins do mesmo tenant recebem dados completos (CPF, endereço)
-     - Visitantes e cross-tenant recebem apenas nome (sem PII)
-   - **Correção Tela Preta (v3):** Melhorias na conexão do SDK v0.11.0
-     - Verificação de token válido antes de tentar conexão
-     - Conexão inicia com áudio/vídeo MUTADOS para evitar problemas de dispositivos
-     - Logs de debug detalhados para diagnóstico (`[Meeting100ms]` no console)
-     - Timeout de 30s com retry automático (até 3 tentativas)
-     - Botão "Tentar Novamente" para retry manual sem recarregar página
-   - **React Hooks:** Corrigida ordem de chamadas para evitar violações das regras de hooks
-   - **IMPORTANTE - Configuração do Dashboard 100ms:**
-     - A role "guest" deve existir no template e ter permissões de subscribe
-     - A role "host" deve existir e ter permissões de publish + record
-     - A sala deve estar ativa (enabled: true)
-     - Veja: `DOCUMENTACAO_CORRECAO_100MS.md` (detalhado)
-✅ **Calendário de Reuniões** - NOVO (05/01/2026)
-   - Visualiza todas as reuniões agendadas na página Calendário (header)
-   - Grid mensal com navegação e detalhes de cada reunião
-   - Acesse via menu "Calendário" no header
-✅ **Sistema de Gravações SFU** - ATUALIZADO (05/01/2026)
-   - Gravação Server-Side (SFU) captura diretamente os streams de mídia
-   - Resolve problema de gravar tela de loading em vez do conteúdo da reunião
-   - Sincronização automática com Supabase do cliente
-   - Veja: `supabase-gravacoes-table.sql` para criar tabela no Supabase
-✅ **Sistema de Exportação Otimizado** - ATUALIZADO (03/01/2026)
-   - Scripts de limpeza preservam a pasta `data/` para manter credenciais.
-   - Veja: `DOCUMENTACAO_PERSISTENCIA_EXPORT.md`
-✅ Label Designer
-✅ **Assinatura Digital** - ATUALIZADO (15/01/2026)
-   - **📚 DOCUMENTAÇÃO COMPLETA:** Veja `DOCUMENTACAO_FLUXO_ASSINATURA_COMPLETO.md`
-   - Plataforma completa para contratos digitais com verificação biométrica
-   - Reconhecimento facial (ArcFace, TripletLoss, CosFace, SphereFace)
-   - Captura de documentos e validação de identidade
-   - **Admin (8 abas):** Cliente, Aparência, Verificação, Contrato, Progresso, Parabéns, Apps, Contratos
-   - **Previews em tempo real:** Layout two-column com configurações à esquerda e preview à direita
-   - **Cliente (3 steps):** Reconhecimento Facial → Assinar Contrato → Baixar Aplicativo
-   - **Floating Progress Tracker:** Widget fixo no canto inferior direito com 3 passos
-   - **API Routes Admin (autenticado):** `/api/assinatura/contracts` (GET, POST, PATCH, DELETE)
-   - **API Routes Público (sem auth):** `/api/assinatura/public/contracts` (POST criar), `/api/assinatura/public/contracts/:token` (GET buscar)
-   - **Rotas Frontend:** `/assinatura` (admin), `/assinar/:token` (cliente - acesso público)
-   - **Persistência Supabase + Fallback Local:** 
-     - Usa Supabase como armazenamento principal (tabela: `contracts`)
-     - Fallback automático para arquivo local `data/assinatura_contracts.json` quando Supabase indisponível
-     - Configuração em `data/supabase-config.json` (propriedades: `supabaseUrl`, `supabaseAnonKey`)
-   - **Integração com Reuniões:** 
-     - Botão "Assinar" na barra de controles da reunião (Meeting100ms.tsx)
-     - Botão "Assinar Contrato de Revendedor" na tela de Reunião Encerrada (PublicMeetingRoom.tsx)
-     - Criação automática de contrato ao encerrar reunião
-     - **Busca automática de dados do form_submissions por telefone/email**
-   - **Integração WhatsApp/N8N (15/01/2026):**
-     - Tabela `contracts` no Supabase com campos `signature_url`, `whatsapp_enviado`, `whatsapp_enviado_at`
-     - `signature_url` gerada automaticamente na criação: `https://dominio/assinar/{uuid}`
-     - `access_token` usa UUID (crypto.randomUUID()) para compatibilidade Supabase
-     - **Fluxo N8N:** Polling WHERE whatsapp_enviado = FALSE AND signature_url IS NOT NULL
-     - Quando contrato assinado: `whatsapp_enviado = TRUE` automaticamente
-     - Valores padrão para colunas NOT NULL (client_cpf, client_email, client_phone)
-   - **Correções Críticas (15/01/2026):**
-     - Fix PGRST116: Busca contrato antes de finalizar para obter access_token correto
-     - Fix tela preta mobile: Imagens base64 mantidas em React state (não sessionStorage)
-     - ErrorBoundary para captura de erros de runtime
-
-## Desenvolvimento
-
-```bash
-npm run dev       # Inicia servidor (5000)
-npm run build     # Build produção
-npm start         # Produção
-npm run db:push   # Sync database schema
-```
-
-## Variáveis Obrigatórias
-
-- `DATABASE_URL` - Auto-configurado pelo Replit
-- `JWT_SECRET` - Para autenticação JWT
-- `SESSION_SECRET` - Para sessões
-
-## Opcionais
-
-Configure em `/configuracoes` (no app):
-- Supabase credentials
-- WhatsApp/Evolution API
-- Google Calendar
-- Sentry
-- Redis
-
-## Deployment
-
-Configurado para Autoscale no Replit:
-- Build: `npm run build`
-- Run: `npm start`
-
-## Documentação
-
-Veja [DESENVOLVIMENTO.md](./DESENVOLVIMENTO.md) para documentação técnica completa.
-
----
-
-**Last Updated:** 15 de Janeiro de 2026  
-**Tamanho Otimizado:** ~200MB (sem node_modules)  
-**Economia de Créditos:** 95%
+- **PostgreSQL:** Primary database.
+- **Supabase:** Used for specific data storage (e.g., `revendedoras`, `cpf_compliance_results`, `contracts`, `datacorp_checks`, `supabase_master_config`) and acts as a fallback for some services.
+- **100ms:** Video conferencing API for real-time communication.
+- **n8n:** Workflow automation platform for integrating various services, specifically for meeting creation and WhatsApp notifications.
+- **WhatsApp Business API:** For business messaging and automation.
+- **Google Calendar:** For calendar synchronization (optional configuration).
+- **Sentry:** For error tracking and monitoring (optional configuration).
+- **Redis:** For caching and session storage (optional configuration).
+- **Stripe Connect:** For payment splitting in the NEXUS reseller platform.
+- **Various Shipping Carrier APIs:** (Correios, Jadlog, Loggi, Azul Cargo) for freight quotation and tracking.

@@ -4,8 +4,9 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Package, Truck, Clock, Shield, Star, ArrowRight } from "lucide-react";
+import { Package, Truck, Clock, Shield, Star, ArrowRight, Mail, Plane } from "lucide-react";
 import { useState } from "react";
+import { LucideIcon } from "lucide-react";
 
 interface QuoteResult {
   id: string;
@@ -13,7 +14,7 @@ interface QuoteResult {
   service: string;
   price: number;
   deliveryDays: number;
-  logo: string;
+  icon: LucideIcon;
   recommended?: boolean;
 }
 
@@ -24,7 +25,7 @@ const mockResults: QuoteResult[] = [
     service: "SEDEX",
     price: 32.50,
     deliveryDays: 3,
-    logo: "📦",
+    icon: Package,
     recommended: true
   },
   {
@@ -33,7 +34,7 @@ const mockResults: QuoteResult[] = [
     service: "PAC",
     price: 21.80,
     deliveryDays: 7,
-    logo: "📦"
+    icon: Package
   },
   {
     id: "3",
@@ -41,7 +42,7 @@ const mockResults: QuoteResult[] = [
     service: ".Package",
     price: 28.90,
     deliveryDays: 4,
-    logo: "🚚"
+    icon: Truck
   },
   {
     id: "4",
@@ -49,7 +50,7 @@ const mockResults: QuoteResult[] = [
     service: "Express",
     price: 35.00,
     deliveryDays: 2,
-    logo: "📬"
+    icon: Mail
   },
   {
     id: "5",
@@ -57,7 +58,7 @@ const mockResults: QuoteResult[] = [
     service: "Amanhã",
     price: 89.90,
     deliveryDays: 1,
-    logo: "✈️"
+    icon: Plane
   }
 ];
 
@@ -186,7 +187,9 @@ const EnvioCotacao = () => {
                       <CardContent className="p-6">
                         <div className="flex items-center justify-between flex-wrap gap-4">
                           <div className="flex items-center gap-4">
-                            <div className="text-4xl">{result.logo}</div>
+                            <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center">
+                              <result.icon className="h-6 w-6 text-muted-foreground" />
+                            </div>
                             <div>
                               <div className="flex items-center gap-2">
                                 <h4 className="font-semibold text-foreground">
