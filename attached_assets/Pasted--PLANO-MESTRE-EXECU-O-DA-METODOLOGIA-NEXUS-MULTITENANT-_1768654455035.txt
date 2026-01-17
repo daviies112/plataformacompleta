@@ -1,0 +1,238 @@
+# PLANO MESTRE: EXECUÇÃO DA METODOLOGIA NEXUS (MULTITENANT + REVENDEDORA + SPLIT)
+
+
+> **STATUS:** REVISADO E VALIDADO (100% DE COBERTURA)
+> **OBJETIVO:** Transformar a plataforma atual na arquitetura **Nexus** (Admin + Revendedoras).
+> **FILOSOFIA:** 1. Identidade (Auth) -> 2. Inventário (Produtos) -> 3. Loja (App) -> 4. Financeiro (Split).
+
+
+Este documento deve ser executado sequencialmente. Copie um bloco por vez para o seu assistente de código.
+
+
+---
+
+
+## 🛠️ FASE 0: PREPARAÇÃO (Dependências)
+
+
+Antes de tudo, instale o necessário.
+> "Instale as dependências para o sistema de pagamentos:"
+`npm install stripe @stripe/stripe-js @stripe/react-stripe-js`
+
+
+---
+
+
+## 🏗️ FASE 1: ARQUITETURA E BANCO (A Fundação)
+
+
+**Objetivo:** Preparar o banco de dados (Supabase Principal) para entender a hierarquia `Admin -> Revendedoras`.
+
+
+### 1.1 SQL Master (Executar no Supabase Principal)
+Este script cria a estrutura vital para o Multi-tenant real.
+
+
+```sql
+-- TABELA 1: ADMINS (Donas da Marca/Tenants Principais)
+CREATE TABLE IF NOT EXISTS admins (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    nome TEXT NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    senha_hash TEXT NOT NULL,
+    -- Configurações do Tenant (Supabase Privado)
+    supabase_url TEXT,
+    supabase_anon_key TEXT,
+    supabase_bucket TEXT DEFAULT 'receipts',
+    -- Customização White-Label
+    logo_url TEXT,
+    primary_color TEXT DEFAULT '#000000',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+
+-- TABELA 2: REVENDEDORAS (Filhas do Admin)
+CREATE TABLE IF NOT EXISTS revendedoras (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    admin_id UUID REFERENCES admins(id) ON DELETE CASCADE, -- Vínculo Vital
+    nome TEXT NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    senha_hash TEXT NOT NULL,
+    cpf TEXT, -- Validação Datacorp
+    telefone TEXT,
+    subdominio_slug TEXT UNIQUE, -- ex: "mariajulia"
+    status TEXT DEFAULT 'pendente', -- pendente, ativo, bloqueado
+    comissao_padrao DECIMAL(5,2) DEFAULT 20.00, -- 20%
+    stripe_account_id TEXT, -- Para o Split depois
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+
+-- TABELA 3: CONFIG GLOBAL DO SPLIT (Armazenada no Admin)
+CREATE TABLE IF NOT EXISTS config_split (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    admin_id UUID REFERENCES admins(id),
+    stripe_api_key TEXT, -- Chave Secreta do Stripe/Asaas da Dona
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+```
+
+
+---
+
+
+## 🔐 FASE 2: AUTENTICAÇÃO HÍBRIDA (O Novo Coração)
+
+
+**Objetivo:** Modificar o `server/routes/multiTenantAuth.ts` para aceitar **Revendedoras** e entregar a elas o contexto (Banco de Dados) da **Dona**.
+
+
+**Instrução para editar `server/routes/multiTenantAuth.ts`:**
+Adicionar lógica ao `router.post('/login')` (ou criar `/login-unified`):
+
+
+```typescript
+// Lógica Conceitual Obrigatória
+if (type === 'reseller') {
+    // 1. Busca na tabela 'revendedoras' (no Supabase MASTER)
+    const revendedora = await findReseller(email, password);
+   
+    // 2. RECUPERA O ADMIN PAI
+    const adminPai = await findAdminById(revendedora.admin_id);
+
+
+    // 3. Monta Sessão Híbrida
+    // A revendedora é o USUÁRIO, mas o TENANT (Banco de Dados) é o da DONA.
+    req.session.userId = revendedora.id;
+    req.session.userRole = 'reseller';
+    req.session.tenantId = adminPai.id; // <--- CRUCIAL: Aponta para o Admin
+   
+    // 4. Injeta credenciais do Admin (para ela ver o estoque dele)
+    req.session.supabaseUrl = adminPai.supabase_url;
+    req.session.supabaseKey = adminPai.supabase_anon_key;
+   
+    return res.json({ role: 'reseller', adminId: adminPai.id, redirect: '/reseller/dashboard' });
+}
+```
+
+
+---
+
+
+## � FASE 3: API DE CATÁLOGO (Conexão com Estoque)
+
+
+**Objetivo:** Criar uma rota para a revendedora ver os produtos da Dona. A tabela `products` já existe no banco da Dona (verificado em `lib/multiTenantSupabase.ts`).
+
+
+**Instrução para criar `server/routes/reseller-catalog.ts`:**
+
+
+```typescript
+router.get('/products', authenticateToken, async (req, res) => {
+  // 1. Verifica se é revendedora
+  if (req.user.role !== 'reseller') return res.status(403).send('Acesso negado');
+
+
+  // 2. Conecta no Supabase da Dona (graças ao tenantId na sessão)
+  const client = await getDynamicSupabaseClient(req.user.tenantId);
+ 
+  // 3. Busca produtos na tabela existente
+  const { data } = await client.from('products').select('*').eq('active', true);
+ 
+  return res.json(data);
+});
+```
+
+
+---
+
+
+## 📱 FASE 4: APP DA REVENDEDORA (Frontend)
+
+
+**Objetivo:** Criar um App React isolado (`src/platforms/reseller`) que consome a API acima.
+
+
+### 4.1 Estrutura de Pastas
+*   `src/platforms/reseller/ResellerApp.tsx` (Template principal)
+*   `src/platforms/reseller/pages/Catalog.tsx` (Lista de produtos)
+*   `src/platforms/reseller/pages/Financial.tsx` (Extrato de comissões)
+
+
+### 4.2 Lógica do Roteador (`PlatformRouter.tsx`)
+```typescript
+if (user?.role === 'reseller') {
+  return <ResellerApp />; // Renderiza o APP novo
+}
+```
+
+
+### 4.3 Componente Vital: Compartilhamento
+No `Catalog.tsx`, cada produto deve ter um botão "Vender":
+`whatsapp://send?text=Olha que lindo esse ${produto.nome}! Compre aqui: link_do_checkout`
+
+
+---
+
+
+## 💰 FASE 5: SPLIT DE PAGAMENTO (O Fluxo Financeiro)
+
+
+**Objetivo:** Integrar Stripe Connect para divisão automática.
+
+
+### 5.1 Onboarding (Backend)
+Criar rota `POST /api/stripe/onboarding` em `server/routes/stripe-payment.ts`:
+1.  Recebe `revendedoraId`.
+2.  Chama `stripe.accounts.create({ type: 'express' })`.
+3.  Retorna o `accountLink` para o frontend.
+4.  Revendedora preenche dados bancários -> Stripe devolve ID -> Salvar em `revendedoras.stripe_account_id`.
+
+
+### 5.2 Checkout com Split (Backend)
+Criar rota `POST /api/stripe/checkout`:
+```typescript
+// No momento da venda:
+const session = await stripe.checkout.sessions.create({
+  // ... items ...
+  payment_intent_data: {
+    application_fee_amount: valorDona, // Quanto a dona fica
+    transfer_data: {
+      destination: revendedora.stripe_account_id, // Resto vai pra revendedora
+    },
+  },
+});
+```
+
+
+---
+
+
+## 📜 CHECKLIST DE EXECUÇÃO (Para Copiar e Colar)
+
+
+### BLOCO 1: SQL BASE
+> "Atue como Senior DBA. Execute o SQL fornecido no 'PLANO_EXECUCAO_METODOLOGIA_NEXUS.md' (Fase 1) para criar as tabelas `admins`, `revendedoras` e `config_split` no banco principal."
+
+
+### BLOCO 2: AUTH E CATÁLOGO
+> "Atue como Backend Dev.
+> 1. Atualize `server/routes/multiTenantAuth.ts` implementando o login de revendedora que herda o `tenantId` e credenciais Supabase do Admin pai.
+> 2. Crie o arquivo `server/routes/reseller-catalog.ts` para expor a rota `GET /api/reseller/products`, buscando da tabela `products` do Supabase do tenant logado."
+
+
+### BLOCO 3: FRONTEND REVENDEDORA
+> "Atue como Frontend Architect.
+> 1. Crie a pasta `src/platforms/reseller` e o componente `ResellerApp.tsx`.
+> 2. Implemente uma página de Catálogo que consome `GET /api/reseller/products`.
+> 3. Atualize `PlatformRouter.tsx` para renderizar o `ResellerApp` quando `user.role === 'reseller'`."
+
+
+### BLOCO 4: FINANCEIRO (SPLIT)
+> "Atue como Fintech Engineer.
+> 1. Instale o pacote `stripe`.
+> 2. Implemente `server/routes/stripe-payment.ts` com rotas de Onboarding (Connect) e Checkout (Split), conforme detalhado na Fase 5 do plano."
+
+
+
