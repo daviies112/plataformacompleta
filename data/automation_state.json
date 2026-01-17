@@ -1,6 +1,6 @@
 {
   "isRunning": true,
-  "startedAt": "2026-01-17T12:23:13.584Z",
+  "startedAt": "2026-01-17T12:27:28.661Z",
   "lastExecutions": {
     "dev-daviemericko_gmail_com-dev-daviemericko_gmail_com": {
       "clientId": "dev-daviemericko_gmail_com",
@@ -12,7 +12,7 @@
       "totalExecutions": 607,
       "totalNewClientsDetected": 0,
       "totalEventsCreated": 0,
-      "status": "running"
+      "status": "stopped"
     },
     "system-system": {
       "clientId": "system",
