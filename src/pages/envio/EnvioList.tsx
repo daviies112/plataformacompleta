@@ -31,8 +31,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Link } from "react-router-dom";
+import { useLocation } from "wouter";
 import { useState } from "react";
+import EnvioNavigation from "./EnvioNavigation";
 
 interface Shipment {
   id: string;
@@ -123,6 +124,7 @@ const statusConfig = {
 
 const EnvioList = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [, navigate] = useLocation();
 
   const filteredShipments = mockShipments.filter(s => 
     s.trackingCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -138,22 +140,25 @@ const EnvioList = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <main className="container py-12">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-foreground mb-2">
-              Meus Envios
-            </h1>
-            <p className="text-muted-foreground">
-              Gerencie todos os seus envios em um só lugar
-            </p>
+      <main className="container py-8">
+        <div className="flex flex-col gap-4 mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold text-foreground">
+                Meus Envios
+              </h1>
+              <p className="text-muted-foreground mt-1">
+                Gerencie todos os seus envios em um só lugar
+              </p>
+            </div>
+            <EnvioNavigation />
           </div>
-          <Button asChild className="gap-2">
-            <Link to="/envio">
+          <div className="flex justify-end">
+            <Button className="gap-2" onClick={() => navigate("/envio")}>
               <Plus className="h-4 w-4" />
               Novo envio
-            </Link>
-          </Button>
+            </Button>
+          </div>
         </div>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">

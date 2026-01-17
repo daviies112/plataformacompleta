@@ -7,6 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { Package, Truck, Clock, Shield, Star, ArrowRight, Mail, Plane } from "lucide-react";
 import { useState } from "react";
 import { LucideIcon } from "lucide-react";
+import EnvioNavigation from "./EnvioNavigation";
 
 interface QuoteResult {
   id: string;
@@ -77,15 +78,18 @@ const EnvioCotacao = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <main className="container py-12">
+      <main className="container py-8">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-10">
-            <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-              Cotação de Frete
-            </h1>
-            <p className="text-lg text-muted-foreground">
-              Compare preços e prazos das melhores transportadoras
-            </p>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold text-foreground">
+                Cotação de Frete
+              </h1>
+              <p className="text-muted-foreground mt-1">
+                Compare preços e prazos das melhores transportadoras
+              </p>
+            </div>
+            <EnvioNavigation />
           </div>
 
           <div className="grid lg:grid-cols-3 gap-8">
