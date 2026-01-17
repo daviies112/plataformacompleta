@@ -162,6 +162,11 @@ app.use((req, res, next) => {
   app.use('/api/printer-config', requireAuth, printerConfigRoutes.default);
   log('🖨️ Printer configuration system initialized');
   
+  // Envio/Frete routes (protegido - requer autenticação)
+  const envioRoutes = await import('./routes/envio');
+  app.use('/api/envio', requireAuth, envioRoutes.default);
+  log('📦 Envio/Frete system initialized');
+  
   // Serve Label Designer static files
   const path = await import('path');
   const { fileURLToPath } = await import('url');

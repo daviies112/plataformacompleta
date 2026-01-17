@@ -1,0 +1,478 @@
+import { supabaseOwner } from '../config/supabaseOwner';
+
+export interface Transportadora {
+  id: string;
+  admin_id: string;
+  nome: string;
+  codigo: string;
+  tipo: string;
+  logo_url?: string;
+  ativo: boolean;
+  prazo_adicional_dias: number;
+  markup_percentual: number;
+  created_at: string;
+}
+
+export interface CotacaoFrete {
+  id: string;
+  admin_id: string;
+  cep_origem: string;
+  cep_destino: string;
+  peso_kg: number;
+  altura_cm?: number;
+  largura_cm?: number;
+  comprimento_cm?: number;
+  valor_declarado?: number;
+  transportadora_id?: string;
+  transportadora_nome?: string;
+  servico?: string;
+  valor_frete?: number;
+  prazo_dias?: number;
+  selecionado: boolean;
+  created_at: string;
+}
+
+export interface Envio {
+  id: string;
+  admin_id: string;
+  cotacao_id?: string;
+  codigo_rastreio?: string;
+  status: 'pendente' | 'aguardando_coleta' | 'coletado' | 'em_transito' | 'saiu_entrega' | 'entregue' | 'cancelado' | 'devolvido';
+  remetente_nome?: string;
+  remetente_cpf_cnpj?: string;
+  remetente_telefone?: string;
+  remetente_email?: string;
+  remetente_cep?: string;
+  remetente_logradouro?: string;
+  remetente_numero?: string;
+  remetente_complemento?: string;
+  remetente_bairro?: string;
+  remetente_cidade?: string;
+  remetente_uf?: string;
+  destinatario_nome: string;
+  destinatario_cpf_cnpj?: string;
+  destinatario_telefone?: string;
+  destinatario_email?: string;
+  destinatario_cep: string;
+  destinatario_logradouro?: string;
+  destinatario_numero?: string;
+  destinatario_complemento?: string;
+  destinatario_bairro?: string;
+  destinatario_cidade?: string;
+  destinatario_uf?: string;
+  peso_kg?: number;
+  altura_cm?: number;
+  largura_cm?: number;
+  comprimento_cm?: number;
+  valor_declarado?: number;
+  descricao_conteudo?: string;
+  transportadora_id?: string;
+  transportadora_nome?: string;
+  servico?: string;
+  valor_frete?: number;
+  prazo_estimado_dias?: number;
+  data_previsao_entrega?: string;
+  data_postagem?: string;
+  data_entrega?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RastreamentoEvento {
+  id: string;
+  envio_id: string;
+  codigo_rastreio?: string;
+  data_hora: string;
+  status: string;
+  descricao?: string;
+  local?: string;
+  cidade?: string;
+  uf?: string;
+  origem_api: boolean;
+  created_at: string;
+}
+
+export interface ConfigFrete {
+  id: string;
+  admin_id: string;
+  remetente_nome?: string;
+  remetente_cpf_cnpj?: string;
+  remetente_telefone?: string;
+  remetente_email?: string;
+  remetente_cep?: string;
+  remetente_logradouro?: string;
+  remetente_numero?: string;
+  remetente_complemento?: string;
+  remetente_bairro?: string;
+  remetente_cidade?: string;
+  remetente_uf?: string;
+  frete_gratis_acima?: number;
+  prazo_adicional_dias: number;
+  markup_padrao: number;
+}
+
+class EnvioService {
+  private getClient() {
+    if (!supabaseOwner) {
+      throw new Error('Supabase Owner não configurado');
+    }
+    return supabaseOwner;
+  }
+
+  // ==================== TRANSPORTADORAS ====================
+  
+  async getTransportadoras(adminId: string): Promise<Transportadora[]> {
+    const client = this.getClient();
+    const { data, error } = await client
+      .from('transportadoras')
+      .select('*')
+      .or(`admin_id.eq.${adminId},admin_id.eq.system`)
+      .eq('ativo', true)
+      .order('nome');
+    
+    if (error) throw error;
+    return data || [];
+  }
+
+  async createTransportadora(transportadora: Partial<Transportadora>): Promise<Transportadora> {
+    const client = this.getClient();
+    const { data, error } = await client
+      .from('transportadoras')
+      .insert(transportadora)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  }
+
+  // ==================== COTACOES ====================
+
+  async getCotacoes(adminId: string, limit = 50): Promise<CotacaoFrete[]> {
+    const client = this.getClient();
+    const { data, error } = await client
+      .from('cotacoes_frete')
+      .select('*')
+      .eq('admin_id', adminId)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+    
+    if (error) throw error;
+    return data || [];
+  }
+
+  async createCotacao(cotacao: Partial<CotacaoFrete>): Promise<CotacaoFrete> {
+    const client = this.getClient();
+    const { data, error } = await client
+      .from('cotacoes_frete')
+      .insert(cotacao)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  }
+
+  async calcularFrete(adminId: string, dados: {
+    cepOrigem: string;
+    cepDestino: string;
+    peso: number;
+    altura: number;
+    largura: number;
+    comprimento: number;
+    valorDeclarado: number;
+  }): Promise<CotacaoFrete[]> {
+    const transportadoras = await this.getTransportadoras(adminId);
+    const cotacoes: CotacaoFrete[] = [];
+
+    for (const transp of transportadoras) {
+      const valorBase = this.calcularValorBase(dados.peso, dados.cepOrigem, dados.cepDestino);
+      const prazoBase = this.calcularPrazoBase(transp.codigo, dados.cepOrigem, dados.cepDestino);
+      
+      const valorComMarkup = valorBase * (1 + (transp.markup_percentual / 100));
+      const prazoFinal = prazoBase + transp.prazo_adicional_dias;
+
+      const cotacao: Partial<CotacaoFrete> = {
+        admin_id: adminId,
+        cep_origem: dados.cepOrigem,
+        cep_destino: dados.cepDestino,
+        peso_kg: dados.peso,
+        altura_cm: dados.altura,
+        largura_cm: dados.largura,
+        comprimento_cm: dados.comprimento,
+        valor_declarado: dados.valorDeclarado,
+        transportadora_id: transp.id,
+        transportadora_nome: transp.nome,
+        servico: this.getServicoNome(transp.codigo),
+        valor_frete: Math.round(valorComMarkup * 100) / 100,
+        prazo_dias: prazoFinal,
+        selecionado: false
+      };
+
+      const created = await this.createCotacao(cotacao);
+      cotacoes.push(created);
+    }
+
+    return cotacoes.sort((a, b) => (a.valor_frete || 0) - (b.valor_frete || 0));
+  }
+
+  private calcularValorBase(peso: number, cepOrigem: string, cepDestino: string): number {
+    const regiaoOrigem = parseInt(cepOrigem.substring(0, 1));
+    const regiaoDestino = parseInt(cepDestino.substring(0, 1));
+    const distanciaFator = Math.abs(regiaoOrigem - regiaoDestino) + 1;
+    
+    const valorPorKg = 8.50;
+    const taxaBase = 12.00;
+    const taxaDistancia = distanciaFator * 3.50;
+    
+    return taxaBase + (peso * valorPorKg) + taxaDistancia;
+  }
+
+  private calcularPrazoBase(codigoTransp: string, cepOrigem: string, cepDestino: string): number {
+    const regiaoOrigem = parseInt(cepOrigem.substring(0, 1));
+    const regiaoDestino = parseInt(cepDestino.substring(0, 1));
+    const distanciaFator = Math.abs(regiaoOrigem - regiaoDestino);
+    
+    const prazosBase: Record<string, number> = {
+      'correios_sedex': 2,
+      'correios_pac': 5,
+      'jadlog_package': 3,
+      'jadlog_com': 4,
+      'loggi_express': 2,
+      'azul_amanha': 1,
+      'azul_ecommerce': 3
+    };
+
+    const prazoBase = prazosBase[codigoTransp] || 5;
+    return prazoBase + Math.floor(distanciaFator / 2);
+  }
+
+  private getServicoNome(codigo: string): string {
+    const servicos: Record<string, string> = {
+      'correios_sedex': 'SEDEX',
+      'correios_pac': 'PAC',
+      'jadlog_package': '.Package',
+      'jadlog_com': '.Com',
+      'loggi_express': 'Express',
+      'azul_amanha': 'Amanhã',
+      'azul_ecommerce': 'E-commerce'
+    };
+    return servicos[codigo] || codigo;
+  }
+
+  // ==================== ENVIOS ====================
+
+  async getEnvios(adminId: string, status?: string, limit = 100): Promise<Envio[]> {
+    const client = this.getClient();
+    let query = client
+      .from('envios')
+      .select('*')
+      .eq('admin_id', adminId)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+    
+    if (status && status !== 'todos') {
+      query = query.eq('status', status);
+    }
+    
+    const { data, error } = await query;
+    if (error) throw error;
+    return data || [];
+  }
+
+  async getEnvioById(id: string): Promise<Envio | null> {
+    const client = this.getClient();
+    const { data, error } = await client
+      .from('envios')
+      .select('*')
+      .eq('id', id)
+      .single();
+    
+    if (error) {
+      if (error.code === 'PGRST116') return null;
+      throw error;
+    }
+    return data;
+  }
+
+  async createEnvio(envio: Partial<Envio>): Promise<Envio> {
+    const client = this.getClient();
+    
+    const codigoRastreio = this.gerarCodigoRastreio();
+    
+    const { data, error } = await client
+      .from('envios')
+      .insert({
+        ...envio,
+        codigo_rastreio: codigoRastreio,
+        status: 'pendente'
+      })
+      .select()
+      .single();
+    
+    if (error) throw error;
+
+    await this.addRastreamentoEvento({
+      envio_id: data.id,
+      codigo_rastreio: codigoRastreio,
+      data_hora: new Date().toISOString(),
+      status: 'Objeto criado',
+      descricao: 'Envio registrado no sistema',
+      local: 'Sistema',
+      origem_api: false
+    });
+
+    return data;
+  }
+
+  async updateEnvio(id: string, updates: Partial<Envio>): Promise<Envio> {
+    const client = this.getClient();
+    const { data, error } = await client
+      .from('envios')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  }
+
+  async updateEnvioStatus(id: string, status: Envio['status'], descricao?: string): Promise<Envio> {
+    const envio = await this.updateEnvio(id, { status });
+    
+    await this.addRastreamentoEvento({
+      envio_id: id,
+      codigo_rastreio: envio.codigo_rastreio,
+      data_hora: new Date().toISOString(),
+      status: this.getStatusLabel(status),
+      descricao: descricao || `Status atualizado para: ${this.getStatusLabel(status)}`,
+      origem_api: false
+    });
+
+    return envio;
+  }
+
+  private getStatusLabel(status: string): string {
+    const labels: Record<string, string> = {
+      'pendente': 'Pendente',
+      'aguardando_coleta': 'Aguardando Coleta',
+      'coletado': 'Coletado',
+      'em_transito': 'Em Trânsito',
+      'saiu_entrega': 'Saiu para Entrega',
+      'entregue': 'Entregue',
+      'cancelado': 'Cancelado',
+      'devolvido': 'Devolvido'
+    };
+    return labels[status] || status;
+  }
+
+  private gerarCodigoRastreio(): string {
+    const prefixo = 'ME';
+    const numeros = Math.random().toString().substring(2, 11).padEnd(9, '0');
+    const sufixo = 'BR';
+    return `${prefixo}${numeros}${sufixo}`;
+  }
+
+  async getEnvioStats(adminId: string): Promise<{
+    total: number;
+    pendentes: number;
+    em_transito: number;
+    entregues: number;
+    cancelados: number;
+  }> {
+    const client = this.getClient();
+    const { data, error } = await client
+      .from('envios')
+      .select('status')
+      .eq('admin_id', adminId);
+    
+    if (error) throw error;
+
+    const envios = data || [];
+    return {
+      total: envios.length,
+      pendentes: envios.filter(e => e.status === 'pendente' || e.status === 'aguardando_coleta').length,
+      em_transito: envios.filter(e => ['coletado', 'em_transito', 'saiu_entrega'].includes(e.status)).length,
+      entregues: envios.filter(e => e.status === 'entregue').length,
+      cancelados: envios.filter(e => e.status === 'cancelado' || e.status === 'devolvido').length
+    };
+  }
+
+  // ==================== RASTREAMENTO ====================
+
+  async getRastreamentoEventos(envioId: string): Promise<RastreamentoEvento[]> {
+    const client = this.getClient();
+    const { data, error } = await client
+      .from('rastreamento_eventos')
+      .select('*')
+      .eq('envio_id', envioId)
+      .order('data_hora', { ascending: false });
+    
+    if (error) throw error;
+    return data || [];
+  }
+
+  async getRastreamentoByCodigo(codigoRastreio: string): Promise<{
+    envio: Envio | null;
+    eventos: RastreamentoEvento[];
+  }> {
+    const client = this.getClient();
+    
+    const { data: envio } = await client
+      .from('envios')
+      .select('*')
+      .eq('codigo_rastreio', codigoRastreio.toUpperCase())
+      .single();
+
+    if (!envio) {
+      return { envio: null, eventos: [] };
+    }
+
+    const eventos = await this.getRastreamentoEventos(envio.id);
+    return { envio, eventos };
+  }
+
+  async addRastreamentoEvento(evento: Partial<RastreamentoEvento>): Promise<RastreamentoEvento> {
+    const client = this.getClient();
+    const { data, error } = await client
+      .from('rastreamento_eventos')
+      .insert(evento)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  }
+
+  // ==================== CONFIGURACOES ====================
+
+  async getConfigFrete(adminId: string): Promise<ConfigFrete | null> {
+    const client = this.getClient();
+    const { data, error } = await client
+      .from('config_frete')
+      .select('*')
+      .eq('admin_id', adminId)
+      .single();
+    
+    if (error) {
+      if (error.code === 'PGRST116') return null;
+      throw error;
+    }
+    return data;
+  }
+
+  async saveConfigFrete(config: Partial<ConfigFrete>): Promise<ConfigFrete> {
+    const client = this.getClient();
+    const { data, error } = await client
+      .from('config_frete')
+      .upsert(config, { onConflict: 'admin_id' })
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return data;
+  }
+}
+
+export const envioService = new EnvioService();
