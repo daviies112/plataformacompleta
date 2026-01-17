@@ -1,21 +1,34 @@
 import express, { Request, Response } from 'express';
 import { supabaseOwner, SUPABASE_CONFIGURED } from '../config/supabaseOwner';
-import bcrypt from 'bcryptjs';
+// Login/registro usa Email + CPF (sem senha/bcrypt)
 
 const router = express.Router();
+
+// Função para normalizar CPF (remove formatação)
+function normalizeCPF(cpf: string): string {
+  return cpf.replace(/\D/g, '');
+}
 
 // POST /api/reseller/login
 router.post('/login', async (req: Request, res: Response) => {
   try {
-    const { email, senha } = req.body;
+    const { email, cpf } = req.body;
 
-    if (!email || !senha) {
-      return res.status(400).json({ error: 'Email e senha sao obrigatorios' });
+    if (!email || !cpf) {
+      return res.status(400).json({ error: 'Email e CPF sao obrigatorios' });
+    }
+
+    // Normaliza o CPF removendo formatação
+    const cpfNormalizado = normalizeCPF(cpf);
+
+    // Valida formato do CPF (11 dígitos)
+    if (cpfNormalizado.length !== 11) {
+      return res.status(400).json({ error: 'CPF deve ter 11 digitos' });
     }
 
     // Modo desenvolvimento: permitir login com credenciais de teste
     const isDev = process.env.NODE_ENV === 'development' || !process.env.NODE_ENV;
-    const isTestCredentials = email === 'teste@upvendas.com' && senha === 'teste123456';
+    const isTestCredentials = email === 'teste@upvendas.com' && cpfNormalizado === '12345678900';
 
     if (isDev && isTestCredentials) {
       console.log('[NEXUS-DEV] Login de desenvolvimento para revendedora de teste');
@@ -40,6 +53,7 @@ router.post('/login', async (req: Request, res: Response) => {
             id: 'dev-reseller-1',
             nome: 'Revendedora Teste',
             email: email,
+            cpf: cpfNormalizado,
             role: 'reseller',
             comissao: 10
           }
@@ -55,28 +69,23 @@ router.post('/login', async (req: Request, res: Response) => {
       });
     }
 
-    // 1. Buscar revendedora no banco master
+    // 1. Buscar revendedora no banco master por email E cpf
     const { data: revendedora, error } = await supabaseOwner
       .from('revendedoras')
       .select('*')
       .eq('email', email)
+      .eq('cpf', cpfNormalizado)
       .eq('status', 'ativo')
       .single();
 
     if (error || !revendedora) {
-      console.log('Revendedora nao encontrada:', email);
-      return res.status(401).json({ error: 'Credenciais invalidas' });
-    }
-
-    // 2. Verificar senha (usando bcrypt)
-    const senhaValida = await bcrypt.compare(senha, revendedora.senha_hash);
-    if (!senhaValida) {
-      return res.status(401).json({ error: 'Credenciais invalidas' });
+      console.log('Revendedora nao encontrada:', email, 'CPF:', cpfNormalizado.substring(0, 3) + '...');
+      return res.status(401).json({ error: 'Email ou CPF invalidos' });
     }
 
     const adminId = revendedora.admin_id;
 
-    // 3. Criar sessao hibrida
+    // 2. Criar sessao hibrida
     req.session.userId = revendedora.id;
     req.session.userEmail = revendedora.email;
     req.session.userName = revendedora.nome;
@@ -99,6 +108,7 @@ router.post('/login', async (req: Request, res: Response) => {
           id: revendedora.id,
           nome: revendedora.nome,
           email: revendedora.email,
+          cpf: revendedora.cpf,
           role: 'reseller',
           comissao: revendedora.comissao_padrao
         }
@@ -118,16 +128,19 @@ router.post('/register', async (req: Request, res: Response) => {
       return res.status(503).json({ error: 'Sistema nao configurado' });
     }
 
-    const { nome, email, senha, telefone, cpf, adminId } = req.body;
+    const { nome, email, cpf, telefone, adminId } = req.body;
 
-    if (!nome || !email || !senha || !adminId) {
+    if (!nome || !email || !cpf || !adminId) {
       return res.status(400).json({
-        error: 'Campos obrigatorios: nome, email, senha, adminId'
+        error: 'Campos obrigatorios: nome, email, cpf, adminId'
       });
     }
 
-    // Hash da senha
-    const senhaHash = await bcrypt.hash(senha, 10);
+    // Normaliza e valida CPF
+    const cpfNormalizado = normalizeCPF(cpf);
+    if (cpfNormalizado.length !== 11) {
+      return res.status(400).json({ error: 'CPF deve ter 11 digitos' });
+    }
 
     const { data, error } = await supabaseOwner
       .from('revendedoras')
@@ -135,9 +148,8 @@ router.post('/register', async (req: Request, res: Response) => {
         admin_id: adminId,
         nome,
         email,
-        senha_hash: senhaHash,
+        cpf: cpfNormalizado,
         telefone: telefone || null,
-        cpf: cpf || null,
         status: 'pendente'
       })
       .select()
@@ -146,7 +158,7 @@ router.post('/register', async (req: Request, res: Response) => {
     if (error) {
       console.error('Erro ao registrar revendedora:', error);
       if (error.code === '23505') {
-        return res.status(400).json({ error: 'Email ja cadastrado' });
+        return res.status(400).json({ error: 'Email ou CPF ja cadastrado' });
       }
       return res.status(400).json({ error: error.message });
     }

@@ -7,15 +7,31 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { toast } from 'sonner';
 import { LogIn } from 'lucide-react';
 
+// Função para formatar CPF enquanto digita
+function formatCPF(value: string): string {
+  const numbers = value.replace(/\D/g, '').slice(0, 11);
+  if (numbers.length <= 3) return numbers;
+  if (numbers.length <= 6) return `${numbers.slice(0, 3)}.${numbers.slice(3)}`;
+  if (numbers.length <= 9) return `${numbers.slice(0, 3)}.${numbers.slice(3, 6)}.${numbers.slice(6)}`;
+  return `${numbers.slice(0, 3)}.${numbers.slice(3, 6)}.${numbers.slice(6, 9)}-${numbers.slice(9)}`;
+}
+
 export default function Login() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('teste@upvendas.com');
-  const [password, setPassword] = useState('teste123456');
+  const [cpf, setCpf] = useState('123.456.789-00');
   const [loading, setLoading] = useState(false);
+
+  const handleCpfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setCpf(formatCPF(e.target.value));
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+
+    // Remove formatação do CPF para enviar apenas números
+    const cpfNumbers = cpf.replace(/\D/g, '');
 
     try {
       const response = await fetch('/api/reseller/login', {
@@ -24,7 +40,7 @@ export default function Login() {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify({ email, senha: password }),
+        body: JSON.stringify({ email, cpf: cpfNumbers }),
       });
 
       const data = await response.json();
@@ -71,14 +87,16 @@ export default function Login() {
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
+              <Label htmlFor="cpf">CPF</Label>
               <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
+                id="cpf"
+                type="text"
+                value={cpf}
+                onChange={handleCpfChange}
+                placeholder="000.000.000-00"
+                maxLength={14}
                 required
+                data-testid="input-cpf"
               />
             </div>
 
@@ -86,6 +104,7 @@ export default function Login() {
               type="submit"
               className="w-full"
               disabled={loading}
+              data-testid="button-login"
             >
               <LogIn className="h-4 w-4 mr-2" />
               {loading ? 'Entrando...' : 'Entrar'}
@@ -94,7 +113,7 @@ export default function Login() {
             <div className="mt-4 p-3 bg-muted/50 rounded text-sm">
               <p className="font-medium mb-1">Credenciais de Teste:</p>
               <p className="text-muted-foreground">Email: teste@upvendas.com</p>
-              <p className="text-muted-foreground">Senha: teste123456</p>
+              <p className="text-muted-foreground">CPF: 123.456.789-00</p>
             </div>
           </form>
         </CardContent>

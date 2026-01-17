@@ -64,8 +64,9 @@ scripts/   → Utilitários (export, import)
 ✅ Formulários Públicos  
 ✅ **Sistema NEXUS - Plataforma Revendedora** - ATUALIZADO (17/01/2026)
    - **Acesso:** `/revendedora` → Tela de login "UP Vendas"
-   - **Autenticação:** API `/api/reseller/login` com sessão própria (NÃO usa Supabase Auth)
-   - **Modo Dev:** Credenciais teste@upvendas.com / teste123456 funcionam quando NODE_ENV != production
+   - **Autenticação:** API `/api/reseller/login` com Email + CPF (NÃO usa Supabase Auth)
+   - **Modo Dev:** Credenciais teste@upvendas.com + CPF 123.456.789-00 funcionam quando NODE_ENV != production
+   - **Produção:** Revendedoras devem estar cadastradas na tabela `revendedoras` do Supabase com email e cpf
    - **Rotas Revendedora (após login):**
      - `/revendedora/reseller/dashboard` → Dashboard da revendedora
      - `/revendedora/reseller/sales` → Histórico de vendas

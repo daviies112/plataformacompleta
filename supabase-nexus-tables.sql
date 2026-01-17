@@ -8,13 +8,13 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- TABELA: REVENDEDORAS (Filhas do Admin)
+-- LOGIN: Email + CPF (sem senha - mais seguro para revendedoras)
 CREATE TABLE IF NOT EXISTS revendedoras (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     admin_id UUID NOT NULL, -- Referencia ao admin (tenant principal)
     nome TEXT NOT NULL,
     email TEXT UNIQUE NOT NULL,
-    senha_hash TEXT NOT NULL,
-    cpf TEXT,
+    cpf TEXT NOT NULL, -- CPF usado como credencial de login (junto com email)
     telefone TEXT,
     subdominio_slug TEXT UNIQUE,
     status TEXT DEFAULT 'pendente' CHECK (status IN ('pendente', 'ativo', 'bloqueado')),
@@ -55,6 +55,7 @@ CREATE TABLE IF NOT EXISTS config_split (
 -- INDICES para performance
 CREATE INDEX IF NOT EXISTS idx_revendedoras_admin ON revendedoras(admin_id);
 CREATE INDEX IF NOT EXISTS idx_revendedoras_email ON revendedoras(email);
+CREATE INDEX IF NOT EXISTS idx_revendedoras_cpf ON revendedoras(cpf);
 CREATE INDEX IF NOT EXISTS idx_revendedoras_status ON revendedoras(status);
 CREATE INDEX IF NOT EXISTS idx_vendas_revendedora ON vendas_revendedora(revendedora_id);
 CREATE INDEX IF NOT EXISTS idx_vendas_admin ON vendas_revendedora(admin_id);
