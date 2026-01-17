@@ -1,4 +1,5 @@
 import { supabaseOwner } from '../config/supabaseOwner';
+// Usando supabaseOwner diretamente para acessar contracts
 
 export interface Transportadora {
   id: string;
@@ -500,6 +501,7 @@ class EnvioService {
   // ==================== CONTRATOS PENDENTES ====================
 
   async getContratosPendentesEnvio(adminId: string): Promise<ContratoPendenteEnvio[]> {
+    console.log('[EnvioService] Buscando contratos pendentes para adminId:', adminId);
     const client = this.getClient();
     
     let contractIdsComEnvio: string[] = [];
@@ -511,10 +513,8 @@ class EnvioService {
         .eq('admin_id', adminId)
         .not('contract_id', 'is', null);
       
-      if (enviosError) {
-        console.error('[EnvioService] Erro ao buscar envios existentes:', enviosError);
-      } else {
-        contractIdsComEnvio = (enviosExistentes || [])
+      if (!enviosError && enviosExistentes) {
+        contractIdsComEnvio = enviosExistentes
           .map((e: any) => e.contract_id)
           .filter(Boolean);
       }
@@ -522,24 +522,47 @@ class EnvioService {
       console.error('[EnvioService] Erro ao buscar contract_ids dos envios:', err);
     }
 
-    let query = client
+    // Buscar contratos diretamente do supabaseOwner (onde estão os contracts)
+    console.log('[EnvioService] Buscando contratos diretamente do Supabase Owner');
+    
+    // Query básica sem tenant_id/user_id (nem todas as tabelas contracts têm essas colunas)
+    const { data: allContracts, error: contractsError } = await client
       .from('contracts')
-      .select('id, client_name, client_cpf, client_email, client_phone, address_street, address_number, address_complement, address_city, address_state, address_zipcode, signed_at')
-      .or(`tenant_id.eq.${adminId},user_id.eq.${adminId}`)
+      .select('id, client_name, client_cpf, client_email, client_phone, address_street, address_number, address_complement, address_city, address_state, address_zipcode, signed_at, status')
       .eq('status', 'signed')
       .order('signed_at', { ascending: false });
-
-    if (contractIdsComEnvio.length > 0) {
-      query = query.not('id', 'in', `(${contractIdsComEnvio.join(',')})`);
-    }
-
-    const { data, error } = await query;
     
-    if (error) {
-      console.error('[EnvioService] Erro ao buscar contratos pendentes:', error);
-      throw error;
+    if (contractsError) {
+      console.error('[EnvioService] Erro ao buscar contratos:', contractsError);
+      return [];
     }
-    return data || [];
+    
+    console.log('[EnvioService] Total de contratos assinados encontrados:', allContracts?.length || 0);
+    
+    // Filtrar contratos que já têm envio criado
+    const pendingContracts = (allContracts || []).filter((contract: any) => {
+      if (contractIdsComEnvio.includes(contract.id)) {
+        console.log('[EnvioService] Contrato', contract.id, 'já tem envio, excluindo');
+        return false;
+      }
+      console.log('[EnvioService] Incluindo contrato:', contract.id, 'client:', contract.client_name);
+      return true;
+    });
+    
+    return pendingContracts.map((c: any) => ({
+      id: c.id,
+      client_name: c.client_name,
+      client_cpf: c.client_cpf,
+      client_email: c.client_email,
+      client_phone: c.client_phone,
+      address_street: c.address_street,
+      address_number: c.address_number,
+      address_complement: c.address_complement,
+      address_city: c.address_city,
+      address_state: c.address_state,
+      address_zipcode: c.address_zipcode,
+      signed_at: c.signed_at
+    }));
   }
 }
 

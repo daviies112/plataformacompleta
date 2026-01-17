@@ -23,16 +23,21 @@ function loadSupabaseConfigFromFile(): { url: string; key: string } | null {
   return null;
 }
 
-// Prioridade: env vars > arquivo de configuracao
+// Prioridade ABSOLUTA: SUPABASE_OWNER_URL/KEY dos env vars (secrets)
+// Esses são os secrets do Owner principal do sistema
 let supabaseOwnerUrl = process.env.SUPABASE_OWNER_URL || '';
 let supabaseOwnerKey = process.env.SUPABASE_OWNER_SERVICE_KEY || '';
 
-// Fallback para arquivo de configuracao
-if (!supabaseOwnerUrl || !supabaseOwnerKey) {
+// Log para debug
+if (supabaseOwnerUrl && supabaseOwnerKey) {
+  console.log('[SUPABASE_OWNER] Usando credenciais dos secrets SUPABASE_OWNER_URL/KEY');
+} else {
+  // Fallback para arquivo de configuracao APENAS se não houver secrets
   const fileConfig = loadSupabaseConfigFromFile();
   if (fileConfig) {
     supabaseOwnerUrl = fileConfig.url;
     supabaseOwnerKey = fileConfig.key;
+    console.log('[SUPABASE_OWNER] Fallback: Usando credenciais do arquivo de configuração');
   }
 }
 
