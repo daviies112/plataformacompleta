@@ -9,6 +9,9 @@ declare module 'express-session' {
     tenantId?: string;  // Tenant ID para isolamento completo de credenciais
     supabaseUrl?: string;
     supabaseKey?: string;
+    // ===== CAMPOS NEXUS (Revendedoras) =====
+    userRole?: 'admin' | 'reseller';
+    comissao?: number;
   }
 }
 
@@ -49,7 +52,12 @@ export function attachUserData(req: Request, res: Response, next: NextFunction) 
       email: req.session.userEmail,
       nome: req.session.userName,
       supabaseUrl: req.session.supabaseUrl,
-      supabaseKey: req.session.supabaseKey
+      supabaseKey: req.session.supabaseKey,
+      // ===== CAMPOS NEXUS =====
+      role: req.session.userRole || 'admin',
+      comissao: req.session.comissao,
+      tenantId: req.session.tenantId,
+      userId: req.session.userId
     };
   }
   next();
@@ -81,6 +89,12 @@ export function isPublicRoute(path: string): boolean {
     '/api/public/reuniao/',
     '/api/auth/',
     '/api/config/',
+    '/api/reseller/login',
+    '/api/reseller/register',
+    '/api/reseller/check-session',
+    '/api/stripe/webhook',
+    '/api/stripe/checkout',
+    '/reseller-login',
     '/health',
     '/assets'
   ];

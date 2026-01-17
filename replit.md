@@ -62,6 +62,16 @@ scripts/   → Utilitários (export, import)
 ✅ Dashboard Executivo  
 ✅ Gestão de Leads  
 ✅ Formulários Públicos  
+✅ **Sistema NEXUS - Plataforma Revendedora** - NOVO (17/01/2026)
+   - Autenticacao separada para revendedoras (`/reseller-login`)
+   - Dashboard com estatisticas de vendas e comissoes
+   - Catalogo de produtos do tenant
+   - Historico de vendas com status de pagamento
+   - Integracao Stripe Connect para split de pagamentos
+   - **Rotas Backend:** `/api/reseller/*`, `/api/stripe/*`
+   - **Tabelas Supabase:** `revendedoras`, `vendas_revendedora`, `config_split`
+   - **SQL Schema:** `supabase-nexus-tables.sql`
+   - **Admin:** Gerenciar revendedoras em `/configuracoes` (ativar/bloquear, alterar comissao)
 ✅ Validação CPF + Histórico - ATUALIZADO (15/01/2026)
    - Endpoint: `/api/compliance/history` retorna histórico completo
    - Dados armazenados na tabela `cpf_compliance_results` (Supabase Cliente)

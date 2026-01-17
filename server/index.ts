@@ -131,6 +131,18 @@ app.use((req, res, next) => {
   // Setup multi-tenant authentication routes (público - para login)
   app.use('/api/auth', multiTenantAuthRoutes);
   
+  // ===== ROTAS NEXUS (Revendedoras) - público para login/register =====
+  const resellerAuthRoutes = await import('./routes/resellerAuth');
+  app.use('/api/reseller', resellerAuthRoutes.default);
+  
+  const resellerCatalogRoutes = await import('./routes/resellerCatalog');
+  app.use('/api/reseller', resellerCatalogRoutes.default);
+  
+  const stripePaymentRoutes = await import('./routes/stripePayment');
+  app.use('/api/stripe', stripePaymentRoutes.default);
+  
+  log('✅ Rotas Nexus (Revendedoras) registradas');
+  
   // Setup biometric authentication routes (público - para login biométrico)
   app.use('/api/biometric', biometricRoutes);
   

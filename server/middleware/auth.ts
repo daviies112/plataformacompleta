@@ -7,24 +7,34 @@ export interface AuthRequest extends Request {
     email: string;
     clientId: string;
     tenantId: string;
+    // ===== CAMPOS NEXUS (Revendedoras) =====
+    role?: 'admin' | 'reseller';
+    comissao?: number;
   };
 }
 
 export function authenticateToken(req: AuthRequest, res: Response, next: NextFunction) {
+  // Primeiro, verificar se tem sessao valida (funciona em dev e prod)
+  const sessionTenantId = req.session?.tenantId;
+  const sessionUserId = req.session?.userId;
+  const sessionEmail = req.session?.userEmail;
+  const sessionRole = req.session?.userRole;
+  const sessionComissao = req.session?.comissao;
+  
+  if (sessionTenantId && sessionUserId) {
+    req.user = {
+      userId: sessionUserId,
+      email: sessionEmail || '',
+      clientId: sessionTenantId,
+      tenantId: sessionTenantId,
+      role: sessionRole || 'admin',
+      comissao: sessionComissao
+    };
+    return next();
+  }
+  
   if (process.env.NODE_ENV === 'development') {
-    const sessionTenantId = req.session?.tenantId;
-    const sessionUserId = req.session?.userId;
-    const sessionEmail = req.session?.userEmail;
-    
-    if (sessionTenantId && sessionUserId) {
-      req.user = {
-        userId: sessionUserId,
-        email: sessionEmail || 'dev@example.com',
-        clientId: sessionTenantId,
-        tenantId: sessionTenantId
-      };
-      return next();
-    }
+    // Em dev sem sessao, criar tenant temporario
     
     const tempTenantId = `dev-temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     
