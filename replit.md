@@ -62,16 +62,25 @@ scripts/   → Utilitários (export, import)
 ✅ Dashboard Executivo  
 ✅ Gestão de Leads  
 ✅ Formulários Públicos  
-✅ **Sistema NEXUS - Plataforma Revendedora** - NOVO (17/01/2026)
-   - Autenticacao separada para revendedoras (`/reseller-login`)
-   - Dashboard com estatisticas de vendas e comissoes
-   - Catalogo de produtos do tenant
-   - Historico de vendas com status de pagamento
+✅ **Sistema NEXUS - Plataforma Revendedora** - ATUALIZADO (17/01/2026)
+   - **Acesso Admin:** Clique em "Revendedora" no menu principal para gerenciar revendedoras
+   - **Rotas Admin:**
+     - `/revendedora` → Lista e gerencia revendedoras (criar, editar, ativar/bloquear)
+     - `/revendedora/admin/products` → Catálogo de produtos
+     - `/revendedora/admin/orders` → Pedidos
+     - `/revendedora/admin/commissions` → Comissões
+     - `/revendedora/admin/gamification` → Sistema de gamificação
+   - **Rotas Revendedora (após login em `/revendedora/login`):**
+     - `/revendedora/reseller/dashboard` → Dashboard da revendedora
+     - `/revendedora/reseller/sales` → Histórico de vendas
+     - `/revendedora/reseller/financial` → Resumo financeiro
+     - `/revendedora/reseller/store` → Loja virtual
+   - Autenticacao separada para revendedoras (tabela `revendedoras` no Supabase)
+   - Catalogo de produtos herdado do admin
    - Integracao Stripe Connect para split de pagamentos
    - **Rotas Backend:** `/api/reseller/*`, `/api/stripe/*`
    - **Tabelas Supabase:** `revendedoras`, `vendas_revendedora`, `config_split`
    - **SQL Schema:** `supabase-nexus-tables.sql`
-   - **Admin:** Gerenciar revendedoras em `/configuracoes` (ativar/bloquear, alterar comissao)
 ✅ Validação CPF + Histórico - ATUALIZADO (15/01/2026)
    - Endpoint: `/api/compliance/history` retorna histórico completo
    - Dados armazenados na tabela `cpf_compliance_results` (Supabase Cliente)
