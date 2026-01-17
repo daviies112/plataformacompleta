@@ -280,12 +280,13 @@ class EnvioService {
     return data || [];
   }
 
-  async getEnvioById(id: string): Promise<Envio | null> {
+  async getEnvioById(id: string, adminId: string): Promise<Envio | null> {
     const client = this.getClient();
     const { data, error } = await client
       .from('envios')
       .select('*')
       .eq('id', id)
+      .eq('admin_id', adminId)
       .single();
     
     if (error) {
@@ -325,12 +326,13 @@ class EnvioService {
     return data;
   }
 
-  async updateEnvio(id: string, updates: Partial<Envio>): Promise<Envio> {
+  async updateEnvio(id: string, adminId: string, updates: Partial<Envio>): Promise<Envio> {
     const client = this.getClient();
     const { data, error } = await client
       .from('envios')
       .update(updates)
       .eq('id', id)
+      .eq('admin_id', adminId)
       .select()
       .single();
     
@@ -338,8 +340,8 @@ class EnvioService {
     return data;
   }
 
-  async updateEnvioStatus(id: string, status: Envio['status'], descricao?: string): Promise<Envio> {
-    const envio = await this.updateEnvio(id, { status });
+  async updateEnvioStatus(id: string, adminId: string, status: Envio['status'], descricao?: string): Promise<Envio> {
+    const envio = await this.updateEnvio(id, adminId, { status });
     
     await this.addRastreamentoEvento({
       envio_id: id,
@@ -413,17 +415,22 @@ class EnvioService {
     return data || [];
   }
 
-  async getRastreamentoByCodigo(codigoRastreio: string): Promise<{
+  async getRastreamentoByCodigo(codigoRastreio: string, adminId?: string): Promise<{
     envio: Envio | null;
     eventos: RastreamentoEvento[];
   }> {
     const client = this.getClient();
     
-    const { data: envio } = await client
+    let query = client
       .from('envios')
       .select('*')
-      .eq('codigo_rastreio', codigoRastreio.toUpperCase())
-      .single();
+      .eq('codigo_rastreio', codigoRastreio.toUpperCase());
+    
+    if (adminId) {
+      query = query.eq('admin_id', adminId);
+    }
+    
+    const { data: envio } = await query.single();
 
     if (!envio) {
       return { envio: null, eventos: [] };

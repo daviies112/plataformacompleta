@@ -74,6 +74,16 @@ const EnvioRastreamento = () => {
     queryKey: ['/api/envio/rastreamento', searchCode],
     enabled: !!searchCode,
     retry: false,
+    queryFn: async () => {
+      const response = await fetch(`/api/envio/rastreamento/${encodeURIComponent(searchCode!)}`);
+      if (!response.ok) {
+        if (response.status === 404) {
+          return { envio: null, eventos: [] };
+        }
+        throw new Error('Erro ao buscar rastreamento');
+      }
+      return response.json();
+    },
   });
 
   const handleSearch = (e: React.FormEvent) => {

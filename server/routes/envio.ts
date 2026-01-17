@@ -91,7 +91,8 @@ router.get('/envios/stats', async (req: Request, res: Response) => {
 
 router.get('/envios/:id', async (req: Request, res: Response) => {
   try {
-    const envio = await envioService.getEnvioById(req.params.id);
+    const adminId = getAdminId(req);
+    const envio = await envioService.getEnvioById(req.params.id, adminId);
     if (!envio) {
       return res.status(404).json({ error: 'Envio não encontrado' });
     }
@@ -118,7 +119,8 @@ router.post('/envios', async (req: Request, res: Response) => {
 
 router.patch('/envios/:id', async (req: Request, res: Response) => {
   try {
-    const envio = await envioService.updateEnvio(req.params.id, req.body);
+    const adminId = getAdminId(req);
+    const envio = await envioService.updateEnvio(req.params.id, adminId, req.body);
     res.json(envio);
   } catch (error: any) {
     console.error('[Envio] Erro ao atualizar envio:', error);
@@ -128,11 +130,12 @@ router.patch('/envios/:id', async (req: Request, res: Response) => {
 
 router.post('/envios/:id/status', async (req: Request, res: Response) => {
   try {
+    const adminId = getAdminId(req);
     const { status, descricao } = req.body;
     if (!status) {
       return res.status(400).json({ error: 'Status é obrigatório' });
     }
-    const envio = await envioService.updateEnvioStatus(req.params.id, status, descricao);
+    const envio = await envioService.updateEnvioStatus(req.params.id, adminId, status, descricao);
     res.json(envio);
   } catch (error: any) {
     console.error('[Envio] Erro ao atualizar status:', error);
@@ -144,8 +147,9 @@ router.post('/envios/:id/status', async (req: Request, res: Response) => {
 
 router.get('/rastreamento/:codigo', async (req: Request, res: Response) => {
   try {
+    const adminId = getAdminId(req);
     const codigo = req.params.codigo.toUpperCase();
-    const resultado = await envioService.getRastreamentoByCodigo(codigo);
+    const resultado = await envioService.getRastreamentoByCodigo(codigo, adminId);
     
     if (!resultado.envio) {
       return res.status(404).json({ error: 'Código de rastreamento não encontrado' });
@@ -160,6 +164,11 @@ router.get('/rastreamento/:codigo', async (req: Request, res: Response) => {
 
 router.get('/envios/:id/rastreamento', async (req: Request, res: Response) => {
   try {
+    const adminId = getAdminId(req);
+    const envio = await envioService.getEnvioById(req.params.id, adminId);
+    if (!envio) {
+      return res.status(404).json({ error: 'Envio não encontrado' });
+    }
     const eventos = await envioService.getRastreamentoEventos(req.params.id);
     res.json(eventos);
   } catch (error: any) {
@@ -170,9 +179,10 @@ router.get('/envios/:id/rastreamento', async (req: Request, res: Response) => {
 
 router.post('/envios/:id/rastreamento', async (req: Request, res: Response) => {
   try {
+    const adminId = getAdminId(req);
     const { status, descricao, local, cidade, uf } = req.body;
     
-    const envio = await envioService.getEnvioById(req.params.id);
+    const envio = await envioService.getEnvioById(req.params.id, adminId);
     if (!envio) {
       return res.status(404).json({ error: 'Envio não encontrado' });
     }
