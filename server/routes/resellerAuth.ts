@@ -7,17 +7,52 @@ const router = express.Router();
 // POST /api/reseller/login
 router.post('/login', async (req: Request, res: Response) => {
   try {
+    const { email, senha } = req.body;
+
+    if (!email || !senha) {
+      return res.status(400).json({ error: 'Email e senha sao obrigatorios' });
+    }
+
+    // Modo desenvolvimento: permitir login com credenciais de teste
+    const isDev = process.env.NODE_ENV === 'development' || !process.env.NODE_ENV;
+    const isTestCredentials = email === 'teste@upvendas.com' && senha === 'teste123456';
+
+    if (isDev && isTestCredentials) {
+      console.log('[NEXUS-DEV] Login de desenvolvimento para revendedora de teste');
+      
+      req.session.userId = 'dev-reseller-1';
+      req.session.userEmail = email;
+      req.session.userName = 'Revendedora Teste';
+      req.session.userRole = 'reseller';
+      req.session.tenantId = 'dev-admin-default';
+      req.session.comissao = 10;
+
+      return req.session.save((err) => {
+        if (err) {
+          console.error('Erro ao salvar sessao:', err);
+          return res.status(500).json({ error: 'Erro ao criar sessao' });
+        }
+        
+        res.json({
+          success: true,
+          redirect: '/revendedora/reseller/dashboard',
+          user: {
+            id: 'dev-reseller-1',
+            nome: 'Revendedora Teste',
+            email: email,
+            role: 'reseller',
+            comissao: 10
+          }
+        });
+      });
+    }
+
+    // Producao: verificar Supabase
     if (!SUPABASE_CONFIGURED || !supabaseOwner) {
       return res.status(503).json({
         error: 'Sistema de autenticacao nao configurado',
         details: 'Configure SUPABASE_OWNER_URL e SUPABASE_OWNER_SERVICE_KEY'
       });
-    }
-
-    const { email, senha } = req.body;
-
-    if (!email || !senha) {
-      return res.status(400).json({ error: 'Email e senha sao obrigatorios' });
     }
 
     // 1. Buscar revendedora no banco master
@@ -59,7 +94,7 @@ router.post('/login', async (req: Request, res: Response) => {
       
       res.json({
         success: true,
-        redirect: '/reseller/dashboard',
+        redirect: '/revendedora/reseller/dashboard',
         user: {
           id: revendedora.id,
           nome: revendedora.nome,

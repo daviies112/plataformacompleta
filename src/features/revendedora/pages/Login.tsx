@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,19 +18,25 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      const response = await fetch('/api/reseller/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ email, senha: password }),
       });
 
-      if (error) {
-        toast.error(`Erro ao fazer login: ${error.message}`);
+      const data = await response.json();
+
+      if (!response.ok) {
+        toast.error(data.error || 'Erro ao fazer login');
         return;
       }
 
-      if (data.user) {
+      if (data.success) {
         toast.success('Login realizado com sucesso!');
-        navigate('/revendedora');
+        navigate('/revendedora/reseller/dashboard');
       }
     } catch (error: any) {
       toast.error(`Erro: ${error.message}`);

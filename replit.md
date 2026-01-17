@@ -63,7 +63,9 @@ scripts/   → Utilitários (export, import)
 ✅ Gestão de Leads  
 ✅ Formulários Públicos  
 ✅ **Sistema NEXUS - Plataforma Revendedora** - ATUALIZADO (17/01/2026)
-   - **Acesso:** `/revendedora` → Redireciona para tela de login da revendedora
+   - **Acesso:** `/revendedora` → Tela de login "UP Vendas"
+   - **Autenticação:** API `/api/reseller/login` com sessão própria (NÃO usa Supabase Auth)
+   - **Modo Dev:** Credenciais teste@upvendas.com / teste123456 funcionam quando NODE_ENV != production
    - **Rotas Revendedora (após login):**
      - `/revendedora/reseller/dashboard` → Dashboard da revendedora
      - `/revendedora/reseller/sales` → Histórico de vendas
