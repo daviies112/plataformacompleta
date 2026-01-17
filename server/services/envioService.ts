@@ -111,6 +111,21 @@ export interface ConfigFrete {
   markup_padrao: number;
 }
 
+export interface ContratoPendenteEnvio {
+  id: string;
+  client_name: string;
+  client_cpf?: string;
+  client_email?: string;
+  client_phone?: string;
+  address_street?: string;
+  address_number?: string;
+  address_complement?: string;
+  address_city?: string;
+  address_state?: string;
+  address_zipcode?: string;
+  signed_at?: string;
+}
+
 class EnvioService {
   private getClient() {
     if (!supabaseOwner) {
@@ -479,6 +494,42 @@ class EnvioService {
     
     if (error) throw error;
     return data;
+  }
+
+  // ==================== CONTRATOS PENDENTES ====================
+
+  async getContratosPendentesEnvio(adminId: string): Promise<ContratoPendenteEnvio[]> {
+    const client = this.getClient();
+    
+    const { data: enviosExistentes, error: enviosError } = await client
+      .from('envios')
+      .select('contract_id')
+      .eq('admin_id', adminId)
+      .not('contract_id', 'is', null);
+    
+    if (enviosError) {
+      console.error('[EnvioService] Erro ao buscar envios existentes:', enviosError);
+    }
+    
+    const contractIdsComEnvio = (enviosExistentes || [])
+      .map(e => e.contract_id)
+      .filter(Boolean);
+
+    let query = client
+      .from('contracts')
+      .select('id, client_name, client_cpf, client_email, client_phone, address_street, address_number, address_complement, address_city, address_state, address_zipcode, signed_at')
+      .eq('tenant_id', adminId)
+      .eq('status', 'signed')
+      .order('signed_at', { ascending: false });
+
+    if (contractIdsComEnvio.length > 0) {
+      query = query.not('id', 'in', `(${contractIdsComEnvio.join(',')})`);
+    }
+
+    const { data, error } = await query;
+    
+    if (error) throw error;
+    return data || [];
   }
 }
 

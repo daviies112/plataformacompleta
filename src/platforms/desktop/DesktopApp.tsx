@@ -40,7 +40,7 @@ import AssinaturaPage from "@/pages/AssinaturaPage";
 import AssinaturaClientPage from "@/pages/AssinaturaClientPage";
 
 // Import Envio Platform
-import { EnvioCotacao, EnvioList, EnvioRastreamento } from "@/pages/envio";
+import { EnvioCotacao, EnvioEnviar, EnvioList, EnvioRastreamento } from "@/pages/envio";
 
 // Import Revendedora Admin components for /produto/admin/* routes
 import { CompanyProvider } from "@/features/revendedora/contexts/CompanyContext";
@@ -504,6 +504,17 @@ const DesktopApp = () => {
           <ProtectedRoute>
             <DesktopLayout>
               <EnvioCotacao />
+            </DesktopLayout>
+          </ProtectedRoute>
+        } 
+      />
+      
+      <Route 
+        path="/envio/enviar" 
+        element={
+          <ProtectedRoute>
+            <DesktopLayout>
+              <EnvioEnviar />
             </DesktopLayout>
           </ProtectedRoute>
         } 

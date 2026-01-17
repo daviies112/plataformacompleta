@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Calculator, ListOrdered, Search } from "lucide-react";
+import { Calculator, ListOrdered, Search, Send } from "lucide-react";
 import { useLocation } from "wouter";
 
 const EnvioNavigation = () => {
@@ -11,6 +11,12 @@ const EnvioNavigation = () => {
       label: "Cotação",
       icon: Calculator,
       exact: true
+    },
+    {
+      path: "/envio/enviar",
+      label: "Enviar",
+      icon: Send,
+      exact: false
     },
     {
       path: "/envio/lista",

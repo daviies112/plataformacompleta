@@ -10,6 +10,19 @@ function getAdminId(req: Request): string {
   return 'system';
 }
 
+// ==================== CONTRATOS PENDENTES ====================
+
+router.get('/contratos-pendentes', async (req: Request, res: Response) => {
+  try {
+    const adminId = getAdminId(req);
+    const contratos = await envioService.getContratosPendentesEnvio(adminId);
+    res.json(contratos);
+  } catch (error: any) {
+    console.error('[Envio] Erro ao buscar contratos:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ==================== TRANSPORTADORAS ====================
 
 router.get('/transportadoras', async (req: Request, res: Response) => {
