@@ -29,15 +29,26 @@ async function tryLocalLogin(email: string, senha: string): Promise<{ success: b
   const localCredentials = loadCredentialsFromFile();
   
   if (!localCredentials) {
+    console.log('[AUTH] Nenhuma credencial local encontrada');
     return { success: false };
   }
   
-  if (localCredentials.email !== email) {
+  // Comparar emails de forma case-insensitive
+  const emailMatch = localCredentials.email.toLowerCase() === email.toLowerCase();
+  if (!emailMatch) {
+    console.log(`[AUTH] Email nao confere: ${email} vs ${localCredentials.email}`);
     return { success: false };
   }
   
-  const senhaValida = await bcrypt.compare(senha, localCredentials.passwordHash);
-  if (!senhaValida) {
+  try {
+    const senhaValida = await bcrypt.compare(senha, localCredentials.passwordHash);
+    console.log(`[AUTH] Verificacao de senha: ${senhaValida ? 'OK' : 'FALHOU'}`);
+    
+    if (!senhaValida) {
+      return { success: false };
+    }
+  } catch (err) {
+    console.error('[AUTH] Erro ao comparar senha:', err);
     return { success: false };
   }
   
