@@ -39,6 +39,9 @@ import FormularioPublicoWrapper from "@/features/formularios-platform/pages/Form
 import AssinaturaPage from "@/pages/AssinaturaPage";
 import AssinaturaClientPage from "@/pages/AssinaturaClientPage";
 
+// Import Envio Platform
+import { EnvioCotacao, EnvioList, EnvioRastreamento } from "@/pages/envio";
+
 // Import Revendedora Admin components for /produto/admin/* routes
 import { CompanyProvider } from "@/features/revendedora/contexts/CompanyContext";
 import { AdminLayout } from "@/features/revendedora/layouts/AdminLayout";
@@ -493,6 +496,40 @@ const DesktopApp = () => {
       {/* Plataforma Revendedora - REMOVIDO do DesktopApp 
           Rota /revendedora/* é tratada diretamente no PlatformRouter 
           para evitar interferência do AuthContext */}
+
+      {/* Envio Platform Routes */}
+      <Route 
+        path="/envio" 
+        element={
+          <ProtectedRoute>
+            <DesktopLayout>
+              <EnvioCotacao />
+            </DesktopLayout>
+          </ProtectedRoute>
+        } 
+      />
+      
+      <Route 
+        path="/envio/lista" 
+        element={
+          <ProtectedRoute>
+            <DesktopLayout>
+              <EnvioList />
+            </DesktopLayout>
+          </ProtectedRoute>
+        } 
+      />
+      
+      <Route 
+        path="/envio/rastreamento" 
+        element={
+          <ProtectedRoute>
+            <DesktopLayout>
+              <EnvioRastreamento />
+            </DesktopLayout>
+          </ProtectedRoute>
+        } 
+      />
 
       {/* Assinatura Digital - Admin */}
       <Route 

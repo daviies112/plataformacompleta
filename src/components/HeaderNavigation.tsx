@@ -16,8 +16,19 @@ import {
   Shield,
   ShoppingBag,
   Video,
-  FileSignature
+  FileSignature,
+  Truck,
+  ChevronDown,
+  Calculator,
+  ListOrdered,
+  Search
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const HeaderNavigation = () => {
   const navigate = useNavigate();
@@ -93,6 +104,8 @@ const HeaderNavigation = () => {
     }
   ];
 
+  const isEnvioActive = location.pathname.startsWith("/envio");
+
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-[#0A0A0A]/95 backdrop-blur-xl border-b border-white/10">
       <div className="container-luxury">
@@ -111,6 +124,44 @@ const HeaderNavigation = () => {
                 {item.label}
               </Button>
             ))}
+            
+            {/* Envio Dropdown Menu */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant={isEnvioActive ? "default" : "ghost"}
+                  size="sm"
+                  className={`h-10 px-4 hover:bg-transparent hover:text-inherit ${isEnvioActive ? '!bg-primary !text-black' : 'text-gray-400 hover:text-white'}`}
+                >
+                  <Truck className="w-4 h-4 mr-2" />
+                  Envio
+                  <ChevronDown className="w-3 h-3 ml-1" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-48">
+                <DropdownMenuItem 
+                  onClick={() => navigate("/envio")}
+                  className={location.pathname === "/envio" ? "bg-accent" : ""}
+                >
+                  <Calculator className="w-4 h-4 mr-2" />
+                  Cotação de Frete
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => navigate("/envio/lista")}
+                  className={location.pathname === "/envio/lista" ? "bg-accent" : ""}
+                >
+                  <ListOrdered className="w-4 h-4 mr-2" />
+                  Meus Envios
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => navigate("/envio/rastreamento")}
+                  className={location.pathname === "/envio/rastreamento" ? "bg-accent" : ""}
+                >
+                  <Search className="w-4 h-4 mr-2" />
+                  Rastreamento
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </nav>
 
           {/* Settings Icon Only */}
