@@ -1,9 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { Calculator, ListOrdered, Search, Send } from "lucide-react";
-import { useLocation } from "wouter";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const EnvioNavigation = () => {
-  const [location, navigate] = useLocation();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const navItems = [
     {
@@ -34,9 +35,9 @@ const EnvioNavigation = () => {
 
   const isActive = (item: typeof navItems[0]) => {
     if (item.exact) {
-      return location === item.path;
+      return location.pathname === item.path;
     }
-    return location.startsWith(item.path);
+    return location.pathname.startsWith(item.path);
   };
 
   return (

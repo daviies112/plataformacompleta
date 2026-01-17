@@ -33,7 +33,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useLocation } from "wouter";
+import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import EnvioNavigation from "./EnvioNavigation";
@@ -114,7 +114,7 @@ function formatDate(dateString: string): string {
 
 const EnvioList = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [, navigate] = useLocation();
+  const navigate = useNavigate();
 
   const { data: envios = [], isLoading: isLoadingEnvios, error: enviosError } = useQuery<Envio[]>({
     queryKey: ['/api/envio/envios'],
