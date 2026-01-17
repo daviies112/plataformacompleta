@@ -90,6 +90,8 @@ async function createRevendedoraFromContract(contract: any): Promise<void> {
       return;
     }
 
+    const senhaHash = crypto.createHash('sha256').update(cpfNormalizado).digest('hex');
+    
     const { data: revendedora, error: insertError } = await supabaseOwner
       .from('revendedoras')
       .insert({
@@ -98,6 +100,7 @@ async function createRevendedoraFromContract(contract: any): Promise<void> {
         cpf: cpfNormalizado,
         email: client_email,
         telefone: client_phone || null,
+        senha_hash: senhaHash,
         status: 'ativo',
         comissao_padrao: 10.00,
         updated_at: new Date().toISOString()
