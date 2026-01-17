@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS cotacoes_frete (
 CREATE TABLE IF NOT EXISTS envios (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   admin_id TEXT NOT NULL,
+  contract_id UUID,
   cotacao_id UUID REFERENCES cotacoes_frete(id),
   codigo_rastreio VARCHAR(50),
   status VARCHAR(50) DEFAULT 'pendente',
@@ -194,6 +195,18 @@ CREATE INDEX IF NOT EXISTS idx_envios_admin_id ON envios(admin_id);
 CREATE INDEX IF NOT EXISTS idx_envios_status ON envios(status);
 CREATE INDEX IF NOT EXISTS idx_envios_codigo_rastreio ON envios(codigo_rastreio);
 CREATE INDEX IF NOT EXISTS idx_envios_created_at ON envios(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_envios_contract_id ON envios(contract_id);
+
+-- Adicionar coluna contract_id se nao existir (para bancos existentes)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_name = 'envios' AND column_name = 'contract_id'
+  ) THEN
+    ALTER TABLE envios ADD COLUMN contract_id UUID;
+  END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS idx_cotacoes_admin_id ON cotacoes_frete(admin_id);
 CREATE INDEX IF NOT EXISTS idx_cotacoes_created_at ON cotacoes_frete(created_at DESC);

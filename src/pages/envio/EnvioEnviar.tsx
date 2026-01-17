@@ -25,37 +25,36 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface ContratoPendente {
   id: string;
-  cliente_nome: string;
-  cliente_cpf: string;
-  cliente_email: string;
-  cliente_telefone: string;
-  endereco_rua: string;
-  endereco_numero: string;
-  endereco_complemento: string;
-  endereco_cidade: string;
-  endereco_uf: string;
-  endereco_cep: string;
-  data_assinatura: string;
-  valor_total: number;
+  client_name: string;
+  client_cpf?: string;
+  client_email?: string;
+  client_phone?: string;
+  address_street?: string;
+  address_number?: string;
+  address_complement?: string;
+  address_city?: string;
+  address_state?: string;
+  address_zipcode?: string;
+  signed_at?: string;
 }
 
 interface EnvioCreateRequest {
-  contrato_id: string;
+  contract_id: string;
   destinatario_nome: string;
-  destinatario_cpf: string;
-  destinatario_email: string;
-  destinatario_telefone: string;
-  destinatario_rua: string;
-  destinatario_numero: string;
-  destinatario_complemento: string;
-  destinatario_cidade: string;
-  destinatario_uf: string;
+  destinatario_cpf_cnpj?: string;
+  destinatario_email?: string;
+  destinatario_telefone?: string;
   destinatario_cep: string;
-  peso: number;
-  altura: number;
-  largura: number;
-  comprimento: number;
-  valor_declarado: number;
+  destinatario_logradouro?: string;
+  destinatario_numero?: string;
+  destinatario_complemento?: string;
+  destinatario_cidade?: string;
+  destinatario_uf?: string;
+  peso_kg: number;
+  altura_cm: number;
+  largura_cm: number;
+  comprimento_cm: number;
+  valor_declarado?: number;
 }
 
 interface EnvioCreateResponse {
@@ -74,6 +73,15 @@ const EnvioEnviar = () => {
     largura: "",
     comprimento: "",
     valor_declarado: ""
+  });
+
+  const [addressData, setAddressData] = useState({
+    rua: "",
+    numero: "",
+    complemento: "",
+    cidade: "",
+    uf: "",
+    cep: ""
   });
 
   const { data: contratos = [], isLoading, error } = useQuery<ContratoPendente[]>({
@@ -108,6 +116,11 @@ const EnvioEnviar = () => {
     setFormData(prev => ({ ...prev, [id]: value }));
   };
 
+  const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    setAddressData(prev => ({ ...prev, [id]: value }));
+  };
+
   const handleSelectContrato = (contrato: ContratoPendente) => {
     setSelectedContrato(contrato);
     setEnvioResult(null);
@@ -116,7 +129,15 @@ const EnvioEnviar = () => {
       altura: "",
       largura: "",
       comprimento: "",
-      valor_declarado: contrato.valor_total?.toString() || ""
+      valor_declarado: ""
+    });
+    setAddressData({
+      rua: contrato.address_street || "",
+      numero: contrato.address_number || "",
+      complemento: contrato.address_complement || "",
+      cidade: contrato.address_city || "",
+      uf: contrato.address_state || "",
+      cep: contrato.address_zipcode || ""
     });
   };
 
@@ -125,22 +146,31 @@ const EnvioEnviar = () => {
     
     if (!selectedContrato) return;
 
+    if (!addressData.cep || addressData.cep.trim() === "") {
+      toast({
+        variant: "destructive",
+        title: "CEP obrigatório",
+        description: "Por favor, preencha o CEP para criar o envio."
+      });
+      return;
+    }
+
     const request: EnvioCreateRequest = {
-      contrato_id: selectedContrato.id,
-      destinatario_nome: selectedContrato.cliente_nome,
-      destinatario_cpf: selectedContrato.cliente_cpf,
-      destinatario_email: selectedContrato.cliente_email,
-      destinatario_telefone: selectedContrato.cliente_telefone,
-      destinatario_rua: selectedContrato.endereco_rua,
-      destinatario_numero: selectedContrato.endereco_numero,
-      destinatario_complemento: selectedContrato.endereco_complemento || "",
-      destinatario_cidade: selectedContrato.endereco_cidade,
-      destinatario_uf: selectedContrato.endereco_uf,
-      destinatario_cep: selectedContrato.endereco_cep,
-      peso: parseFloat(formData.peso) || 0,
-      altura: parseFloat(formData.altura) || 0,
-      largura: parseFloat(formData.largura) || 0,
-      comprimento: parseFloat(formData.comprimento) || 0,
+      contract_id: selectedContrato.id,
+      destinatario_nome: selectedContrato.client_name,
+      destinatario_cpf_cnpj: selectedContrato.client_cpf,
+      destinatario_email: selectedContrato.client_email,
+      destinatario_telefone: selectedContrato.client_phone,
+      destinatario_logradouro: addressData.rua,
+      destinatario_numero: addressData.numero,
+      destinatario_complemento: addressData.complemento,
+      destinatario_cidade: addressData.cidade,
+      destinatario_uf: addressData.uf,
+      destinatario_cep: addressData.cep,
+      peso_kg: parseFloat(formData.peso) || 0,
+      altura_cm: parseFloat(formData.altura) || 0,
+      largura_cm: parseFloat(formData.largura) || 0,
+      comprimento_cm: parseFloat(formData.comprimento) || 0,
       valor_declarado: parseFloat(formData.valor_declarado) || 0
     };
 
@@ -172,6 +202,14 @@ const EnvioEnviar = () => {
       largura: "",
       comprimento: "",
       valor_declarado: ""
+    });
+    setAddressData({
+      rua: "",
+      numero: "",
+      complemento: "",
+      cidade: "",
+      uf: "",
+      cep: ""
     });
   };
 
@@ -279,17 +317,14 @@ const EnvioEnviar = () => {
                           <CardContent className="p-4">
                             <div className="flex items-start justify-between gap-2 mb-2">
                               <h4 className="font-medium text-foreground line-clamp-1">
-                                {contrato.cliente_nome}
+                                {contrato.client_name}
                               </h4>
                               <Badge variant="outline" className="shrink-0">
-                                {formatDate(contrato.data_assinatura)}
+                                {formatDate(contrato.signed_at || "")}
                               </Badge>
                             </div>
                             <p className="text-sm text-muted-foreground mb-1">
-                              {contrato.endereco_cidade}, {contrato.endereco_uf}
-                            </p>
-                            <p className="text-sm font-medium text-primary">
-                              {formatCurrency(contrato.valor_total || 0)}
+                              {contrato.address_city}, {contrato.address_state}
                             </p>
                           </CardContent>
                         </Card>
@@ -393,7 +428,7 @@ const EnvioEnviar = () => {
                             <Label htmlFor="nome">Nome</Label>
                             <Input 
                               id="nome" 
-                              value={selectedContrato.cliente_nome || ''} 
+                              value={selectedContrato.client_name || ''} 
                               readOnly 
                               className="mt-1.5 bg-muted"
                               data-testid="input-nome"
@@ -403,7 +438,7 @@ const EnvioEnviar = () => {
                             <Label htmlFor="cpf">CPF</Label>
                             <Input 
                               id="cpf" 
-                              value={selectedContrato.cliente_cpf || ''} 
+                              value={selectedContrato.client_cpf || ''} 
                               readOnly 
                               className="mt-1.5 bg-muted"
                               data-testid="input-cpf"
@@ -413,7 +448,7 @@ const EnvioEnviar = () => {
                             <Label htmlFor="email">Email</Label>
                             <Input 
                               id="email" 
-                              value={selectedContrato.cliente_email || ''} 
+                              value={selectedContrato.client_email || ''} 
                               readOnly 
                               className="mt-1.5 bg-muted"
                               data-testid="input-email"
@@ -423,7 +458,7 @@ const EnvioEnviar = () => {
                             <Label htmlFor="telefone">Telefone</Label>
                             <Input 
                               id="telefone" 
-                              value={selectedContrato.cliente_telefone || ''} 
+                              value={selectedContrato.client_phone || ''} 
                               readOnly 
                               className="mt-1.5 bg-muted"
                               data-testid="input-telefone"
@@ -439,14 +474,23 @@ const EnvioEnviar = () => {
                           <MapPin className="h-4 w-4" />
                           <h4 className="font-medium">Endereço de Entrega</h4>
                         </div>
+                        {!addressData.cep && (
+                          <div className="flex items-center gap-2 p-3 rounded-md bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800">
+                            <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                            <p className="text-sm text-amber-700 dark:text-amber-300">
+                              Endereço incompleto. Por favor, preencha os campos obrigatórios.
+                            </p>
+                          </div>
+                        )}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div className="sm:col-span-2">
                             <Label htmlFor="rua">Rua</Label>
                             <Input 
                               id="rua" 
-                              value={selectedContrato.endereco_rua || ''} 
-                              readOnly 
-                              className="mt-1.5 bg-muted"
+                              value={addressData.rua}
+                              onChange={handleAddressChange}
+                              placeholder="Digite a rua"
+                              className="mt-1.5"
                               data-testid="input-rua"
                             />
                           </div>
@@ -454,9 +498,10 @@ const EnvioEnviar = () => {
                             <Label htmlFor="numero">Número</Label>
                             <Input 
                               id="numero" 
-                              value={selectedContrato.endereco_numero || ''} 
-                              readOnly 
-                              className="mt-1.5 bg-muted"
+                              value={addressData.numero}
+                              onChange={handleAddressChange}
+                              placeholder="Nº"
+                              className="mt-1.5"
                               data-testid="input-numero"
                             />
                           </div>
@@ -464,9 +509,10 @@ const EnvioEnviar = () => {
                             <Label htmlFor="complemento">Complemento</Label>
                             <Input 
                               id="complemento" 
-                              value={selectedContrato.endereco_complemento || ''} 
-                              readOnly 
-                              className="mt-1.5 bg-muted"
+                              value={addressData.complemento}
+                              onChange={handleAddressChange}
+                              placeholder="Apto, Bloco, etc."
+                              className="mt-1.5"
                               data-testid="input-complemento"
                             />
                           </div>
@@ -474,9 +520,10 @@ const EnvioEnviar = () => {
                             <Label htmlFor="cidade">Cidade</Label>
                             <Input 
                               id="cidade" 
-                              value={selectedContrato.endereco_cidade || ''} 
-                              readOnly 
-                              className="mt-1.5 bg-muted"
+                              value={addressData.cidade}
+                              onChange={handleAddressChange}
+                              placeholder="Cidade"
+                              className="mt-1.5"
                               data-testid="input-cidade"
                             />
                           </div>
@@ -484,19 +531,22 @@ const EnvioEnviar = () => {
                             <Label htmlFor="uf">Estado</Label>
                             <Input 
                               id="uf" 
-                              value={selectedContrato.endereco_uf || ''} 
-                              readOnly 
-                              className="mt-1.5 bg-muted"
+                              value={addressData.uf}
+                              onChange={handleAddressChange}
+                              placeholder="UF"
+                              maxLength={2}
+                              className="mt-1.5"
                               data-testid="input-uf"
                             />
                           </div>
                           <div>
-                            <Label htmlFor="cep">CEP</Label>
+                            <Label htmlFor="cep">CEP <span className="text-destructive">*</span></Label>
                             <Input 
                               id="cep" 
-                              value={selectedContrato.endereco_cep || ''} 
-                              readOnly 
-                              className="mt-1.5 bg-muted"
+                              value={addressData.cep}
+                              onChange={handleAddressChange}
+                              placeholder="00000-000"
+                              className="mt-1.5"
                               data-testid="input-cep"
                             />
                           </div>

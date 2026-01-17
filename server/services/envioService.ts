@@ -35,6 +35,7 @@ export interface CotacaoFrete {
 export interface Envio {
   id: string;
   admin_id: string;
+  contract_id?: string;
   cotacao_id?: string;
   codigo_rastreio?: string;
   status: 'pendente' | 'aguardando_coleta' | 'coletado' | 'em_transito' | 'saiu_entrega' | 'entregue' | 'cancelado' | 'devolvido';
@@ -501,24 +502,30 @@ class EnvioService {
   async getContratosPendentesEnvio(adminId: string): Promise<ContratoPendenteEnvio[]> {
     const client = this.getClient();
     
-    const { data: enviosExistentes, error: enviosError } = await client
-      .from('envios')
-      .select('contract_id')
-      .eq('admin_id', adminId)
-      .not('contract_id', 'is', null);
+    let contractIdsComEnvio: string[] = [];
     
-    if (enviosError) {
-      console.error('[EnvioService] Erro ao buscar envios existentes:', enviosError);
+    try {
+      const { data: enviosExistentes, error: enviosError } = await client
+        .from('envios')
+        .select('contract_id')
+        .eq('admin_id', adminId)
+        .not('contract_id', 'is', null);
+      
+      if (enviosError) {
+        console.error('[EnvioService] Erro ao buscar envios existentes:', enviosError);
+      } else {
+        contractIdsComEnvio = (enviosExistentes || [])
+          .map((e: any) => e.contract_id)
+          .filter(Boolean);
+      }
+    } catch (err) {
+      console.error('[EnvioService] Erro ao buscar contract_ids dos envios:', err);
     }
-    
-    const contractIdsComEnvio = (enviosExistentes || [])
-      .map(e => e.contract_id)
-      .filter(Boolean);
 
     let query = client
       .from('contracts')
       .select('id, client_name, client_cpf, client_email, client_phone, address_street, address_number, address_complement, address_city, address_state, address_zipcode, signed_at')
-      .eq('tenant_id', adminId)
+      .or(`tenant_id.eq.${adminId},user_id.eq.${adminId}`)
       .eq('status', 'signed')
       .order('signed_at', { ascending: false });
 
@@ -528,7 +535,10 @@ class EnvioService {
 
     const { data, error } = await query;
     
-    if (error) throw error;
+    if (error) {
+      console.error('[EnvioService] Erro ao buscar contratos pendentes:', error);
+      throw error;
+    }
     return data || [];
   }
 }
