@@ -11,7 +11,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 -- LOGIN: Email + CPF (sem senha - mais seguro para revendedoras)
 CREATE TABLE IF NOT EXISTS revendedoras (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    admin_id UUID NOT NULL, -- Referencia ao admin (tenant principal)
+    admin_id TEXT NOT NULL, -- Referencia ao admin (tenant principal) - TEXT para compatibilidade
     nome TEXT NOT NULL,
     email TEXT UNIQUE NOT NULL,
     cpf TEXT NOT NULL, -- CPF usado como credencial de login (junto com email)
@@ -25,11 +25,14 @@ CREATE TABLE IF NOT EXISTS revendedoras (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- MIGRATION: Se a tabela já existe com admin_id UUID, execute:
+-- ALTER TABLE revendedoras ALTER COLUMN admin_id TYPE TEXT;
+
 -- TABELA: VENDAS (Para rastrear comissoes)
 CREATE TABLE IF NOT EXISTS vendas_revendedora (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     revendedora_id UUID REFERENCES revendedoras(id),
-    admin_id UUID NOT NULL,
+    admin_id TEXT NOT NULL, -- TEXT para compatibilidade com tenant_id
     produto_id UUID,
     produto_nome TEXT,
     valor_total DECIMAL(10,2) NOT NULL,
@@ -45,7 +48,7 @@ CREATE TABLE IF NOT EXISTS vendas_revendedora (
 -- TABELA: CONFIG SPLIT (Configuracao Stripe por Admin)
 CREATE TABLE IF NOT EXISTS config_split (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    admin_id UUID UNIQUE NOT NULL,
+    admin_id TEXT UNIQUE NOT NULL, -- TEXT para compatibilidade com tenant_id
     stripe_secret_key TEXT,
     stripe_publishable_key TEXT,
     gateway_preferido TEXT DEFAULT 'stripe',

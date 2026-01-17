@@ -67,6 +67,16 @@ scripts/   → Utilitários (export, import)
    - **Autenticação:** API `/api/reseller/login` com Email + CPF (NÃO usa Supabase Auth)
    - **Modo Dev:** Credenciais teste@upvendas.com + CPF 123.456.789-00 funcionam quando NODE_ENV != production
    - **Produção:** Revendedoras devem estar cadastradas na tabela `revendedoras` do Supabase com email e cpf
+   - **Criação Automática de Revendedora (17/01/2026):**
+     - Quando contrato é assinado (status='signed'), revendedora é criada automaticamente
+     - Dados copiados: client_name→nome, client_cpf→cpf, client_email→email, client_phone→telefone
+     - tenant_id obtido via form_submission (busca por email/CPF normalizado)
+     - **MIGRAÇÃO NECESSÁRIA:** Execute no Supabase:
+       ```sql
+       ALTER TABLE revendedoras ALTER COLUMN admin_id TYPE TEXT;
+       ALTER TABLE vendas_revendedora ALTER COLUMN admin_id TYPE TEXT;
+       ALTER TABLE config_split ALTER COLUMN admin_id TYPE TEXT;
+       ```
    - **Rotas Revendedora (após login):**
      - `/revendedora/reseller/dashboard` → Dashboard da revendedora
      - `/revendedora/reseller/sales` → Histórico de vendas

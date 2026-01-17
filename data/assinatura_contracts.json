@@ -7,10 +7,11 @@
     "client_phone": null,
     "contract_html": null,
     "protocol_number": "CONT-1767719734629",
-    "status": "pending",
+    "status": "signed",
     "access_token": "DOjnqlih4cG-Bb80xVchpsggpH3Ymg8F",
     "created_at": "2026-01-06T17:15:34.629Z",
-    "signed_at": null
+    "signed_at": "2026-01-17T13:42:55.200Z",
+    "address": null
   },
   "2RHlWvByt3_VXlzSKErLU": {
     "id": "2RHlWvByt3_VXlzSKErLU",
@@ -1378,10 +1379,10 @@
     "client_phone": "(31) 9226-7220",
     "contract_html": null,
     "protocol_number": "CONT-1768571046746-4SLKCT4T2",
-    "status": "pending",
+    "status": "signed",
     "access_token": "d5dbab73-0492-4aee-9f39-b4d6d05b5460",
     "created_at": "2026-01-16T13:44:06.746Z",
-    "signed_at": null,
+    "signed_at": "2026-01-17T13:45:23.282Z",
     "logo_size": "medium",
     "logo_position": "center",
     "primary_color": "#2c3e50",
@@ -1427,6 +1428,7 @@
     "parabens_text_color": "#1e40af",
     "parabens_font_family": "Arial, sans-serif",
     "parabens_form_title": "Endereço para Entrega",
-    "parabens_button_text": "Confirmar e Continuar"
+    "parabens_button_text": "Confirmar e Continuar",
+    "address": null
   }
 }

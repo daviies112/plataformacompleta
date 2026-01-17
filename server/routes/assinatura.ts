@@ -4,8 +4,117 @@ import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
 import { assinaturaSupabaseService, AssinaturaContract, AssinaturaGlobalConfig } from '../services/assinatura-supabase';
+import { supabaseOwner, SUPABASE_CONFIGURED } from '../config/supabaseOwner';
 
 const router = Router();
+
+function normalizeCPF(cpf: string): string {
+  return cpf.replace(/\D/g, '');
+}
+
+async function findTenantIdFromSubmission(email: string | null, cpf: string | null): Promise<string | null> {
+  if (!email && !cpf) return null;
+  
+  try {
+    const { getClienteSupabase, isClienteSupabaseConfigured } = await import('../lib/clienteSupabase.js');
+    if (!await isClienteSupabaseConfigured()) return null;
+    
+    const supabaseClient = await getClienteSupabase();
+    if (!supabaseClient) return null;
+    
+    const cpfNormalizado = cpf ? cpf.replace(/\D/g, '') : null;
+    
+    let query = supabaseClient.from('form_submissions').select('tenant_id');
+    if (email) {
+      query = query.eq('contact_email', email);
+    } else if (cpfNormalizado) {
+      query = query.eq('contact_cpf', cpfNormalizado);
+    }
+    
+    const { data, error } = await query.limit(1).maybeSingle();
+    if (error || !data) return null;
+    
+    console.log(`[NEXUS] Tenant encontrado via form_submission: ${data.tenant_id}`);
+    return data.tenant_id;
+  } catch (error) {
+    console.error('[NEXUS] Erro ao buscar tenant via submission:', error);
+    return null;
+  }
+}
+
+async function createRevendedoraFromContract(contract: any): Promise<void> {
+  if (!SUPABASE_CONFIGURED || !supabaseOwner) {
+    console.log('[NEXUS] Supabase Owner não configurado - pulando criação de revendedora');
+    return;
+  }
+
+  const { client_name, client_cpf, client_email, client_phone, tenant_id } = contract;
+
+  if (!client_cpf || !client_email) {
+    console.log('[NEXUS] Contrato sem CPF ou email - pulando criação de revendedora');
+    return;
+  }
+
+  const cpfNormalizado = normalizeCPF(client_cpf);
+  if (cpfNormalizado.length !== 11) {
+    console.log('[NEXUS] CPF inválido - pulando criação de revendedora');
+    return;
+  }
+
+  try {
+    const { data: existing, error: checkError } = await supabaseOwner
+      .from('revendedoras')
+      .select('id')
+      .or(`cpf.eq.${cpfNormalizado},email.eq.${client_email}`)
+      .maybeSingle();
+
+    if (checkError) {
+      console.error('[NEXUS] Erro ao verificar revendedora existente:', checkError);
+      return;
+    }
+
+    if (existing) {
+      console.log(`[NEXUS] Revendedora já existe (id: ${existing.id}) - pulando criação`);
+      return;
+    }
+
+    let adminId = tenant_id || process.env.DEFAULT_ADMIN_ID || null;
+    
+    if (!adminId) {
+      console.log('[NEXUS] Tentando encontrar tenant via form_submission...');
+      adminId = await findTenantIdFromSubmission(client_email, client_cpf);
+    }
+    
+    if (!adminId) {
+      console.log('[NEXUS] Sem admin_id disponível - pulando criação de revendedora');
+      return;
+    }
+
+    const { data: revendedora, error: insertError } = await supabaseOwner
+      .from('revendedoras')
+      .insert({
+        admin_id: adminId,
+        nome: client_name || 'Revendedora',
+        cpf: cpfNormalizado,
+        email: client_email,
+        telefone: client_phone || null,
+        status: 'ativo',
+        comissao_padrao: 10.00,
+        updated_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+
+    if (insertError) {
+      console.error('[NEXUS] Erro ao criar revendedora:', insertError);
+      return;
+    }
+
+    console.log(`[NEXUS] ✅ Revendedora criada automaticamente: ${revendedora.email} (CPF: ${cpfNormalizado})`);
+  } catch (error) {
+    console.error('[NEXUS] Erro inesperado ao criar revendedora:', error);
+  }
+}
 
 const CONTRACTS_FILE = path.join(process.cwd(), 'data', 'assinatura_contracts.json');
 const GLOBAL_CONFIG_FILE = path.join(process.cwd(), 'data', 'assinatura_global_config.json');
@@ -558,6 +667,11 @@ router.post('/contracts/:id/finalize', async (req: Request, res: Response) => {
       if (supabaseResult) {
         console.log(`[Assinatura] Contrato finalizado no Supabase com sucesso:`, supabaseResult.id);
         
+        // NEXUS: Criar revendedora automaticamente quando contrato é assinado
+        createRevendedoraFromContract(supabaseResult).catch(err => {
+          console.error('[NEXUS] Erro ao criar revendedora (fire-and-forget):', err);
+        });
+        
         // Update local store too if it exists
         if (localContract) {
           const updatedContract: LocalContract = {
@@ -596,6 +710,11 @@ router.post('/contracts/:id/finalize', async (req: Request, res: Response) => {
 
       localContractsStore.set(localContract.id, updatedContract);
       saveLocalContracts(localContractsStore);
+      
+      // NEXUS: Criar revendedora automaticamente quando contrato é assinado localmente
+      createRevendedoraFromContract(updatedContract).catch(err => {
+        console.error('[NEXUS] Erro ao criar revendedora (fire-and-forget):', err);
+      });
 
       console.log(`[Assinatura] Contrato ${localContract.id} finalizado com sucesso localmente`);
       return res.json(updatedContract);
