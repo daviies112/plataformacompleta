@@ -131,51 +131,12 @@ app.use((req, res, next) => {
   // Setup multi-tenant authentication routes (público - para login)
   app.use('/api/auth', multiTenantAuthRoutes);
   
-  // ===== ROTAS NEXUS (Revendedoras) - público para login/register =====
-  const resellerAuthRoutes = await import('./routes/resellerAuth');
-  app.use('/api/reseller', resellerAuthRoutes.default);
-  
-  const resellerCatalogRoutes = await import('./routes/resellerCatalog');
-  app.use('/api/reseller', resellerCatalogRoutes.default);
-  
-  const stripePaymentRoutes = await import('./routes/stripePayment');
-  app.use('/api/stripe', stripePaymentRoutes.default);
-  
-  log('✅ Rotas Nexus (Revendedoras) registradas');
-  
   // Setup biometric authentication routes (público - para login biométrico)
   app.use('/api/biometric', biometricRoutes);
   
-  // Health and quota monitoring endpoint (público - para monitoramento externo)
+  // Health check endpoint (público)
   app.use('/api/health', healthRouter);
-  
-  // Supabase file-based configuration routes (público - para setup inicial)
-  const supabaseConfigRoutes = await import('./routes/supabaseConfig');
-  app.use('/api/config', supabaseConfigRoutes.default);
-  
-  // Label Designer routes (protegido - requer autenticação)
-  const labelDesignerRoutes = await import('./routes/labelDesigner');
-  app.use('/api/label-designer', requireAuth, labelDesignerRoutes.default);
-  
-  // Printer Configuration routes (protegido - requer autenticação)
-  const printerConfigRoutes = await import('./routes/printerConfig');
-  app.use('/api/printer-config', requireAuth, printerConfigRoutes.default);
-  log('🖨️ Printer configuration system initialized');
-  
-  // Envio/Frete routes (protegido - requer autenticação)
-  const envioRoutes = await import('./routes/envio');
-  app.use('/api/envio', requireAuth, envioRoutes.default);
-  log('📦 Envio/Frete system initialized');
-  
-  // Serve Label Designer static files
-  const path = await import('path');
-  const { fileURLToPath } = await import('url');
-  const __dirname = path.dirname(fileURLToPath(import.meta.url));
-  app.use('/label-designer', express.static(path.join(__dirname, '..', 'label-designer', 'public')));
-  app.use('/label-designer/uploads', express.static(path.join(__dirname, '..', 'label-designer', 'uploads')));
-  app.use('/label-designer/extras', express.static(path.join(__dirname, '..', 'label-designer', 'extras')));
-  log('🏷️ Label Designer system initialized');
-  
+
   // PROTEÇÃO DE ROTAS: Verificar autenticação antes de acessar rotas protegidas
   // Apenas quando Supabase Owner estiver configurado
   if (SUPABASE_CONFIGURED) {
