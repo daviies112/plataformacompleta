@@ -379,9 +379,12 @@ export function registerRoutes(app: Express) {
         const parsedData = parseJsonbFields(camelData, ['answers']);
         
         // 🔥 DEBUG: Verificar CPF após conversão
-        console.log('🔍 [SUPABASE DEBUG] Dados do Supabase (raw):', JSON.stringify(data, null, 2));
-        console.log('🔍 [SUPABASE DEBUG] camelData.contactCpf:', camelData.contactCpf);
-        console.log('🔍 [SUPABASE DEBUG] parsedData.contactCpf:', parsedData.contactCpf);
+        console.log('🔍 [SUPABASE DEBUG] =====================================');
+        console.log('🔍 [SUPABASE DEBUG] Dados do Supabase (raw) contact_cpf:', data?.contact_cpf);
+        console.log('🔍 [SUPABASE DEBUG] camelData.contactCpf:', camelData?.contactCpf);
+        console.log('🔍 [SUPABASE DEBUG] parsedData.contactCpf:', parsedData?.contactCpf);
+        console.log('🔍 [SUPABASE DEBUG] Todas as chaves no data:', Object.keys(data || {}));
+        console.log('🔍 [SUPABASE DEBUG] =====================================');
         
         // 🔥 SINCRONIZAR LEAD AUTOMATICAMENTE QUANDO FORMULÁRIO É COMPLETADO
         if (parsedData.contactPhone) {
@@ -397,11 +400,21 @@ export function registerRoutes(app: Express) {
                 contactName: parsedData.contactName,
                 contactEmail: parsedData.contactEmail,
                 contactCpf: parsedData.contactCpf,
+                instagramHandle: parsedData.instagramHandle,
+                birthDate: parsedData.birthDate,
+                addressCep: parsedData.addressCep,
+                addressStreet: parsedData.addressStreet,
+                addressNumber: parsedData.addressNumber,
+                addressComplement: parsedData.addressComplement,
+                addressNeighborhood: parsedData.addressNeighborhood,
+                addressCity: parsedData.addressCity,
+                addressState: parsedData.addressState,
+                agendouReuniao: parsedData.agendouReuniao,
+                dataAgendamento: parsedData.dataAgendamento,
+                answers: parsedData.answers,
                 totalScore: parsedData.totalScore,
                 passed: parsedData.passed,
-              },
-              supabaseUrl,
-              supabaseKey
+              }
             );
             if (syncResult.success) {
               console.log('✅ [SUPABASE] Lead sincronizado com sucesso:', syncResult.leadId);
