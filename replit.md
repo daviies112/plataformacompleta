@@ -33,7 +33,7 @@ ExecutiveAI Pro utilizes a modern web stack designed for scalability and maintai
 
 - **Shipping Platform:** Integrates with multiple carriers (Correios, Jadlog, Loggi, Azul Cargo) for freight quotation and tracking.
 - **NEXUS Reseller Platform:** A separate authenticated portal for resellers with dashboards, sales tracking, financial summaries, and product catalogs. It uses dedicated authentication and manages reseller-specific data.
-- **CPF Validation:** Features a multi-tiered fallback system (Supabase Master -> Supabase Client -> Local PostgreSQL) for CPF data retrieval and compliance checks, with automated validation triggers upon form approval.
+- **CPF Validation:** Features a multi-tiered fallback system (Supabase Master -> Supabase Client -> Local PostgreSQL) for CPF data retrieval and compliance checks, with automated validation triggers upon form approval. See `docs/CPF_AUTO_CHECK_FIX_DOCUMENTATION.md` for detailed architecture.
 - **WhatsApp Business:** Integration for automated messaging and communication workflows.
 - **n8n Integration:** Allows tenants to generate API keys for n8n workflows, enabling custom automation for meeting creation and other tasks. Meetings automatically inherit tenant branding.
 - **Video Conferencing (100ms):** Provides robust video conferencing capabilities with dynamic role assignments (host/guest), public meeting links, and features for canceling/rescheduling meetings. Includes automatic participant check-in and pre-filling of contract data from form submissions.
@@ -50,6 +50,29 @@ ExecutiveAI Pro utilizes a modern web stack designed for scalability and maintai
 - Robust error handling with mechanisms like `ErrorBoundary` for critical flows.
 - Session management explicitly saved to ensure persistence across requests.
 - Role-based access control for features like meeting recording and data access.
+
+**Background Jobs & Automation (CRITICAL):**
+
+The system uses background job queues for async processing. These MUST be initialized on startup:
+
+1. **server/index.ts** - Must call in `setImmediate()` after server starts:
+   - `initializeQueues()` - Registers job handlers and starts queue processing
+   - `startAutomation()` - Starts FormPoller for Supabase submissions
+   - `startMonitoring()` - Starts limit monitoring
+   - `startAutomaticAlerting()` - Starts alerting system
+
+2. **Key Files:**
+   - `server/lib/queue.ts` - Job queue system with handlers
+   - `server/lib/formSubmissionPoller.ts` - Polls Supabase for new submissions
+   - `server/lib/automationManager.ts` - Manages automation cycles
+   - `server/formularios/services/leadSync.ts` - Syncs submissions to leads and triggers CPF check
+
+3. **CPF Auto-Check Flow:**
+   - FormPoller detects new submissions in Supabase
+   - Enqueues `sync_form_submission` job
+   - LeadSync processes job, normalizes CPF, creates/updates lead
+   - If `qualificationStatus === 'approved'` and CPF present, triggers `triggerAutoCPFCheck()`
+   - BigDataCorp credentials are fetched from `bigdatacorp_config` table by tenantId
 
 ## External Dependencies
 
