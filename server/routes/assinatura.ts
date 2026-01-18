@@ -436,6 +436,7 @@ router.post('/contracts', async (req: Request, res: Response) => {
       client_cpf,
       client_email,
       client_phone,
+      client_address,
       contract_html,
       protocol_number,
       status,
@@ -456,7 +457,7 @@ router.post('/contracts', async (req: Request, res: Response) => {
     const protocolScheme = domain.includes('localhost') ? 'http' : 'https';
     const signature_url = `${protocolScheme}://${domain}/assinar/${access_token}`;
 
-    console.log(`[Assinatura] Criando novo contrato para ${client_name}, access_token: ${access_token}, signature_url: ${signature_url}`);
+    console.log(`[Assinatura] Criando novo contrato para ${client_name}, telefone: ${client_phone}, email: ${client_email}, cpf: ${client_cpf ? 'presente' : 'ausente'}, endereço: ${client_address ? 'presente' : 'ausente'}, access_token: ${access_token}`);
 
     const globalConfig = localGlobalConfig;
     const localContract: LocalContract = {
@@ -522,10 +523,29 @@ router.post('/contracts', async (req: Request, res: Response) => {
       parabens_button_text: customizations.parabens_button_text ?? globalConfig.parabens_button_text,
       app_store_url: customizations.app_store_url ?? globalConfig.app_store_url,
       google_play_url: customizations.google_play_url ?? globalConfig.google_play_url,
+      address: client_address ? {
+        street: client_address.street || undefined,
+        number: client_address.number || undefined,
+        complement: client_address.complement || undefined,
+        city: client_address.city || undefined,
+        state: client_address.state || undefined,
+        zipcode: client_address.zipcode || undefined,
+      } : null,
     };
 
     localContractsStore.set(id, localContract);
     saveLocalContracts(localContractsStore);
+
+    // Preparar dados de endereço para salvar
+    const addressData = client_address ? {
+      address_street: client_address.street || null,
+      address_number: client_address.number || null,
+      address_complement: client_address.complement || null,
+      address_neighborhood: client_address.neighborhood || null,
+      address_city: client_address.city || null,
+      address_state: client_address.state || null,
+      address_zipcode: client_address.zipcode || null,
+    } : {};
 
     if (assinaturaSupabaseService.isConnected()) {
       const supabaseContract = await assinaturaSupabaseService.createContract({
@@ -533,6 +553,7 @@ router.post('/contracts', async (req: Request, res: Response) => {
         client_cpf: client_cpf || null,
         client_email: client_email || null,
         client_phone: client_phone || null,
+        ...addressData,
         contract_html: contract_html || null,
         protocol_number: protocolNum,
         status: status || 'pending',

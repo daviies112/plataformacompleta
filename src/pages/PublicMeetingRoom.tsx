@@ -114,7 +114,8 @@ export default function PublicMeetingRoom() {
         }
         
         // Criar contrato com dados pré-preenchidos
-        // Campos retornados em português: nome, email, telefone, cpf
+        // Campos retornados em português: nome, email, telefone, cpf, endereco
+        const endereco = participantDataFromForm.endereco;
         const response = await fetch('/api/assinatura/public/contracts', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -123,6 +124,15 @@ export default function PublicMeetingRoom() {
             client_cpf: participantDataFromForm.cpf || '',
             client_email: participantDataFromForm.email || '',
             client_phone: participantDataFromForm.telefone || '',
+            client_address: endereco ? {
+              street: endereco.rua || '',
+              number: endereco.numero || '',
+              complement: endereco.complemento || '',
+              neighborhood: endereco.bairro || '',
+              city: endereco.cidade || '',
+              state: endereco.estado || '',
+              zipcode: endereco.cep || ''
+            } : undefined,
           }),
         });
         
