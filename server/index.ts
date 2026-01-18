@@ -185,13 +185,8 @@ app.use((req, res, next) => {
     log('⚠️ Multi-tenant authentication disabled - running in open access mode');
   }
   
-  // Apply rate limiting to API routes
-  app.use('/api/', apiLimiter);
-  app.use('/api/auth', authLimiter);
-  
-  // Serve uploaded files (logos, etc.) from public/uploads directory
-  app.use('/uploads', express.static(path.join(__dirname, '..', 'public', 'uploads')));
-  log('📁 Static file serving enabled for /uploads directory');
+  // N8N integration routes - EXEMPT from global auth redirects in server/index.ts
+  // They are already registered inside registerRoutes
   
   const server = await registerRoutes(app);
 

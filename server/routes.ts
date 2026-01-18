@@ -78,15 +78,31 @@ export async function registerRoutes(app: Express) {
   app.use("/api", publicRoomDesignRouter);
   
   // N8N integration routes - allows external automation to create meetings
+  // Registered early to avoid global auth redirects
   app.use("/api/n8n", n8nRouter);
-  
+
+  // Import utilities for protection logic
+  const { log } = await import("./vite");
+  const { SUPABASE_CONFIGURED } = await import("./config/supabaseOwner");
+  const { redirectIfNotAuth } = await import("./middleware/multiTenantAuth");
+  const { apiLimiter, authLimiter } = await import("./middleware/rateLimiter");
+
   // Compliance routes (CPF check) - public access allowed with DEMO fallback
-  // Must be registered BEFORE routes that apply requireTenant to all /api paths
   app.use(setupComplianceRoutes());
   
-  // Leads Pipeline routes - Kanban pipeline management with unified leads view
-  // MUST be registered BEFORE generic /api routes that apply requireTenant
-  // In development mode, skip requireTenant since tenantId comes from URL parameter
+  // PROTEÇÃO DE ROTAS: Verificar autenticação antes de acessar rotas protegidas
+  if (SUPABASE_CONFIGURED) {
+    app.use((req, res, next) => {
+      // Isentar explicitamente N8N e outras rotas públicas que possam ter sido registradas depois por engano
+      if (req.path.startsWith('/api/n8n') || req.path.startsWith('/api/public') || req.path.startsWith('/api/assinatura/public')) {
+        return next();
+      }
+      return redirectIfNotAuth(req, res, next);
+    });
+    log('🔐 Multi-tenant authentication enabled (with exemptions)');
+  }
+
+  // Leads Pipeline routes
   const isDev = process.env.NODE_ENV !== 'production';
   if (isDev) {
     app.use("/api/leads-pipeline", leadsPipelineRoutes);
@@ -94,8 +110,6 @@ export async function registerRoutes(app: Express) {
     app.use("/api/leads-pipeline", requireTenant, leadsPipelineRoutes);
   }
   
-  // Export routes - MUST be registered BEFORE the global /api middleware
-  // In development mode, allow access without tenant requirement
   if (isDev) {
     app.use("/api/export", exportRoutes);
   } else {
@@ -115,121 +129,32 @@ export async function registerRoutes(app: Express) {
   registerWhatsAppCompleteRoutes(app);
   
   app.use("/api/formularios", requireTenant, formulariosRoutes);
-  
-  // Meetings / Video Conferencing routes (100ms)
   app.use("/api", requireTenant, meetingsRouter);
-  
-  // Note: leads-pipeline routes registered above (before requireTenant middleware)
-  
-  app.use(formsAutomationAPIRoutes);
 
-  // ============================================================================
-  // KANBAN PLATFORM ROUTES - Lead pipeline management
-  // ============================================================================
+  // KANBAN PLATFORM ROUTES
   const { kanbanStorage } = await import("./storage/kanbanStorage");
   const { insertKanbanLeadSchema } = await import("../shared/db-schema");
   const { z } = await import("zod");
 
-  // Get all kanban leads
   app.get("/api/kanban-leads", requireTenant, async (req, res) => {
     try {
       const leads = await kanbanStorage.getAllLeads();
       res.json(leads);
     } catch (error) {
-      console.error('Error fetching kanban leads:', error);
       res.status(500).json({ error: "Failed to fetch leads" });
     }
   });
 
-  // Get single kanban lead
-  app.get("/api/kanban-leads/:id", requireTenant, async (req, res) => {
-    try {
-      const lead = await kanbanStorage.getLead(req.params.id);
-      if (!lead) {
-        return res.status(404).json({ error: "Lead not found" });
-      }
-      res.json(lead);
-    } catch (error) {
-      console.error('Error fetching kanban lead:', error);
-      res.status(500).json({ error: "Failed to fetch lead" });
-    }
-  });
-
-  // Create kanban lead
-  app.post("/api/kanban-leads", requireTenant, async (req, res) => {
-    try {
-      const validatedData = insertKanbanLeadSchema.parse(req.body);
-      const lead = await kanbanStorage.createLead(validatedData);
-      res.status(201).json(lead);
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ error: "Invalid data", details: error.errors });
-      }
-      console.error('Error creating kanban lead:', error);
-      res.status(500).json({ error: "Failed to create lead" });
-    }
-  });
-
-  // Update kanban lead
-  app.patch("/api/kanban-leads/:id", requireTenant, async (req, res) => {
-    try {
-      const lead = await kanbanStorage.updateLead(req.params.id, req.body);
-      if (!lead) {
-        return res.status(404).json({ error: "Lead not found" });
-      }
-      res.json(lead);
-    } catch (error) {
-      console.error('Error updating kanban lead:', error);
-      res.status(500).json({ error: "Failed to update lead" });
-    }
-  });
-
-  // Delete kanban lead
-  app.delete("/api/kanban-leads/:id", requireTenant, async (req, res) => {
-    try {
-      const success = await kanbanStorage.deleteLead(req.params.id);
-      if (!success) {
-        return res.status(404).json({ error: "Lead not found" });
-      }
-      res.status(204).send();
-    } catch (error) {
-      console.error('Error deleting kanban lead:', error);
-      res.status(500).json({ error: "Failed to delete lead" });
-    }
-  });
-
-  // Logo upload endpoint
   app.post("/api/upload/logo", requireTenant, logoUpload.single('logo'), (req, res) => {
     try {
-      if (!req.file) {
-        return res.status(400).json({
-          success: false,
-          error: 'Nenhum arquivo foi enviado'
-        });
-      }
-
-      const fileUrl = `/uploads/logos/${req.file.filename}`;
-      
-      res.json({
-        success: true,
-        url: fileUrl
-      });
+      if (!req.file) return res.status(400).json({ success: false, error: 'Nenhum arquivo enviado' });
+      res.json({ success: true, url: `/uploads/logos/${req.file.filename}` });
     } catch (error) {
-      console.error('Error uploading logo:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Falha ao fazer upload da logo'
-      });
+      res.status(500).json({ success: false, error: 'Falha ao fazer upload' });
     }
   });
 
-  // Assinatura Digital routes
-  app.use("/api/assinatura", assinaturaRoutes);
-
-  // Health check endpoint
-  app.get("/health", (_req, res) => {
-    res.json({ status: "ok", timestamp: new Date().toISOString() });
-  });
+  app.use("/api/assinatura", requireTenant, assinaturaRoutes);
 
   return httpServer;
 }

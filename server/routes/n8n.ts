@@ -26,15 +26,28 @@ async function authenticateN8NByTenantKey(req: Request, res: Response, next: any
     }
 
     try {
+        console.log(`[N8N Auth] API Key recebida (truncada): ${apiKey ? apiKey.substring(0, 8) : 'null'}...`);
         const configs = await db.select().from(hms100msConfig);
+        console.log(`[N8N Auth] Verificando ${configs.length} configurações de tenant`);
         
         let matchedConfig = null;
         for (const config of configs) {
             if (config.n8nApiKey) {
-                const decryptedKey = decrypt(config.n8nApiKey);
-                if (decryptedKey === apiKey) {
-                    matchedConfig = config;
-                    break;
+                try {
+                    const decryptedKey = decrypt(config.n8nApiKey);
+                    
+                    // Removendo possíveis espaços ou caracteres invisíveis
+                    const cleanReceivedKey = apiKey ? apiKey.trim() : '';
+                    const cleanDecryptedKey = decryptedKey ? decryptedKey.trim() : '';
+                    
+                    console.log(`[N8N Auth] Comparando com tenant ${config.tenantId}`);
+                    
+                    if (cleanDecryptedKey === cleanReceivedKey) {
+                        matchedConfig = config;
+                        break;
+                    }
+                } catch (decError) {
+                    console.error(`[N8N Auth] Erro ao descriptografar chave para tenant ${config.tenantId}:`, decError);
                 }
             }
         }
@@ -251,6 +264,10 @@ n8nRouter.post('/reunioes', authenticateN8NByTenantKey, async (req: Request, res
 
         if (!appAccessKey || !appSecret) {
             return res.status(400).json({ error: 'Credenciais do 100ms inválidas ou corrompidas' });
+        }
+
+        if (config.templateId) {
+            console.log(`[N8N] Usando templateId configurado: ${config.templateId}`);
         }
 
         console.log(`[N8N] Criando sala no 100ms para tenant ${tenantId}...`);
@@ -723,6 +740,7 @@ n8nRouter.patch('/reunioes/:id', authenticateN8NByTenantKey, async (req: Request
 });
 
 n8nRouter.get('/health', (req: Request, res: Response) => {
+    console.log('[N8N] Health check accessed');
     res.json({
         status: 'ok',
         message: 'N8N API endpoint está funcionando',
