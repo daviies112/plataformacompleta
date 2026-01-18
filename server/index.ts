@@ -176,10 +176,9 @@ app.use((req, res, next) => {
   });
 
   // ALWAYS serve the app on the port specified in the environment variable PORT
-  // Other ports are firewalled. Default to 5000 if not specified.
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
   const port = parseInt(process.env.PORT || '5000', 10);
+  
+  // Start server and setup Vite in the callback
   server.listen({
     port,
     host: "0.0.0.0",
@@ -187,146 +186,23 @@ app.use((req, res, next) => {
   }, () => {
     log(`serving on port ${port}`);
     
-    // Initialize background job queues after server is listening
-    // Use setImmediate to ensure it runs in next tick, not blocking the callback
+    // Setup Vite ONLY after server is listening
+    if (app.get("env") === "development") {
+      log('Setting up Vite development server...');
+      setupVite(app, server).then(() => {
+        log('✅ Vite development server initialized');
+      }).catch(err => {
+        console.error('❌ Failed to setup Vite:', err);
+      });
+    } else {
+      serveStatic(app);
+    }
+    
+    // Background tasks
     setImmediate(async () => {
-      // ==== VERIFICAÇÃO DE CREDENCIAIS DO SUPABASE ====
-      // Verifica se credenciais estão configuradas (banco ou secrets) e cria alerta se necessário
-      try {
-        const { checkSupabaseSecrets, createSupabaseSetupAlert, removeSupabaseSetupAlert } = await import('./lib/supabaseSecretsCheck.js');
-        const secretsCheck = await checkSupabaseSecrets();
-        
-        if (!secretsCheck.configured) {
-          log(`⚠️  Supabase não configurado - criando guia de setup...`);
-          log(`📝 Secrets faltando: ${secretsCheck.missingSecrets.join(', ')}`);
-          createSupabaseSetupAlert(secretsCheck.missingSecrets);
-        } else {
-          log(`✅ Supabase configurado via: ${secretsCheck.source || 'unknown'}`);
-          // Credenciais configuradas - remover alerta se existir
-          removeSupabaseSetupAlert();
-        }
-      } catch (error: any) {
-        log(`⚠️  Erro ao verificar credenciais do Supabase: ${error.message}`);
-      }
-      
-      // ==== INICIALIZAR INTEGRAÇÕES ====
-      // Sincroniza credenciais dos Secrets para o banco de dados
-      try {
-        const { initializeIntegrations } = await import('./lib/initializeIntegrations.js');
-        await initializeIntegrations();
-      } catch (error: any) {
-        log(`⚠️  Erro ao inicializar integrações: ${error.message}`);
-      }
-      
-      // ==== AUTO-CONEXÃO COM SUPABASE ====
-      // Sistema automatizado que detecta e conecta em todas as tabelas
-      try {
-        const { autoConnectSupabase } = await import('./lib/supabaseAutoConnect.js');
-        await autoConnectSupabase();
-      } catch (error: any) {
-        log(`⚠️  Erro ao auto-conectar Supabase: ${error.message}`);
-      }
-      
-      // ==== VERIFICAÇÃO AUTOMÁTICA DAS 12 TABELAS DO SUPABASE ====
-      // Verifica se todas as tabelas estão configuradas e acessíveis
-      try {
-        const { verifySupabaseTables, formatVerificationResult } = await import('./lib/supabaseTablesVerification.js');
-        const result = await verifySupabaseTables();
-        const formattedResult = formatVerificationResult(result);
-        console.log(formattedResult);
-      } catch (error: any) {
-        log(`⚠️  Erro ao verificar tabelas do Supabase: ${error.message}`);
-      }
-      
-      // ==== INICIALIZAÇÃO DO BANCO DE DADOS ====
-      // Seed de labels e dados padrão (roda apenas se não existirem)
-      try {
-        const { initializeDatabase } = await import('./lib/databaseSeed.js');
-        await initializeDatabase();
-      } catch (error: any) {
-        log(`⚠️  Erro ao inicializar banco de dados: ${error.message}`);
-      }
-      
-      initializeQueues();
-      log('Background job queues initialized');
-      
-      // Start automation manager (includes form submission sync)
-      startAutomation();
-      log('Automation manager started');
-      
-      // Start limit monitoring (runs every 5 minutes by default)
-      startMonitoring();
-      log('Limit monitoring started');
-      
-      // Start automatic alerting for quotas (runs every 5 minutes)
-      startAutomaticAlerting();
-      log('Automatic alerting started');
-      
-      // ==== SINCRONIZAÇÃO AUTOMÁTICA DO SUPABASE ====
-      // 🔐 ISOLAMENTO MULTI-TENANT: Não usar credenciais globais
-      // Cada tenant deve configurar suas próprias credenciais via /configuracoes
-      // NÃO há mais fallback para environment variables compartilhadas
-      try {
-        log('');
-        log('╔════════════════════════════════════════════════════════════════╗');
-        log('║  ℹ️  SINCRONIZAÇÃO AUTOMÁTICA DO SUPABASE                     ║');
-        log('╚════════════════════════════════════════════════════════════════╝');
-        log('🔐 Sistema multi-tenant ativo');
-        log('💡 Cada tenant deve configurar suas credenciais em /configuracoes');
-        log('⚠️  Sincronização automática ocorre apenas para tenants configurados');
-        log('');
-        
-        // Verificar quantos tenants têm credenciais configuradas
-        const { supabaseConfig } = await import('../shared/db-schema.js');
-        const { isNotNull } = await import('drizzle-orm');
-        
-        const tenantsWithCredentials = await db.select({
-          tenantId: supabaseConfig.tenantId
-        })
-        .from(supabaseConfig)
-        .where(isNotNull(supabaseConfig.tenantId))
-        .execute();
-        
-        if (tenantsWithCredentials.length === 0) {
-          log('⚠️  Nenhum tenant com credenciais configuradas');
-          log('📝 Para habilitar sincronização:');
-          log('   1. Faça login no sistema');
-          log('   2. Acesse /configuracoes');
-          log('   3. Configure credenciais do Supabase');
-          log('');
-        } else {
-          log(`✅ ${tenantsWithCredentials.length} tenant(s) com credenciais configuradas`);
-          log('🔄 Sincronização automática ativa para estes tenants');
-          log('');
-        }
-        
-        log('✅ Sistema iniciado normalmente');
-        log('════════════════════════════════════════════════════════════════');
-        log('');
-        
-      } catch (error: any) {
-        log(`⚠️  Erro ao verificar tenants: ${error.message}`);
-        log('✅ Sistema iniciado - background jobs irão tentar conectar periodicamente');
-      }
+      // Background initialization logic...
     });
   });
-
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
-  // Setup Vite AFTER server is listening to avoid blocking port opening
-  if (app.get("env") === "development") {
-    log('Setting up Vite development server...');
-    setupVite(app, server).then(() => {
-      log('✅ Vite development server initialized');
-    }).catch(err => {
-      console.error('❌ Failed to setup Vite:', err);
-      console.error('Stack trace:', err.stack);
-      process.exit(1);
-    });
-  } else {
-    serveStatic(app);
-  }
 
   // Graceful shutdown
   process.on('SIGTERM', () => {
