@@ -2297,6 +2297,7 @@ publicRoomDesignRouter.get('/reunioes/:id/participant-data', async (req: Request
     const addressState = submission.address_state || submission.addressState;
 
     console.log(`[ParticipantData] Form submission encontrado: ${submission.id}, nome: ${contactName}, cpf: ${contactCpf ? 'presente' : 'ausente'}`);
+    console.log(`[ParticipantData] Endereço: CEP=${addressCep}, Rua=${addressStreet}, Num=${addressNumber}, Cidade=${addressCity}, Estado=${addressState}`);
 
     // For signature flow, return full data (client is signing their own contract)
     // This is the client's own data that they already provided in the form
