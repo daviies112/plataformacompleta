@@ -83,6 +83,7 @@ export function isPublicRoute(path: string): boolean {
   }
   
   const publicRoutes = [
+    '/',             // Página inicial / Dashboard (redirecionamento interno)
     '/login',
     '/reuniao/',
     '/api/reunioes/',
