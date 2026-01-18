@@ -98,10 +98,12 @@ export function isPublicRoute(path: string): boolean {
     '/revendedora',  // NEXUS: Plataforma de revendedoras tem login próprio
     '/assinar/',     // Assinatura digital pública (clientes)
     '/api/assinatura/public/',  // API de assinatura pública
+    '/api/forms/public/',  // API de formulários públicos (by-slug, by-id, submit)
     '/health',
     '/assets',
     '/form/',        // Formulário público direto
     '/f/',           // Formulário com token
+    '/formulario/',  // Formulário público com slug da empresa
   ];
   
   // Verificar padrões especiais de formulário público
