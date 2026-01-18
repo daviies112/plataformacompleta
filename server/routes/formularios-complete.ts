@@ -1687,7 +1687,42 @@ export function registerFormulariosCompleteRoutes(app: Express) {
         
         if (error) {
           console.error('❌ [SUPABASE] Erro ao criar submission:', error);
-          throw error;
+          // 🔄 FALLBACK: Se falhar no Supabase (ex: trigger com coluna inexistente), salvar no PostgreSQL local
+          console.log('🔄 [FALLBACK] Tentando salvar no PostgreSQL local...');
+          
+          try {
+            const submissionWithTenant = { ...req.body, tenantId };
+            const validatedData = insertFormSubmissionSchema.parse(submissionWithTenant);
+            const localSubmission = await storage.createFormSubmission(validatedData);
+            
+            console.log('✅ [FALLBACK] Submission salva no PostgreSQL local:', localSubmission.id);
+            
+            // Sincronizar lead
+            if (localSubmission.contactPhone) {
+              try {
+                const syncResult = await leadSyncService.syncSubmissionToLead({
+                  id: localSubmission.id,
+                  formId: localSubmission.formId,
+                  contactPhone: localSubmission.contactPhone,
+                  contactName: localSubmission.contactName,
+                  contactEmail: localSubmission.contactEmail,
+                  totalScore: localSubmission.totalScore,
+                  passed: localSubmission.passed,
+                  tenantId: tenantId,
+                });
+                if (syncResult.success) {
+                  console.log('✅ [FALLBACK] Lead sincronizado:', syncResult.leadId);
+                }
+              } catch (syncError) {
+                console.error('❌ [FALLBACK] Erro ao sincronizar lead:', syncError);
+              }
+            }
+            
+            return res.status(201).json(localSubmission);
+          } catch (fallbackError: any) {
+            console.error('❌ [FALLBACK] Erro ao salvar no PostgreSQL:', fallbackError);
+            throw error; // Lançar erro original do Supabase
+          }
         }
         
         console.log('✅ [SUPABASE] Submission criada com sucesso!');
