@@ -26,6 +26,18 @@ const app = express();
 
 console.log('[STARTUP] Express app created');
 
+// Allow iframe embedding for Replit preview (development only)
+app.use((req, res, next) => {
+  res.removeHeader('X-Frame-Options');
+  // In development (Replit), allow embedding from Replit domains
+  // In production, restrict to same-origin
+  const isReplit = process.env.REPL_ID || process.env.REPLIT_DEV_DOMAIN;
+  if (isReplit) {
+    res.setHeader('Content-Security-Policy', "frame-ancestors 'self' *.replit.com *.replit.dev *.repl.co");
+  }
+  next();
+});
+
 // Initialize Sentry first (must be before other middleware)
 initializeSentry(app).then(initialized => {
   if (initialized) {
