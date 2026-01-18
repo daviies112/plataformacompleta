@@ -1832,51 +1832,91 @@ publicRoomDesignRouter.get('/reunioes/:id/participant-data', async (req: Request
     const searchEmail = String(email || meetingEmail || '').toLowerCase();
     const phoneLastDigits = searchPhone.slice(-9);
     
-    // Try Supabase first with tenant filtering
+    // Try Supabase first - try WITH tenant filter first, then WITHOUT if not found
     if (supabaseClient && !submission) {
-      // Try by phone
+      // Try by phone - create flexible pattern that works with formatted phones like "(31) 9226-7220"
       if (searchPhone) {
-        console.log(`[ParticipantData] Supabase: buscando por telefone (últimos 9 dígitos): ${phoneLastDigits}`);
-        let query = supabaseClient
-          .from('form_submissions')
-          .select('*')
-          .ilike('contact_phone', `%${phoneLastDigits}`);
+        // Create pattern: for "9226720" -> "%9%2%2%6%7%2%0" to match formatted phones
+        const flexiblePhonePattern = '%' + phoneLastDigits.split('').join('%') + '%';
+        console.log(`[ParticipantData] Supabase: buscando por telefone, padrão flexível: ${flexiblePhonePattern}, tenantId: ${meetingTenantId || 'nenhum'}`);
         
-        // Add tenant filter for security
+        // First try with tenant filter
         if (meetingTenantId) {
-          query = query.eq('tenant_id', meetingTenantId);
+          const { data: subs, error } = await supabaseClient
+            .from('form_submissions')
+            .select('*')
+            .ilike('contact_phone', flexiblePhonePattern)
+            .eq('tenant_id', meetingTenantId)
+            .order('created_at', { ascending: false })
+            .limit(1);
+            
+          if (error) {
+            console.log(`[ParticipantData] Supabase erro (com tenant): ${error.message}`);
+          }
+          if (subs && subs.length > 0) {
+            submission = subs[0];
+            console.log(`[ParticipantData] Supabase: encontrado por telefone (com tenant): ${submission.id}`);
+          }
         }
         
-        const { data: subs } = await query
-          .order('created_at', { ascending: false })
-          .limit(1);
-          
-        if (subs && subs.length > 0) {
-          submission = subs[0];
-          console.log(`[ParticipantData] Supabase: encontrado por telefone: ${submission.id}`);
+        // If not found with tenant, try without tenant filter (backward compatibility)
+        if (!submission) {
+          const { data: subs, error } = await supabaseClient
+            .from('form_submissions')
+            .select('*')
+            .ilike('contact_phone', flexiblePhonePattern)
+            .order('created_at', { ascending: false })
+            .limit(1);
+            
+          if (error) {
+            console.log(`[ParticipantData] Supabase erro (sem tenant): ${error.message}`);
+          }
+          if (subs && subs.length > 0) {
+            submission = subs[0];
+            console.log(`[ParticipantData] Supabase: encontrado por telefone (sem tenant): ${submission.id}, tenant_id do registro: ${submission.tenant_id}`);
+          }
         }
       }
       
-      // Try by email with tenant filtering
+      // Try by email
       if (!submission && searchEmail) {
         console.log(`[ParticipantData] Supabase: buscando por email: ${searchEmail}`);
-        let query = supabaseClient
-          .from('form_submissions')
-          .select('*')
-          .ilike('contact_email', searchEmail);
         
-        // Add tenant filter for security
+        // First try with tenant filter
         if (meetingTenantId) {
-          query = query.eq('tenant_id', meetingTenantId);
+          const { data: subs, error } = await supabaseClient
+            .from('form_submissions')
+            .select('*')
+            .ilike('contact_email', searchEmail)
+            .eq('tenant_id', meetingTenantId)
+            .order('created_at', { ascending: false })
+            .limit(1);
+            
+          if (error) {
+            console.log(`[ParticipantData] Supabase email erro (com tenant): ${error.message}`);
+          }
+          if (subs && subs.length > 0) {
+            submission = subs[0];
+            console.log(`[ParticipantData] Supabase: encontrado por email (com tenant): ${submission.id}`);
+          }
         }
         
-        const { data: subs } = await query
-          .order('created_at', { ascending: false })
-          .limit(1);
-          
-        if (subs && subs.length > 0) {
-          submission = subs[0];
-          console.log(`[ParticipantData] Supabase: encontrado por email: ${submission.id}`);
+        // If not found with tenant, try without tenant filter
+        if (!submission) {
+          const { data: subs, error } = await supabaseClient
+            .from('form_submissions')
+            .select('*')
+            .ilike('contact_email', searchEmail)
+            .order('created_at', { ascending: false })
+            .limit(1);
+            
+          if (error) {
+            console.log(`[ParticipantData] Supabase email erro (sem tenant): ${error.message}`);
+          }
+          if (subs && subs.length > 0) {
+            submission = subs[0];
+            console.log(`[ParticipantData] Supabase: encontrado por email (sem tenant): ${submission.id}, tenant_id do registro: ${submission.tenant_id}`);
+          }
         }
       }
     }
