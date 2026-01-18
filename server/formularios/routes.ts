@@ -378,10 +378,16 @@ export function registerRoutes(app: Express) {
         const camelData = convertKeysToCamelCase(data);
         const parsedData = parseJsonbFields(camelData, ['answers']);
         
+        // 🔥 DEBUG: Verificar CPF após conversão
+        console.log('🔍 [SUPABASE DEBUG] Dados do Supabase (raw):', JSON.stringify(data, null, 2));
+        console.log('🔍 [SUPABASE DEBUG] camelData.contactCpf:', camelData.contactCpf);
+        console.log('🔍 [SUPABASE DEBUG] parsedData.contactCpf:', parsedData.contactCpf);
+        
         // 🔥 SINCRONIZAR LEAD AUTOMATICAMENTE QUANDO FORMULÁRIO É COMPLETADO
         if (parsedData.contactPhone) {
           try {
             console.log('📞 [SUPABASE] Sincronizando lead para submission:', parsedData.id);
+            console.log('🔍 [SUPABASE DEBUG] contactCpf sendo passado para sync:', parsedData.contactCpf);
             const syncResult = await leadSyncService.syncSubmissionToLead(
               {
                 id: parsedData.id,
