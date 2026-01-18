@@ -57,12 +57,21 @@ export async function setupVite(app: Express, server: Server) {
       const clientTemplate = path.resolve(process.cwd(), "index.html");
       let template = fs.readFileSync(clientTemplate, "utf-8");
       vite.transformIndexHtml(url, template).then(transformedTemplate => {
-        res.status(200).set({ 
+        // Headers for iframe embedding (Replit preview) and no-cache
+        const headers: Record<string, string> = { 
           "Content-Type": "text/html",
           "Cache-Control": "no-cache, no-store, must-revalidate",
           "Pragma": "no-cache",
           "Expires": "0"
-        }).end(transformedTemplate);
+        };
+        
+        // Allow iframe embedding for Replit preview
+        const isReplit = process.env.REPL_ID || process.env.REPLIT_DEV_DOMAIN;
+        if (isReplit) {
+          headers["Content-Security-Policy"] = "frame-ancestors 'self' *.replit.com *.replit.dev *.repl.co";
+        }
+        
+        res.status(200).set(headers).end(transformedTemplate);
       }).catch(e => {
         vite.ssrFixStacktrace(e as Error);
         next(e);
