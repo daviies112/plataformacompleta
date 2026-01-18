@@ -16,12 +16,22 @@ function generateApiKey(): string {
 }
 
 async function authenticateN8NByTenantKey(req: Request, res: Response, next: any) {
-    const apiKey = req.headers['x-n8n-api-key'] as string;
+    // Tenta obter a chave de múltiplos headers comuns
+    const apiKey = (
+        req.headers['x-n8n-api-key'] || 
+        req.headers['authorization']?.toString().replace('Bearer ', '') ||
+        req.query.apiKey
+    ) as string;
+    
+    console.log(`[N8N Auth Debug] URL: ${req.originalUrl || req.url}`);
+    console.log(`[N8N Auth Debug] Headers: ${JSON.stringify(req.headers)}`);
+    console.log(`[N8N Auth Debug] API Key extraída: ${apiKey ? apiKey.substring(0, 8) + '...' : 'null'}`);
 
     if (!apiKey) {
+        console.log(`[N8N Auth] API Key não encontrada nos headers ou query. Enviando 401.`);
         return res.status(401).json({ 
-            error: 'API Key não fornecida',
-            message: 'Inclua o header X-N8N-API-Key na requisição'
+            error: 'Authorization failed - please check your credentials',
+            message: 'API Key não fornecida ou inválida. Use o header X-N8N-API-Key.'
         });
     }
 

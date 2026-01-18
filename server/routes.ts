@@ -92,14 +92,8 @@ export async function registerRoutes(app: Express) {
   
   // PROTEÇÃO DE ROTAS: Verificar autenticação antes de acessar rotas protegidas
   if (SUPABASE_CONFIGURED) {
-    app.use((req, res, next) => {
-      // Isentar explicitamente N8N e outras rotas públicas que possam ter sido registradas depois por engano
-      if (req.path.startsWith('/api/n8n') || req.path.startsWith('/api/public') || req.path.startsWith('/api/assinatura/public')) {
-        return next();
-      }
-      return redirectIfNotAuth(req, res, next);
-    });
-    log('🔐 Multi-tenant authentication enabled (with exemptions)');
+    app.use(redirectIfNotAuth);
+    log('🔐 Multi-tenant authentication enabled');
   }
 
   // Leads Pipeline routes

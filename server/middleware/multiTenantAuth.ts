@@ -106,7 +106,15 @@ export function isPublicRoute(path: string): boolean {
     '/form/',        // Formulário público direto
     '/f/',           // Formulário com token
     '/formulario/',  // Formulário público com slug da empresa
+    '/api/n8n',      // API do n8n (tem autenticação própria)
   ];
+
+  // Caso especial para prefixo /api/n8n para garantir isenção
+  // Corrigindo para ser mais abrangente e capturar qualquer variação
+  const normalizedPath = (path || '').toLowerCase();
+  if (normalizedPath === '/api/n8n' || normalizedPath.startsWith('/api/n8n/') || normalizedPath.includes('/api/n8n')) {
+    return true;
+  }
   
   // Verificar padrões especiais de formulário público
   // /formulario/:companySlug/form/:id ou /:companySlug/form/:id
@@ -122,6 +130,13 @@ export function isPublicRoute(path: string): boolean {
 
 // Middleware para redirecionar não autenticados
 export function redirectIfNotAuth(req: Request, res: Response, next: NextFunction) {
+  // Isenção explícita e agressiva para a API do n8n para evitar 401 do redirectIfNotAuth
+  const normalizedPath = (req.path || '').toLowerCase();
+  if (normalizedPath.startsWith('/api/n8n') || req.originalUrl.toLowerCase().startsWith('/api/n8n')) {
+    console.log(`[Auth Bypass] Permitindo acesso público para API n8n: ${req.originalUrl}`);
+    return next();
+  }
+
   // Ignorar rotas públicas, API e assets
   if (isPublicRoute(req.path)) {
     return next();
