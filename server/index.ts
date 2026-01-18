@@ -210,9 +210,24 @@ app.use((req, res, next) => {
       serveStatic(app);
     }
     
-    // Background tasks
+    // Background tasks - Initialize queues and automation
     setImmediate(async () => {
-      // Background initialization logic...
+      try {
+        // Initialize job queues for background processing
+        initializeQueues();
+        log('✅ Background job queues initialized');
+        
+        // Start form submission polling and automation
+        startAutomation();
+        log('✅ Form submission automation started');
+        
+        // Start monitoring and alerting
+        startMonitoring();
+        startAutomaticAlerting();
+        log('✅ Monitoring and alerting started');
+      } catch (error) {
+        console.error('❌ Failed to start background services:', error);
+      }
     });
   });
 
