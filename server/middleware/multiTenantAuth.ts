@@ -99,6 +99,8 @@ export function isPublicRoute(path: string): boolean {
     '/assinar/',     // Assinatura digital pública (clientes)
     '/api/assinatura/public/',  // API de assinatura pública
     '/api/forms/public/',  // API de formulários públicos (by-slug, by-id, submit)
+    '/api/submissions',    // Envio de formulários públicos
+    '/api/formularios/submit',  // Envio de formulários (legacy)
     '/health',
     '/assets',
     '/form/',        // Formulário público direto
