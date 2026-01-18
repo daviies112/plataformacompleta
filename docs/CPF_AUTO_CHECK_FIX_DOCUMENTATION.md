@@ -1,8 +1,10 @@
 # Documentação: Correções do Sistema de Consulta Automática de CPF
 
 **Data:** Janeiro 2026  
-**Versão:** 1.0  
+**Versão:** 1.1  
 **Status:** Resolvido
+
+**Última Atualização:** Adicionada correção para dados do contrato (CPF, email, telefone, endereço)
 
 ---
 
@@ -288,6 +290,66 @@ Após exportar o projeto, verifique:
 |------|----------|---------|
 | Jan 2026 | Adicionar chamadas initializeQueues() e startAutomation() | server/index.ts |
 | Jan 2026 | Passar todos campos extras para syncSubmissionToLead | server/formularios/routes.ts |
+| Jan 2026 | Buscar dados do lead quando form_submission não for encontrado | server/routes/meetings.ts |
+
+---
+
+## Correção: Dados do Contrato Não Preenchidos (CPF, Email, Telefone, Endereço)
+
+### Problema
+
+Quando o usuário clicava em "Assinar" na reunião ou saía da reunião, o contrato era criado com:
+- `client_cpf: ""`
+- `client_email: ""`
+- `client_phone: ""`
+- Endereço vazio
+
+### Causa Raiz
+
+O endpoint `/api/public/reunioes/:id/participant-data`:
+1. Buscava dados da reunião (telefone, email)
+2. Tentava encontrar um `form_submission` com esse telefone/email
+3. Quando não encontrava form_submission, retornava apenas dados básicos da reunião SEM o CPF
+4. O CPF e endereço estavam no `lead`, mas o endpoint não buscava no lead
+
+### Correção Implementada
+
+**Arquivo:** `server/routes/meetings.ts`
+
+**Melhorias de segurança:**
+- Todas as queries agora filtram por `tenant_id` da reunião para evitar vazamento de dados entre tenants
+- Matching de telefone usa os últimos 9 dígitos com padrão de "termina com" para maior precisão
+
+**Fluxo de busca de dados:**
+```typescript
+// Fluxo de busca de dados do participante (com filtro de tenant)
+1. Extrair meetingTenantId da reunião ANTES de qualquer query
+2. Buscar form_submission por telefone/email COM filtro de tenant
+3. Se não encontrar form_submission:
+   a. Buscar lead por telefone/email COM filtro de tenant
+   b. Se encontrar lead com CPF, buscar endereço do form_submission associado
+   c. Se lead não tem submission_id, buscar form_submission por telefone/email
+4. Se não encontrar lead, tentar busca direta de form_submission (última chance)
+5. Retornar dados com CPF, email, telefone e endereço
+```
+
+### Logs Esperados Após Correção
+
+```
+[ParticipantData] Reunião encontrada: abc123, telefone: 5531999999999, email: teste@email.com, tenantId: dev-tenant
+[ParticipantData] Supabase: buscando por telefone (últimos 9 dígitos): 999999999
+[ParticipantData] Supabase: encontrado por telefone: submission-id-123
+```
+
+Ou quando cai no fallback de lead:
+```
+[ParticipantData] Nenhum form_submission encontrado, buscando dados do lead...
+[ParticipantData] Supabase: buscando lead por telefone (últimos 9 dígitos): 999999999
+[ParticipantData] Supabase: lead encontrado por telefone: lead-id-456
+[ParticipantData] Lead encontrado: lead-id-456, nome: João Silva, cpf: presente
+[ParticipantData] Buscando submission por telefone para endereço...
+[ParticipantData] Endereço encontrado: Rua das Flores, Belo Horizonte
+```
 
 ---
 

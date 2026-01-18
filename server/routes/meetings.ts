@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { authenticateToken } from '../middleware/auth';
 import { db } from '../db';
-import { reunioes, gravacoes, hms100msConfig, formSubmissions } from '../../shared/db-schema';
+import { reunioes, gravacoes, hms100msConfig, formSubmissions, leads } from '../../shared/db-schema';
 import { eq, and, desc, sql } from 'drizzle-orm';
 import { decrypt } from '../lib/credentialsManager';
 import { 
@@ -1818,42 +1818,62 @@ publicRoomDesignRouter.get('/reunioes/:id/participant-data', async (req: Request
     const meetingName = meeting.nome || meeting.name;
     const meetingId = meeting.id;
     
-    console.log(`[ParticipantData] Reunião encontrada: ${meetingId}, telefone: ${meetingPhone}, email: ${meetingEmail}`);
+    // Get tenantId from meeting for security filtering (used in all queries)
+    const meetingTenantId = meeting.tenant_id || meeting.tenantId;
+    console.log(`[ParticipantData] Reunião encontrada: ${meetingId}, telefone: ${meetingPhone}, email: ${meetingEmail}, tenantId: ${meetingTenantId || 'não definido'}`);
 
     // 2. Try to find form submission - Supabase first, then local
+    // SECURITY: All queries are scoped by tenantId to prevent cross-tenant data leakage
     let submission: any = null;
     
     // Normalize phone for search (remove @s.whatsapp.net and non-digits)
     const normalizePhone = (p: string) => p?.replace(/@s\.whatsapp\.net/g, '').replace(/\D/g, '') || '';
     const searchPhone = normalizePhone(String(phone || meetingPhone || ''));
     const searchEmail = String(email || meetingEmail || '').toLowerCase();
+    const phoneLastDigits = searchPhone.slice(-9);
     
-    // Try Supabase first
+    // Try Supabase first with tenant filtering
     if (supabaseClient && !submission) {
       // Try by phone
       if (searchPhone) {
-        console.log(`[ParticipantData] Supabase: buscando por telefone: ${searchPhone}`);
-        const { data: subs } = await supabaseClient
+        console.log(`[ParticipantData] Supabase: buscando por telefone (últimos 9 dígitos): ${phoneLastDigits}`);
+        let query = supabaseClient
           .from('form_submissions')
           .select('*')
-          .or(`contact_phone.ilike.%${searchPhone}%,contact_phone.ilike.%${searchPhone.slice(-9)}%`)
+          .ilike('contact_phone', `%${phoneLastDigits}`);
+        
+        // Add tenant filter for security
+        if (meetingTenantId) {
+          query = query.eq('tenant_id', meetingTenantId);
+        }
+        
+        const { data: subs } = await query
           .order('created_at', { ascending: false })
           .limit(1);
+          
         if (subs && subs.length > 0) {
           submission = subs[0];
           console.log(`[ParticipantData] Supabase: encontrado por telefone: ${submission.id}`);
         }
       }
       
-      // Try by email
+      // Try by email with tenant filtering
       if (!submission && searchEmail) {
         console.log(`[ParticipantData] Supabase: buscando por email: ${searchEmail}`);
-        const { data: subs } = await supabaseClient
+        let query = supabaseClient
           .from('form_submissions')
           .select('*')
-          .ilike('contact_email', searchEmail)
+          .ilike('contact_email', searchEmail);
+        
+        // Add tenant filter for security
+        if (meetingTenantId) {
+          query = query.eq('tenant_id', meetingTenantId);
+        }
+        
+        const { data: subs } = await query
           .order('created_at', { ascending: false })
           .limit(1);
+          
         if (subs && subs.length > 0) {
           submission = subs[0];
           console.log(`[ParticipantData] Supabase: encontrado por email: ${submission.id}`);
@@ -1861,11 +1881,15 @@ publicRoomDesignRouter.get('/reunioes/:id/participant-data', async (req: Request
       }
     }
     
-    // Fallback to local DB
+    // Fallback to local DB with tenant filtering
     if (!submission && searchPhone) {
-      console.log(`[ParticipantData] Local DB: buscando por telefone: ${searchPhone}`);
+      console.log(`[ParticipantData] Local DB: buscando por telefone: ${phoneLastDigits}`);
+      let whereCondition = sql`REPLACE(REPLACE(REPLACE(REPLACE(${formSubmissions.contactPhone}, '-', ''), ' ', ''), '(', ''), ')', '') LIKE '%' || ${phoneLastDigits}`;
+      if (meetingTenantId) {
+        whereCondition = sql`REPLACE(REPLACE(REPLACE(REPLACE(${formSubmissions.contactPhone}, '-', ''), ' ', ''), '(', ''), ')', '') LIKE '%' || ${phoneLastDigits} AND ${formSubmissions.tenantId} = ${meetingTenantId}`;
+      }
       const [sub] = await db.select().from(formSubmissions)
-        .where(sql`REPLACE(REPLACE(REPLACE(REPLACE(${formSubmissions.contactPhone}, '-', ''), ' ', ''), '(', ''), ')', '') LIKE '%' || ${searchPhone} || '%'`)
+        .where(whereCondition)
         .orderBy(desc(formSubmissions.createdAt))
         .limit(1);
       submission = sub;
@@ -1873,18 +1897,342 @@ publicRoomDesignRouter.get('/reunioes/:id/participant-data', async (req: Request
 
     if (!submission && searchEmail) {
       console.log(`[ParticipantData] Local DB: buscando por email: ${searchEmail}`);
+      let whereCondition = sql`LOWER(${formSubmissions.contactEmail}) = LOWER(${searchEmail})`;
+      if (meetingTenantId) {
+        whereCondition = sql`LOWER(${formSubmissions.contactEmail}) = LOWER(${searchEmail}) AND ${formSubmissions.tenantId} = ${meetingTenantId}`;
+      }
       const [sub] = await db.select().from(formSubmissions)
-        .where(sql`LOWER(${formSubmissions.contactEmail}) = LOWER(${searchEmail})`)
+        .where(whereCondition)
         .orderBy(desc(formSubmissions.createdAt))
         .limit(1);
       submission = sub;
     }
 
     if (!submission) {
-      console.log(`[ParticipantData] Nenhum form_submission encontrado, usando dados da reunião`);
+      console.log(`[ParticipantData] Nenhum form_submission encontrado, buscando dados do lead...`);
+      
+      // Try to find lead data by phone or email (leads have CPF and other data)
+      let lead: any = null;
+      
+      // Search lead in Supabase first with tenant filtering
+      if (supabaseClient && !lead) {
+        if (searchPhone) {
+          console.log(`[ParticipantData] Supabase: buscando lead por telefone (últimos 9 dígitos): ${phoneLastDigits}`);
+          let query = supabaseClient
+            .from('leads')
+            .select('*')
+            .ilike('telefone_normalizado', `%${phoneLastDigits}`);
+          
+          // Add tenant filter if available
+          if (meetingTenantId) {
+            query = query.eq('tenant_id', meetingTenantId);
+          }
+          
+          const { data: leadData } = await query
+            .order('created_at', { ascending: false })
+            .limit(1);
+            
+          if (leadData && leadData.length > 0) {
+            lead = leadData[0];
+            console.log(`[ParticipantData] Supabase: lead encontrado por telefone: ${lead.id}`);
+          }
+        }
+        
+        if (!lead && searchEmail) {
+          console.log(`[ParticipantData] Supabase: buscando lead por email: ${searchEmail}`);
+          let query = supabaseClient
+            .from('leads')
+            .select('*')
+            .ilike('email', searchEmail);
+          
+          // Add tenant filter if available
+          if (meetingTenantId) {
+            query = query.eq('tenant_id', meetingTenantId);
+          }
+          
+          const { data: leadData } = await query
+            .order('created_at', { ascending: false })
+            .limit(1);
+            
+          if (leadData && leadData.length > 0) {
+            lead = leadData[0];
+            console.log(`[ParticipantData] Supabase: lead encontrado por email: ${lead.id}`);
+          }
+        }
+      }
+      
+      // Fallback to local DB for lead with tenant filtering
+      if (!lead && searchPhone) {
+        console.log(`[ParticipantData] Local DB: buscando lead por telefone: ${phoneLastDigits}`);
+        let whereCondition = sql`${leads.telefoneNormalizado} LIKE '%' || ${phoneLastDigits}`;
+        if (meetingTenantId) {
+          whereCondition = sql`${leads.telefoneNormalizado} LIKE '%' || ${phoneLastDigits} AND ${leads.tenantId} = ${meetingTenantId}`;
+        }
+        const [leadResult] = await db.select().from(leads)
+          .where(whereCondition)
+          .orderBy(desc(leads.createdAt))
+          .limit(1);
+        lead = leadResult;
+      }
+      
+      if (!lead && searchEmail) {
+        console.log(`[ParticipantData] Local DB: buscando lead por email: ${searchEmail}`);
+        let whereCondition = sql`LOWER(${leads.email}) = LOWER(${searchEmail})`;
+        if (meetingTenantId) {
+          whereCondition = sql`LOWER(${leads.email}) = LOWER(${searchEmail}) AND ${leads.tenantId} = ${meetingTenantId}`;
+        }
+        const [leadResult] = await db.select().from(leads)
+          .where(whereCondition)
+          .orderBy(desc(leads.createdAt))
+          .limit(1);
+        lead = leadResult;
+      }
+      
+      if (lead) {
+        // Lead found - return lead data with CPF
+        const leadName = lead.nome || lead.name || meetingName;
+        const leadEmail = lead.email || meetingEmail;
+        const leadPhone = lead.telefone || lead.phone || meetingPhone;
+        const leadCpf = lead.cpf || lead.cpf_normalizado || lead.cpfNormalizado;
+        
+        console.log(`[ParticipantData] Lead encontrado: ${lead.id}, nome: ${leadName}, cpf: ${leadCpf ? 'presente' : 'ausente'}`);
+        
+        // Try to get address data from form_submissions
+        // First try by submission_id if available, otherwise search by phone/email
+        let addressData: any = {};
+        let addressSubmission: any = null;
+        
+        const subId = lead.submission_id || lead.submissionId;
+        
+        if (supabaseClient) {
+          // Try by submission_id first
+          if (subId) {
+            console.log(`[ParticipantData] Buscando submission por ID: ${subId}`);
+            const { data: subData } = await supabaseClient
+              .from('form_submissions')
+              .select('*')
+              .eq('id', subId)
+              .single();
+            if (subData) {
+              addressSubmission = subData;
+            }
+          }
+          
+          // If no submission found, search by phone/email with tenant filter
+          if (!addressSubmission && searchPhone) {
+            console.log(`[ParticipantData] Buscando submission por telefone para endereço...`);
+            let query = supabaseClient
+              .from('form_submissions')
+              .select('*')
+              .ilike('contact_phone', `%${phoneLastDigits}`);
+            
+            if (meetingTenantId) {
+              query = query.eq('tenant_id', meetingTenantId);
+            }
+            
+            const { data: subs } = await query
+              .order('created_at', { ascending: false })
+              .limit(1);
+              
+            if (subs && subs.length > 0) {
+              addressSubmission = subs[0];
+              console.log(`[ParticipantData] Submission encontrada por telefone: ${addressSubmission.id}`);
+            }
+          }
+          
+          if (!addressSubmission && searchEmail) {
+            console.log(`[ParticipantData] Buscando submission por email para endereço...`);
+            let query = supabaseClient
+              .from('form_submissions')
+              .select('*')
+              .ilike('contact_email', searchEmail);
+            
+            if (meetingTenantId) {
+              query = query.eq('tenant_id', meetingTenantId);
+            }
+            
+            const { data: subs } = await query
+              .order('created_at', { ascending: false })
+              .limit(1);
+              
+            if (subs && subs.length > 0) {
+              addressSubmission = subs[0];
+              console.log(`[ParticipantData] Submission encontrada por email: ${addressSubmission.id}`);
+            }
+          }
+          
+          // Extract address data from submission
+          if (addressSubmission) {
+            addressData = {
+              cep: addressSubmission.address_cep,
+              rua: addressSubmission.address_street,
+              numero: addressSubmission.address_number,
+              complemento: addressSubmission.address_complement,
+              bairro: addressSubmission.address_neighborhood,
+              cidade: addressSubmission.address_city,
+              estado: addressSubmission.address_state
+            };
+            console.log(`[ParticipantData] Endereço encontrado: ${addressData.rua || 'vazio'}, ${addressData.cidade || 'vazio'}`);
+          }
+        } else {
+          // Local DB - try by submission_id first
+          if (subId) {
+            const [subData] = await db.select().from(formSubmissions)
+              .where(eq(formSubmissions.id, subId))
+              .limit(1);
+            if (subData) {
+              addressSubmission = subData;
+            }
+          }
+          
+          // If no submission, search by phone
+          if (!addressSubmission && searchPhone) {
+            let whereCondition = sql`REPLACE(REPLACE(REPLACE(REPLACE(${formSubmissions.contactPhone}, '-', ''), ' ', ''), '(', ''), ')', '') LIKE '%' || ${phoneLastDigits}`;
+            if (meetingTenantId) {
+              whereCondition = sql`REPLACE(REPLACE(REPLACE(REPLACE(${formSubmissions.contactPhone}, '-', ''), ' ', ''), '(', ''), ')', '') LIKE '%' || ${phoneLastDigits} AND ${formSubmissions.tenantId} = ${meetingTenantId}`;
+            }
+            const [subData] = await db.select().from(formSubmissions)
+              .where(whereCondition)
+              .orderBy(desc(formSubmissions.createdAt))
+              .limit(1);
+            if (subData) {
+              addressSubmission = subData;
+            }
+          }
+          
+          // If no submission, search by email  
+          if (!addressSubmission && searchEmail) {
+            let whereCondition = sql`LOWER(${formSubmissions.contactEmail}) = LOWER(${searchEmail})`;
+            if (meetingTenantId) {
+              whereCondition = sql`LOWER(${formSubmissions.contactEmail}) = LOWER(${searchEmail}) AND ${formSubmissions.tenantId} = ${meetingTenantId}`;
+            }
+            const [subData] = await db.select().from(formSubmissions)
+              .where(whereCondition)
+              .orderBy(desc(formSubmissions.createdAt))
+              .limit(1);
+            if (subData) {
+              addressSubmission = subData;
+            }
+          }
+          
+          // Extract address data
+          if (addressSubmission) {
+            addressData = {
+              cep: addressSubmission.addressCep,
+              rua: addressSubmission.addressStreet,
+              numero: addressSubmission.addressNumber,
+              complemento: addressSubmission.addressComplement,
+              bairro: addressSubmission.addressNeighborhood,
+              cidade: addressSubmission.addressCity,
+              estado: addressSubmission.addressState
+            };
+          }
+        }
+        
+        // Also get CPF from submission if lead doesn't have it
+        const finalCpf = leadCpf || addressSubmission?.cpf || addressSubmission?.cpf_normalizado;
+        
+        return res.json({
+          found: true,
+          source: 'lead',
+          leadId: lead.id,
+          submissionId: addressSubmission?.id,
+          participantData: {
+            nome: leadName,
+            email: leadEmail,
+            telefone: leadPhone?.replace(/@s\.whatsapp\.net/g, ''),
+            cpf: finalCpf,
+            endereco: Object.keys(addressData).some(k => addressData[k]) ? addressData : undefined
+          },
+          meetingData: {
+            id: meetingId,
+            titulo: meeting.titulo || meeting.title,
+            source: supabaseClient ? 'supabase' : 'local'
+          }
+        });
+      }
+      
+      // No lead found - try one more time to find submission by phone/email for address data
+      console.log(`[ParticipantData] Nenhum lead encontrado, tentando buscar submission diretamente para dados...`);
+      
+      let lastChanceSubmission: any = null;
+      const meetingTenantId2 = meeting.tenant_id || meeting.tenantId;
+      
+      if (supabaseClient && searchPhone) {
+        let query = supabaseClient
+          .from('form_submissions')
+          .select('*')
+          .ilike('contact_phone', `%${phoneLastDigits}`);
+        
+        if (meetingTenantId2) {
+          query = query.eq('tenant_id', meetingTenantId2);
+        }
+        
+        const { data: subs } = await query
+          .order('created_at', { ascending: false })
+          .limit(1);
+          
+        if (subs && subs.length > 0) {
+          lastChanceSubmission = subs[0];
+        }
+      }
+      
+      if (!lastChanceSubmission && supabaseClient && searchEmail) {
+        let query = supabaseClient
+          .from('form_submissions')
+          .select('*')
+          .ilike('contact_email', searchEmail);
+        
+        if (meetingTenantId2) {
+          query = query.eq('tenant_id', meetingTenantId2);
+        }
+        
+        const { data: subs } = await query
+          .order('created_at', { ascending: false })
+          .limit(1);
+          
+        if (subs && subs.length > 0) {
+          lastChanceSubmission = subs[0];
+        }
+      }
+      
+      if (lastChanceSubmission) {
+        console.log(`[ParticipantData] Submission encontrada na última tentativa: ${lastChanceSubmission.id}`);
+        const subCpf = lastChanceSubmission.cpf || lastChanceSubmission.cpf_normalizado;
+        const addressData = {
+          cep: lastChanceSubmission.address_cep,
+          rua: lastChanceSubmission.address_street,
+          numero: lastChanceSubmission.address_number,
+          complemento: lastChanceSubmission.address_complement,
+          bairro: lastChanceSubmission.address_neighborhood,
+          cidade: lastChanceSubmission.address_city,
+          estado: lastChanceSubmission.address_state
+        };
+        
+        return res.json({
+          found: true,
+          source: 'form_submission_fallback',
+          submissionId: lastChanceSubmission.id,
+          participantData: {
+            nome: lastChanceSubmission.contact_name || lastChanceSubmission.name || meetingName,
+            email: lastChanceSubmission.contact_email || meetingEmail,
+            telefone: (lastChanceSubmission.contact_phone || meetingPhone)?.replace(/@s\.whatsapp\.net/g, ''),
+            cpf: subCpf,
+            endereco: Object.keys(addressData).some(k => addressData[k]) ? addressData : undefined
+          },
+          meetingData: {
+            id: meetingId,
+            titulo: meeting.titulo || meeting.title,
+            source: 'supabase'
+          }
+        });
+      }
+      
+      // Nothing found - return basic meeting data
+      console.log(`[ParticipantData] Nenhum lead ou submission encontrado, usando dados básicos da reunião`);
       return res.json({ 
         found: false,
-        message: 'Nenhum formulário encontrado para este participante',
+        message: 'Nenhum formulário ou lead encontrado para este participante',
         meetingData: {
           nome: meetingName,
           email: meetingEmail,
