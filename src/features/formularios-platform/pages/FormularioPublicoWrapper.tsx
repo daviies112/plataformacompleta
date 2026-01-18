@@ -1,4 +1,4 @@
-import { useParams as useReactRouterParams } from "react-router-dom";
+import { useParams as useReactRouterParams, useLocation as useReactRouterLocation } from "react-router-dom";
 import { Router, Route } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "../components/ui/tooltip";
@@ -6,6 +6,47 @@ import { SupabaseConfigProvider } from "../contexts/SupabaseConfigContext";
 import { queryClient } from "../lib/queryClient";
 import FormularioPublico from "./FormularioPublico";
 import { useMemo } from "react";
+
+/**
+ * Extrai parâmetros diretamente da URL pathname
+ * Usado quando o componente é renderizado fora do contexto de Route do React Router
+ */
+function extractParamsFromPath(pathname: string): { token?: string; id?: string; companySlug?: string } {
+  // Remover query string do pathname (não deveria ter, mas por segurança)
+  const cleanPath = pathname.split('?')[0];
+  
+  // /f/:token
+  const tokenMatch = cleanPath.match(/^\/f\/([^/]+)/);
+  if (tokenMatch) {
+    return { token: decodeURIComponent(tokenMatch[1]) };
+  }
+  
+  // /formulario/:companySlug/form/:id
+  const formularioMatch = cleanPath.match(/^\/formulario\/([^/]+)\/form\/([^/]+)/);
+  if (formularioMatch) {
+    return { 
+      companySlug: decodeURIComponent(formularioMatch[1]), 
+      id: decodeURIComponent(formularioMatch[2]) 
+    };
+  }
+  
+  // /:companySlug/form/:id (sem prefixo /formulario)
+  const slugFormMatch = cleanPath.match(/^\/([^/]+)\/form\/([^/]+)/);
+  if (slugFormMatch) {
+    return { 
+      companySlug: decodeURIComponent(slugFormMatch[1]), 
+      id: decodeURIComponent(slugFormMatch[2]) 
+    };
+  }
+  
+  // /form/:id
+  const formMatch = cleanPath.match(/^\/form\/([^/]+)/);
+  if (formMatch) {
+    return { id: decodeURIComponent(formMatch[1]) };
+  }
+  
+  return {};
+}
 
 /**
  * Wrapper para FormularioPublico que permite usá-lo com React Router
@@ -16,10 +57,21 @@ import { useMemo } from "react";
  * Suporta múltiplos formatos de URL:
  * - /f/:token (com token de lead)
  * - /form/:id (acesso público direto)
+ * - /formulario/:companySlug/form/:id (acesso público com slug da empresa)
  * - /:companySlug/form/:id (acesso público com slug da empresa)
  */
 const FormularioPublicoWrapper = () => {
-  const params = useReactRouterParams<{ token?: string; id?: string; companySlug?: string }>();
+  const reactRouterParams = useReactRouterParams<{ token?: string; id?: string; companySlug?: string }>();
+  const location = useReactRouterLocation();
+  
+  // Usar parâmetros do React Router se disponíveis, senão extrair da URL
+  const params = useMemo(() => {
+    if (reactRouterParams.token || reactRouterParams.id || reactRouterParams.companySlug) {
+      return reactRouterParams;
+    }
+    // Fallback: extrair parâmetros diretamente da URL
+    return extractParamsFromPath(location.pathname);
+  }, [reactRouterParams, location.pathname]);
   
   // Determine qual rota usar baseado nos parâmetros disponíveis
   const wooterPath = useMemo(() => {

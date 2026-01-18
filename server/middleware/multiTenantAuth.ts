@@ -99,8 +99,19 @@ export function isPublicRoute(path: string): boolean {
     '/assinar/',     // Assinatura digital pública (clientes)
     '/api/assinatura/public/',  // API de assinatura pública
     '/health',
-    '/assets'
+    '/assets',
+    '/form/',        // Formulário público direto
+    '/f/',           // Formulário com token
   ];
+  
+  // Verificar padrões especiais de formulário público
+  // /formulario/:companySlug/form/:id ou /:companySlug/form/:id
+  if (/^\/formulario\/[^/]+\/form\/[^/]+/.test(path)) {
+    return true;
+  }
+  if (/^\/[^/]+\/form\/[^/]+/.test(path) && !path.startsWith('/api/')) {
+    return true;
+  }
   
   return publicRoutes.some(route => path.startsWith(route));
 }
