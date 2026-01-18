@@ -61,8 +61,7 @@ export async function setupVite(app: Express, server: Server) {
           "Content-Type": "text/html",
           "Cache-Control": "no-cache, no-store, must-revalidate",
           "Pragma": "no-cache",
-          "Expires": "0",
-          "X-Frame-Options": "ALLOWALL"
+          "Expires": "0"
         }).end(transformedTemplate);
       }).catch(e => {
         vite.ssrFixStacktrace(e as Error);
