@@ -108,19 +108,19 @@ const HeaderNavigation = () => {
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-[#0A0A0A]/95 backdrop-blur-xl border-b border-white/10">
-      <div className="container-luxury">
-        <div className="flex items-center justify-between h-16">
-          {/* Navigation */}
-          <nav className="flex items-center space-x-1">
+      <div className="w-full px-2 sm:px-4">
+        <div className="flex items-center h-16 gap-2">
+          {/* Navigation with horizontal scroll */}
+          <nav className="flex items-center space-x-1 overflow-x-auto scrollbar-hide flex-1 min-w-0" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             {navItems.map((item) => (
               <Button
                 key={item.path}
                 variant={item.active ? "default" : "ghost"}
                 size="sm"
                 onClick={() => navigate(item.path)}
-                className={`h-10 px-4 hover:bg-transparent hover:text-inherit ${item.active ? '!bg-primary !text-black' : 'text-gray-400 hover:text-white'}`}
+                className={`h-10 px-3 whitespace-nowrap flex-shrink-0 hover:bg-transparent hover:text-inherit ${item.active ? '!bg-primary !text-black' : 'text-gray-400 hover:text-white'}`}
               >
-                <item.icon className="w-4 h-4 mr-2" />
+                <item.icon className="w-4 h-4 mr-1.5" />
                 {item.label}
               </Button>
             ))}
@@ -131,9 +131,9 @@ const HeaderNavigation = () => {
                 <Button
                   variant={isEnvioActive ? "default" : "ghost"}
                   size="sm"
-                  className={`h-10 px-4 hover:bg-transparent hover:text-inherit ${isEnvioActive ? '!bg-primary !text-black' : 'text-gray-400 hover:text-white'}`}
+                  className={`h-10 px-3 whitespace-nowrap flex-shrink-0 hover:bg-transparent hover:text-inherit ${isEnvioActive ? '!bg-primary !text-black' : 'text-gray-400 hover:text-white'}`}
                 >
-                  <Truck className="w-4 h-4 mr-2" />
+                  <Truck className="w-4 h-4 mr-1.5" />
                   Envio
                   <ChevronDown className="w-3 h-3 ml-1" />
                 </Button>
@@ -165,12 +165,12 @@ const HeaderNavigation = () => {
           </nav>
 
           {/* Settings Icon Only */}
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center flex-shrink-0">
             <Button
               onClick={() => navigate("/settings")}
               variant={location.pathname === "/settings" ? "default" : "ghost"}
-              size="sm"
-              className={`h-10 w-10 p-0 hover:bg-transparent hover:text-inherit ${location.pathname === "/settings" ? '!bg-primary !text-black' : 'text-gray-400 hover:text-white'}`}
+              size="icon"
+              className={`h-10 w-10 hover:bg-transparent hover:text-inherit ${location.pathname === "/settings" ? '!bg-primary !text-black' : 'text-gray-400 hover:text-white'}`}
               title="Configurações"
             >
               <Settings className="w-5 h-5" />
