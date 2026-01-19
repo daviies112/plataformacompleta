@@ -34,7 +34,10 @@ import {
   Eye,
   EyeOff,
   RefreshCw,
+  AlertCircle,
+  Info,
 } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useCompany } from '@/features/revendedora/contexts/CompanyContext';
 import { useToast } from '@/hooks/use-toast';
 
@@ -55,6 +58,16 @@ const notificationsSchema = z.object({
 const supabaseSchema = z.object({
   supabase_url: z.string().url('URL inválida').min(1, 'URL é obrigatória'),
   supabase_anon_key: z.string().min(10, 'Anon Key deve ter pelo menos 10 caracteres'),
+  supabase_service_key: z.string().optional(),
+});
+
+// Schema mais flexível para atualizações quando já configurado
+const supabaseUpdateSchema = z.object({
+  supabase_url: z.string().url('URL inválida').min(1, 'URL é obrigatória'),
+  supabase_anon_key: z.string().optional().refine(
+    (val) => !val || val.length >= 10,
+    'Anon Key deve ter pelo menos 10 caracteres'
+  ),
   supabase_service_key: z.string().optional(),
 });
 
@@ -123,8 +136,11 @@ export default function Settings() {
     },
   });
 
+  // Usar schema flexível quando já configurado (permite atualizar apenas URL)
+  const isConfigured = supabaseConfig?.configured || false;
+  
   const supabaseForm = useForm<SupabaseFormValues>({
-    resolver: zodResolver(supabaseSchema),
+    resolver: zodResolver(isConfigured ? supabaseUpdateSchema : supabaseSchema),
     defaultValues: {
       supabase_url: '',
       supabase_anon_key: '',
@@ -150,10 +166,11 @@ export default function Settings() {
 
   useEffect(() => {
     if (supabaseConfig) {
+      // Só carregar URL (chaves nunca são retornadas por segurança)
       supabaseForm.reset({
         supabase_url: supabaseConfig.supabase_url || '',
-        supabase_anon_key: supabaseConfig.supabase_anon_key || '',
-        supabase_service_key: supabaseConfig.supabase_service_key || '',
+        supabase_anon_key: '',
+        supabase_service_key: '',
       });
     }
   }, [supabaseConfig, supabaseForm]);
@@ -328,9 +345,28 @@ export default function Settings() {
                     <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                   </div>
                 ) : (
-                  <Form {...supabaseForm}>
-                    <form onSubmit={supabaseForm.handleSubmit((data) => updateSupabaseMutation.mutate(data))} className="space-y-4">
-                      <FormField
+                  <>
+                    {supabaseConfig?.inherited && (
+                      <Alert className="mb-4 border-blue-200 bg-blue-50 dark:bg-blue-900/20">
+                        <Info className="h-4 w-4 text-blue-500" />
+                        <AlertDescription className="text-blue-700 dark:text-blue-300">
+                          Você está usando credenciais herdadas do administrador. Configure suas próprias credenciais para ter independência total.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+
+                    {supabaseConfig?.configured && (
+                      <Alert className="mb-4 border-green-200 bg-green-50 dark:bg-green-900/20">
+                        <Check className="h-4 w-4 text-green-500" />
+                        <AlertDescription className="text-green-700 dark:text-green-300">
+                          Suas credenciais Supabase estão configuradas. Você pode atualizar a URL sem precisar reenviar as chaves. Para alterar as chaves, preencha-as novamente.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+
+                    <Form {...supabaseForm}>
+                      <form onSubmit={supabaseForm.handleSubmit((data) => updateSupabaseMutation.mutate(data))} className="space-y-4">
+                        <FormField
                         control={supabaseForm.control}
                         name="supabase_url"
                         render={({ field }) => (
@@ -421,36 +457,37 @@ export default function Settings() {
                         )}
                       />
 
-                      <div className="flex items-center gap-2 pt-4">
-                        <Button
-                          type="submit"
-                          disabled={updateSupabaseMutation.isPending}
-                          data-testid="button-save-supabase"
-                        >
-                          {updateSupabaseMutation.isPending ? (
-                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                          ) : (
-                            <Save className="h-4 w-4 mr-2" />
-                          )}
-                          Salvar Credenciais
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => testSupabaseConnection.mutate()}
-                          disabled={testSupabaseConnection.isPending || !supabaseConfig?.configured}
-                          data-testid="button-test-supabase"
-                        >
-                          {testSupabaseConnection.isPending ? (
-                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                          ) : (
-                            <RefreshCw className="h-4 w-4 mr-2" />
-                          )}
-                          Testar Conexão
-                        </Button>
-                      </div>
-                    </form>
-                  </Form>
+                        <div className="flex items-center gap-2 pt-4">
+                          <Button
+                            type="submit"
+                            disabled={updateSupabaseMutation.isPending}
+                            data-testid="button-save-supabase"
+                          >
+                            {updateSupabaseMutation.isPending ? (
+                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            ) : (
+                              <Save className="h-4 w-4 mr-2" />
+                            )}
+                            Salvar Credenciais
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => testSupabaseConnection.mutate()}
+                            disabled={testSupabaseConnection.isPending || (!supabaseConfig?.configured && !supabaseConfig?.inherited)}
+                            data-testid="button-test-supabase"
+                          >
+                            {testSupabaseConnection.isPending ? (
+                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            ) : (
+                              <RefreshCw className="h-4 w-4 mr-2" />
+                            )}
+                            Testar Conexão
+                          </Button>
+                        </div>
+                      </form>
+                    </Form>
+                  </>
                 )}
               </CardContent>
             </CollapsibleContent>
