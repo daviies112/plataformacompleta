@@ -72,14 +72,18 @@ Este documento descreve a arquitetura de sincronização entre o Supabase Master
                              │  2. Busca admin_id  │
                              │◀────────────────────│
                              │                     │
-                             │  3. Busca creds     │
+                             │  3. Valida creds    │
                              │◀────────────────────│
                              │                     │
                       ┌──────▼──────┐              │
                       │   Sessão:   │              │
                       │ tenantId=A  │              │
-                      │ creds=A     │              │
+                      │ (sem creds) │              │
                       └─────────────┘              │
+                      
+   Nota: Credenciais NÃO são armazenadas na sessão
+   por segurança. Use getAdminCredentials(tenantId)
+   quando precisar das credenciais.
 ```
 
 ### 2. Sincronização de Contrato Assinado

@@ -187,7 +187,7 @@ export async function processPendingSyncEvents(adminId: string, tenantClient: Su
         if (event.event_type === 'contract_signed') {
           const payload = event.payload;
           
-          await createRevendedoraFromContract({
+          const revendedoraId = await createRevendedoraFromContract({
             admin_id: adminId,
             contract_id: payload.contract_id,
             email: payload.client_email,
@@ -201,12 +201,21 @@ export async function processPendingSyncEvents(adminId: string, tenantClient: Su
             endereco_cep: payload.address_zipcode
           });
           
-          await tenantClient.rpc('mark_sync_processed', {
-            p_queue_id: event.id,
-            p_status: 'completed'
-          });
-          
-          processedCount++;
+          // Só marca como completed se a criação foi bem-sucedida
+          if (revendedoraId) {
+            await tenantClient.rpc('mark_sync_processed', {
+              p_queue_id: event.id,
+              p_status: 'completed'
+            });
+            processedCount++;
+          } else {
+            // Falha silenciosa - marcar como failed para retry posterior
+            await tenantClient.rpc('mark_sync_processed', {
+              p_queue_id: event.id,
+              p_status: 'failed',
+              p_error_message: 'createRevendedoraFromContract retornou null'
+            });
+          }
         }
       } catch (eventError) {
         console.error(`[MasterSync] Erro ao processar evento ${event.id}:`, eventError);

@@ -119,7 +119,7 @@ router.post('/login', async (req: Request, res: Response) => {
       console.log(`[NEXUS] Credenciais do admin ${adminId} carregadas do Master`);
     }
 
-    // 3. Criar sessão com dados do tenant
+    // 3. Criar sessão com dados do tenant (SEM credenciais - buscar sob demanda por segurança)
     req.session.userId = revendedora.id;
     req.session.userEmail = revendedora.email;
     req.session.userName = revendedora.nome;
@@ -127,11 +127,8 @@ router.post('/login', async (req: Request, res: Response) => {
     req.session.tenantId = adminId; // CRUCIAL: Tenant é o Admin
     req.session.comissao = Number(revendedora.comissao_padrao);
     
-    // Armazena credenciais do Supabase do admin na sessão (para uso posterior)
-    if (adminCredentials) {
-      req.session.tenantSupabaseUrl = adminCredentials.supabase_url;
-      req.session.tenantSupabaseKey = adminCredentials.supabase_anon_key;
-    }
+    // NOTA: Credenciais do Supabase NÃO são armazenadas na sessão por segurança
+    // Use getAdminCredentials(tenantId) quando precisar das credenciais
 
     req.session.save((err) => {
       if (err) {
@@ -166,18 +163,31 @@ router.post('/login', async (req: Request, res: Response) => {
 });
 
 // POST /api/reseller/register
+// 🔐 SEGURANÇA: adminId é derivado da sessão do admin autenticado, NUNCA do body
 router.post('/register', async (req: Request, res: Response) => {
   try {
+    // Verificar se é um admin autenticado
+    if (!req.session?.userId || req.session?.userRole === 'reseller') {
+      return res.status(403).json({ error: 'Acesso restrito a administradores autenticados' });
+    }
+
     if (!SUPABASE_CONFIGURED || !supabaseOwner) {
       return res.status(503).json({ error: 'Sistema nao configurado' });
     }
 
-    const { nome, email, cpf, telefone, adminId } = req.body;
+    const { nome, email, cpf, telefone } = req.body;
+    
+    // 🔐 SEGURANÇA: adminId derivado da sessão, não do body
+    const adminId = req.session.tenantId || req.session.userId;
 
-    if (!nome || !email || !cpf || !adminId) {
+    if (!nome || !email || !cpf) {
       return res.status(400).json({
-        error: 'Campos obrigatorios: nome, email, cpf, adminId'
+        error: 'Campos obrigatorios: nome, email, cpf'
       });
+    }
+
+    if (!adminId) {
+      return res.status(401).json({ error: 'Sessão inválida - adminId não encontrado' });
     }
 
     // Normaliza e valida CPF
@@ -189,9 +199,9 @@ router.post('/register', async (req: Request, res: Response) => {
     const { data, error } = await supabaseOwner
       .from('revendedoras')
       .insert({
-        admin_id: adminId,
+        admin_id: adminId, // 🔐 Derivado da sessão
         nome,
-        email,
+        email: email.toLowerCase().trim(),
         cpf: cpfNormalizado,
         telefone: telefone || null,
         status: 'pendente'
@@ -206,6 +216,8 @@ router.post('/register', async (req: Request, res: Response) => {
       }
       return res.status(400).json({ error: error.message });
     }
+
+    console.log(`✅ [NEXUS] Revendedora registrada: ${email} -> admin: ${adminId}`);
 
     res.json({
       success: true,
