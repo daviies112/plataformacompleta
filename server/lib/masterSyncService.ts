@@ -82,26 +82,30 @@ export async function createRevendedoraFromContract(data: RevendedoraData): Prom
   
   try {
     const cpfNormalizado = data.cpf.replace(/[^0-9]/g, '');
+    const emailNormalizado = data.email.toLowerCase().trim();
     
+    // Primeiro verifica se já existe por email OU cpf
+    const { data: existing } = await master
+      .from('revendedoras')
+      .select('id')
+      .or(`email.eq.${emailNormalizado},cpf.eq.${cpfNormalizado}`)
+      .maybeSingle();
+    
+    if (existing) {
+      console.log(`[MasterSync] Revendedora já existe: ${emailNormalizado}`);
+      return existing.id;
+    }
+    
+    // Usa apenas as colunas que existem na tabela real:
+    // id, admin_id, nome, email, cpf, status, senha_hash, created_at
     const { data: revendedora, error } = await master
       .from('revendedoras')
-      .upsert({
+      .insert({
         admin_id: data.admin_id,
-        contract_id: data.contract_id,
-        email: data.email.toLowerCase().trim(),
+        email: emailNormalizado,
         cpf: cpfNormalizado,
         nome: data.nome,
-        telefone: data.telefone || null,
-        endereco_rua: data.endereco_rua || null,
-        endereco_numero: data.endereco_numero || null,
-        endereco_cidade: data.endereco_cidade || null,
-        endereco_estado: data.endereco_estado || null,
-        endereco_cep: data.endereco_cep || null,
-        status: 'ativo',
-        contract_signed_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }, {
-        onConflict: 'admin_id,cpf'
+        status: 'ativo'
       })
       .select('id')
       .single();
@@ -111,16 +115,7 @@ export async function createRevendedoraFromContract(data: RevendedoraData): Prom
       return null;
     }
     
-    await master.from('sync_log').insert({
-      admin_id: data.admin_id,
-      event_type: 'contract_signed',
-      source_table: 'contracts',
-      source_id: data.contract_id,
-      payload: data,
-      status: 'success'
-    });
-    
-    console.log(`✅ [MasterSync] Revendedora criada/atualizada: ${data.email} (Admin: ${data.admin_id})`);
+    console.log(`✅ [MasterSync] Revendedora criada: ${emailNormalizado} (Admin: ${data.admin_id})`);
     return revendedora?.id || null;
     
   } catch (error) {
