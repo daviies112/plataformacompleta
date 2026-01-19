@@ -33,6 +33,7 @@ ExecutiveAI Pro utilizes a modern web stack designed for scalability and maintai
 
 - **Shipping Platform:** Integrates with multiple carriers (Correios, Jadlog, Loggi, Azul Cargo) for freight quotation and tracking.
 - **NEXUS Reseller Platform:** A separate authenticated portal for resellers with dashboards, sales tracking, financial summaries, and product catalogs. It uses dedicated authentication and manages reseller-specific data.
+- **Reseller Supabase Configuration:** Each reseller can independently configure their own Supabase credentials stored securely in local PostgreSQL (`reseller_supabase_configs` table). Supports transitional inheritance from admin credentials. Service role keys never exposed in API responses.
 - **CPF Validation:** Features a multi-tiered fallback system (Supabase Master -> Supabase Client -> Local PostgreSQL) for CPF data retrieval and compliance checks, with automated validation triggers upon form approval. See `docs/CPF_AUTO_CHECK_FIX_DOCUMENTATION.md` for detailed architecture.
 - **WhatsApp Business:** Integration for automated messaging and communication workflows.
 - **n8n Integration:** Allows tenants to generate API keys for n8n workflows, enabling custom automation for meeting creation and other tasks. Meetings automatically inherit tenant branding.

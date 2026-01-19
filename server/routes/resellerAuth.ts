@@ -9,6 +9,7 @@ import {
   processPendingSyncEvents,
   createRevendedoraFromContract
 } from '../lib/masterSyncService';
+import { pool } from '../db';
 
 const profileUpdateSchema = z.object({
   nome: z.string().min(2).max(100),
@@ -642,70 +643,68 @@ router.get('/settings', async (req: Request, res: Response) => {
 // GET /api/reseller/supabase-config - Buscar status das credenciais Supabase da revendedora
 // SECURITY: Nunca retornar chaves em texto puro - apenas status de configuração
 // TRANSITIONAL: Herda do admin se não tiver credenciais próprias
+// STORAGE: Usa tabela local reseller_supabase_configs (PostgreSQL Replit)
 router.get('/supabase-config', async (req: Request, res: Response) => {
   try {
     if (!req.session?.userEmail || req.session?.userRole !== 'reseller') {
       return res.status(401).json({ error: 'Não autenticado' });
     }
 
-    const master = getMasterClient();
-    if (!master) {
-      return res.status(503).json({ error: 'Sistema não configurado' });
-    }
+    const userEmail = req.session.userEmail;
 
-    // Buscar a revendedora com suas credenciais próprias
-    const { data: revendedora } = await master
-      .from('revendedoras')
-      .select('id, admin_id, supabase_url, supabase_anon_key, supabase_service_key')
-      .eq('email', req.session.userEmail)
-      .single();
+    // Buscar credenciais próprias do banco local
+    const result = await pool.query(
+      'SELECT supabase_url, supabase_anon_key, supabase_service_key FROM reseller_supabase_configs WHERE reseller_email = $1',
+      [userEmail]
+    );
 
-    if (!revendedora) {
-      return res.json({ 
-        supabase_url: '',
-        has_anon_key: false,
-        has_service_key: false,
-        configured: false,
-        inherited: false
-      });
-    }
-
-    // Verificar se a revendedora tem credenciais próprias
-    const hasOwnCredentials = !!(revendedora.supabase_url && revendedora.supabase_anon_key);
+    const config = result.rows[0];
+    const hasOwnCredentials = !!(config?.supabase_url && config?.supabase_anon_key);
     
     if (hasOwnCredentials) {
       // Retornar status das credenciais próprias
-      res.json({
-        supabase_url: revendedora.supabase_url || '',
+      return res.json({
+        supabase_url: config.supabase_url || '',
         has_anon_key: true,
-        has_service_key: !!revendedora.supabase_service_key,
+        has_service_key: !!config.supabase_service_key,
         configured: true,
         inherited: false
       });
-    } else {
-      // TRANSITIONAL: Verificar se pode herdar do admin
-      const adminCreds = await getAdminCredentials(revendedora.admin_id);
+    }
+    
+    // TRANSITIONAL: Verificar se pode herdar do admin (buscar admin_id do Supabase Master)
+    const master = getMasterClient();
+    if (master) {
+      const { data: revendedora } = await master
+        .from('revendedoras')
+        .select('admin_id')
+        .eq('email', userEmail)
+        .single();
       
-      if (adminCreds && adminCreds.supabase_url && adminCreds.supabase_anon_key) {
-        res.json({
-          supabase_url: adminCreds.supabase_url, // Mostrar URL do admin para transparência
-          has_anon_key: false,
-          has_service_key: false,
-          configured: false, // Não está configurado pela revendedora
-          inherited: true, // Indica que está herdando do admin
-          admin_configured: true // Admin tem credenciais
-        });
-      } else {
-        res.json({ 
-          supabase_url: '',
-          has_anon_key: false,
-          has_service_key: false,
-          configured: false,
-          inherited: false,
-          admin_configured: false
-        });
+      if (revendedora?.admin_id) {
+        const adminCreds = await getAdminCredentials(revendedora.admin_id);
+        
+        if (adminCreds && adminCreds.supabase_url && adminCreds.supabase_anon_key) {
+          return res.json({
+            supabase_url: adminCreds.supabase_url,
+            has_anon_key: false,
+            has_service_key: false,
+            configured: false,
+            inherited: true,
+            admin_configured: true
+          });
+        }
       }
     }
+
+    res.json({ 
+      supabase_url: '',
+      has_anon_key: false,
+      has_service_key: false,
+      configured: false,
+      inherited: false,
+      admin_configured: false
+    });
 
   } catch (error: any) {
     console.error('Erro ao buscar supabase config:', error);
@@ -804,6 +803,7 @@ const supabaseUpdateSchema = z.object({
 });
 
 // PUT /api/reseller/supabase-config - Salvar credenciais Supabase próprias da revendedora
+// STORAGE: Usa tabela local reseller_supabase_configs (PostgreSQL Replit)
 // Suporta atualizações parciais quando já configurado
 router.put('/supabase-config', async (req: Request, res: Response) => {
   try {
@@ -819,18 +819,14 @@ router.put('/supabase-config', async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Não autenticado' });
     }
 
-    const master = getMasterClient();
-    if (!master) {
-      return res.status(503).json({ error: 'Sistema não configurado' });
-    }
+    const userEmail = req.session.userEmail;
 
-    // Buscar credenciais atuais da revendedora
-    const { data: currentData } = await master
-      .from('revendedoras')
-      .select('supabase_url, supabase_anon_key, supabase_service_key')
-      .eq('email', req.session.userEmail)
-      .single();
-
+    // Buscar credenciais atuais do banco local
+    const currentResult = await pool.query(
+      'SELECT supabase_url, supabase_anon_key, supabase_service_key FROM reseller_supabase_configs WHERE reseller_email = $1',
+      [userEmail]
+    );
+    const currentData = currentResult.rows[0];
     const isAlreadyConfigured = !!(currentData?.supabase_url && currentData?.supabase_anon_key);
 
     // Usar schema apropriado
@@ -846,33 +842,30 @@ router.put('/supabase-config', async (req: Request, res: Response) => {
 
     const { supabase_url, supabase_anon_key, supabase_service_key } = parseResult.data;
 
-    // Preparar dados para atualização (manter chaves existentes se não fornecidas)
-    const updateData: any = { supabase_url };
-    
-    if (supabase_anon_key && supabase_anon_key.length >= 10) {
-      updateData.supabase_anon_key = supabase_anon_key;
-    } else if (!isAlreadyConfigured) {
+    // Validar anon_key para primeira configuração
+    if (!isAlreadyConfigured && (!supabase_anon_key || supabase_anon_key.length < 10)) {
       return res.status(400).json({ error: 'Anon Key é obrigatória para primeira configuração' });
     }
-    
-    if (supabase_service_key) {
-      updateData.supabase_service_key = supabase_service_key;
-    }
 
-    // Atualizar credenciais da revendedora
-    const { data, error } = await master
-      .from('revendedoras')
-      .update(updateData)
-      .eq('email', req.session.userEmail)
-      .select()
-      .single();
+    // Preparar valores para upsert
+    const finalAnonKey = (supabase_anon_key && supabase_anon_key.length >= 10) 
+      ? supabase_anon_key 
+      : (currentData?.supabase_anon_key || null);
+    const finalServiceKey = supabase_service_key || (currentData?.supabase_service_key || null);
 
-    if (error) {
-      console.error('Erro ao salvar credenciais Supabase:', error);
-      return res.status(500).json({ error: 'Erro ao salvar credenciais' });
-    }
+    // Upsert no banco local (INSERT ou UPDATE)
+    await pool.query(`
+      INSERT INTO reseller_supabase_configs (reseller_email, supabase_url, supabase_anon_key, supabase_service_key, updated_at)
+      VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
+      ON CONFLICT (reseller_email) 
+      DO UPDATE SET 
+        supabase_url = EXCLUDED.supabase_url,
+        supabase_anon_key = COALESCE(EXCLUDED.supabase_anon_key, reseller_supabase_configs.supabase_anon_key),
+        supabase_service_key = COALESCE(EXCLUDED.supabase_service_key, reseller_supabase_configs.supabase_service_key),
+        updated_at = CURRENT_TIMESTAMP
+    `, [userEmail, supabase_url, finalAnonKey, finalServiceKey]);
 
-    console.log(`✅ Credenciais Supabase salvas para revendedora: ${req.session.userEmail}`);
+    console.log(`✅ Credenciais Supabase salvas para revendedora: ${userEmail} (banco local)`);
 
     res.json({ 
       success: true, 
@@ -887,6 +880,7 @@ router.put('/supabase-config', async (req: Request, res: Response) => {
 });
 
 // POST /api/reseller/supabase-config/test - Testar conexão com Supabase
+// STORAGE: Usa tabela local reseller_supabase_configs (PostgreSQL Replit)
 // TRANSITIONAL: Testa credenciais próprias ou herdadas do admin
 router.post('/supabase-config/test', async (req: Request, res: Response) => {
   try {
@@ -894,38 +888,42 @@ router.post('/supabase-config/test', async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Não autenticado' });
     }
 
-    const master = getMasterClient();
-    if (!master) {
-      return res.status(503).json({ error: 'Sistema não configurado' });
-    }
-
-    // Buscar a revendedora com suas credenciais
-    const { data: revendedora } = await master
-      .from('revendedoras')
-      .select('id, admin_id, supabase_url, supabase_anon_key, supabase_service_key')
-      .eq('email', req.session.userEmail)
-      .single();
-
-    if (!revendedora) {
-      return res.status(404).json({ error: 'Revendedora não encontrada' });
-    }
+    const userEmail = req.session.userEmail;
 
     let credentials: { supabase_url: string; supabase_anon_key: string; supabase_service_key?: string } | null = null;
     let isInherited = false;
 
+    // Buscar credenciais próprias do banco local
+    const configResult = await pool.query(
+      'SELECT supabase_url, supabase_anon_key, supabase_service_key FROM reseller_supabase_configs WHERE reseller_email = $1',
+      [userEmail]
+    );
+    const config = configResult.rows[0];
+
     // Verificar se tem credenciais próprias
-    if (revendedora.supabase_url && revendedora.supabase_anon_key) {
+    if (config?.supabase_url && config?.supabase_anon_key) {
       credentials = {
-        supabase_url: revendedora.supabase_url,
-        supabase_anon_key: revendedora.supabase_anon_key,
-        supabase_service_key: revendedora.supabase_service_key
+        supabase_url: config.supabase_url,
+        supabase_anon_key: config.supabase_anon_key,
+        supabase_service_key: config.supabase_service_key
       };
     } else {
-      // TRANSITIONAL: Usar credenciais do admin
-      const adminCreds = await getAdminCredentials(revendedora.admin_id);
-      if (adminCreds && adminCreds.supabase_url && adminCreds.supabase_anon_key) {
-        credentials = adminCreds;
-        isInherited = true;
+      // TRANSITIONAL: Tentar herdar do admin via Supabase Master
+      const master = getMasterClient();
+      if (master) {
+        const { data: revendedora } = await master
+          .from('revendedoras')
+          .select('admin_id')
+          .eq('email', userEmail)
+          .single();
+
+        if (revendedora?.admin_id) {
+          const adminCreds = await getAdminCredentials(revendedora.admin_id);
+          if (adminCreds && adminCreds.supabase_url && adminCreds.supabase_anon_key) {
+            credentials = adminCreds;
+            isInherited = true;
+          }
+        }
       }
     }
 
@@ -969,7 +967,7 @@ router.post('/supabase-config/test', async (req: Request, res: Response) => {
     }
 
     if (connectionSuccess) {
-      console.log(`✅ Conexão Supabase testada com sucesso para ${req.session.userEmail} (inherited: ${isInherited})`);
+      console.log(`✅ Conexão Supabase testada com sucesso para ${userEmail} (inherited: ${isInherited})`);
       res.json({ 
         success: true, 
         message: isInherited 
