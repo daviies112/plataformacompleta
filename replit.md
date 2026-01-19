@@ -69,10 +69,20 @@ When a participant leaves a video meeting, the system automatically creates a co
    - `src/pages/PublicMeetingRoom.tsx` - Frontend meeting room flow
    - `data/supabase_client_config.json` - Supabase client credentials
 
-5. **Post-Finalization Automations:**
-   When contract is finalized (`/contracts/:id/finalize`):
-   - `createRevendedoraFromContract()` - Creates login in `revendedoras` table using `getSupabaseMasterForTenant()` with service_role_key (bypasses RLS)
-   - `createEnvioFromContract()` - Creates shipping record in `envios` table with auto-generated tracking code (format: `ME123456789BR`)
+5. **Post-Finalization Automations (Supabase Triggers):**
+   When contract `status = 'signed'` in Supabase `contracts` table:
+   - **Trigger creates `revendedoras`** - Login credentials (email + CPF normalizado + status='ativo')
+   - **Trigger creates `envios`** - Shipping record with destinatario data
+   
+   **Login de Revendedora** (`/revendedora/login`):
+   - Uses: `email` + `cpf` (11 dígitos, normalizado) + `status='ativo'`
+   - Endpoint: `POST /api/reseller/login`
+   
+   **Página de Envios** (`/envio/lista`):
+   - Reads from: `envios` table filtered by `admin_id`
+   - Displays: `codigo_rastreio`, `destinatario_*`, `status`
+   
+   See `docs/SUPABASE_TRIGGER_REQUIREMENTS.md` for complete field requirements.
 
 **System Design Choices:**
 
