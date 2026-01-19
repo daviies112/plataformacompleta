@@ -1,4 +1,5 @@
 import express, { Request, Response } from 'express';
+import { z } from 'zod';
 import { supabaseOwner, SUPABASE_CONFIGURED } from '../config/supabaseOwner';
 import { 
   getAdminCredentials, 
@@ -8,6 +9,19 @@ import {
   processPendingSyncEvents,
   createRevendedoraFromContract
 } from '../lib/masterSyncService';
+
+const profileUpdateSchema = z.object({
+  nome: z.string().min(2).max(100),
+  telefone: z.string().max(20).optional(),
+});
+
+const notificationsUpdateSchema = z.object({
+  email_vendas: z.boolean(),
+  email_comissoes: z.boolean(),
+  email_promocoes: z.boolean(),
+  push_vendas: z.boolean(),
+  push_estoque: z.boolean(),
+});
 
 const router = express.Router();
 
@@ -566,6 +580,231 @@ router.patch('/admin/:id/comissao', async (req: Request, res: Response) => {
   } catch (error) {
     console.error('Erro na atualizacao:', error);
     res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// ===== ROTAS DE CONFIGURAÇÕES DA REVENDEDORA =====
+
+// GET /api/reseller/settings - Buscar configurações da revendedora
+router.get('/settings', async (req: Request, res: Response) => {
+  try {
+    if (!req.session?.userEmail || req.session?.userRole !== 'reseller') {
+      return res.status(401).json({ error: 'Não autenticado' });
+    }
+
+    const master = getMasterClient();
+    if (!master) {
+      return res.status(503).json({ error: 'Sistema não configurado' });
+    }
+
+    const { data: revendedora } = await master
+      .from('revendedoras')
+      .select('*')
+      .eq('email', req.session.userEmail)
+      .single();
+
+    res.json({
+      profile: {
+        nome: revendedora?.nome || '',
+        email: revendedora?.email || '',
+        telefone: revendedora?.telefone || '',
+      },
+      notifications: revendedora?.notifications_config || {
+        email_vendas: true,
+        email_comissoes: true,
+        email_promocoes: false,
+        push_vendas: true,
+        push_estoque: true,
+      }
+    });
+
+  } catch (error: any) {
+    console.error('Erro ao buscar settings:', error);
+    res.status(500).json({ error: 'Erro interno' });
+  }
+});
+
+// GET /api/reseller/supabase-config - Buscar credenciais Supabase da revendedora
+router.get('/supabase-config', async (req: Request, res: Response) => {
+  try {
+    if (!req.session?.userEmail || req.session?.userRole !== 'reseller') {
+      return res.status(401).json({ error: 'Não autenticado' });
+    }
+
+    const master = getMasterClient();
+    if (!master) {
+      return res.status(503).json({ error: 'Sistema não configurado' });
+    }
+
+    // Buscar a revendedora
+    const { data: revendedora } = await master
+      .from('revendedoras')
+      .select('id, admin_id')
+      .eq('email', req.session.userEmail)
+      .single();
+
+    if (!revendedora) {
+      return res.json({ supabase_url: '', supabase_anon_key: '', supabase_service_key: '' });
+    }
+
+    // Buscar credenciais do admin associado (herda do admin)
+    const adminCreds = await getAdminCredentials(revendedora.admin_id);
+    
+    if (adminCreds) {
+      res.json({
+        supabase_url: adminCreds.supabase_url || '',
+        supabase_anon_key: adminCreds.supabase_anon_key ? '••••••••' : '',
+        supabase_service_key: adminCreds.supabase_service_key ? '••••••••' : '',
+        inherited_from_admin: true
+      });
+    } else {
+      res.json({ 
+        supabase_url: '', 
+        supabase_anon_key: '', 
+        supabase_service_key: '',
+        inherited_from_admin: false
+      });
+    }
+
+  } catch (error: any) {
+    console.error('Erro ao buscar supabase config:', error);
+    res.status(500).json({ error: 'Erro interno' });
+  }
+});
+
+// PUT /api/reseller/profile - Atualizar perfil da revendedora
+router.put('/profile', async (req: Request, res: Response) => {
+  try {
+    if (!req.session?.userEmail || req.session?.userRole !== 'reseller') {
+      return res.status(401).json({ error: 'Não autenticado' });
+    }
+
+    const master = getMasterClient();
+    if (!master) {
+      return res.status(503).json({ error: 'Sistema não configurado' });
+    }
+
+    const parseResult = profileUpdateSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      return res.status(400).json({ error: 'Dados inválidos', details: parseResult.error.errors });
+    }
+
+    const { nome, telefone } = parseResult.data;
+
+    const { data, error } = await master
+      .from('revendedoras')
+      .update({ nome, telefone })
+      .eq('email', req.session.userEmail)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Erro ao atualizar perfil:', error);
+      return res.status(500).json({ error: 'Erro ao atualizar' });
+    }
+
+    res.json({ success: true, profile: data });
+
+  } catch (error: any) {
+    console.error('Erro ao atualizar perfil:', error);
+    res.status(500).json({ error: 'Erro interno' });
+  }
+});
+
+// PUT /api/reseller/notifications - Atualizar preferências de notificação
+router.put('/notifications', async (req: Request, res: Response) => {
+  try {
+    if (!req.session?.userEmail || req.session?.userRole !== 'reseller') {
+      return res.status(401).json({ error: 'Não autenticado' });
+    }
+
+    const master = getMasterClient();
+    if (!master) {
+      return res.status(503).json({ error: 'Sistema não configurado' });
+    }
+
+    const parseResult = notificationsUpdateSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      return res.status(400).json({ error: 'Dados inválidos', details: parseResult.error.errors });
+    }
+
+    const { error } = await master
+      .from('revendedoras')
+      .update({ 
+        notifications_config: parseResult.data
+      })
+      .eq('email', req.session.userEmail);
+
+    if (error) {
+      console.error('Erro ao atualizar notificações:', error);
+      return res.status(500).json({ error: 'Erro ao atualizar' });
+    }
+
+    res.json({ success: true });
+
+  } catch (error: any) {
+    console.error('Erro ao atualizar notificações:', error);
+    res.status(500).json({ error: 'Erro interno' });
+  }
+});
+
+// PUT /api/reseller/supabase-config - Credenciais são herdadas do admin (somente leitura)
+router.put('/supabase-config', async (req: Request, res: Response) => {
+  return res.status(400).json({ 
+    error: 'Credenciais Supabase são herdadas do administrador',
+    message: 'As credenciais do banco de dados são configuradas pelo administrador e herdadas automaticamente pela revendedora.'
+  });
+});
+
+// POST /api/reseller/supabase-config/test - Testar conexão com Supabase
+router.post('/supabase-config/test', async (req: Request, res: Response) => {
+  try {
+    if (!req.session?.userEmail || req.session?.userRole !== 'reseller') {
+      return res.status(401).json({ error: 'Não autenticado' });
+    }
+
+    const master = getMasterClient();
+    if (!master) {
+      return res.status(503).json({ error: 'Sistema não configurado' });
+    }
+
+    // Buscar a revendedora e seu admin
+    const { data: revendedora } = await master
+      .from('revendedoras')
+      .select('admin_id')
+      .eq('email', req.session.userEmail)
+      .single();
+
+    if (!revendedora) {
+      return res.status(404).json({ error: 'Revendedora não encontrada' });
+    }
+
+    // Buscar credenciais do admin
+    const adminCreds = await getAdminCredentials(revendedora.admin_id);
+    
+    if (!adminCreds) {
+      return res.status(400).json({ error: 'Credenciais não configuradas pelo administrador' });
+    }
+
+    // Tentar conectar ao Supabase do admin
+    const tenantClient = createTenantClient(adminCreds);
+    
+    // Testar a conexão fazendo uma query simples
+    const { error } = await tenantClient
+      .from('contracts')
+      .select('id')
+      .limit(1);
+
+    if (error) {
+      console.error('Erro na conexão Supabase:', error);
+      return res.status(400).json({ error: 'Falha na conexão: ' + error.message });
+    }
+
+    res.json({ success: true, message: 'Conexão estabelecida com sucesso' });
+
+  } catch (error: any) {
+    console.error('Erro ao testar conexão:', error);
+    res.status(500).json({ error: 'Erro interno' });
   }
 });
 
