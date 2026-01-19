@@ -69,19 +69,43 @@ router.post('/login', async (req: Request, res: Response) => {
       });
     }
 
-    // 1. Buscar revendedora no banco master por email E cpf
-    const { data: revendedora, error } = await supabaseOwner
+    // 1. Buscar revendedora no banco master por email
+    // Primeiro tenta buscar pelo email e depois valida o CPF (formatado ou não)
+    console.log('[NEXUS] Buscando revendedora por email:', email);
+    
+    const { data: revendedoras, error: queryError } = await supabaseOwner
       .from('revendedoras')
       .select('*')
-      .eq('email', email)
-      .eq('cpf', cpfNormalizado)
-      .eq('status', 'ativo')
-      .single();
+      .eq('email', email);
+    
+    console.log('[NEXUS] Query result:', { 
+      count: revendedoras?.length || 0, 
+      error: queryError?.message,
+      firstRecord: revendedoras?.[0] ? { 
+        email: revendedoras[0].email, 
+        cpf: revendedoras[0].cpf, 
+        status: revendedoras[0].status 
+      } : null
+    });
+    
+    if (queryError) {
+      console.error('[NEXUS] Erro na query:', queryError);
+      return res.status(500).json({ error: 'Erro ao buscar revendedora' });
+    }
+    
+    // Encontrar revendedora que bate com o CPF (formatado ou normalizado)
+    const revendedora = revendedoras?.find(r => {
+      const cpfDb = r.cpf?.replace(/\D/g, ''); // Normaliza CPF do banco
+      console.log('[NEXUS] Comparando CPF:', { cpfDb, cpfNormalizado, match: cpfDb === cpfNormalizado });
+      return cpfDb === cpfNormalizado && ['ativo', 'pendente'].includes(r.status);
+    });
 
-    if (error || !revendedora) {
-      console.log('Revendedora nao encontrada:', email, 'CPF:', cpfNormalizado.substring(0, 3) + '...');
+    if (!revendedora) {
+      console.log('[NEXUS] Revendedora nao encontrada:', email, 'CPF:', cpfNormalizado.substring(0, 3) + '...');
       return res.status(401).json({ error: 'Email ou CPF invalidos' });
     }
+    
+    console.log('[NEXUS] Revendedora encontrada:', revendedora.email, 'status:', revendedora.status);
 
     const adminId = revendedora.admin_id;
 
