@@ -39,8 +39,35 @@ ExecutiveAI Pro utilizes a modern web stack designed for scalability and maintai
 - **Video Conferencing (100ms):** Provides robust video conferencing capabilities with dynamic role assignments (host/guest), public meeting links, and features for canceling/rescheduling meetings. Includes automatic participant check-in and pre-filling of contract data from form submissions.
 - **Calendar:** A monthly grid view for visualizing and managing scheduled meetings.
 - **SFU Recording System:** Server-side recording of video conferences to ensure accurate capture of meeting content, synchronized with Supabase.
-- **Digital Signature System:** A comprehensive platform for digital contracts with biometric (facial recognition) verification, document capture, and identity validation. Features a multi-step client signing process, real-time previews for admin, and automatic contract generation upon meeting conclusion. Integrates with Supabase for data persistence and N8N for WhatsApp notifications.
+- **Digital Signature System:** A comprehensive platform for digital contracts with biometric (facial recognition) verification, document capture, and identity validation. Features a multi-step client signing process, real-time previews for admin, and automatic contract generation upon meeting conclusion. Integrates with Supabase for data persistence and N8N for WhatsApp notifications. See `docs/CONTRACT_FORM_SUBMISSION_DATA_FLOW.md` for the complete data flow documentation.
 - **Optimized Export System:** Includes scripts to significantly reduce the project size for export, preserving essential configurations.
+
+**Contract Creation Flow (CRITICAL - form_submissions → contracts):**
+
+When a participant leaves a video meeting, the system automatically creates a contract with all personal and address data from `form_submissions`:
+
+1. **Data Retrieval:** The endpoint `/api/public/reunioes/:roomId/participant-data` uses a **flexible phone search pattern** (`%1%9%2%2%6%7%2%2%0%`) to match phone numbers regardless of format.
+
+2. **Backend Fallback:** If the frontend doesn't send address data, `server/routes/assinatura.ts` automatically fetches it from `form_submissions` using phone or email.
+
+3. **Column Mapping:**
+   - `contact_name` → `client_name`
+   - `contact_email` → `client_email`
+   - `contact_phone` → `client_phone`
+   - `contact_cpf` → `client_cpf`
+   - `address_street` → `address_street`
+   - `address_number` → `address_number`
+   - `address_complement` → `address_complement`
+   - `address_city` → `address_city`
+   - `address_state` → `address_state`
+   - `address_cep` → `address_zipcode` (NOTE: different column names!)
+   - `address_neighborhood` → NOT MAPPED (column doesn't exist in contracts)
+
+4. **Critical Files:**
+   - `server/routes/assinatura.ts` - Contract creation with auto-fetch fallback
+   - `server/routes/meetings.ts` - participant-data endpoint with flexible search
+   - `src/pages/PublicMeetingRoom.tsx` - Frontend meeting room flow
+   - `data/supabase_client_config.json` - Supabase client credentials
 
 **System Design Choices:**
 
