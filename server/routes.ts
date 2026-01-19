@@ -25,6 +25,9 @@ import { leadsPipelineRoutes } from "./routes/leadsPipelineRoutes";
 import { meetingsRouter } from "./routes/meetings";
 import assinaturaRoutes from "./routes/assinatura";
 import n8nRouter from "./routes/n8n";
+import resellerAuthRoutes from "./routes/resellerAuth";
+import resellerCatalogRoutes from "./routes/resellerCatalog";
+import envioRoutes from "./routes/envio";
 
 // Configure multer for logo uploads
 const logoStorage = multer.diskStorage({
@@ -80,6 +83,10 @@ export async function registerRoutes(app: Express) {
   // N8N integration routes - allows external automation to create meetings
   // Registered early to avoid global auth redirects
   app.use("/api/n8n", n8nRouter);
+  
+  // Reseller authentication routes - PUBLIC (login/register don't need auth)
+  app.use("/api/reseller", resellerAuthRoutes);
+  app.use("/api/reseller", resellerCatalogRoutes);
 
   // Import utilities for protection logic
   const { log } = await import("./vite");
@@ -149,6 +156,9 @@ export async function registerRoutes(app: Express) {
   });
 
   app.use("/api/assinatura", requireTenant, assinaturaRoutes);
+  
+  // Envio routes (shipping management)
+  app.use("/api/envio", requireTenant, envioRoutes);
 
   return httpServer;
 }
