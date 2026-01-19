@@ -11,6 +11,7 @@ import { initializeQueues, shutdownQueues } from "./lib/queue";
 import { startMonitoring, stopMonitoring } from "./lib/limitMonitor";
 import { startAutomation, stopAutomation } from "./lib/automationManager";
 import { startAutomaticAlerting, stopAutomaticAlerting } from "./lib/alerting";
+import { startContractSyncPoller, stopContractSyncPoller } from "./lib/contractSyncPoller";
 import multiTenantAuthRoutes from "./routes/multiTenantAuth";
 import { attachUserData, redirectIfNotAuth, requireAuth } from "./middleware/multiTenantAuth";
 import { SUPABASE_CONFIGURED } from "./config/supabaseOwner";
@@ -225,6 +226,10 @@ app.use((req, res, next) => {
         startMonitoring();
         startAutomaticAlerting();
         log('✅ Monitoring and alerting started');
+        
+        // Start contract sync poller (Master-Client sync)
+        startContractSyncPoller();
+        log('✅ Contract sync poller started');
       } catch (error) {
         console.error('❌ Failed to start background services:', error);
       }
@@ -237,6 +242,7 @@ app.use((req, res, next) => {
     stopMonitoring();
     stopAutomation();
     stopAutomaticAlerting();
+    stopContractSyncPoller();
     shutdownQueues();
     server.close(() => {
       log('HTTP server closed');
@@ -249,6 +255,7 @@ app.use((req, res, next) => {
     stopMonitoring();
     stopAutomation();
     stopAutomaticAlerting();
+    stopContractSyncPoller();
     shutdownQueues();
     server.close(() => {
       log('HTTP server closed');

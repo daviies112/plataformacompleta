@@ -1,6 +1,13 @@
 import express, { Request, Response } from 'express';
 import { supabaseOwner, SUPABASE_CONFIGURED } from '../config/supabaseOwner';
-import { getAdminCredentials, getMasterClient, getAllAdminsWithCredentials } from '../lib/masterSyncService';
+import { 
+  getAdminCredentials, 
+  getMasterClient, 
+  getAllAdminsWithCredentials,
+  createTenantClient,
+  processPendingSyncEvents,
+  createRevendedoraFromContract
+} from '../lib/masterSyncService';
 
 const router = express.Router();
 
@@ -52,6 +59,125 @@ router.get('/test-master', async (_req: Request, res: Response) => {
       },
       adminsConfigurados: adminsWithCreds.length
     });
+    
+  } catch (error: any) {
+    res.status(500).json({
+      status: 'error',
+      message: error.message
+    });
+  }
+});
+
+// GET /api/reseller/sync-now - Força sincronização manual de contratos
+router.get('/sync-now', async (_req: Request, res: Response) => {
+  try {
+    const admins = await getAllAdminsWithCredentials();
+    
+    if (!admins.length) {
+      return res.json({
+        status: 'no_admins',
+        message: 'Nenhum admin com credenciais configurado no Master'
+      });
+    }
+    
+    const results: any[] = [];
+    
+    for (const admin of admins) {
+      try {
+        const tenantClient = createTenantClient(admin.credentials);
+        
+        // Verifica integration_queue
+        const { data: queueItems, error: queueError } = await tenantClient
+          .from('integration_queue')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(10);
+        
+        // Verifica contracts com status='signed'
+        const { data: contracts, error: contractsError } = await tenantClient
+          .from('contracts')
+          .select('id, status, client_name, client_email, client_cpf, created_at')
+          .eq('status', 'signed')
+          .order('created_at', { ascending: false })
+          .limit(10);
+        
+        // Processa eventos pendentes
+        const processed = await processPendingSyncEvents(admin.admin_id, tenantClient);
+        
+        results.push({
+          admin_id: admin.admin_id,
+          supabase_url: admin.credentials.supabase_url,
+          integration_queue: {
+            count: queueItems?.length || 0,
+            error: queueError?.message,
+            items: queueItems?.map(i => ({
+              id: i.id,
+              entity_type: i.entity_type,
+              status: i.status,
+              payload: i.payload
+            }))
+          },
+          signed_contracts: {
+            count: contracts?.length || 0,
+            error: contractsError?.message,
+            items: contracts
+          },
+          processed: processed
+        });
+      } catch (error: any) {
+        results.push({
+          admin_id: admin.admin_id,
+          error: error.message
+        });
+      }
+    }
+    
+    res.json({
+      status: 'ok',
+      admins_checked: admins.length,
+      results
+    });
+    
+  } catch (error: any) {
+    res.status(500).json({
+      status: 'error',
+      message: error.message
+    });
+  }
+});
+
+// POST /api/reseller/create-from-contract - Criar revendedora manualmente de um contrato
+router.post('/create-from-contract', async (req: Request, res: Response) => {
+  try {
+    const { admin_id, contract_id, email, cpf, nome, telefone } = req.body;
+    
+    if (!admin_id || !email || !cpf || !nome) {
+      return res.status(400).json({ 
+        error: 'Campos obrigatórios: admin_id, email, cpf, nome' 
+      });
+    }
+    
+    const revendedoraId = await createRevendedoraFromContract({
+      admin_id,
+      contract_id: contract_id || 'manual-' + Date.now(),
+      email,
+      cpf,
+      nome,
+      telefone
+    });
+    
+    if (revendedoraId) {
+      res.json({
+        success: true,
+        revendedora_id: revendedoraId,
+        message: 'Revendedora criada com sucesso'
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        message: 'Falha ao criar revendedora'
+      });
+    }
     
   } catch (error: any) {
     res.status(500).json({
