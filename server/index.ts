@@ -54,14 +54,16 @@ app.use(express.urlencoded({ extended: false, limit: '10mb' }));
 app.set('trust proxy', 1);
 
 // Configuração de sessão para autenticação multi-tenant
+// No Replit, usamos secure:'auto' para deixar o Express decidir baseado no x-forwarded-proto
 app.use(session({
   secret: process.env.SESSION_SECRET || 'default-dev-secret-change-in-production',
   resave: false,
   saveUninitialized: false,
+  proxy: true, // Confiar em proxies para determinar secure
   cookie: {
-    secure: true, // Sempre true para HTTPS no Replit
+    secure: 'auto', // Express decide automaticamente baseado no x-forwarded-proto
     httpOnly: true,
-    sameSite: 'none', // Necessário para cookies cross-origin no Replit
+    sameSite: 'lax', // Mais compatível, funciona com first-party cookies
     maxAge: 24 * 60 * 60 * 1000 // 24 horas
   }
 }));

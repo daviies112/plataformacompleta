@@ -237,11 +237,20 @@ router.post('/login', async (req: Request, res: Response) => {
       req.session.tenantId = 'dev-admin-default';
       req.session.comissao = 10;
 
+      console.log('[NEXUS-DEV] Sessão configurada:', {
+        userId: req.session.userId,
+        userEmail: req.session.userEmail,
+        userRole: req.session.userRole,
+        sessionID: req.sessionID
+      });
+
       return req.session.save((err) => {
         if (err) {
           console.error('Erro ao salvar sessao:', err);
           return res.status(500).json({ error: 'Erro ao criar sessao' });
         }
+        
+        console.log('[NEXUS-DEV] Sessão salva com sucesso, sessionID:', req.sessionID);
         
         res.json({
           success: true,
@@ -334,6 +343,12 @@ router.post('/login', async (req: Request, res: Response) => {
       }
       
       console.log(`✅ [NEXUS] Login revendedora: ${revendedora.email} -> tenant: ${adminId} (creds: ${adminCredentials ? 'OK' : 'N/A'})`);
+      console.log('[NEXUS] Session após login:', {
+        userId: req.session.userId,
+        userEmail: req.session.userEmail,
+        userRole: req.session.userRole,
+        sessionId: req.sessionID
+      });
       
       res.json({
         success: true,
