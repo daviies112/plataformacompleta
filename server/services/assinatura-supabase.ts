@@ -27,6 +27,7 @@ interface AssinaturaContract {
   address_street?: string | null;
   address_number?: string | null;
   address_complement?: string | null;
+  address_neighborhood?: string | null;
   address_city?: string | null;
   address_state?: string | null;
   address_zipcode?: string | null;
@@ -354,6 +355,14 @@ class AssinaturaSupabaseService {
         client_cpf: contract.client_cpf || '', // NOT NULL no Supabase
         client_email: contract.client_email || '', // NOT NULL no Supabase
         client_phone: contract.client_phone || '', // NOT NULL no Supabase
+        // Campos de endereço - CRÍTICOS para impressão de código dos Correios
+        address_street: contract.address_street || null,
+        address_number: contract.address_number || null,
+        address_complement: contract.address_complement || null,
+        address_neighborhood: contract.address_neighborhood || null,
+        address_city: contract.address_city || null,
+        address_state: contract.address_state || null,
+        address_zipcode: contract.address_zipcode || null,
         status: contract.status || 'pending',
         access_token: contract.access_token,
         protocol_number: contract.protocol_number || `CONT-${Date.now()}`,
@@ -418,7 +427,8 @@ class AssinaturaSupabaseService {
       console.log('[AssinaturaSupabase] Creating contract in Supabase contracts table:', {
         client_name: contractData.client_name,
         access_token: contractData.access_token,
-        protocol_number: contractData.protocol_number
+        protocol_number: contractData.protocol_number,
+        address: contractData.address_street ? `${contractData.address_street}, ${contractData.address_number} - ${contractData.address_city}/${contractData.address_state}` : 'ausente'
       });
       
       const { data, error } = await this.supabase
