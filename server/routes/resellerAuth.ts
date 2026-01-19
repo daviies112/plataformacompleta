@@ -624,7 +624,7 @@ router.get('/settings', async (req: Request, res: Response) => {
   }
 });
 
-// GET /api/reseller/supabase-config - Buscar credenciais Supabase da revendedora
+// GET /api/reseller/supabase-config - Buscar credenciais Supabase da revendedora (próprias ou herdadas)
 router.get('/supabase-config', async (req: Request, res: Response) => {
   try {
     if (!req.session?.userEmail || req.session?.userRole !== 'reseller') {
@@ -636,33 +636,40 @@ router.get('/supabase-config', async (req: Request, res: Response) => {
       return res.status(503).json({ error: 'Sistema não configurado' });
     }
 
-    // Buscar a revendedora
+    // Buscar a revendedora com suas credenciais próprias
     const { data: revendedora } = await master
       .from('revendedoras')
-      .select('id, admin_id')
+      .select('id, admin_id, supabase_url, supabase_anon_key, supabase_service_key')
       .eq('email', req.session.userEmail)
       .single();
 
     if (!revendedora) {
-      return res.json({ supabase_url: '', supabase_anon_key: '', supabase_service_key: '' });
+      return res.json({ 
+        supabase_url: '', 
+        supabase_anon_key: '', 
+        supabase_service_key: '',
+        has_own_credentials: false,
+        configured: false
+      });
     }
 
-    // Buscar credenciais do admin associado (herda do admin)
-    const adminCreds = await getAdminCredentials(revendedora.admin_id);
-    
-    if (adminCreds) {
+    // Verificar se a revendedora tem credenciais próprias
+    if (revendedora.supabase_url && revendedora.supabase_anon_key) {
       res.json({
-        supabase_url: adminCreds.supabase_url || '',
-        supabase_anon_key: adminCreds.supabase_anon_key ? '••••••••' : '',
-        supabase_service_key: adminCreds.supabase_service_key ? '••••••••' : '',
-        inherited_from_admin: true
+        supabase_url: revendedora.supabase_url || '',
+        supabase_anon_key: revendedora.supabase_anon_key || '',
+        supabase_service_key: revendedora.supabase_service_key || '',
+        has_own_credentials: true,
+        configured: true
       });
     } else {
+      // Sem credenciais configuradas
       res.json({ 
         supabase_url: '', 
         supabase_anon_key: '', 
         supabase_service_key: '',
-        inherited_from_admin: false
+        has_own_credentials: false,
+        configured: false
       });
     }
 
@@ -748,15 +755,68 @@ router.put('/notifications', async (req: Request, res: Response) => {
   }
 });
 
-// PUT /api/reseller/supabase-config - Credenciais são herdadas do admin (somente leitura)
-router.put('/supabase-config', async (req: Request, res: Response) => {
-  return res.status(400).json({ 
-    error: 'Credenciais Supabase são herdadas do administrador',
-    message: 'As credenciais do banco de dados são configuradas pelo administrador e herdadas automaticamente pela revendedora.'
-  });
+// Schema para validação das credenciais Supabase
+const supabaseConfigSchema = z.object({
+  supabase_url: z.string().url('URL inválida').min(1, 'URL é obrigatória'),
+  supabase_anon_key: z.string().min(10, 'Anon Key inválida'),
+  supabase_service_key: z.string().optional(),
 });
 
-// POST /api/reseller/supabase-config/test - Testar conexão com Supabase
+// PUT /api/reseller/supabase-config - Salvar credenciais Supabase próprias da revendedora
+router.put('/supabase-config', async (req: Request, res: Response) => {
+  try {
+    if (!req.session?.userEmail || req.session?.userRole !== 'reseller') {
+      return res.status(401).json({ error: 'Não autenticado' });
+    }
+
+    const master = getMasterClient();
+    if (!master) {
+      return res.status(503).json({ error: 'Sistema não configurado' });
+    }
+
+    // Validar dados de entrada
+    const parseResult = supabaseConfigSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      return res.status(400).json({ 
+        error: 'Dados inválidos', 
+        details: parseResult.error.errors 
+      });
+    }
+
+    const { supabase_url, supabase_anon_key, supabase_service_key } = parseResult.data;
+
+    // Atualizar credenciais da revendedora
+    const { data, error } = await master
+      .from('revendedoras')
+      .update({ 
+        supabase_url,
+        supabase_anon_key,
+        supabase_service_key: supabase_service_key || null
+      })
+      .eq('email', req.session.userEmail)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Erro ao salvar credenciais Supabase:', error);
+      return res.status(500).json({ error: 'Erro ao salvar credenciais' });
+    }
+
+    console.log(`✅ Credenciais Supabase salvas para revendedora: ${req.session.userEmail}`);
+
+    res.json({ 
+      success: true, 
+      message: 'Credenciais Supabase salvas com sucesso',
+      configured: true
+    });
+
+  } catch (error: any) {
+    console.error('Erro ao salvar supabase config:', error);
+    res.status(500).json({ error: 'Erro interno' });
+  }
+});
+
+// POST /api/reseller/supabase-config/test - Testar conexão com Supabase usando credenciais próprias
 router.post('/supabase-config/test', async (req: Request, res: Response) => {
   try {
     if (!req.session?.userEmail || req.session?.userRole !== 'reseller') {
@@ -768,10 +828,10 @@ router.post('/supabase-config/test', async (req: Request, res: Response) => {
       return res.status(503).json({ error: 'Sistema não configurado' });
     }
 
-    // Buscar a revendedora e seu admin
+    // Buscar a revendedora com suas credenciais próprias
     const { data: revendedora } = await master
       .from('revendedoras')
-      .select('admin_id')
+      .select('id, supabase_url, supabase_anon_key, supabase_service_key')
       .eq('email', req.session.userEmail)
       .single();
 
@@ -779,32 +839,76 @@ router.post('/supabase-config/test', async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Revendedora não encontrada' });
     }
 
-    // Buscar credenciais do admin
-    const adminCreds = await getAdminCredentials(revendedora.admin_id);
-    
-    if (!adminCreds) {
-      return res.status(400).json({ error: 'Credenciais não configuradas pelo administrador' });
+    // Verificar se tem credenciais próprias configuradas
+    if (!revendedora.supabase_url || !revendedora.supabase_anon_key) {
+      return res.status(400).json({ 
+        error: 'Credenciais não configuradas',
+        message: 'Configure suas credenciais Supabase antes de testar a conexão'
+      });
     }
 
-    // Tentar conectar ao Supabase do admin
-    const tenantClient = createTenantClient(adminCreds);
+    // Criar cliente com credenciais próprias da revendedora
+    const tenantClient = createTenantClient({
+      supabase_url: revendedora.supabase_url,
+      supabase_anon_key: revendedora.supabase_anon_key,
+      supabase_service_key: revendedora.supabase_service_key
+    });
     
-    // Testar a conexão fazendo uma query simples
-    const { error } = await tenantClient
-      .from('contracts')
-      .select('id')
-      .limit(1);
-
-    if (error) {
-      console.error('Erro na conexão Supabase:', error);
-      return res.status(400).json({ error: 'Falha na conexão: ' + error.message });
+    // Testar a conexão fazendo uma query simples - tentar tabelas comuns
+    let connectionSuccess = false;
+    let testedTable = '';
+    
+    // Tentar diferentes tabelas que podem existir
+    const tablesToTest = ['contracts', 'products', 'customers', 'orders', 'users'];
+    
+    for (const table of tablesToTest) {
+      try {
+        const { error } = await tenantClient
+          .from(table)
+          .select('id')
+          .limit(1);
+        
+        if (!error) {
+          connectionSuccess = true;
+          testedTable = table;
+          break;
+        }
+      } catch (e) {
+        // Continuar tentando próxima tabela
+      }
     }
 
-    res.json({ success: true, message: 'Conexão estabelecida com sucesso' });
+    // Se nenhuma tabela funcionou, tentar uma query genérica
+    if (!connectionSuccess) {
+      try {
+        // Query RPC para testar conexão básica
+        const { error } = await tenantClient.rpc('version', {});
+        if (!error) {
+          connectionSuccess = true;
+          testedTable = 'rpc:version';
+        }
+      } catch (e) {
+        // Ignorar
+      }
+    }
+
+    if (connectionSuccess) {
+      console.log(`✅ Conexão Supabase testada com sucesso para ${req.session.userEmail} (tabela: ${testedTable})`);
+      res.json({ 
+        success: true, 
+        message: 'Conexão estabelecida com sucesso',
+        tested_table: testedTable
+      });
+    } else {
+      res.status(400).json({ 
+        error: 'Falha na conexão',
+        message: 'Não foi possível conectar ao Supabase. Verifique se a URL e as chaves estão corretas.'
+      });
+    }
 
   } catch (error: any) {
     console.error('Erro ao testar conexão:', error);
-    res.status(500).json({ error: 'Erro interno' });
+    res.status(500).json({ error: 'Erro interno: ' + error.message });
   }
 });
 
