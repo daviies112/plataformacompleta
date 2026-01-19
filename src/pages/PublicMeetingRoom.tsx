@@ -87,18 +87,27 @@ export default function PublicMeetingRoom() {
       setIsCreatingContract(true);
       try {
         // Primeiro buscar dados do participante da submissão do formulário
+        // IMPORTANTE: Usar roomId100ms da reunião para garantir que encontramos os dados corretos
         let participantDataFromForm: any = {};
+        const actualRoomId = data?.reuniao?.roomId100ms || roomId;
+        
+        console.log("[PublicMeetingRoom] Buscando participant-data com roomId:", actualRoomId);
         
         try {
-          const participantResponse = await fetch(`/api/public/reunioes/${roomId}/participant-data`, {
+          const participantResponse = await fetch(`/api/public/reunioes/${actualRoomId}/participant-data`, {
             credentials: 'include',
           });
+          console.log("[PublicMeetingRoom] Resposta participant-data:", participantResponse.status);
+          
           if (participantResponse.ok) {
             const result = await participantResponse.json();
+            console.log("[PublicMeetingRoom] Resultado participant-data:", JSON.stringify(result, null, 2));
+            
             if (result.found && result.participantData) {
               // Usar dados do form_submission
               participantDataFromForm = result.participantData;
               console.log("[PublicMeetingRoom] Dados do form_submission encontrados:", participantDataFromForm);
+              console.log("[PublicMeetingRoom] Endereço no participantData:", participantDataFromForm.endereco);
             } else if (result.meetingData) {
               // Fallback para dados da reunião quando não há form_submission
               participantDataFromForm = {
@@ -110,14 +119,14 @@ export default function PublicMeetingRoom() {
             }
           }
         } catch (e) {
-          console.log("[PublicMeetingRoom] Nenhum dado de formulário encontrado, usando nome da reunião");
+          console.error("[PublicMeetingRoom] Erro ao buscar participant-data:", e);
         }
         
         // Criar contrato com dados pré-preenchidos
         // Campos retornados em português: nome, email, telefone, cpf, endereco
         const endereco = participantDataFromForm.endereco;
-        console.log("[PublicMeetingRoom] Endereço do participante:", endereco);
-        console.log("[PublicMeetingRoom] Enviando client_address:", endereco ? { street: endereco.rua, number: endereco.numero, city: endereco.cidade, zipcode: endereco.cep } : 'undefined');
+        console.log("[PublicMeetingRoom] Endereço final para contrato:", endereco);
+        console.log("[PublicMeetingRoom] Enviando client_address:", endereco ? { street: endereco.rua, number: endereco.numero, city: endereco.cidade, zipcode: endereco.cep } : 'UNDEFINED - PROBLEMA!');
         const response = await fetch('/api/assinatura/public/contracts', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
