@@ -458,6 +458,11 @@ router.post('/contracts', async (req: Request, res: Response) => {
     const signature_url = `${protocolScheme}://${domain}/assinar/${access_token}`;
 
     console.log(`[Assinatura] Criando novo contrato para ${client_name}, telefone: ${client_phone}, email: ${client_email}, cpf: ${client_cpf ? 'presente' : 'ausente'}, endereço: ${client_address ? 'presente' : 'ausente'}, access_token: ${access_token}`);
+    if (client_address) {
+      console.log(`[Assinatura] Dados do endereço recebidos: rua=${client_address.street}, num=${client_address.number}, cidade=${client_address.city}, cep=${client_address.zipcode}`);
+    } else {
+      console.log(`[Assinatura] ATENÇÃO: client_address não foi recebido do frontend!`);
+    }
 
     const globalConfig = localGlobalConfig;
     const localContract: LocalContract = {
@@ -536,12 +541,11 @@ router.post('/contracts', async (req: Request, res: Response) => {
     localContractsStore.set(id, localContract);
     saveLocalContracts(localContractsStore);
 
-    // Preparar dados de endereço para salvar
+    // Preparar dados de endereço para salvar (usando colunas que existem na tabela contracts do Supabase)
     const addressData = client_address ? {
       address_street: client_address.street || null,
       address_number: client_address.number || null,
       address_complement: client_address.complement || null,
-      address_neighborhood: client_address.neighborhood || null,
       address_city: client_address.city || null,
       address_state: client_address.state || null,
       address_zipcode: client_address.zipcode || null,

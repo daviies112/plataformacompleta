@@ -356,10 +356,10 @@ class AssinaturaSupabaseService {
         client_email: contract.client_email || '', // NOT NULL no Supabase
         client_phone: contract.client_phone || '', // NOT NULL no Supabase
         // Campos de endereço - CRÍTICOS para impressão de código dos Correios
+        // Nota: address_neighborhood não existe na tabela do Supabase, usar apenas os campos existentes
         address_street: contract.address_street || null,
         address_number: contract.address_number || null,
         address_complement: contract.address_complement || null,
-        address_neighborhood: contract.address_neighborhood || null,
         address_city: contract.address_city || null,
         address_state: contract.address_state || null,
         address_zipcode: contract.address_zipcode || null,

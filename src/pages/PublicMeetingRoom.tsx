@@ -116,6 +116,8 @@ export default function PublicMeetingRoom() {
         // Criar contrato com dados pré-preenchidos
         // Campos retornados em português: nome, email, telefone, cpf, endereco
         const endereco = participantDataFromForm.endereco;
+        console.log("[PublicMeetingRoom] Endereço do participante:", endereco);
+        console.log("[PublicMeetingRoom] Enviando client_address:", endereco ? { street: endereco.rua, number: endereco.numero, city: endereco.cidade, zipcode: endereco.cep } : 'undefined');
         const response = await fetch('/api/assinatura/public/contracts', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
