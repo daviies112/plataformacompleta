@@ -1,7 +1,8 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
+// Credenciais do Supabase Master (central)
 const MASTER_URL = process.env.SUPABASE_URL || '';
-const MASTER_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+const MASTER_KEY = process.env.SERVICE_ROLE_KEY || '';
 
 let supabaseMaster: SupabaseClient | null = null;
 
@@ -44,19 +45,24 @@ export async function getAdminCredentials(adminId: string): Promise<AdminCredent
   if (!master) return null;
   
   try {
+    // Colunas conforme SQL executado: supabase_url, supabase_anon_key, supabase_service_role_key
     const { data, error } = await master
       .from('admin_supabase_credentials')
-      .select('supabase_url, supabase_anon_key, supabase_service_key, storage_bucket')
+      .select('supabase_url, supabase_anon_key, supabase_service_role_key')
       .eq('admin_id', adminId)
-      .eq('is_active', true)
-      .single();
+      .maybeSingle();
     
     if (error || !data) {
-      console.error(`[MasterSync] Credenciais não encontradas para admin ${adminId}:`, error);
+      console.warn(`[MasterSync] Credenciais não encontradas para admin ${adminId}:`, error?.message);
       return null;
     }
     
-    return data as AdminCredentials;
+    return {
+      supabase_url: data.supabase_url,
+      supabase_anon_key: data.supabase_anon_key,
+      supabase_service_key: data.supabase_service_role_key,
+      storage_bucket: ''
+    };
   } catch (error) {
     console.error('[MasterSync] Erro ao buscar credenciais:', error);
     return null;
@@ -169,62 +175,59 @@ export async function processPendingSyncEvents(adminId: string, tenantClient: Su
   if (!master) return 0;
   
   try {
+    // Usa integration_queue conforme o SQL executado pelo usuário
     const { data: pendingEvents, error } = await tenantClient
-      .from('sync_queue')
+      .from('integration_queue')
       .select('*')
       .eq('status', 'pending')
+      .eq('entity_type', 'nova_revendedora')
       .order('created_at', { ascending: true })
       .limit(50);
     
     if (error || !pendingEvents?.length) {
+      if (error) console.log(`[MasterSync] Erro ao buscar integration_queue: ${error.message}`);
       return 0;
     }
     
+    console.log(`📦 [MasterSync] Processando ${pendingEvents.length} eventos de nova_revendedora`);
     let processedCount = 0;
     
     for (const event of pendingEvents) {
       try {
-        if (event.event_type === 'contract_signed') {
-          const payload = event.payload;
-          
-          const revendedoraId = await createRevendedoraFromContract({
-            admin_id: adminId,
-            contract_id: payload.contract_id,
-            email: payload.client_email,
-            cpf: payload.client_cpf,
-            nome: payload.client_name,
-            telefone: payload.client_phone,
-            endereco_rua: payload.address_street,
-            endereco_numero: payload.address_number,
-            endereco_cidade: payload.address_city,
-            endereco_estado: payload.address_state,
-            endereco_cep: payload.address_zipcode
-          });
-          
-          // Só marca como completed se a criação foi bem-sucedida
-          if (revendedoraId) {
-            await tenantClient.rpc('mark_sync_processed', {
-              p_queue_id: event.id,
-              p_status: 'completed'
-            });
-            processedCount++;
-          } else {
-            // Falha silenciosa - marcar como failed para retry posterior
-            await tenantClient.rpc('mark_sync_processed', {
-              p_queue_id: event.id,
-              p_status: 'failed',
-              p_error_message: 'createRevendedoraFromContract retornou null'
-            });
-          }
+        const payload = event.payload;
+        
+        // Payload conforme o trigger: nome, email, cpf
+        const revendedoraId = await createRevendedoraFromContract({
+          admin_id: adminId,
+          contract_id: event.id, // Usa ID do evento como referência
+          email: payload.email,
+          cpf: payload.cpf,
+          nome: payload.nome
+        });
+        
+        // Só marca como processed se a criação foi bem-sucedida
+        if (revendedoraId) {
+          await tenantClient
+            .from('integration_queue')
+            .update({ status: 'processed' })
+            .eq('id', event.id);
+          processedCount++;
+          console.log(`✅ [MasterSync] Evento ${event.id} processado com sucesso`);
+        } else {
+          // Falha - marcar como error para retry posterior
+          await tenantClient
+            .from('integration_queue')
+            .update({ status: 'error' })
+            .eq('id', event.id);
+          console.warn(`⚠️ [MasterSync] Evento ${event.id} falhou`);
         }
       } catch (eventError) {
         console.error(`[MasterSync] Erro ao processar evento ${event.id}:`, eventError);
         
-        await tenantClient.rpc('mark_sync_processed', {
-          p_queue_id: event.id,
-          p_status: 'failed',
-          p_error_message: String(eventError)
-        });
+        await tenantClient
+          .from('integration_queue')
+          .update({ status: 'error' })
+          .eq('id', event.id);
       }
     }
     
@@ -241,20 +244,25 @@ export async function getAllAdminsWithCredentials(): Promise<Array<{ admin_id: s
   if (!master) return [];
   
   try {
+    // Colunas conforme SQL executado
     const { data, error } = await master
       .from('admin_supabase_credentials')
-      .select('admin_id, supabase_url, supabase_anon_key, supabase_service_key, storage_bucket')
-      .eq('is_active', true);
+      .select('admin_id, supabase_url, supabase_anon_key, supabase_service_role_key');
     
-    if (error || !data) return [];
+    if (error || !data) {
+      console.warn('[MasterSync] Nenhum admin encontrado:', error?.message);
+      return [];
+    }
+    
+    console.log(`📋 [MasterSync] ${data.length} admins com credenciais encontrados`);
     
     return data.map(row => ({
       admin_id: row.admin_id,
       credentials: {
         supabase_url: row.supabase_url,
         supabase_anon_key: row.supabase_anon_key,
-        supabase_service_key: row.supabase_service_key,
-        storage_bucket: row.storage_bucket
+        supabase_service_key: row.supabase_service_role_key,
+        storage_bucket: ''
       }
     }));
     

@@ -1,8 +1,65 @@
 import express, { Request, Response } from 'express';
 import { supabaseOwner, SUPABASE_CONFIGURED } from '../config/supabaseOwner';
-import { getAdminCredentials } from '../lib/masterSyncService';
+import { getAdminCredentials, getMasterClient, getAllAdminsWithCredentials } from '../lib/masterSyncService';
 
 const router = express.Router();
+
+// GET /api/reseller/test-master - Testar conexão com Supabase Master (multitenant)
+router.get('/test-master', async (_req: Request, res: Response) => {
+  try {
+    const master = getMasterClient();
+    
+    if (!master) {
+      return res.json({
+        status: 'error',
+        message: 'Supabase Master não configurado',
+        details: 'Configure SUPABASE_URL e SERVICE_ROLE_KEY nos Secrets'
+      });
+    }
+    
+    // Tenta listar revendedoras
+    const { data: revendedoras, error: revError } = await master
+      .from('revendedoras')
+      .select('id, email, nome, admin_id, status')
+      .limit(5);
+    
+    // Tenta listar credenciais de admins
+    const { data: adminCreds, error: credError } = await master
+      .from('admin_supabase_credentials')
+      .select('id, admin_id, project_name, supabase_url')
+      .limit(5);
+    
+    const adminsWithCreds = await getAllAdminsWithCredentials();
+    
+    res.json({
+      status: 'connected',
+      message: 'Conexão com Supabase Master OK',
+      tables: {
+        revendedoras: {
+          count: revendedoras?.length || 0,
+          error: revError?.message || null,
+          sample: revendedoras?.slice(0, 3)
+        },
+        admin_supabase_credentials: {
+          count: adminCreds?.length || 0,
+          error: credError?.message || null,
+          sample: adminCreds?.map(c => ({ 
+            admin_id: c.admin_id, 
+            project_name: c.project_name,
+            url: c.supabase_url?.substring(0, 40) + '...'
+          }))
+        }
+      },
+      adminsConfigurados: adminsWithCreds.length
+    });
+    
+  } catch (error: any) {
+    res.status(500).json({
+      status: 'error',
+      message: error.message
+    });
+  }
+});
 
 // Função para normalizar CPF (remove formatação)
 function normalizeCPF(cpf: string): string {

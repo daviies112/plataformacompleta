@@ -1,0 +1,196 @@
+ETAPA 1: No Supabase MASTER (O Central)
+Vá no SQL Editor do seu projeto Master e execute:
+
+SQL
+
+-- 1. Tabela para guardar as credenciais dos seus clientes (Admins da plataforma)
+CREATE TABLE IF NOT EXISTS public.admin_supabase_credentials (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    admin_id UUID NOT NULL, -- ID do admin (dono da plataforma revendedora)
+    project_name TEXT,      -- Ex: "Revendedora A"
+    supabase_url TEXT NOT NULL,
+    supabase_anon_key TEXT NOT NULL, -- Chave pública (para o front-end)
+    supabase_service_role_key TEXT NOT NULL, -- Chave secreta (para seu backend ler dados)
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 2. Tabela Central de Revendedoras (Onde o login acontece)
+CREATE TABLE IF NOT EXISTS public.revendedoras (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    admin_id UUID NOT NULL, -- Para saber de qual Admin ela é
+    nome TEXT NOT NULL,
+    email TEXT NOT NULL,
+    cpf TEXT NOT NULL,
+    status TEXT DEFAULT 'ativo',
+    senha_hash TEXT, -- Caso use senha no futuro
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    UNIQUE(email),
+    UNIQUE(cpf)
+);
+
+-- Índices para deixar o login instantâneo
+CREATE INDEX idx_revendedoras_email ON public.revendedoras(email);
+CREATE INDEX idx_revendedoras_cpf ON public.revendedoras(cpf);
+ETAPA 2: No Supabase de CADA CLIENTE (Ex: Cliente A1)
+Vá no SQL Editor do projeto do cliente e execute. Isso cria a "fila" que avisa seu servidor quando tem novidade.
+
+SQL
+
+-- 1. Tabela de Fila de Integração
+CREATE TABLE IF NOT EXISTS public.integration_queue (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    entity_type TEXT NOT NULL,     -- Ex: 'nova_revendedora'
+    payload JSONB NOT NULL,        -- Dados: nome, email, cpf
+    status TEXT DEFAULT 'pending', -- pending, processed, error
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 2. Função: Quando assinar contrato, joga na fila
+CREATE OR REPLACE FUNCTION public.queue_new_reseller()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Ajuste a condição abaixo conforme o status real do seu contrato (ex: 'signed', 'aprovado')
+    IF NEW.status = 'signed' AND (OLD.status IS DISTINCT FROM 'signed') THEN
+        INSERT INTO public.integration_queue (entity_type, payload)
+        VALUES (
+            'nova_revendedora',
+            jsonb_build_object(
+                'nome', NEW.signer_name,   -- Ajuste para o nome da coluna real na tabela contracts
+                'email', NEW.signer_email, -- Ajuste para o nome da coluna real
+                'cpf', NEW.signer_cpf      -- Ajuste para o nome da coluna real
+            )
+        );
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 3. Trigger: Ativa a função quando a tabela contracts é atualizada
+DROP TRIGGER IF EXISTS trg_queue_reseller ON public.contracts;
+
+CREATE TRIGGER trg_queue_reseller
+AFTER UPDATE ON public.contracts
+FOR EACH ROW
+EXECUTE FUNCTION public.queue_new_reseller();
+ETAPA 3: No Seu Servidor (Backend Node.js)
+Você precisa de dois arquivos principais.
+
+Arquivo A: O Sincronizador (server/services/syncMasterService.ts)
+Este script deve rodar periodicamente (ex: a cada 30 segundos).
+
+TypeScript
+
+import { createClient } from '@supabase/supabase-js';
+
+// Conexão com o MASTER (Variáveis no seu .env)
+const supabaseMaster = createClient(
+  process.env.SUPABASE_MASTER_URL!,
+  process.env.SUPABASE_MASTER_SERVICE_KEY! 
+);
+
+export async function syncClientsToMaster() {
+  console.log('🔄 Sincronizando Clientes -> Master...');
+
+  // 1. Pega lista de todos os Admins (Clientes) cadastrados no Master
+  const { data: admins, error } = await supabaseMaster
+    .from('admin_supabase_credentials')
+    .select('*');
+
+  if (error || !admins) return console.error('Erro ao ler admins:', error);
+
+  // 2. Loop: Entra em cada banco de cliente
+  for (const admin of admins) {
+    try {
+      // Conexão Dinâmica com o Cliente específico
+      const clientSupabase = createClient(admin.supabase_url, admin.supabase_service_role_key);
+
+      // Busca pendências na fila
+      const { data: queueItems } = await clientSupabase
+        .from('integration_queue')
+        .select('*')
+        .eq('status', 'pending')
+        .eq('entity_type', 'nova_revendedora');
+
+      if (!queueItems?.length) continue;
+
+      console.log(`📦 Processando ${queueItems.length} itens de ${admin.project_name}`);
+
+      for (const item of queueItems) {
+        const dados = item.payload;
+
+        // Verifica se já existe no Master (Evita duplicação)
+        const { data: existe } = await supabaseMaster
+          .from('revendedoras')
+          .select('id')
+          .eq('cpf', dados.cpf)
+          .maybeSingle();
+
+        if (!existe) {
+          // CRIA O LOGIN NO MASTER
+          const { error: errInsert } = await supabaseMaster.from('revendedoras').insert({
+            admin_id: admin.admin_id, // Importante: Vincula ao Admin correto
+            nome: dados.nome,
+            email: dados.email,
+            cpf: dados.cpf
+          });
+
+          if (errInsert) {
+            console.error('Erro insert Master:', errInsert);
+            await clientSupabase.from('integration_queue').update({ status: 'error' }).eq('id', item.id);
+            continue;
+          }
+        }
+
+        // Sucesso: Marca como processado na fila do cliente
+        await clientSupabase
+          .from('integration_queue')
+          .update({ status: 'processed' })
+          .eq('id', item.id);
+      }
+
+    } catch (err) {
+      console.error(`Erro na sync do admin ${admin.project_name}:`, err);
+    }
+  }
+}
+Arquivo B: O Login da Revendedora (server/controllers/authController.ts)
+Quando a revendedora digitar Email/CPF no front-end.
+
+TypeScript
+
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseMaster = createClient(
+  process.env.SUPABASE_MASTER_URL!,
+  process.env.SUPABASE_MASTER_SERVICE_KEY!
+);
+
+export async function loginRevendedora(email: string, cpf: string) {
+  // 1. Busca no MASTER
+  const { data: user, error } = await supabaseMaster
+    .from('revendedoras')
+    .select('*')
+    .eq('email', email)
+    .eq('cpf', cpf)
+    .single();
+
+  if (error || !user) throw new Error('Acesso negado.');
+
+  // 2. Descobre quem é o Admin dela e pega as credenciais
+  const { data: creds } = await supabaseMaster
+    .from('admin_supabase_credentials')
+    .select('supabase_url, supabase_anon_key') 
+    .eq('admin_id', user.admin_id)
+    .single();
+
+  if (!creds) throw new Error('Erro de configuração no Admin.');
+
+  // 3. Retorna os dados para o Front-end conectar no banco correto
+  return {
+    usuario: user,
+    conexao: {
+      url: creds.supabase_url,
+      key: creds.supabase_anon_key // Chave pública pro navegador usar
+    }
+  };
+}
