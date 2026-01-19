@@ -1,6 +1,6 @@
 import express, { Request, Response } from 'express';
 import { supabaseOwner, SUPABASE_CONFIGURED } from '../config/supabaseOwner';
-// Login/registro usa Email + CPF (sem senha/bcrypt)
+import { getAdminCredentials } from '../lib/masterSyncService';
 
 const router = express.Router();
 
@@ -109,13 +109,29 @@ router.post('/login', async (req: Request, res: Response) => {
 
     const adminId = revendedora.admin_id;
 
-    // 2. Criar sessao hibrida
+    // 2. Buscar credenciais do Supabase do Admin (para plataforma separada)
+    const adminCredentials = await getAdminCredentials(adminId);
+    
+    if (!adminCredentials) {
+      console.warn(`[NEXUS] Credenciais do admin ${adminId} não encontradas no Master`);
+      // Continua sem credenciais - pode usar fallback local
+    } else {
+      console.log(`[NEXUS] Credenciais do admin ${adminId} carregadas do Master`);
+    }
+
+    // 3. Criar sessão com dados do tenant
     req.session.userId = revendedora.id;
     req.session.userEmail = revendedora.email;
     req.session.userName = revendedora.nome;
     req.session.userRole = 'reseller';
-    req.session.tenantId = adminId; // CRUCIAL: Tenant e o Admin
+    req.session.tenantId = adminId; // CRUCIAL: Tenant é o Admin
     req.session.comissao = Number(revendedora.comissao_padrao);
+    
+    // Armazena credenciais do Supabase do admin na sessão (para uso posterior)
+    if (adminCredentials) {
+      req.session.tenantSupabaseUrl = adminCredentials.supabase_url;
+      req.session.tenantSupabaseKey = adminCredentials.supabase_anon_key;
+    }
 
     req.session.save((err) => {
       if (err) {
@@ -123,7 +139,7 @@ router.post('/login', async (req: Request, res: Response) => {
         return res.status(500).json({ error: 'Erro ao criar sessao' });
       }
       
-      console.log(`[NEXUS] Login revendedora: ${revendedora.email} -> tenant: ${adminId}`);
+      console.log(`✅ [NEXUS] Login revendedora: ${revendedora.email} -> tenant: ${adminId} (creds: ${adminCredentials ? 'OK' : 'N/A'})`);
       
       res.json({
         success: true,
@@ -135,6 +151,10 @@ router.post('/login', async (req: Request, res: Response) => {
           cpf: revendedora.cpf,
           role: 'reseller',
           comissao: revendedora.comissao_padrao
+        },
+        tenant: {
+          adminId: adminId,
+          hasCredentials: !!adminCredentials
         }
       });
     });
