@@ -1,0 +1,39 @@
+Uncaught (in promise) i: Failed to connect to MetaMask
+    at Object.connect (inpage.js:1:62806)
+    at async s (inpage.js:1:60601)Caused by: Error: MetaMask extension not found
+    at inpage.js:1:57911Understand this error
+chunk-I3COAS7K.js?v=57be8291:21551 Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+supabase.ts:37 🔄 Tentativa 1/5 de carregar credenciais Supabase...
+client.ts:14 [Supabase] No credentials provided. Using stub client.
+createSupabaseClient @ client.ts:14Understand this warning
+/api/config/supabase/credentials:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)Understand this error
+supabase.ts:96 ℹ️ [SUPABASE] Usuário não autenticado - credenciais serão carregadas após login
+supabase.ts:185 ℹ️ [SUPABASE] Credenciais não disponíveis - usuário pode não estar autenticado
+workspaceStorage.ts:440 👤 Usuário não autenticado - usando localStorage
+workspaceStorage.ts:455 📭 Nenhum dado encontrado
+usePWAInstall.ts:112 📱 [PWA] Device Info: Object
+usePWAInstall.ts:176 🧪 [PWA] Modo desenvolvimento detectado - botão sempre visível para testes
+AuthContext.tsx:69 [AuthContext] Checking session...
+usePWAInstall.ts:130 ❌ [PWA] Erro ao registrar Service Worker: InvalidStateError: Failed to register a ServiceWorker: The document is in an invalid state.
+(anonymous) @ usePWAInstall.ts:130Understand this error
+/api/notifications/vapid-public-key:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)Understand this error
+sentry.ts:34 ⚠️ Sentry não configurado - Monitoramento desativado
+AuthContext.tsx:73 [AuthContext] Session check response: Object
+AuthContext.tsx:129 [AuthContext] Setting isLoading to false
+AssinaturaClientPage.tsx:257 [AssinaturaClientPage] Participant data: Object
+useFaceDetection.ts:68 Face detection models loaded successfully
+01030049-9e54-4e2b-adf4-88691f74c083:1 <meta name="apple-mobile-web-app-capable" content="yes"> is deprecated. Please include <meta name="mobile-web-app-capable" content="yes">Understand this warning
+01030049-9e54-4e2b-adf4-88691f74c083:1 Error while trying to use the following icon from the Manifest: https://770a8ed2-4c8b-4b71-8cd4-019d5e508867-00-2bmmvsvm3eix3.worf.replit.dev/icons/icon-192x192.png (Download error or resource isn't a valid image)Understand this warning
+NotificationContext.tsx:163 Service worker não disponível ainda: Error: Service worker timeout
+    at NotificationContext.tsx:156:33
+NotificationContext.tsx:186 [Notifications] Não autenticado - limpando dados
+useFaceDetection.ts:68 Face detection models loaded successfully
+inpage.js:1 Uncaught (in promise) i: Failed to connect to MetaMask
+    at Object.connect (inpage.js:1:62806)
+    at async s (inpage.js:1:60601)Caused by: Error: MetaMask extension not found
+    at inpage.js:1:57911
+connect @ inpage.js:1Understand this error
+inpage.js:1 Uncaught (in promise) i: Failed to connect to MetaMask
+    at Object.connect (inpage.js:1:62806)
+    at async s (inpage.js:1:60601)Caused by: Error: MetaMask extension not found
+    at inpage.js:1:57911

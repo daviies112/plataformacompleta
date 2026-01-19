@@ -458,10 +458,77 @@ router.post('/contracts', async (req: Request, res: Response) => {
     const signature_url = `${protocolScheme}://${domain}/assinar/${access_token}`;
 
     console.log(`[Assinatura] Criando novo contrato para ${client_name}, telefone: ${client_phone}, email: ${client_email}, cpf: ${client_cpf ? 'presente' : 'ausente'}, endereço: ${client_address ? 'presente' : 'ausente'}, access_token: ${access_token}`);
-    if (client_address) {
-      console.log(`[Assinatura] Dados do endereço recebidos: rua=${client_address.street}, num=${client_address.number}, cidade=${client_address.city}, cep=${client_address.zipcode}`);
+    
+    // Se o client_address não foi recebido do frontend, buscar automaticamente do form_submissions
+    let finalAddress = client_address;
+    if (!finalAddress && (client_phone || client_email)) {
+      console.log(`[Assinatura] Endereço não recebido do frontend - buscando automaticamente do form_submissions...`);
+      try {
+        const { getClienteSupabase, isClienteSupabaseConfigured } = await import('../lib/clienteSupabase.js');
+        if (await isClienteSupabaseConfigured()) {
+          const supabaseClient = await getClienteSupabase();
+          if (supabaseClient) {
+            let submission = null;
+            
+            // Primeiro tentar por telefone (mais confiável)
+            if (client_phone) {
+              const phoneDigits = client_phone.replace(/\D/g, '');
+              const lastDigits = phoneDigits.slice(-9);
+              if (lastDigits.length >= 8) {
+                // Criar padrão flexível para busca
+                const flexPattern = '%' + lastDigits.split('').join('%') + '%';
+                console.log(`[Assinatura] Buscando form_submission por telefone: ${flexPattern}`);
+                const { data, error } = await supabaseClient
+                  .from('form_submissions')
+                  .select('address_street, address_number, address_complement, address_city, address_state, address_cep')
+                  .ilike('contact_phone', flexPattern)
+                  .order('created_at', { ascending: false })
+                  .limit(1);
+                if (!error && data && data.length > 0) {
+                  submission = data[0];
+                  console.log(`[Assinatura] Form_submission encontrado por telefone`);
+                }
+              }
+            }
+            
+            // Fallback para email
+            if (!submission && client_email) {
+              console.log(`[Assinatura] Buscando form_submission por email: ${client_email}`);
+              const { data, error } = await supabaseClient
+                .from('form_submissions')
+                .select('address_street, address_number, address_complement, address_city, address_state, address_cep')
+                .ilike('contact_email', client_email)
+                .order('created_at', { ascending: false })
+                .limit(1);
+              if (!error && data && data.length > 0) {
+                submission = data[0];
+                console.log(`[Assinatura] Form_submission encontrado por email`);
+              }
+            }
+            
+            // Se encontrou, mapear os campos
+            if (submission) {
+              finalAddress = {
+                street: submission.address_street || '',
+                number: submission.address_number || '',
+                complement: submission.address_complement || '',
+                city: submission.address_city || '',
+                state: submission.address_state || '',
+                zipcode: submission.address_cep || ''
+              };
+              console.log(`[Assinatura] ✅ Endereço obtido do form_submission: rua=${finalAddress.street}, num=${finalAddress.number}, cidade=${finalAddress.city}, cep=${finalAddress.zipcode}`);
+            } else {
+              console.log(`[Assinatura] ⚠️ Nenhum form_submission encontrado com endereço`);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('[Assinatura] Erro ao buscar endereço do form_submission:', err);
+      }
+    } else if (finalAddress) {
+      console.log(`[Assinatura] Dados do endereço recebidos do frontend: rua=${finalAddress.street}, num=${finalAddress.number}, cidade=${finalAddress.city}, cep=${finalAddress.zipcode}`);
     } else {
-      console.log(`[Assinatura] ATENÇÃO: client_address não foi recebido do frontend!`);
+      console.log(`[Assinatura] ⚠️ Sem telefone/email para buscar endereço automaticamente`);
     }
 
     const globalConfig = localGlobalConfig;
@@ -528,13 +595,13 @@ router.post('/contracts', async (req: Request, res: Response) => {
       parabens_button_text: customizations.parabens_button_text ?? globalConfig.parabens_button_text,
       app_store_url: customizations.app_store_url ?? globalConfig.app_store_url,
       google_play_url: customizations.google_play_url ?? globalConfig.google_play_url,
-      address: client_address ? {
-        street: client_address.street || undefined,
-        number: client_address.number || undefined,
-        complement: client_address.complement || undefined,
-        city: client_address.city || undefined,
-        state: client_address.state || undefined,
-        zipcode: client_address.zipcode || undefined,
+      address: finalAddress ? {
+        street: finalAddress.street || undefined,
+        number: finalAddress.number || undefined,
+        complement: finalAddress.complement || undefined,
+        city: finalAddress.city || undefined,
+        state: finalAddress.state || undefined,
+        zipcode: finalAddress.zipcode || undefined,
       } : null,
     };
 
@@ -542,13 +609,13 @@ router.post('/contracts', async (req: Request, res: Response) => {
     saveLocalContracts(localContractsStore);
 
     // Preparar dados de endereço para salvar (usando colunas que existem na tabela contracts do Supabase)
-    const addressData = client_address ? {
-      address_street: client_address.street || null,
-      address_number: client_address.number || null,
-      address_complement: client_address.complement || null,
-      address_city: client_address.city || null,
-      address_state: client_address.state || null,
-      address_zipcode: client_address.zipcode || null,
+    const addressData = finalAddress ? {
+      address_street: finalAddress.street || null,
+      address_number: finalAddress.number || null,
+      address_complement: finalAddress.complement || null,
+      address_city: finalAddress.city || null,
+      address_state: finalAddress.state || null,
+      address_zipcode: finalAddress.zipcode || null,
     } : {};
 
     if (assinaturaSupabaseService.isConnected()) {
