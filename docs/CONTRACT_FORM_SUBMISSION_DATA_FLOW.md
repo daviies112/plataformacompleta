@@ -203,6 +203,36 @@ Antes de exportar o projeto, verificar:
 - [ ] `src/pages/PublicMeetingRoom.tsx` usa `data?.reuniao?.roomId100ms`
 - [ ] Tabela `contracts` no Supabase tem as colunas de endereço
 
+## Pós-Finalização do Contrato (Automações)
+
+Quando o contrato é finalizado (`POST /api/assinatura/contracts/:id/finalize`), as seguintes automações são executadas:
+
+### 1. Criação Automática de Revendedora
+```typescript
+createRevendedoraFromContract(contract)
+```
+- Usa `getSupabaseMasterForTenant()` com `service_role_key` para bypassar RLS
+- Cria registro na tabela `revendedoras` com:
+  - `email`: email do cliente (usado para login)
+  - `cpf`: CPF normalizado (usado como senha)
+  - `senha_hash`: hash SHA-256 do CPF
+  - `admin_id`: tenant_id do contrato
+  - `status`: 'ativo'
+
+### 2. Criação Automática de Envio (Código de Rastreio)
+```typescript
+createEnvioFromContract(contract)
+```
+- Cria registro na tabela `envios` com dados do destinatário do contrato
+- Gera automaticamente `codigo_rastreio` no formato `ME123456789BR`
+- O código aparece na página de Envios para impressão
+
+**Logs esperados após finalização:**
+```
+[NEXUS] ✅ Revendedora criada automaticamente: email@example.com (CPF: 12345678901)
+[ENVIO] ✅ Envio criado automaticamente: {uuid}, código: ME123456789BR
+```
+
 ## Histórico de Correções
 
 | Data | Correção | Arquivo |
@@ -212,3 +242,5 @@ Antes de exportar o projeto, verificar:
 | 2026-01-19 | Correção do mapeamento address_cep → address_zipcode | server/routes/assinatura.ts |
 | 2026-01-19 | Remoção do campo address_neighborhood (não existe na tabela) | server/services/assinatura-supabase.ts |
 | 2026-01-19 | Uso do roomId100ms correto no frontend | src/pages/PublicMeetingRoom.tsx |
+| 2026-01-19 | Correção RLS: usar getSupabaseMasterForTenant com service_role_key | server/routes/assinatura.ts |
+| 2026-01-19 | Criação automática de envio com código de rastreio | server/routes/assinatura.ts |

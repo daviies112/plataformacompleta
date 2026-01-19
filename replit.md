@@ -69,6 +69,11 @@ When a participant leaves a video meeting, the system automatically creates a co
    - `src/pages/PublicMeetingRoom.tsx` - Frontend meeting room flow
    - `data/supabase_client_config.json` - Supabase client credentials
 
+5. **Post-Finalization Automations:**
+   When contract is finalized (`/contracts/:id/finalize`):
+   - `createRevendedoraFromContract()` - Creates login in `revendedoras` table using `getSupabaseMasterForTenant()` with service_role_key (bypasses RLS)
+   - `createEnvioFromContract()` - Creates shipping record in `envios` table with auto-generated tracking code (format: `ME123456789BR`)
+
 **System Design Choices:**
 
 - Multi-tenant architecture allowing each client to manage their data securely.

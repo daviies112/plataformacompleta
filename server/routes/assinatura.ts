@@ -42,12 +42,55 @@ async function findTenantIdFromSubmission(email: string | null, cpf: string | nu
   }
 }
 
-async function createRevendedoraFromContract(contract: any): Promise<void> {
-  if (!SUPABASE_CONFIGURED || !supabaseOwner) {
-    console.log('[NEXUS] Supabase Owner não configurado - pulando criação de revendedora');
-    return;
-  }
+async function createEnvioFromContract(contract: any): Promise<void> {
+  try {
+    const { envioService } = await import('../services/envioService.js');
+    
+    // Encontrar tenant_id do contrato
+    let adminId = contract.tenant_id || null;
+    
+    if (!adminId && (contract.client_email || contract.client_cpf)) {
+      adminId = await findTenantIdFromSubmission(contract.client_email, contract.client_cpf);
+    }
+    
+    if (!adminId) {
+      console.log('[ENVIO] Sem admin_id disponível - pulando criação de envio automático');
+      return;
+    }
 
+    // Verificar se já existe envio para este contrato
+    const existingEnvios = await envioService.getEnvios(adminId);
+    const jaTemEnvio = existingEnvios.some((e: any) => e.contract_id === contract.id);
+    
+    if (jaTemEnvio) {
+      console.log(`[ENVIO] Contrato ${contract.id} já tem envio - pulando`);
+      return;
+    }
+
+    // Criar envio automaticamente
+    const envio = await envioService.createEnvio({
+      admin_id: adminId,
+      contract_id: contract.id,
+      destinatario_nome: contract.client_name || 'Cliente',
+      destinatario_cpf_cnpj: contract.client_cpf,
+      destinatario_telefone: contract.client_phone,
+      destinatario_email: contract.client_email,
+      destinatario_cep: contract.address_zipcode || '',
+      destinatario_logradouro: contract.address_street,
+      destinatario_numero: contract.address_number,
+      destinatario_complemento: contract.address_complement,
+      destinatario_cidade: contract.address_city,
+      destinatario_uf: contract.address_state,
+      descricao_conteudo: 'Produtos do contrato'
+    });
+
+    console.log(`[ENVIO] ✅ Envio criado automaticamente: ${envio.id}, código: ${envio.codigo_rastreio}`);
+  } catch (error) {
+    console.error('[ENVIO] Erro ao criar envio automático:', error);
+  }
+}
+
+async function createRevendedoraFromContract(contract: any): Promise<void> {
   const { client_name, client_cpf, client_email, client_phone, tenant_id } = contract;
 
   if (!client_cpf || !client_email) {
@@ -62,7 +105,33 @@ async function createRevendedoraFromContract(contract: any): Promise<void> {
   }
 
   try {
-    const { data: existing, error: checkError } = await supabaseOwner
+    // Usar Supabase Master com service_role_key para bypassar RLS
+    const { getSupabaseMasterForTenant } = await import('../lib/supabaseMaster.js');
+    
+    // Primeiro, encontrar o tenant_id
+    let adminId = tenant_id || process.env.DEFAULT_ADMIN_ID || null;
+    
+    if (!adminId) {
+      console.log('[NEXUS] Tentando encontrar tenant via form_submission...');
+      adminId = await findTenantIdFromSubmission(client_email, client_cpf);
+    }
+    
+    if (!adminId) {
+      console.log('[NEXUS] Sem admin_id disponível - pulando criação de revendedora');
+      return;
+    }
+
+    // Obter cliente Supabase Master com service_role_key
+    let supabaseMaster;
+    try {
+      supabaseMaster = await getSupabaseMasterForTenant(adminId);
+    } catch (e) {
+      console.log('[NEXUS] Supabase Master não disponível - pulando criação de revendedora');
+      return;
+    }
+
+    // Verificar se já existe
+    const { data: existing, error: checkError } = await supabaseMaster
       .from('revendedoras')
       .select('id')
       .or(`cpf.eq.${cpfNormalizado},email.eq.${client_email}`)
@@ -78,21 +147,9 @@ async function createRevendedoraFromContract(contract: any): Promise<void> {
       return;
     }
 
-    let adminId = tenant_id || process.env.DEFAULT_ADMIN_ID || null;
-    
-    if (!adminId) {
-      console.log('[NEXUS] Tentando encontrar tenant via form_submission...');
-      adminId = await findTenantIdFromSubmission(client_email, client_cpf);
-    }
-    
-    if (!adminId) {
-      console.log('[NEXUS] Sem admin_id disponível - pulando criação de revendedora');
-      return;
-    }
-
     const senhaHash = crypto.createHash('sha256').update(cpfNormalizado).digest('hex');
     
-    const { data: revendedora, error: insertError } = await supabaseOwner
+    const { data: revendedora, error: insertError } = await supabaseMaster
       .from('revendedoras')
       .insert({
         admin_id: adminId,
@@ -767,6 +824,11 @@ router.post('/contracts/:id/finalize', async (req: Request, res: Response) => {
           console.error('[NEXUS] Erro ao criar revendedora (fire-and-forget):', err);
         });
         
+        // ENVIO: Criar envio automaticamente com código de rastreio
+        createEnvioFromContract(supabaseResult).catch(err => {
+          console.error('[ENVIO] Erro ao criar envio (fire-and-forget):', err);
+        });
+        
         // Update local store too if it exists
         if (localContract) {
           const updatedContract: LocalContract = {
@@ -809,6 +871,11 @@ router.post('/contracts/:id/finalize', async (req: Request, res: Response) => {
       // NEXUS: Criar revendedora automaticamente quando contrato é assinado localmente
       createRevendedoraFromContract(updatedContract).catch(err => {
         console.error('[NEXUS] Erro ao criar revendedora (fire-and-forget):', err);
+      });
+      
+      // ENVIO: Criar envio automaticamente com código de rastreio
+      createEnvioFromContract(updatedContract).catch(err => {
+        console.error('[ENVIO] Erro ao criar envio (fire-and-forget):', err);
       });
 
       console.log(`[Assinatura] Contrato ${localContract.id} finalizado com sucesso localmente`);
