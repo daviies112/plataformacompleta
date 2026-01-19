@@ -22,6 +22,7 @@ import ResellerStore from "@/features/revendedora/pages/reseller/Store";
 import ResellerPaymentPix from "@/features/revendedora/pages/reseller/PaymentPix";
 import ResellerPaymentCard from "@/features/revendedora/pages/reseller/PaymentCard";
 import ResellerGamification from "@/features/revendedora/pages/reseller/Gamification";
+import ResellerSettings from "@/features/revendedora/pages/reseller/Settings";
 
 import AdminDashboard from "@/features/revendedora/pages/admin/Dashboard";
 import AdminProducts from "@/features/revendedora/pages/admin/Products";
@@ -76,6 +77,7 @@ const RevendedoraApp = () => {
       <Route path="/revendedora/reseller/payment/pix/:saleId" element={<ResellerLayout><ResellerPaymentPix /></ResellerLayout>} />
       <Route path="/revendedora/reseller/payment/card/:saleId" element={<ResellerLayout><ResellerPaymentCard /></ResellerLayout>} />
       <Route path="/revendedora/reseller/gamification" element={<ResellerLayout><ResellerGamification /></ResellerLayout>} />
+      <Route path="/revendedora/reseller/settings" element={<ResellerLayout><ResellerSettings /></ResellerLayout>} />
       
       <Route path="*" element={<NotFound />} />
     </Routes>

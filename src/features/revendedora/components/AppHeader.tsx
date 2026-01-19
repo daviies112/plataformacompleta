@@ -17,6 +17,7 @@ import {
   Menu,
   ClipboardList,
   Trophy,
+  Settings,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -48,6 +49,7 @@ const resellerItems = [
   { title: 'Minha Loja', url: '/revendedora/reseller/store', icon: Store },
   { title: 'Gamificação', url: '/revendedora/reseller/gamification', icon: Trophy },
   { title: 'Equipe', url: '/revendedora/reseller/team', icon: UsersRound },
+  { title: 'Configurações', url: '/revendedora/reseller/settings', icon: Settings },
 ];
 
 export function AppHeader({
