@@ -61,11 +61,20 @@ router.get('/my-sales', authenticateToken, async (req: AuthRequest, res) => {
     }
 
     const revendedoraId = req.user?.userId || req.session?.userId;
+    const adminId = req.user?.tenantId || req.session?.tenantId;
 
+    // 🔐 VALIDAÇÃO: Garantir que temos IDs válidos para isolamento
+    if (!revendedoraId || !adminId) {
+      console.error('[NEXUS] Sessão inválida - revendedoraId ou adminId ausente');
+      return res.status(401).json({ error: 'Sessão inválida - faça login novamente' });
+    }
+
+    // 🔐 ISOLAMENTO: Filtra por revendedora_id E admin_id para garantir que só veja vendas do seu tenant
     const { data, error } = await supabaseOwner
       .from('vendas_revendedora')
       .select('*')
       .eq('revendedora_id', revendedoraId)
+      .eq('admin_id', adminId)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -106,12 +115,20 @@ router.get('/dashboard-stats', authenticateToken, async (req: AuthRequest, res) 
     }
 
     const revendedoraId = req.user?.userId || req.session?.userId;
+    const adminId = req.user?.tenantId || req.session?.tenantId;
 
-    // Buscar vendas
+    // 🔐 VALIDAÇÃO: Garantir que temos IDs válidos para isolamento
+    if (!revendedoraId || !adminId) {
+      console.error('[NEXUS] Sessão inválida - revendedoraId ou adminId ausente');
+      return res.status(401).json({ error: 'Sessão inválida - faça login novamente' });
+    }
+
+    // 🔐 ISOLAMENTO: Filtra por revendedora_id E admin_id para garantir isolamento de dados
     const { data: vendas } = await supabaseOwner
       .from('vendas_revendedora')
       .select('*')
-      .eq('revendedora_id', revendedoraId);
+      .eq('revendedora_id', revendedoraId)
+      .eq('admin_id', adminId);
 
     const vendasList = vendas || [];
     const hoje = new Date();
@@ -155,6 +172,7 @@ router.get('/dashboard-stats', authenticateToken, async (req: AuthRequest, res) 
 });
 
 // POST /api/reseller/create-sale - Criar venda (usado pelo checkout)
+// 🔐 SEGURANÇA: O admin_id é derivado da revendedora, NÃO aceito do body para evitar injeção
 router.post('/create-sale', async (req, res) => {
   try {
     if (!SUPABASE_CONFIGURED || !supabaseOwner) {
@@ -163,7 +181,6 @@ router.post('/create-sale', async (req, res) => {
 
     const { 
       revendedoraId, 
-      adminId,
       produtoId,
       produtoNome,
       valorTotal,
@@ -174,20 +191,38 @@ router.post('/create-sale', async (req, res) => {
       stripePaymentId
     } = req.body;
 
-    if (!revendedoraId || !adminId || !valorTotal) {
-      return res.status(400).json({ error: 'Dados incompletos' });
+    if (!revendedoraId || !valorTotal) {
+      return res.status(400).json({ error: 'Dados incompletos: revendedoraId e valorTotal são obrigatórios' });
     }
+
+    // 🔐 SEGURANÇA: Buscar admin_id da revendedora para garantir integridade
+    const { data: revendedora, error: lookupError } = await supabaseOwner
+      .from('revendedoras')
+      .select('admin_id, comissao_padrao')
+      .eq('id', revendedoraId)
+      .single();
+
+    if (lookupError || !revendedora) {
+      console.error('[NEXUS] Revendedora não encontrada:', revendedoraId);
+      return res.status(404).json({ error: 'Revendedora não encontrada' });
+    }
+
+    const adminIdVerificado = revendedora.admin_id;
+    
+    // Calcular comissão se não foi informada
+    const comissaoCalculada = valorComissao ?? (valorTotal * (Number(revendedora.comissao_padrao) / 100));
+    const empresaCalculada = valorEmpresa ?? (valorTotal - comissaoCalculada);
 
     const { data, error } = await supabaseOwner
       .from('vendas_revendedora')
       .insert({
         revendedora_id: revendedoraId,
-        admin_id: adminId,
+        admin_id: adminIdVerificado, // 🔐 Derivado da revendedora, não do body
         produto_id: produtoId || null,
         produto_nome: produtoNome || null,
         valor_total: valorTotal,
-        valor_comissao: valorComissao || 0,
-        valor_empresa: valorEmpresa || valorTotal,
+        valor_comissao: comissaoCalculada,
+        valor_empresa: empresaCalculada,
         status_pagamento: 'pendente',
         stripe_payment_id: stripePaymentId || null,
         cliente_nome: clienteNome || null,
@@ -200,6 +235,8 @@ router.post('/create-sale', async (req, res) => {
       console.error('Erro ao criar venda:', error);
       return res.status(500).json({ error: 'Erro ao registrar venda' });
     }
+
+    console.log(`✅ [NEXUS] Venda criada: revendedora=${revendedoraId}, admin=${adminIdVerificado}, valor=${valorTotal}`);
 
     res.json({
       success: true,
