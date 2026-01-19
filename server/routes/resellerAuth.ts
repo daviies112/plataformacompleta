@@ -792,7 +792,15 @@ const supabaseUpdateSchema = z.object({
 // Suporta atualizações parciais quando já configurado
 router.put('/supabase-config', async (req: Request, res: Response) => {
   try {
+    console.log('[supabase-config PUT] Session check:', {
+      hasSession: !!req.session,
+      userEmail: req.session?.userEmail,
+      userRole: req.session?.userRole,
+      sessionId: req.sessionID
+    });
+    
     if (!req.session?.userEmail || req.session?.userRole !== 'reseller') {
+      console.log('[supabase-config PUT] Auth failed - returning 401');
       return res.status(401).json({ error: 'Não autenticado' });
     }
 

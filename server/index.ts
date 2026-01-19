@@ -50,14 +50,18 @@ initializeSentry(app).then(initialized => {
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: false, limit: '10mb' }));
 
+// Confiar em proxies (necessário para Replit e outros ambientes de proxy)
+app.set('trust proxy', 1);
+
 // Configuração de sessão para autenticação multi-tenant
 app.use(session({
   secret: process.env.SESSION_SECRET || 'default-dev-secret-change-in-production',
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: process.env.NODE_ENV === 'production',
+    secure: true, // Sempre true para HTTPS no Replit
     httpOnly: true,
+    sameSite: 'none', // Necessário para cookies cross-origin no Replit
     maxAge: 24 * 60 * 60 * 1000 // 24 horas
   }
 }));
