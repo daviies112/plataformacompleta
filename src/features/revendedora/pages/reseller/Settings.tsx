@@ -31,7 +31,9 @@ import {
   Loader2,
   Save,
   Check,
-  AlertCircle,
+  Eye,
+  EyeOff,
+  RefreshCw,
 } from 'lucide-react';
 import { useCompany } from '@/features/revendedora/contexts/CompanyContext';
 import { useToast } from '@/hooks/use-toast';
@@ -50,15 +52,24 @@ const notificationsSchema = z.object({
   push_estoque: z.boolean(),
 });
 
+const supabaseSchema = z.object({
+  supabase_url: z.string().url('URL inválida').min(1, 'URL é obrigatória'),
+  supabase_anon_key: z.string().min(10, 'Anon Key deve ter pelo menos 10 caracteres'),
+  supabase_service_key: z.string().optional(),
+});
+
 type ProfileFormValues = z.infer<typeof profileSchema>;
 type NotificationsFormValues = z.infer<typeof notificationsSchema>;
+type SupabaseFormValues = z.infer<typeof supabaseSchema>;
 
 export default function Settings() {
   const { reseller } = useCompany();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  const [openSections, setOpenSections] = useState<string[]>(['profile']);
+  const [openSections, setOpenSections] = useState<string[]>(['supabase']);
+  const [showAnonKey, setShowAnonKey] = useState(false);
+  const [showServiceKey, setShowServiceKey] = useState(false);
 
   const toggleSection = (section: string) => {
     setOpenSections(prev =>
@@ -80,7 +91,7 @@ export default function Settings() {
     enabled: !!reseller,
   });
 
-  const { data: supabaseConfig, isLoading: isLoadingSupabase } = useQuery({
+  const { data: supabaseConfig, isLoading: isLoadingSupabase, refetch: refetchSupabase } = useQuery({
     queryKey: ['/api/reseller/supabase-config'],
     queryFn: async () => {
       const response = await fetch('/api/reseller/supabase-config', {
@@ -112,6 +123,15 @@ export default function Settings() {
     },
   });
 
+  const supabaseForm = useForm<SupabaseFormValues>({
+    resolver: zodResolver(supabaseSchema),
+    defaultValues: {
+      supabase_url: '',
+      supabase_anon_key: '',
+      supabase_service_key: '',
+    },
+  });
+
   useEffect(() => {
     if (reseller) {
       profileForm.reset({
@@ -127,6 +147,16 @@ export default function Settings() {
       notificationsForm.reset(settings.notifications);
     }
   }, [settings, notificationsForm]);
+
+  useEffect(() => {
+    if (supabaseConfig) {
+      supabaseForm.reset({
+        supabase_url: supabaseConfig.supabase_url || '',
+        supabase_anon_key: supabaseConfig.supabase_anon_key || '',
+        supabase_service_key: supabaseConfig.supabase_service_key || '',
+      });
+    }
+  }, [supabaseConfig, supabaseForm]);
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: ProfileFormValues) => {
@@ -182,25 +212,56 @@ export default function Settings() {
     },
   });
 
+  const updateSupabaseMutation = useMutation({
+    mutationFn: async (data: SupabaseFormValues) => {
+      const response = await fetch('/api/reseller/supabase-config', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erro ao salvar credenciais');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/reseller/supabase-config'] });
+      toast({
+        title: 'Credenciais salvas',
+        description: 'Suas credenciais Supabase foram salvas com sucesso.',
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Erro',
+        description: error.message || 'Não foi possível salvar as credenciais.',
+        variant: 'destructive',
+      });
+    },
+  });
+
   const testSupabaseConnection = useMutation({
     mutationFn: async () => {
       const response = await fetch('/api/reseller/supabase-config/test', {
         method: 'POST',
         credentials: 'include',
       });
-      if (!response.ok) throw new Error('Conexão falhou');
-      return response.json();
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || data.error || 'Conexão falhou');
+      return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast({
         title: 'Conexão OK',
-        description: 'Conexão com Supabase estabelecida com sucesso.',
+        description: data.message || 'Conexão com Supabase estabelecida com sucesso.',
       });
     },
-    onError: () => {
+    onError: (error: Error) => {
       toast({
         title: 'Erro de conexão',
-        description: 'Não foi possível conectar ao Supabase. Verifique as credenciais.',
+        description: error.message || 'Não foi possível conectar ao Supabase.',
         variant: 'destructive',
       });
     },
@@ -231,6 +292,171 @@ export default function Settings() {
       </div>
 
       <div className="space-y-4">
+        <Collapsible
+          open={openSections.includes('supabase')}
+          onOpenChange={() => toggleSection('supabase')}
+        >
+          <Card>
+            <CollapsibleTrigger asChild>
+              <CardHeader className="cursor-pointer hover-elevate rounded-t-lg">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Database className="h-5 w-5 text-green-500" />
+                    <div>
+                      <CardTitle className="text-lg">Banco de Dados Supabase</CardTitle>
+                      <CardDescription>Configure suas credenciais do Supabase</CardDescription>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {supabaseConfig?.configured && (
+                      <Badge variant="default" className="bg-green-500">
+                        <Check className="h-3 w-3 mr-1" />
+                        Configurado
+                      </Badge>
+                    )}
+                    <ChevronDown className={`h-5 w-5 transition-transform ${openSections.includes('supabase') ? 'rotate-180' : ''}`} />
+                  </div>
+                </div>
+              </CardHeader>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <CardContent className="pt-0">
+                <Separator className="mb-6" />
+
+                {isLoadingSupabase ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : (
+                  <Form {...supabaseForm}>
+                    <form onSubmit={supabaseForm.handleSubmit((data) => updateSupabaseMutation.mutate(data))} className="space-y-4">
+                      <FormField
+                        control={supabaseForm.control}
+                        name="supabase_url"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>URL do Projeto Supabase</FormLabel>
+                            <FormControl>
+                              <Input
+                                {...field}
+                                placeholder="https://seu-projeto.supabase.co"
+                                data-testid="input-supabase-url"
+                              />
+                            </FormControl>
+                            <FormDescription className="text-xs">
+                              Encontre a URL no painel do Supabase em Settings &gt; API
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={supabaseForm.control}
+                        name="supabase_anon_key"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Anon Key (Chave Pública)</FormLabel>
+                            <FormControl>
+                              <div className="relative">
+                                <Input
+                                  {...field}
+                                  type={showAnonKey ? 'text' : 'password'}
+                                  placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                                  className="pr-10"
+                                  data-testid="input-supabase-anon-key"
+                                />
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="absolute right-0 top-0 h-full px-3"
+                                  onClick={() => setShowAnonKey(!showAnonKey)}
+                                  data-testid="button-toggle-anon-key"
+                                >
+                                  {showAnonKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </Button>
+                              </div>
+                            </FormControl>
+                            <FormDescription className="text-xs">
+                              Chave pública para acessar o banco de dados
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={supabaseForm.control}
+                        name="supabase_service_key"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Service Role Key (Opcional)</FormLabel>
+                            <FormControl>
+                              <div className="relative">
+                                <Input
+                                  {...field}
+                                  type={showServiceKey ? 'text' : 'password'}
+                                  placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                                  className="pr-10"
+                                  data-testid="input-supabase-service-key"
+                                />
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="absolute right-0 top-0 h-full px-3"
+                                  onClick={() => setShowServiceKey(!showServiceKey)}
+                                  data-testid="button-toggle-service-key"
+                                >
+                                  {showServiceKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </Button>
+                              </div>
+                            </FormControl>
+                            <FormDescription className="text-xs">
+                              Chave de serviço com acesso total (use com cuidado)
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <div className="flex items-center gap-2 pt-4">
+                        <Button
+                          type="submit"
+                          disabled={updateSupabaseMutation.isPending}
+                          data-testid="button-save-supabase"
+                        >
+                          {updateSupabaseMutation.isPending ? (
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          ) : (
+                            <Save className="h-4 w-4 mr-2" />
+                          )}
+                          Salvar Credenciais
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => testSupabaseConnection.mutate()}
+                          disabled={testSupabaseConnection.isPending || !supabaseConfig?.configured}
+                          data-testid="button-test-supabase"
+                        >
+                          {testSupabaseConnection.isPending ? (
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          ) : (
+                            <RefreshCw className="h-4 w-4 mr-2" />
+                          )}
+                          Testar Conexão
+                        </Button>
+                      </div>
+                    </form>
+                  </Form>
+                )}
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
+
         <Collapsible
           open={openSections.includes('profile')}
           onOpenChange={() => toggleSection('profile')}
@@ -477,113 +703,6 @@ export default function Settings() {
                     </Button>
                   </form>
                 </Form>
-              </CardContent>
-            </CollapsibleContent>
-          </Card>
-        </Collapsible>
-
-        <Collapsible
-          open={openSections.includes('supabase')}
-          onOpenChange={() => toggleSection('supabase')}
-        >
-          <Card>
-            <CollapsibleTrigger asChild>
-              <CardHeader className="cursor-pointer hover-elevate rounded-t-lg">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Database className="h-5 w-5 text-green-500" />
-                    <div>
-                      <CardTitle className="text-lg">Banco de Dados Supabase</CardTitle>
-                      <CardDescription>Credenciais herdadas do administrador</CardDescription>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="secondary">Somente Leitura</Badge>
-                    <ChevronDown className={`h-5 w-5 transition-transform ${openSections.includes('supabase') ? 'rotate-180' : ''}`} />
-                  </div>
-                </div>
-              </CardHeader>
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <CardContent className="pt-0">
-                <Separator className="mb-6" />
-
-                <div className="rounded-lg bg-blue-50 dark:bg-blue-900/20 p-4 mb-6 flex items-start gap-3">
-                  <AlertCircle className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
-                      Credenciais Herdadas
-                    </p>
-                    <p className="text-sm text-blue-600 dark:text-blue-300 mt-1">
-                      As credenciais do Supabase são gerenciadas pelo seu administrador. 
-                      Você tem acesso somente leitura para visualizar as configurações.
-                    </p>
-                  </div>
-                </div>
-
-                {isLoadingSupabase ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                  </div>
-                ) : supabaseConfig ? (
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">URL do Projeto</label>
-                      <Input
-                        value={supabaseConfig.url || 'Não configurado'}
-                        disabled
-                        className="bg-muted mt-1"
-                        data-testid="input-supabase-url"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">Anon Key</label>
-                      <Input
-                        value={supabaseConfig.anon_key || '••••••••'}
-                        disabled
-                        className="bg-muted mt-1"
-                        data-testid="input-supabase-anon-key"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium text-muted-foreground">Service Role Key</label>
-                      <Input
-                        value={supabaseConfig.service_role_key || '••••••••'}
-                        disabled
-                        className="bg-muted mt-1"
-                        data-testid="input-supabase-service-key"
-                      />
-                    </div>
-
-                    <div className="flex items-center gap-2 pt-4">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => testSupabaseConnection.mutate()}
-                        disabled={testSupabaseConnection.isPending}
-                        data-testid="button-test-supabase"
-                      >
-                        {testSupabaseConnection.isPending ? (
-                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        ) : (
-                          <Check className="h-4 w-4 mr-2" />
-                        )}
-                        Testar Conexão
-                      </Button>
-                      {supabaseConfig.connected && (
-                        <Badge variant="default" className="bg-green-500">
-                          <Check className="h-3 w-3 mr-1" />
-                          Conectado
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Database className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                    <p>Credenciais não configuradas pelo administrador</p>
-                  </div>
-                )}
               </CardContent>
             </CollapsibleContent>
           </Card>
