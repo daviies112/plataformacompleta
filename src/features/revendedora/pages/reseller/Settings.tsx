@@ -40,6 +40,7 @@ import {
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useCompany } from '@/features/revendedora/contexts/CompanyContext';
 import { useToast } from '@/hooks/use-toast';
+import { resellerFetch } from '../../lib/resellerAuth';
 
 const profileSchema = z.object({
   nome: z.string().min(2, 'Nome muito curto'),
@@ -95,9 +96,7 @@ export default function Settings() {
   const { data: settings, isLoading: isLoadingSettings } = useQuery({
     queryKey: ['/api/reseller/settings'],
     queryFn: async () => {
-      const response = await fetch('/api/reseller/settings', {
-        credentials: 'include',
-      });
+      const response = await resellerFetch('/api/reseller/settings');
       if (!response.ok) return null;
       return response.json();
     },
@@ -106,9 +105,7 @@ export default function Settings() {
   const { data: supabaseConfig, isLoading: isLoadingSupabase, refetch: refetchSupabase } = useQuery({
     queryKey: ['/api/reseller/supabase-config'],
     queryFn: async () => {
-      const response = await fetch('/api/reseller/supabase-config', {
-        credentials: 'include',
-      });
+      const response = await resellerFetch('/api/reseller/supabase-config');
       if (!response.ok) return null;
       return response.json();
     },
@@ -175,10 +172,8 @@ export default function Settings() {
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: ProfileFormValues) => {
-      const response = await fetch('/api/reseller/profile', {
+      const response = await resellerFetch('/api/reseller/profile', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify(data),
       });
       if (!response.ok) throw new Error('Erro ao atualizar perfil');
@@ -202,10 +197,8 @@ export default function Settings() {
 
   const updateNotificationsMutation = useMutation({
     mutationFn: async (data: NotificationsFormValues) => {
-      const response = await fetch('/api/reseller/notifications', {
+      const response = await resellerFetch('/api/reseller/notifications', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify(data),
       });
       if (!response.ok) throw new Error('Erro ao atualizar notificações');
@@ -229,10 +222,8 @@ export default function Settings() {
 
   const updateSupabaseMutation = useMutation({
     mutationFn: async (data: SupabaseFormValues) => {
-      const response = await fetch('/api/reseller/supabase-config', {
+      const response = await resellerFetch('/api/reseller/supabase-config', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify(data),
       });
       if (!response.ok) {
@@ -259,9 +250,8 @@ export default function Settings() {
 
   const testSupabaseConnection = useMutation({
     mutationFn: async () => {
-      const response = await fetch('/api/reseller/supabase-config/test', {
+      const response = await resellerFetch('/api/reseller/supabase-config/test', {
         method: 'POST',
-        credentials: 'include',
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || data.error || 'Conexão falhou');

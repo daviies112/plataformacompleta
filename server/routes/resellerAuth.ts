@@ -1,5 +1,6 @@
-import express, { Request, Response } from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
+import jwt from 'jsonwebtoken';
 import { supabaseOwner, SUPABASE_CONFIGURED } from '../config/supabaseOwner';
 import { 
   getAdminCredentials, 
@@ -10,6 +11,53 @@ import {
   createRevendedoraFromContract
 } from '../lib/masterSyncService';
 import { pool } from '../db';
+
+const JWT_SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV === 'development' ? 'dev-only-secret' : (() => { throw new Error('JWT_SECRET must be set in production'); })());
+const JWT_EXPIRY = '7d';
+
+interface ResellerTokenPayload {
+  userId: string;
+  userEmail: string;
+  userName: string;
+  userRole: 'reseller';
+  tenantId: string | null;
+  comissao: number;
+}
+
+function generateResellerToken(payload: ResellerTokenPayload): string {
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRY });
+}
+
+function verifyResellerToken(token: string): ResellerTokenPayload | null {
+  try {
+    return jwt.verify(token, JWT_SECRET) as ResellerTokenPayload;
+  } catch {
+    return null;
+  }
+}
+
+export function resellerAuthMiddleware(req: Request, _res: Response, next: NextFunction) {
+  if (req.session?.userEmail && req.session?.userRole === 'reseller') {
+    return next();
+  }
+  
+  const authHeader = req.headers.authorization;
+  if (authHeader?.startsWith('Bearer ')) {
+    const token = authHeader.slice(7);
+    const payload = verifyResellerToken(token);
+    if (payload && payload.userRole === 'reseller') {
+      req.session.userId = payload.userId;
+      req.session.userEmail = payload.userEmail;
+      req.session.userName = payload.userName;
+      req.session.userRole = payload.userRole;
+      req.session.tenantId = payload.tenantId;
+      req.session.comissao = payload.comissao;
+      return next();
+    }
+  }
+  
+  next();
+}
 
 const profileUpdateSchema = z.object({
   nome: z.string().min(2).max(100),
@@ -245,6 +293,15 @@ router.post('/login', async (req: Request, res: Response) => {
         sessionID: req.sessionID
       });
 
+      const token = generateResellerToken({
+        userId: 'dev-reseller-1',
+        userEmail: email,
+        userName: 'Revendedora Teste',
+        userRole: 'reseller',
+        tenantId: 'dev-admin-default',
+        comissao: 10
+      });
+
       return req.session.save((err) => {
         if (err) {
           console.error('Erro ao salvar sessao:', err);
@@ -256,6 +313,7 @@ router.post('/login', async (req: Request, res: Response) => {
         res.json({
           success: true,
           redirect: '/revendedora/reseller/dashboard',
+          token,
           user: {
             id: 'dev-reseller-1',
             nome: 'Revendedora Teste',
@@ -337,6 +395,15 @@ router.post('/login', async (req: Request, res: Response) => {
     // NOTA: Credenciais do Supabase NÃO são armazenadas na sessão por segurança
     // Use getAdminCredentials(tenantId) quando precisar das credenciais
 
+    const token = generateResellerToken({
+      userId: revendedora.id,
+      userEmail: revendedora.email,
+      userName: revendedora.nome || '',
+      userRole: 'reseller',
+      tenantId: adminId,
+      comissao: Number(revendedora.comissao_padrao) || 0
+    });
+
     req.session.save((err) => {
       if (err) {
         console.error('Erro ao salvar sessao:', err);
@@ -354,6 +421,7 @@ router.post('/login', async (req: Request, res: Response) => {
       res.json({
         success: true,
         redirect: '/revendedora/reseller/dashboard',
+        token,
         user: {
           id: revendedora.id,
           nome: revendedora.nome,

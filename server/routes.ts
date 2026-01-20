@@ -85,8 +85,10 @@ export async function registerRoutes(app: Express) {
   app.use("/api/n8n", n8nRouter);
   
   // Reseller authentication routes - PUBLIC (login/register don't need auth)
-  app.use("/api/reseller", resellerAuthRoutes);
-  app.use("/api/reseller", resellerCatalogRoutes);
+  // Apply JWT fallback middleware for token-based auth (for iframe contexts where cookies fail)
+  const { resellerAuthMiddleware } = await import("./routes/resellerAuth");
+  app.use("/api/reseller", resellerAuthMiddleware, resellerAuthRoutes);
+  app.use("/api/reseller", resellerAuthMiddleware, resellerCatalogRoutes);
 
   // Import utilities for protection logic
   const { log } = await import("./vite");

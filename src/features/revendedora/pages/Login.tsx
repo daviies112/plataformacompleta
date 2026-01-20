@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { LogIn } from 'lucide-react';
+import { saveResellerToken } from '../lib/resellerAuth';
 
 // Função para formatar CPF enquanto digita
 function formatCPF(value: string): string {
@@ -51,6 +52,9 @@ export default function Login() {
       }
 
       if (data.success) {
+        if (data.token) {
+          saveResellerToken(data.token);
+        }
         toast.success('Login realizado com sucesso!');
         navigate('/revendedora/reseller/dashboard');
       }

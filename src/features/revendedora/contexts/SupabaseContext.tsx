@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useRef, useCallback, ReactNode } from 'react';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { resellerFetch } from '../lib/resellerAuth';
 
 interface SupabaseContextType {
   client: SupabaseClient | null;
@@ -43,9 +44,7 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
 
   const fetchConfigInternal = useCallback(async () => {
     try {
-      const response = await fetch('/api/reseller/supabase-config', {
-        credentials: 'include',
-      });
+      const response = await resellerFetch('/api/reseller/supabase-config');
       
       if (!response.ok) {
         if (response.status === 401) {
