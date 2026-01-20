@@ -101,7 +101,6 @@ export default function Settings() {
       if (!response.ok) return null;
       return response.json();
     },
-    enabled: !!reseller,
   });
 
   const { data: supabaseConfig, isLoading: isLoadingSupabase, refetch: refetchSupabase } = useQuery({
@@ -113,7 +112,6 @@ export default function Settings() {
       if (!response.ok) return null;
       return response.json();
     },
-    enabled: !!reseller,
   });
 
   const profileForm = useForm<ProfileFormValues>({
