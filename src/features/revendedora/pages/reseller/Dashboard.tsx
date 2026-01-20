@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { useSupabase } from '@/features/revendedora/contexts/SupabaseContext';
 import { useCompany } from '@/features/revendedora/contexts/CompanyContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/features/revendedora/components/ui/card';
-import { Users, Package } from 'lucide-react';
+import { Users, Package, Building2 } from 'lucide-react';
+import { getProjectName } from '../../lib/resellerAuth';
 
 export default function ResellerDashboard() {
   const { reseller, loading: companyLoading } = useCompany();
@@ -63,14 +64,19 @@ export default function ResellerDashboard() {
     return <div className="flex items-center justify-center h-64">Carregando...</div>;
   }
 
+  const projectName = getProjectName();
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Dashboard</h1>
-        <p className="text-muted-foreground">
-          {reseller?.nome && `Olá, ${reseller.nome}! `}
-          Visão geral do sistema
-        </p>
+      <div className="flex items-center gap-3">
+        <Building2 className="h-8 w-8 text-primary" />
+        <div>
+          <h1 className="text-3xl font-bold">{projectName}</h1>
+          <p className="text-muted-foreground">
+            {reseller?.nome && `Olá, ${reseller.nome}! `}
+            Visão geral do sistema
+          </p>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">

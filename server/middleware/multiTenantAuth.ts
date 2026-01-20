@@ -12,6 +12,7 @@ declare module 'express-session' {
     // ===== CAMPOS NEXUS (Revendedoras) =====
     userRole?: 'admin' | 'reseller';
     comissao?: number;
+    projectName?: string;  // Nome da plataforma/projeto do admin
   }
 }
 

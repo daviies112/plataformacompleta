@@ -1,4 +1,5 @@
 const TOKEN_KEY = 'reseller_auth_token';
+const PROJECT_NAME_KEY = 'reseller_project_name';
 
 export function saveResellerToken(token: string): void {
   localStorage.setItem(TOKEN_KEY, token);
@@ -10,6 +11,15 @@ export function getResellerToken(): string | null {
 
 export function clearResellerToken(): void {
   localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(PROJECT_NAME_KEY);
+}
+
+export function saveProjectName(projectName: string): void {
+  localStorage.setItem(PROJECT_NAME_KEY, projectName);
+}
+
+export function getProjectName(): string {
+  return localStorage.getItem(PROJECT_NAME_KEY) || 'Plataforma';
 }
 
 export function getAuthHeaders(): HeadersInit {

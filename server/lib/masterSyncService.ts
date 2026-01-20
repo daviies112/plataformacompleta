@@ -1,4 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { supabaseOwner, SUPABASE_CONFIGURED } from '../config/supabaseOwner';
 
 // Credenciais do Supabase Master (central)
 const MASTER_URL = process.env.SUPABASE_URL || '';
@@ -24,6 +25,7 @@ export interface AdminCredentials {
   supabase_anon_key: string;
   supabase_service_key: string;
   storage_bucket: string;
+  project_name?: string;
 }
 
 export interface RevendedoraData {
@@ -41,32 +43,59 @@ export interface RevendedoraData {
 }
 
 export async function getAdminCredentials(adminId: string): Promise<AdminCredentials | null> {
+  // 1. Tentar buscar do Supabase Master (se configurado)
   const master = getMasterClient();
-  if (!master) return null;
-  
-  try {
-    // Colunas conforme SQL executado: supabase_url, supabase_anon_key, supabase_service_role_key
-    const { data, error } = await master
-      .from('admin_supabase_credentials')
-      .select('supabase_url, supabase_anon_key, supabase_service_role_key')
-      .eq('admin_id', adminId)
-      .maybeSingle();
-    
-    if (error || !data) {
-      console.warn(`[MasterSync] Credenciais não encontradas para admin ${adminId}:`, error?.message);
-      return null;
+  if (master) {
+    try {
+      const { data, error } = await master
+        .from('admin_supabase_credentials')
+        .select('supabase_url, supabase_anon_key, supabase_service_role_key, project_name')
+        .eq('admin_id', adminId)
+        .maybeSingle();
+      
+      if (!error && data) {
+        console.log(`[MasterSync] Credenciais encontradas no Master para admin ${adminId}`);
+        return {
+          supabase_url: data.supabase_url,
+          supabase_anon_key: data.supabase_anon_key,
+          supabase_service_key: data.supabase_service_role_key,
+          storage_bucket: '',
+          project_name: data.project_name
+        };
+      }
+    } catch (error) {
+      console.warn('[MasterSync] Erro ao buscar no Master:', error);
     }
-    
-    return {
-      supabase_url: data.supabase_url,
-      supabase_anon_key: data.supabase_anon_key,
-      supabase_service_key: data.supabase_service_role_key,
-      storage_bucket: ''
-    };
-  } catch (error) {
-    console.error('[MasterSync] Erro ao buscar credenciais:', error);
-    return null;
   }
+  
+  // 2. Fallback: buscar do supabaseOwner (onde estão as revendedoras)
+  if (SUPABASE_CONFIGURED && supabaseOwner) {
+    try {
+      // Tabela admin_supabase conforme estrutura do usuário
+      const { data, error } = await supabaseOwner
+        .from('admin_supabase')
+        .select('supabase_url, supabase_anon_key, supabase_service_role_key, project_name')
+        .eq('admin_id', adminId)
+        .maybeSingle();
+      
+      if (!error && data) {
+        console.log(`[MasterSync] Credenciais encontradas no Owner para admin ${adminId} (${data.project_name})`);
+        return {
+          supabase_url: data.supabase_url,
+          supabase_anon_key: data.supabase_anon_key,
+          supabase_service_key: data.supabase_service_role_key,
+          storage_bucket: '',
+          project_name: data.project_name
+        };
+      }
+      
+      console.warn(`[MasterSync] Credenciais não encontradas para admin ${adminId}:`, error?.message);
+    } catch (error) {
+      console.error('[MasterSync] Erro ao buscar credenciais no Owner:', error);
+    }
+  }
+  
+  return null;
 }
 
 export function createTenantClient(credentials: AdminCredentials): SupabaseClient {

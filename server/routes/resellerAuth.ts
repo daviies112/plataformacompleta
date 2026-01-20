@@ -22,6 +22,7 @@ interface ResellerTokenPayload {
   userRole: 'reseller';
   tenantId: string | null;
   comissao: number;
+  projectName?: string;
 }
 
 function generateResellerToken(payload: ResellerTokenPayload): string {
@@ -52,6 +53,7 @@ export function resellerAuthMiddleware(req: Request, _res: Response, next: NextF
       req.session.userRole = payload.userRole;
       req.session.tenantId = payload.tenantId;
       req.session.comissao = payload.comissao;
+      req.session.projectName = payload.projectName;
       return next();
     }
   }
@@ -376,12 +378,44 @@ router.post('/login', async (req: Request, res: Response) => {
 
     // 2. Buscar credenciais do Supabase do Admin (para plataforma separada)
     const adminCredentials = await getAdminCredentials(adminId);
+    let projectName = 'Plataforma';
     
     if (!adminCredentials) {
       console.warn(`[NEXUS] Credenciais do admin ${adminId} não encontradas no Master`);
       // Continua sem credenciais - pode usar fallback local
     } else {
-      console.log(`[NEXUS] Credenciais do admin ${adminId} carregadas do Master`);
+      console.log(`[NEXUS] Credenciais do admin ${adminId} carregadas`);
+      projectName = adminCredentials.project_name || 'Plataforma';
+      
+      // 2.1. Salvar automaticamente as credenciais no banco local para esta revendedora
+      try {
+        const checkResult = await pool.query(
+          'SELECT id FROM reseller_supabase_configs WHERE reseller_email = $1',
+          [revendedora.email]
+        );
+        
+        if (checkResult.rows.length === 0) {
+          // Inserir novas credenciais
+          await pool.query(
+            `INSERT INTO reseller_supabase_configs (reseller_email, supabase_url, supabase_anon_key, supabase_service_key)
+             VALUES ($1, $2, $3, $4)`,
+            [revendedora.email, adminCredentials.supabase_url, adminCredentials.supabase_anon_key, adminCredentials.supabase_service_role_key]
+          );
+          console.log(`✅ [NEXUS] Credenciais do admin salvas automaticamente para: ${revendedora.email}`);
+        } else {
+          // Atualizar credenciais existentes (caso o admin tenha mudado)
+          await pool.query(
+            `UPDATE reseller_supabase_configs 
+             SET supabase_url = $2, supabase_anon_key = $3, supabase_service_key = $4, updated_at = NOW()
+             WHERE reseller_email = $1`,
+            [revendedora.email, adminCredentials.supabase_url, adminCredentials.supabase_anon_key, adminCredentials.supabase_service_role_key]
+          );
+          console.log(`✅ [NEXUS] Credenciais do admin atualizadas para: ${revendedora.email}`);
+        }
+      } catch (dbError) {
+        console.error('[NEXUS] Erro ao salvar credenciais no banco local:', dbError);
+        // Não bloqueia o login se falhar
+      }
     }
 
     // 3. Criar sessão com dados do tenant (SEM credenciais - buscar sob demanda por segurança)
@@ -391,6 +425,7 @@ router.post('/login', async (req: Request, res: Response) => {
     req.session.userRole = 'reseller';
     req.session.tenantId = adminId; // CRUCIAL: Tenant é o Admin
     req.session.comissao = Number(revendedora.comissao_padrao);
+    req.session.projectName = projectName;
     
     // NOTA: Credenciais do Supabase NÃO são armazenadas na sessão por segurança
     // Use getAdminCredentials(tenantId) quando precisar das credenciais
@@ -401,7 +436,8 @@ router.post('/login', async (req: Request, res: Response) => {
       userName: revendedora.nome || '',
       userRole: 'reseller',
       tenantId: adminId,
-      comissao: Number(revendedora.comissao_padrao) || 0
+      comissao: Number(revendedora.comissao_padrao) || 0,
+      projectName: projectName
     });
 
     req.session.save((err) => {
@@ -432,7 +468,8 @@ router.post('/login', async (req: Request, res: Response) => {
         },
         tenant: {
           adminId: adminId,
-          hasCredentials: !!adminCredentials
+          hasCredentials: !!adminCredentials,
+          projectName: projectName
         }
       });
     });
