@@ -351,7 +351,8 @@ router.post('/login', async (req: Request, res: Response) => {
       firstRecord: revendedoras?.[0] ? { 
         email: revendedoras[0].email, 
         cpf: revendedoras[0].cpf, 
-        status: revendedoras[0].status 
+        status: revendedoras[0].status,
+        admin_id: revendedoras[0].admin_id
       } : null
     });
     
