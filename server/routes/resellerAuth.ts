@@ -769,10 +769,11 @@ router.get('/supabase-config', async (req: Request, res: Response) => {
     const hasOwnCredentials = !!(config?.supabase_url && config?.supabase_anon_key);
     
     if (hasOwnCredentials) {
-      // Retornar credenciais completas (sem service_key por segurança)
+      // Retornar URL e anon_key (service_key nunca é exposta no frontend)
       return res.json({
         supabase_url: config.supabase_url,
         supabase_anon_key: config.supabase_anon_key,
+        has_service_key: !!config.supabase_service_key,
         configured: true,
         inherited: false
       });
@@ -794,6 +795,7 @@ router.get('/supabase-config', async (req: Request, res: Response) => {
           return res.json({
             supabase_url: adminCreds.supabase_url,
             supabase_anon_key: adminCreds.supabase_anon_key,
+            has_service_key: !!adminCreds.supabase_service_key,
             configured: false,
             inherited: true
           });
@@ -804,6 +806,7 @@ router.get('/supabase-config', async (req: Request, res: Response) => {
     res.json({ 
       supabase_url: '',
       supabase_anon_key: '',
+      has_service_key: false,
       configured: false,
       inherited: false
     });

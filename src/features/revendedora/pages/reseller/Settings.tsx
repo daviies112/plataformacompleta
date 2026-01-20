@@ -161,11 +161,11 @@ export default function Settings() {
 
   useEffect(() => {
     if (supabaseConfig) {
-      // Só carregar URL (chaves nunca são retornadas por segurança)
+      // Carregar URL e anon_key (service_key apenas indica se existe)
       supabaseForm.reset({
         supabase_url: supabaseConfig.supabase_url || '',
-        supabase_anon_key: '',
-        supabase_service_key: '',
+        supabase_anon_key: supabaseConfig.supabase_anon_key || '',
+        supabase_service_key: supabaseConfig.has_service_key ? '••••••••••••••••••••' : '',
       });
     }
   }, [supabaseConfig, supabaseForm]);
