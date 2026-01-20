@@ -19,12 +19,20 @@ export function log(message: string) {
 export async function setupVite(app: Express, server: Server) {
   console.log('[VITE] Creating Vite server...');
   
+  // Configure HMR for Replit environment
+  // In middleware mode, we attach HMR to the existing HTTP server
+  // For Replit, we configure the client to connect via WSS to the proxy
+  const isReplit = process.env.REPL_ID || process.env.REPLIT_DEV_DOMAIN;
+  
+  console.log('[VITE] Environment:', isReplit ? 'Replit' : 'Local');
+  console.log('[VITE] REPLIT_DEV_DOMAIN:', process.env.REPLIT_DEV_DOMAIN || 'not set');
+  
   // Add timeout protection
   const vitePromise = createViteServer({
     server: {
       middlewareMode: true,
       hmr: {
-        server: server,
+        server: server, // Use the existing HTTP server for HMR websocket
       },
       allowedHosts: true,
     },
