@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSupabase } from '@/features/revendedora/contexts/SupabaseContext';
+import { getResellerId as getStoredResellerId } from '@/features/revendedora/lib/resellerAuth';
 
 export interface ChatMessage {
   id: string;
@@ -50,12 +51,6 @@ export function useChat() {
   const subscriptionRef = useRef<any>(null);
   const initializedRef = useRef(false);
 
-  const getStoredResellerId = useCallback((): string | null => {
-    const storedReseller = localStorage.getItem('current_reseller_id');
-    if (storedReseller) return storedReseller;
-    return null;
-  }, []);
-
   const fetchCompanyAndReseller = useCallback(async () => {
     if (!supabase) return { companyId: null, resellerId: null };
     
@@ -94,7 +89,7 @@ export function useChat() {
       console.log('[useChat] Error fetching company/reseller:', err.message);
       return { companyId: null, resellerId: null };
     }
-  }, [getStoredResellerId, supabase]);
+  }, [supabase]);
 
   const fetchConnection = useCallback(async (cId: string) => {
     if (!supabase || !cId) return;

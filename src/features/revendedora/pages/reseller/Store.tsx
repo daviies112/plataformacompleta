@@ -5,6 +5,7 @@ import { Store as StoreIcon, Package, Plus, X, Save, ArrowRight, Search, Shoppin
 import { Button } from '@/features/revendedora/components/ui/button';
 import { toast } from 'sonner';
 import { Badge } from '@/features/revendedora/components/ui/badge';
+import { getResellerId as getStoredResellerId } from '@/features/revendedora/lib/resellerAuth';
 import { Input } from '@/features/revendedora/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/features/revendedora/components/ui/select';
 import {
@@ -70,8 +71,9 @@ export default function Store() {
   };
 
   const getResellerId = (): string => {
-    const storedReseller = localStorage.getItem('current_reseller_id');
+    const storedReseller = getStoredResellerId();
     if (storedReseller) return storedReseller;
+    console.warn('[Store] Reseller ID não encontrado no localStorage');
     return '00000000-0000-0000-0000-000000000001';
   };
 

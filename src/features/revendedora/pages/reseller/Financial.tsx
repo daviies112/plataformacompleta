@@ -48,10 +48,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/features/revendedora/components/ui/alert-dialog';
+import { getResellerId as getStoredResellerId } from '@/features/revendedora/lib/resellerAuth';
 
 export default function Financial() {
   const getResellerId = (): string => {
-    const storedReseller = localStorage.getItem('current_reseller_id');
+    const storedReseller = getStoredResellerId();
     if (storedReseller) return storedReseller;
     return '00000000-0000-0000-0000-000000000001';
   };

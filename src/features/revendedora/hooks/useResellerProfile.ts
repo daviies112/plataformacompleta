@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSupabase } from '@/features/revendedora/contexts/SupabaseContext';
+import { getResellerId as getStoredResellerId } from '@/features/revendedora/lib/resellerAuth';
 import { toast } from 'sonner';
 
 export interface ResellerProfile {
@@ -23,7 +24,7 @@ export function useResellerProfile(resellerId?: string) {
 
   const getResellerId = useCallback((): string => {
     if (resellerId) return resellerId;
-    const storedReseller = localStorage.getItem('current_reseller_id');
+    const storedReseller = getStoredResellerId();
     if (storedReseller) return storedReseller;
     return '00000000-0000-0000-0000-000000000001';
   }, [resellerId]);

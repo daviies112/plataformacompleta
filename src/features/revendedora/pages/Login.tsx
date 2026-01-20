@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { LogIn } from 'lucide-react';
-import { saveResellerToken, saveProjectName } from '../lib/resellerAuth';
+import { saveResellerToken, saveProjectName, saveResellerId, saveResellerEmail } from '../lib/resellerAuth';
 
 // Função para formatar CPF enquanto digita
 function formatCPF(value: string): string {
@@ -59,6 +59,12 @@ export default function Login() {
         }
         if (data.tenant?.projectName) {
           saveProjectName(data.tenant.projectName);
+        }
+        if (data.user?.id) {
+          saveResellerId(data.user.id);
+        }
+        if (data.user?.email) {
+          saveResellerEmail(data.user.email);
         }
         // Invalidar cache do React Query após login para forçar refetch
         await queryClient.invalidateQueries({ queryKey: ['/api/reseller/supabase-config'] });

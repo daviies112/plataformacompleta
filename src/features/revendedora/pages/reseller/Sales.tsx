@@ -4,6 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/fea
 import { Badge } from '@/features/revendedora/components/ui/badge';
 import { Input } from '@/features/revendedora/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/features/revendedora/components/ui/select';
+import { getResellerId as getStoredResellerId } from '@/features/revendedora/lib/resellerAuth';
 import { 
   Table, 
   TableBody, 
@@ -61,8 +62,9 @@ export default function ResellerSales() {
   const [endDate, setEndDate] = useState<string>('');
 
   const getResellerId = (): string => {
-    const storedReseller = localStorage.getItem('current_reseller_id');
+    const storedReseller = getStoredResellerId();
     if (storedReseller) return storedReseller;
+    console.warn('[Sales] Reseller ID não encontrado no localStorage');
     return '00000000-0000-0000-0000-000000000001';
   };
 
