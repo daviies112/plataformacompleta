@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,6 +20,7 @@ function formatCPF(value: string): string {
 
 export default function Login() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [email, setEmail] = useState('teste@upvendas.com');
   const [cpf, setCpf] = useState('123.456.789-00');
   const [loading, setLoading] = useState(false);
@@ -58,6 +60,9 @@ export default function Login() {
         if (data.tenant?.projectName) {
           saveProjectName(data.tenant.projectName);
         }
+        // Invalidar cache do React Query após login para forçar refetch
+        await queryClient.invalidateQueries({ queryKey: ['/api/reseller/supabase-config'] });
+        await queryClient.invalidateQueries({ queryKey: ['/api/reseller/settings'] });
         toast.success('Login realizado com sucesso!');
         navigate('/revendedora/reseller/dashboard');
       }
