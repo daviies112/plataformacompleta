@@ -71,9 +71,9 @@ export async function getAdminCredentials(adminId: string): Promise<AdminCredent
   // 2. Fallback: buscar do supabaseOwner (onde estão as revendedoras)
   if (SUPABASE_CONFIGURED && supabaseOwner) {
     try {
-      // Tabela admin_supabase conforme estrutura do usuário
+      // Tabela admin_supabase_credentials conforme estrutura do usuário
       const { data, error } = await supabaseOwner
-        .from('admin_supabase')
+        .from('admin_supabase_credentials')
         .select('supabase_url, supabase_anon_key, supabase_service_role_key, project_name')
         .eq('admin_id', adminId)
         .maybeSingle();
