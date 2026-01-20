@@ -400,7 +400,7 @@ router.post('/login', async (req: Request, res: Response) => {
           await pool.query(
             `INSERT INTO reseller_supabase_configs (reseller_email, supabase_url, supabase_anon_key, supabase_service_key)
              VALUES ($1, $2, $3, $4)`,
-            [revendedora.email, adminCredentials.supabase_url, adminCredentials.supabase_anon_key, adminCredentials.supabase_service_role_key]
+            [revendedora.email, adminCredentials.supabase_url, adminCredentials.supabase_anon_key, adminCredentials.supabase_service_key]
           );
           console.log(`✅ [NEXUS] Credenciais do admin salvas automaticamente para: ${revendedora.email}`);
         } else {
@@ -409,7 +409,7 @@ router.post('/login', async (req: Request, res: Response) => {
             `UPDATE reseller_supabase_configs 
              SET supabase_url = $2, supabase_anon_key = $3, supabase_service_key = $4, updated_at = NOW()
              WHERE reseller_email = $1`,
-            [revendedora.email, adminCredentials.supabase_url, adminCredentials.supabase_anon_key, adminCredentials.supabase_service_role_key]
+            [revendedora.email, adminCredentials.supabase_url, adminCredentials.supabase_anon_key, adminCredentials.supabase_service_key]
           );
           console.log(`✅ [NEXUS] Credenciais do admin atualizadas para: ${revendedora.email}`);
         }
