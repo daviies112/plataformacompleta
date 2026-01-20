@@ -222,6 +222,20 @@ The system uses background job queues for async processing. These MUST be initia
    - If `qualificationStatus === 'approved'` and CPF present, triggers `triggerAutoCPFCheck()`
    - BigDataCorp credentials are fetched from `bigdatacorp_config` table by tenantId
 
+## Documentation Reference
+
+All technical documentation is stored in the `docs/` folder:
+
+| Document | Description |
+|----------|-------------|
+| `docs/README.md` | Documentation index |
+| `docs/DATA_ISOLATION_IMPLEMENTATION.md` | Multi-tenant data isolation for NEXUS |
+| `docs/RESELLER_SYSTEM_DOCUMENTATION.md` | Complete reseller platform documentation |
+| `docs/CONTRACT_FORM_SUBMISSION_DATA_FLOW.md` | Form to contract data flow |
+| `docs/CPF_AUTO_CHECK_FIX_DOCUMENTATION.md` | CPF validation architecture |
+| `docs/MASTER_SYNC_ARCHITECTURE.md` | Master sync service |
+| `docs/SUPABASE_TRIGGER_REQUIREMENTS.md` | Supabase trigger requirements |
+
 ## External Dependencies
 
 - **PostgreSQL:** Primary database.

@@ -259,3 +259,10 @@ SUPABASE_OWNER_KEY=eyJ...
 - Corrigido mapeamento de campos (`supabase_service_role_key` → `supabase_service_key`)
 - Adicionada invalidação de cache do React Query após login
 - Corrigido nome da tabela de credenciais (`admin_supabase_credentials`)
+- **IMPORTANTE**: Implementado isolamento de dados completo - ver `docs/DATA_ISOLATION_IMPLEMENTATION.md`
+
+## Documentação Relacionada
+
+- `docs/DATA_ISOLATION_IMPLEMENTATION.md` - Implementação completa do isolamento de dados multi-tenant
+- `docs/SUPABASE_TRIGGER_REQUIREMENTS.md` - Requisitos para triggers do Supabase
+- `docs/CONTRACT_FORM_SUBMISSION_DATA_FLOW.md` - Fluxo de dados de formulários para contratos
