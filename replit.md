@@ -32,8 +32,54 @@ ExecutiveAI Pro utilizes a modern web stack designed for scalability and maintai
 **Core Features & Technical Implementations:**
 
 - **Shipping Platform:** Integrates with multiple carriers (Correios, Jadlog, Loggi, Azul Cargo) for freight quotation and tracking.
-- **NEXUS Reseller Platform:** A separate authenticated portal for resellers with dashboards, sales tracking, financial summaries, and product catalogs. It uses dedicated authentication and manages reseller-specific data.
+- **NEXUS Reseller Platform:** A separate authenticated portal for resellers with dashboards, sales tracking, financial summaries, and product catalogs. It uses dedicated authentication and manages reseller-specific data. See `docs/RESELLER_SYSTEM_DOCUMENTATION.md` for complete documentation.
 - **Reseller Supabase Configuration:** Each reseller can independently configure their own Supabase credentials stored securely in local PostgreSQL (`reseller_supabase_configs` table). Supports transitional inheritance from admin credentials. Service role keys never exposed in API responses.
+
+**NEXUS Reseller Login System (CRITICAL):**
+
+The reseller login system is fully automatic. When you add a reseller to the `revendedoras` table in Supabase Master, the login becomes available immediately.
+
+1. **Add Reseller to Supabase Master:**
+   ```sql
+   INSERT INTO revendedoras (email, cpf, status, admin_id) VALUES (
+     'email@revendedora.com',
+     '12345678900',  -- CPF only numbers (11 digits)
+     'ativo',
+     'admin-uuid'    -- Reference to admin_supabase_credentials
+   );
+   ```
+
+2. **Add Admin Credentials (if not exists):**
+   ```sql
+   INSERT INTO admin_supabase_credentials (admin_id, project_name, supabase_url, supabase_anon_key, supabase_service_role_key) VALUES (
+     'admin-uuid',
+     'Project Name',
+     'https://xxx.supabase.co',
+     'anon-key...',
+     'service-key...'
+   );
+   ```
+
+3. **Login Flow:**
+   - Reseller accesses `/revendedora/login`
+   - Provides email + CPF
+   - System validates against `revendedoras` table
+   - Automatically loads admin credentials from `admin_supabase_credentials`
+   - Saves credentials locally in `reseller_supabase_configs`
+   - Creates JWT session and redirects to dashboard
+
+4. **Key Files:**
+   - `server/routes/resellerAuth.ts` - Authentication endpoints
+   - `server/lib/masterSyncService.ts` - Fetches admin credentials
+   - `src/features/revendedora/pages/Login.tsx` - Login page
+   - `src/features/revendedora/pages/reseller/Settings.tsx` - Settings page
+   - `src/features/revendedora/layouts/ResellerLayout.tsx` - Route protection
+   - `src/features/revendedora/lib/resellerAuth.ts` - Auth utilities
+
+5. **Security:**
+   - `supabase_service_role_key` is NEVER exposed in frontend (only boolean indicator)
+   - Route protection redirects unauthenticated users to login
+   - React Query cache is invalidated after login to ensure fresh data
 - **CPF Validation:** Features a multi-tiered fallback system (Supabase Master -> Supabase Client -> Local PostgreSQL) for CPF data retrieval and compliance checks, with automated validation triggers upon form approval. See `docs/CPF_AUTO_CHECK_FIX_DOCUMENTATION.md` for detailed architecture.
 - **WhatsApp Business:** Integration for automated messaging and communication workflows.
 - **n8n Integration:** Allows tenants to generate API keys for n8n workflows, enabling custom automation for meeting creation and other tasks. Meetings automatically inherit tenant branding.
