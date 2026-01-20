@@ -641,7 +641,8 @@ router.get('/settings', async (req: Request, res: Response) => {
 });
 
 // GET /api/reseller/supabase-config - Buscar status das credenciais Supabase da revendedora
-// SECURITY: Nunca retornar chaves em texto puro - apenas status de configuração
+// SECURITY: Retorna supabase_url e supabase_anon_key apenas para revendedora autenticada
+// SECURITY: Nunca retornar supabase_service_key (apenas server-side)
 // TRANSITIONAL: Herda do admin se não tiver credenciais próprias
 // STORAGE: Usa tabela local reseller_supabase_configs (PostgreSQL Replit)
 router.get('/supabase-config', async (req: Request, res: Response) => {
@@ -662,11 +663,10 @@ router.get('/supabase-config', async (req: Request, res: Response) => {
     const hasOwnCredentials = !!(config?.supabase_url && config?.supabase_anon_key);
     
     if (hasOwnCredentials) {
-      // Retornar status das credenciais próprias
+      // Retornar credenciais completas (sem service_key por segurança)
       return res.json({
-        supabase_url: config.supabase_url || '',
-        has_anon_key: true,
-        has_service_key: !!config.supabase_service_key,
+        supabase_url: config.supabase_url,
+        supabase_anon_key: config.supabase_anon_key,
         configured: true,
         inherited: false
       });
@@ -687,11 +687,9 @@ router.get('/supabase-config', async (req: Request, res: Response) => {
         if (adminCreds && adminCreds.supabase_url && adminCreds.supabase_anon_key) {
           return res.json({
             supabase_url: adminCreds.supabase_url,
-            has_anon_key: false,
-            has_service_key: false,
+            supabase_anon_key: adminCreds.supabase_anon_key,
             configured: false,
-            inherited: true,
-            admin_configured: true
+            inherited: true
           });
         }
       }
@@ -699,11 +697,9 @@ router.get('/supabase-config', async (req: Request, res: Response) => {
 
     res.json({ 
       supabase_url: '',
-      has_anon_key: false,
-      has_service_key: false,
+      supabase_anon_key: '',
       configured: false,
-      inherited: false,
-      admin_configured: false
+      inherited: false
     });
 
   } catch (error: any) {

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/features/revendedora/integrations/supabase/client';
+import { useSupabase } from '@/features/revendedora/contexts/SupabaseContext';
 import { useAuth } from '@/features/revendedora/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/features/revendedora/components/ui/card';
 import { Users, TrendingUp, Award, Link as LinkIcon } from 'lucide-react';
@@ -18,14 +18,25 @@ interface TeamMember {
 }
 
 export default function Team() {
+  const { client: supabase, loading: supabaseLoading, configured } = useSupabase();
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadTeam();
-  }, []);
+    if (configured && supabase) {
+      loadTeam();
+    } else if (!supabaseLoading && !configured) {
+      setLoading(false);
+    }
+  }, [configured, supabase, supabaseLoading]);
 
   const loadTeam = async () => {
+    if (!supabase) {
+      toast.error('Cliente Supabase não configurado');
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
 
@@ -45,8 +56,16 @@ export default function Team() {
     }
   };
 
-  if (loading) {
+  if (supabaseLoading || loading) {
     return <div className="flex items-center justify-center h-64">Carregando...</div>;
+  }
+
+  if (!configured || !supabase) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-muted-foreground">Supabase não configurado</p>
+      </div>
+    );
   }
 
   return (

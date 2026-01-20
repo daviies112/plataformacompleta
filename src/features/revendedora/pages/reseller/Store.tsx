@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { supabase } from '@/features/revendedora/integrations/supabase/client';
+import { useSupabase } from '@/features/revendedora/contexts/SupabaseContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/features/revendedora/components/ui/card';
 import { Store as StoreIcon, Package, Plus, X, Save, ArrowRight, Search, ShoppingCart, Boxes } from 'lucide-react';
 import { Button } from '@/features/revendedora/components/ui/button';
@@ -23,6 +23,7 @@ import { ResellerProfileForm } from '@/features/revendedora/components/reseller/
 import { User } from 'lucide-react';
 
 export default function Store() {
+  const { client: supabase, loading: supabaseLoading, configured } = useSupabase();
   const [allProducts, setAllProducts] = useState<any[]>([]);
   const [storeProducts, setStoreProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,9 +36,13 @@ export default function Store() {
   const [requestingProduct, setRequestingProduct] = useState<any>(null);
 
   useEffect(() => {
-    loadProducts();
-    loadStoreConfiguration();
-  }, []);
+    if (!supabaseLoading && configured) {
+      loadProducts();
+      loadStoreConfiguration();
+    } else if (!supabaseLoading && !configured) {
+      setLoading(false);
+    }
+  }, [supabaseLoading, configured]);
 
   const loadProducts = async () => {
     if (!supabase) {
@@ -261,6 +266,21 @@ export default function Store() {
       currency: 'BRL'
     }).format(value);
   };
+
+  if (supabaseLoading) {
+    return <div className="flex items-center justify-center h-64">Carregando configuração...</div>;
+  }
+
+  if (!configured) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <p className="text-lg text-muted-foreground mb-2">Supabase não configurado</p>
+          <p className="text-sm text-muted-foreground">Por favor, configure as credenciais do Supabase</p>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return <div className="flex items-center justify-center h-64">Carregando produtos...</div>;

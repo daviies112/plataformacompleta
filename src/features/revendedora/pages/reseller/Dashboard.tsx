@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '@/features/revendedora/integrations/supabase/client';
+import { useSupabase } from '@/features/revendedora/contexts/SupabaseContext';
 import { useCompany } from '@/features/revendedora/contexts/CompanyContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/features/revendedora/components/ui/card';
 import { Users, Package } from 'lucide-react';
 
 export default function ResellerDashboard() {
   const { reseller, loading: companyLoading } = useCompany();
+  const { client: supabase, loading: supabaseLoading, configured } = useSupabase();
   const [stats, setStats] = useState({
     totalResellers: 0,
     totalProducts: 0,
@@ -14,12 +15,12 @@ export default function ResellerDashboard() {
 
   useEffect(() => {
     loadStats();
-  }, []);
+  }, [supabase]);
 
   const loadStats = async () => {
     try {
-      if (!supabase) {
-        console.log('[Dashboard] Supabase not configured');
+      if (supabaseLoading || !configured || !supabase) {
+        console.log('[Dashboard] Supabase not ready', { supabaseLoading, configured, supabase: !!supabase });
         setLoading(false);
         return;
       }

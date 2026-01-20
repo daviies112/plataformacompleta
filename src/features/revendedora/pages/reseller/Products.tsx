@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/features/revendedora/integrations/supabase/client';
+import { useSupabase } from '@/features/revendedora/contexts/SupabaseContext';
 import { useCompany } from '@/features/revendedora/contexts/CompanyContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/features/revendedora/components/ui/card';
 import { Input } from '@/features/revendedora/components/ui/input';
@@ -18,6 +18,7 @@ import { Button } from '@/features/revendedora/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 
 export default function ResellerProducts() {
+  const { client: supabase, loading: supabaseLoading, configured } = useSupabase();
   const { loading: companyLoading } = useCompany();
   const navigate = useNavigate();
   const [products, setProducts] = useState<any[]>([]);
@@ -25,10 +26,22 @@ export default function ResellerProducts() {
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
-    loadProducts();
-  }, []);
+    if (!supabaseLoading) {
+      if (configured && supabase) {
+        loadProducts();
+      } else {
+        setLoading(false);
+      }
+    }
+  }, [configured, supabase, supabaseLoading]);
 
   const loadProducts = async () => {
+    if (!supabase) {
+      toast.error('Cliente Supabase não configurado');
+      setLoading(false);
+      return;
+    }
+
     try {
       const { data, error } = await supabase
         .from('products')
@@ -51,8 +64,16 @@ export default function ResellerProducts() {
     (product.reference || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  if (loading || companyLoading) {
+  if (loading || companyLoading || supabaseLoading) {
     return <div className="flex items-center justify-center h-64">Carregando...</div>;
+  }
+
+  if (!configured) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-muted-foreground">Supabase não está configurado</p>
+      </div>
+    );
   }
 
   return (

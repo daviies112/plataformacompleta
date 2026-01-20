@@ -3,6 +3,7 @@ import { AppHeader } from '@/features/revendedora/components/AppHeader';
 import { useCompany } from '@/features/revendedora/contexts/CompanyContext';
 import { useBranding } from '@/features/revendedora/hooks/useBranding';
 import { ChatWidget } from '@/features/revendedora/components/chat/ChatWidget';
+import { SupabaseProvider } from '@/features/revendedora/contexts/SupabaseContext';
 
 interface ResellerLayoutProps {
   children: ReactNode;
@@ -21,16 +22,18 @@ export function ResellerLayout({ children }: ResellerLayoutProps) {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <AppHeader 
-        type="reseller" 
-        companyName={branding?.company_name || "Sistema de Revendedores"}
-        companyLogo={branding?.logo_url}
-      />
-      <main className="flex-1">
-        {children}
-      </main>
-      <ChatWidget />
-    </div>
+    <SupabaseProvider>
+      <div className="min-h-screen flex flex-col">
+        <AppHeader 
+          type="reseller" 
+          companyName={branding?.company_name || "Sistema de Revendedores"}
+          companyLogo={branding?.logo_url}
+        />
+        <main className="flex-1">
+          {children}
+        </main>
+        <ChatWidget />
+      </div>
+    </SupabaseProvider>
   );
 }

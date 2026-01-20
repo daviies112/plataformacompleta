@@ -7,7 +7,7 @@ import { Button } from '@/features/revendedora/components/ui/button';
 import { Badge } from '@/features/revendedora/components/ui/badge';
 import { CheckCircle2, Loader2, ArrowLeft, AlertCircle, CreditCard } from 'lucide-react';
 import { toast } from 'sonner';
-import { supabase } from '@/features/revendedora/integrations/supabase/client';
+import { useSupabase } from '@/features/revendedora/contexts/SupabaseContext';
 import { SplitService } from '@/features/revendedora/services/SplitService';
 import { StripeService } from '@/features/revendedora/services/StripeService';
 
@@ -150,6 +150,7 @@ export default function PaymentCard() {
   const { saleId } = useParams<{ saleId: string }>();
   const location = useLocation();
   const navigate = useNavigate();
+  const { client: supabase, loading: supabaseLoading, configured } = useSupabase();
   const [sale, setSale] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [stripeInstance, setStripeInstance] = useState<Stripe | null>(null);
@@ -172,13 +173,13 @@ export default function PaymentCard() {
   }, []);
 
   useEffect(() => {
-    if (saleId) {
+    if (saleId && supabase && configured && !supabaseLoading) {
       loadSale();
     }
-  }, [saleId]);
+  }, [saleId, supabase, configured, supabaseLoading]);
 
   const loadSale = async () => {
-    if (!saleId) return;
+    if (!saleId || !supabase || !configured) return;
 
     try {
       const { data, error } = await (supabase as any)
@@ -197,10 +198,24 @@ export default function PaymentCard() {
     }
   };
 
-  if (loading || stripeLoading) {
+  if (loading || stripeLoading || supabaseLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
         <Loader2 className="w-8 h-8 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!configured) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen gap-4">
+        <AlertCircle className="w-16 h-16 text-muted-foreground" />
+        <h2 className="text-2xl font-bold">Supabase não configurado</h2>
+        <p className="text-muted-foreground">Configure as credenciais do Supabase para processar pagamentos</p>
+        <Button onClick={() => navigate('/revendedora/reseller/store')}>
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Voltar para Loja
+        </Button>
       </div>
     );
   }

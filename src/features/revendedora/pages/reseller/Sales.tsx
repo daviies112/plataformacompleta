@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { supabase } from '@/features/revendedora/integrations/supabase/client';
+import { useSupabase } from '@/features/revendedora/contexts/SupabaseContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/features/revendedora/components/ui/card';
 import { Badge } from '@/features/revendedora/components/ui/badge';
 import { Input } from '@/features/revendedora/components/ui/input';
@@ -53,6 +53,7 @@ interface Sale {
 }
 
 export default function ResellerSales() {
+  const { client: supabase, loading: supabaseLoading, configured } = useSupabase();
   const [sales, setSales] = useState<Sale[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -66,12 +67,14 @@ export default function ResellerSales() {
   };
 
   useEffect(() => {
-    loadSales();
-    const cleanup = setupRealtimeSubscription();
-    return () => {
-      cleanup?.();
-    };
-  }, []);
+    if (!supabaseLoading && configured && supabase) {
+      loadSales();
+      const cleanup = setupRealtimeSubscription();
+      return () => {
+        cleanup?.();
+      };
+    }
+  }, [supabase, supabaseLoading, configured]);
 
   const loadSales = async () => {
     if (!supabase) {
@@ -255,7 +258,7 @@ export default function ResellerSales() {
     return format(new Date(dateString), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
   };
 
-  if (loading) {
+  if (loading || supabaseLoading || !configured) {
     return <div className="flex items-center justify-center h-64">Carregando vendas...</div>;
   }
 
