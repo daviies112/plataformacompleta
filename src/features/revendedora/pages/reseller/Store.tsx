@@ -70,11 +70,11 @@ export default function Store() {
     }
   };
 
-  const getResellerId = (): string => {
+  const getResellerId = (): string | null => {
     const storedReseller = getStoredResellerId();
     if (storedReseller) return storedReseller;
-    console.warn('[Store] Reseller ID não encontrado no localStorage');
-    return '00000000-0000-0000-0000-000000000001';
+    console.error('[Store] Reseller ID não encontrado no localStorage');
+    return null;
   };
 
   const loadStoreConfiguration = async () => {
@@ -89,6 +89,11 @@ export default function Store() {
 
     try {
       const resellerId = getResellerId();
+      if (!resellerId) {
+        console.error('[Store] Cannot load store configuration: reseller_id is missing');
+        toast.error('Por favor, faça login novamente');
+        return;
+      }
       console.log('[Store] Loading store configuration for reseller:', resellerId);
       
       const { data, error } = await supabase
@@ -140,6 +145,12 @@ export default function Store() {
       }
 
       const resellerId = getResellerId();
+      if (!resellerId) {
+        console.error('[Store] Cannot save store configuration: reseller_id is missing');
+        toast.error('Por favor, faça login novamente');
+        setSaving(false);
+        return;
+      }
       const productIds = storeProducts.map(p => p.id);
       
       console.log('[Store] Saving store configuration for reseller:', resellerId);

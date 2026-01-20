@@ -51,13 +51,25 @@ import {
 import { getResellerId as getStoredResellerId } from '@/features/revendedora/lib/resellerAuth';
 
 export default function Financial() {
-  const getResellerId = (): string => {
+  const getResellerId = (): string | null => {
     const storedReseller = getStoredResellerId();
     if (storedReseller) return storedReseller;
-    return '00000000-0000-0000-0000-000000000001';
+    console.error('[Financial] Reseller ID não encontrado no localStorage');
+    return null;
   };
 
   const resellerId = getResellerId();
+  
+  if (!resellerId) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <p className="text-lg text-muted-foreground mb-2">Erro de autenticação</p>
+          <p className="text-sm text-muted-foreground">Por favor, faça login novamente</p>
+        </div>
+      </div>
+    );
+  }
   
   const {
     availableBalance,

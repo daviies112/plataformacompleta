@@ -64,29 +64,22 @@ export function useChat() {
       const cId = companies?.id || null;
       
       const storedResellerId = getStoredResellerId();
-      let rId: string | null = storedResellerId;
       
-      if (!rId) {
-        const { data: resellers } = await supabase
-          .from('resellers')
-          .select('id')
-          .limit(1)
-          .single();
-        rId = resellers?.id || null;
-        
-        if (rId) {
-          localStorage.setItem('current_reseller_id', rId);
-        }
+      if (!storedResellerId) {
+        console.error('[useChat] Reseller ID not found in localStorage. User must be logged in first.');
+        setCompanyId(cId);
+        setResellerId(null);
+        return { companyId: cId, resellerId: null };
       }
       
-      console.log('[useChat] Context loaded:', { companyId: cId, resellerId: rId });
+      console.log('[useChat] Context loaded:', { companyId: cId, resellerId: storedResellerId });
       
       setCompanyId(cId);
-      setResellerId(rId);
+      setResellerId(storedResellerId);
       
-      return { companyId: cId, resellerId: rId };
+      return { companyId: cId, resellerId: storedResellerId };
     } catch (err: any) {
-      console.log('[useChat] Error fetching company/reseller:', err.message);
+      console.log('[useChat] Error fetching company:', err.message);
       return { companyId: null, resellerId: null };
     }
   }, [supabase]);

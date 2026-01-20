@@ -22,11 +22,12 @@ export function useResellerProfile(resellerId?: string) {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
 
-  const getResellerId = useCallback((): string => {
+  const getResellerId = useCallback((): string | null => {
     if (resellerId) return resellerId;
     const storedReseller = getStoredResellerId();
     if (storedReseller) return storedReseller;
-    return '00000000-0000-0000-0000-000000000001';
+    console.error('[ResellerProfile] Reseller ID não encontrado no localStorage');
+    return null;
   }, [resellerId]);
 
   const loadProfile = useCallback(async () => {
@@ -38,6 +39,11 @@ export function useResellerProfile(resellerId?: string) {
 
     try {
       const id = getResellerId();
+      if (!id) {
+        console.error('[ResellerProfile] Cannot load profile: reseller_id is missing');
+        setLoading(false);
+        return;
+      }
       console.log('[ResellerProfile] Loading profile for reseller:', id);
 
       const { data, error } = await supabase
@@ -91,6 +97,11 @@ export function useResellerProfile(resellerId?: string) {
     setUploading(true);
     try {
       const id = getResellerId();
+      if (!id) {
+        toast.error('Por favor, faça login novamente');
+        setUploading(false);
+        return null;
+      }
       const fileExt = file.name.split('.').pop();
       const fileName = `${id}/profile-${Date.now()}.${fileExt}`;
       const filePath = `reseller-profile-photos/${fileName}`;
@@ -152,6 +163,11 @@ export function useResellerProfile(resellerId?: string) {
     setSaving(true);
     try {
       const id = getResellerId();
+      if (!id) {
+        toast.error('Por favor, faça login novamente');
+        setSaving(false);
+        return false;
+      }
       const dataToSave = {
         reseller_id: id,
         profile_photo_url: profileData.profile_photo_url || null,

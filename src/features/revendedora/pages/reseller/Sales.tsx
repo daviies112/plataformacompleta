@@ -61,11 +61,11 @@ export default function ResellerSales() {
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
 
-  const getResellerId = (): string => {
+  const getResellerId = (): string | null => {
     const storedReseller = getStoredResellerId();
     if (storedReseller) return storedReseller;
-    console.warn('[Sales] Reseller ID não encontrado no localStorage');
-    return '00000000-0000-0000-0000-000000000001';
+    console.error('[Sales] Reseller ID não encontrado no localStorage');
+    return null;
   };
 
   useEffect(() => {
@@ -87,6 +87,12 @@ export default function ResellerSales() {
 
     try {
       const resellerId = getResellerId();
+      if (!resellerId) {
+        console.error('[Sales] Cannot load sales: reseller_id is missing');
+        toast.error('Por favor, faça login novamente');
+        setLoading(false);
+        return;
+      }
       console.log('[Sales] Loading sales for reseller:', resellerId);
 
       const { data: salesData, error: salesError } = await supabase
@@ -136,6 +142,10 @@ export default function ResellerSales() {
     if (!supabase) return;
 
     const resellerId = getResellerId();
+    if (!resellerId) {
+      console.error('[Sales] Cannot setup realtime subscription: reseller_id is missing');
+      return;
+    }
     
     const channel = supabase
       .channel('sales_changes')
