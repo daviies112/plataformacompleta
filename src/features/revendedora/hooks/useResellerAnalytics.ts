@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useSupabase } from '@/features/revendedora/contexts/SupabaseContext';
 
 interface ResellerSalesData {
   reseller_id: string;
@@ -73,6 +73,7 @@ const MONTH_NAMES = [
 ];
 
 export function useResellerAnalytics(): UseResellerAnalyticsResult {
+  const { client: supabase, loading: supabaseLoading, configured } = useSupabase();
   const [resellers, setResellers] = useState<Reseller[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
   const [loading, setLoading] = useState(true);
@@ -111,9 +112,14 @@ export function useResellerAnalytics(): UseResellerAnalyticsResult {
   };
 
   useEffect(() => {
-    loadData();
+    if (supabaseLoading) return;
+    if (!supabase || !configured) {
+      setLoading(false);
+      setError('Supabase not configured');
+      return;
+    }
 
-    if (!supabase) return;
+    loadData();
 
     const salesChannel = supabase
       .channel('reseller_sales_analytics')
@@ -137,7 +143,7 @@ export function useResellerAnalytics(): UseResellerAnalyticsResult {
       supabase.removeChannel(salesChannel);
       supabase.removeChannel(resellersChannel);
     };
-  }, []);
+  }, [supabase, supabaseLoading, configured]);
 
   const resellersData = useMemo(() => {
     const salesByReseller = new Map<string, Sale[]>();
@@ -270,7 +276,7 @@ export function useResellerAnalytics(): UseResellerAnalyticsResult {
 
   return {
     resellersData,
-    loading,
+    loading: loading || supabaseLoading,
     error,
     refetch: loadData,
     totals

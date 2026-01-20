@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useSupabase } from '@/features/revendedora/contexts/SupabaseContext';
 import { toast } from 'sonner';
 
 export interface BankAccount {
@@ -50,12 +50,17 @@ const isTableMissingError = (error: any): boolean => {
 };
 
 export function useBankAccounts(resellerId: string) {
+  const { client: supabase, loading: supabaseLoading, configured } = useSupabase();
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   const loadBankAccounts = async () => {
-    if (!supabase || !resellerId) {
+    if (supabaseLoading || !configured || !supabase) {
+      console.log('[useBankAccounts] Waiting for Supabase client...');
+      return;
+    }
+    if (!resellerId) {
       setLoading(false);
       return;
     }
@@ -87,8 +92,9 @@ export function useBankAccounts(resellerId: string) {
   };
 
   useEffect(() => {
+    if (supabaseLoading || !configured || !supabase) return;
     loadBankAccounts();
-  }, [resellerId]);
+  }, [resellerId, supabase, supabaseLoading, configured]);
 
   const addBankAccount = async (data: BankAccountFormData): Promise<BankAccount | null> => {
     if (!supabase || !resellerId) return null;
@@ -200,7 +206,7 @@ export function useBankAccounts(resellerId: string) {
 
   return {
     bankAccounts,
-    loading,
+    loading: loading || supabaseLoading || !configured,
     saving,
     addBankAccount,
     updateBankAccount,

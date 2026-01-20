@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useSupabase } from '@/features/revendedora/contexts/SupabaseContext';
 import { toast } from 'sonner';
 
 export interface ResellerProfile {
@@ -15,6 +15,7 @@ export interface ResellerProfile {
 }
 
 export function useResellerProfile(resellerId?: string) {
+  const { client: supabase, loading: supabaseLoading, configured } = useSupabase();
   const [profile, setProfile] = useState<ResellerProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -69,11 +70,16 @@ export function useResellerProfile(resellerId?: string) {
     } finally {
       setLoading(false);
     }
-  }, [getResellerId]);
+  }, [supabase, getResellerId]);
 
   useEffect(() => {
+    if (supabaseLoading) return;
+    if (!supabase || !configured) {
+      setLoading(false);
+      return;
+    }
     loadProfile();
-  }, [loadProfile]);
+  }, [supabase, supabaseLoading, configured, loadProfile]);
 
   const uploadProfilePhoto = async (file: File): Promise<string | null> => {
     if (!supabase) {
@@ -196,7 +202,7 @@ export function useResellerProfile(resellerId?: string) {
 
   return {
     profile,
-    loading,
+    loading: loading || supabaseLoading,
     saving,
     uploading,
     loadProfile,
@@ -207,16 +213,18 @@ export function useResellerProfile(resellerId?: string) {
 }
 
 export function usePublicResellerProfile(resellerId: string) {
+  const { client: supabase, loading: supabaseLoading, configured } = useSupabase();
   const [profile, setProfile] = useState<ResellerProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadProfile = async () => {
-      if (!supabase || !resellerId) {
-        setLoading(false);
-        return;
-      }
+    if (supabaseLoading) return;
+    if (!supabase || !configured || !resellerId) {
+      setLoading(false);
+      return;
+    }
 
+    const loadProfile = async () => {
       try {
         console.log('[PublicResellerProfile] Loading profile for:', resellerId);
         
@@ -240,7 +248,7 @@ export function usePublicResellerProfile(resellerId: string) {
     };
 
     loadProfile();
-  }, [resellerId]);
+  }, [supabase, supabaseLoading, configured, resellerId]);
 
-  return { profile, loading };
+  return { profile, loading: loading || supabaseLoading };
 }

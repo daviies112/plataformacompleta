@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { useSupabase } from '@/features/revendedora/contexts/SupabaseContext';
 import type {
   ResellerGamificationData,
   ResellerBadge,
@@ -37,10 +37,12 @@ export function calculateXpProgress(currentXp: number, level: number): {
 }
 
 export function useGamificationProfile(resellerId: string | undefined) {
+  const { client: supabase, loading: supabaseLoading, configured } = useSupabase();
+  
   return useQuery<ResellerGamificationData | null>({
-    queryKey: ['gamification-profile', resellerId],
+    queryKey: ['gamification-profile', resellerId, configured],
     queryFn: async () => {
-      if (!supabase || !resellerId) {
+      if (supabaseLoading || !configured || !supabase || !resellerId) {
         console.log('[useGamificationProfile] Supabase not configured or no resellerId');
         return null;
       }
@@ -96,16 +98,18 @@ export function useGamificationProfile(resellerId: string | undefined) {
         return null;
       }
     },
-    enabled: !!resellerId,
+    enabled: !!resellerId && configured && !!supabase,
     staleTime: 30000,
   });
 }
 
 export function useResellerBadges(resellerId: string | undefined) {
+  const { client: supabase, loading: supabaseLoading, configured } = useSupabase();
+  
   return useQuery<ResellerBadge[]>({
-    queryKey: ['reseller-badges', resellerId],
+    queryKey: ['reseller-badges', resellerId, configured],
     queryFn: async () => {
-      if (!supabase || !resellerId) {
+      if (supabaseLoading || !configured || !supabase || !resellerId) {
         console.log('[useResellerBadges] Supabase not configured or no resellerId');
         return [];
       }
@@ -138,16 +142,18 @@ export function useResellerBadges(resellerId: string | undefined) {
         return [];
       }
     },
-    enabled: !!resellerId,
+    enabled: !!resellerId && configured && !!supabase,
     staleTime: 60000,
   });
 }
 
 export function useAvailableBadges() {
+  const { client: supabase, loading: supabaseLoading, configured } = useSupabase();
+  
   return useQuery<GamificationBadge[]>({
-    queryKey: ['available-badges'],
+    queryKey: ['available-badges', configured],
     queryFn: async () => {
-      if (!supabase) {
+      if (supabaseLoading || !configured || !supabase) {
         console.log('[useAvailableBadges] Supabase not configured');
         return [];
       }
@@ -175,15 +181,18 @@ export function useAvailableBadges() {
         return [];
       }
     },
+    enabled: configured && !!supabase,
     staleTime: 300000,
   });
 }
 
 export function useResellerChallenges(resellerId: string | undefined) {
+  const { client: supabase, loading: supabaseLoading, configured } = useSupabase();
+  
   return useQuery<ResellerChallenge[]>({
-    queryKey: ['reseller-challenges', resellerId],
+    queryKey: ['reseller-challenges', resellerId, configured],
     queryFn: async () => {
-      if (!supabase || !resellerId) {
+      if (supabaseLoading || !configured || !supabase || !resellerId) {
         console.log('[useResellerChallenges] Supabase not configured or no resellerId');
         return [];
       }
@@ -224,16 +233,18 @@ export function useResellerChallenges(resellerId: string | undefined) {
         return [];
       }
     },
-    enabled: !!resellerId,
+    enabled: !!resellerId && configured && !!supabase,
     staleTime: 60000,
   });
 }
 
 export function useRankings(period: 'weekly' | 'monthly') {
+  const { client: supabase, loading: supabaseLoading, configured } = useSupabase();
+  
   return useQuery<RankingEntry[]>({
-    queryKey: ['rankings', period],
+    queryKey: ['rankings', period, configured],
     queryFn: async () => {
-      if (!supabase) {
+      if (supabaseLoading || !configured || !supabase) {
         console.log('[useRankings] Supabase not configured');
         return [];
       }
@@ -296,15 +307,18 @@ export function useRankings(period: 'weekly' | 'monthly') {
         return [];
       }
     },
+    enabled: configured && !!supabase,
     staleTime: 60000,
   });
 }
 
 export function useLeagues() {
+  const { client: supabase, loading: supabaseLoading, configured } = useSupabase();
+  
   return useQuery<GamificationLeague[]>({
-    queryKey: ['leagues'],
+    queryKey: ['leagues', configured],
     queryFn: async () => {
-      if (!supabase) {
+      if (supabaseLoading || !configured || !supabase) {
         console.log('[useLeagues] Supabase not configured');
         return [];
       }
@@ -331,15 +345,18 @@ export function useLeagues() {
         return [];
       }
     },
+    enabled: configured && !!supabase,
     staleTime: 300000,
   });
 }
 
 export function useGamificationConfig() {
+  const { client: supabase, loading: supabaseLoading, configured } = useSupabase();
+  
   return useQuery<GamificationConfig | null>({
-    queryKey: ['gamification-config'],
+    queryKey: ['gamification-config', configured],
     queryFn: async () => {
-      if (!supabase) {
+      if (supabaseLoading || !configured || !supabase) {
         console.log('[useGamificationConfig] Supabase not configured');
         return null;
       }
@@ -387,15 +404,18 @@ export function useGamificationConfig() {
         return null;
       }
     },
+    enabled: configured && !!supabase,
     staleTime: 300000,
   });
 }
 
 export function useGamificationActivities(resellerId: string | undefined, limit: number = 20) {
+  const { client: supabase, loading: supabaseLoading, configured } = useSupabase();
+  
   return useQuery<GamificationActivity[]>({
-    queryKey: ['gamification-activities', resellerId, limit],
+    queryKey: ['gamification-activities', resellerId, limit, configured],
     queryFn: async () => {
-      if (!supabase || !resellerId) {
+      if (supabaseLoading || !configured || !supabase || !resellerId) {
         console.log('[useGamificationActivities] Supabase not configured or no resellerId');
         return [];
       }
@@ -423,7 +443,7 @@ export function useGamificationActivities(resellerId: string | undefined, limit:
         return [];
       }
     },
-    enabled: !!resellerId,
+    enabled: !!resellerId && configured && !!supabase,
     staleTime: 30000,
   });
 }

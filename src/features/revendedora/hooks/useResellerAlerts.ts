@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useSupabase } from '@/features/revendedora/contexts/SupabaseContext';
 
 interface ResellerAlert {
   id: string;
@@ -47,6 +47,8 @@ interface UseResellerAlertsResult {
 const DROP_THRESHOLD = 30;
 
 export function useResellerAlerts(): UseResellerAlertsResult {
+  const { client: supabase, loading: supabaseLoading, configured } = useSupabase();
+  
   const [alerts, setAlerts] = useState<ResellerAlert[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -76,12 +78,16 @@ export function useResellerAlerts(): UseResellerAlertsResult {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [supabase]);
 
   useEffect(() => {
-    loadAlerts();
+    if (supabaseLoading) return;
+    if (!supabase) {
+      setLoading(false);
+      return;
+    }
 
-    if (!supabase) return;
+    loadAlerts();
 
     const channel = supabase
       .channel('reseller_alerts_changes')
@@ -95,7 +101,7 @@ export function useResellerAlerts(): UseResellerAlertsResult {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [loadAlerts]);
+  }, [loadAlerts, supabase, supabaseLoading]);
 
   const checkExistingAlert = useCallback(async (
     resellerId: string,
@@ -120,7 +126,7 @@ export function useResellerAlerts(): UseResellerAlertsResult {
       console.error('[ResellerAlerts] Error checking existing alert:', err);
       return false;
     }
-  }, []);
+  }, [supabase]);
 
   const createAlert = useCallback(async (params: CreateAlertParams): Promise<ResellerAlert | null> => {
     if (!supabase) return null;
@@ -177,7 +183,7 @@ export function useResellerAlerts(): UseResellerAlertsResult {
       console.error('[ResellerAlerts] Error creating alert:', err);
       return null;
     }
-  }, [checkExistingAlert]);
+  }, [checkExistingAlert, supabase]);
 
   const resolveAlert = useCallback(async (alertId: string): Promise<boolean> => {
     if (!supabase) return false;
@@ -199,11 +205,11 @@ export function useResellerAlerts(): UseResellerAlertsResult {
       console.error('[ResellerAlerts] Error resolving alert:', err);
       return false;
     }
-  }, []);
+  }, [supabase]);
 
   return {
     alerts,
-    loading,
+    loading: loading || supabaseLoading,
     error,
     createAlert,
     resolveAlert,

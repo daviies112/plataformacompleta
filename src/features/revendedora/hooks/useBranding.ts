@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useSupabase } from '@/features/revendedora/contexts/SupabaseContext';
 import { hexToHSL } from '@/utils/colorExtractor';
 
 interface BrandingConfig {
@@ -11,10 +11,14 @@ interface BrandingConfig {
 }
 
 export function useBranding(companyId?: string) {
+  const { client: supabase, loading: supabaseLoading, configured } = useSupabase();
+  
   const [branding, setBranding] = useState<BrandingConfig | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (supabaseLoading) return;
+    
     const fetchBranding = async () => {
       try {
         setLoading(true);
@@ -87,9 +91,9 @@ export function useBranding(companyId?: string) {
       console.log('[useBranding] Unsubscribing from companies changes');
       subscription.unsubscribe();
     };
-  }, [companyId]);
+  }, [companyId, supabase, supabaseLoading]);
 
-  return { branding, loading };
+  return { branding, loading: loading || supabaseLoading };
 }
 
 export function applyBrandingColors(branding: BrandingConfig) {

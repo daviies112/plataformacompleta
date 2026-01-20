@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { useSupabase } from '@/features/revendedora/contexts/SupabaseContext';
 import type { GamificationBadge, ResellerGamificationData } from '@/types/gamification';
 import type { AchievementWithProgress } from '@/types/achievements';
 
@@ -135,8 +135,10 @@ function getNextTierBadge(
 }
 
 export function useResellerStats(resellerId: string | undefined) {
+  const { client: supabase, loading: supabaseLoading, configured } = useSupabase();
+  
   return useQuery<ResellerStats>({
-    queryKey: ['reseller-stats', resellerId],
+    queryKey: ['reseller-stats', resellerId, !!supabase],
     queryFn: async () => {
       if (!supabase) {
         console.log('[useResellerStats] Using demo stats');
@@ -172,14 +174,16 @@ export function useResellerStats(resellerId: string | undefined) {
       }
     },
     staleTime: 30000,
+    enabled: !supabaseLoading,
   });
 }
 
 export function useAchievementsWithProgress(resellerId: string | undefined) {
+  const { client: supabase, loading: supabaseLoading, configured } = useSupabase();
   const { data: stats, isLoading: statsLoading } = useResellerStats(resellerId);
   
   const { data: badges, isLoading: badgesLoading } = useQuery<GamificationBadge[]>({
-    queryKey: ['all-badges'],
+    queryKey: ['all-badges', !!supabase],
     queryFn: async () => {
       if (!supabase) {
         console.log('[useAchievementsWithProgress] Using demo badges');
@@ -206,10 +210,11 @@ export function useAchievementsWithProgress(resellerId: string | undefined) {
       }
     },
     staleTime: 300000,
+    enabled: !supabaseLoading,
   });
 
   const { data: earnedBadges, isLoading: earnedLoading } = useQuery<{ badge_id: string; earned_at: string }[]>({
-    queryKey: ['earned-badges', resellerId],
+    queryKey: ['earned-badges', resellerId, !!supabase],
     queryFn: async () => {
       if (!supabase || !resellerId) return [];
       
@@ -230,7 +235,7 @@ export function useAchievementsWithProgress(resellerId: string | undefined) {
         return [];
       }
     },
-    enabled: !!resellerId,
+    enabled: !!resellerId && !supabaseLoading,
     staleTime: 60000,
   });
 
@@ -286,7 +291,7 @@ export function useAchievementsWithProgress(resellerId: string | undefined) {
   return {
     achievements,
     groupedAchievements,
-    isLoading: statsLoading || badgesLoading || earnedLoading,
+    isLoading: supabaseLoading || statsLoading || badgesLoading || earnedLoading,
     stats: {
       total: totalAchievements,
       earned: earnedCount,

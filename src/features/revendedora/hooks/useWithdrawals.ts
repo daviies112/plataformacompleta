@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useSupabase } from '@/features/revendedora/contexts/SupabaseContext';
 import { toast } from 'sonner';
 import { BankAccount } from './useBankAccounts';
 
@@ -49,9 +49,15 @@ export function useWithdrawals(resellerId: string) {
   const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([]);
   const [loading, setLoading] = useState(true);
   const [requesting, setRequesting] = useState(false);
+  const { client: supabase, loading: supabaseLoading, configured } = useSupabase();
 
   const loadWithdrawals = async () => {
-    if (!supabase || !resellerId) {
+    if (supabaseLoading || !configured || !supabase) {
+      console.log('[useWithdrawals] Waiting for Supabase client...');
+      return;
+    }
+
+    if (!resellerId) {
       setLoading(false);
       return;
     }
@@ -102,9 +108,9 @@ export function useWithdrawals(resellerId: string) {
   };
 
   useEffect(() => {
-    loadWithdrawals();
+    if (supabaseLoading || !configured || !supabase) return;
 
-    if (!supabase || !resellerId) return;
+    loadWithdrawals();
 
     const channel = supabase
       .channel('withdrawals_changes')
@@ -123,7 +129,7 @@ export function useWithdrawals(resellerId: string) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [resellerId]);
+  }, [resellerId, supabase, supabaseLoading, configured]);
 
   const requestWithdrawal = async (
     request: WithdrawalRequest,
@@ -217,7 +223,7 @@ export function useWithdrawals(resellerId: string) {
 
   return {
     withdrawals,
-    loading,
+    loading: loading || supabaseLoading || !configured,
     requesting,
     requestWithdrawal,
     cancelWithdrawal,

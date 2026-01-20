@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useSupabase } from '@/features/revendedora/contexts/SupabaseContext';
 
 interface ProductWithSales {
   id: string;
@@ -35,6 +35,7 @@ interface ProductAnalytics {
 }
 
 export function useProductAnalytics(): ProductAnalytics {
+  const { client: supabase, loading: supabaseLoading, configured } = useSupabase();
   const [products, setProducts] = useState<any[]>([]);
   const [sales, setSales] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -67,9 +68,13 @@ export function useProductAnalytics(): ProductAnalytics {
   };
 
   useEffect(() => {
-    loadData();
+    if (supabaseLoading) return;
+    if (!supabase || !configured) {
+      setLoading(false);
+      return;
+    }
 
-    if (!supabase) return;
+    loadData();
 
     const salesChannel = supabase
       .channel('sales_analytics')
@@ -93,7 +98,7 @@ export function useProductAnalytics(): ProductAnalytics {
       supabase.removeChannel(salesChannel);
       supabase.removeChannel(productsChannel);
     };
-  }, []);
+  }, [supabase, supabaseLoading, configured]);
 
   const bestSellers = useMemo(() => {
     const salesByProduct = new Map<string, { count: number; revenue: number }>();
@@ -153,7 +158,7 @@ export function useProductAnalytics(): ProductAnalytics {
     lowStockProducts,
     totalProducts: products.length,
     totalLowStock: lowStockProducts.length,
-    loading,
+    loading: loading || supabaseLoading,
     refetch: loadData
   };
 }

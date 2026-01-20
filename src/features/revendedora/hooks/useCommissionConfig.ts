@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useSupabase } from '@/features/revendedora/contexts/SupabaseContext';
 import { SalesTier } from '@/types/database';
 
 export interface CommissionConfig {
@@ -21,6 +21,7 @@ const DEFAULT_TIERS: SalesTier[] = [
 ];
 
 export function useCommissionConfig(resellerId?: string) {
+  const { client: supabase, loading: supabaseLoading, configured } = useSupabase();
   const [config, setConfig] = useState<CommissionConfig>({
     use_dynamic_tiers: false,
     sales_tiers: DEFAULT_TIERS,
@@ -30,13 +31,13 @@ export function useCommissionConfig(resellerId?: string) {
   const [volumeLoading, setVolumeLoading] = useState(false);
 
   const fetchConfig = useCallback(async () => {
-    try {
-      if (!supabase) {
-        console.log('[useCommissionConfig] Supabase not configured');
-        setLoading(false);
-        return;
-      }
+    if (supabaseLoading || !configured || !supabase) {
+      console.log('[useCommissionConfig] Supabase not ready');
+      setLoading(false);
+      return;
+    }
 
+    try {
       const { data, error } = await (supabase as any)
         .from('commission_config')
         .select('*')
@@ -57,10 +58,10 @@ export function useCommissionConfig(resellerId?: string) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [supabase, supabaseLoading, configured]);
 
   const fetchMonthlyVolume = useCallback(async () => {
-    if (!resellerId || !supabase) return;
+    if (supabaseLoading || !configured || !supabase || !resellerId) return;
 
     setVolumeLoading(true);
     try {
@@ -86,13 +87,13 @@ export function useCommissionConfig(resellerId?: string) {
     } finally {
       setVolumeLoading(false);
     }
-  }, [resellerId]);
+  }, [supabase, supabaseLoading, configured, resellerId]);
 
   useEffect(() => {
+    if (supabaseLoading || !configured || !supabase) return;
+
     fetchConfig();
     fetchMonthlyVolume();
-
-    if (!supabase) return;
 
     console.log('[useCommissionConfig] 🔴 Setting up REALTIME subscription...');
     
@@ -123,7 +124,7 @@ export function useCommissionConfig(resellerId?: string) {
       console.log('[useCommissionConfig] Cleaning up subscription...');
       subscription.unsubscribe();
     };
-  }, [fetchConfig, fetchMonthlyVolume]);
+  }, [supabase, supabaseLoading, configured, fetchConfig, fetchMonthlyVolume]);
 
   const calculateCommission = useCallback((volume: number): CommissionResult => {
     if (!config.use_dynamic_tiers) {
@@ -163,7 +164,7 @@ export function useCommissionConfig(resellerId?: string) {
 
   return {
     config,
-    loading: loading || volumeLoading,
+    loading: loading || volumeLoading || supabaseLoading || !configured,
     monthlyVolume,
     calculateCommission,
     getCurrentCommission,

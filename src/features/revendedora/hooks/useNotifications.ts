@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useSupabase } from '@/features/revendedora/contexts/SupabaseContext';
 import { toast } from 'sonner';
 
 export interface Notification {
@@ -20,10 +20,12 @@ interface LowStockProduct {
 }
 
 export function useNotifications() {
+  const { client: supabase, loading: supabaseLoading, configured } = useSupabase();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [lowStockProducts, setLowStockProducts] = useState<LowStockProduct[]>([]);
   const [notifiedProducts, setNotifiedProducts] = useState<Set<string>>(new Set());
+  const [loading, setLoading] = useState(true);
 
   const generateLowStockNotifications = useCallback((products: LowStockProduct[]) => {
     const newNotifications: Notification[] = [];
@@ -79,9 +81,10 @@ export function useNotifications() {
   }, [notifiedProducts]);
 
   const checkLowStock = useCallback(async () => {
-    if (!supabase) return;
+    if (supabaseLoading || !configured || !supabase) return;
 
     try {
+      setLoading(true);
       let data: any[] = [];
       let error: any = null;
 
@@ -121,44 +124,44 @@ export function useNotifications() {
       generateLowStockNotifications(lowStock);
     } catch (error) {
       console.error('[useNotifications] Error checking low stock:', error);
+    } finally {
+      setLoading(false);
     }
-  }, [generateLowStockNotifications]);
+  }, [supabase, supabaseLoading, configured, generateLowStockNotifications]);
 
   useEffect(() => {
+    if (supabaseLoading || !configured || !supabase) return;
+
     checkLowStock();
 
     const interval = setInterval(checkLowStock, 60000);
 
-    if (supabase) {
-      const channel = supabase
-        .channel('product_stock_changes')
-        .on(
-          'postgres_changes',
-          { event: 'UPDATE', schema: 'public', table: 'products' },
-          (payload) => {
-            const newStock = (payload.new as any).stock ?? 0;
-            const oldStock = (payload.old as any).stock ?? 0;
-            
-            if (newStock < oldStock) {
-              setNotifiedProducts(prev => {
-                const next = new Set(prev);
-                next.delete((payload.new as any).id);
-                return next;
-              });
-              checkLowStock();
-            }
+    const channel = supabase
+      .channel('product_stock_changes')
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'products' },
+        (payload) => {
+          const newStock = (payload.new as any).stock ?? 0;
+          const oldStock = (payload.old as any).stock ?? 0;
+          
+          if (newStock < oldStock) {
+            setNotifiedProducts(prev => {
+              const next = new Set(prev);
+              next.delete((payload.new as any).id);
+              return next;
+            });
+            checkLowStock();
           }
-        )
-        .subscribe();
+        }
+      )
+      .subscribe();
 
-      return () => {
-        clearInterval(interval);
-        supabase.removeChannel(channel);
-      };
-    }
-
-    return () => clearInterval(interval);
-  }, [checkLowStock]);
+    return () => {
+      clearInterval(interval);
+      supabase.removeChannel(channel);
+    };
+  }, [supabase, supabaseLoading, configured, checkLowStock]);
 
   useEffect(() => {
     setUnreadCount(notifications.filter(n => !n.read_at).length);
@@ -192,6 +195,7 @@ export function useNotifications() {
     markAsRead,
     markAllAsRead,
     clearNotifications,
-    refetch: checkLowStock
+    refetch: checkLowStock,
+    loading: loading || supabaseLoading || !configured
   };
 }

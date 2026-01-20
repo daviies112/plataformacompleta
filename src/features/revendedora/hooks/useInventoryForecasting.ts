@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useSupabase } from '@/features/revendedora/contexts/SupabaseContext';
 
 export interface ProductInventoryMetrics {
   productId: string;
@@ -52,14 +52,15 @@ interface UseInventoryForecastingReturn {
 }
 
 export function useInventoryForecasting(): UseInventoryForecastingReturn {
+  const { client: supabase, loading: supabaseLoading, configured } = useSupabase();
   const [products, setProducts] = useState<any[]>([]);
   const [sales, setSales] = useState<any[]>([]);
   const [resellers, setResellers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadData = async () => {
-    if (!supabase) {
+  const loadData = useCallback(async () => {
+    if (supabaseLoading || !configured || !supabase) {
       setLoading(false);
       setError('Supabase not configured');
       return;
@@ -94,12 +95,12 @@ export function useInventoryForecasting(): UseInventoryForecastingReturn {
     } finally {
       setLoading(false);
     }
-  };
+  }, [supabase, supabaseLoading, configured]);
 
   useEffect(() => {
-    loadData();
+    if (supabaseLoading || !configured || !supabase) return;
 
-    if (!supabase) return;
+    loadData();
 
     const salesChannel = supabase
       .channel('inventory_sales')
@@ -123,7 +124,7 @@ export function useInventoryForecasting(): UseInventoryForecastingReturn {
       supabase.removeChannel(salesChannel);
       supabase.removeChannel(productsChannel);
     };
-  }, []);
+  }, [supabase, supabaseLoading, configured, loadData]);
 
   const metrics = useMemo(() => {
     const resellerMap = new Map(resellers.map(r => [r.id, r.nome || r.email || 'Unknown']));
@@ -267,7 +268,7 @@ export function useInventoryForecasting(): UseInventoryForecastingReturn {
   return {
     metrics,
     summary,
-    loading,
+    loading: loading || supabaseLoading || !configured,
     error,
     refetch: loadData
   };

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useSupabase } from '@/features/revendedora/contexts/SupabaseContext';
 
 export interface ChatMessage {
   id: string;
@@ -37,6 +37,8 @@ export interface EvolutionConnection {
 }
 
 export function useChat() {
+  const { client: supabase, loading: supabaseLoading, configured } = useSupabase();
+  
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [thread, setThread] = useState<ChatThread | null>(null);
   const [connection, setConnection] = useState<EvolutionConnection | null>(null);
@@ -92,7 +94,7 @@ export function useChat() {
       console.log('[useChat] Error fetching company/reseller:', err.message);
       return { companyId: null, resellerId: null };
     }
-  }, [getStoredResellerId]);
+  }, [getStoredResellerId, supabase]);
 
   const fetchConnection = useCallback(async (cId: string) => {
     if (!supabase || !cId) return;
@@ -107,7 +109,7 @@ export function useChat() {
     } catch (err: any) {
       console.log('[useChat] No Evolution connection found');
     }
-  }, []);
+  }, [supabase]);
 
   const fetchOrCreateThread = useCallback(async (cId: string, rId: string) => {
     if (!supabase || !cId || !rId) return null;
@@ -156,7 +158,7 @@ export function useChat() {
       setError(err.message);
       return null;
     }
-  }, []);
+  }, [supabase]);
 
   const fetchMessages = useCallback(async (threadId: string) => {
     if (!supabase || !threadId) return;
@@ -171,7 +173,7 @@ export function useChat() {
     } catch (err: any) {
       console.error('[useChat] Messages fetch error:', err);
     }
-  }, []);
+  }, [supabase]);
 
   const sendMessage = useCallback(async (messageText: string, category: string = 'suporte') => {
     if (!supabase || !thread || !messageText.trim() || !companyId || !resellerId) return null;
@@ -241,7 +243,7 @@ export function useChat() {
     } finally {
       setSending(false);
     }
-  }, [thread, companyId, resellerId]);
+  }, [thread, companyId, resellerId, supabase]);
 
   const subscribeToMessages = useCallback((threadId: string) => {
     if (!supabase || !threadId) return;
@@ -289,11 +291,11 @@ export function useChat() {
       .subscribe();
     
     subscriptionRef.current = channel;
-  }, []);
+  }, [supabase]);
 
   const initialize = useCallback(async () => {
-    if (!supabase) {
-      console.log('[useChat] Supabase not configured');
+    if (!supabase || supabaseLoading) {
+      console.log('[useChat] Supabase not configured or still loading');
       return;
     }
     
@@ -324,9 +326,13 @@ export function useChat() {
     } finally {
       setLoading(false);
     }
-  }, [fetchCompanyAndReseller, fetchConnection, fetchOrCreateThread, fetchMessages, subscribeToMessages]);
+  }, [fetchCompanyAndReseller, fetchConnection, fetchOrCreateThread, fetchMessages, subscribeToMessages, supabase, supabaseLoading]);
 
   useEffect(() => {
+    if (supabaseLoading) return;
+    if (!supabase) return;
+    
+    initializedRef.current = false;
     initialize();
     
     return () => {
@@ -334,16 +340,16 @@ export function useChat() {
         subscriptionRef.current.unsubscribe();
       }
     };
-  }, []);
+  }, [supabase, supabaseLoading]);
 
   const isConnected = connection?.status === 'connected';
-  const hasSupabase = !!supabase;
+  const hasSupabase = !!supabase && configured;
 
   return {
     messages,
     thread,
     connection,
-    loading,
+    loading: loading || supabaseLoading,
     sending,
     error,
     isConnected,

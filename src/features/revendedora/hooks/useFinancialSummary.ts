@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useSupabase } from '@/features/revendedora/contexts/SupabaseContext';
 
 interface Sale {
   id: string;
@@ -57,6 +57,7 @@ function getReleaseDate(paidAt: string | null, paymentMethod: string): Date | nu
 }
 
 export function useFinancialSummary(resellerId: string) {
+  const { client: supabase, loading: supabaseLoading, configured } = useSupabase();
   const [sales, setSales] = useState<Sale[]>([]);
   const [withdrawals, setWithdrawals] = useState<{ amount: number; status: string }[]>([]);
   const [loading, setLoading] = useState(true);
@@ -80,7 +81,12 @@ export function useFinancialSummary(resellerId: string) {
   };
 
   const loadData = async () => {
-    if (!supabase || !resellerId) {
+    if (supabaseLoading || !configured || !supabase) {
+      console.log('[useFinancialSummary] Waiting for Supabase client...');
+      return;
+    }
+
+    if (!resellerId) {
       setLoading(false);
       return;
     }
@@ -131,9 +137,10 @@ export function useFinancialSummary(resellerId: string) {
   };
 
   useEffect(() => {
+    if (supabaseLoading || !configured || !supabase) return;
     loadData();
     
-    if (!supabase || !resellerId) return;
+    if (!resellerId) return;
 
     const salesChannel = supabase
       .channel('financial_sales_changes')
@@ -167,7 +174,7 @@ export function useFinancialSummary(resellerId: string) {
       supabase.removeChannel(salesChannel);
       supabase.removeChannel(withdrawalsChannel);
     };
-  }, [resellerId]);
+  }, [resellerId, supabase, supabaseLoading, configured]);
 
   const summary = useMemo<FinancialSummary>(() => {
     const paidSales = sales.filter(s => s.paid === true && s.status === 'confirmada');
@@ -215,7 +222,7 @@ export function useFinancialSummary(resellerId: string) {
 
   return {
     ...summary,
-    loading,
+    loading: loading || supabaseLoading || !configured,
     error,
     refresh: loadData,
   };
