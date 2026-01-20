@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 interface SupabaseContextType {
@@ -22,18 +22,30 @@ export function SupabaseProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [configured, setConfigured] = useState(false);
+  const retryCountRef = useRef(0);
+  const maxRetries = 5;
 
-  const fetchConfig = async () => {
+  const fetchConfig = async (isRetry = false) => {
     try {
-      setLoading(true);
+      if (!isRetry) {
+        setLoading(true);
+      }
+      
       const response = await fetch('/api/reseller/supabase-config', {
         credentials: 'include',
       });
       
       if (!response.ok) {
+        if (response.status === 401 && retryCountRef.current < maxRetries) {
+          retryCountRef.current++;
+          console.log(`[SupabaseProvider] Retry ${retryCountRef.current}/${maxRetries} - waiting for session...`);
+          setTimeout(() => fetchConfig(true), 800);
+          return;
+        }
         throw new Error('Não autenticado');
       }
       
+      retryCountRef.current = 0;
       const data = await response.json();
       
       if (data.supabase_url && data.supabase_anon_key) {

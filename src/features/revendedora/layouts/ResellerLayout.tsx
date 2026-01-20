@@ -3,17 +3,18 @@ import { AppHeader } from '@/features/revendedora/components/AppHeader';
 import { useCompany } from '@/features/revendedora/contexts/CompanyContext';
 import { useBranding } from '@/features/revendedora/hooks/useBranding';
 import { ChatWidget } from '@/features/revendedora/components/chat/ChatWidget';
-import { SupabaseProvider } from '@/features/revendedora/contexts/SupabaseContext';
+import { SupabaseProvider, useSupabase } from '@/features/revendedora/contexts/SupabaseContext';
 
 interface ResellerLayoutProps {
   children: ReactNode;
 }
 
-export function ResellerLayout({ children }: ResellerLayoutProps) {
-  const { loading } = useCompany();
+function ResellerLayoutContent({ children }: ResellerLayoutProps) {
+  const { loading: companyLoading } = useCompany();
+  const { loading: supabaseLoading, configured } = useSupabase();
   const { branding, loading: brandingLoading } = useBranding();
 
-  if (loading || brandingLoading) {
+  if (companyLoading || supabaseLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
@@ -22,18 +23,24 @@ export function ResellerLayout({ children }: ResellerLayoutProps) {
   }
 
   return (
+    <div className="min-h-screen flex flex-col">
+      <AppHeader 
+        type="reseller" 
+        companyName={branding?.company_name || "Sistema de Revendedores"}
+        companyLogo={branding?.logo_url}
+      />
+      <main className="flex-1">
+        {children}
+      </main>
+      <ChatWidget />
+    </div>
+  );
+}
+
+export function ResellerLayout({ children }: ResellerLayoutProps) {
+  return (
     <SupabaseProvider>
-      <div className="min-h-screen flex flex-col">
-        <AppHeader 
-          type="reseller" 
-          companyName={branding?.company_name || "Sistema de Revendedores"}
-          companyLogo={branding?.logo_url}
-        />
-        <main className="flex-1">
-          {children}
-        </main>
-        <ChatWidget />
-      </div>
+      <ResellerLayoutContent>{children}</ResellerLayoutContent>
     </SupabaseProvider>
   );
 }
