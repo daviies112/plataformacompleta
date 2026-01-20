@@ -94,6 +94,36 @@ When a participant leaves a video meeting, the system automatically creates a co
 - Session management explicitly saved to ensure persistence across requests.
 - Role-based access control for features like meeting recording and data access.
 
+**Session Cookie Configuration (CRITICAL for Replit Preview):**
+
+The session cookies are configured with `sameSite: 'none'` and `secure: true` in `server/index.ts`. This is REQUIRED for the Replit preview iframe to work correctly:
+
+- `sameSite: 'lax'` blocks cookies in cross-site PUT/POST requests (iframe context)
+- `sameSite: 'none'` allows cookies to be sent in all cross-site requests
+- `secure: true` is MANDATORY when using `sameSite: 'none'`
+- `proxy: true` tells Express to trust the Replit HTTPS proxy
+
+**Reseller Supabase Configuration Storage:**
+
+Reseller-specific Supabase credentials are stored in the LOCAL PostgreSQL table `reseller_supabase_configs`:
+
+```sql
+CREATE TABLE reseller_supabase_configs (
+  id SERIAL PRIMARY KEY,
+  reseller_email VARCHAR(255) UNIQUE NOT NULL,
+  supabase_url TEXT,
+  supabase_anon_key TEXT,
+  supabase_service_key TEXT,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+```
+
+Endpoints:
+- `GET /api/reseller/supabase-config` - Returns configuration status (never exposes keys)
+- `PUT /api/reseller/supabase-config` - Saves/updates credentials
+- `POST /api/reseller/supabase-config/test` - Tests connection to configured Supabase
+
 **Background Jobs & Automation (CRITICAL):**
 
 The system uses background job queues for async processing. These MUST be initialized on startup:
