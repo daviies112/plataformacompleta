@@ -35,6 +35,35 @@ ExecutiveAI Pro utilizes a modern web stack designed for scalability and maintai
 - **NEXUS Reseller Platform:** A separate authenticated portal for resellers with dashboards, sales tracking, financial summaries, and product catalogs. It uses dedicated authentication and manages reseller-specific data. See `docs/RESELLER_SYSTEM_DOCUMENTATION.md` for complete documentation.
 - **Reseller Supabase Configuration:** Each reseller can independently configure their own Supabase credentials stored securely in local PostgreSQL (`reseller_supabase_configs` table). Supports transitional inheritance from admin credentials. Service role keys never exposed in API responses.
 
+**NEXUS Data Isolation (CRITICAL):**
+
+The reseller platform implements comprehensive data isolation to prevent cross-tenant data leakage:
+
+1. **Application-Level Isolation:**
+   - Centralized `resellerAuth.ts` manages reseller_id storage and retrieval
+   - `saveResellerId(id, email)` - Stores reseller credentials after login
+   - `getResellerId()` - Returns stored reseller_id or null if not authenticated
+   - All components use the centralized function instead of direct localStorage access
+   - Functions return `null` when reseller_id is missing (no hard-coded fallbacks)
+   - UI displays "Por favor, faça login novamente" when authentication is required
+
+2. **Isolated Tables (require reseller_id filtering):**
+   - `reseller_stores`, `reseller_profiles`, `sales_with_split`
+   - `withdrawals`, `bank_accounts`, `orders`, `payment_links`
+   - `product_requests`, `commission_config`, `commission_splits`
+   - `reseller_alerts`, `reseller_badges`, `reseller_challenges`
+   - `gamification_activities`
+
+3. **Shared Tables (no isolation needed):**
+   - `products`, `gamification_badges`, `gamification_challenges`
+   - `gamification_rewards`, `gamification_leagues`, `gamification_config`
+   - `companies`
+
+4. **Key Files:**
+   - `src/features/revendedora/lib/resellerAuth.ts` - Centralized auth utilities
+   - `src/features/revendedora/pages/Login.tsx` - Saves reseller_id on login
+   - All reseller pages/hooks use `getResellerId()` for data filtering
+
 **NEXUS Reseller Login System (CRITICAL):**
 
 The reseller login system is fully automatic. When you add a reseller to the `revendedoras` table in Supabase Master, the login becomes available immediately.
