@@ -156,7 +156,7 @@ export default function PublicStore() {
       return;
     }
     
-    setLocation(`/revendedora/reseller/checkout/${product.id}?fromPublicStore=true&resellerId=${store?.reseller_id}`);
+    setLocation(`/checkout/${product.id}?resellerId=${store?.reseller_id}`);
   };
 
   const handleShare = () => {

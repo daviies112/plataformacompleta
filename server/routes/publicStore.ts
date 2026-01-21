@@ -143,6 +143,80 @@ router.get('/store/:storeId', async (req: Request, res: Response) => {
   }
 });
 
+// GET /api/public/store/:storeId/product/:productId - Get specific product for checkout
+router.get('/store/:storeId/product/:productId', async (req: Request, res: Response) => {
+  try {
+    const { storeId, productId } = req.params;
+
+    if (!storeId || !productId) {
+      return res.status(400).json({ success: false, error: 'Store ID and Product ID are required' });
+    }
+
+    const supabase = getPublicSupabaseClient();
+    if (!supabase) {
+      console.error('[PublicStore] Supabase not configured for product fetch');
+      return res.status(500).json({ success: false, error: 'Supabase not configured' });
+    }
+    
+    console.log('[PublicStore] Loading product:', productId, 'for store:', storeId);
+
+    // First try to find store by slug or reseller_id
+    let storeData: any = null;
+    
+    const { data: storeBySlug } = await supabase
+      .from('reseller_stores')
+      .select('*')
+      .or(`store_slug.eq.${storeId},reseller_id.eq.${storeId}`)
+      .eq('is_published', true)
+      .single();
+
+    if (storeBySlug) {
+      storeData = storeBySlug;
+    }
+
+    if (!storeData) {
+      return res.status(404).json({ success: false, error: 'Store not found' });
+    }
+
+    // Check if product is in this store's products
+    if (!storeData.product_ids || !storeData.product_ids.includes(productId)) {
+      return res.status(404).json({ success: false, error: 'Product not found in this store' });
+    }
+
+    // Fetch the product
+    const { data: productData, error: productError } = await supabase
+      .from('products')
+      .select('*')
+      .eq('id', productId)
+      .single();
+
+    if (productError || !productData) {
+      return res.status(404).json({ success: false, error: 'Product not found' });
+    }
+
+    return res.json({
+      success: true,
+      product: {
+        id: productData.id,
+        description: productData.description,
+        price: productData.price,
+        image: productData.image,
+        stock: productData.stock,
+        category: productData.category,
+        reference: productData.reference,
+      },
+      store: {
+        id: storeData.id,
+        reseller_id: storeData.reseller_id,
+        store_name: storeData.store_name || 'Loja',
+      },
+    });
+  } catch (error: any) {
+    console.error('[PublicStore] Error fetching product:', error);
+    return res.status(500).json({ success: false, error: error.message || 'Internal server error' });
+  }
+});
+
 // Helper function to get reseller's Supabase client with service key
 const getResellerSupabaseClient = async (resellerEmail: string) => {
   try {

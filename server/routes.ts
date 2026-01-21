@@ -29,6 +29,7 @@ import resellerAuthRoutes from "./routes/resellerAuth";
 import resellerCatalogRoutes from "./routes/resellerCatalog";
 import envioRoutes from "./routes/envio";
 import pagarmeRoutes from "./routes/pagarme";
+import pagarmePublicRoutes from "./routes/pagarmePublic";
 import publicStoreRoutes from "./routes/publicStore";
 
 // Configure multer for logo uploads
@@ -94,6 +95,11 @@ export async function registerRoutes(app: Express) {
   const { resellerAuthMiddleware } = await import("./routes/resellerAuth");
   app.use("/api/reseller", resellerAuthMiddleware, resellerAuthRoutes);
   app.use("/api/reseller", resellerAuthMiddleware, resellerCatalogRoutes);
+
+  // Public checkout routes - NO AUTH required (for public store purchases)
+  // Must be registered BEFORE redirectIfNotAuth middleware
+  app.use("/api/public/checkout", pagarmePublicRoutes);
+  app.use("/api/public/store", publicStoreRoutes);
 
   // Import utilities for protection logic
   const { log } = await import("./vite");
@@ -168,6 +174,7 @@ export async function registerRoutes(app: Express) {
   app.use("/api/envio", requireTenant, envioRoutes);
   
   // Pagar.me payment routes
+  // NOTE: Public checkout routes are registered earlier (before redirectIfNotAuth) at line ~104
   // Webhook endpoint must be PUBLIC for Pagar.me to send payment notifications
   app.use("/api/pagarme/webhook", pagarmeRoutes);
   // All other payment routes require authentication

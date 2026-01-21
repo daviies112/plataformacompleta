@@ -9,6 +9,7 @@ import { usePlatform } from './shared/hooks/usePlatform';
 const ResellerApp = lazy(() => import('./reseller/ResellerApp'));
 const RevendedoraApp = lazy(() => import('@/features/revendedora/RevendedoraApp'));
 const PublicStore = lazy(() => import('@/features/revendedora/pages/public/PublicStore'));
+const PublicCheckout = lazy(() => import('@/features/revendedora/pages/public/PublicCheckout'));
 
 /**
  * PlatformRouter - Roteador inteligente que decide qual app renderizar
@@ -61,6 +62,15 @@ const PlatformRouter = () => {
     return (
       <Suspense fallback={<div className="h-screen w-screen flex items-center justify-center bg-background text-foreground animate-pulse font-sans">Carregando loja...</div>}>
         <PublicStore />
+      </Suspense>
+    );
+  }
+
+  // Se for uma rota pública de checkout, renderizar diretamente SEM autenticação
+  if (location.pathname.startsWith('/checkout/')) {
+    return (
+      <Suspense fallback={<div className="h-screen w-screen flex items-center justify-center bg-background text-foreground animate-pulse font-sans">Carregando checkout...</div>}>
+        <PublicCheckout />
       </Suspense>
     );
   }
