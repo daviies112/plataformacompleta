@@ -39,10 +39,34 @@ interface StoreData {
 export default function PublicCheckout() {
   const [location, setLocation] = useLocation();
   
-  const pathParts = location.split('/');
-  const productId = pathParts[2]; 
+  // Decode URL-encoded characters in location
+  const decodedLocation = decodeURIComponent(location);
+  
+  // Extract productId and storeId from the URL
+  // URL format: /checkout/:productId?storeId=:storeId
+  let productId: string | null = null;
+  let storeId: string | null = null;
+  
+  // First try standard query params from window.location
   const searchParams = new URLSearchParams(window.location.search);
-  const resellerId = searchParams.get('resellerId');
+  storeId = searchParams.get('storeId');
+  
+  // Parse the path
+  const pathParts = decodedLocation.split('/');
+  let rawProductId = pathParts[2] || '';
+  
+  // Check if productId contains query params (URL encoding issue)
+  if (rawProductId.includes('?')) {
+    const parts = rawProductId.split('?');
+    productId = parts[0];
+    const queryParams = new URLSearchParams(parts[1]);
+    if (!storeId) {
+      storeId = queryParams.get('storeId');
+    }
+  } else {
+    productId = rawProductId;
+  }
+  
 
   const [loading, setLoading] = useState(true);
   const [product, setProduct] = useState<Product | null>(null);
@@ -73,13 +97,13 @@ export default function PublicCheckout() {
   const [processingPayment, setProcessingPayment] = useState(false);
 
   useEffect(() => {
-    if (productId && resellerId) {
+    if (productId && storeId) {
       loadProductData();
     } else {
       setError('Dados do produto inválidos');
       setLoading(false);
     }
-  }, [productId, resellerId]);
+  }, [productId, storeId]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -109,7 +133,7 @@ export default function PublicCheckout() {
     try {
       setLoading(true);
       
-      const response = await fetch(`/api/public/store/${resellerId}/product/${productId}`);
+      const response = await fetch(`/api/public/store/${storeId}/product/${productId}`);
       const data = await response.json();
       
       if (!data.success) {
@@ -368,8 +392,8 @@ export default function PublicCheckout() {
   };
 
   const handleBack = () => {
-    if (resellerId) {
-      setLocation(`/loja/${resellerId}`);
+    if (storeId) {
+      setLocation(`/loja/${storeId}`);
     } else {
       window.history.back();
     }

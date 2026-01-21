@@ -160,21 +160,34 @@ router.get('/store/:storeId/product/:productId', async (req: Request, res: Respo
     
     console.log('[PublicStore] Loading product:', productId, 'for store:', storeId);
 
-    // First try to find store by slug or reseller_id
+    // First try to find store by slug
     let storeData: any = null;
     
-    const { data: storeBySlug } = await supabase
+    const { data: storeBySlug, error: slugError } = await supabase
       .from('reseller_stores')
       .select('*')
-      .or(`store_slug.eq.${storeId},reseller_id.eq.${storeId}`)
+      .eq('store_slug', storeId)
       .eq('is_published', true)
       .single();
 
     if (storeBySlug) {
       storeData = storeBySlug;
+    } else {
+      // Try to find store by reseller_id
+      const { data: storeById } = await supabase
+        .from('reseller_stores')
+        .select('*')
+        .eq('reseller_id', storeId)
+        .eq('is_published', true)
+        .single();
+      
+      if (storeById) {
+        storeData = storeById;
+      }
     }
 
     if (!storeData) {
+      console.log('[PublicStore] Store not found for:', storeId, 'slugError:', slugError?.message);
       return res.status(404).json({ success: false, error: 'Store not found' });
     }
 

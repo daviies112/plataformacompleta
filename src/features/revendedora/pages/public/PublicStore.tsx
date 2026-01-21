@@ -156,7 +156,8 @@ export default function PublicStore() {
       return;
     }
     
-    setLocation(`/checkout/${product.id}?resellerId=${store?.reseller_id}`);
+    const checkoutStoreId = store?.store_slug || storeId;
+    setLocation(`/checkout/${product.id}?storeId=${checkoutStoreId}`);
   };
 
   const handleShare = () => {
