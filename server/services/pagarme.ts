@@ -32,10 +32,22 @@ interface PagarmeItem {
   code?: string;
 }
 
+export interface PagarmeSplitRule {
+  amount: number;
+  recipient_id: string;
+  type: 'percentage' | 'flat';
+  options?: {
+    charge_processing_fee?: boolean;
+    charge_remainder_fee?: boolean;
+    liable?: boolean;
+  };
+}
+
 interface CreatePixOrderParams {
   customer: PagarmeCustomer;
   items: PagarmeItem[];
   expiresIn?: number;
+  split?: PagarmeSplitRule[];
 }
 
 interface CreateCardOrderParams {
@@ -44,6 +56,101 @@ interface CreateCardOrderParams {
   cardToken: string;
   installments?: number;
   statementDescriptor?: string;
+  split?: PagarmeSplitRule[];
+}
+
+export interface RecipientAddress {
+  street: string;
+  number: string;
+  complement?: string;
+  neighborhood: string;
+  city: string;
+  state: string;
+  zip_code: string;
+  country?: string;
+}
+
+export interface RecipientPhone {
+  ddd: string;
+  number: string;
+  type: 'mobile' | 'home' | 'commercial';
+}
+
+export interface ManagingPartner {
+  name: string;
+  email: string;
+  document: string;
+  type: 'individual';
+  mother_name?: string;
+  birthdate: string;
+  monthly_income?: number;
+  professional_occupation?: string;
+  address: RecipientAddress;
+  phone_numbers: RecipientPhone[];
+}
+
+export interface CreateCorporateRecipientParams {
+  code?: string;
+  company_name: string;
+  trading_name: string;
+  email: string;
+  document: string;
+  site_url?: string;
+  annual_revenue?: number;
+  corporation_type?: string;
+  founding_date?: string;
+  main_address: RecipientAddress;
+  managing_partners: ManagingPartner[];
+  bank_account: {
+    holder_name: string;
+    holder_document: string;
+    bank: string;
+    branch_number: string;
+    branch_check_digit?: string;
+    account_number: string;
+    account_check_digit: string;
+    type: 'checking' | 'savings';
+  };
+  transfer_settings?: {
+    transfer_enabled: boolean;
+    transfer_interval: 'daily' | 'weekly' | 'monthly';
+    transfer_day: number;
+  };
+}
+
+export interface CreateIndividualRecipientParams {
+  code?: string;
+  name: string;
+  email: string;
+  document: string;
+  description?: string;
+  bank_account: {
+    holder_name: string;
+    holder_document: string;
+    bank: string;
+    branch_number: string;
+    branch_check_digit?: string;
+    account_number: string;
+    account_check_digit: string;
+    type: 'checking' | 'savings';
+  };
+  transfer_settings?: {
+    transfer_enabled: boolean;
+    transfer_interval: 'daily' | 'weekly' | 'monthly';
+    transfer_day: number;
+  };
+}
+
+export interface RecipientResponse {
+  id: string;
+  code: string;
+  name?: string;
+  email: string;
+  document: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+  default_bank_account?: any;
 }
 
 interface CreateCardOrderWithDataParams {
@@ -148,6 +255,18 @@ export class PagarmeService {
   async createPixOrder(params: CreatePixOrderParams): Promise<PagarmeOrderResponse> {
     const totalAmount = params.items.reduce((sum, item) => sum + (item.amount * item.quantity), 0);
 
+    const paymentConfig: any = {
+      payment_method: 'pix',
+      pix: {
+        expires_in: params.expiresIn || 86400,
+      },
+    };
+
+    if (params.split && params.split.length > 0) {
+      paymentConfig.split = params.split;
+      console.log('[Pagar.me] PIX order with SPLIT:', JSON.stringify(params.split));
+    }
+
     const orderData = {
       customer: {
         name: params.customer.name,
@@ -164,14 +283,7 @@ export class PagarmeService {
         quantity: item.quantity,
         code: item.code || 'ITEM',
       })),
-      payments: [
-        {
-          payment_method: 'pix',
-          pix: {
-            expires_in: params.expiresIn || 86400,
-          },
-        },
-      ],
+      payments: [paymentConfig],
     };
 
     console.log('[Pagar.me] Creating PIX order');
@@ -180,8 +292,6 @@ export class PagarmeService {
   }
 
   async createCardOrder(params: CreateCardOrderParams): Promise<PagarmeOrderResponse> {
-    // Billing address is required for card payments
-    // Use customer address if provided, otherwise use a default
     const billingAddress = params.customer.address || {
       country: 'BR',
       state: 'SP',
@@ -191,6 +301,23 @@ export class PagarmeService {
       line_2: 'Apto 1',
     };
 
+    const paymentConfig: any = {
+      payment_method: 'credit_card',
+      credit_card: {
+        installments: params.installments || 1,
+        statement_descriptor: params.statementDescriptor || 'NEXUS',
+        card_token: params.cardToken,
+        card: {
+          billing_address: billingAddress,
+        },
+      },
+    };
+
+    if (params.split && params.split.length > 0) {
+      paymentConfig.split = params.split;
+      console.log('[Pagar.me] Card order with SPLIT:', JSON.stringify(params.split));
+    }
+
     const orderData = {
       customer: {
         name: params.customer.name,
@@ -207,19 +334,7 @@ export class PagarmeService {
         quantity: item.quantity,
         code: item.code || 'ITEM',
       })),
-      payments: [
-        {
-          payment_method: 'credit_card',
-          credit_card: {
-            installments: params.installments || 1,
-            statement_descriptor: params.statementDescriptor || 'NEXUS',
-            card_token: params.cardToken,
-            card: {
-              billing_address: billingAddress,
-            },
-          },
-        },
-      ],
+      payments: [paymentConfig],
     };
 
     console.log('[Pagar.me] Creating Card order with token');
@@ -308,6 +423,145 @@ export class PagarmeService {
 
   isConfigured(): boolean {
     return !!this.secretKey && !!this.publicKey;
+  }
+
+  async createCorporateRecipient(params: CreateCorporateRecipientParams): Promise<RecipientResponse> {
+    const recipientData = {
+      code: params.code || `corp_${Date.now()}`,
+      register_information: {
+        company_name: params.company_name,
+        trading_name: params.trading_name,
+        email: params.email,
+        document: params.document.replace(/\D/g, ''),
+        type: 'corporation',
+        site_url: params.site_url || 'https://nexus.com.br',
+        annual_revenue: params.annual_revenue || 1000000,
+        corporation_type: params.corporation_type || 'MEI',
+        founding_date: params.founding_date || '2020-01-01',
+        phone_numbers: params.managing_partners[0]?.phone_numbers.map(phone => ({
+          ddd: phone.ddd,
+          number: phone.number,
+          type: phone.type,
+        })) || [],
+        main_address: {
+          street: params.main_address.street,
+          street_number: params.main_address.number,
+          complementary: params.main_address.complement || 'N/A',
+          reference_point: 'N/A',
+          neighborhood: params.main_address.neighborhood,
+          city: params.main_address.city,
+          state: params.main_address.state,
+          zip_code: params.main_address.zip_code.replace(/\D/g, ''),
+          country: params.main_address.country || 'BR',
+        },
+        managing_partners: params.managing_partners.map(partner => ({
+          name: partner.name,
+          email: partner.email,
+          document: partner.document.replace(/\D/g, ''),
+          type: 'individual',
+          mother_name: partner.mother_name || 'Não informado',
+          birthdate: partner.birthdate,
+          monthly_income: partner.monthly_income || 5000,
+          professional_occupation: partner.professional_occupation || 'Empresário',
+          self_declared_legal_representative: true,
+          address: {
+            street: partner.address.street,
+            street_number: partner.address.number,
+            complementary: partner.address.complement || 'N/A',
+            reference_point: 'N/A',
+            neighborhood: partner.address.neighborhood,
+            city: partner.address.city,
+            state: partner.address.state,
+            zip_code: partner.address.zip_code.replace(/\D/g, ''),
+            country: partner.address.country || 'BR',
+          },
+          phone_numbers: partner.phone_numbers.map(phone => ({
+            ddd: phone.ddd,
+            number: phone.number,
+            type: phone.type,
+          })),
+        })),
+      },
+      default_bank_account: {
+        holder_name: params.bank_account.holder_name,
+        holder_type: 'company',
+        holder_document: params.bank_account.holder_document.replace(/\D/g, ''),
+        bank: params.bank_account.bank,
+        branch_number: params.bank_account.branch_number,
+        branch_check_digit: params.bank_account.branch_check_digit || '',
+        account_number: params.bank_account.account_number.replace(/-/g, '').slice(0, -1),
+        account_check_digit: params.bank_account.account_number.slice(-1),
+        type: params.bank_account.type,
+      },
+      transfer_settings: params.transfer_settings || {
+        transfer_enabled: true,
+        transfer_interval: 'daily',
+        transfer_day: 0,
+      },
+    };
+
+    console.log('[Pagar.me] Creating corporate recipient');
+    return this.request<RecipientResponse>('/recipients', 'POST', recipientData);
+  }
+
+  async createIndividualRecipient(params: CreateIndividualRecipientParams): Promise<RecipientResponse> {
+    const recipientData = {
+      code: params.code || `ind_${Date.now()}`,
+      name: params.name,
+      email: params.email,
+      document: params.document.replace(/\D/g, ''),
+      description: params.description || 'Revendedor NEXUS',
+      type: 'individual',
+      default_bank_account: {
+        holder_name: params.bank_account.holder_name,
+        holder_type: 'individual',
+        holder_document: params.bank_account.holder_document.replace(/\D/g, ''),
+        bank: params.bank_account.bank,
+        branch_number: params.bank_account.branch_number,
+        branch_check_digit: params.bank_account.branch_check_digit || '',
+        account_number: params.bank_account.account_number.replace(/-/g, '').slice(0, -1),
+        account_check_digit: params.bank_account.account_number.slice(-1),
+        type: params.bank_account.type,
+      },
+      transfer_settings: params.transfer_settings || {
+        transfer_enabled: true,
+        transfer_interval: 'weekly',
+        transfer_day: 5,
+      },
+    };
+
+    console.log('[Pagar.me] Creating individual recipient');
+    return this.request<RecipientResponse>('/recipients', 'POST', recipientData);
+  }
+
+  async getRecipient(recipientId: string): Promise<RecipientResponse> {
+    console.log(`[Pagar.me] Getting recipient: ${recipientId}`);
+    return this.request<RecipientResponse>(`/recipients/${recipientId}`, 'GET');
+  }
+
+  async updateRecipientBankAccount(recipientId: string, bankAccount: {
+    holder_name: string;
+    holder_document: string;
+    holder_type: 'individual' | 'company';
+    bank: string;
+    branch_number: string;
+    branch_check_digit?: string;
+    account_number: string;
+    account_check_digit: string;
+    type: 'checking' | 'savings';
+  }): Promise<RecipientResponse> {
+    console.log(`[Pagar.me] Updating bank account for recipient: ${recipientId}`);
+    return this.request<RecipientResponse>(`/recipients/${recipientId}`, 'PATCH', {
+      default_bank_account: {
+        ...bankAccount,
+        holder_document: bankAccount.holder_document.replace(/\D/g, ''),
+      },
+    });
+  }
+
+  async listRecipients(page: number = 1, size: number = 10): Promise<{ data: RecipientResponse[]; paging: any }> {
+    console.log(`[Pagar.me] Listing recipients page=${page} size=${size}`);
+    return this.request<{ data: RecipientResponse[]; paging: any }>(`/recipients?page=${page}&size=${size}`, 'GET');
   }
 }
 

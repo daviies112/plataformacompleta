@@ -1,8 +1,15 @@
 import { Router } from 'express';
-import { pagarmeService } from '../services/pagarme';
+import { pagarmeService, PagarmeSplitRule } from '../services/pagarme';
 import { createClient } from '@supabase/supabase-js';
 import * as fs from 'fs';
 import * as path from 'path';
+import {
+  calculateResellerCommission,
+  getCompanyRecipientId,
+  getResellerRecipientId,
+  saveCompanyRecipientId,
+  CommissionResult,
+} from '../services/commission';
 
 const router = Router();
 
@@ -98,6 +105,53 @@ async function validateProduct(storeId: string, productId: string, quantity: num
   }
 }
 
+async function buildSplitRules(resellerId: string): Promise<{
+  split: PagarmeSplitRule[] | null;
+  commission: CommissionResult | null;
+}> {
+  try {
+    const [companyRecipientId, resellerRecipientId, commission] = await Promise.all([
+      getCompanyRecipientId(),
+      getResellerRecipientId(resellerId),
+      calculateResellerCommission(resellerId),
+    ]);
+
+    if (!companyRecipientId || !resellerRecipientId) {
+      console.log('[Split] Missing recipient IDs - company:', companyRecipientId, 'reseller:', resellerRecipientId);
+      return { split: null, commission };
+    }
+
+    const split: PagarmeSplitRule[] = [
+      {
+        amount: commission.resellerPercentage,
+        recipient_id: resellerRecipientId,
+        type: 'percentage',
+        options: {
+          charge_processing_fee: false,
+          charge_remainder_fee: false,
+          liable: false,
+        },
+      },
+      {
+        amount: commission.companyPercentage,
+        recipient_id: companyRecipientId,
+        type: 'percentage',
+        options: {
+          charge_processing_fee: true,
+          charge_remainder_fee: true,
+          liable: true,
+        },
+      },
+    ];
+
+    console.log(`[Split] Built split rules: ${commission.tierName} (${commission.resellerPercentage}%/${commission.companyPercentage}%)`);
+    return { split, commission };
+  } catch (error) {
+    console.error('[Split] Error building split rules:', error);
+    return { split: null, commission: null };
+  }
+}
+
 async function saveSaleToSupabase(saleData: {
   productId: string;
   resellerId: string;
@@ -111,6 +165,7 @@ async function saveSaleToSupabase(saleData: {
   pagarmeOrderId: string;
   pagarmeChargeId?: string;
   status: string;
+  commission?: CommissionResult | null;
 }): Promise<{ success: boolean; saleId?: string; error?: string }> {
   try {
     const configPath = path.join(process.cwd(), 'data', 'supabase-config.json');
@@ -130,14 +185,15 @@ async function saveSaleToSupabase(saleData: {
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Default commission: 10% for reseller, 90% for company
-    const commissionPercentage = 10;
     const totalAmountReais = saleData.totalAmount / 100;
-    const resellerAmount = totalAmountReais * (commissionPercentage / 100);
-    const companyAmount = totalAmountReais - resellerAmount;
+    
+    const resellerPercentage = saleData.commission?.resellerPercentage ?? 70;
+    const companyPercentage = saleData.commission?.companyPercentage ?? 30;
+    const tierName = saleData.commission?.tierName ?? 'Padrão';
+    
+    const resellerAmount = totalAmountReais * (resellerPercentage / 100);
+    const companyAmount = totalAmountReais * (companyPercentage / 100);
 
-    // Determine if payment is already paid based on status
-    // Pagar.me returns 'paid' for successful payments, 'pending' for awaiting, 'failed' for declined
     const paidStatuses = ['paid', 'captured', 'authorized'];
     const isPaid = paidStatuses.includes(saleData.status?.toLowerCase() || '');
     const saleStatus = isPaid ? 'confirmada' : 'aguardando_pagamento';
@@ -151,7 +207,8 @@ async function saveSaleToSupabase(saleData: {
       total_amount: totalAmountReais,
       reseller_amount: resellerAmount,
       company_amount: companyAmount,
-      commission_percentage: commissionPercentage,
+      commission_percentage: resellerPercentage,
+      commission_tier: tierName,
       paid: isPaid,
       paid_at: isPaid ? new Date().toISOString() : null,
       customer_name: saleData.customerName || null,
@@ -162,7 +219,13 @@ async function saveSaleToSupabase(saleData: {
       created_at: new Date().toISOString(),
     };
 
-    console.log('[SaveSale] Saving sale to Supabase:', JSON.stringify(saleRecord, null, 2));
+    console.log('[SaveSale] Saving sale with dynamic commission:', {
+      tier: tierName,
+      resellerPercentage,
+      companyPercentage,
+      resellerAmount,
+      companyAmount,
+    });
 
     const { data, error } = await supabase
       .from('sales_with_split')
@@ -279,16 +342,30 @@ router.post('/pix', async (req, res) => {
       phones: formatPhoneForPagarme(customer.phone),
     };
 
+    // Build split rules based on dynamic commission
+    let splitRules: PagarmeSplitRule[] | undefined;
+    let commissionResult: CommissionResult | null = null;
+    
+    if (productValidation.resellerId) {
+      const { split, commission } = await buildSplitRules(productValidation.resellerId);
+      if (split) {
+        splitRules = split;
+        console.log('[Pagar.me Public] PIX with Split enabled');
+      }
+      commissionResult = commission;
+    }
+
     const order = await pagarmeService.createPixOrder({
       customer: customerWithPhone,
       items,
       expiresIn: expiresIn || 86400,
+      split: splitRules,
     });
 
     const pixCharge = order.charges?.[0];
     const pixTransaction = pixCharge?.last_transaction;
 
-    console.log(`[Pagar.me Public] PIX order created: ${order.id}`);
+    console.log(`[Pagar.me Public] PIX order created: ${order.id}${splitRules ? ' (with Split)' : ''}`);
 
     // Save sale to Supabase
     if (productValidation.resellerId) {
@@ -305,6 +382,7 @@ router.post('/pix', async (req, res) => {
         pagarmeOrderId: order.id,
         pagarmeChargeId: pixCharge?.id,
         status: order.status,
+        commission: commissionResult,
       });
       
       if (!saveResult.success) {
@@ -406,17 +484,31 @@ router.post('/card', async (req, res) => {
       phones: formatPhoneForPagarme(customer.phone),
     };
 
+    // Build split rules based on dynamic commission
+    let splitRules: PagarmeSplitRule[] | undefined;
+    let commissionResult: CommissionResult | null = null;
+    
+    if (productValidation.resellerId) {
+      const { split, commission } = await buildSplitRules(productValidation.resellerId);
+      if (split) {
+        splitRules = split;
+        console.log('[Pagar.me Public] Card with Split enabled');
+      }
+      commissionResult = commission;
+    }
+
     const order = await pagarmeService.createCardOrder({
       customer: customerWithPhone,
       items,
       cardToken,
       installments: installments || 1,
       statementDescriptor: statementDescriptor || 'NEXUS',
+      split: splitRules,
     });
 
     const cardCharge = order.charges?.[0];
 
-    console.log(`[Pagar.me Public] Card order created: ${order.id}, chargeStatus: ${cardCharge?.status}, orderStatus: ${order.status}`);
+    console.log(`[Pagar.me Public] Card order created: ${order.id}${splitRules ? ' (with Split)' : ''}, chargeStatus: ${cardCharge?.status}, orderStatus: ${order.status}`);
 
     // Save sale to Supabase
     if (productValidation.resellerId) {
@@ -433,6 +525,7 @@ router.post('/card', async (req, res) => {
         pagarmeOrderId: order.id,
         pagarmeChargeId: cardCharge?.id,
         status: cardCharge?.status || order.status,
+        commission: commissionResult,
       });
       
       if (!saveResult.success) {
@@ -555,6 +648,119 @@ router.get('/status/:orderId', async (req, res) => {
   } catch (error: any) {
     console.error('[Pagar.me Public] Get order error:', error.message);
     res.status(500).json({ error: error.message || 'Erro ao buscar pedido' });
+  }
+});
+
+router.post('/setup-company-recipient', async (req, res) => {
+  try {
+    const existingRecipientId = await getCompanyRecipientId();
+    if (existingRecipientId) {
+      console.log('[Pagar.me Public] Company recipient already exists:', existingRecipientId);
+      return res.json({
+        success: true,
+        message: 'Recipient da empresa já existe',
+        recipientId: existingRecipientId,
+        alreadyExists: true,
+      });
+    }
+
+    const recipient = await pagarmeService.createCorporateRecipient({
+      code: 'NEXUS_COMPANY',
+      company_name: '53.462.690 DAVI DE OLIVEIRA EMERICK',
+      trading_name: 'Nexus Intelligence',
+      email: 'daviemericko@gmail.com',
+      document: '53.462.690/0001-67',
+      corporation_type: 'MEI',
+      founding_date: '2024-01-01',
+      main_address: {
+        street: 'Rua Seringueira',
+        number: '350',
+        neighborhood: 'Nova Gameleira',
+        city: 'Belo Horizonte',
+        state: 'MG',
+        zip_code: '30510-690',
+      },
+      managing_partners: [
+        {
+          name: 'Davi de Oliveira Emerick',
+          email: 'daviemericko@gmail.com',
+          document: '14515566679',
+          type: 'individual',
+          birthdate: '2000-01-10',
+          monthly_income: 10000,
+          professional_occupation: 'Empresário',
+          address: {
+            street: 'Rua Seringueira',
+            number: '350',
+            neighborhood: 'Nova Gameleira',
+            city: 'Belo Horizonte',
+            state: 'MG',
+            zip_code: '30510-690',
+          },
+          phone_numbers: [
+            {
+              ddd: '31',
+              number: '992267220',
+              type: 'mobile',
+            },
+          ],
+        },
+      ],
+      bank_account: {
+        holder_name: '53.462.690 DAVI DE OLIVEIRA EMERICK',
+        holder_document: '53.462.690/0001-67',
+        bank: '336',
+        branch_number: '0001',
+        account_number: '12580555-1',
+        account_check_digit: '1',
+        type: 'checking',
+      },
+    });
+
+    console.log('[Pagar.me Public] Company recipient created:', recipient.id);
+
+    const saved = await saveCompanyRecipientId(recipient.id);
+    if (!saved) {
+      console.error('[Pagar.me Public] Failed to save company recipient ID to database');
+    }
+
+    res.json({
+      success: true,
+      message: 'Recipient da empresa criado com sucesso',
+      recipientId: recipient.id,
+      recipientCode: recipient.code,
+      status: recipient.status,
+    });
+  } catch (error: any) {
+    console.error('[Pagar.me Public] Setup company recipient error:', error.message);
+    res.status(500).json({ error: error.message || 'Erro ao criar recipient da empresa' });
+  }
+});
+
+router.get('/company-recipient', async (req, res) => {
+  try {
+    const recipientId = await getCompanyRecipientId();
+    
+    if (!recipientId) {
+      return res.json({
+        success: true,
+        configured: false,
+        message: 'Recipient da empresa não configurado',
+      });
+    }
+
+    const recipient = await pagarmeService.getRecipient(recipientId);
+
+    res.json({
+      success: true,
+      configured: true,
+      recipientId: recipient.id,
+      status: recipient.status,
+      email: recipient.email,
+    });
+  } catch (error: any) {
+    console.error('[Pagar.me Public] Get company recipient error:', error.message);
+    res.status(500).json({ error: error.message || 'Erro ao buscar recipient da empresa' });
   }
 });
 
