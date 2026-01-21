@@ -87,14 +87,19 @@ export class PagarmeService {
   private publicKey: string;
 
   constructor() {
-    this.secretKey = process.env.CHAVE_SECRETA || '';
-    this.publicKey = process.env.CHAVE_PUBLICA || '';
+    // Try test keys first, then production keys
+    this.secretKey = process.env.CHAVE_SECRETA_TESTE || process.env.CHAVE_SECRETA || '';
+    this.publicKey = process.env.CHAVE_PUBLICA_TESTE || process.env.CHAVE_PUBLICA || '';
+
+    if (process.env.CHAVE_SECRETA_TESTE || process.env.CHAVE_PUBLICA_TESTE) {
+      console.log('[Pagar.me] Usando credenciais de TESTE');
+    }
 
     if (!this.secretKey) {
-      console.warn('[Pagar.me] CHAVE_SECRETA não configurada');
+      console.warn('[Pagar.me] Nenhuma chave secreta configurada (CHAVE_SECRETA_TESTE ou CHAVE_SECRETA)');
     }
     if (!this.publicKey) {
-      console.warn('[Pagar.me] CHAVE_PUBLICA não configurada');
+      console.warn('[Pagar.me] Nenhuma chave pública configurada (CHAVE_PUBLICA_TESTE ou CHAVE_PUBLICA)');
     }
   }
 
