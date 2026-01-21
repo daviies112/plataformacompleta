@@ -418,7 +418,7 @@ export default function CommissionConfiguration() {
               3
             </div>
             <p className="text-muted-foreground">
-              Aplica as porcentagens configuradas para aquela faixa automaticamente no split de pagamento via Stripe
+              Aplica as porcentagens configuradas para aquela faixa automaticamente no split de pagamento via Pagar.me
             </p>
           </div>
           <div className="flex gap-3">

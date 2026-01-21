@@ -62,6 +62,15 @@ ExecutiveAI Pro utilizes a modern web stack designed for scalability and maintai
 
 ## Recent Changes (January 2026)
 
+- **Complete Stripe to Pagar.me Migration:** Fully removed Stripe dependencies and migrated all payment processing to Pagar.me. Changes include:
+  - Deleted `StripeService.ts` and `stripePayment.ts` files
+  - Refactored `PaymentCard.tsx` with custom card form using Pagar.me tokenization API
+  - Updated `PaymentService.ts` to use Pagar.me endpoints (`/api/pagarme/process-payment`)
+  - Removed `@stripe/react-stripe-js`, `@stripe/stripe-js`, and `@types/stripe` packages
+  - Updated authentication middleware to whitelist Pagar.me routes
+- **Structured Logging with Pino:** Added `server/lib/logger.ts` with context-specific loggers for Payment, Pagar.me, Auth, Database, and API. Supports pretty-printing in development and JSON in production.
+- **Security Hardening:** SESSION_SECRET now fails fast in production if not set, preventing deployment with insecure defaults.
+- **Database Type Updates:** Replaced `stripe_account_id` with `pagarme_recipient_id` across type definitions.
 - **Reseller Bank Account Setup (Complete):** Full KYC onboarding for resellers (CPF) to receive split payments via Pagar.me. Includes personal data, complete address, and bank account information with strict validation. Endpoint: `/api/pagarme/onboarding-revendedora`. Recipient IDs stored in `revendedoras.pagarme_recipient_id`.
 - **Commission Tiers System:** Dynamic commission management with 4 tiers: Iniciante (65%/35%), Bronze (70%/30%), Prata (75%/25%), Ouro (80%/20%). Admin page at `/billing/comissoes`.
 - **Public Checkout System (Complete):** Unauthenticated customers can now complete purchases from public storefronts via `/checkout/:productId?storeId=X`. The system bypasses authentication while maintaining security through server-side price validation. Uses the `products` table (not `reseller_products`) and `reseller_stores` for store lookup. Product validation checks if `productId` is in `storeData.product_ids` array to prevent cross-store purchases.

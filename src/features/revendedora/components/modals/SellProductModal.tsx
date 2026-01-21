@@ -129,7 +129,7 @@ export function SellProductModal({
           navigate(`/reseller/payment/pix/${response.saleId}`);
         }
         
-        // Para cartão, redirecionar para página de pagamento com Stripe
+        // Para cartão, redirecionar para página de pagamento com Pagar.me
         else if (paymentMethod === 'cartao' && response.clientSecret) {
           onClose();
           navigate(`/reseller/payment/card/${response.saleId}`, {
