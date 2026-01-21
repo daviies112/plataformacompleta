@@ -1,17 +1,24 @@
 import { Router, Request, Response } from 'express';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { pool } from '../db';
-import { getClienteSupabase } from '../lib/clienteSupabase';
+import fs from 'fs';
+import path from 'path';
 
 const router = Router();
 
-// Get Supabase client for public store - uses file config or env vars
-const getPublicSupabaseClient = async (): Promise<SupabaseClient | null> => {
+// Get Supabase client for public store - reads directly from config file
+const getPublicSupabaseClient = (): SupabaseClient | null => {
   try {
-    // Use getClienteSupabase which checks file config first
-    const config = await getClienteSupabase();
-    if (config?.url && config?.anonKey) {
-      return createClient(config.url, config.anonKey);
+    // Try to read from file config first
+    const configPath = path.join(process.cwd(), 'data', 'supabase-config.json');
+    if (fs.existsSync(configPath)) {
+      const configData = fs.readFileSync(configPath, 'utf-8');
+      const config = JSON.parse(configData);
+      
+      if (config.supabaseUrl && config.supabaseAnonKey) {
+        console.log('[PublicStore] Using credentials from data/supabase-config.json');
+        return createClient(config.supabaseUrl, config.supabaseAnonKey);
+      }
     }
     
     // Fallback to env vars
@@ -19,9 +26,11 @@ const getPublicSupabaseClient = async (): Promise<SupabaseClient | null> => {
     const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
     
     if (supabaseUrl && supabaseKey) {
+      console.log('[PublicStore] Using credentials from env vars');
       return createClient(supabaseUrl, supabaseKey);
     }
     
+    console.error('[PublicStore] No Supabase credentials found');
     return null;
   } catch (error) {
     console.error('[PublicStore] Error getting Supabase client:', error);
@@ -37,7 +46,7 @@ router.get('/store/:storeId', async (req: Request, res: Response) => {
       return res.status(400).json({ success: false, error: 'Store ID is required' });
     }
 
-    const supabase = await getPublicSupabaseClient();
+    const supabase = getPublicSupabaseClient();
     if (!supabase) {
       console.error('[PublicStore] Supabase not configured - check data/supabase-config.json or env vars');
       return res.status(500).json({ success: false, error: 'Supabase not configured' });
@@ -335,7 +344,7 @@ router.get('/reseller/store/:resellerId', async (req: Request, res: Response) =>
     
     const supabase = resellerEmail 
       ? await getResellerSupabaseClient(resellerEmail)
-      : await getPublicSupabaseClient();
+      : getPublicSupabaseClient();
       
     if (!supabase) {
       return res.status(500).json({ success: false, error: 'Supabase not configured' });
