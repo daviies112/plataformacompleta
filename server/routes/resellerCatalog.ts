@@ -188,7 +188,8 @@ router.post('/create-sale', async (req, res) => {
       valorEmpresa,
       clienteNome,
       clienteTelefone,
-      stripePaymentId
+      paymentId, // New neutral name
+      stripePaymentId // Legacy: kept for backward compatibility with existing clients
     } = req.body;
 
     if (!revendedoraId || !valorTotal) {
@@ -224,7 +225,7 @@ router.post('/create-sale', async (req, res) => {
         valor_comissao: comissaoCalculada,
         valor_empresa: empresaCalculada,
         status_pagamento: 'pendente',
-        stripe_payment_id: stripePaymentId || null,
+        stripe_payment_id: paymentId || stripePaymentId || null, // Accepts both new and legacy field names
         cliente_nome: clienteNome || null,
         cliente_telefone: clienteTelefone || null
       })

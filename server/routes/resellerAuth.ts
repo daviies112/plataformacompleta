@@ -596,7 +596,7 @@ router.get('/admin/list', async (req: Request, res: Response) => {
 
     const { data, error } = await supabaseOwner
       .from('revendedoras')
-      .select('id, nome, email, cpf, telefone, status, comissao_padrao, stripe_account_id, created_at')
+      .select('id, nome, email, cpf, telefone, status, comissao_padrao, pagarme_recipient_id:stripe_account_id, created_at')
       .eq('admin_id', adminId)
       .order('created_at', { ascending: false });
 
