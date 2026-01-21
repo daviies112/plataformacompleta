@@ -756,7 +756,7 @@ export default function Store() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {isPublished && storeProducts.length > 0 ? (
+                {isPublished ? (
                   <>
                     <div className="p-4 border rounded-lg bg-primary/5 border-primary/20">
                       <p className="text-sm font-mono break-all">{getPublicUrl()}</p>
@@ -795,6 +795,12 @@ export default function Store() {
                         />
                       </div>
                     </div>
+
+                    {storeProducts.length === 0 && (
+                      <p className="text-sm text-amber-600 dark:text-amber-400">
+                        Sua loja está publicada, mas sem produtos. Adicione produtos na aba "Minha Loja".
+                      </p>
+                    )}
                   </>
                 ) : (
                   <div className="flex flex-col items-center justify-center py-8 text-center">
