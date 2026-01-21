@@ -112,6 +112,14 @@ export class PagarmeService {
     const url = `${PAGARME_API_URL}${endpoint}`;
     
     console.log(`[Pagar.me] ${method} ${endpoint}`);
+    if (body) {
+      // Log the full request body (mask sensitive data)
+      const logBody = JSON.parse(JSON.stringify(body));
+      if (logBody.payments?.[0]?.credit_card?.card_token) {
+        logBody.payments[0].credit_card.card_token = logBody.payments[0].credit_card.card_token.substring(0, 10) + '...';
+      }
+      console.log('[Pagar.me] Request body:', JSON.stringify(logBody, null, 2));
+    }
 
     const response = await fetch(url, {
       method,
@@ -124,6 +132,10 @@ export class PagarmeService {
     });
 
     const data = await response.json() as any;
+    
+    // Log full response for debugging
+    console.log('[Pagar.me] Response status:', response.status);
+    console.log('[Pagar.me] Response body:', JSON.stringify(data, null, 2));
 
     if (!response.ok) {
       console.error('[Pagar.me] Error:', data);
