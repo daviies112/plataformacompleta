@@ -162,34 +162,44 @@ router.post('/card', async (req, res) => {
   try {
     const { customer, items, cardToken, installments, statementDescriptor, storeId, productId, quantity } = req.body;
 
+    console.log('[Pagar.me Public] Card payment request:', JSON.stringify({ storeId, productId, quantity, cardToken: cardToken ? 'present' : 'missing', customer: customer ? 'present' : 'missing', items: items?.length }, null, 2));
+
     if (!storeId || typeof storeId !== 'string') {
+      console.log('[Pagar.me Public] Validation failed: storeId missing');
       return res.status(400).json({ error: 'storeId é obrigatório' });
     }
 
     if (!productId || typeof productId !== 'string') {
+      console.log('[Pagar.me Public] Validation failed: productId missing');
       return res.status(400).json({ error: 'productId é obrigatório' });
     }
 
     const customerValidation = await validateCustomer(customer);
     if (!customerValidation.valid) {
+      console.log('[Pagar.me Public] Validation failed: customer -', customerValidation.error);
       return res.status(400).json({ error: customerValidation.error });
     }
 
     if (!items || !Array.isArray(items) || items.length === 0) {
+      console.log('[Pagar.me Public] Validation failed: items missing or empty');
       return res.status(400).json({ error: 'Items são obrigatórios' });
     }
 
     if (!cardToken || typeof cardToken !== 'string') {
+      console.log('[Pagar.me Public] Validation failed: cardToken missing');
       return res.status(400).json({ error: 'cardToken é obrigatório' });
     }
 
+    console.log('[Pagar.me Public] Starting product validation for card payment...');
     {
       const productValidation = await validateProduct(storeId, productId, quantity || 1);
       if (!productValidation.valid) {
+        console.log('[Pagar.me Public] Validation failed: product -', productValidation.error);
         return res.status(400).json({ error: productValidation.error });
       }
 
       const clientAmount = items.reduce((sum: number, item: any) => sum + (item.amount * (item.quantity || 1)), 0);
+      console.log('[Pagar.me Public] Price validation:', { clientAmount, serverAmount: productValidation.serverAmount });
       if (clientAmount !== productValidation.serverAmount) {
         console.error(`[Pagar.me Public] Price mismatch: client=${clientAmount}, server=${productValidation.serverAmount}`);
         return res.status(400).json({ error: 'Valor do produto não confere. Atualize a página e tente novamente.' });
