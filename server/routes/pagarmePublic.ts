@@ -6,7 +6,16 @@ import * as path from 'path';
 
 const router = Router();
 
-async function validateProduct(storeId: string, productId: string, quantity: number): Promise<{ valid: boolean; product?: any; error?: string; serverAmount?: number }> {
+interface ProductValidationResult {
+  valid: boolean;
+  product?: any;
+  error?: string;
+  serverAmount?: number;
+  resellerId?: string;
+  companyId?: string;
+}
+
+async function validateProduct(storeId: string, productId: string, quantity: number): Promise<ProductValidationResult> {
   try {
     const configPath = path.join(process.cwd(), 'data', 'supabase-config.json');
     if (!fs.existsSync(configPath)) {
@@ -76,10 +85,99 @@ async function validateProduct(storeId: string, productId: string, quantity: num
     const serverAmount = Math.round(product.price * 100 * quantity);
     console.log('[Pagar.me Public] Product validated:', { name: product.description, price: product.price, serverAmount });
 
-    return { valid: true, product: { ...product, name: product.description }, serverAmount };
+    return { 
+      valid: true, 
+      product: { ...product, name: product.description }, 
+      serverAmount,
+      resellerId: storeData.reseller_id,
+      companyId: undefined
+    };
   } catch (error) {
     console.error('[Pagar.me Public] Product validation error:', error);
     return { valid: false, error: 'Erro ao validar produto' };
+  }
+}
+
+async function saveSaleToSupabase(saleData: {
+  productId: string;
+  resellerId: string;
+  companyId?: string;
+  paymentMethod: string;
+  totalAmount: number;
+  quantity: number;
+  customerName?: string;
+  customerEmail?: string;
+  customerDocument?: string;
+  pagarmeOrderId: string;
+  pagarmeChargeId?: string;
+  status: string;
+}): Promise<{ success: boolean; saleId?: string; error?: string }> {
+  try {
+    const configPath = path.join(process.cwd(), 'data', 'supabase-config.json');
+    if (!fs.existsSync(configPath)) {
+      console.error('[SaveSale] Config file not found');
+      return { success: false, error: 'Configuração não encontrada' };
+    }
+    
+    const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    const supabaseUrl = config.url || config.supabaseUrl;
+    const supabaseKey = config.serviceRoleKey || config.anonKey || config.supabaseAnonKey;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      console.error('[SaveSale] Supabase credentials not configured');
+      return { success: false, error: 'Credenciais não configuradas' };
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Default commission: 10% for reseller, 90% for company
+    const commissionPercentage = 10;
+    const totalAmountReais = saleData.totalAmount / 100;
+    const resellerAmount = totalAmountReais * (commissionPercentage / 100);
+    const companyAmount = totalAmountReais - resellerAmount;
+
+    // Determine if payment is already paid based on status
+    const isPaid = saleData.status === 'paid';
+    const saleStatus = isPaid ? 'confirmada' : 'aguardando_pagamento';
+
+    const saleRecord = {
+      product_id: saleData.productId,
+      reseller_id: saleData.resellerId,
+      company_id: saleData.companyId || null,
+      payment_method: saleData.paymentMethod,
+      status: saleStatus,
+      total_amount: totalAmountReais,
+      reseller_amount: resellerAmount,
+      company_amount: companyAmount,
+      commission_percentage: commissionPercentage,
+      paid: isPaid,
+      paid_at: isPaid ? new Date().toISOString() : null,
+      customer_name: saleData.customerName || null,
+      customer_email: saleData.customerEmail || null,
+      pagarme_order_id: saleData.pagarmeOrderId,
+      pagarme_charge_id: saleData.pagarmeChargeId || null,
+      quantity: saleData.quantity,
+      created_at: new Date().toISOString(),
+    };
+
+    console.log('[SaveSale] Saving sale to Supabase:', JSON.stringify(saleRecord, null, 2));
+
+    const { data, error } = await supabase
+      .from('sales_with_split')
+      .insert(saleRecord)
+      .select('id')
+      .single();
+
+    if (error) {
+      console.error('[SaveSale] Error saving sale:', error);
+      return { success: false, error: error.message };
+    }
+
+    console.log('[SaveSale] Sale saved successfully:', data?.id);
+    return { success: true, saleId: data?.id };
+  } catch (error: any) {
+    console.error('[SaveSale] Exception:', error);
+    return { success: false, error: error.message };
   }
 }
 
@@ -124,21 +222,19 @@ router.post('/pix', async (req, res) => {
       return res.status(400).json({ error: 'Items são obrigatórios' });
     }
 
-    {
-      const productValidation = await validateProduct(storeId, productId, quantity || 1);
-      if (!productValidation.valid) {
-        return res.status(400).json({ error: productValidation.error });
-      }
-
-      const clientAmount = items.reduce((sum: number, item: any) => sum + (item.amount * (item.quantity || 1)), 0);
-      if (clientAmount !== productValidation.serverAmount) {
-        console.error(`[Pagar.me Public] Price mismatch: client=${clientAmount}, server=${productValidation.serverAmount}`);
-        return res.status(400).json({ error: 'Valor do produto não confere. Atualize a página e tente novamente.' });
-      }
-
-      items[0].amount = productValidation.serverAmount;
-      items[0].description = productValidation.product.name;
+    const productValidation = await validateProduct(storeId, productId, quantity || 1);
+    if (!productValidation.valid) {
+      return res.status(400).json({ error: productValidation.error });
     }
+
+    const clientAmount = items.reduce((sum: number, item: any) => sum + (item.amount * (item.quantity || 1)), 0);
+    if (clientAmount !== productValidation.serverAmount) {
+      console.error(`[Pagar.me Public] Price mismatch: client=${clientAmount}, server=${productValidation.serverAmount}`);
+      return res.status(400).json({ error: 'Valor do produto não confere. Atualize a página e tente novamente.' });
+    }
+
+    items[0].amount = productValidation.serverAmount;
+    items[0].description = productValidation.product.name;
 
     for (const item of items) {
       if (!item.amount || typeof item.amount !== 'number' || item.amount <= 0) {
@@ -162,6 +258,30 @@ router.post('/pix', async (req, res) => {
     const pixTransaction = pixCharge?.last_transaction;
 
     console.log(`[Pagar.me Public] PIX order created: ${order.id}`);
+
+    // Save sale to Supabase
+    if (productValidation.resellerId) {
+      const saveResult = await saveSaleToSupabase({
+        productId,
+        resellerId: productValidation.resellerId,
+        companyId: productValidation.companyId,
+        paymentMethod: 'pix',
+        totalAmount: productValidation.serverAmount!,
+        quantity: quantity || 1,
+        customerName: customer.name,
+        customerEmail: customer.email,
+        customerDocument: customer.document,
+        pagarmeOrderId: order.id,
+        pagarmeChargeId: pixCharge?.id,
+        status: order.status,
+      });
+      
+      if (!saveResult.success) {
+        console.error('[Pagar.me Public] Failed to save sale:', saveResult.error);
+      } else {
+        console.log('[Pagar.me Public] Sale saved with ID:', saveResult.saleId);
+      }
+    }
 
     res.json({
       success: true,
@@ -217,23 +337,21 @@ router.post('/card', async (req, res) => {
     }
 
     console.log('[Pagar.me Public] Starting product validation for card payment...');
-    {
-      const productValidation = await validateProduct(storeId, productId, quantity || 1);
-      if (!productValidation.valid) {
-        console.log('[Pagar.me Public] Validation failed: product -', productValidation.error);
-        return res.status(400).json({ error: productValidation.error });
-      }
-
-      const clientAmount = items.reduce((sum: number, item: any) => sum + (item.amount * (item.quantity || 1)), 0);
-      console.log('[Pagar.me Public] Price validation:', { clientAmount, serverAmount: productValidation.serverAmount });
-      if (clientAmount !== productValidation.serverAmount) {
-        console.error(`[Pagar.me Public] Price mismatch: client=${clientAmount}, server=${productValidation.serverAmount}`);
-        return res.status(400).json({ error: 'Valor do produto não confere. Atualize a página e tente novamente.' });
-      }
-
-      items[0].amount = productValidation.serverAmount;
-      items[0].description = productValidation.product.name;
+    const productValidation = await validateProduct(storeId, productId, quantity || 1);
+    if (!productValidation.valid) {
+      console.log('[Pagar.me Public] Validation failed: product -', productValidation.error);
+      return res.status(400).json({ error: productValidation.error });
     }
+
+    const clientAmount = items.reduce((sum: number, item: any) => sum + (item.amount * (item.quantity || 1)), 0);
+    console.log('[Pagar.me Public] Price validation:', { clientAmount, serverAmount: productValidation.serverAmount });
+    if (clientAmount !== productValidation.serverAmount) {
+      console.error(`[Pagar.me Public] Price mismatch: client=${clientAmount}, server=${productValidation.serverAmount}`);
+      return res.status(400).json({ error: 'Valor do produto não confere. Atualize a página e tente novamente.' });
+    }
+
+    items[0].amount = productValidation.serverAmount;
+    items[0].description = productValidation.product.name;
 
     for (const item of items) {
       if (!item.amount || typeof item.amount !== 'number' || item.amount <= 0) {
@@ -262,6 +380,30 @@ router.post('/card', async (req, res) => {
     const cardCharge = order.charges?.[0];
 
     console.log(`[Pagar.me Public] Card order created: ${order.id}`);
+
+    // Save sale to Supabase
+    if (productValidation.resellerId) {
+      const saveResult = await saveSaleToSupabase({
+        productId,
+        resellerId: productValidation.resellerId,
+        companyId: productValidation.companyId,
+        paymentMethod: 'cartao',
+        totalAmount: productValidation.serverAmount!,
+        quantity: quantity || 1,
+        customerName: customer.name,
+        customerEmail: customer.email,
+        customerDocument: customer.document,
+        pagarmeOrderId: order.id,
+        pagarmeChargeId: cardCharge?.id,
+        status: cardCharge?.status || order.status,
+      });
+      
+      if (!saveResult.success) {
+        console.error('[Pagar.me Public] Failed to save sale:', saveResult.error);
+      } else {
+        console.log('[Pagar.me Public] Sale saved with ID:', saveResult.saleId);
+      }
+    }
 
     res.json({
       success: true,
