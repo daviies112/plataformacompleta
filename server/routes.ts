@@ -28,6 +28,7 @@ import n8nRouter from "./routes/n8n";
 import resellerAuthRoutes from "./routes/resellerAuth";
 import resellerCatalogRoutes from "./routes/resellerCatalog";
 import envioRoutes from "./routes/envio";
+import pagarmeRoutes from "./routes/pagarme";
 
 // Configure multer for logo uploads
 const logoStorage = multer.diskStorage({
@@ -161,6 +162,10 @@ export async function registerRoutes(app: Express) {
   
   // Envio routes (shipping management)
   app.use("/api/envio", requireTenant, envioRoutes);
+  
+  // Pagar.me payment routes (public webhook + authenticated routes)
+  app.use("/api/pagarme/webhook", pagarmeRoutes); // Public webhook endpoint
+  app.use("/api/pagarme", pagarmeRoutes); // Authenticated payment routes
 
   return httpServer;
 }

@@ -2,7 +2,7 @@
 
 ## Overview
 
-ExecutiveAI Pro is a multi-tenant SaaS platform designed for comprehensive business management, offering lead management, form handling, CPF validation, and WhatsApp Business integration. Its vision is to provide an all-in-one solution for businesses to streamline their operations, enhance customer engagement, and improve sales processes. Key capabilities include a robust executive dashboard, lead and form management, real-time CPF validation with history, and advanced communication features via WhatsApp Business. Recent expansions include a shipping platform, a reselling platform (NEXUS), n8n integration for meeting automation, and a sophisticated digital signature system with biometric verification. The project aims to offer a competitive edge in the market by consolidating essential business tools into a single, efficient, and scalable platform.
+ExecutiveAI Pro is a multi-tenant SaaS platform designed for comprehensive business management, aiming to be an all-in-one solution for streamlining operations, enhancing customer engagement, and improving sales processes. It offers lead management, form handling, real-time CPF validation, and WhatsApp Business integration. Recent expansions include a shipping platform, a reselling platform (NEXUS), n8n integration for meeting automation, and a sophisticated digital signature system with biometric verification. The project's ambition is to provide a competitive edge by consolidating essential business tools into a single, efficient, and scalable platform.
 
 ## User Preferences
 
@@ -14,237 +14,42 @@ ExecutiveAI Pro is a multi-tenant SaaS platform designed for comprehensive busin
 
 ## System Architecture
 
-ExecutiveAI Pro utilizes a modern web stack designed for scalability and maintainability.
+ExecutiveAI Pro utilizes a modern web stack designed for scalability and maintainability, emphasizing a multi-tenant, API-driven architecture with robust error handling and automation.
 
 **Frontend:**
-- Developed with React 18, TypeScript, and Vite for a fast and type-safe development experience.
-- UI/UX is built using TailwindCSS and shadcn/ui, providing a consistent and customizable design system.
-- State management is handled by TanStack Query for server state and Zustand for client state, ensuring efficient data fetching and global state management.
+- **Technology:** React 18, TypeScript, Vite.
+- **UI/UX:** TailwindCSS and shadcn/ui for a consistent design system.
+- **State Management:** TanStack Query (server state) and Zustand (client state).
 
 **Backend:**
-- Powered by Express.js with TypeScript, offering a robust and scalable API layer.
-- Implements JWT for secure authentication and session management.
+- **Technology:** Express.js with TypeScript.
+- **Security:** JWT for authentication.
 
 **Database:**
-- PostgreSQL is used as the primary database, managed with Drizzle ORM for type-safe database interactions.
-- Utilizes Supabase for certain functionalities, acting as both a primary and fallback data store, especially for features like digital signatures and CPF validation.
+- **Primary:** PostgreSQL managed with Drizzle ORM.
+- **Secondary/Fallback:** Supabase for specific functionalities and data stores.
 
 **Core Features & Technical Implementations:**
 
 - **Shipping Platform:** Integrates with multiple carriers (Correios, Jadlog, Loggi, Azul Cargo) for freight quotation and tracking.
-- **NEXUS Reseller Platform:** A separate authenticated portal for resellers with dashboards, sales tracking, financial summaries, and product catalogs. It uses dedicated authentication and manages reseller-specific data. See `docs/RESELLER_SYSTEM_DOCUMENTATION.md` for complete documentation.
-- **Reseller Supabase Configuration:** Each reseller can independently configure their own Supabase credentials stored securely in local PostgreSQL (`reseller_supabase_configs` table). Supports transitional inheritance from admin credentials. Service role keys never exposed in API responses.
-
-**NEXUS Data Isolation (CRITICAL):**
-
-The reseller platform implements comprehensive data isolation to prevent cross-tenant data leakage:
-
-1. **Application-Level Isolation:**
-   - Centralized `resellerAuth.ts` manages reseller_id storage and retrieval
-   - `saveResellerId(id, email)` - Stores reseller credentials after login
-   - `getResellerId()` - Returns stored reseller_id or null if not authenticated
-   - All components use the centralized function instead of direct localStorage access
-   - Functions return `null` when reseller_id is missing (no hard-coded fallbacks)
-   - UI displays "Por favor, faça login novamente" when authentication is required
-
-2. **Isolated Tables (require reseller_id filtering):**
-   - `reseller_stores`, `reseller_profiles`, `sales_with_split`
-   - `withdrawals`, `bank_accounts`, `orders`, `payment_links`
-   - `product_requests`, `commission_config`, `commission_splits`
-   - `reseller_alerts`, `reseller_badges`, `reseller_challenges`
-   - `gamification_activities`
-
-3. **Shared Tables (no isolation needed):**
-   - `products`, `gamification_badges`, `gamification_challenges`
-   - `gamification_rewards`, `gamification_leagues`, `gamification_config`
-   - `companies`
-
-4. **Key Files:**
-   - `src/features/revendedora/lib/resellerAuth.ts` - Centralized auth utilities
-   - `src/features/revendedora/pages/Login.tsx` - Saves reseller_id on login
-   - All reseller pages/hooks use `getResellerId()` for data filtering
-
-**NEXUS Reseller Login System (CRITICAL):**
-
-The reseller login system is fully automatic. When you add a reseller to the `revendedoras` table in Supabase Master, the login becomes available immediately.
-
-1. **Add Reseller to Supabase Master:**
-   ```sql
-   INSERT INTO revendedoras (email, cpf, status, admin_id) VALUES (
-     'email@revendedora.com',
-     '12345678900',  -- CPF only numbers (11 digits)
-     'ativo',
-     'admin-uuid'    -- Reference to admin_supabase_credentials
-   );
-   ```
-
-2. **Add Admin Credentials (if not exists):**
-   ```sql
-   INSERT INTO admin_supabase_credentials (admin_id, project_name, supabase_url, supabase_anon_key, supabase_service_role_key) VALUES (
-     'admin-uuid',
-     'Project Name',
-     'https://xxx.supabase.co',
-     'anon-key...',
-     'service-key...'
-   );
-   ```
-
-3. **Login Flow:**
-   - Reseller accesses `/revendedora/login`
-   - Provides email + CPF
-   - System validates against `revendedoras` table
-   - Automatically loads admin credentials from `admin_supabase_credentials`
-   - Saves credentials locally in `reseller_supabase_configs`
-   - Creates JWT session and redirects to dashboard
-
-4. **Key Files:**
-   - `server/routes/resellerAuth.ts` - Authentication endpoints
-   - `server/lib/masterSyncService.ts` - Fetches admin credentials
-   - `src/features/revendedora/pages/Login.tsx` - Login page
-   - `src/features/revendedora/pages/reseller/Settings.tsx` - Settings page
-   - `src/features/revendedora/layouts/ResellerLayout.tsx` - Route protection
-   - `src/features/revendedora/lib/resellerAuth.ts` - Auth utilities
-
-5. **Security:**
-   - `supabase_service_role_key` is NEVER exposed in frontend (only boolean indicator)
-   - Route protection redirects unauthenticated users to login
-   - React Query cache is invalidated after login to ensure fresh data
-- **CPF Validation:** Features a multi-tiered fallback system (Supabase Master -> Supabase Client -> Local PostgreSQL) for CPF data retrieval and compliance checks, with automated validation triggers upon form approval. See `docs/CPF_AUTO_CHECK_FIX_DOCUMENTATION.md` for detailed architecture.
-- **WhatsApp Business:** Integration for automated messaging and communication workflows.
-- **n8n Integration:** Allows tenants to generate API keys for n8n workflows, enabling custom automation for meeting creation and other tasks. Meetings automatically inherit tenant branding.
-- **Video Conferencing (100ms):** Provides robust video conferencing capabilities with dynamic role assignments (host/guest), public meeting links, and features for canceling/rescheduling meetings. Includes automatic participant check-in and pre-filling of contract data from form submissions.
-- **Calendar:** A monthly grid view for visualizing and managing scheduled meetings.
-- **SFU Recording System:** Server-side recording of video conferences to ensure accurate capture of meeting content, synchronized with Supabase.
-- **Digital Signature System:** A comprehensive platform for digital contracts with biometric (facial recognition) verification, document capture, and identity validation. Features a multi-step client signing process, real-time previews for admin, and automatic contract generation upon meeting conclusion. Integrates with Supabase for data persistence and N8N for WhatsApp notifications. See `docs/CONTRACT_FORM_SUBMISSION_DATA_FLOW.md` for the complete data flow documentation.
-- **Optimized Export System:** Includes scripts to significantly reduce the project size for export, preserving essential configurations.
-
-**Contract Creation Flow (CRITICAL - form_submissions → contracts):**
-
-When a participant leaves a video meeting, the system automatically creates a contract with all personal and address data from `form_submissions`:
-
-1. **Data Retrieval:** The endpoint `/api/public/reunioes/:roomId/participant-data` uses a **flexible phone search pattern** (`%1%9%2%2%6%7%2%2%0%`) to match phone numbers regardless of format.
-
-2. **Backend Fallback:** If the frontend doesn't send address data, `server/routes/assinatura.ts` automatically fetches it from `form_submissions` using phone or email.
-
-3. **Column Mapping:**
-   - `contact_name` → `client_name`
-   - `contact_email` → `client_email`
-   - `contact_phone` → `client_phone`
-   - `contact_cpf` → `client_cpf`
-   - `address_street` → `address_street`
-   - `address_number` → `address_number`
-   - `address_complement` → `address_complement`
-   - `address_city` → `address_city`
-   - `address_state` → `address_state`
-   - `address_cep` → `address_zipcode` (NOTE: different column names!)
-   - `address_neighborhood` → NOT MAPPED (column doesn't exist in contracts)
-
-4. **Critical Files:**
-   - `server/routes/assinatura.ts` - Contract creation with auto-fetch fallback
-   - `server/routes/meetings.ts` - participant-data endpoint with flexible search
-   - `src/pages/PublicMeetingRoom.tsx` - Frontend meeting room flow
-   - `data/supabase_client_config.json` - Supabase client credentials
-
-5. **Post-Finalization Automations (Supabase Triggers):**
-   When contract `status = 'signed'` in Supabase `contracts` table:
-   - **Trigger creates `revendedoras`** - Login credentials (email + CPF normalizado + status='ativo')
-   - **Trigger creates `envios`** - Shipping record with destinatario data
-   
-   **Login de Revendedora** (`/revendedora/login`):
-   - Uses: `email` + `cpf` (11 dígitos, normalizado) + `status='ativo'`
-   - Endpoint: `POST /api/reseller/login`
-   
-   **Página de Envios** (`/envio/lista`):
-   - Reads from: `envios` table filtered by `admin_id`
-   - Displays: `codigo_rastreio`, `destinatario_*`, `status`
-   
-   See `docs/SUPABASE_TRIGGER_REQUIREMENTS.md` for complete field requirements.
-
-**System Design Choices:**
-
-- Multi-tenant architecture allowing each client to manage their data securely.
-- API-driven design for flexible frontend and backend communication.
-- Emphasis on automation (e.g., CPF checks, N8N integration, contract generation).
-- Robust error handling with mechanisms like `ErrorBoundary` for critical flows.
-- Session management explicitly saved to ensure persistence across requests.
-- Role-based access control for features like meeting recording and data access.
-
-**Session Cookie Configuration (CRITICAL for Replit Preview):**
-
-The session cookies are configured with `sameSite: 'none'` and `secure: true` in `server/index.ts`. This is REQUIRED for the Replit preview iframe to work correctly:
-
-- `sameSite: 'lax'` blocks cookies in cross-site PUT/POST requests (iframe context)
-- `sameSite: 'none'` allows cookies to be sent in all cross-site requests
-- `secure: true` is MANDATORY when using `sameSite: 'none'`
-- `proxy: true` tells Express to trust the Replit HTTPS proxy
-
-**Reseller Supabase Configuration Storage:**
-
-Reseller-specific Supabase credentials are stored in the LOCAL PostgreSQL table `reseller_supabase_configs`:
-
-```sql
-CREATE TABLE reseller_supabase_configs (
-  id SERIAL PRIMARY KEY,
-  reseller_email VARCHAR(255) UNIQUE NOT NULL,
-  supabase_url TEXT,
-  supabase_anon_key TEXT,
-  supabase_service_key TEXT,
-  created_at TIMESTAMP DEFAULT NOW(),
-  updated_at TIMESTAMP DEFAULT NOW()
-);
-```
-
-Endpoints:
-- `GET /api/reseller/supabase-config` - Returns configuration status (never exposes keys)
-- `PUT /api/reseller/supabase-config` - Saves/updates credentials
-- `POST /api/reseller/supabase-config/test` - Tests connection to configured Supabase
-
-**Background Jobs & Automation (CRITICAL):**
-
-The system uses background job queues for async processing. These MUST be initialized on startup:
-
-1. **server/index.ts** - Must call in `setImmediate()` after server starts:
-   - `initializeQueues()` - Registers job handlers and starts queue processing
-   - `startAutomation()` - Starts FormPoller for Supabase submissions
-   - `startMonitoring()` - Starts limit monitoring
-   - `startAutomaticAlerting()` - Starts alerting system
-
-2. **Key Files:**
-   - `server/lib/queue.ts` - Job queue system with handlers
-   - `server/lib/formSubmissionPoller.ts` - Polls Supabase for new submissions
-   - `server/lib/automationManager.ts` - Manages automation cycles
-   - `server/formularios/services/leadSync.ts` - Syncs submissions to leads and triggers CPF check
-
-3. **CPF Auto-Check Flow:**
-   - FormPoller detects new submissions in Supabase
-   - Enqueues `sync_form_submission` job
-   - LeadSync processes job, normalizes CPF, creates/updates lead
-   - If `qualificationStatus === 'approved'` and CPF present, triggers `triggerAutoCPFCheck()`
-   - BigDataCorp credentials are fetched from `bigdatacorp_config` table by tenantId
-
-## Documentation Reference
-
-All technical documentation is stored in the `docs/` folder:
-
-| Document | Description |
-|----------|-------------|
-| `docs/README.md` | Documentation index |
-| `docs/DATA_ISOLATION_IMPLEMENTATION.md` | Multi-tenant data isolation for NEXUS |
-| `docs/RESELLER_SYSTEM_DOCUMENTATION.md` | Complete reseller platform documentation |
-| `docs/CONTRACT_FORM_SUBMISSION_DATA_FLOW.md` | Form to contract data flow |
-| `docs/CPF_AUTO_CHECK_FIX_DOCUMENTATION.md` | CPF validation architecture |
-| `docs/MASTER_SYNC_ARCHITECTURE.md` | Master sync service |
-| `docs/SUPABASE_TRIGGER_REQUIREMENTS.md` | Supabase trigger requirements |
+- **NEXUS Reseller Platform:** An authenticated portal for resellers with dashboards, sales tracking, and financial summaries. It implements comprehensive data isolation at the application level to prevent cross-tenant data leakage, ensuring all data access is filtered by `reseller_id`. The login system is automatic, validating against a master Supabase table and securely storing reseller-specific Supabase credentials locally.
+- **CPF Validation:** Multi-tiered fallback system for data retrieval and compliance checks, with automated validation triggers.
+- **WhatsApp Business:** Integration for automated messaging.
+- **n8n Integration:** Allows tenants to generate API keys for custom automation workflows, especially for meeting creation.
+- **Video Conferencing (100ms):** Provides video conferencing with dynamic roles, public links, and automatic participant check-in, including contract data pre-filling.
+- **Calendar:** Monthly grid view for meeting management.
+- **SFU Recording System:** Server-side recording of video conferences.
+- **Digital Signature System:** Comprehensive platform for digital contracts, including biometric verification, document capture, and identity validation. Features a multi-step client signing process and real-time previews for admins. Contracts are automatically generated upon meeting conclusion.
+- **Contract Creation Flow:** Automatically creates contracts from `form_submissions` data upon meeting conclusion, using flexible phone search patterns and backend fallbacks for address data. Specific column mappings handle data transfer between tables.
+- **Background Jobs & Automation:** Utilizes background job queues for async processing (e.g., form submission processing, lead synchronization, CPF auto-checks). These are critical and must be initialized on server startup.
+- **Session Management:** Session cookies are configured with `sameSite: 'none'` and `secure: true` for compatibility with Replit preview environments.
 
 ## External Dependencies
 
-- **PostgreSQL:** Primary database.
-- **Supabase:** Used for specific data storage (e.g., `revendedoras`, `cpf_compliance_results`, `contracts`, `datacorp_checks`, `supabase_master_config`) and acts as a fallback for some services.
-- **100ms:** Video conferencing API for real-time communication.
-- **n8n:** Workflow automation platform for integrating various services, specifically for meeting creation and WhatsApp notifications.
-- **WhatsApp Business API:** For business messaging and automation.
-- **Google Calendar:** For calendar synchronization (optional configuration).
-- **Sentry:** For error tracking and monitoring (optional configuration).
-- **Redis:** For caching and session storage (optional configuration).
+- **PostgreSQL:** Primary relational database.
+- **Supabase:** Used for specific data storage, critical tables (e.g., `revendedoras`, `contracts`), and as a fallback.
+- **100ms:** Video conferencing API.
+- **n8n:** Workflow automation platform.
+- **WhatsApp Business API:** For business communication.
 - **Stripe Connect:** For payment splitting in the NEXUS reseller platform.
-- **Various Shipping Carrier APIs:** (Correios, Jadlog, Loggi, Azul Cargo) for freight quotation and tracking.
+- **Shipping Carrier APIs:** Correios, Jadlog, Loggi, Azul Cargo for shipping services.
