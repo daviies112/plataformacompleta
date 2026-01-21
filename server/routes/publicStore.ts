@@ -1,10 +1,12 @@
 import { Router, Request, Response } from 'express';
 import { createClient } from '@supabase/supabase-js';
+import pool from '../db';
 
 const router = Router();
 
 const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_SERVICE_ROLE_KEY;
 
 const getSupabaseClient = () => {
   if (!supabaseUrl || !supabaseKey) {
@@ -111,6 +113,266 @@ router.get('/store/:storeId', async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error('[PublicStore] Error:', error);
+    return res.status(500).json({ success: false, error: error.message || 'Internal server error' });
+  }
+});
+
+// Helper function to get reseller's Supabase client with service key
+const getResellerSupabaseClient = async (resellerEmail: string) => {
+  try {
+    // First try to get from local config
+    const configResult = await pool.query(
+      'SELECT supabase_url, supabase_anon_key, supabase_service_key FROM reseller_supabase_configs WHERE reseller_email = $1',
+      [resellerEmail]
+    );
+    const config = configResult.rows[0];
+    
+    if (config?.supabase_url && config?.supabase_service_key) {
+      return createClient(config.supabase_url, config.supabase_service_key);
+    }
+    
+    // Fallback to default service key
+    if (supabaseUrl && supabaseServiceKey) {
+      return createClient(supabaseUrl, supabaseServiceKey);
+    }
+    
+    // Last fallback to anon key
+    if (supabaseUrl && supabaseKey) {
+      return createClient(supabaseUrl, supabaseKey);
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('[ResellerStore] Error getting supabase client:', error);
+    return null;
+  }
+};
+
+// PUT /api/reseller/store - Save store configuration
+router.put('/reseller/store', async (req: Request, res: Response) => {
+  try {
+    const { reseller_id, reseller_email, product_ids, is_published, store_name, store_slug } = req.body;
+    
+    if (!reseller_id || !reseller_email) {
+      return res.status(400).json({ success: false, error: 'reseller_id and reseller_email are required' });
+    }
+    
+    const supabase = await getResellerSupabaseClient(reseller_email);
+    if (!supabase) {
+      return res.status(500).json({ success: false, error: 'Supabase not configured' });
+    }
+    
+    console.log('[ResellerStore] Saving store for reseller:', reseller_id);
+    
+    // Check if table has the required columns by trying to select
+    const { data: tableCheck, error: tableError } = await supabase
+      .from('reseller_stores')
+      .select('id, reseller_id, product_ids')
+      .eq('reseller_id', reseller_id)
+      .limit(1);
+    
+    if (tableError && tableError.code === '42P01') {
+      // Table doesn't exist - create it
+      console.log('[ResellerStore] Table reseller_stores not found, creating...');
+      
+      const createTableSQL = `
+        CREATE TABLE IF NOT EXISTS reseller_stores (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          reseller_id UUID NOT NULL UNIQUE REFERENCES resellers(id),
+          product_ids UUID[] DEFAULT '{}',
+          is_published BOOLEAN DEFAULT false,
+          store_name TEXT,
+          store_slug TEXT UNIQUE,
+          created_at TIMESTAMPTZ DEFAULT NOW(),
+          updated_at TIMESTAMPTZ DEFAULT NOW()
+        );
+        CREATE INDEX IF NOT EXISTS idx_reseller_stores_slug ON reseller_stores(store_slug);
+        CREATE INDEX IF NOT EXISTS idx_reseller_stores_published ON reseller_stores(is_published);
+      `;
+      
+      const { error: createError } = await supabase.rpc('exec_sql', { sql: createTableSQL });
+      if (createError) {
+        console.error('[ResellerStore] Error creating table:', createError);
+      }
+    }
+    
+    // Try to add missing columns
+    const addColumnsSQL = `
+      ALTER TABLE reseller_stores 
+        ADD COLUMN IF NOT EXISTS is_published BOOLEAN DEFAULT false,
+        ADD COLUMN IF NOT EXISTS store_name TEXT,
+        ADD COLUMN IF NOT EXISTS store_slug TEXT;
+    `;
+    
+    try {
+      await supabase.rpc('exec_sql', { sql: addColumnsSQL });
+    } catch (e) {
+      // RPC might not exist, continue anyway
+      console.log('[ResellerStore] Could not add columns via RPC, continuing...');
+    }
+    
+    // Prepare store data with only safe columns
+    const storeData: any = {
+      reseller_id,
+      product_ids: product_ids || [],
+    };
+    
+    // Try to include optional columns
+    if (is_published !== undefined) storeData.is_published = is_published;
+    if (store_name !== undefined) storeData.store_name = store_name;
+    if (store_slug !== undefined) storeData.store_slug = store_slug || null;
+    
+    // Check if record exists
+    const { data: existing } = await supabase
+      .from('reseller_stores')
+      .select('id')
+      .eq('reseller_id', reseller_id)
+      .single();
+    
+    let result;
+    if (existing) {
+      // Update
+      const { data, error } = await supabase
+        .from('reseller_stores')
+        .update(storeData)
+        .eq('reseller_id', reseller_id)
+        .select()
+        .single();
+      
+      if (error) {
+        // If error is about missing column, try with minimal data
+        if (error.message?.includes('is_published') || error.message?.includes('store_name') || error.message?.includes('store_slug')) {
+          console.log('[ResellerStore] Column error, using minimal data');
+          const minimalData = { product_ids: product_ids || [] };
+          const { data: minData, error: minError } = await supabase
+            .from('reseller_stores')
+            .update(minimalData)
+            .eq('reseller_id', reseller_id)
+            .select()
+            .single();
+          
+          if (minError) throw minError;
+          result = minData;
+        } else {
+          throw error;
+        }
+      } else {
+        result = data;
+      }
+    } else {
+      // Insert
+      const { data, error } = await supabase
+        .from('reseller_stores')
+        .insert(storeData)
+        .select()
+        .single();
+      
+      if (error) {
+        // If error is about missing column, try with minimal data
+        if (error.message?.includes('is_published') || error.message?.includes('store_name') || error.message?.includes('store_slug')) {
+          console.log('[ResellerStore] Column error on insert, using minimal data');
+          const minimalData = { reseller_id, product_ids: product_ids || [] };
+          const { data: minData, error: minError } = await supabase
+            .from('reseller_stores')
+            .insert(minimalData)
+            .select()
+            .single();
+          
+          if (minError) throw minError;
+          result = minData;
+        } else {
+          throw error;
+        }
+      } else {
+        result = data;
+      }
+    }
+    
+    // Generate public URL
+    const publicUrl = store_slug 
+      ? `/loja/${store_slug}`
+      : `/loja/${reseller_id}`;
+    
+    console.log('[ResellerStore] Store saved successfully');
+    return res.json({ 
+      success: true, 
+      store: result,
+      public_url: publicUrl
+    });
+    
+  } catch (error: any) {
+    console.error('[ResellerStore] Error saving store:', error);
+    return res.status(500).json({ success: false, error: error.message || 'Internal server error' });
+  }
+});
+
+// GET /api/reseller/store/:resellerId - Get store configuration
+router.get('/reseller/store/:resellerId', async (req: Request, res: Response) => {
+  try {
+    const { resellerId } = req.params;
+    const resellerEmail = req.query.email as string;
+    
+    if (!resellerId) {
+      return res.status(400).json({ success: false, error: 'reseller_id is required' });
+    }
+    
+    const supabase = resellerEmail 
+      ? await getResellerSupabaseClient(resellerEmail)
+      : getSupabaseClient();
+      
+    if (!supabase) {
+      return res.status(500).json({ success: false, error: 'Supabase not configured' });
+    }
+    
+    // Try to get store with all columns
+    const { data, error } = await supabase
+      .from('reseller_stores')
+      .select('*')
+      .eq('reseller_id', resellerId)
+      .single();
+    
+    if (error && error.code !== 'PGRST116') {
+      // Try with minimal columns
+      if (error.message?.includes('column')) {
+        const { data: minData } = await supabase
+          .from('reseller_stores')
+          .select('id, reseller_id, product_ids')
+          .eq('reseller_id', resellerId)
+          .single();
+        
+        return res.json({ 
+          success: true, 
+          store: minData || null,
+          limited_columns: true
+        });
+      }
+      throw error;
+    }
+    
+    // Get company/admin name for store_name fallback
+    let companyName = null;
+    if (data && !data.store_name) {
+      // Try to get from admin_supabase_credentials or revendedoras table
+      const { data: resellerData } = await supabase
+        .from('resellers')
+        .select('admin_id, nome')
+        .eq('id', resellerId)
+        .single();
+      
+      if (resellerData?.admin_id) {
+        // Get admin name/company from somewhere if available
+        companyName = 'Loja';
+      }
+    }
+    
+    return res.json({ 
+      success: true, 
+      store: data || null,
+      company_name: companyName
+    });
+    
+  } catch (error: any) {
+    console.error('[ResellerStore] Error getting store:', error);
     return res.status(500).json({ success: false, error: error.message || 'Internal server error' });
   }
 });
