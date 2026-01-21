@@ -107,6 +107,35 @@ export default function Store() {
       }
       console.log('[Store] Loading store configuration for reseller:', resellerId);
       
+      // First, load the company name from settings or admin config
+      let companyStoreName = '';
+      try {
+        const { data: settingsData } = await supabase
+          .from('settings')
+          .select('company_name, store_name')
+          .limit(1)
+          .single();
+        
+        if (settingsData) {
+          companyStoreName = settingsData.store_name || settingsData.company_name || '';
+        }
+      } catch (e) {
+        console.log('[Store] Settings table not available, checking admin_settings...');
+        try {
+          const { data: adminSettings } = await supabase
+            .from('admin_settings')
+            .select('company_name, store_name')
+            .limit(1)
+            .single();
+          
+          if (adminSettings) {
+            companyStoreName = adminSettings.store_name || adminSettings.company_name || '';
+          }
+        } catch (e2) {
+          console.log('[Store] No settings tables available');
+        }
+      }
+      
       const { data, error } = await supabase
         .from('reseller_stores')
         .select('product_ids, is_published, store_name, store_slug')
@@ -119,12 +148,17 @@ export default function Store() {
         } else {
           console.error('[Store] Error loading store configuration:', error);
         }
+        // Still set the company name if available
+        if (companyStoreName) {
+          setStoreName(companyStoreName);
+        }
         return;
       }
 
       if (data) {
         setIsPublished(data.is_published || false);
-        setStoreName(data.store_name || '');
+        // Use company name from settings, fallback to store_name from record
+        setStoreName(companyStoreName || data.store_name || '');
         setStoreSlug(data.store_slug || '');
         
         if (data.product_ids && data.product_ids.length > 0) {
@@ -145,6 +179,9 @@ export default function Store() {
         }
       } else {
         console.log('[Store] No store configuration found for reseller');
+        if (companyStoreName) {
+          setStoreName(companyStoreName);
+        }
         setStoreProducts([]);
       }
     } catch (error) {
@@ -673,11 +710,15 @@ export default function Store() {
                   <Label htmlFor="store-name">Nome da Loja</Label>
                   <Input
                     id="store-name"
-                    placeholder="Ex: Joias da Maria"
+                    placeholder="Nome definido pela empresa"
                     value={storeName}
-                    onChange={(e) => handleStoreNameChange(e.target.value)}
+                    disabled
+                    className="bg-muted cursor-not-allowed"
                     data-testid="input-store-name"
                   />
+                  <p className="text-xs text-muted-foreground">
+                    O nome da loja é definido pela empresa
+                  </p>
                 </div>
 
                 <div className="space-y-2">

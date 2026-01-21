@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { createClient } from '@supabase/supabase-js';
-import pool from '../db';
+import { pool } from '../db';
 
 const router = Router();
 
