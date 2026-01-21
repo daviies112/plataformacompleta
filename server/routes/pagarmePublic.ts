@@ -137,7 +137,9 @@ async function saveSaleToSupabase(saleData: {
     const companyAmount = totalAmountReais - resellerAmount;
 
     // Determine if payment is already paid based on status
-    const isPaid = saleData.status === 'paid';
+    // Pagar.me returns 'paid' for successful payments, 'pending' for awaiting, 'failed' for declined
+    const paidStatuses = ['paid', 'captured', 'authorized'];
+    const isPaid = paidStatuses.includes(saleData.status?.toLowerCase() || '');
     const saleStatus = isPaid ? 'confirmada' : 'aguardando_pagamento';
 
     const saleRecord = {
