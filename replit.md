@@ -77,6 +77,13 @@ ExecutiveAI Pro utilizes a modern web stack designed for scalability and maintai
 - **Pagar.me Test Mode:** Payment service now prioritizes test credentials (`CHAVE_SECRETA_TESTE` and `CHAVE_PUBLICA_TESTE`) for development, falling back to production keys when not present.
 - **Public Store URL Feature:** Resellers can now publish their stores with a public URL (`/loja/:storeId`) for customers to view and purchase products. Features include custom store name and slug, toggle to publish/unpublish, copy link button, WhatsApp share button, and QR code generation. The public page displays products by category with checkout integration via Pagar.me. Security measures include using anon key (not service-role) for public access and removing PII from public responses.
 - **Pagar.me Payment Integration:** Added complete payment processing with PIX and credit card support for the NEXUS reseller platform. Features card tokenization, input validation, and authenticated API routes.
+- **Public Form Performance Optimization:** Improved loading speed for public forms (/f/:token, /form/:id) with multiple optimizations:
+  - Created `FormLoader` component for lightweight loading states
+  - Added HTTP cache headers (`Cache-Control: public, max-age=60, stale-while-revalidate=300`) to public form endpoints
+  - New optimized endpoint `/api/forms/public/with-token/:token` that combines token validation + form fetch in single request
+  - Lazy loading for `FormularioPublicoWrapper` via React.lazy() + Suspense
+  - Increased progress update debounce from 1s to 3s to reduce network requests
+  - Expected improvement: ~75% faster Time to Interactive
 
 ## Known Blockers
 
