@@ -52,4 +52,9 @@ ExecutiveAI Pro utilizes a modern web stack designed for scalability and maintai
 - **n8n:** Workflow automation platform.
 - **WhatsApp Business API:** For business communication.
 - **Stripe Connect:** For payment splitting in the NEXUS reseller platform.
+- **Pagar.me:** Brazilian payment gateway for PIX and credit card payments in NEXUS reseller platform. Uses tokenization for PCI compliance. Requires `CHAVE_SECRETA` and `CHAVE_PUBLICA` secrets.
 - **Shipping Carrier APIs:** Correios, Jadlog, Loggi, Azul Cargo for shipping services.
+
+## Recent Changes (January 2026)
+
+- **Pagar.me Payment Integration:** Added complete payment processing with PIX and credit card support for the NEXUS reseller platform. Features card tokenization, input validation, and authenticated API routes. Checkout page at `/revendedora/reseller/checkout/:productId`.
