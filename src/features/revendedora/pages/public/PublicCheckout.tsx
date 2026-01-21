@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useLocation } from 'wouter';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,34 +37,33 @@ interface StoreData {
 }
 
 export default function PublicCheckout() {
-  const [location, setLocation] = useLocation();
+  const navigate = useNavigate();
   
-  // Decode URL-encoded characters in location
-  const decodedLocation = decodeURIComponent(location);
-  
-  // Extract productId and storeId from the URL
+  // Extract productId and storeId from the URL manually
   // URL format: /checkout/:productId?storeId=:storeId
+  // We can't use useParams because PlatformRouter doesn't use React Router's Route components
+  
+  // Handle URL encoding issues: sometimes ? is encoded as %3F
+  let pathname = decodeURIComponent(window.location.pathname);
+  let search = window.location.search;
+  
+  // If pathname contains ?, the query string was encoded in the path
   let productId: string | null = null;
   let storeId: string | null = null;
   
-  // First try standard query params from window.location
-  const searchParams = new URLSearchParams(window.location.search);
-  storeId = searchParams.get('storeId');
-  
-  // Parse the path
-  const pathParts = decodedLocation.split('/');
-  let rawProductId = pathParts[2] || '';
-  
-  // Check if productId contains query params (URL encoding issue)
-  if (rawProductId.includes('?')) {
-    const parts = rawProductId.split('?');
-    productId = parts[0];
-    const queryParams = new URLSearchParams(parts[1]);
-    if (!storeId) {
-      storeId = queryParams.get('storeId');
-    }
+  if (pathname.includes('?')) {
+    // URL was encoded: /checkout/xxx%3FstoreId=yyy became /checkout/xxx?storeId=yyy after decode
+    const [pathPart, queryPart] = pathname.split('?');
+    const pathParts = pathPart.split('/');
+    productId = pathParts[2] || null;
+    const queryParams = new URLSearchParams(queryPart);
+    storeId = queryParams.get('storeId');
   } else {
-    productId = rawProductId;
+    // Normal URL: /checkout/xxx?storeId=yyy
+    const pathParts = pathname.split('/');
+    productId = pathParts[2] || null;
+    const searchParams = new URLSearchParams(search);
+    storeId = searchParams.get('storeId');
   }
   
 
@@ -393,9 +392,9 @@ export default function PublicCheckout() {
 
   const handleBack = () => {
     if (storeId) {
-      setLocation(`/loja/${storeId}`);
+      navigate(`/loja/${storeId}`);
     } else {
-      window.history.back();
+      navigate(-1);
     }
   };
 

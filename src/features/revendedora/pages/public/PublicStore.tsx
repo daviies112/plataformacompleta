@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useParams, useLocation } from 'wouter';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -50,10 +50,10 @@ interface ResellerProfile {
 }
 
 export default function PublicStore() {
-  const params = useParams();
-  const [location, setLocation] = useLocation();
+  const params = useParams<{ storeId: string }>();
+  const navigate = useNavigate();
   
-  const storeId = params.storeId || location.split('/loja/')[1]?.split('/')[0];
+  const storeId = params.storeId || window.location.pathname.split('/loja/')[1]?.split('/')[0];
   
   const [loading, setLoading] = useState(true);
   const [store, setStore] = useState<StoreData | null>(null);
@@ -156,8 +156,11 @@ export default function PublicStore() {
       return;
     }
     
+    // Fechar o modal antes de navegar
+    setSelectedProduct(null);
+    
     const checkoutStoreId = store?.store_slug || storeId;
-    setLocation(`/checkout/${product.id}?storeId=${checkoutStoreId}`);
+    navigate(`/checkout/${product.id}?storeId=${checkoutStoreId}`);
   };
 
   const handleShare = () => {
