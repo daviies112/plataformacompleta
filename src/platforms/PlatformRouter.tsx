@@ -3,8 +3,10 @@ import { Suspense, lazy, useMemo } from 'react';
 import DesktopApp from './desktop/DesktopApp';
 import MobileApp from './mobile/MobileApp';
 import ReuniaoPublica from '@/pages/ReuniaoPublica';
-import FormularioPublicoWrapper from '@/features/formularios-platform/pages/FormularioPublicoWrapper';
+import { FormLoader } from '@/features/formularios-platform/components/FormLoader';
 import { usePlatform } from './shared/hooks/usePlatform';
+
+const FormularioPublicoWrapper = lazy(() => import('@/features/formularios-platform/pages/FormularioPublicoWrapper'));
 
 const ResellerApp = lazy(() => import('./reseller/ResellerApp'));
 const RevendedoraApp = lazy(() => import('@/features/revendedora/RevendedoraApp'));
@@ -52,9 +54,13 @@ const PlatformRouter = () => {
     return false;
   }, [location.pathname]);
 
-  // Se for uma rota pública de formulário, renderizar diretamente SEM autenticação
+  // Se for uma rota pública de formulário, renderizar com lazy loading
   if (isPublicFormRoute) {
-    return <FormularioPublicoWrapper />;
+    return (
+      <Suspense fallback={<FormLoader />}>
+        <FormularioPublicoWrapper />
+      </Suspense>
+    );
   }
 
   // Se for uma rota pública de loja, renderizar diretamente SEM autenticação

@@ -311,22 +311,19 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
           return;
         }
 
-        // Caso 2: URL com token de lead (/f/:token)
+        // Caso 2: URL com token de lead (/f/:token) - Usa endpoint otimizado
         if (token) {
-          console.log('🔍 Validando token:', token.substring(0, 10) + '...');
+          console.log('🔍 [OTIMIZADO] Carregando formulário com token:', token.substring(0, 10) + '...');
           
-          const response = await fetch('/api/leads/validar-token', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ token })
-          });
+          // Endpoint otimizado que combina validação de token + busca do formulário
+          const response = await fetch(`/api/forms/public/with-token/${token}`);
 
           if (!response.ok) {
             throw new Error('Erro ao validar token');
           }
 
           const data = await response.json();
-          console.log('📋 Resposta da validação:', data);
+          console.log('📋 [OTIMIZADO] Resposta combinada:', data.valid ? 'válido' : 'inválido');
 
           if (!data.valid) {
             setError(data.erro || 'Token inválido');
@@ -334,15 +331,27 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
             return;
           }
 
+          // Dados já vêm combinados do endpoint otimizado
           setSessao(data.data.sessao);
           
-          if (data.data.lead?.formularioId) {
-            const formResponse = await fetch(`/api/forms/public/${data.data.lead.formularioId}`);
-            if (formResponse.ok) {
-              const formData = await formResponse.json();
-              console.log('📝 Formulário carregado:', formData.title);
-              setForm(formData);
-            }
+          if (data.data.form) {
+            console.log('📝 [OTIMIZADO] Formulário:', data.data.form.title);
+            setForm(data.data.form);
+          }
+          
+          // Preencher telefone se disponível nos dados do lead
+          if (data.data.lead?.telefone) {
+            const formattedPhone = formatarTelefone(data.data.lead.telefone);
+            console.log('📱 [OTIMIZADO] Telefone do lead:', formattedPhone);
+            personalForm.setValue('phone', formattedPhone);
+            setPersonalData(prev => ({ ...prev, phone: formattedPhone }));
+            setTelefoneBloqueado(true);
+          }
+          
+          // Preencher nome se disponível
+          if (data.data.lead?.nome) {
+            personalForm.setValue('name', data.data.lead.nome);
+            setPersonalData(prev => ({ ...prev, name: data.data.lead.nome }));
           }
 
           setIsLoading(false);
@@ -414,7 +423,7 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
     if (Object.keys(camposPreenchidos).length > 0 && form) {
       const timeoutId = setTimeout(() => {
         atualizarProgresso(camposPreenchidos);
-      }, 1000);
+      }, 3000); // Aumentado de 1s para 3s para reduzir requests
       
       return () => clearTimeout(timeoutId);
     }
