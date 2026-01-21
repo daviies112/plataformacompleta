@@ -8,6 +8,7 @@ import { usePlatform } from './shared/hooks/usePlatform';
 
 const ResellerApp = lazy(() => import('./reseller/ResellerApp'));
 const RevendedoraApp = lazy(() => import('@/features/revendedora/RevendedoraApp'));
+const PublicStore = lazy(() => import('@/features/revendedora/pages/public/PublicStore'));
 
 /**
  * PlatformRouter - Roteador inteligente que decide qual app renderizar
@@ -53,6 +54,15 @@ const PlatformRouter = () => {
   // Se for uma rota pública de formulário, renderizar diretamente SEM autenticação
   if (isPublicFormRoute) {
     return <FormularioPublicoWrapper />;
+  }
+
+  // Se for uma rota pública de loja, renderizar diretamente SEM autenticação
+  if (location.pathname.startsWith('/loja/')) {
+    return (
+      <Suspense fallback={<div className="h-screen w-screen flex items-center justify-center bg-background text-foreground animate-pulse font-sans">Carregando loja...</div>}>
+        <PublicStore />
+      </Suspense>
+    );
   }
 
   // Se for uma rota publica de reuniao, renderizar diretamente

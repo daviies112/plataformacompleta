@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useSupabase } from '@/features/revendedora/contexts/SupabaseContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/features/revendedora/components/ui/card';
-import { Store as StoreIcon, Package, Plus, X, Save, ArrowRight, Search, ShoppingCart, Boxes } from 'lucide-react';
+import { Store as StoreIcon, Package, Plus, X, Save, ArrowRight, Search, ShoppingCart, Boxes, Globe, Link2, Copy, Check, MessageCircle, QrCode, ExternalLink } from 'lucide-react';
 import { Button } from '@/features/revendedora/components/ui/button';
 import { toast } from 'sonner';
 import { Badge } from '@/features/revendedora/components/ui/badge';
@@ -22,6 +22,8 @@ import { ProductRequestModal } from '@/features/revendedora/components/modals/Pr
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/features/revendedora/components/ui/accordion';
 import { ResellerProfileForm } from '@/features/revendedora/components/reseller/ResellerProfileForm';
 import { User } from 'lucide-react';
+import { Switch } from '@/features/revendedora/components/ui/switch';
+import { Label } from '@/features/revendedora/components/ui/label';
 
 export default function Store() {
   const { client: supabase, loading: supabaseLoading, configured } = useSupabase();
@@ -35,6 +37,11 @@ export default function Store() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [requestingProduct, setRequestingProduct] = useState<any>(null);
+  const [isPublished, setIsPublished] = useState(false);
+  const [storeName, setStoreName] = useState('');
+  const [storeSlug, setStoreSlug] = useState('');
+  const [urlCopied, setUrlCopied] = useState(false);
+  const [publishSaving, setPublishSaving] = useState(false);
 
   useEffect(() => {
     if (!supabaseLoading && configured) {
@@ -80,9 +87,13 @@ export default function Store() {
   const loadStoreConfiguration = async () => {
     if (!supabase) {
       console.log('[Store] Supabase not configured, using localStorage fallback');
-      const saved = localStorage.getItem('reseller_store_products');
+      const saved = localStorage.getItem('reseller_store_config');
       if (saved) {
-        setStoreProducts(JSON.parse(saved));
+        const config = JSON.parse(saved);
+        setStoreProducts(config.products || []);
+        setIsPublished(config.is_published || false);
+        setStoreName(config.store_name || '');
+        setStoreSlug(config.store_slug || '');
       }
       return;
     }
@@ -98,7 +109,7 @@ export default function Store() {
       
       const { data, error } = await supabase
         .from('reseller_stores')
-        .select('product_ids')
+        .select('product_ids, is_published, store_name, store_slug')
         .eq('reseller_id', resellerId)
         .single();
 
@@ -111,19 +122,27 @@ export default function Store() {
         return;
       }
 
-      if (data && data.product_ids && data.product_ids.length > 0) {
-        const { data: products, error: productsError } = await supabase
-          .from('products')
-          .select('*')
-          .in('id', data.product_ids);
+      if (data) {
+        setIsPublished(data.is_published || false);
+        setStoreName(data.store_name || '');
+        setStoreSlug(data.store_slug || '');
+        
+        if (data.product_ids && data.product_ids.length > 0) {
+          const { data: products, error: productsError } = await supabase
+            .from('products')
+            .select('*')
+            .in('id', data.product_ids);
 
-        if (productsError) {
-          console.error('[Store] Error loading store products:', productsError);
-          return;
+          if (productsError) {
+            console.error('[Store] Error loading store products:', productsError);
+            return;
+          }
+
+          console.log('[Store] Loaded', products?.length || 0, 'products from Supabase');
+          setStoreProducts(products || []);
+        } else {
+          setStoreProducts([]);
         }
-
-        console.log('[Store] Loaded', products?.length || 0, 'products from Supabase');
-        setStoreProducts(products || []);
       } else {
         console.log('[Store] No store configuration found for reseller');
         setStoreProducts([]);
@@ -136,9 +155,22 @@ export default function Store() {
   const saveStoreConfiguration = async () => {
     setSaving(true);
     try {
+      const slugRegex = /^[a-z0-9-]+$/;
+      if (storeSlug && !slugRegex.test(storeSlug)) {
+        toast.error('O slug deve conter apenas letras minúsculas, números e hífens');
+        setSaving(false);
+        return;
+      }
+
       if (!supabase) {
         console.log('[Store] Supabase not configured, using localStorage fallback');
-        localStorage.setItem('reseller_store_products', JSON.stringify(storeProducts));
+        const config = {
+          products: storeProducts,
+          is_published: isPublished,
+          store_name: storeName,
+          store_slug: storeSlug,
+        };
+        localStorage.setItem('reseller_store_config', JSON.stringify(config));
         toast.success('Configuração da loja salva localmente!');
         setSaving(false);
         return;
@@ -162,10 +194,17 @@ export default function Store() {
         .eq('reseller_id', resellerId)
         .single();
 
+      const storeData = {
+        product_ids: productIds,
+        is_published: isPublished,
+        store_name: storeName,
+        store_slug: storeSlug || null,
+      };
+
       if (existing) {
         const { error } = await supabase
           .from('reseller_stores')
-          .update({ product_ids: productIds } as any)
+          .update(storeData as any)
           .eq('reseller_id', resellerId);
 
         if (error) throw error;
@@ -174,7 +213,7 @@ export default function Store() {
           .from('reseller_stores')
           .insert({ 
             reseller_id: resellerId, 
-            product_ids: productIds 
+            ...storeData
           } as any);
 
         if (error) throw error;
@@ -280,6 +319,49 @@ export default function Store() {
     }).format(value);
   };
 
+  const getPublicUrl = () => {
+    const baseUrl = window.location.origin;
+    const storeIdentifier = storeSlug || getResellerId();
+    return `${baseUrl}/loja/${storeIdentifier}`;
+  };
+
+  const copyPublicUrl = () => {
+    const url = getPublicUrl();
+    navigator.clipboard.writeText(url);
+    setUrlCopied(true);
+    toast.success('Link copiado!');
+    setTimeout(() => setUrlCopied(false), 2000);
+  };
+
+  const shareOnWhatsApp = () => {
+    const url = getPublicUrl();
+    const message = encodeURIComponent(`Confira minha loja online: ${storeName || 'Minha Loja'}\n${url}`);
+    window.open(`https://wa.me/?text=${message}`, '_blank');
+  };
+
+  const openPublicStore = () => {
+    const url = getPublicUrl();
+    window.open(url, '_blank');
+  };
+
+  const generateSlugFromName = (name: string) => {
+    return name
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .trim();
+  };
+
+  const handleStoreNameChange = (name: string) => {
+    setStoreName(name);
+    if (!storeSlug || storeSlug === generateSlugFromName(storeName)) {
+      setStoreSlug(generateSlugFromName(name));
+    }
+  };
+
   if (supabaseLoading) {
     return <div className="flex items-center justify-center h-64">Carregando configuração...</div>;
   }
@@ -315,10 +397,14 @@ export default function Store() {
       </div>
 
       <Tabs defaultValue="minha-loja" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 mb-6">
+        <TabsList className="grid w-full grid-cols-4 mb-6">
           <TabsTrigger value="minha-loja" className="flex items-center gap-2">
             <StoreIcon className="h-4 w-4" />
             Minha Loja
+          </TabsTrigger>
+          <TabsTrigger value="publicar" className="flex items-center gap-2">
+            <Globe className="h-4 w-4" />
+            Publicar
           </TabsTrigger>
           <TabsTrigger value="meu-perfil" className="flex items-center gap-2">
             <User className="h-4 w-4" />
@@ -326,7 +412,7 @@ export default function Store() {
           </TabsTrigger>
           <TabsTrigger value="estoque" className="flex items-center gap-2">
             <Boxes className="h-4 w-4" />
-            Estoque da Empresa
+            Estoque
           </TabsTrigger>
         </TabsList>
 
@@ -549,6 +635,174 @@ export default function Store() {
               </CardContent>
             </Card>
           )}
+        </TabsContent>
+
+        <TabsContent value="publicar">
+          <div className="grid gap-6 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Globe className="h-5 w-5" />
+                  Configurações da Loja Pública
+                </CardTitle>
+                <CardDescription>
+                  Configure e publique sua loja para que clientes possam ver seus produtos
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/50">
+                  <div className="space-y-1">
+                    <Label htmlFor="publish-toggle" className="text-base font-medium">
+                      Publicar Loja
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      {isPublished 
+                        ? 'Sua loja está visível para clientes' 
+                        : 'Sua loja está oculta'}
+                    </p>
+                  </div>
+                  <Switch
+                    id="publish-toggle"
+                    checked={isPublished}
+                    onCheckedChange={setIsPublished}
+                    data-testid="switch-publish"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="store-name">Nome da Loja</Label>
+                  <Input
+                    id="store-name"
+                    placeholder="Ex: Joias da Maria"
+                    value={storeName}
+                    onChange={(e) => handleStoreNameChange(e.target.value)}
+                    data-testid="input-store-name"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="store-slug">URL Personalizada (opcional)</Label>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">/loja/</span>
+                    <Input
+                      id="store-slug"
+                      placeholder="minha-loja"
+                      value={storeSlug}
+                      onChange={(e) => setStoreSlug(generateSlugFromName(e.target.value))}
+                      data-testid="input-store-slug"
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Use apenas letras minúsculas, números e hífens
+                  </p>
+                </div>
+
+                <Button onClick={saveStoreConfiguration} disabled={saving} className="w-full">
+                  <Save className="mr-2 h-4 w-4" />
+                  {saving ? 'Salvando...' : 'Salvar Configurações'}
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Link2 className="h-5 w-5" />
+                  Link da Sua Loja
+                </CardTitle>
+                <CardDescription>
+                  Compartilhe este link com seus clientes
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {isPublished && storeProducts.length > 0 ? (
+                  <>
+                    <div className="p-4 border rounded-lg bg-primary/5 border-primary/20">
+                      <p className="text-sm font-mono break-all">{getPublicUrl()}</p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <Button variant="outline" onClick={copyPublicUrl} data-testid="button-copy-url">
+                        {urlCopied ? (
+                          <Check className="mr-2 h-4 w-4 text-green-500" />
+                        ) : (
+                          <Copy className="mr-2 h-4 w-4" />
+                        )}
+                        {urlCopied ? 'Copiado!' : 'Copiar Link'}
+                      </Button>
+                      <Button variant="outline" onClick={shareOnWhatsApp} data-testid="button-share-whatsapp">
+                        <MessageCircle className="mr-2 h-4 w-4" />
+                        WhatsApp
+                      </Button>
+                    </div>
+
+                    <Button className="w-full" onClick={openPublicStore} data-testid="button-open-store">
+                      <ExternalLink className="mr-2 h-4 w-4" />
+                      Visualizar Loja
+                    </Button>
+
+                    <div className="pt-4 border-t">
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
+                        <QrCode className="h-4 w-4" />
+                        QR Code
+                      </div>
+                      <div className="p-4 border rounded-lg bg-white flex items-center justify-center">
+                        <img 
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(getPublicUrl())}`}
+                          alt="QR Code da Loja"
+                          className="w-36 h-36"
+                        />
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-8 text-center">
+                    <Globe className="h-12 w-12 text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground mb-2">
+                      {storeProducts.length === 0 
+                        ? 'Adicione produtos à sua loja primeiro'
+                        : 'Ative a publicação da loja para gerar o link'}
+                    </p>
+                    {storeProducts.length === 0 && (
+                      <p className="text-sm text-muted-foreground">
+                        Vá para a aba "Minha Loja" e selecione os produtos
+                      </p>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="md:col-span-2">
+              <CardHeader>
+                <CardTitle>Status da Loja</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="text-center p-4 border rounded-lg">
+                    <p className="text-3xl font-bold text-primary">{storeProducts.length}</p>
+                    <p className="text-sm text-muted-foreground">Produtos</p>
+                  </div>
+                  <div className="text-center p-4 border rounded-lg">
+                    <p className="text-3xl font-bold">{Object.keys(storeProductsByCategory).length}</p>
+                    <p className="text-sm text-muted-foreground">Categorias</p>
+                  </div>
+                  <div className="text-center p-4 border rounded-lg">
+                    <Badge variant={isPublished ? 'default' : 'secondary'} className="text-base px-4 py-2">
+                      {isPublished ? 'Publicada' : 'Rascunho'}
+                    </Badge>
+                    <p className="text-sm text-muted-foreground mt-2">Status</p>
+                  </div>
+                  <div className="text-center p-4 border rounded-lg">
+                    <p className="text-lg font-bold">
+                      {formatCurrency(storeProducts.reduce((sum, p) => sum + (p.price || 0), 0))}
+                    </p>
+                    <p className="text-sm text-muted-foreground">Valor Total</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         <TabsContent value="meu-perfil">

@@ -245,6 +245,9 @@ export type Database = {
           id: string
           reseller_id: string
           product_ids: string[]
+          is_published: boolean | null
+          store_name: string | null
+          store_slug: string | null
           created_at: string | null
           updated_at: string | null
         }
@@ -252,6 +255,9 @@ export type Database = {
           id?: string
           reseller_id: string
           product_ids?: string[]
+          is_published?: boolean | null
+          store_name?: string | null
+          store_slug?: string | null
           created_at?: string | null
           updated_at?: string | null
         }
@@ -259,6 +265,9 @@ export type Database = {
           id?: string
           reseller_id?: string
           product_ids?: string[]
+          is_published?: boolean | null
+          store_name?: string | null
+          store_slug?: string | null
           created_at?: string | null
           updated_at?: string | null
         }

@@ -29,6 +29,7 @@ import resellerAuthRoutes from "./routes/resellerAuth";
 import resellerCatalogRoutes from "./routes/resellerCatalog";
 import envioRoutes from "./routes/envio";
 import pagarmeRoutes from "./routes/pagarme";
+import publicStoreRoutes from "./routes/publicStore";
 
 // Configure multer for logo uploads
 const logoStorage = multer.diskStorage({
@@ -69,6 +70,9 @@ export async function registerRoutes(app: Express) {
   // 🌐 PUBLIC ROUTES - Must be registered BEFORE the global /api middleware
   // Public route for client contract access (no auth required)
   app.use("/api/assinatura/public", assinaturaRoutes);
+  
+  // Public store routes - allows customers to view reseller stores without auth
+  app.use("/api/public", publicStoreRoutes);
   
   registerFormulariosCompleteRoutes(app);
   
