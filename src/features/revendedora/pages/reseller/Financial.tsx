@@ -38,6 +38,7 @@ import { FutureBalanceList } from '@/features/revendedora/components/financial/F
 import { BankAccountForm } from '@/features/revendedora/components/financial/BankAccountForm';
 import { WithdrawalModal } from '@/features/revendedora/components/financial/WithdrawalModal';
 import { SplitService } from '@/features/revendedora/services/SplitService';
+import { ResellerBankSetup } from '@/features/revendedora/components/financial/ResellerBankSetup';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -370,12 +371,14 @@ export default function Financial() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="bank-accounts">
+        <TabsContent value="bank-accounts" className="space-y-6">
+          <ResellerBankSetup resellerId={resellerId} />
+          
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
-                <CardTitle>Contas Bancárias</CardTitle>
-                <CardDescription>Gerencie suas contas para recebimento</CardDescription>
+                <CardTitle>Contas Bancárias para Saques</CardTitle>
+                <CardDescription>Gerencie suas contas adicionais para saque</CardDescription>
               </div>
               <Button onClick={() => setBankAccountFormOpen(true)}>
                 <Plus className="h-4 w-4 mr-2" />

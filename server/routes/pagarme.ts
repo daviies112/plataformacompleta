@@ -472,4 +472,206 @@ router.get('/empresa-status', authenticateToken, async (req: AuthRequest, res) =
   }
 });
 
+router.post('/onboarding-revendedora', authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    const resellerId = req.session?.resellerId;
+    if (!resellerId) {
+      return res.status(403).json({ error: 'Acesso restrito a revendedoras' });
+    }
+
+    const {
+      nomeCompleto,
+      cpf,
+      email,
+      telefone,
+      dataNascimento,
+      nomeMae,
+      rendaMensal,
+      profissao,
+      endereco,
+      bancoCode,
+      agencia,
+      agenciaDv,
+      conta,
+      contaDv,
+      tipoConta,
+    } = req.body;
+
+    if (!nomeCompleto || !cpf) {
+      return res.status(400).json({ error: 'Nome completo e CPF são obrigatórios.' });
+    }
+
+    if (!bancoCode || !agencia || !conta || !contaDv) {
+      return res.status(400).json({ error: 'Dados bancários incompletos. Banco, agência, conta e dígito são obrigatórios.' });
+    }
+
+    if (!telefone || !dataNascimento || !nomeMae) {
+      return res.status(400).json({ error: 'Dados pessoais incompletos. Telefone, data de nascimento e nome da mãe são obrigatórios.' });
+    }
+
+    if (!endereco || !endereco.cep || !endereco.rua || !endereco.numero || !endereco.bairro || !endereco.cidade || !endereco.estado) {
+      return res.status(400).json({ error: 'Endereço incompleto. CEP, rua, número, bairro, cidade e estado são obrigatórios.' });
+    }
+
+    const cepClean = endereco.cep.replace(/\D/g, '');
+    if (cepClean.length !== 8) {
+      return res.status(400).json({ error: 'CEP inválido - deve conter 8 dígitos' });
+    }
+
+    const cpfClean = cpf.replace(/\D/g, '');
+    if (cpfClean.length !== 11) {
+      return res.status(400).json({ error: 'CPF inválido - deve conter 11 dígitos' });
+    }
+
+    const phoneCleanValidation = telefone.replace(/\D/g, '');
+    if (phoneCleanValidation.length < 10) {
+      return res.status(400).json({ error: 'Telefone inválido - deve conter DDD + número' });
+    }
+
+    if (!email || !email.includes('@') || !email.includes('.')) {
+      return res.status(400).json({ error: 'Email inválido. Forneça um email válido.' });
+    }
+
+    console.log('[Pagar.me] Creating individual recipient for reseller:', nomeCompleto);
+
+    const phoneClean = telefone.replace(/\D/g, '');
+    const phoneDdd = phoneClean.slice(0, 2);
+    const phoneNumber = phoneClean.slice(2);
+
+    const recipient = await pagarmeService.createIndividualRecipient({
+      code: `reseller_${resellerId}_${Date.now()}`,
+      name: nomeCompleto,
+      email: email,
+      document: cpfClean,
+      mother_name: nomeMae,
+      birthdate: dataNascimento,
+      monthly_income: rendaMensal || 3000,
+      professional_occupation: profissao || 'Revendedor(a)',
+      phone: {
+        ddd: phoneDdd,
+        number: phoneNumber,
+      },
+      address: {
+        street: endereco.rua,
+        number: endereco.numero,
+        complementary: endereco.complemento || '',
+        neighborhood: endereco.bairro,
+        city: endereco.cidade,
+        state: endereco.estado,
+        zip_code: cepClean,
+      },
+      bank_account: {
+        holder_name: nomeCompleto,
+        holder_document: cpfClean,
+        bank: bancoCode,
+        branch_number: agencia,
+        branch_check_digit: agenciaDv || '',
+        account_number: conta,
+        account_check_digit: contaDv,
+        type: tipoConta === 'poupanca' ? 'savings' : 'checking',
+      },
+      transfer_settings: {
+        transfer_enabled: true,
+        transfer_interval: 'weekly',
+        transfer_day: 5,
+      },
+    });
+
+    const supabaseUrl = process.env.SUPABASE_OWNER_URL || process.env.SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_OWNER_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (supabaseUrl && supabaseKey) {
+      try {
+        const { createClient } = await import('@supabase/supabase-js');
+        const supabase = createClient(supabaseUrl, supabaseKey);
+        
+        const { error } = await supabase
+          .from('revendedoras')
+          .update({ pagarme_recipient_id: recipient.id })
+          .eq('id', resellerId);
+        
+        if (error) {
+          console.warn('[Pagar.me] Failed to save recipient_id to revendedoras:', error.message);
+        } else {
+          console.log('[Pagar.me] Saved recipient_id to revendedoras table');
+        }
+      } catch (e: any) {
+        console.warn('[Pagar.me] Error updating revendedoras:', e.message);
+      }
+    }
+
+    console.log('[Pagar.me] Individual recipient created:', recipient.id);
+
+    res.json({
+      success: true,
+      recipientId: recipient.id,
+      message: 'Dados bancários cadastrados com sucesso!',
+    });
+  } catch (error: any) {
+    console.error('[Pagar.me] Onboarding revendedora error:', error);
+
+    if (error.response?.errors) {
+      const erros = error.response.errors.map((e: any) => e.message).join(', ');
+      return res.status(400).json({ error: `Erro Pagar.me: ${erros}` });
+    }
+
+    res.status(500).json({ error: error.message || 'Erro ao cadastrar dados bancários' });
+  }
+});
+
+router.get('/revendedora-status', authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    const resellerId = req.session?.resellerId;
+    if (!resellerId) {
+      return res.status(403).json({ error: 'Acesso restrito a revendedoras' });
+    }
+
+    const supabaseUrl = process.env.SUPABASE_OWNER_URL || process.env.SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_OWNER_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      return res.json({ configured: false });
+    }
+
+    const { createClient } = await import('@supabase/supabase-js');
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    
+    const { data, error } = await supabase
+      .from('revendedoras')
+      .select('pagarme_recipient_id')
+      .eq('id', resellerId)
+      .single();
+
+    if (error || !data?.pagarme_recipient_id) {
+      return res.json({ configured: false });
+    }
+
+    let bankDetails = null;
+    try {
+      const recipientData = await pagarmeService.getRecipient(data.pagarme_recipient_id);
+      if (recipientData?.default_bank_account) {
+        const bank = recipientData.default_bank_account;
+        bankDetails = {
+          banco: bank.bank,
+          agencia: bank.branch_number,
+          conta: bank.account_number ? `****${bank.account_number.slice(-4)}` : '****',
+          tipo: bank.type === 'savings' ? 'Poupança' : 'Corrente',
+          holderName: bank.holder_name,
+        };
+      }
+    } catch (e) {
+      console.warn('[Pagar.me] Could not fetch recipient details:', e);
+    }
+
+    res.json({
+      configured: true,
+      recipientId: data.pagarme_recipient_id,
+      bankAccount: bankDetails,
+    });
+  } catch (error: any) {
+    console.error('[Pagar.me] Revendedora status error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export default router;

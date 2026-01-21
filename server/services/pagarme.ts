@@ -124,6 +124,23 @@ export interface CreateIndividualRecipientParams {
   email: string;
   document: string;
   description?: string;
+  mother_name?: string;
+  birthdate?: string;
+  monthly_income?: number;
+  professional_occupation?: string;
+  phone?: {
+    ddd: string;
+    number: string;
+  };
+  address?: {
+    street: string;
+    number: string;
+    complementary?: string;
+    neighborhood: string;
+    city: string;
+    state: string;
+    zip_code: string;
+  };
   bank_account: {
     holder_name: string;
     holder_document: string;
@@ -505,13 +522,53 @@ export class PagarmeService {
   }
 
   async createIndividualRecipient(params: CreateIndividualRecipientParams): Promise<RecipientResponse> {
+    if (!params.name || !params.email || !params.document) {
+      throw new Error('Dados pessoais obrigatórios: nome, email e documento');
+    }
+    if (!params.phone?.ddd || !params.phone?.number) {
+      throw new Error('Telefone obrigatório com DDD e número');
+    }
+    if (!params.address?.street || !params.address?.number || !params.address?.neighborhood || 
+        !params.address?.city || !params.address?.state || !params.address?.zip_code) {
+      throw new Error('Endereço completo obrigatório');
+    }
+    if (!params.mother_name || !params.birthdate) {
+      throw new Error('Nome da mãe e data de nascimento são obrigatórios');
+    }
+
+    const cleanDocument = params.document.replace(/\D/g, '');
+
     const recipientData = {
       code: params.code || `ind_${Date.now()}`,
-      name: params.name,
-      email: params.email,
-      document: params.document.replace(/\D/g, ''),
-      description: params.description || 'Revendedor NEXUS',
-      type: 'individual',
+      register_information: {
+        name: params.name,
+        email: params.email,
+        document: cleanDocument,
+        type: 'individual',
+        site_url: 'https://nexus.com.br',
+        mother_name: params.mother_name,
+        birthdate: params.birthdate,
+        monthly_income: params.monthly_income || 3000,
+        professional_occupation: params.professional_occupation || 'Revendedor(a)',
+        phone_numbers: [
+          {
+            ddd: params.phone.ddd,
+            number: params.phone.number,
+            type: 'mobile',
+          },
+        ],
+        address: {
+          street: params.address.street,
+          street_number: params.address.number,
+          complementary: params.address.complementary || 'N/A',
+          reference_point: 'N/A',
+          neighborhood: params.address.neighborhood,
+          city: params.address.city,
+          state: params.address.state,
+          zip_code: params.address.zip_code.replace(/\D/g, ''),
+          country: 'BR',
+        },
+      },
       default_bank_account: {
         holder_name: params.bank_account.holder_name,
         holder_type: 'individual',
@@ -519,8 +576,8 @@ export class PagarmeService {
         bank: params.bank_account.bank,
         branch_number: params.bank_account.branch_number,
         branch_check_digit: params.bank_account.branch_check_digit || '',
-        account_number: params.bank_account.account_number.replace(/-/g, '').slice(0, -1),
-        account_check_digit: params.bank_account.account_number.slice(-1),
+        account_number: params.bank_account.account_number,
+        account_check_digit: params.bank_account.account_check_digit,
         type: params.bank_account.type,
       },
       transfer_settings: params.transfer_settings || {
@@ -531,6 +588,7 @@ export class PagarmeService {
     };
 
     console.log('[Pagar.me] Creating individual recipient');
+    console.log('[Pagar.me] Request body:', JSON.stringify(recipientData, null, 2));
     return this.request<RecipientResponse>('/recipients', 'POST', recipientData);
   }
 
