@@ -57,5 +57,7 @@ ExecutiveAI Pro utilizes a modern web stack designed for scalability and maintai
 
 ## Recent Changes (January 2026)
 
+- **Public Checkout System (Complete):** Unauthenticated customers can now complete purchases from public storefronts via `/checkout/:productId?storeId=X`. The system bypasses authentication while maintaining security through server-side price validation. Uses the `products` table (not `reseller_products`) and `reseller_stores` for store lookup. Product validation checks if `productId` is in `storeData.product_ids` array to prevent cross-store purchases.
+- **Pagar.me Test Mode:** Payment service now prioritizes test credentials (`CHAVE_SECRETA_TESTE` and `CHAVE_PUBLICA_TESTE`) for development, falling back to production keys when not present.
 - **Public Store URL Feature:** Resellers can now publish their stores with a public URL (`/loja/:storeId`) for customers to view and purchase products. Features include custom store name and slug, toggle to publish/unpublish, copy link button, WhatsApp share button, and QR code generation. The public page displays products by category with checkout integration via Pagar.me. Security measures include using anon key (not service-role) for public access and removing PII from public responses.
-- **Pagar.me Payment Integration:** Added complete payment processing with PIX and credit card support for the NEXUS reseller platform. Features card tokenization, input validation, and authenticated API routes. Checkout page at `/revendedora/reseller/checkout/:productId`.
+- **Pagar.me Payment Integration:** Added complete payment processing with PIX and credit card support for the NEXUS reseller platform. Features card tokenization, input validation, and authenticated API routes.

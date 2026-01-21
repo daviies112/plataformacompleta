@@ -22,35 +22,61 @@ async function validateProduct(storeId: string, productId: string, quantity: num
 
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { data: store, error: storeError } = await supabase
-      .from('revendedoras')
-      .select('id, store_published, store_name')
-      .eq('store_id', storeId)
+    // First try to find store by slug in reseller_stores table
+    let storeData: any = null;
+    
+    const { data: storeBySlug } = await supabase
+      .from('reseller_stores')
+      .select('reseller_id, is_published, product_ids')
+      .eq('store_slug', storeId)
+      .eq('is_published', true)
       .single();
 
-    if (storeError || !store) {
+    if (storeBySlug) {
+      storeData = storeBySlug;
+    } else {
+      // Try to find store by reseller_id
+      const { data: storeById } = await supabase
+        .from('reseller_stores')
+        .select('reseller_id, is_published, product_ids')
+        .eq('reseller_id', storeId)
+        .eq('is_published', true)
+        .single();
+      
+      if (storeById) {
+        storeData = storeById;
+      }
+    }
+
+    if (!storeData) {
+      console.log('[Pagar.me Public] Store not found for storeId:', storeId);
       return { valid: false, error: 'Loja não encontrada' };
     }
 
-    if (!store.store_published) {
-      return { valid: false, error: 'Loja não está publicada' };
+    console.log('[Pagar.me Public] Found store with reseller_id:', storeData.reseller_id);
+
+    // Check if product is in this store's products
+    if (!storeData.product_ids || !storeData.product_ids.includes(productId)) {
+      console.log('[Pagar.me Public] Product not in store:', { productId, storeProductIds: storeData.product_ids });
+      return { valid: false, error: 'Produto não encontrado nesta loja' };
     }
 
+    // Fetch the product from products table
     const { data: product, error: productError } = await supabase
-      .from('reseller_products')
-      .select('id, name, price, reseller_id, active')
+      .from('products')
+      .select('id, description, price')
       .eq('id', productId)
-      .eq('reseller_id', store.id)
-      .eq('active', true)
       .single();
 
     if (productError || !product) {
+      console.log('[Pagar.me Public] Product not found:', { productId, error: productError });
       return { valid: false, error: 'Produto não encontrado ou indisponível' };
     }
 
     const serverAmount = Math.round(product.price * 100 * quantity);
+    console.log('[Pagar.me Public] Product validated:', { name: product.description, price: product.price, serverAmount });
 
-    return { valid: true, product, serverAmount };
+    return { valid: true, product: { ...product, name: product.description }, serverAmount };
   } catch (error) {
     console.error('[Pagar.me Public] Product validation error:', error);
     return { valid: false, error: 'Erro ao validar produto' };
