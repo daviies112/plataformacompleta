@@ -381,7 +381,7 @@ router.post('/card', async (req, res) => {
 
     const cardCharge = order.charges?.[0];
 
-    console.log(`[Pagar.me Public] Card order created: ${order.id}`);
+    console.log(`[Pagar.me Public] Card order created: ${order.id}, chargeStatus: ${cardCharge?.status}, orderStatus: ${order.status}`);
 
     // Save sale to Supabase
     if (productValidation.resellerId) {
@@ -407,8 +407,15 @@ router.post('/card', async (req, res) => {
       }
     }
 
+    // Determine if payment was actually approved
+    const chargeStatus = cardCharge?.status?.toLowerCase() || order.status?.toLowerCase();
+    const paidStatuses = ['paid', 'captured', 'authorized', 'pending'];
+    const failedStatuses = ['failed', 'declined', 'canceled', 'voided', 'error'];
+    const isPaymentSuccess = paidStatuses.includes(chargeStatus) && !failedStatuses.includes(chargeStatus);
+
     res.json({
       success: true,
+      paymentSuccess: isPaymentSuccess,
       orderId: order.id,
       orderCode: order.code,
       status: order.status,

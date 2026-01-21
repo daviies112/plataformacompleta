@@ -367,8 +367,17 @@ export default function PublicCheckout() {
         const orderResult = await orderResponse.json();
 
         if (orderResult.success) {
-          setOrderId(orderResult.orderId);
-          setStep('success');
+          // Check if payment was actually approved (not just order created)
+          const chargeStatus = orderResult.chargeStatus?.toLowerCase();
+          const failedStatuses = ['failed', 'declined', 'canceled', 'voided', 'error'];
+          
+          if (failedStatuses.includes(chargeStatus) || orderResult.paymentSuccess === false) {
+            setStep('error');
+            toast.error('Pagamento recusado. Verifique os dados do cartão e tente novamente.');
+          } else {
+            setOrderId(orderResult.orderId);
+            setStep('success');
+          }
         } else {
           setStep('error');
           toast.error(orderResult.error || 'Erro ao processar cartão');
