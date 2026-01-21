@@ -163,9 +163,11 @@ export async function registerRoutes(app: Express) {
   // Envio routes (shipping management)
   app.use("/api/envio", requireTenant, envioRoutes);
   
-  // Pagar.me payment routes (public webhook + authenticated routes)
-  app.use("/api/pagarme/webhook", pagarmeRoutes); // Public webhook endpoint
-  app.use("/api/pagarme", pagarmeRoutes); // Authenticated payment routes
+  // Pagar.me payment routes
+  // Webhook endpoint must be PUBLIC for Pagar.me to send payment notifications
+  app.use("/api/pagarme/webhook", pagarmeRoutes);
+  // All other payment routes require authentication
+  app.use("/api/pagarme", requireTenant, pagarmeRoutes);
 
   return httpServer;
 }

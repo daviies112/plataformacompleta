@@ -57,6 +57,12 @@ interface OrderStatus {
   }>;
 }
 
+interface TokenizeResult {
+  success: boolean;
+  tokenId: string;
+  type: string;
+}
+
 export function usePagarme() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -69,6 +75,34 @@ export function usePagarme() {
     } catch (err: any) {
       console.error('[usePagarme] Config error:', err);
       return { configured: false, publicKey: null };
+    }
+  }, []);
+
+  const tokenizeCard = useCallback(async (card: {
+    number: string;
+    holder_name: string;
+    holder_document?: string;
+    exp_month: number;
+    exp_year: number;
+    cvv: string;
+  }): Promise<TokenizeResult | null> => {
+    try {
+      const response = await fetch('/api/pagarme/tokenize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ card }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro ao tokenizar cartão');
+      }
+
+      return data;
+    } catch (err: any) {
+      console.error('[usePagarme] Tokenize error:', err);
+      throw err;
     }
   }, []);
 
@@ -128,16 +162,10 @@ export function usePagarme() {
     }
   }, []);
 
-  const createCardOrder = useCallback(async (
+  const createCardOrderWithToken = useCallback(async (
     customer: Customer,
     items: Item[],
-    card: {
-      number: string;
-      holder_name: string;
-      exp_month: number;
-      exp_year: number;
-      cvv: string;
-    },
+    cardToken: string,
     installments?: number
   ): Promise<CardOrderResult | null> => {
     setLoading(true);
@@ -171,7 +199,7 @@ export function usePagarme() {
         body: JSON.stringify({
           customer: customerData,
           items,
-          card,
+          cardToken,
           installments: installments || 1,
           statementDescriptor: 'NEXUS',
         }),
@@ -192,6 +220,47 @@ export function usePagarme() {
       setLoading(false);
     }
   }, []);
+
+  const createCardOrder = useCallback(async (
+    customer: Customer,
+    items: Item[],
+    card: {
+      number: string;
+      holder_name: string;
+      holder_document?: string;
+      exp_month: number;
+      exp_year: number;
+      cvv: string;
+    },
+    installments?: number
+  ): Promise<CardOrderResult | null> => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const tokenResult = await tokenizeCard({
+        number: card.number,
+        holder_name: card.holder_name,
+        holder_document: card.holder_document,
+        exp_month: card.exp_month,
+        exp_year: card.exp_year,
+        cvv: card.cvv,
+      });
+
+      if (!tokenResult || !tokenResult.tokenId) {
+        throw new Error('Falha ao tokenizar cartão');
+      }
+
+      const result = await createCardOrderWithToken(customer, items, tokenResult.tokenId, installments);
+      return result;
+    } catch (err: any) {
+      setError(err.message);
+      console.error('[usePagarme] Card order error:', err);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, [tokenizeCard, createCardOrderWithToken]);
 
   const getOrderStatus = useCallback(async (orderId: string): Promise<OrderStatus | null> => {
     try {
@@ -238,8 +307,10 @@ export function usePagarme() {
     loading,
     error,
     getConfig,
+    tokenizeCard,
     createPixOrder,
     createCardOrder,
+    createCardOrderWithToken,
     getOrderStatus,
     cancelOrder,
   };

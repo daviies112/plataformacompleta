@@ -157,7 +157,7 @@ export class PagarmeService {
       ],
     };
 
-    console.log('[Pagar.me] Creating PIX order:', JSON.stringify(orderData, null, 2));
+    console.log('[Pagar.me] Creating PIX order');
 
     return this.request<PagarmeOrderResponse>('/orders', 'POST', orderData);
   }
@@ -196,7 +196,9 @@ export class PagarmeService {
     return this.request<PagarmeOrderResponse>('/orders', 'POST', orderData);
   }
 
+  /** @deprecated Use tokenization + createCardOrder instead. This method sends raw card data. */
   async createCardOrderWithData(params: CreateCardOrderWithDataParams): Promise<PagarmeOrderResponse> {
+    console.warn('[Pagar.me] SECURITY WARNING: Using deprecated createCardOrderWithData with raw card data. Migrate to tokenization.');
     const orderData = {
       customer: {
         name: params.customer.name,
@@ -225,12 +227,11 @@ export class PagarmeService {
       ],
     };
 
-    console.log('[Pagar.me] Creating Card order with raw data');
-
     return this.request<PagarmeOrderResponse>('/orders', 'POST', orderData);
   }
 
   async getOrder(orderId: string): Promise<PagarmeOrderResponse> {
+    console.log(`[Pagar.me] Getting order: ${orderId}`);
     return this.request<PagarmeOrderResponse>(`/orders/${orderId}`, 'GET');
   }
 

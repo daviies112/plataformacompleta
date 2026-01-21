@@ -119,6 +119,65 @@ export function PagarmeCheckout({
     }).format(value / 100);
   };
 
+  const validateCardExpiry = (expiry: string): { valid: boolean; month: number; year: number; error?: string } => {
+    if (!expiry || expiry.trim() === '') {
+      return { valid: false, month: 0, year: 0, error: 'Validade é obrigatória' };
+    }
+
+    const parts = expiry.split('/');
+    if (parts.length !== 2) {
+      return { valid: false, month: 0, year: 0, error: 'Formato inválido. Use MM/AA' };
+    }
+
+    const [monthStr, yearStr] = parts;
+    
+    if (!monthStr || monthStr.length !== 2) {
+      return { valid: false, month: 0, year: 0, error: 'Mês inválido' };
+    }
+
+    if (!yearStr || (yearStr.length !== 2 && yearStr.length !== 4)) {
+      return { valid: false, month: 0, year: 0, error: 'Ano inválido' };
+    }
+
+    const month = parseInt(monthStr, 10);
+    let year = parseInt(yearStr, 10);
+
+    if (isNaN(month) || month < 1 || month > 12) {
+      return { valid: false, month: 0, year: 0, error: 'Mês deve ser entre 01 e 12' };
+    }
+
+    if (yearStr.length === 2) {
+      year = 2000 + year;
+    }
+
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = currentDate.getMonth() + 1;
+
+    if (year < currentYear || (year === currentYear && month < currentMonth)) {
+      return { valid: false, month: 0, year: 0, error: 'Cartão expirado' };
+    }
+
+    if (year > currentYear + 20) {
+      return { valid: false, month: 0, year: 0, error: 'Ano de validade muito distante' };
+    }
+
+    return { valid: true, month, year };
+  };
+
+  const validateCvv = (cvv: string): { valid: boolean; error?: string } => {
+    if (!cvv || cvv.trim() === '') {
+      return { valid: false, error: 'CVV é obrigatório' };
+    }
+
+    const cvvClean = cvv.replace(/\D/g, '');
+    if (cvvClean.length < 3 || cvvClean.length > 4) {
+      return { valid: false, error: 'CVV deve ter 3 ou 4 dígitos' };
+    }
+
+    return { valid: true };
+  };
+
   const handleSubmit = async () => {
     if (!customerName || !customerEmail || !customerCpf) {
       toast.error('Preencha todos os campos obrigatórios');
@@ -167,24 +226,42 @@ export function PagarmeCheckout({
           toast.error('Erro ao gerar PIX');
         }
       } else {
-        if (!cardNumber || !cardName || !cardExpiry || !cardCvv) {
-          toast.error('Preencha todos os dados do cartão');
+        if (!cardNumber || !cardName) {
+          toast.error('Preencha o número e nome do cartão');
           setStep('form');
           return;
         }
 
-        const [expMonth, expYear] = cardExpiry.split('/');
-        const fullYear = expYear.length === 2 ? `20${expYear}` : expYear;
+        const cardNumberClean = cardNumber.replace(/\s/g, '');
+        if (cardNumberClean.length < 13 || cardNumberClean.length > 19) {
+          toast.error('Número do cartão inválido');
+          setStep('form');
+          return;
+        }
+
+        const expiryValidation = validateCardExpiry(cardExpiry);
+        if (!expiryValidation.valid) {
+          toast.error(expiryValidation.error || 'Validade inválida');
+          setStep('form');
+          return;
+        }
+
+        const cvvValidation = validateCvv(cardCvv);
+        if (!cvvValidation.valid) {
+          toast.error(cvvValidation.error || 'CVV inválido');
+          setStep('form');
+          return;
+        }
 
         const result = await createCardOrder(
           customer,
           items,
           {
-            number: cardNumber.replace(/\s/g, ''),
+            number: cardNumberClean,
             holder_name: cardName,
-            exp_month: parseInt(expMonth, 10),
-            exp_year: parseInt(fullYear, 10),
-            cvv: cardCvv,
+            exp_month: expiryValidation.month,
+            exp_year: expiryValidation.year,
+            cvv: cardCvv.replace(/\D/g, ''),
           },
           installments
         );
@@ -361,6 +438,7 @@ export function PagarmeCheckout({
                       onChange={(e) => setCardCvv(e.target.value.replace(/\D/g, '').slice(0, 4))}
                       placeholder="123"
                       type="password"
+                      maxLength={4}
                       data-testid="input-card-cvv"
                     />
                   </div>
