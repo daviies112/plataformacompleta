@@ -200,7 +200,30 @@ async function validateCustomer(customer: any): Promise<{ valid: boolean; error?
   if (cpfClean.length !== 11 && cpfClean.length !== 14) {
     return { valid: false, error: 'CPF/CNPJ inválido' };
   }
+  // Validate phone - Pagar.me requires at least one phone
+  if (!customer.phone || typeof customer.phone !== 'string') {
+    return { valid: false, error: 'Telefone do cliente é obrigatório' };
+  }
+  const phoneClean = customer.phone.replace(/\D/g, '');
+  if (phoneClean.length < 10 || phoneClean.length > 11) {
+    return { valid: false, error: 'Telefone inválido (DDD + número)' };
+  }
   return { valid: true };
+}
+
+// Convert phone string to Pagar.me format
+function formatPhoneForPagarme(phone: string) {
+  const phoneClean = phone.replace(/\D/g, '');
+  // Brazilian phone: DDD (2 digits) + number (8-9 digits)
+  const areaCode = phoneClean.slice(0, 2);
+  const number = phoneClean.slice(2);
+  return {
+    mobile_phone: {
+      country_code: '55',
+      area_code: areaCode,
+      number: number,
+    }
+  };
 }
 
 router.post('/pix', async (req, res) => {
@@ -250,8 +273,14 @@ router.post('/pix', async (req, res) => {
       }
     }
 
+    // Add phones in Pagar.me format
+    const customerWithPhone = {
+      ...customer,
+      phones: formatPhoneForPagarme(customer.phone),
+    };
+
     const order = await pagarmeService.createPixOrder({
-      customer,
+      customer: customerWithPhone,
       items,
       expiresIn: expiresIn || 86400,
     });
@@ -371,8 +400,14 @@ router.post('/card', async (req, res) => {
       return res.status(400).json({ error: 'Número de parcelas deve ser entre 1 e 12' });
     }
 
+    // Add phones in Pagar.me format
+    const customerWithPhone = {
+      ...customer,
+      phones: formatPhoneForPagarme(customer.phone),
+    };
+
     const order = await pagarmeService.createCardOrder({
-      customer,
+      customer: customerWithPhone,
       items,
       cardToken,
       installments: installments || 1,
