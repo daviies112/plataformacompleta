@@ -1,0 +1,49 @@
+# Walkthrough - Pagar.me V5 & Security Hardening
+
+## 1. Pagar.me V5 Implementation
+We have successfully implemented the new **Pagar.me V5 Financial Architecture**, replacing the legacy Stripe integration.
+
+### Key Features
+- **3-Way Split Payment**: Logic implemented to support automatic revenue splitting between:
+  1. **Revendedora** (Variable %)
+  2. **Empresa/Client** (Variable remaining %)
+  3. **Plataforma/Nexus** (Optional fixed fee off the top)
+- **Safe Checkout Routes**: New public routes for secure checkout validation.
+- **Strict Validation**: All payment routes enforce strict input validation for customer data.
+
+### Configuration
+To enable the 3-Way Split (Platform Fee), configure the following environment variables:
+
+```env
+# Optional: Platform Fee Configuration
+PAGARME_PLATFORM_RECIPIENT_ID=rp_XXXXXXXXXXXXXXXX  # ID of the Nexus Pagar.me Recipient
+PAGARME_PLATFORM_FEE_PERCENT=5                     # Percentage to take off the top (e.g., 5)
+
+# Pagar.me Keys
+CHAVE_SECRETA=sk_test_...
+CHAVE_PUBLICA=pk_test_...
+```
+
+### Files Changed
+- **DELETED**: `server/routes/stripePayment.ts`
+- **MODIFIED**: `server/routes/pagarmePublic.ts` (Added 3-Way Split Logic)
+- **MODIFIED**: `server/middleware/multiTenantAuth.ts` (Updated public route whitelist)
+
+## 2. Security & Performance Audit
+We performed a comprehensive audit and implemented several fixes.
+
+### Security
+- **Strict Zod Validation**: Implemented in `server/routes/auth.ts` to sanitation `req.body`.
+- **Credential Protection**: Removed hardcoded credential fallbacks.
+- **Gitignore**: Created `.gitignore` to prevent secret leakage.
+- **Public Route Whitelist**: Cleaned up to exclude old Stripe routes.
+
+### Performance
+- **Lazy Loading**: Implemented in `src/platforms/PlatformRouter.tsx` for `DesktopApp` and `MobileApp`. This significantly reduces the initial bundle size.
+- **N+1 Query Check**: Audited `dashboard.ts` and `leadsPipelineRoutes.ts`. Confirmed efficient batch data fetching is already in place.
+
+## 3. Deployment Instructions for Replit
+1. **Sync Files**: Ensure all deleted/modified files are synced.
+2. **Environment**: Add the new `PAGARME_` environment variables to Replit Secrets.
+3. **Build**: Run `npm run build` to verify the new Lazy Loading chunks.
+4. **Start**: `npm start` should run without Stripe errors.

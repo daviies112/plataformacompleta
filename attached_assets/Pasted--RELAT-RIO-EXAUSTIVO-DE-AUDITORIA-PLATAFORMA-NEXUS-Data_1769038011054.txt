@@ -1,0 +1,251 @@
+📋 RELATÓRIO EXAUSTIVO DE AUDITORIA - PLATAFORMA NEXUS
+Data da Auditoria: 2026-01-21 Realizado por: Gemini 3 Pro (Fase 1: Descoberta) Objetivo: Catalogar TODOS os erros, vulnerabilidades e débitos técnicos para correção pelo Claude Opus 4.5
+
+📊 RESUMO EXECUTIVO
+Categoria	Itens Encontrados	Severidade
+🔴 Código Legado Stripe	68+ referências	CRÍTICA
+🔴 Dependências Stripe	3 pacotes	CRÍTICA
+🟠 Console.log em Produção	2000+ linhas	ALTA
+🟠 Uso de 
+any
+ Type	700+ instâncias	ALTA
+🟢 Chaves Hardcoded	0 encontradas	OK
+🟢 Proteção de Rotas	Implementada	OK
+🔴 SEÇÃO 1: REMOÇÃO COMPLETA DO STRIPE (CRÍTICA)
+1.1 Arquivos Frontend para DELETAR
+Os seguintes arquivos devem ser completamente removidos pois implementam lógica do Stripe:
+
+src/features/revendedora/services/StripeService.ts      [DELETE]
+src/features/revendedora/pages/reseller/PaymentCard.tsx [REFACTOR → Pagar.me]
+1.2 Arquivo de Index para Atualizar
+Arquivo: src/features/revendedora/index.ts Linha 86:
+
+// REMOVER ESTA LINHA:
+export * from './services/StripeService';
+1.3 Arquivo PaymentService.ts - Migrar para Pagar.me
+Arquivo: 
+src/features/revendedora/services/PaymentService.ts
+
+Problema: O arquivo ainda usa rotas /api/payments/create-intent que eram do Stripe.
+
+Linhas a Corrigir:
+
+// LINHA 117 - Comentário ERRADO:
+// 4. Para PIX ou CARTÃO, usar API local para Stripe
+// CORRIGIR PARA:
+// 4. Para PIX ou CARTÃO, usar API local para Pagar.me
+// LINHA 118 - Rota ERRADA:
+const response = await fetch('/api/payments/create-intent', {
+// CORRIGIR PARA (dependendo da implementação):
+const response = await fetch('/api/public/checkout/pix', { // ou /card
+1.4 Dependências package.json para REMOVER
+Arquivo: 
+package.json
+
+// LINHAS 54-55 e 68 - REMOVER:
+"@stripe/react-stripe-js": "^5.4.1",
+"@stripe/stripe-js": "^8.5.3",
+"@types/stripe": "^8.0.416",
+Comando para remoção:
+
+npm uninstall @stripe/react-stripe-js @stripe/stripe-js @types/stripe
+1.5 Referências Stripe no Frontend - Arquivos para Auditar
+Arquivo	Linha	Problema
+src/features/revendedora/types/database.ts	102	stripe_account_id?: string;
+src/features/revendedora/pages/admin/CommissionConfiguration.tsx	421	Menciona "split de pagamento via Stripe"
+src/features/revendedora/pages/reseller/PaymentCard.tsx
+3-12	Imports do Stripe
+🟠 SEÇÃO 2: CONSOLE.LOG EM PRODUÇÃO (ALTA)
+2.1 Arquivos do Servidor com console.log excessivo
+Os seguintes arquivos têm console.log que devem ser removidos ou substituídos por logger estruturado:
+
+Arquivo	Quantidade Aprox.
+server/services/pagarme.ts
+20+ logs
+server/services/n8n.ts	10+ logs
+server/services/envioService.ts	15+ logs
+server/services/init.ts	15+ logs
+server/routes/*.ts	50+ logs cada
+TOTAL ESTIMADO	2000+
+2.2 Solução Recomendada
+Substituir todos os console.log por um logger estruturado como Pino (já instalado):
+
+// ANTES (ERRADO):
+console.log('[Pagar.me] Creating PIX order');
+// DEPOIS (CORRETO):
+import { logger } from '../lib/logger';
+logger.info({ context: 'Pagar.me' }, 'Creating PIX order');
+Ação: Criar arquivo server/lib/logger.ts se não existir:
+
+import pino from 'pino';
+export const logger = pino({
+  level: process.env.LOG_LEVEL || 'info',
+  transport: process.env.NODE_ENV === 'development' 
+    ? { target: 'pino-pretty' } 
+    : undefined
+});
+🟠 SEÇÃO 3: USO EXCESSIVO DE 
+any
+ (ALTA)
+3.1 Arquivos com Maior Incidência
+Arquivo	Instâncias
+server/routes/workspace.ts
+35+
+server/routes/whatsapp-complete.ts
+15+
+server/routes/dashboard.ts
+20+
+server/routes/leadsPipelineRoutes.ts
+25+
+server/routes/meetings.ts
+15+
+TOTAL	700+
+3.2 Padrões Comuns a Corrigir
+Padrão 1: Erro genérico
+
+// ERRADO:
+} catch (error: any) {
+  console.error(error.message);
+}
+// CORRETO:
+} catch (error) {
+  if (error instanceof Error) {
+    console.error(error.message);
+  }
+}
+Padrão 2: Retorno de função
+
+// ERRADO:
+function getClientCredentials(clientId: string, integrationType: string): any | null {
+// CORRETO:
+interface ClientCredentials {
+  url?: string;
+  anonKey?: string;
+  // ... outras propriedades
+}
+function getClientCredentials(clientId: string, integrationType: string): ClientCredentials | null {
+Padrão 3: Map/forEach
+
+// ERRADO:
+const pagesData = pages.map((page: any) => {
+// CORRETO:
+interface Page { id: string; title: string; /* ... */ }
+const pagesData = pages.map((page: Page) => {
+🟢 SEÇÃO 4: SEGURANÇA - ITENS JÁ CORRIGIDOS
+4.1 Credenciais Hardcoded
+✅ STATUS: OK - Nenhuma chave sk_live_ ou sk_test_ encontrada no código.
+
+4.2 Proteção de Rotas
+✅ STATUS: OK - Middleware 
+requireTenant
+ implementado corretamente.
+
+4.3 Validação Zod
+✅ STATUS: PARCIAL - Implementado em 
+auth.ts
+, mas falta em outras rotas.
+
+Rotas que PRECISAM de validação Zod:
+
+server/routes/credentials.ts
+server/routes/clients.ts
+server/routes/workspace.ts
+server/routes/pagarmePublic.ts
+ (já parcialmente implementado)
+🏗️ SEÇÃO 5: ARQUITETURA E PERFORMANCE
+5.1 Lazy Loading
+✅ STATUS: IMPLEMENTADO em 
+PlatformRouter.tsx
+
+5.2 N+1 Queries
+✅ STATUS: OK - Rotas de dashboard usam batch fetching.
+
+5.3 Session Secret Fallback (CORRIGIR)
+Arquivo: 
+server/index.ts
+ Linha 61:
+
+// PROBLEMA: Fallback de segredo de sessão
+secret: process.env.SESSION_SECRET || 'default-dev-secret-change-in-production',
+// SOLUÇÃO: Forçar uso de variável de ambiente
+secret: process.env.SESSION_SECRET || (() => { 
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('SESSION_SECRET is required in production');
+  }
+  return 'dev-secret-only';
+})(),
+📝 SEÇÃO 6: PLANO DE AÇÃO PARA CLAUDE OPUS 4.5
+Fase 1: Remoção do Stripe (CRÍTICA)
+ Deletar 
+src/features/revendedora/services/StripeService.ts
+ Remover export do Stripe de src/features/revendedora/index.ts
+ Refatorar 
+PaymentCard.tsx
+ para usar Pagar.me
+ Atualizar 
+PaymentService.ts
+ para usar rotas Pagar.me
+ Remover dependências Stripe do 
+package.json
+ Atualizar referência em 
+database.ts
+ (stripe_account_id → pagarme_recipient_id)
+ Corrigir comentário em 
+CommissionConfiguration.tsx
+Fase 2: Qualidade de Código
+ Criar server/lib/logger.ts com Pino
+ Substituir console.log por logger estruturado (priorizar server/services/)
+ Corrigir tipagem 
+any
+ nos arquivos principais
+Fase 3: Segurança
+ Implementar validação Zod em 
+credentials.ts
+ Implementar validação Zod em 
+clients.ts
+ Corrigir fallback de SESSION_SECRET
+📁 ARQUIVOS PARA ENVIAR AO CLAUDE OPUS 4.5
+Para a geração de código, envie os seguintes arquivos:
+
+Prioridade 1 (Stripe Removal):
+src/features/revendedora/services/StripeService.ts
+src/features/revendedora/services/PaymentService.ts
+src/features/revendedora/pages/reseller/PaymentCard.tsx
+src/features/revendedora/index.ts
+package.json
+Prioridade 2 (Types):
+server/routes/workspace.ts
+server/routes/dashboard.ts
+server/lib/credentialsManager.ts
+Prioridade 3 (Logger):
+server/vite.ts (referência de log existente)
+server/services/pagarme.ts
+⚠️ VARIÁVEIS DE AMBIENTE OBRIGATÓRIAS
+Certifique-se de que as seguintes variáveis estejam configuradas no Replit:
+
+# Pagar.me V5
+CHAVE_SECRETA=sk_xxxxxxxxxxxx
+CHAVE_PUBLICA=pk_xxxxxxxxxxxx
+PAGARME_PLATFORM_RECIPIENT_ID=rp_xxxxxxx  # Opcional
+PAGARME_PLATFORM_FEE_PERCENT=2            # Opcional
+# Supabase Owner
+SUPABASE_OWNER_URL=https://xxx.supabase.co
+SUPABASE_OWNER_SERVICE_KEY=eyJxxxx
+# Segurança
+SESSION_SECRET=gerar-com-openssl-rand-base64-32
+CREDENTIALS_ENCRYPTION_KEY_BASE64=gerar-com-openssl-rand-base64-32
+# 100ms Meetings
+HMS_ACCESS_KEY=xxx
+HMS_SECRET=xxx
+HMS_TEMPLATE_ID=xxx
+📊 MÉTRICAS FINAIS
+Métrica	Valor
+Total de arquivos analisados	150+
+Arquivos para deletar	1
+Arquivos para refatorar	6
+Linhas de código a remover	~500
+Linhas de código a corrigir	~2000
+Dependências a remover	3
+FIM DO RELATÓRIO DE AUDITORIA
+
+Este documento foi gerado automaticamente pelo Gemini 3 Pro e deve ser usado como input para o Claude Opus 4.5 na fase de geração de código.

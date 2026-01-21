@@ -114,8 +114,8 @@ export class PaymentService {
         };
       }
       
-      // 4. Para PIX ou CARTÃO, usar API local para Stripe
-      const response = await fetch('/api/payments/create-intent', {
+      // 4. Para PIX ou CARTÃO, usar API local para Pagar.me
+      const response = await fetch('/api/pagarme/process-payment', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -144,25 +144,25 @@ export class PaymentService {
         }
       }
 
-      const stripeData = await response.json();
+      const pagarmeData = await response.json();
 
-      if (!response.ok || !stripeData.success) {
-        console.error('Erro ao criar payment intent:', stripeData);
-        throw new Error(stripeData.error || 'Erro ao criar pagamento no Stripe');
+      if (!response.ok || !pagarmeData.success) {
+        console.error('Erro ao criar payment intent:', pagarmeData);
+        throw new Error(pagarmeData.error || 'Erro ao criar pagamento no Pagar.me');
       }
 
       return {
         success: true,
-        saleId: stripeData.saleId,
+        saleId: pagarmeData.saleId,
         paymentMethod: payload.paymentMethod,
         status: 'aguardando_pagamento',
         message: 'Pagamento criado com sucesso',
-        clientSecret: stripeData.clientSecret,
-        paymentIntentId: stripeData.paymentIntentId,
-        ...(payload.paymentMethod === 'pix' && stripeData.pix && {
-          pix: stripeData.pix
+        clientSecret: pagarmeData.clientSecret,
+        paymentIntentId: pagarmeData.paymentIntentId,
+        ...(payload.paymentMethod === 'pix' && pagarmeData.pix && {
+          pix: pagarmeData.pix
         }),
-        split: stripeData.split,
+        split: pagarmeData.split,
       };
       
     } catch (error) {
