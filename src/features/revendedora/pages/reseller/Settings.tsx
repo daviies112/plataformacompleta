@@ -222,6 +222,20 @@ export default function Settings() {
 
   const updateSupabaseMutation = useMutation({
     mutationFn: async (data: SupabaseFormValues) => {
+      // Primeiro tenta salvar na tabela admin_supabase_credentials (Supabase Owner)
+      const adminResponse = await resellerFetch('/api/reseller/admin-supabase-credentials', {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      });
+      
+      if (adminResponse.ok) {
+        const result = await adminResponse.json();
+        console.log('[Settings] Credenciais salvas via admin route:', result);
+        return result;
+      }
+      
+      // Fallback: usa a rota local
+      console.log('[Settings] Fallback para rota local');
       const response = await resellerFetch('/api/reseller/supabase-config', {
         method: 'PUT',
         body: JSON.stringify(data),
@@ -232,11 +246,14 @@ export default function Settings() {
       }
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['/api/reseller/supabase-config'] });
+      const storageLocation = data?.storage === 'supabase_owner' 
+        ? 'na tabela admin_supabase_credentials' 
+        : 'localmente';
       toast({
         title: 'Credenciais salvas',
-        description: 'Suas credenciais Supabase foram salvas com sucesso.',
+        description: `Suas credenciais Supabase foram salvas ${storageLocation}.`,
       });
     },
     onError: (error: Error) => {

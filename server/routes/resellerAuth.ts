@@ -984,6 +984,132 @@ router.put('/supabase-config', async (req: Request, res: Response) => {
   }
 });
 
+// PUT /api/reseller/admin-supabase-credentials - Salvar credenciais na tabela admin_supabase_credentials do Supabase Owner
+// STORAGE: Usa tabela admin_supabase_credentials no Supabase Owner
+// Permite que o admin configure suas credenciais que serão herdadas pelas revendedoras
+router.put('/admin-supabase-credentials', async (req: Request, res: Response) => {
+  try {
+    console.log('[admin-supabase-credentials PUT] Session check:', {
+      hasSession: !!req.session,
+      userEmail: req.session?.userEmail,
+      userRole: req.session?.userRole,
+      tenantId: req.session?.tenantId
+    });
+    
+    if (!req.session?.userEmail || req.session?.userRole !== 'reseller') {
+      console.log('[admin-supabase-credentials PUT] Auth failed - returning 401');
+      return res.status(401).json({ error: 'Não autenticado' });
+    }
+
+    const { supabase_url, supabase_anon_key, supabase_service_key } = req.body;
+    
+    if (!supabase_url || !supabase_anon_key) {
+      return res.status(400).json({ error: 'URL e Anon Key são obrigatórios' });
+    }
+
+    // Validar URL do Supabase
+    if (!supabase_url.includes('supabase.co')) {
+      return res.status(400).json({ error: 'URL inválida. Deve ser uma URL do Supabase' });
+    }
+
+    const tenantId = req.session.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({ error: 'Tenant não identificado. Faça login novamente.' });
+    }
+
+    // Buscar o Supabase Owner para salvar as credenciais
+    const { getSupabaseOwnerClient } = await import('../config/supabaseOwner');
+    const supabaseOwner = getSupabaseOwnerClient();
+    
+    if (!supabaseOwner) {
+      // Fallback: salvar localmente se Supabase Owner não estiver configurado
+      console.log('[admin-supabase-credentials] Supabase Owner não configurado, salvando localmente');
+      
+      await pool.query(`
+        INSERT INTO reseller_supabase_configs (reseller_email, supabase_url, supabase_anon_key, supabase_service_key, updated_at)
+        VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
+        ON CONFLICT (reseller_email) 
+        DO UPDATE SET 
+          supabase_url = EXCLUDED.supabase_url,
+          supabase_anon_key = EXCLUDED.supabase_anon_key,
+          supabase_service_key = COALESCE(EXCLUDED.supabase_service_key, reseller_supabase_configs.supabase_service_key),
+          updated_at = CURRENT_TIMESTAMP
+      `, [req.session.userEmail, supabase_url, supabase_anon_key, supabase_service_key || null]);
+      
+      console.log(`✅ [admin-supabase-credentials] Credenciais salvas localmente para: ${req.session.userEmail}`);
+      
+      return res.json({ 
+        success: true, 
+        message: 'Credenciais salvas localmente (Supabase Owner não disponível)',
+        storage: 'local'
+      });
+    }
+
+    // Salvar na tabela admin_supabase_credentials do Supabase Owner
+    const { error: upsertError } = await supabaseOwner
+      .from('admin_supabase_credentials')
+      .upsert({
+        admin_id: tenantId,
+        supabase_url: supabase_url,
+        supabase_anon_key: supabase_anon_key,
+        supabase_service_role_key: supabase_service_key || null,
+        updated_at: new Date().toISOString()
+      }, { 
+        onConflict: 'admin_id' 
+      });
+
+    if (upsertError) {
+      console.error('[admin-supabase-credentials] Erro ao salvar no Supabase Owner:', upsertError);
+      
+      // Fallback: salvar localmente
+      await pool.query(`
+        INSERT INTO reseller_supabase_configs (reseller_email, supabase_url, supabase_anon_key, supabase_service_key, updated_at)
+        VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
+        ON CONFLICT (reseller_email) 
+        DO UPDATE SET 
+          supabase_url = EXCLUDED.supabase_url,
+          supabase_anon_key = EXCLUDED.supabase_anon_key,
+          supabase_service_key = COALESCE(EXCLUDED.supabase_service_key, reseller_supabase_configs.supabase_service_key),
+          updated_at = CURRENT_TIMESTAMP
+      `, [req.session.userEmail, supabase_url, supabase_anon_key, supabase_service_key || null]);
+      
+      console.log(`✅ [admin-supabase-credentials] Credenciais salvas localmente (fallback): ${req.session.userEmail}`);
+      
+      return res.json({ 
+        success: true, 
+        message: 'Credenciais salvas localmente (erro ao acessar tabela remota)',
+        storage: 'local',
+        warning: upsertError.message
+      });
+    }
+
+    // Também salvar localmente para acesso rápido
+    await pool.query(`
+      INSERT INTO reseller_supabase_configs (reseller_email, supabase_url, supabase_anon_key, supabase_service_key, updated_at)
+      VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
+      ON CONFLICT (reseller_email) 
+      DO UPDATE SET 
+        supabase_url = EXCLUDED.supabase_url,
+        supabase_anon_key = EXCLUDED.supabase_anon_key,
+        supabase_service_key = COALESCE(EXCLUDED.supabase_service_key, reseller_supabase_configs.supabase_service_key),
+        updated_at = CURRENT_TIMESTAMP
+    `, [req.session.userEmail, supabase_url, supabase_anon_key, supabase_service_key || null]);
+
+    console.log(`✅ [admin-supabase-credentials] Credenciais salvas no Supabase Owner para admin: ${tenantId}`);
+
+    res.json({ 
+      success: true, 
+      message: 'Credenciais salvas com sucesso na tabela admin_supabase_credentials',
+      storage: 'supabase_owner',
+      admin_id: tenantId
+    });
+
+  } catch (error: any) {
+    console.error('Erro ao salvar admin supabase credentials:', error);
+    res.status(500).json({ error: 'Erro interno', details: error.message });
+  }
+});
+
 // POST /api/reseller/supabase-config/test - Testar conexão com Supabase
 // STORAGE: Usa tabela local reseller_supabase_configs (PostgreSQL Replit)
 // TRANSITIONAL: Testa credenciais próprias ou herdadas do admin
