@@ -746,6 +746,34 @@ router.get('/settings', async (req: Request, res: Response) => {
   }
 });
 
+// Helper function to get authenticated reseller from session or token
+async function getAuthenticatedReseller(req: Request): Promise<{ email: string; tenantId: string | null } | null> {
+  // Check session first
+  if (req.session?.userEmail && req.session?.userRole === 'reseller') {
+    return { email: req.session.userEmail, tenantId: req.session.tenantId || null };
+  }
+  
+  // Try to get from JWT token
+  const authHeader = req.headers.authorization;
+  if (authHeader?.startsWith('Bearer ')) {
+    const token = authHeader.slice(7);
+    const payload = verifyResellerToken(token);
+    if (payload && payload.userRole === 'reseller') {
+      // Populate session for future requests
+      req.session.userId = payload.userId;
+      req.session.userEmail = payload.userEmail;
+      req.session.userName = payload.userName;
+      req.session.userRole = payload.userRole;
+      req.session.tenantId = payload.tenantId;
+      req.session.comissao = payload.comissao;
+      req.session.projectName = payload.projectName;
+      return { email: payload.userEmail, tenantId: payload.tenantId || null };
+    }
+  }
+  
+  return null;
+}
+
 // GET /api/reseller/supabase-config - Buscar status das credenciais Supabase da revendedora
 // SECURITY: Retorna supabase_url e supabase_anon_key apenas para revendedora autenticada
 // SECURITY: Nunca retornar supabase_service_key (apenas server-side)
@@ -753,11 +781,12 @@ router.get('/settings', async (req: Request, res: Response) => {
 // STORAGE: Usa tabela local reseller_supabase_configs (PostgreSQL Replit)
 router.get('/supabase-config', async (req: Request, res: Response) => {
   try {
-    if (!req.session?.userEmail || req.session?.userRole !== 'reseller') {
+    const auth = await getAuthenticatedReseller(req);
+    if (!auth) {
       return res.status(401).json({ error: 'Não autenticado' });
     }
 
-    const userEmail = req.session.userEmail;
+    const userEmail = auth.email;
 
     // Buscar credenciais próprias do banco local
     const result = await pool.query(
@@ -912,19 +941,19 @@ const supabaseUpdateSchema = z.object({
 // Suporta atualizações parciais quando já configurado
 router.put('/supabase-config', async (req: Request, res: Response) => {
   try {
-    console.log('[supabase-config PUT] Session check:', {
-      hasSession: !!req.session,
-      userEmail: req.session?.userEmail,
-      userRole: req.session?.userRole,
-      sessionId: req.sessionID
+    const auth = await getAuthenticatedReseller(req);
+    console.log('[supabase-config PUT] Auth check:', {
+      authenticated: !!auth,
+      email: auth?.email,
+      hasAuthHeader: !!req.headers.authorization
     });
     
-    if (!req.session?.userEmail || req.session?.userRole !== 'reseller') {
+    if (!auth) {
       console.log('[supabase-config PUT] Auth failed - returning 401');
       return res.status(401).json({ error: 'Não autenticado' });
     }
 
-    const userEmail = req.session.userEmail;
+    const userEmail = auth.email;
 
     // Buscar credenciais atuais do banco local
     const currentResult = await pool.query(
@@ -989,14 +1018,15 @@ router.put('/supabase-config', async (req: Request, res: Response) => {
 // Permite que o admin configure suas credenciais que serão herdadas pelas revendedoras
 router.put('/admin-supabase-credentials', async (req: Request, res: Response) => {
   try {
-    console.log('[admin-supabase-credentials PUT] Session check:', {
-      hasSession: !!req.session,
-      userEmail: req.session?.userEmail,
-      userRole: req.session?.userRole,
-      tenantId: req.session?.tenantId
+    const auth = await getAuthenticatedReseller(req);
+    console.log('[admin-supabase-credentials PUT] Auth check:', {
+      authenticated: !!auth,
+      email: auth?.email,
+      tenantId: auth?.tenantId,
+      hasAuthHeader: !!req.headers.authorization
     });
     
-    if (!req.session?.userEmail || req.session?.userRole !== 'reseller') {
+    if (!auth) {
       console.log('[admin-supabase-credentials PUT] Auth failed - returning 401');
       return res.status(401).json({ error: 'Não autenticado' });
     }
@@ -1012,7 +1042,7 @@ router.put('/admin-supabase-credentials', async (req: Request, res: Response) =>
       return res.status(400).json({ error: 'URL inválida. Deve ser uma URL do Supabase' });
     }
 
-    const tenantId = req.session.tenantId;
+    const tenantId = auth.tenantId;
     if (!tenantId) {
       return res.status(400).json({ error: 'Tenant não identificado. Faça login novamente.' });
     }
@@ -1034,9 +1064,9 @@ router.put('/admin-supabase-credentials', async (req: Request, res: Response) =>
           supabase_anon_key = EXCLUDED.supabase_anon_key,
           supabase_service_key = COALESCE(EXCLUDED.supabase_service_key, reseller_supabase_configs.supabase_service_key),
           updated_at = CURRENT_TIMESTAMP
-      `, [req.session.userEmail, supabase_url, supabase_anon_key, supabase_service_key || null]);
+      `, [auth.email, supabase_url, supabase_anon_key, supabase_service_key || null]);
       
-      console.log(`✅ [admin-supabase-credentials] Credenciais salvas localmente para: ${req.session.userEmail}`);
+      console.log(`✅ [admin-supabase-credentials] Credenciais salvas localmente para: ${auth.email}`);
       
       return res.json({ 
         success: true, 
@@ -1071,9 +1101,9 @@ router.put('/admin-supabase-credentials', async (req: Request, res: Response) =>
           supabase_anon_key = EXCLUDED.supabase_anon_key,
           supabase_service_key = COALESCE(EXCLUDED.supabase_service_key, reseller_supabase_configs.supabase_service_key),
           updated_at = CURRENT_TIMESTAMP
-      `, [req.session.userEmail, supabase_url, supabase_anon_key, supabase_service_key || null]);
+      `, [auth.email, supabase_url, supabase_anon_key, supabase_service_key || null]);
       
-      console.log(`✅ [admin-supabase-credentials] Credenciais salvas localmente (fallback): ${req.session.userEmail}`);
+      console.log(`✅ [admin-supabase-credentials] Credenciais salvas localmente (fallback): ${auth.email}`);
       
       return res.json({ 
         success: true, 
@@ -1093,7 +1123,7 @@ router.put('/admin-supabase-credentials', async (req: Request, res: Response) =>
         supabase_anon_key = EXCLUDED.supabase_anon_key,
         supabase_service_key = COALESCE(EXCLUDED.supabase_service_key, reseller_supabase_configs.supabase_service_key),
         updated_at = CURRENT_TIMESTAMP
-    `, [req.session.userEmail, supabase_url, supabase_anon_key, supabase_service_key || null]);
+    `, [auth.email, supabase_url, supabase_anon_key, supabase_service_key || null]);
 
     console.log(`✅ [admin-supabase-credentials] Credenciais salvas no Supabase Owner para admin: ${tenantId}`);
 
@@ -1115,11 +1145,12 @@ router.put('/admin-supabase-credentials', async (req: Request, res: Response) =>
 // TRANSITIONAL: Testa credenciais próprias ou herdadas do admin
 router.post('/supabase-config/test', async (req: Request, res: Response) => {
   try {
-    if (!req.session?.userEmail || req.session?.userRole !== 'reseller') {
+    const auth = await getAuthenticatedReseller(req);
+    if (!auth) {
       return res.status(401).json({ error: 'Não autenticado' });
     }
 
-    const userEmail = req.session.userEmail;
+    const userEmail = auth.email;
 
     let credentials: { supabase_url: string; supabase_anon_key: string; supabase_service_key?: string } | null = null;
     let isInherited = false;
