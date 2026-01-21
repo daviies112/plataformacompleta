@@ -412,6 +412,7 @@ export function registerFormulariosCompleteRoutes(app: Express) {
             const camelForm = convertKeysToCamelCase(ownerForm);
             const parsedForm = parseJsonbFields(camelForm, ['questions', 'designConfig', 'scoreTiers', 'tags']);
             const reconstructedForm = reconstructFormDataFromSupabase(parsedForm);
+            res.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
             return res.json(reconstructedForm);
           }
           
@@ -440,6 +441,7 @@ export function registerFormulariosCompleteRoutes(app: Express) {
           console.log(`✅ [PREVIEW] Form ${formIdOrSlug} found in owner's local DB - allowing preview access`);
           // Reconstruir welcomeConfig para dados locais também
           const reconstructedForm = reconstructFormDataFromSupabase(localOwnerForm[0]);
+          res.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
           return res.json(reconstructedForm);
         }
       }
@@ -526,6 +528,7 @@ export function registerFormulariosCompleteRoutes(app: Express) {
           console.log(`✅ [PUBLIC FALLBACK] Formulário encontrado no banco local:`, localForm.title);
           // Reconstruir welcomeConfig para dados locais também
           const reconstructedForm = reconstructFormDataFromSupabase(localForm);
+          res.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
           return res.json(reconstructedForm);
         }
         
@@ -546,6 +549,7 @@ export function registerFormulariosCompleteRoutes(app: Express) {
             console.log(`✅ [PUBLIC FALLBACK] Formulário encontrado via storage:`, storageForm.title);
             // Reconstruir welcomeConfig para dados do storage também
             const reconstructedForm = reconstructFormDataFromSupabase(storageForm);
+            res.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
             return res.json(reconstructedForm);
           }
         }
@@ -585,6 +589,7 @@ export function registerFormulariosCompleteRoutes(app: Express) {
         const camelForm = convertKeysToCamelCase(data);
         const parsedForm = parseJsonbFields(camelForm, ['questions', 'designConfig', 'scoreTiers', 'tags']);
         const reconstructedForm = reconstructFormDataFromSupabase(parsedForm);
+        res.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
         return res.json(reconstructedForm);
       }
       
@@ -648,10 +653,132 @@ export function registerFormulariosCompleteRoutes(app: Express) {
       console.log(`✅ [PUBLIC] Formulário encontrado:`, form.title);
       // Reconstruir welcomeConfig para dados do storage também
       const reconstructedForm = reconstructFormDataFromSupabase(form);
+      res.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
       res.json(reconstructedForm);
     } catch (error: any) {
       console.error('Error fetching public form:', error);
       res.status(500).json({ error: error.message });
+    }
+  });
+
+  // 🚀 OPTIMIZED: Get form + validate token in single request
+  // Combines token validation and form lookup to reduce round trips
+  app.get("/api/forms/public/with-token/:token", async (req, res) => {
+    try {
+      const { token } = req.params;
+      console.log(`🔑 [GET /api/forms/public/with-token] Validando token e buscando form...`);
+      
+      if (!token) {
+        return res.status(400).json({ 
+          valid: false,
+          erro: "Token é obrigatório" 
+        });
+      }
+
+      const ip = req.ip || 'unknown';
+      const userAgent = req.headers['user-agent'] || 'unknown';
+      
+      // Step 1: Validate token using existing service
+      const result = await leadTrackingService.validarTokenERegistrarAbertura(
+        token,
+        ip,
+        userAgent
+      );
+
+      if (!result.valido) {
+        console.log(`⚠️ [WITH-TOKEN] Token inválido ou expirado:`, result.erro);
+        return res.status(200).json({ 
+          valid: false, 
+          erro: result.erro 
+        });
+      }
+
+      console.log(`✅ [WITH-TOKEN] Token válido - Lead telefone:`, result.lead?.telefone);
+      
+      // Step 2: Get formularioId from the session/lead data
+      const formularioId = result.sessao?.formularioId || result.lead?.formularioId;
+      
+      if (!formularioId) {
+        console.log(`❌ [WITH-TOKEN] FormularioId não encontrado na sessão ou lead`);
+        return res.status(200).json({ 
+          valid: false, 
+          erro: "FormularioId não encontrado para este token" 
+        });
+      }
+
+      console.log(`📋 [WITH-TOKEN] Buscando formulário:`, formularioId);
+      
+      // Step 3: Fetch the form using existing logic
+      let formData = null;
+      
+      // Try local PostgreSQL first
+      const localFormResult = await db
+        .select()
+        .from(forms)
+        .where(eq(forms.id, formularioId))
+        .limit(1);
+      
+      if (localFormResult.length > 0) {
+        console.log(`✅ [WITH-TOKEN] Formulário encontrado no banco local`);
+        formData = reconstructFormDataFromSupabase(localFormResult[0]);
+      } else {
+        // Try storage fallback
+        const storageForm = await storage.getFormById(formularioId);
+        if (storageForm) {
+          console.log(`✅ [WITH-TOKEN] Formulário encontrado via storage`);
+          formData = reconstructFormDataFromSupabase(storageForm);
+        }
+      }
+      
+      // If still not found, try Supabase via tenant resolution
+      if (!formData) {
+        const tenantId = await resolvePublicFormTenant(formularioId, true);
+        if (tenantId) {
+          const supabase = await getSupabaseClient(tenantId);
+          if (supabase) {
+            const { data, error } = await supabase
+              .from('forms')
+              .select('*')
+              .eq('id', formularioId)
+              .single();
+            
+            if (!error && data) {
+              console.log(`✅ [WITH-TOKEN] Formulário encontrado no Supabase`);
+              const camelForm = convertKeysToCamelCase(data);
+              const parsedForm = parseJsonbFields(camelForm, ['questions', 'designConfig', 'scoreTiers', 'tags']);
+              formData = reconstructFormDataFromSupabase(parsedForm);
+            }
+          }
+        }
+      }
+
+      if (!formData) {
+        console.log(`❌ [WITH-TOKEN] Formulário ${formularioId} não encontrado em nenhum lugar`);
+        return res.status(200).json({ 
+          valid: false, 
+          erro: "Formulário não encontrado" 
+        });
+      }
+
+      console.log(`✅ [WITH-TOKEN] Retornando dados combinados - Form:`, formData.title);
+      
+      // Return combined response with lead data + form
+      res.status(200).json({ 
+        valid: true, 
+        data: {
+          lead: result.lead,
+          sessao: result.sessao,
+          primeiraAbertura: result.primeiraAbertura,
+          dadosPreenchidos: result.dadosPreenchidos,
+          form: formData
+        }
+      });
+    } catch (error: any) {
+      console.error("❌ [GET /api/forms/public/with-token] Erro:", error);
+      res.status(500).json({ 
+        valid: false,
+        erro: error.message 
+      });
     }
   });
 
