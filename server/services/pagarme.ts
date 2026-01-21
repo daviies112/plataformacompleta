@@ -180,6 +180,17 @@ export class PagarmeService {
   }
 
   async createCardOrder(params: CreateCardOrderParams): Promise<PagarmeOrderResponse> {
+    // Billing address is required for card payments
+    // Use customer address if provided, otherwise use a default
+    const billingAddress = params.customer.address || {
+      country: 'BR',
+      state: 'SP',
+      city: 'São Paulo',
+      zip_code: '01310100',
+      line_1: 'Av Paulista, 1000',
+      line_2: 'Apto 1',
+    };
+
     const orderData = {
       customer: {
         name: params.customer.name,
@@ -203,6 +214,9 @@ export class PagarmeService {
             installments: params.installments || 1,
             statement_descriptor: params.statementDescriptor || 'NEXUS',
             card_token: params.cardToken,
+            card: {
+              billing_address: billingAddress,
+            },
           },
         },
       ],
