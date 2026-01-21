@@ -58,7 +58,12 @@ app.set('trust proxy', 1);
 // secure: true é OBRIGATÓRIO quando sameSite é 'none'
 // proxy: true permite que Express confie no x-forwarded-proto do proxy HTTPS do Replit
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'default-dev-secret-change-in-production',
+  secret: process.env.SESSION_SECRET || (() => {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('SESSION_SECRET environment variable is required in production');
+    }
+    return 'dev-secret-only-for-development';
+  })(),
   resave: false,
   saveUninitialized: false,
   proxy: true, // CRITICAL: Confiar no proxy HTTPS do Replit

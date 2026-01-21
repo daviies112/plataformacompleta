@@ -99,7 +99,7 @@ export interface Reseller {
   total_sales: number;
   available_balance: number;
   pending_balance: number;
-  stripe_account_id?: string;
+  pagarme_recipient_id?: string;
   created_at: string;
   updated_at: string;
 }

@@ -83,7 +83,6 @@ export * from './hooks';
 // ============================================================================
 export * from './services/PaymentService';
 export * from './services/SplitService';
-export * from './services/StripeService';
 
 // ============================================================================
 // COMPONENTS - Main Components (Named exports)

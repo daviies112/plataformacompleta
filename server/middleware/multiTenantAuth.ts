@@ -94,8 +94,8 @@ export function isPublicRoute(path: string): boolean {
     '/api/reseller/login',
     '/api/reseller/register',
     '/api/reseller/check-session',
-    '/api/stripe/webhook',
-    '/api/stripe/checkout',
+    '/api/pagarme/webhook',
+    '/api/public/checkout/',
     '/reseller-login',
     '/revendedora',  // NEXUS: Plataforma de revendedoras tem login próprio
     '/assinar/',     // Assinatura digital pública (clientes)
