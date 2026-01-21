@@ -1,5 +1,7 @@
 import { Router } from 'express';
 import { pagarmeService } from '../services/pagarme';
+import { authenticateToken, AuthRequest } from '../middleware/auth';
+import { saveCompanyRecipientId, getCompanyRecipientId } from '../services/commission';
 
 const router = Router();
 
@@ -329,6 +331,144 @@ router.post('/webhook', async (req, res) => {
   } catch (error: any) {
     console.error('[Pagar.me] Webhook error:', error.message);
     res.status(500).json({ error: 'Webhook processing error' });
+  }
+});
+
+router.post('/onboarding-empresa', authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    if (req.session?.userRole === 'reseller') {
+      return res.status(403).json({ error: 'Acesso restrito a administradores' });
+    }
+
+    const {
+      razaoSocial,
+      cnpj,
+      bancoCode,
+      agencia,
+      agenciaDv,
+      conta,
+      contaDv,
+      tipoConta,
+    } = req.body;
+
+    if (!razaoSocial || !cnpj || !bancoCode || !agencia || !conta) {
+      return res.status(400).json({ error: 'Dados bancários incompletos' });
+    }
+
+    const cnpjClean = cnpj.replace(/\D/g, '');
+    if (cnpjClean.length !== 14) {
+      return res.status(400).json({ error: 'CNPJ inválido - deve conter 14 dígitos' });
+    }
+
+    console.log('[Pagar.me] Creating corporate recipient for company:', razaoSocial);
+
+    const recipient = await pagarmeService.createCorporateRecipient({
+      company_name: razaoSocial,
+      trading_name: razaoSocial,
+      email: req.user?.email || 'admin@empresa.com.br',
+      document: cnpjClean,
+      main_address: {
+        street: 'Endereço Principal',
+        number: '1',
+        neighborhood: 'Centro',
+        city: 'São Paulo',
+        state: 'SP',
+        zip_code: '01310100',
+      },
+      managing_partners: [{
+        name: razaoSocial,
+        email: req.user?.email || 'admin@empresa.com.br',
+        document: cnpjClean,
+        type: 'individual',
+        birthdate: '1990-01-01',
+        address: {
+          street: 'Endereço Principal',
+          number: '1',
+          neighborhood: 'Centro',
+          city: 'São Paulo',
+          state: 'SP',
+          zip_code: '01310100',
+        },
+        phone_numbers: [{
+          ddd: '11',
+          number: '999999999',
+          type: 'mobile',
+        }],
+      }],
+      bank_account: {
+        holder_name: razaoSocial,
+        holder_document: cnpjClean,
+        bank: bancoCode,
+        branch_number: agencia,
+        branch_check_digit: agenciaDv || '',
+        account_number: conta,
+        account_check_digit: contaDv || '',
+        type: tipoConta === 'poupanca' ? 'savings' : 'checking',
+      },
+      transfer_settings: {
+        transfer_enabled: true,
+        transfer_interval: 'daily',
+        transfer_day: 0,
+      },
+    });
+
+    const saved = await saveCompanyRecipientId(recipient.id);
+    if (!saved) {
+      console.warn('[Pagar.me] Failed to save recipient_id to database, but recipient was created');
+    }
+
+    console.log('[Pagar.me] Corporate recipient created:', recipient.id);
+
+    res.json({
+      success: true,
+      recipientId: recipient.id,
+      message: 'Dados bancários cadastrados com sucesso!',
+    });
+  } catch (error: any) {
+    console.error('[Pagar.me] Onboarding empresa error:', error);
+
+    if (error.response?.errors) {
+      const erros = error.response.errors.map((e: any) => e.message).join(', ');
+      return res.status(400).json({ error: `Erro Pagar.me: ${erros}` });
+    }
+
+    res.status(500).json({ error: error.message || 'Erro ao cadastrar dados bancários' });
+  }
+});
+
+router.get('/empresa-status', authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    const recipientId = await getCompanyRecipientId();
+
+    if (!recipientId) {
+      return res.json({ configured: false });
+    }
+
+    let bankDetails = null;
+    try {
+      const recipientData = await pagarmeService.getRecipient(recipientId);
+      if (recipientData?.default_bank_account) {
+        const bank = recipientData.default_bank_account;
+        bankDetails = {
+          banco: bank.bank,
+          agencia: bank.branch_number,
+          conta: bank.account_number ? `****${bank.account_number.slice(-4)}` : '****',
+          tipo: bank.type === 'savings' ? 'Poupança' : 'Corrente',
+          holderName: bank.holder_name,
+        };
+      }
+    } catch (e) {
+      console.warn('[Pagar.me] Could not fetch recipient details:', e);
+    }
+
+    res.json({
+      configured: true,
+      recipientId,
+      bankAccount: bankDetails,
+    });
+  } catch (error: any) {
+    console.error('[Pagar.me] Empresa status error:', error.message);
+    res.status(500).json({ error: error.message });
   }
 });
 

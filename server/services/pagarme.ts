@@ -563,6 +563,11 @@ export class PagarmeService {
     console.log(`[Pagar.me] Listing recipients page=${page} size=${size}`);
     return this.request<{ data: RecipientResponse[]; paging: any }>(`/recipients?page=${page}&size=${size}`, 'GET');
   }
+
+  async getRecipient(recipientId: string): Promise<RecipientResponse> {
+    console.log(`[Pagar.me] Getting recipient: ${recipientId}`);
+    return this.request<RecipientResponse>(`/recipients/${recipientId}`, 'GET');
+  }
 }
 
 export const pagarmeService = new PagarmeService();
