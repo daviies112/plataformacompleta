@@ -92,40 +92,68 @@ class TotalExpressService {
 
       const url = `${this.apiBaseUrl}/webservice_calculo_frete.php`;
       
-      console.log('[TotalExpress] Cotando frete:', {
+      console.log('[TotalExpress] Cotando frete via SOAP:', {
         cepOrigem,
         cepDestino,
         peso: pesoFinal,
         valorDeclarado: dados.valorDeclarado
       });
 
-      const response = await axios.get(url, {
-        params: {
-          ...this.getAuthParams(),
-          CepOrigem: cepOrigem,
-          CepDestino: cepDestino,
-          Peso: pesoFinal.toFixed(2),
-          ValorDeclarado: dados.valorDeclarado.toFixed(2),
-          Altura: dados.altura,
-          Largura: dados.largura,
-          Comprimento: dados.comprimento
+      // Construir envelope SOAP para chamar o método calcularFrete
+      const soapEnvelope = `<?xml version="1.0" encoding="UTF-8"?>
+<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" 
+                   xmlns:ns1="urn:calcularFrete"
+                   xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/"
+                   SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
+  <SOAP-ENV:Body>
+    <ns1:calcularFrete>
+      <calcularFreteRequest xsi:type="ns1:calcularFreteRequest">
+        <usuario xsi:type="xsd:string">${this.escapeXml(this.user || '')}</usuario>
+        <senha xsi:type="xsd:string">${this.escapeXml(this.pass || '')}</senha>
+        <reid xsi:type="xsd:string">${this.escapeXml(this.reid || '')}</reid>
+        <servico xsi:type="xsd:string">${this.escapeXml(this.service || 'EXP')}</servico>
+        <cep_origem xsi:type="xsd:string">${cepOrigem}</cep_origem>
+        <cep_destino xsi:type="xsd:string">${cepDestino}</cep_destino>
+        <peso xsi:type="xsd:string">${pesoFinal.toFixed(2)}</peso>
+        <valor_declarado xsi:type="xsd:string">${dados.valorDeclarado.toFixed(2)}</valor_declarado>
+      </calcularFreteRequest>
+    </ns1:calcularFrete>
+  </SOAP-ENV:Body>
+</SOAP-ENV:Envelope>`;
+
+      const response = await axios.post(url, soapEnvelope, {
+        headers: {
+          'Content-Type': 'text/xml; charset=utf-8',
+          'SOAPAction': 'urn:simulaFrete#calcularFrete'
         },
         timeout: 15000
       });
 
       const data = response.data;
+      console.log('[TotalExpress] Resposta SOAP recebida (preview):', typeof data === 'string' ? data.substring(0, 300) : data);
       
-      if (typeof data === 'string' && data.includes('<')) {
-        const valorMatch = data.match(/<Valor>([^<]+)<\/Valor>/);
-        const prazoMatch = data.match(/<Prazo>([^<]+)<\/Prazo>/);
-        const erroMatch = data.match(/<Erro>([^<]+)<\/Erro>/);
+      if (typeof data === 'string') {
+        // Parse SOAP response - tentar múltiplos padrões
+        const valorMatch = data.match(/<valor[^>]*>([^<]+)<\/valor>/i) || 
+                          data.match(/<Valor[^>]*>([^<]+)<\/Valor>/i) ||
+                          data.match(/<frete[^>]*>([^<]+)<\/frete>/i) ||
+                          data.match(/<vl_frete[^>]*>([^<]+)<\/vl_frete>/i);
+        const prazoMatch = data.match(/<prazo[^>]*>([^<]+)<\/prazo>/i) || 
+                          data.match(/<Prazo[^>]*>([^<]+)<\/Prazo>/i) ||
+                          data.match(/<dias[^>]*>([^<]+)<\/dias>/i);
+        const erroMatch = data.match(/<erro[^>]*>([^<]+)<\/erro>/i) || 
+                         data.match(/<Erro[^>]*>([^<]+)<\/Erro>/i) ||
+                         data.match(/<faultstring[^>]*>([^<]+)<\/faultstring>/i) ||
+                         data.match(/<mensagem[^>]*>([^<]+)<\/mensagem>/i);
         
-        if (erroMatch && erroMatch[1] !== '0' && erroMatch[1] !== '') {
+        if (erroMatch && erroMatch[1] && erroMatch[1].trim() !== '0' && erroMatch[1].trim() !== '' && !erroMatch[1].toLowerCase().includes('sucesso')) {
           console.log('[TotalExpress] Erro na cotação:', erroMatch[1]);
           return {
             success: false,
             transportadora_nome: 'Total Express',
-            servico: 'Expresso',
+            servico: this.service || 'Expresso',
             valor_frete: 0,
             prazo_dias: 0,
             error: `Erro Total Express: ${erroMatch[1]}`
@@ -135,28 +163,19 @@ class TotalExpressService {
         const valor = valorMatch ? parseFloat(valorMatch[1].replace(',', '.')) : 0;
         const prazo = prazoMatch ? parseInt(prazoMatch[1]) : 5;
 
-        console.log('[TotalExpress] Cotação bem-sucedida:', { valor, prazo });
-
-        return {
-          success: true,
-          transportadora_nome: 'Total Express',
-          servico: 'Expresso',
-          valor_frete: valor,
-          prazo_dias: prazo
-        };
-      }
-
-      if (data && typeof data === 'object') {
-        const valor = data.valor || data.Valor || 0;
-        const prazo = data.prazo || data.Prazo || 5;
+        if (valor > 0) {
+          console.log('[TotalExpress] Cotação bem-sucedida:', { valor, prazo });
+          return {
+            success: true,
+            transportadora_nome: 'Total Express',
+            servico: this.service || 'Expresso',
+            valor_frete: valor,
+            prazo_dias: prazo
+          };
+        }
         
-        return {
-          success: true,
-          transportadora_nome: 'Total Express',
-          servico: 'Expresso',
-          valor_frete: parseFloat(String(valor).replace(',', '.')),
-          prazo_dias: parseInt(String(prazo))
-        };
+        // Log resposta completa para debug se não encontrou valor
+        console.log('[TotalExpress] Resposta sem valor de frete detectado:', data.substring(0, 1000));
       }
 
       console.log('[TotalExpress] Resposta inesperada:', data);

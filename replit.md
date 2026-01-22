@@ -113,3 +113,4 @@ ExecutiveAI Pro utilizes a modern web stack designed for scalability and maintai
 ## Known Blockers
 
 - **Pagar.me Split/Marketplace**: The Split feature must be enabled by Pagar.me support on both sandbox and production environments. Error "action_forbidden" indicates this feature is not yet activated.
+- **Total Express API IP Block**: A API da Total Express bloqueia IPs de cloud providers (incluindo Replit). Mensagem: "Acesso Negado! Seu IP foi arquivado para controle". Para usar a integração em produção, é necessário: 1) Contatar suporte.edi@totalexpress.com.br para liberar o IP do servidor de produção, ou 2) Configurar um proxy em servidor dedicado com IP fixo liberado.
