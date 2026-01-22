@@ -115,10 +115,55 @@ publicRoomDesignRouter.get('/reunioes/:id/room-design-public', async (req: Reque
       });
     }
 
-    // PRIORITY 2: Fall back to tenant's default config
-    const [config] = await db.select().from(hms100msConfig)
+    // PRIORITY 2: Fall back to tenant's default config from PostgreSQL
+    let [config] = await db.select().from(hms100msConfig)
       .where(eq(hms100msConfig.tenantId, meeting.tenantId))
       .limit(1);
+    
+    // PRIORITY 3: If no roomDesignConfig in PostgreSQL, try Supabase fallback
+    if (!config?.roomDesignConfig) {
+      console.log(`[RoomDesign] No roomDesignConfig in PostgreSQL, trying Supabase fallback...`);
+      try {
+        const supabase = await getClientSupabaseClient(meeting.tenantId);
+        if (supabase) {
+          const { data: supabaseConfig, error } = await supabase
+            .from('hms_100ms_config')
+            .select('room_design_config')
+            .eq('tenant_id', meeting.tenantId)
+            .single();
+
+          if (!error && supabaseConfig?.room_design_config) {
+            console.log(`[RoomDesign] Found roomDesignConfig in Supabase, caching to PostgreSQL...`);
+            
+            // Cache back to PostgreSQL for next time
+            if (!config) {
+              const [inserted] = await db.insert(hms100msConfig)
+                .values({
+                  tenantId: meeting.tenantId,
+                  appAccessKey: 'pending_configuration',
+                  appSecret: 'pending_configuration',
+                  roomDesignConfig: supabaseConfig.room_design_config,
+                })
+                .returning();
+              config = inserted;
+            } else {
+              const [updated] = await db.update(hms100msConfig)
+                .set({ roomDesignConfig: supabaseConfig.room_design_config, updatedAt: new Date() })
+                .where(eq(hms100msConfig.tenantId, meeting.tenantId))
+                .returning();
+              config = updated;
+            }
+            console.log(`[RoomDesign] Cached Supabase config to PostgreSQL`);
+          } else {
+            console.log(`[RoomDesign] Supabase fallback: no config found or error:`, error?.message);
+          }
+        } else {
+          console.log(`[RoomDesign] Supabase client not available for tenant ${meeting.tenantId}`);
+        }
+      } catch (supabaseErr: any) {
+        console.warn(`[RoomDesign] Supabase fallback error:`, supabaseErr.message);
+      }
+    }
     
     if (!config || !config.roomDesignConfig) {
       console.log(`[RoomDesign] No config found for meeting ${meeting.id} or tenant ${meeting.tenantId}`);
