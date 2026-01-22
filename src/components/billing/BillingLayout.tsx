@@ -6,6 +6,7 @@ import BankDashboard from '@/pages/billing/BankDashboard';
 import Attachments from '@/pages/billing/Attachments';
 import Home from '@/pages/billing/Home';
 import BankAccountSetup from '@/pages/billing/BankAccountSetup';
+import Creditos from '@/pages/Financeiro';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { PremiumButton } from '@/platforms/shared/premium/PremiumButton';
@@ -76,6 +77,7 @@ export const BillingLayout = () => {
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/dados-bancarios" element={<BankAccountSetup />} />
               <Route path="/banco/:itemId" element={<BankDashboard />} />
+              <Route path="/creditos" element={<Creditos />} />
               <Route path="/anexos" element={<Attachments />} />
             </Routes>
           </div>
