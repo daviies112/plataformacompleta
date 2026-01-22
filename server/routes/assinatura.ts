@@ -471,19 +471,19 @@ router.get('/contracts/:token', async (req: Request, res: Response) => {
   try {
     const { token } = req.params;
     
-    console.log(`[Assinatura] Buscando contrato por token/id: ${token}`);
+    assinaturaLogger.log(`Buscando contrato por token/id: ${token}`);
     
     if (assinaturaSupabaseService.isConnected()) {
       let contract = await assinaturaSupabaseService.getContractByToken(token);
       if (contract) {
-        console.log(`[Assinatura] Contrato encontrado no Supabase por access_token`);
+        assinaturaLogger.log(`Contrato encontrado no Supabase por access_token`);
         res.set('Cache-Control', 'private, max-age=300');
         return res.json(contract);
       }
       
       contract = await assinaturaSupabaseService.getContractById(token);
       if (contract) {
-        console.log(`[Assinatura] Contrato encontrado no Supabase por ID`);
+        assinaturaLogger.log(`Contrato encontrado no Supabase por ID`);
         res.set('Cache-Control', 'private, max-age=300');
         return res.json(contract);
       }
@@ -502,7 +502,7 @@ router.get('/contracts/:token', async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Contrato não encontrado' });
     }
 
-    console.log(`[Assinatura] Contrato encontrado no local storage`);
+    assinaturaLogger.log(`Contrato encontrado no local storage`);
     res.set('Cache-Control', 'private, max-age=300');
     res.json(contract);
   } catch (error) {
