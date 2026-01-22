@@ -103,15 +103,22 @@ ExecutiveAI Pro utilizes a modern web stack designed for scalability and maintai
   - Memoized ProgressTrackerDisplay component with memo() and useMemo()
   - Expected improvement: ~50% faster Time to Interactive (from 3-5s to ~1.5s)
 
-- **Performance Optimization - Code Splitting (January 2026):** Implemented aggressive code splitting to reduce initial bundle size from 4.8MB to 2.1MB (56% reduction). Heavy libraries are now loaded on demand:
-  - `face-detection` chunk (624KB): TensorFlow + face-api.js for biometric verification
-  - `video-meeting` chunk (490KB): 100ms SDK for video conferences
-  - `pdf-generator` chunk (727KB): html2pdf + jsPDF for PDF generation
-  - `charts` chunk (387KB): Recharts for dashboard analytics
-  - `spreadsheet` chunk (415KB): xlsx for Excel exports
-  - `animations` chunk (114KB): Framer Motion for verification flow
-  - `monitoring` chunk (249KB): Sentry for error tracking
-  - Plus: supabase, barcode, date-utils, validation, query, http, router, icons chunks
+- **Performance Optimization - Code Splitting & Route-Based Splitting (January 2026):** Implemented aggressive code splitting to optimize loading times for public pages. Key improvements:
+  - **Public routes are now separate chunks:** Rotas públicas (`/f/:token`, `/reuniao/:id`, `/assinar/:token`, `/loja/:id`, `/checkout/:id`) são interceptadas antes do bundle principal e carregam chunks leves específicos
+  - **Route-based bundle sizes for public pages:**
+    - `ReuniaoPublica.js` (33KB): Carregado apenas para reuniões públicas
+    - `AssinaturaClientPage.js` (14KB): Carregado apenas para assinatura digital
+    - `FormularioPublicoWrapper.js` (~2KB): Carregado apenas para formulários públicos
+    - `RevendedoraApp.js` (269KB): Carregado apenas para portal de revendedoras
+  - **Heavy libraries in separate chunks (on-demand):**
+    - `face-detection` (638KB): TensorFlow + face-api.js for biometric verification
+    - `video-meeting` (501KB): 100ms SDK for video conferences
+    - `pdf-generator` (742KB): html2pdf + jsPDF for PDF generation
+    - `charts` (395KB): Recharts for dashboard analytics
+    - `spreadsheet` (424KB): xlsx for Excel exports
+    - `animations` (116KB): Framer Motion for verification flow
+    - `monitoring` (254KB): Sentry for error tracking
+  - **Expected improvement:** Páginas públicas carregam 60-95% mais rápido (de ~2MB para 15-35KB initial load)
   
 - **Total Express Shipping Integration (January 2026):** Integrated Total Express carrier API for briefcase deliveries in the Envios page. Features include:
   - Created `server/services/totalExpressService.ts` with freight quotation, shipment registration, and tracking capabilities

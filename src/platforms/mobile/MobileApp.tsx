@@ -20,18 +20,14 @@ import LoginPage from "./pages/LoginPage";
 import NotionBoardsPage from "@/pages/notion/BoardsWrapper";
 import NotionHomePage from "@/pages/notion/Home";
 import NotionTemplatesPage from "@/pages/notion/Templates";
-import ReuniaoPublica from "@/pages/ReuniaoPublica";
+// ReuniaoPublica, FormularioPublicoWrapper, AssinaturaClientPage removidos - lazy loading no PlatformRouter/App.tsx
 import ConsultarCPFPage from "@/pages/consultar-cpf";
 import HistoricoConsultasPage from "@/pages/historico-consultas";
 import ExportDataPage from "@/pages/ExportData";
 import { Navigate } from "react-router-dom";
 import { RootRedirect } from "@/components/RootRedirect";
-import PublicForm from "@/features/formularios-platform/pages/PublicForm";
-import FormularioPublicoWrapper from "@/features/formularios-platform/pages/FormularioPublicoWrapper";
-import AssinaturaClientPage from "@/pages/AssinaturaClientPage";
 
-// Import Revendedora Platform
-import RevendedoraApp from "@/features/revendedora/RevendedoraApp";
+// RevendedoraApp removido - tratado via lazy loading no PlatformRouter
 
 // Import Revendedora Admin components for /produto/admin/* routes
 import { CompanyProvider } from "@/features/revendedora/contexts/CompanyContext";
@@ -59,16 +55,7 @@ const MobileApp = () => {
       {/* Public routes */}
       <Route path="/login" element={<LoginPage />} />
       <Route path="/" element={<RootRedirect />} />
-      <Route path="/form/:id" element={<FormularioPublicoWrapper />} />
-      <Route path="/formulario/:companySlug/form/:id" element={<FormularioPublicoWrapper />} />
-      <Route path="/:companySlug/form/:id" element={<FormularioPublicoWrapper />} />
-      <Route path="/f/:token" element={<FormularioPublicoWrapper />} />
-      <Route path="/reuniao/:id" element={<ReuniaoPublica />} />
-      <Route path="/reuniao/:companySlug/:id" element={<ReuniaoPublica />} />
-      <Route path="/reuniao-publica/:id" element={<ReuniaoPublica />} />
-      
-      {/* Assinatura Digital - Client signing page (public) */}
-      <Route path="/assinar/:token" element={<AssinaturaClientPage />} />
+      {/* Rotas públicas (/form/*, /reuniao/*, /assinar/*) removidas - lazy loading no PlatformRouter/App.tsx */}
       
       {/* Protected routes with Mobile Layout */}
       {/* Formulário Page - Plataforma completa com header completo */}
@@ -440,16 +427,7 @@ const MobileApp = () => {
         } 
       />
 
-      <Route 
-        path="/revendedora/*" 
-        element={
-          <ProtectedRoute>
-            <MobileLayout>
-              <RevendedoraApp />
-            </MobileLayout>
-          </ProtectedRoute>
-        } 
-      />
+      {/* Rota /revendedora/* removida - tratada via lazy loading no PlatformRouter */}
       
       {/* Catch all - 404 */}
       <Route 

@@ -1,17 +1,27 @@
 import { useLocation } from 'react-router-dom';
 import { Suspense, lazy, useMemo } from 'react';
-import DesktopApp from './desktop/DesktopApp';
-import MobileApp from './mobile/MobileApp';
-import ReuniaoPublica from '@/pages/ReuniaoPublica';
 import { FormLoader } from '@/features/formularios-platform/components/FormLoader';
 import { usePlatform } from './shared/hooks/usePlatform';
+import { Loader2 } from 'lucide-react';
 
+// Componentes principais - imports estáticos para evitar problemas de lazy loading em dev
+import DesktopApp from './desktop/DesktopApp';
+import MobileApp from './mobile/MobileApp';
+
+// Rotas públicas - lazy loading para performance (carregam separadamente)
+const ReuniaoPublica = lazy(() => import('@/pages/ReuniaoPublica'));
 const FormularioPublicoWrapper = lazy(() => import('@/features/formularios-platform/pages/FormularioPublicoWrapper'));
-
 const ResellerApp = lazy(() => import('./reseller/ResellerApp'));
 const RevendedoraApp = lazy(() => import('@/features/revendedora/RevendedoraApp'));
 const PublicStore = lazy(() => import('@/features/revendedora/pages/public/PublicStore'));
 const PublicCheckout = lazy(() => import('@/features/revendedora/pages/public/PublicCheckout'));
+
+// Fallback loading simples e leve
+const LoadingFallback = () => (
+  <div className="min-h-screen flex items-center justify-center bg-background">
+    <Loader2 className="w-8 h-8 animate-spin text-primary" />
+  </div>
+);
 
 /**
  * PlatformRouter - Roteador inteligente que decide qual app renderizar
@@ -66,7 +76,7 @@ const PlatformRouter = () => {
   // Se for uma rota pública de loja, renderizar diretamente SEM autenticação
   if (location.pathname.startsWith('/loja/')) {
     return (
-      <Suspense fallback={<div className="h-screen w-screen flex items-center justify-center bg-background text-foreground animate-pulse font-sans">Carregando loja...</div>}>
+      <Suspense fallback={<LoadingFallback />}>
         <PublicStore />
       </Suspense>
     );
@@ -75,7 +85,7 @@ const PlatformRouter = () => {
   // Se for uma rota pública de checkout, renderizar diretamente SEM autenticação
   if (location.pathname.startsWith('/checkout/')) {
     return (
-      <Suspense fallback={<div className="h-screen w-screen flex items-center justify-center bg-background text-foreground animate-pulse font-sans">Carregando checkout...</div>}>
+      <Suspense fallback={<LoadingFallback />}>
         <PublicCheckout />
       </Suspense>
     );
@@ -84,7 +94,7 @@ const PlatformRouter = () => {
   // Se for uma rota publica de reuniao, renderizar diretamente
   if (location.pathname.startsWith('/reuniao/') || location.pathname.startsWith('/reuniao-publica/')) {
     return (
-      <Suspense fallback={<div className="h-screen w-screen flex items-center justify-center bg-background text-foreground animate-pulse font-sans">Iniciando reuniao...</div>}>
+      <Suspense fallback={<LoadingFallback />}>
         <ReuniaoPublica />
       </Suspense>
     );
@@ -94,17 +104,14 @@ const PlatformRouter = () => {
   // Se for rota de revendedora, renderizar RevendedoraApp diretamente (fora do DesktopApp/MobileApp)
   if (location.pathname.startsWith('/revendedora') || location.pathname.startsWith('/reseller') || location.pathname === '/reseller-login') {
     return (
-      <Suspense fallback={<div className="h-screen w-screen flex items-center justify-center bg-background text-foreground font-sans">Carregando portal...</div>}>
+      <Suspense fallback={<LoadingFallback />}>
         <RevendedoraApp />
       </Suspense>
     );
   }
 
-  return (
-    <Suspense fallback={<div className="h-screen w-screen flex items-center justify-center bg-background text-foreground font-sans">Carregando plataforma...</div>}>
-      {isMobile ? <MobileApp /> : <DesktopApp />}
-    </Suspense>
-  );
+  // Componentes principais não precisam de Suspense (imports estáticos)
+  return isMobile ? <MobileApp /> : <DesktopApp />;
 };
 
 export default PlatformRouter;

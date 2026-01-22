@@ -22,7 +22,7 @@ import NotionHomePage from "@/pages/notion/Home";
 import NotionTemplatesPage from "@/pages/notion/Templates";
 import ReuniaoDashboard from "@/pages/ReuniaoDashboard";
 import ReuniaoPage from "@/pages/Reuniao";
-import ReuniaoPublica from "@/pages/ReuniaoPublica";
+// ReuniaoPublica removido - tratado via lazy loading no PlatformRouter
 import GravacoesPage from "@/pages/Gravacoes";
 import RoomDesignSettings from "@/pages/RoomDesignSettings";
 import ConsultarCPFPage from "@/pages/consultar-cpf";
@@ -30,14 +30,13 @@ import HistoricoConsultasPage from "@/pages/historico-consultas";
 import ExportDataPage from "@/pages/ExportData";
 import { Navigate } from "react-router-dom";
 import { RootRedirect } from "@/components/RootRedirect";
-import PublicForm from "@/features/formularios-platform/pages/PublicForm";
-import FormularioPublicoWrapper from "@/features/formularios-platform/pages/FormularioPublicoWrapper";
+// PublicForm e FormularioPublicoWrapper removidos - tratados via lazy loading no PlatformRouter
 
 // Revendedora Platform - NOTA: RevendedoraApp é tratado diretamente no PlatformRouter
 
 // Import Assinatura Platform
 import AssinaturaPage from "@/pages/AssinaturaPage";
-import AssinaturaClientPage from "@/pages/AssinaturaClientPage";
+// AssinaturaClientPage removido - tratado via lazy loading no App.tsx
 
 // Import Envio Platform
 import { EnvioCotacao, EnvioEnviar, EnvioList, EnvioRastreamento } from "@/pages/envio";
@@ -68,10 +67,7 @@ const DesktopApp = () => {
       {/* Public routes */}
       <Route path="/login" element={<LoginPage />} />
       <Route path="/" element={<RootRedirect />} />
-      <Route path="/form/:id" element={<FormularioPublicoWrapper />} />
-      <Route path="/formulario/:companySlug/form/:id" element={<FormularioPublicoWrapper />} />
-      <Route path="/:companySlug/form/:id" element={<FormularioPublicoWrapper />} />
-      <Route path="/f/:token" element={<FormularioPublicoWrapper />} />
+      {/* Rotas públicas de formulário removidas - tratadas via lazy loading no PlatformRouter */}
       
       {/* Protected routes with Desktop Layout */}
       {/* Formulário Page - Plataforma completa com header completo */}
@@ -421,22 +417,7 @@ const DesktopApp = () => {
         } 
       />
       
-      {/* Reunião sala - Full screen SEM header (experiência imersiva) */}
-      <Route 
-        path="/reuniao/:id" 
-        element={<ReuniaoPublica />} 
-      />
-      
-      <Route 
-        path="/reuniao/:companySlug/:id" 
-        element={<ReuniaoPublica />} 
-      />
-      
-      {/* Reunião pública - Para bot de gravação e participantes externos (SEM autenticação) */}
-      <Route 
-        path="/reuniao-publica/:id" 
-        element={<ReuniaoPublica />} 
-      />
+      {/* Rotas de reunião pública removidas - tratadas via lazy loading no PlatformRouter */}
       
       <Route 
         path="/gravacoes" 
@@ -554,11 +535,7 @@ const DesktopApp = () => {
         } 
       />
       
-      {/* Assinatura Digital - Client signing page (public) */}
-      <Route 
-        path="/assinar/:token" 
-        element={<AssinaturaClientPage />} 
-      />
+      {/* Rota /assinar/:token removida - tratada via lazy loading no App.tsx */}
       
       {/* Catch all - 404 */}
       <Route 
