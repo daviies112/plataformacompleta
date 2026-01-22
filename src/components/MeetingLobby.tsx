@@ -117,6 +117,11 @@ export function MeetingLobby({
     }
   }, [isAudioEnabled, stream]);
 
+  useEffect(() => {
+    const preload = () => import("@/components/Meeting100ms");
+    preload();
+  }, []);
+
   const handleJoin = () => {
     if (!participantName.trim()) {
       setError("Por favor, insira seu nome");

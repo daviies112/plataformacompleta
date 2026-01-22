@@ -364,6 +364,31 @@ interface MeetingWrapperProps {
   onLeave: () => void;
 }
 
+const getCachedToken = (roomId: string, userName: string): string | null => {
+  try {
+    const cacheKey = `meeting-token:${roomId}:${userName}`;
+    const cached = sessionStorage.getItem(cacheKey);
+    if (cached) {
+      const { token, expiresAt } = JSON.parse(cached);
+      if (Date.now() < expiresAt) {
+        return token;
+      }
+      sessionStorage.removeItem(cacheKey);
+    }
+  } catch (e) {}
+  return null;
+};
+
+const setCachedToken = (roomId: string, userName: string, token: string) => {
+  try {
+    const cacheKey = `meeting-token:${roomId}:${userName}`;
+    sessionStorage.setItem(cacheKey, JSON.stringify({
+      token,
+      expiresAt: Date.now() + (23 * 60 * 60 * 1000)
+    }));
+  } catch (e) {}
+};
+
 function MeetingWrapper({
   reuniao,
   tenant,
@@ -390,10 +415,19 @@ function MeetingWrapper({
           return;
         }
 
+        // Check cache first for performance
+        const userName = participantName || 'Convidado';
+        const cachedToken = getCachedToken(reuniao.roomId100ms, userName);
+        if (cachedToken) {
+          console.log("[PublicMeetingRoom] Usando token do cache");
+          setAuthToken(cachedToken);
+          return;
+        }
+
         const pubResponse = await fetch(`/api/public/reunioes/${reuniao.id}/token-public`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userName: participantName || 'Convidado' })
+          body: JSON.stringify({ userName })
         });
         const pubData = await pubResponse.json();
         
@@ -401,6 +435,8 @@ function MeetingWrapper({
           throw new Error(pubData.error || "Erro ao gerar token de acesso");
         }
         
+        // Cache the token for future use
+        setCachedToken(reuniao.roomId100ms, userName, pubData.token);
         setAuthToken(pubData.token);
       } catch (err: any) {
         console.error("Erro ao gerar token:", err);
@@ -411,7 +447,7 @@ function MeetingWrapper({
     if (tenant?.id && reuniao?.roomId100ms) {
       getToken();
     }
-  }, [reuniao.roomId100ms, tenant?.id]);
+  }, [reuniao.roomId100ms, reuniao.id, tenant?.id, participantName]);
 
   if (tokenError) {
     return (

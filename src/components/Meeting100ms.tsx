@@ -332,7 +332,7 @@ export function Meeting100ms({
         
         joinTimeoutRef.current = setTimeout(() => {
           if (isMounted && attempt < 2) {
-            console.warn(`[Meeting100ms] ⚠️ Timeout de conexão (30s) - tentativa ${attempt + 2}...`);
+            console.warn(`[Meeting100ms] ⚠️ Timeout de conexão (10s) - tentativa ${attempt + 2}...`);
             setConnectionAttempts(attempt + 1);
             hasAttemptedJoin.current = false;
             joinRoom(attempt + 1);
@@ -342,7 +342,7 @@ export function Meeting100ms({
             setIsJoining(false);
             setCanRetry(true);
           }
-        }, 30000);
+        }, 10000);
         
         console.log("[Meeting100ms] Chamando hmsActions.join()...");
         // IMPORTANTE: Iniciar com áudio/vídeo MUTADOS para evitar problemas de dispositivos de mídia

@@ -126,6 +126,7 @@ publicRoomDesignRouter.get('/reunioes/:id/room-design-public', async (req: Reque
     }
     
     console.log(`[RoomDesign] Using tenant config for meeting ${meeting.id}:`, JSON.stringify(config.roomDesignConfig).substring(0, 200));
+    res.set('Cache-Control', 'public, max-age=300');
     res.json({ 
       roomDesignConfig: config.roomDesignConfig,
       source: 'tenant'
@@ -308,6 +309,9 @@ publicRoomDesignRouter.get('/reunioes/public/:companySlug/:roomId', async (req: 
 
     console.log(`[PublicMeetingRoom] Cores finais: primaryButton=${finalConfig.colors?.primaryButton}, background=${finalConfig.colors?.background}`);
 
+    // Add cache headers
+    res.set('Cache-Control', 'private, max-age=60');
+
     // Build response matching PublicMeetingData interface
     res.json({
       reuniao: {
@@ -336,6 +340,114 @@ publicRoomDesignRouter.get('/reunioes/public/:companySlug/:roomId', async (req: 
   } catch (error: any) {
     console.error('[PublicMeetingRoom] Erro ao buscar reunião pública:', error);
     res.status(500).json({ error: 'Erro ao buscar reunião' });
+  }
+});
+
+// OPTIMIZED: Single request for meeting + config + token (Performance optimization)
+publicRoomDesignRouter.get('/reunioes/public/:companySlug/:roomId/full', async (req: Request, res: Response) => {
+  try {
+    const { companySlug, roomId } = req.params;
+    const { userName } = req.query;
+    
+    console.log(`[PublicMeetingRoom/Full] Buscando reunião otimizada: companySlug=${companySlug}, roomId=${roomId}`);
+
+    // Determine if roomId looks like a UUID
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(roomId);
+    
+    let meeting;
+    
+    // Try by roomId100ms first (most common for 100ms room IDs)
+    const [meetingByRoomId] = await db.select().from(reunioes)
+      .where(eq(reunioes.roomId100ms, roomId))
+      .limit(1);
+    meeting = meetingByRoomId;
+
+    // If not found and looks like UUID, try by ID
+    if (!meeting && isUUID) {
+      const [meetingById] = await db.select().from(reunioes)
+        .where(eq(reunioes.id, roomId))
+        .limit(1);
+      meeting = meetingById;
+    }
+
+    if (!meeting) {
+      console.log(`[PublicMeetingRoom/Full] Reunião não encontrada para roomId=${roomId}`);
+      return res.status(404).json({ error: 'Reunião não encontrada' });
+    }
+
+    console.log(`[PublicMeetingRoom/Full] Reunião encontrada: ${meeting.id}, tenantId=${meeting.tenantId}`);
+
+    // Get tenant info from 100ms config
+    let [tenantConfig] = await db.select().from(hms100msConfig)
+      .where(eq(hms100msConfig.tenantId, meeting.tenantId))
+      .limit(1);
+
+    // Build complete room design config using deep merge
+    let finalConfig = { ...DEFAULT_ROOM_DESIGN };
+    
+    if (tenantConfig?.roomDesignConfig) {
+      finalConfig = mergeRoomDesignConfigs(finalConfig, tenantConfig.roomDesignConfig);
+    }
+    
+    const meetingMetadata = meeting.metadata as any;
+    if (meetingMetadata?.roomDesignConfig) {
+      finalConfig = mergeRoomDesignConfigs(finalConfig, meetingMetadata.roomDesignConfig);
+    }
+
+    // Normalize logo field
+    const logoUrl = finalConfig.branding?.logoUrl || finalConfig.branding?.logo || null;
+
+    // If userName provided, generate token as well
+    let authToken = null;
+    if (userName && typeof userName === 'string' && meeting.roomId100ms) {
+      try {
+        const credentials = await get100msCredentialsForTenant(meeting.tenantId);
+        if (credentials) {
+          authToken = gerarTokenParticipante(
+            meeting.roomId100ms,
+            userName,
+            'guest',
+            credentials.appAccessKey,
+            credentials.appSecret
+          );
+          console.log(`[PublicMeetingRoom/Full] Token gerado para ${userName}`);
+        }
+      } catch (tokenErr) {
+        console.warn('[PublicMeetingRoom/Full] Token generation failed, client will need separate request');
+      }
+    }
+    
+    // Add cache headers
+    res.set('Cache-Control', 'private, max-age=60');
+    
+    return res.json({
+      reuniao: {
+        id: meeting.id,
+        titulo: meeting.titulo || 'Reunião',
+        descricao: meeting.descricao || '',
+        dataInicio: meeting.dataHora?.toISOString() || new Date().toISOString(),
+        dataFim: meeting.dataHoraFim?.toISOString() || new Date().toISOString(),
+        duracao: meeting.duracao || 60,
+        status: meeting.status || 'agendada',
+        roomId100ms: meeting.roomId100ms,
+        roomCode100ms: meeting.roomCode100ms,
+        linkReuniao: meeting.linkReuniao,
+        nome: meetingMetadata?.participantName,
+        email: meetingMetadata?.participantEmail,
+      },
+      tenant: {
+        id: meeting.tenantId,
+        nome: finalConfig.branding?.companyName || companySlug,
+        slug: companySlug,
+        logoUrl: logoUrl,
+      },
+      designConfig: {},
+      roomDesignConfig: finalConfig,
+      authToken,
+    });
+  } catch (error: any) {
+    console.error('[PublicMeetingRoom/Full] Erro ao buscar reunião pública:', error);
+    return res.status(500).json({ error: 'Erro interno' });
   }
 });
 
