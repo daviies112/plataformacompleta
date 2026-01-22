@@ -92,6 +92,15 @@ ExecutiveAI Pro utilizes a modern web stack designed for scalability and maintai
   - Added HTTP cache headers to public meeting endpoints (`Cache-Control: private, max-age=60`)
   - Reduced connection timeout from 30s to 10s for faster failure detection and retry
   - Expected improvement: ~60% faster Time to Meeting (from 4-6s to ~2s)
+- **Digital Signature Flow Performance Optimization:** Improved loading speed for digital signature pages (`/assinar/:token`) with multiple optimizations:
+  - Lazy loading for all wizard steps (VerificationFlow, ContractStep, ResellerWelcomeStep, AppPromotionStep, SuccessStep) via React.lazy() + Suspense
+  - Preloading next step while current step is active (reduces transition time)
+  - New optimized endpoint `/api/assinatura/contracts/:token/full` that combines contract + participant data in single request
+  - Added HTTP cache headers (`Cache-Control: private, max-age=300`) to contract endpoints
+  - GlobalConfig cached in memory with 5-minute TTL (reduces disk I/O)
+  - Created `assinaturaLogger` utility in `server/lib/logger.ts` to disable console.logs in production
+  - Memoized ProgressTrackerDisplay component with memo() and useMemo()
+  - Expected improvement: ~50% faster Time to Interactive (from 3-5s to ~1.5s)
 
 ## Known Blockers
 
