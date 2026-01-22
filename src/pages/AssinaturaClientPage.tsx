@@ -1,5 +1,4 @@
 import { useState, useEffect, lazy, Suspense, memo, useMemo } from 'react';
-import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -227,7 +226,13 @@ interface ParticipantData {
 }
 
 const AssinaturaClientContent = () => {
-  const { token } = useParams<{ token: string }>();
+  // Extract token from pathname directly since we render outside React Router's Route
+  const token = useMemo(() => {
+    const pathname = window.location.pathname;
+    const match = pathname.match(/^\/assinar\/([^/]+)/);
+    return match ? match[1] : undefined;
+  }, []);
+  
   const { toast } = useToast();
   const { currentStep, setCurrentStep, setGovbrData, setContractData } = useContract();
   const [selfiePhoto, setSelfiePhoto] = useState<string | null>(null);
