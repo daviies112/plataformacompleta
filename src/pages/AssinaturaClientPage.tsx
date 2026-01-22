@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense, memo, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
@@ -6,11 +6,6 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { ContractProvider, useContract } from '@/contexts/ContractContext';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { VerificationFlow } from '@/components/assinatura/verification/VerificationFlow';
-import { ContractStep } from '@/components/assinatura/steps/ContractStep';
-import { ResellerWelcomeStep } from '@/components/assinatura/steps/ResellerWelcomeStep';
-import { AppPromotionStep } from '@/components/assinatura/steps/AppPromotionStep';
-import { SuccessStep } from '@/components/assinatura/steps/SuccessStep';
 import { 
   Camera, 
   FileText, 
@@ -24,6 +19,20 @@ import {
   ChevronDown,
   ChevronUp
 } from 'lucide-react';
+
+// Lazy load all wizard steps for better performance
+const VerificationFlow = lazy(() => import('@/components/assinatura/verification/VerificationFlow').then(m => ({ default: m.VerificationFlow })));
+const ContractStep = lazy(() => import('@/components/assinatura/steps/ContractStep').then(m => ({ default: m.ContractStep })));
+const ResellerWelcomeStep = lazy(() => import('@/components/assinatura/steps/ResellerWelcomeStep').then(m => ({ default: m.ResellerWelcomeStep })));
+const AppPromotionStep = lazy(() => import('@/components/assinatura/steps/AppPromotionStep').then(m => ({ default: m.AppPromotionStep })));
+const SuccessStep = lazy(() => import('@/components/assinatura/steps/SuccessStep').then(m => ({ default: m.SuccessStep })));
+
+// Step loader component for Suspense fallback
+const StepLoader = () => (
+  <div className="flex items-center justify-center min-h-[200px]">
+    <Loader2 className="w-8 h-8 animate-spin text-primary" />
+  </div>
+);
 
 interface ContractData {
   id: string;
@@ -86,7 +95,7 @@ interface ProgressTrackerDisplayProps {
   contract: ContractData | null;
 }
 
-const ProgressTrackerDisplay = ({ currentStep, contract }: ProgressTrackerDisplayProps) => {
+const ProgressTrackerDisplay = memo(({ currentStep, contract }: ProgressTrackerDisplayProps) => {
   const [isExpanded, setIsExpanded] = useState(true);
   
   const progressCardColor = contract?.progress_card_color || '#1e3a5f';
@@ -94,7 +103,7 @@ const ProgressTrackerDisplay = ({ currentStep, contract }: ProgressTrackerDispla
   const progressTextColor = contract?.progress_text_color || '#ffffff';
   const progressFontFamily = contract?.progress_font_family || 'Arial, sans-serif';
 
-  const steps = [
+  const steps = useMemo(() => [
     { 
       num: 1, 
       title: contract?.progress_step1_title || '1. Reconhecimento Facial',
@@ -113,7 +122,7 @@ const ProgressTrackerDisplay = ({ currentStep, contract }: ProgressTrackerDispla
       description: contract?.progress_step3_description || 'Baixe o app oficial',
       icon: Smartphone
     },
-  ];
+  ], [contract?.progress_step1_title, contract?.progress_step1_description, contract?.progress_step2_title, contract?.progress_step2_description, contract?.progress_step3_title, contract?.progress_step3_description]);
 
   const stepMapping = [0, 1, 1, 2, 2, 2];
   const activeStepIndex = stepMapping[currentStep] || 0;
@@ -193,7 +202,7 @@ const ProgressTrackerDisplay = ({ currentStep, contract }: ProgressTrackerDispla
       </div>
     </div>
   );
-};
+});
 
 interface ParticipantData {
   found: boolean;
@@ -281,6 +290,20 @@ const AssinaturaClientContent = () => {
       setCurrentStep(1);
     }
   }, [contract, currentStep, setGovbrData, setContractData, setCurrentStep]);
+
+  // Preload next step during current step for faster transitions
+  useEffect(() => {
+    if (currentStep === 0 || currentStep === 1) {
+      import('@/components/assinatura/verification/VerificationFlow');
+      import('@/components/assinatura/steps/ContractStep');
+    } else if (currentStep === 2) {
+      import('@/components/assinatura/steps/ResellerWelcomeStep');
+    } else if (currentStep === 3) {
+      import('@/components/assinatura/steps/AppPromotionStep');
+    } else if (currentStep === 4) {
+      import('@/components/assinatura/steps/SuccessStep');
+    }
+  }, [currentStep]);
 
   const handleVerificationComplete = (result: any) => {
     // Handle both old format (success, selfie, document) and new format ({ success, selfie, document, result })
@@ -398,17 +421,19 @@ const AssinaturaClientContent = () => {
     return (
       <div className="min-h-screen bg-background">
         <ProgressTrackerDisplay currentStep={currentStep} contract={contract} />
-        <VerificationFlow 
-          onComplete={handleVerificationComplete}
-          primaryColor={contract.verification_primary_color || primaryColor}
-          textColor={contract.verification_text_color || textColor}
-          welcomeText={contract.verification_welcome_text || 'Verificação de Identidade'}
-          instructionText={contract.verification_instructions || 'Processo seguro e rápido para confirmar sua identidade.'}
-          footerText={contract.verification_footer_text || 'Verificação Segura'}
-          securityText={contract.verification_security_text || 'Suas informações são processadas de forma segura.'}
-          headerBackgroundColor={contract.verification_header_background_color || primaryColor}
-          logoUrl={contract.logo_url || undefined}
-        />
+        <Suspense fallback={<StepLoader />}>
+          <VerificationFlow 
+            onComplete={handleVerificationComplete}
+            primaryColor={contract.verification_primary_color || primaryColor}
+            textColor={contract.verification_text_color || textColor}
+            welcomeText={contract.verification_welcome_text || 'Verificação de Identidade'}
+            instructionText={contract.verification_instructions || 'Processo seguro e rápido para confirmar sua identidade.'}
+            footerText={contract.verification_footer_text || 'Verificação Segura'}
+            securityText={contract.verification_security_text || 'Suas informações são processadas de forma segura.'}
+            headerBackgroundColor={contract.verification_header_background_color || primaryColor}
+            logoUrl={contract.logo_url || undefined}
+          />
+        </Suspense>
       </div>
     );
   }
@@ -417,29 +442,31 @@ const AssinaturaClientContent = () => {
     return (
       <div className="min-h-screen bg-background">
         <ProgressTrackerDisplay currentStep={currentStep} contract={contract} />
-        <ContractStep 
-          clientData={{
-            id: contract.id,
-            client_name: contract.client_name,
-            client_cpf: contract.client_cpf,
-            client_email: contract.client_email,
-            client_phone: contract.client_phone || null,
-            contract_html: contract.contract_html || '',
-            protocol_number: contract.protocol_number || null,
-            logo_url: contract.logo_url,
-            logo_size: contract.logo_size,
-            logo_position: contract.logo_position,
-            primary_color: contract.primary_color,
-            text_color: contract.text_color,
-            font_family: contract.font_family,
-            font_size: contract.font_size,
-            company_name: contract.company_name,
-            footer_text: contract.footer_text
-          }}
-          selfiePhoto={selfiePhoto}
-          documentPhoto={documentPhoto}
-          currentStep={currentStep}
-        />
+        <Suspense fallback={<StepLoader />}>
+          <ContractStep 
+            clientData={{
+              id: contract.id,
+              client_name: contract.client_name,
+              client_cpf: contract.client_cpf,
+              client_email: contract.client_email,
+              client_phone: contract.client_phone || null,
+              contract_html: contract.contract_html || '',
+              protocol_number: contract.protocol_number || null,
+              logo_url: contract.logo_url,
+              logo_size: contract.logo_size,
+              logo_position: contract.logo_position,
+              primary_color: contract.primary_color,
+              text_color: contract.text_color,
+              font_family: contract.font_family,
+              font_size: contract.font_size,
+              company_name: contract.company_name,
+              footer_text: contract.footer_text
+            }}
+            selfiePhoto={selfiePhoto}
+            documentPhoto={documentPhoto}
+            currentStep={currentStep}
+          />
+        </Suspense>
       </div>
     );
   }
@@ -448,28 +475,30 @@ const AssinaturaClientContent = () => {
     return (
       <div className="min-h-screen bg-background">
         <ProgressTrackerDisplay currentStep={currentStep} contract={contract} />
-        <ResellerWelcomeStep 
-          client_name={contract.client_name}
-          parabens_title={contract.parabens_title || undefined}
-          parabens_subtitle={contract.parabens_subtitle || undefined}
-          parabens_description={contract.parabens_description || undefined}
-          parabens_card_color={contract.parabens_card_color || undefined}
-          parabens_background_color={contract.parabens_background_color || undefined}
-          parabens_button_color={contract.parabens_button_color || undefined}
-          parabens_text_color={contract.parabens_text_color || undefined}
-          parabens_font_family={contract.parabens_font_family || undefined}
-          parabens_form_title={contract.parabens_form_title || undefined}
-          parabens_button_text={contract.parabens_button_text || undefined}
-          initialAddress={participantData?.participantData?.endereco ? {
-            street: participantData.participantData.endereco.rua || '',
-            number: participantData.participantData.endereco.numero || '',
-            neighborhood: participantData.participantData.endereco.bairro || '',
-            city: participantData.participantData.endereco.cidade || '',
-            state: participantData.participantData.endereco.estado || '',
-            zipcode: participantData.participantData.endereco.cep || '',
-            complement: participantData.participantData.endereco.complemento || ''
-          } : undefined}
-        />
+        <Suspense fallback={<StepLoader />}>
+          <ResellerWelcomeStep 
+            client_name={contract.client_name}
+            parabens_title={contract.parabens_title || undefined}
+            parabens_subtitle={contract.parabens_subtitle || undefined}
+            parabens_description={contract.parabens_description || undefined}
+            parabens_card_color={contract.parabens_card_color || undefined}
+            parabens_background_color={contract.parabens_background_color || undefined}
+            parabens_button_color={contract.parabens_button_color || undefined}
+            parabens_text_color={contract.parabens_text_color || undefined}
+            parabens_font_family={contract.parabens_font_family || undefined}
+            parabens_form_title={contract.parabens_form_title || undefined}
+            parabens_button_text={contract.parabens_button_text || undefined}
+            initialAddress={participantData?.participantData?.endereco ? {
+              street: participantData.participantData.endereco.rua || '',
+              number: participantData.participantData.endereco.numero || '',
+              neighborhood: participantData.participantData.endereco.bairro || '',
+              city: participantData.participantData.endereco.cidade || '',
+              state: participantData.participantData.endereco.estado || '',
+              zipcode: participantData.participantData.endereco.cep || '',
+              complement: participantData.participantData.endereco.complemento || ''
+            } : undefined}
+          />
+        </Suspense>
       </div>
     );
   }
@@ -478,7 +507,9 @@ const AssinaturaClientContent = () => {
     return (
       <div className="min-h-screen bg-background">
         <ProgressTrackerDisplay currentStep={currentStep} contract={contract} />
-        <AppPromotionStep />
+        <Suspense fallback={<StepLoader />}>
+          <AppPromotionStep />
+        </Suspense>
       </div>
     );
   }
@@ -486,7 +517,9 @@ const AssinaturaClientContent = () => {
   if (currentStep === 5) {
     return (
       <div className="min-h-screen bg-background">
-        <SuccessStep />
+        <Suspense fallback={<StepLoader />}>
+          <SuccessStep />
+        </Suspense>
       </div>
     );
   }

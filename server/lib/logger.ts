@@ -33,4 +33,12 @@ export const authLogger = createContextLogger('Auth');
 export const dbLogger = createContextLogger('Database');
 export const apiLogger = createContextLogger('API');
 
+// Assinatura module logger - conditionally logs based on environment
+const isProd = process.env.NODE_ENV === 'production';
+export const assinaturaLogger = {
+  log: (...args: any[]) => !isProd && console.log('[Assinatura]', ...args),
+  warn: (...args: any[]) => !isProd && console.warn('[Assinatura]', ...args),
+  error: (...args: any[]) => console.error('[Assinatura]', ...args),
+};
+
 export default logger;

@@ -364,8 +364,28 @@ function getDefaultGlobalConfig(): AssinaturaGlobalConfig {
 let localContractsStore = loadLocalContracts();
 let localGlobalConfig = loadLocalGlobalConfig();
 
+// GlobalConfig cache with TTL for performance optimization
+let globalConfigCache: { data: AssinaturaGlobalConfig; expiresAt: number } | null = null;
+const GLOBAL_CONFIG_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+function getGlobalConfigCached(): AssinaturaGlobalConfig {
+  const now = Date.now();
+  if (globalConfigCache && globalConfigCache.expiresAt > now) {
+    return globalConfigCache.data;
+  }
+  const config = loadLocalGlobalConfig();
+  globalConfigCache = { data: config, expiresAt: now + GLOBAL_CONFIG_CACHE_TTL };
+  return config;
+}
+
+function invalidateGlobalConfigCache(): void {
+  globalConfigCache = null;
+}
+
 router.get('/global-config', async (req: Request, res: Response) => {
   try {
+    res.set('Cache-Control', 'public, max-age=3600');
+    
     if (assinaturaSupabaseService.isConnected()) {
       const config = await assinaturaSupabaseService.getGlobalConfig();
       if (config) {
@@ -373,10 +393,10 @@ router.get('/global-config', async (req: Request, res: Response) => {
       }
     }
     
-    res.json(localGlobalConfig);
+    res.json(getGlobalConfigCached());
   } catch (error) {
     console.error('[Assinatura] Erro ao buscar config global:', error);
-    res.json(localGlobalConfig);
+    res.json(getGlobalConfigCached());
   }
 });
 
@@ -395,6 +415,7 @@ router.put('/global-config', async (req: Request, res: Response) => {
     
     localGlobalConfig = { ...localGlobalConfig, ...updates };
     saveLocalGlobalConfig(localGlobalConfig);
+    invalidateGlobalConfigCache();
     res.json(localGlobalConfig);
   } catch (error) {
     console.error('[Assinatura] Erro ao salvar config global:', error);
@@ -455,12 +476,14 @@ router.get('/contracts/:token', async (req: Request, res: Response) => {
       let contract = await assinaturaSupabaseService.getContractByToken(token);
       if (contract) {
         console.log(`[Assinatura] Contrato encontrado no Supabase por access_token`);
+        res.set('Cache-Control', 'private, max-age=300');
         return res.json(contract);
       }
       
       contract = await assinaturaSupabaseService.getContractById(token);
       if (contract) {
         console.log(`[Assinatura] Contrato encontrado no Supabase por ID`);
+        res.set('Cache-Control', 'private, max-age=300');
         return res.json(contract);
       }
     }
@@ -479,10 +502,103 @@ router.get('/contracts/:token', async (req: Request, res: Response) => {
     }
 
     console.log(`[Assinatura] Contrato encontrado no local storage`);
+    res.set('Cache-Control', 'private, max-age=300');
     res.json(contract);
   } catch (error) {
     console.error('[Assinatura] Erro ao buscar contrato:', error);
     res.status(500).json({ error: 'Falha ao buscar contrato' });
+  }
+});
+
+// OPTIMIZED: Get contract + participant data in single request for faster loading
+router.get('/contracts/:token/full', async (req: Request, res: Response) => {
+  try {
+    const { token } = req.params;
+    console.log(`[Assinatura/Full] Buscando contrato + participant data: ${token}`);
+
+    // Get contract (reuse existing logic)
+    let contract: LocalContract | null = null;
+    if (assinaturaSupabaseService.isConnected()) {
+      let c = await assinaturaSupabaseService.getContractByToken(token);
+      if (!c) {
+        c = await assinaturaSupabaseService.getContractById(token);
+      }
+      if (c) {
+        contract = c as unknown as LocalContract;
+      }
+    }
+    if (!contract) {
+      contract = Array.from(localContractsStore.values()).find(
+        (c) => c.access_token === token
+      ) || null;
+      if (!contract) {
+        contract = localContractsStore.get(token) || null;
+      }
+    }
+
+    if (!contract) {
+      return res.status(404).json({ error: 'Contrato não encontrado' });
+    }
+
+    // Get participant data (simplified version)
+    let participantData: any = null;
+    try {
+      const contractPhone = contract.client_phone;
+      const contractCpf = contract.client_cpf;
+      
+      if (contractPhone || contractCpf) {
+        const { getClienteSupabase, isClienteSupabaseConfigured } = await import('../lib/clienteSupabase.js');
+        if (await isClienteSupabaseConfigured()) {
+          const supabaseClient = await getClienteSupabase();
+          if (supabaseClient) {
+            let query = supabaseClient.from('form_submissions').select('*');
+            const phoneNormalizado = contractPhone ? contractPhone.replace(/\D/g, '') : null;
+            const cpfNormalizado = contractCpf ? contractCpf.replace(/\D/g, '') : null;
+
+            if (phoneNormalizado) {
+              query = query.ilike('contact_phone', `%${phoneNormalizado.slice(-9)}%`);
+            } else if (cpfNormalizado) {
+              query = query.eq('contact_cpf', cpfNormalizado);
+            }
+
+            const { data: submissions } = await query.limit(1);
+            if (submissions && submissions.length > 0) {
+              const submission = submissions[0];
+              participantData = {
+                found: true,
+                formSubmissionId: submission.id,
+                participantData: {
+                  nome: submission.contact_name || contract.client_name,
+                  email: submission.contact_email || contract.client_email,
+                  telefone: submission.contact_phone || contract.client_phone,
+                  cpf: submission.contact_cpf || contract.client_cpf,
+                  endereco: {
+                    cep: submission.address_cep || submission.addressCep,
+                    rua: submission.address_street || submission.addressStreet,
+                    numero: submission.address_number || submission.addressNumber,
+                    complemento: submission.address_complement || submission.addressComplement,
+                    bairro: submission.address_neighborhood || submission.addressNeighborhood,
+                    cidade: submission.address_city || submission.addressCity,
+                    estado: submission.address_state || submission.addressState
+                  }
+                }
+              };
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('[Assinatura/Full] Participant data lookup failed:', err);
+    }
+
+    res.set('Cache-Control', 'private, max-age=300');
+    return res.json({
+      contract,
+      participantData
+    });
+  } catch (error: any) {
+    console.error('[Assinatura/Full] Error:', error);
+    return res.status(500).json({ error: 'Erro interno' });
   }
 });
 
@@ -1032,6 +1148,7 @@ router.get('/contracts/:token/participant-data', async (req: Request, res: Respo
 
     console.log(`[Assinatura] Form submission encontrado: ${submission.id}, endereco: rua=${addressStreet}, cidade=${addressCity}`);
 
+    res.set('Cache-Control', 'private, max-age=300');
     res.json({
       found: true,
       formSubmissionId: submission.id,
