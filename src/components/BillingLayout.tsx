@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { Route, Switch, useLocation } from 'wouter';
-import Sidebar from './Sidebar';
+import Sidebar from './billing/Sidebar';
 import Header from './Header';
 import Dashboard from '@/pages/billing/Dashboard';
 import BankDashboard from '@/pages/billing/BankDashboard';
 import Attachments from '@/pages/billing/Attachments';
 import Settings from '@/pages/billing/Settings';
 import Home from '@/pages/billing/Home';
+import Creditos from '@/pages/Financeiro';
 
 export const BillingLayout = () => {
   const [location] = useLocation();
@@ -22,6 +23,8 @@ export const BillingLayout = () => {
               <Route path="/faturamento" component={Home} />
               <Route path="/faturamento/dashboard" component={Dashboard} />
               <Route path="/faturamento/banco/:itemId" component={BankDashboard} />
+              <Route path="/faturamento/dados-bancarios" component={BankDashboard} />
+              <Route path="/faturamento/creditos" component={Creditos} />
               <Route path="/faturamento/anexos" component={Attachments} />
               <Route path="/faturamento/settings" component={Settings} />
             </Switch>

@@ -1,6 +1,6 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { PremiumButton } from "@/platforms/shared/premium/PremiumButton";
-import { Building2, LayoutDashboard, FileText, TrendingUp, Banknote } from "lucide-react";
+import { Building2, LayoutDashboard, FileText, TrendingUp, Banknote, Wallet } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { useItems } from "@/hooks/billing/useBankingData";
 import { cn } from "@/lib/utils";
@@ -33,6 +33,12 @@ export default function Sidebar() {
       icon: Banknote,
       label: "Dados Bancários",
       testId: "bank-data"
+    },
+    {
+      path: "/faturamento/creditos",
+      icon: Wallet,
+      label: "Créditos",
+      testId: "credits-wallet"
     },
     {
       path: "/faturamento/anexos",
