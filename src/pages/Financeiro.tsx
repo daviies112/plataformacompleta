@@ -301,26 +301,77 @@ export default function Financeiro() {
           <Card data-testid="card-prices">
             <CardHeader>
               <CardTitle>Tabela de Preços dos Serviços</CardTitle>
-              <CardDescription>Valores cobrados por cada operação</CardDescription>
+              <CardDescription>Valores cobrados por operação (serviços adicionais incluídos na mensalidade)</CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {pricesData?.prices?.map((price) => (
-                  <Card key={price.serviceCode} className="bg-muted/50" data-testid={`price-${price.serviceCode}`}>
+            <CardContent className="space-y-6">
+              {/* CPF Consultation - Fixed Price */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3">Consultas por Uso</h3>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {pricesData?.prices?.filter(p => p.serviceCode === 'CPF_CONSULTA').map((price) => (
+                    <Card key={price.serviceCode} className="bg-muted/50" data-testid={`price-${price.serviceCode}`}>
+                      <CardContent className="pt-4">
+                        <div className="flex justify-between items-start mb-2">
+                          <h4 className="font-semibold">{price.serviceName}</h4>
+                          <Badge variant="outline">{price.serviceCode}</Badge>
+                        </div>
+                        <p className="text-2xl font-bold text-primary">
+                          {formatCurrency(price.price)}
+                        </p>
+                        {price.description && (
+                          <p className="text-sm text-muted-foreground mt-2">{price.description}</p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+
+              {/* Shipping - Dynamic Pricing */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3">Envios</h3>
+                <Card className="bg-blue-500/10 border-blue-500/30" data-testid="price-shipping-info">
+                  <CardContent className="pt-4">
+                    <div className="flex justify-between items-start mb-2">
+                      <h4 className="font-semibold">Registro de Envio</h4>
+                      <Badge className="bg-blue-500/20 text-blue-600 border-blue-500/30">Preço Dinâmico</Badge>
+                    </div>
+                    <p className="text-lg font-medium text-blue-600">
+                      Custo da transportadora + 35%
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      O valor do frete é calculado automaticamente com base na cotação da transportadora (TotalExpress, Correios, etc.) com margem de 35%
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Included in Subscription */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3">Incluídos na Mensalidade</h3>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  <Card className="bg-green-500/10 border-green-500/30">
                     <CardContent className="pt-4">
-                      <div className="flex justify-between items-start mb-2">
-                        <h4 className="font-semibold">{price.serviceName}</h4>
-                        <Badge variant="outline">{price.serviceCode}</Badge>
-                      </div>
-                      <p className="text-2xl font-bold text-primary">
-                        {formatCurrency(price.price)}
-                      </p>
-                      {price.description && (
-                        <p className="text-sm text-muted-foreground mt-2">{price.description}</p>
-                      )}
+                      <h4 className="font-semibold">Contratos Digitais</h4>
+                      <Badge className="bg-green-500/20 text-green-600 border-green-500/30 mt-2">Ilimitado</Badge>
+                      <p className="text-sm text-muted-foreground mt-2">Geração de contratos com assinatura digital</p>
                     </CardContent>
                   </Card>
-                ))}
+                  <Card className="bg-green-500/10 border-green-500/30">
+                    <CardContent className="pt-4">
+                      <h4 className="font-semibold">Envio de SMS</h4>
+                      <Badge className="bg-green-500/20 text-green-600 border-green-500/30 mt-2">Ilimitado</Badge>
+                      <p className="text-sm text-muted-foreground mt-2">Notificações por SMS</p>
+                    </CardContent>
+                  </Card>
+                  <Card className="bg-green-500/10 border-green-500/30">
+                    <CardContent className="pt-4">
+                      <h4 className="font-semibold">WhatsApp Business</h4>
+                      <Badge className="bg-green-500/20 text-green-600 border-green-500/30 mt-2">Ilimitado</Badge>
+                      <p className="text-sm text-muted-foreground mt-2">Mensagens via WhatsApp</p>
+                    </CardContent>
+                  </Card>
+                </div>
               </div>
             </CardContent>
           </Card>

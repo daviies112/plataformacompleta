@@ -373,19 +373,24 @@ class WalletService {
   }
 
   async initializeDefaultPrices(): Promise<void> {
+    // Only CPF consultation is charged per-use
+    // Shipping uses dynamic pricing (TotalExpress cost + 35% margin)
+    // Other services are included in the monthly subscription
     const defaultPrices = [
-      { code: 'CPF_CONSULTA', name: 'Consulta CPF', price: 2.00, cost: 0.03, desc: 'Consulta de dados e validação de CPF via BigDataCorp' },
-      { code: 'ENVIO_REGISTRO', name: 'Registro de Envio', price: 3.00, cost: 0.50, desc: 'Registro de envio na transportadora' },
-      { code: 'CONTRATO_DIGITAL', name: 'Contrato Digital', price: 1.50, cost: 0.00, desc: 'Geração de contrato com assinatura digital' },
-      { code: 'SMS_ENVIO', name: 'Envio de SMS', price: 0.50, cost: 0.10, desc: 'Envio de SMS para notificações' },
-      { code: 'WHATSAPP_MSG', name: 'Mensagem WhatsApp', price: 0.30, cost: 0.05, desc: 'Envio de mensagem via WhatsApp Business' },
+      { code: 'CPF_CONSULTA', name: 'Consulta CPF', price: 2.00, cost: 0.17, desc: 'Consulta de dados e validação de CPF via BigDataCorp' },
     ];
 
     for (const p of defaultPrices) {
       await this.createServicePrice(p.code, p.name, p.price, p.cost, p.desc);
     }
     
-    console.log('[WalletService] Default service prices initialized');
+    console.log('[WalletService] Default service prices initialized (CPF only - other services included in subscription)');
+  }
+
+  // Calculate shipping price with 35% margin
+  calculateShippingPrice(costPrice: number): number {
+    const margin = 0.35; // 35% margin
+    return costPrice * (1 + margin);
   }
 
   // Idempotency check for webhook events

@@ -45,7 +45,13 @@ ExecutiveAI Pro employs a modern web stack with a multi-tenant, API-driven archi
 - **Session Management:** Session cookies are configured with `sameSite: 'none'` and `secure: true` for Replit preview environments.
 - **Public Checkout System:** Allows unauthenticated customers to complete purchases from public storefronts, bypassing authentication while maintaining security through server-side price validation.
 - **Public Store URL Feature:** Resellers can publish their stores with a public URL, featuring custom store names, slugs, publish toggles, share buttons, and QR code generation.
-- **Wallet / Credit System:** A pre-paid credit system to charge for services with database tables for `wallets`, `wallet_transactions`, `service_prices`, and backend services for managing funds and transactions. Includes a `checkBalance` middleware and frontend integration.
+- **Wallet / Credit System:** A pre-paid credit system with:
+  - **CPF Consultation:** R$ 2,00 per query (fixed price)
+  - **Shipping:** Dynamic pricing (carrier cost + 35% margin, using TotalExpress API quotes)
+  - **Other services:** Included in monthly subscription (contracts, SMS, WhatsApp)
+  - Database tables: `wallets`, `wallet_transactions`, `service_prices`
+  - Atomic balance updates with conditional SQL UPDATE to prevent race conditions
+  - Webhook idempotency using in-memory Map (24-hour TTL)
 - **Performance Optimizations:** Aggressive code splitting for public routes and heavy libraries, leading to significant improvements in loading times for public pages.
 
 ## External Dependencies

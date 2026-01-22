@@ -5,7 +5,9 @@ import { walletService } from '../services/walletService';
 
 const router = Router();
 
-const ENVIO_SERVICE_PRICE = 3.00; // R$ 3,00 por registro de envio
+// Shipping uses dynamic pricing: carrier cost + 35% margin
+// No fixed price - calculated per shipment based on TotalExpress quote
+const SHIPPING_MARGIN = 0.35; // 35% margin on carrier cost
 
 function getAdminId(req: Request): string {
   const session = (req as any).session;
@@ -296,19 +298,6 @@ router.post('/total-express/registrar', async (req: Request, res: Response) => {
     const session = (req as any).session;
     const tenantId = session?.tenantId || session?.userId;
     
-    // WALLET: Verificar saldo antes de registrar envio
-    if (tenantId) {
-      const balanceCheck = await walletService.checkBalance(tenantId, ENVIO_SERVICE_PRICE);
-      if (!balanceCheck.sufficient) {
-        return res.status(402).json({
-          error: 'Saldo insuficiente para registro de envio',
-          requiredAmount: ENVIO_SERVICE_PRICE,
-          currentBalance: balanceCheck.currentBalance,
-          rechargeRequired: true
-        });
-      }
-    }
-    
     const {
       envio_id,
       pedido,
@@ -328,11 +317,31 @@ router.post('/total-express/registrar', async (req: Request, res: Response) => {
       largura,
       comprimento,
       valorDeclarado,
-      descricaoConteudo
+      descricaoConteudo,
+      custoFrete // Cost from carrier quote (passed from frontend)
     } = req.body;
 
     if (!pedido || !destinatarioNome || !destinatarioCep) {
       return res.status(400).json({ error: 'Pedido, nome e CEP do destinatário são obrigatórios' });
+    }
+
+    // Calculate shipping price with 35% margin
+    const carrierCost = parseFloat(custoFrete) || 0;
+    const shippingPrice = carrierCost > 0 ? walletService.calculateShippingPrice(carrierCost) : 0;
+    
+    // WALLET: Verificar saldo antes de registrar envio (only if there's a cost)
+    if (tenantId && shippingPrice > 0) {
+      const balanceCheck = await walletService.checkBalance(tenantId, shippingPrice);
+      if (!balanceCheck.sufficient) {
+        return res.status(402).json({
+          error: 'Saldo insuficiente para registro de envio',
+          requiredAmount: shippingPrice,
+          carrierCost: carrierCost,
+          margin: SHIPPING_MARGIN,
+          currentBalance: balanceCheck.currentBalance,
+          rechargeRequired: true
+        });
+      }
     }
 
     const resultado = await totalExpressService.registrarColeta({
@@ -356,21 +365,28 @@ router.post('/total-express/registrar', async (req: Request, res: Response) => {
       descricaoConteudo
     });
 
-    // WALLET: Debitar saldo APÓS registro bem-sucedido
-    if (resultado.success && tenantId) {
+    // WALLET: Debitar saldo APÓS registro bem-sucedido (only if there's a cost)
+    if (resultado.success && tenantId && shippingPrice > 0) {
       const debitResult = await walletService.debitFunds(
         tenantId,
-        ENVIO_SERVICE_PRICE,
-        `Registro de Envio - ${pedido}`,
+        shippingPrice,
+        `Frete - ${pedido} (Custo: R$ ${carrierCost.toFixed(2)} + 35%)`,
         envio_id || resultado.codigoRastreio,
-        'ENVIO_REGISTRO',
-        { pedido, transportadora: 'Total Express', codigoRastreio: resultado.codigoRastreio }
+        'ENVIO_FRETE',
+        { 
+          pedido, 
+          transportadora: 'Total Express', 
+          codigoRastreio: resultado.codigoRastreio,
+          custoTransportadora: carrierCost,
+          margem: SHIPPING_MARGIN,
+          valorFinal: shippingPrice
+        }
       );
       
       if (!debitResult.success) {
         console.warn(`[Envio] Falha ao debitar saldo: ${debitResult.error}`);
       } else {
-        console.log(`[Envio] Débito de R$ ${ENVIO_SERVICE_PRICE.toFixed(2)} realizado para tenant ${tenantId}`);
+        console.log(`[Envio] Débito de R$ ${shippingPrice.toFixed(2)} realizado para tenant ${tenantId} (custo: R$ ${carrierCost.toFixed(2)} + 35%)`);
       }
     }
 
