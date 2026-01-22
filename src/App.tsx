@@ -24,6 +24,8 @@ import { InstallPWAButton } from "./components/InstallPWAButton";
  * NOTA: HMSRoomProvider foi movido para Meeting100ms para evitar carregar o SDK 100ms
  * em todas as páginas, melhorando significativamente o tempo de carregamento no mobile.
  */
+const AssinaturaClientPage = lazy(() => import('./pages/AssinaturaClientPage'));
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider 
@@ -44,8 +46,17 @@ const App = () => (
         >
           <AuthProvider>
             <NotificationProvider>
-              {/* Platform Router - Detecta e renderiza Desktop ou Mobile App */}
-              <PlatformRouter />
+              <Routes>
+                <Route 
+                  path="/assinar/:token" 
+                  element={
+                    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-background"><Loader2 className="w-12 h-12 animate-spin text-primary" /></div>}>
+                      <AssinaturaClientPage />
+                    </Suspense>
+                  } 
+                />
+                <Route path="/*" element={<PlatformRouter />} />
+              </Routes>
               
               {/* PWA Install Button - Aparece em todas as páginas no canto inferior direito (desktop only) */}
               <InstallPWAButton />

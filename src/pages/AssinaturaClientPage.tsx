@@ -233,44 +233,26 @@ const AssinaturaClientContent = () => {
   const [selfiePhoto, setSelfiePhoto] = useState<string | null>(null);
   const [documentPhoto, setDocumentPhoto] = useState<string | null>(null);
 
-  const { data: contract, isLoading, error } = useQuery<ContractData | null>({
-    queryKey: ['/api/assinatura/public/contracts', token],
+  const { data: fullData, isLoading, error } = useQuery<{ contract: ContractData; participantData: ParticipantData | null } | null>({
+    queryKey: ['/api/assinatura/public/contracts', token, 'full'],
     enabled: !!token,
+    staleTime: 5 * 60 * 1000,
     queryFn: async () => {
-      const res = await fetch(`/api/assinatura/public/contracts/${token}`, {
+      const res = await fetch(`/api/assinatura/public/contracts/${token}/full`, {
         credentials: 'include'
       });
       if (res.status === 404 || res.status === 401) {
         return null;
       }
       if (!res.ok) {
-        throw new Error(`Failed to fetch contract: ${res.status}`);
+        throw new Error(`Failed to fetch contract data: ${res.status}`);
       }
       return await res.json();
     }
   });
 
-  const { data: participantData } = useQuery<ParticipantData | null>({
-    queryKey: ['/api/assinatura/public/contracts', token, 'participant-data'],
-    enabled: !!token && !!contract,
-    queryFn: async () => {
-      try {
-        const res = await fetch(`/api/assinatura/public/contracts/${token}/participant-data`, {
-          credentials: 'include'
-        });
-        if (!res.ok) {
-          console.log('[AssinaturaClientPage] Erro ao buscar participant-data:', res.status);
-          return null;
-        }
-        const data = await res.json();
-        console.log('[AssinaturaClientPage] Participant data:', data);
-        return data;
-      } catch (err) {
-        console.error('[AssinaturaClientPage] Erro ao buscar participant-data:', err);
-        return null;
-      }
-    }
-  });
+  const contract = fullData?.contract || null;
+  const participantData = fullData?.participantData || null;
 
   useEffect(() => {
     if (contract && currentStep === 0) {

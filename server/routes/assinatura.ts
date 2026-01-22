@@ -5,6 +5,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { assinaturaSupabaseService, AssinaturaContract, AssinaturaGlobalConfig } from '../services/assinatura-supabase';
 import { supabaseOwner, SUPABASE_CONFIGURED } from '../config/supabaseOwner';
+import { assinaturaLogger } from '../lib/logger';
 
 const router = Router();
 
