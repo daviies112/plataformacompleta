@@ -84,6 +84,14 @@ ExecutiveAI Pro utilizes a modern web stack designed for scalability and maintai
   - Lazy loading for `FormularioPublicoWrapper` via React.lazy() + Suspense
   - Increased progress update debounce from 1s to 3s to reduce network requests
   - Expected improvement: ~75% faster Time to Interactive
+- **Public Meeting Room Performance Optimization (100ms):** Improved loading speed for public meeting rooms (`/reuniao/:companySlug/:roomId`) with multiple optimizations:
+  - Created `meetingLogger` utility (`src/lib/meetingLogger.ts`) to disable console.logs in production
+  - SDK preloading in `MeetingLobby` while user fills their name (reduces perceived load time)
+  - New optimized endpoint `/api/public/reunioes/public/:companySlug/:roomId/full` that combines meeting data + room design config + token in single request
+  - Token caching in `sessionStorage` (23-hour TTL) to eliminate redundant token generation for returning users
+  - Added HTTP cache headers to public meeting endpoints (`Cache-Control: private, max-age=60`)
+  - Reduced connection timeout from 30s to 10s for faster failure detection and retry
+  - Expected improvement: ~60% faster Time to Meeting (from 4-6s to ~2s)
 
 ## Known Blockers
 
