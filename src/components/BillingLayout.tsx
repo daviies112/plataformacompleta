@@ -20,13 +20,13 @@ export const BillingLayout = () => {
         <div className="flex-1 overflow-y-auto">
           <div className="max-w-full mx-auto">
             <Switch>
-              <Route path="/faturamento" component={Home} />
               <Route path="/faturamento/dashboard" component={Dashboard} />
               <Route path="/faturamento/banco/:itemId" component={BankDashboard} />
               <Route path="/faturamento/dados-bancarios" component={BankDashboard} />
               <Route path="/faturamento/creditos" component={Creditos} />
               <Route path="/faturamento/anexos" component={Attachments} />
               <Route path="/faturamento/settings" component={Settings} />
+              <Route path="/faturamento" component={Home} />
             </Switch>
           </div>
         </div>

@@ -1,4 +1,4 @@
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "wouter";
 import { PremiumButton } from "@/platforms/shared/premium/PremiumButton";
 import { Building2, LayoutDashboard, FileText, TrendingUp, Banknote, Wallet } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
@@ -6,14 +6,13 @@ import { useItems } from "@/hooks/billing/useBankingData";
 import { cn } from "@/lib/utils";
 
 export default function Sidebar() {
-  const location = useLocation();
-  const navigate = useNavigate();
+  const [location, setLocation] = useLocation();
   const { data: items = [], isLoading, error } = useItems();
   
   console.log('📊 Sidebar - Items:', items, 'Length:', items?.length, 'Loading:', isLoading, 'Error:', error);
 
   const isActiveBankRoute = (itemId: string) => {
-    return location.pathname === `/faturamento/banco/${itemId}`;
+    return location === `/faturamento/banco/${itemId}`;
   };
 
   const navItems = [
@@ -55,12 +54,12 @@ export default function Sidebar() {
       <nav className="flex flex-col gap-2 p-4">
         {navItems.map((item) => {
           const Icon = item.icon;
-          const isActive = location.pathname === item.path;
+          const isActive = location === item.path;
           
           return (
             <button
               key={item.path}
-              onClick={() => navigate(item.path)}
+              onClick={() => setLocation(item.path)}
               data-tour={item.testId}
               data-testid={`nav-${item.testId || item.label.toLowerCase().replace(' ', '-')}`}
               className={cn(
@@ -102,7 +101,7 @@ export default function Sidebar() {
                 return (
                   <button
                     key={item.id}
-                    onClick={() => navigate(`/faturamento/banco/${item.id}`)}
+                    onClick={() => setLocation(`/faturamento/banco/${item.id}`)}
                     data-testid={`nav-bank-${item.id}`}
                     className={cn(
                       "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200",
