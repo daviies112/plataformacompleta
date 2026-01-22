@@ -2242,6 +2242,98 @@ export type MeetingBooking = typeof meetingBookings.$inferSelect;
 export type InsertMeetingTemplate = z.infer<typeof insertMeetingTemplateSchema>;
 export type MeetingTemplate = typeof meetingTemplates.$inferSelect;
 
+// ==================== WALLET / CREDIT SYSTEM ====================
+
+// Wallet Transaction Types
+export const walletTransactionTypes = ["CREDIT", "DEBIT", "REFUND", "BONUS"] as const;
+export type WalletTransactionType = typeof walletTransactionTypes[number];
+
+export const walletTransactionStatus = ["PENDING", "COMPLETED", "FAILED", "CANCELLED"] as const;
+export type WalletTransactionStatus = typeof walletTransactionStatus[number];
+
+// Wallets Table - Stores balance for each tenant
+export const wallets = pgTable("wallets", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  tenantId: text("tenant_id").notNull().unique(),
+  balance: numeric("balance", { precision: 10, scale: 2 }).notNull().default("0.00"),
+  currency: varchar("currency", { length: 3 }).notNull().default("BRL"),
+  isFrozen: boolean("is_frozen").notNull().default(false),
+  autoRecharge: boolean("auto_recharge").notNull().default(false),
+  autoRechargeTrigger: numeric("auto_recharge_trigger", { precision: 10, scale: 2 }),
+  autoRechargeAmount: numeric("auto_recharge_amount", { precision: 10, scale: 2 }),
+  savedCardToken: text("saved_card_token"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  tenantIdx: uniqueIndex("idx_wallets_tenant").on(table.tenantId),
+}));
+
+// Wallet Transactions Table - Immutable audit log of all movements
+export const walletTransactions = pgTable("wallet_transactions", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  walletId: uuid("wallet_id").notNull().references(() => wallets.id, { onDelete: "cascade" }),
+  type: text("type").notNull().$type<WalletTransactionType>(),
+  amount: numeric("amount", { precision: 10, scale: 2 }).notNull(),
+  balanceBefore: numeric("balance_before", { precision: 10, scale: 2 }).notNull(),
+  balanceAfter: numeric("balance_after", { precision: 10, scale: 2 }).notNull(),
+  description: text("description").notNull(),
+  referenceId: varchar("reference_id", { length: 100 }),
+  referenceType: varchar("reference_type", { length: 50 }),
+  status: text("status").notNull().$type<WalletTransactionStatus>().default("COMPLETED"),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => ({
+  walletIdx: index("idx_wallet_transactions_wallet").on(table.walletId),
+  typeIdx: index("idx_wallet_transactions_type").on(table.type),
+  statusIdx: index("idx_wallet_transactions_status").on(table.status),
+  createdAtIdx: index("idx_wallet_transactions_created").on(table.createdAt),
+}));
+
+// Service Prices Table - Configurable prices for each service
+export const servicePrices = pgTable("service_prices", {
+  id: serial("id").primaryKey(),
+  serviceCode: varchar("service_code", { length: 50 }).notNull().unique(),
+  serviceName: text("service_name").notNull(),
+  price: numeric("price", { precision: 10, scale: 2 }).notNull(),
+  costPrice: numeric("cost_price", { precision: 10, scale: 2 }).notNull().default("0.00"),
+  isActive: boolean("is_active").notNull().default(true),
+  description: text("description"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+}, (table) => ({
+  serviceCodeIdx: uniqueIndex("idx_service_prices_code").on(table.serviceCode),
+}));
+
+// Insert Schemas for Wallet System
+export const insertWalletSchema = createInsertSchema(wallets).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true 
+});
+
+export const insertWalletTransactionSchema = createInsertSchema(walletTransactions).omit({ 
+  id: true, 
+  createdAt: true 
+});
+
+export const insertServicePriceSchema = createInsertSchema(servicePrices).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true 
+});
+
+// Types for Wallet System
+export type InsertWallet = z.infer<typeof insertWalletSchema>;
+export type Wallet = typeof wallets.$inferSelect;
+
+export type InsertWalletTransaction = z.infer<typeof insertWalletTransactionSchema>;
+export type WalletTransaction = typeof walletTransactions.$inferSelect;
+
+export type InsertServicePrice = z.infer<typeof insertServicePriceSchema>;
+export type ServicePrice = typeof servicePrices.$inferSelect;
+
+// ==================== END WALLET SYSTEM ====================
+
 // Aliases for backwards compatibility
 export const insertConfigurationSchema = insertConfigurationWhatsappSchema;
 export type InsertConfiguration = InsertConfigurationWhatsapp;

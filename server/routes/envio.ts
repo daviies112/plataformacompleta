@@ -1,8 +1,11 @@
 import { Router, Request, Response } from 'express';
 import { envioService } from '../services/envioService';
 import { totalExpressService } from '../services/totalExpressService';
+import { walletService } from '../services/walletService';
 
 const router = Router();
+
+const ENVIO_SERVICE_PRICE = 3.00; // R$ 3,00 por registro de envio
 
 function getAdminId(req: Request): string {
   const session = (req as any).session;
@@ -290,6 +293,22 @@ router.post('/total-express/cotar', async (req: Request, res: Response) => {
 router.post('/total-express/registrar', async (req: Request, res: Response) => {
   try {
     const adminId = getAdminId(req);
+    const session = (req as any).session;
+    const tenantId = session?.tenantId || session?.userId;
+    
+    // WALLET: Verificar saldo antes de registrar envio
+    if (tenantId) {
+      const balanceCheck = await walletService.checkBalance(tenantId, ENVIO_SERVICE_PRICE);
+      if (!balanceCheck.sufficient) {
+        return res.status(402).json({
+          error: 'Saldo insuficiente para registro de envio',
+          requiredAmount: ENVIO_SERVICE_PRICE,
+          currentBalance: balanceCheck.currentBalance,
+          rechargeRequired: true
+        });
+      }
+    }
+    
     const {
       envio_id,
       pedido,
@@ -336,6 +355,24 @@ router.post('/total-express/registrar', async (req: Request, res: Response) => {
       valorDeclarado: parseFloat(valorDeclarado) || 0,
       descricaoConteudo
     });
+
+    // WALLET: Debitar saldo APÓS registro bem-sucedido
+    if (resultado.success && tenantId) {
+      const debitResult = await walletService.debitFunds(
+        tenantId,
+        ENVIO_SERVICE_PRICE,
+        `Registro de Envio - ${pedido}`,
+        envio_id || resultado.codigoRastreio,
+        'ENVIO_REGISTRO',
+        { pedido, transportadora: 'Total Express', codigoRastreio: resultado.codigoRastreio }
+      );
+      
+      if (!debitResult.success) {
+        console.warn(`[Envio] Falha ao debitar saldo: ${debitResult.error}`);
+      } else {
+        console.log(`[Envio] Débito de R$ ${ENVIO_SERVICE_PRICE.toFixed(2)} realizado para tenant ${tenantId}`);
+      }
+    }
 
     if (resultado.success && resultado.codigoRastreio && envio_id) {
       await envioService.updateEnvio(envio_id, adminId, {

@@ -31,6 +31,7 @@ import envioRoutes from "./routes/envio";
 import pagarmeRoutes from "./routes/pagarme";
 import pagarmePublicRoutes from "./routes/pagarmePublic";
 import publicStoreRoutes from "./routes/publicStore";
+import walletRoutes from "./routes/wallet";
 
 // Configure multer for logo uploads
 const logoStorage = multer.diskStorage({
@@ -179,6 +180,12 @@ export async function registerRoutes(app: Express) {
   app.use("/api/pagarme/webhook", pagarmeRoutes);
   // All other payment routes require authentication
   app.use("/api/pagarme", requireTenant, pagarmeRoutes);
+
+  // Wallet / Credit System routes
+  // Webhook endpoint must be PUBLIC for Pagar.me to credit wallet on payment
+  app.use("/api/wallet/webhook", walletRoutes);
+  // All other wallet routes require authentication
+  app.use("/api/wallet", requireTenant, walletRoutes);
 
   return httpServer;
 }

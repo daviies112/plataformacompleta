@@ -41,6 +41,9 @@ import AssinaturaPage from "@/pages/AssinaturaPage";
 // Import Envio Platform
 import { EnvioCotacao, EnvioEnviar, EnvioList, EnvioRastreamento } from "@/pages/envio";
 
+// Import Financeiro (Wallet) Page
+import Financeiro from "@/pages/Financeiro";
+
 // Import Revendedora Admin components for /produto/admin/* routes
 import { CompanyProvider } from "@/features/revendedora/contexts/CompanyContext";
 import { AdminLayout } from "@/features/revendedora/layouts/AdminLayout";
@@ -121,6 +124,17 @@ const DesktopApp = () => {
           <ProtectedRoute>
             <DesktopLayout>
               <BillingPage />
+            </DesktopLayout>
+          </ProtectedRoute>
+        } 
+      />
+      
+      <Route 
+        path="/financeiro" 
+        element={
+          <ProtectedRoute>
+            <DesktopLayout>
+              <Financeiro />
             </DesktopLayout>
           </ProtectedRoute>
         } 

@@ -2,7 +2,7 @@
 
 ## Overview
 
-ExecutiveAI Pro is a multi-tenant SaaS platform designed for comprehensive business management, aiming to be an all-in-one solution for streamlining operations, enhancing customer engagement, and improving sales processes. It offers lead management, form handling, real-time CPF validation, and WhatsApp Business integration. Recent expansions include a shipping platform, a reselling platform (NEXUS), n8n integration for meeting automation, and a sophisticated digital signature system with biometric verification. The project's ambition is to provide a competitive edge by consolidating essential business tools into a single, efficient, and scalable platform.
+ExecutiveAI Pro is a multi-tenant SaaS platform for comprehensive business management, streamlining operations, enhancing customer engagement, and improving sales processes. It integrates lead management, form handling, real-time CPF validation, WhatsApp Business, and includes a shipping platform, a reselling platform (NEXUS), n8n integration for meeting automation, and a sophisticated digital signature system with biometric verification. The project's goal is to consolidate essential business tools into a single, efficient, and scalable platform, offering a competitive edge.
 
 ## User Preferences
 
@@ -14,11 +14,11 @@ ExecutiveAI Pro is a multi-tenant SaaS platform designed for comprehensive busin
 
 ## System Architecture
 
-ExecutiveAI Pro utilizes a modern web stack designed for scalability and maintainability, emphasizing a multi-tenant, API-driven architecture with robust error handling and automation.
+ExecutiveAI Pro employs a modern web stack with a multi-tenant, API-driven architecture, focusing on scalability and maintainability.
 
 **Frontend:**
 - **Technology:** React 18, TypeScript, Vite.
-- **UI/UX:** TailwindCSS and shadcn/ui for a consistent design system.
+- **UI/UX:** TailwindCSS and shadcn/ui.
 - **State Management:** TanStack Query (server state) and Zustand (client state).
 
 **Backend:**
@@ -26,108 +26,34 @@ ExecutiveAI Pro utilizes a modern web stack designed for scalability and maintai
 - **Security:** JWT for authentication.
 
 **Database:**
-- **Primary:** PostgreSQL managed with Drizzle ORM.
-- **Secondary/Fallback:** Supabase for specific functionalities and data stores.
+- **Primary:** PostgreSQL with Drizzle ORM.
+- **Secondary/Fallback:** Supabase.
 
 **Core Features & Technical Implementations:**
 
 - **Shipping Platform:** Integrates with multiple carriers (Correios, Jadlog, Loggi, Azul Cargo) for freight quotation and tracking.
-- **NEXUS Reseller Platform:** An authenticated portal for resellers with dashboards, sales tracking, and financial summaries. It implements comprehensive data isolation at the application level to prevent cross-tenant data leakage, ensuring all data access is filtered by `reseller_id`. The login system is automatic, validating against a master Supabase table and securely storing reseller-specific Supabase credentials locally.
-- **CPF Validation:** Multi-tiered fallback system for data retrieval and compliance checks, with automated validation triggers.
-- **WhatsApp Business:** Integration for automated messaging.
+- **NEXUS Reseller Platform:** An authenticated portal for resellers with dashboards, sales tracking, and financial summaries, ensuring data isolation via `reseller_id` filtering.
+- **CPF Validation:** Multi-tiered fallback system for data retrieval and compliance.
+- **WhatsApp Business:** Automated messaging integration.
 - **n8n Integration:** Allows tenants to generate API keys for custom automation workflows, especially for meeting creation.
 - **Video Conferencing (100ms):** Provides video conferencing with dynamic roles, public links, and automatic participant check-in, including contract data pre-filling.
 - **Calendar:** Monthly grid view for meeting management.
 - **SFU Recording System:** Server-side recording of video conferences.
-- **Digital Signature System:** Comprehensive platform for digital contracts, including biometric verification, document capture, and identity validation. Features a multi-step client signing process and real-time previews for admins. Contracts are automatically generated upon meeting conclusion.
-- **Contract Creation Flow:** Automatically creates contracts from `form_submissions` data upon meeting conclusion, using flexible phone search patterns and backend fallbacks for address data. Specific column mappings handle data transfer between tables.
-- **Background Jobs & Automation:** Utilizes background job queues for async processing (e.g., form submission processing, lead synchronization, CPF auto-checks). These are critical and must be initialized on server startup.
-- **Session Management:** Session cookies are configured with `sameSite: 'none'` and `secure: true` for compatibility with Replit preview environments.
+- **Digital Signature System:** Comprehensive platform for digital contracts, including biometric verification, document capture, identity validation, multi-step client signing, and real-time previews. Contracts are automatically generated upon meeting conclusion.
+- **Contract Creation Flow:** Automatically creates contracts from `form_submissions` data upon meeting conclusion, utilizing flexible phone search patterns and backend fallbacks for address data.
+- **Background Jobs & Automation:** Utilizes background job queues for async processing (e.g., form submission processing, lead synchronization, CPF auto-checks) which must be initialized on server startup.
+- **Session Management:** Session cookies are configured with `sameSite: 'none'` and `secure: true` for Replit preview environments.
+- **Public Checkout System:** Allows unauthenticated customers to complete purchases from public storefronts, bypassing authentication while maintaining security through server-side price validation.
+- **Public Store URL Feature:** Resellers can publish their stores with a public URL, featuring custom store names, slugs, publish toggles, share buttons, and QR code generation.
+- **Wallet / Credit System:** A pre-paid credit system to charge for services with database tables for `wallets`, `wallet_transactions`, `service_prices`, and backend services for managing funds and transactions. Includes a `checkBalance` middleware and frontend integration.
+- **Performance Optimizations:** Aggressive code splitting for public routes and heavy libraries, leading to significant improvements in loading times for public pages.
 
 ## External Dependencies
 
 - **PostgreSQL:** Primary relational database.
-- **Supabase:** Used for specific data storage, critical tables (e.g., `revendedoras`, `contracts`), and as a fallback.
+- **Supabase:** Used for specific data storage and as a fallback.
 - **100ms:** Video conferencing API.
 - **n8n:** Workflow automation platform.
 - **WhatsApp Business API:** For business communication.
-- **Stripe Connect:** For payment splitting in the NEXUS reseller platform.
-- **Pagar.me:** Brazilian payment gateway for PIX and credit card payments in NEXUS reseller platform. Uses tokenization for PCI compliance. Requires `CHAVE_SECRETA` and `CHAVE_PUBLICA` secrets.
+- **Pagar.me:** Brazilian payment gateway for PIX and credit card payments, including payment splitting and tokenization.
 - **Shipping Carrier APIs:** Correios, Jadlog, Loggi, Azul Cargo, Total Express for shipping services.
-- **Total Express:** Brazilian carrier integration for briefcase (maleta) deliveries. Requires `TOTAL_EXPRESS_USER`, `TOTAL_EXPRESS_PASS`, `TOTAL_EXPRESS_REID`, and `TOTAL_EXPRESS_SERVICE` secrets.
-
-## Documentation
-
-- **`docs/PAGARME_SPLIT_IMPLEMENTATION.md`**: Documentacao completa do sistema de Split de Pagamentos Pagar.me, incluindo arquitetura, endpoints, fluxos e troubleshooting.
-- **`docs/CODE_BACKUP_PAGARME.md`**: Backup completo do codigo-fonte do sistema de pagamentos para preservacao e exportacao.
-
-## Recent Changes (January 2026)
-
-- **Complete Stripe to Pagar.me Migration:** Fully removed Stripe dependencies and migrated all payment processing to Pagar.me. Changes include:
-  - Deleted `StripeService.ts` and `stripePayment.ts` files
-  - Refactored `PaymentCard.tsx` with custom card form using Pagar.me tokenization API
-  - Updated `PaymentService.ts` to use Pagar.me endpoints (`/api/pagarme/process-payment`)
-  - Removed `@stripe/react-stripe-js`, `@stripe/stripe-js`, and `@types/stripe` packages
-  - Updated authentication middleware to whitelist Pagar.me routes
-- **Structured Logging with Pino:** Added `server/lib/logger.ts` with context-specific loggers for Payment, Pagar.me, Auth, Database, and API. Supports pretty-printing in development and JSON in production.
-- **Security Hardening:** SESSION_SECRET now fails fast in production if not set, preventing deployment with insecure defaults.
-- **Database Type Updates:** Replaced `stripe_account_id` with `pagarme_recipient_id` across type definitions.
-- **Reseller Bank Account Setup (Complete):** Full KYC onboarding for resellers (CPF) to receive split payments via Pagar.me. Includes personal data, complete address, and bank account information with strict validation. Endpoint: `/api/pagarme/onboarding-revendedora`. Recipient IDs stored in `revendedoras.pagarme_recipient_id`.
-- **Commission Tiers System:** Dynamic commission management with 4 tiers: Iniciante (65%/35%), Bronze (70%/30%), Prata (75%/25%), Ouro (80%/20%). Admin page at `/billing/comissoes`.
-- **Public Checkout System (Complete):** Unauthenticated customers can now complete purchases from public storefronts via `/checkout/:productId?storeId=X`. The system bypasses authentication while maintaining security through server-side price validation. Uses the `products` table (not `reseller_products`) and `reseller_stores` for store lookup. Product validation checks if `productId` is in `storeData.product_ids` array to prevent cross-store purchases.
-- **Pagar.me Test Mode:** Payment service now prioritizes test credentials (`CHAVE_SECRETA_TESTE` and `CHAVE_PUBLICA_TESTE`) for development, falling back to production keys when not present.
-- **Public Store URL Feature:** Resellers can now publish their stores with a public URL (`/loja/:storeId`) for customers to view and purchase products. Features include custom store name and slug, toggle to publish/unpublish, copy link button, WhatsApp share button, and QR code generation. The public page displays products by category with checkout integration via Pagar.me. Security measures include using anon key (not service-role) for public access and removing PII from public responses.
-- **Pagar.me Payment Integration:** Added complete payment processing with PIX and credit card support for the NEXUS reseller platform. Features card tokenization, input validation, and authenticated API routes.
-- **Public Form Performance Optimization:** Improved loading speed for public forms (/f/:token, /form/:id) with multiple optimizations:
-  - Created `FormLoader` component for lightweight loading states
-  - Added HTTP cache headers (`Cache-Control: public, max-age=60, stale-while-revalidate=300`) to public form endpoints
-  - New optimized endpoint `/api/forms/public/with-token/:token` that combines token validation + form fetch in single request
-  - Lazy loading for `FormularioPublicoWrapper` via React.lazy() + Suspense
-  - Increased progress update debounce from 1s to 3s to reduce network requests
-  - Expected improvement: ~75% faster Time to Interactive
-- **Public Meeting Room Performance Optimization (100ms):** Improved loading speed for public meeting rooms (`/reuniao/:companySlug/:roomId`) with multiple optimizations:
-  - Created `meetingLogger` utility (`src/lib/meetingLogger.ts`) to disable console.logs in production
-  - SDK preloading in `MeetingLobby` while user fills their name (reduces perceived load time)
-  - New optimized endpoint `/api/public/reunioes/public/:companySlug/:roomId/full` that combines meeting data + room design config + token in single request
-  - Token caching in `sessionStorage` (23-hour TTL) to eliminate redundant token generation for returning users
-  - Added HTTP cache headers to public meeting endpoints (`Cache-Control: private, max-age=60`)
-  - Reduced connection timeout from 30s to 10s for faster failure detection and retry
-  - Expected improvement: ~60% faster Time to Meeting (from 4-6s to ~2s)
-- **Digital Signature Flow Performance Optimization:** Improved loading speed for digital signature pages (`/assinar/:token`) with multiple optimizations:
-  - Lazy loading for all wizard steps (VerificationFlow, ContractStep, ResellerWelcomeStep, AppPromotionStep, SuccessStep) via React.lazy() + Suspense
-  - Preloading next step while current step is active (reduces transition time)
-  - New optimized endpoint `/api/assinatura/contracts/:token/full` that combines contract + participant data in single request
-  - Added HTTP cache headers (`Cache-Control: private, max-age=300`) to contract endpoints
-  - GlobalConfig cached in memory with 5-minute TTL (reduces disk I/O)
-  - Created `assinaturaLogger` utility in `server/lib/logger.ts` to disable console.logs in production
-  - Memoized ProgressTrackerDisplay component with memo() and useMemo()
-  - Expected improvement: ~50% faster Time to Interactive (from 3-5s to ~1.5s)
-
-- **Performance Optimization - Code Splitting & Route-Based Splitting (January 2026):** Implemented aggressive code splitting to optimize loading times for public pages. Key improvements:
-  - **Public routes are now separate chunks:** Rotas públicas (`/f/:token`, `/reuniao/:id`, `/assinar/:token`, `/loja/:id`, `/checkout/:id`) são interceptadas antes do bundle principal e carregam chunks leves específicos
-  - **Route-based bundle sizes for public pages:**
-    - `ReuniaoPublica.js` (33KB): Carregado apenas para reuniões públicas
-    - `AssinaturaClientPage.js` (14KB): Carregado apenas para assinatura digital
-    - `FormularioPublicoWrapper.js` (~2KB): Carregado apenas para formulários públicos
-    - `RevendedoraApp.js` (269KB): Carregado apenas para portal de revendedoras
-  - **Heavy libraries in separate chunks (on-demand):**
-    - `face-detection` (638KB): TensorFlow + face-api.js for biometric verification
-    - `video-meeting` (501KB): 100ms SDK for video conferences
-    - `pdf-generator` (742KB): html2pdf + jsPDF for PDF generation
-    - `charts` (395KB): Recharts for dashboard analytics
-    - `spreadsheet` (424KB): xlsx for Excel exports
-    - `animations` (116KB): Framer Motion for verification flow
-    - `monitoring` (254KB): Sentry for error tracking
-  - **Expected improvement:** Páginas públicas carregam 60-95% mais rápido (de ~2MB para 15-35KB initial load)
-  
-- **Total Express Shipping Integration (January 2026):** Integrated Total Express carrier API for briefcase deliveries in the Envios page. Features include:
-  - Created `server/services/totalExpressService.ts` with freight quotation, shipment registration, and tracking capabilities
-  - Automatic inclusion in freight calculations when credentials are configured
-  - New endpoints: `/api/envio/total-express/status`, `/api/envio/total-express/cotar`, `/api/envio/total-express/registrar`, `/api/envio/total-express/rastrear/:codigo`
-  - Webhook endpoint for status updates: `/api/envio/webhooks/total-express`
-  - Required secrets: `TOTAL_EXPRESS_USER`, `TOTAL_EXPRESS_PASS`, `TOTAL_EXPRESS_REID`, `TOTAL_EXPRESS_SERVICE`
-
-## Known Blockers
-
-- **Pagar.me Split/Marketplace**: The Split feature must be enabled by Pagar.me support on both sandbox and production environments. Error "action_forbidden" indicates this feature is not yet activated.
-- **Total Express API IP Block**: A API da Total Express bloqueia IPs de cloud providers (incluindo Replit). Mensagem: "Acesso Negado! Seu IP foi arquivado para controle". Para usar a integração em produção, é necessário: 1) Contatar suporte.edi@totalexpress.com.br para liberar o IP do servidor de produção, ou 2) Configurar um proxy em servidor dedicado com IP fixo liberado.

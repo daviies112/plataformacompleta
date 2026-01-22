@@ -29,6 +29,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { WalletBadge } from "@/components/WalletBadge";
 
 const HeaderNavigation = () => {
   const navigate = useNavigate();
@@ -164,8 +165,9 @@ const HeaderNavigation = () => {
             </DropdownMenu>
           </nav>
 
-          {/* Settings Icon Only */}
-          <div className="flex items-center flex-shrink-0">
+          {/* Wallet Balance & Settings */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <WalletBadge />
             <Button
               onClick={() => navigate("/settings")}
               variant={location.pathname === "/settings" ? "default" : "ghost"}
