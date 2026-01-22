@@ -38,7 +38,7 @@ export default defineConfig(({ mode }) => ({
     host: "0.0.0.0",
     port: parseInt(process.env.PORT || '5000', 10),
     strictPort: false,
-    allowedHosts: ['all'],
+    allowedHosts: true,
     hmr: process.env.REPLIT_DEV_DOMAIN ? {
       protocol: 'wss',
       host: process.env.REPLIT_DEV_DOMAIN,
