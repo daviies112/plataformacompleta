@@ -53,7 +53,8 @@ ExecutiveAI Pro utilizes a modern web stack designed for scalability and maintai
 - **WhatsApp Business API:** For business communication.
 - **Stripe Connect:** For payment splitting in the NEXUS reseller platform.
 - **Pagar.me:** Brazilian payment gateway for PIX and credit card payments in NEXUS reseller platform. Uses tokenization for PCI compliance. Requires `CHAVE_SECRETA` and `CHAVE_PUBLICA` secrets.
-- **Shipping Carrier APIs:** Correios, Jadlog, Loggi, Azul Cargo for shipping services.
+- **Shipping Carrier APIs:** Correios, Jadlog, Loggi, Azul Cargo, Total Express for shipping services.
+- **Total Express:** Brazilian carrier integration for briefcase (maleta) deliveries. Requires `TOTAL_EXPRESS_USER`, `TOTAL_EXPRESS_PASS`, `TOTAL_EXPRESS_REID`, and `TOTAL_EXPRESS_SERVICE` secrets.
 
 ## Documentation
 
@@ -101,6 +102,13 @@ ExecutiveAI Pro utilizes a modern web stack designed for scalability and maintai
   - Created `assinaturaLogger` utility in `server/lib/logger.ts` to disable console.logs in production
   - Memoized ProgressTrackerDisplay component with memo() and useMemo()
   - Expected improvement: ~50% faster Time to Interactive (from 3-5s to ~1.5s)
+
+- **Total Express Shipping Integration (January 2026):** Integrated Total Express carrier API for briefcase deliveries in the Envios page. Features include:
+  - Created `server/services/totalExpressService.ts` with freight quotation, shipment registration, and tracking capabilities
+  - Automatic inclusion in freight calculations when credentials are configured
+  - New endpoints: `/api/envio/total-express/status`, `/api/envio/total-express/cotar`, `/api/envio/total-express/registrar`, `/api/envio/total-express/rastrear/:codigo`
+  - Webhook endpoint for status updates: `/api/envio/webhooks/total-express`
+  - Required secrets: `TOTAL_EXPRESS_USER`, `TOTAL_EXPRESS_PASS`, `TOTAL_EXPRESS_REID`, `TOTAL_EXPRESS_SERVICE`
 
 ## Known Blockers
 

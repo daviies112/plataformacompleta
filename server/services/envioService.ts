@@ -1,4 +1,5 @@
 import { supabaseOwner } from '../config/supabaseOwner';
+import { totalExpressService } from './totalExpressService';
 // Usando supabaseOwner diretamente para acessar contracts
 
 export interface Transportadora {
@@ -228,6 +229,45 @@ class EnvioService {
 
       const created = await this.createCotacao(cotacao);
       cotacoes.push(created);
+    }
+
+    // Adicionar cotação Total Express se configurado
+    if (totalExpressService.isConfigured()) {
+      try {
+        const cotacaoTotalExpress = await totalExpressService.cotarFrete({
+          cepOrigem: dados.cepOrigem,
+          cepDestino: dados.cepDestino,
+          peso: dados.peso,
+          altura: dados.altura,
+          largura: dados.largura,
+          comprimento: dados.comprimento,
+          valorDeclarado: dados.valorDeclarado
+        });
+
+        if (cotacaoTotalExpress.success && cotacaoTotalExpress.valor_frete > 0) {
+          const cotacaoTE: Partial<CotacaoFrete> = {
+            admin_id: adminId,
+            cep_origem: dados.cepOrigem,
+            cep_destino: dados.cepDestino,
+            peso_kg: dados.peso,
+            altura_cm: dados.altura,
+            largura_cm: dados.largura,
+            comprimento_cm: dados.comprimento,
+            valor_declarado: dados.valorDeclarado,
+            transportadora_nome: cotacaoTotalExpress.transportadora_nome,
+            servico: cotacaoTotalExpress.servico,
+            valor_frete: cotacaoTotalExpress.valor_frete,
+            prazo_dias: cotacaoTotalExpress.prazo_dias,
+            selecionado: false
+          };
+
+          const createdTE = await this.createCotacao(cotacaoTE);
+          cotacoes.push(createdTE);
+          console.log('[EnvioService] Cotação Total Express adicionada:', cotacaoTotalExpress.valor_frete);
+        }
+      } catch (error) {
+        console.error('[EnvioService] Erro ao cotar Total Express:', error);
+      }
     }
 
     return cotacoes.sort((a, b) => (a.valor_frete || 0) - (b.valor_frete || 0));

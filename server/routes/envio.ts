@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { envioService } from '../services/envioService';
+import { totalExpressService } from '../services/totalExpressService';
 
 const router = Router();
 
@@ -242,6 +243,206 @@ router.post('/config', async (req: Request, res: Response) => {
     res.json(config);
   } catch (error: any) {
     console.error('[Envio] Erro ao salvar configuração:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ==================== TOTAL EXPRESS ====================
+
+router.get('/total-express/status', async (req: Request, res: Response) => {
+  try {
+    const isConfigured = totalExpressService.isConfigured();
+    res.json({ 
+      configured: isConfigured,
+      transportadora: 'Total Express'
+    });
+  } catch (error: any) {
+    console.error('[TotalExpress] Erro ao verificar status:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.post('/total-express/cotar', async (req: Request, res: Response) => {
+  try {
+    const { cepOrigem, cepDestino, peso, altura, largura, comprimento, valorDeclarado } = req.body;
+
+    if (!cepOrigem || !cepDestino || !peso) {
+      return res.status(400).json({ error: 'CEP de origem, destino e peso são obrigatórios' });
+    }
+
+    const cotacao = await totalExpressService.cotarFrete({
+      cepOrigem: cepOrigem.replace(/\D/g, ''),
+      cepDestino: cepDestino.replace(/\D/g, ''),
+      peso: parseFloat(peso),
+      altura: parseFloat(altura) || 10,
+      largura: parseFloat(largura) || 10,
+      comprimento: parseFloat(comprimento) || 10,
+      valorDeclarado: parseFloat(valorDeclarado) || 0
+    });
+
+    res.json(cotacao);
+  } catch (error: any) {
+    console.error('[TotalExpress] Erro na cotação:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.post('/total-express/registrar', async (req: Request, res: Response) => {
+  try {
+    const adminId = getAdminId(req);
+    const {
+      envio_id,
+      pedido,
+      destinatarioNome,
+      destinatarioCpfCnpj,
+      destinatarioTelefone,
+      destinatarioEmail,
+      destinatarioCep,
+      destinatarioLogradouro,
+      destinatarioNumero,
+      destinatarioComplemento,
+      destinatarioBairro,
+      destinatarioCidade,
+      destinatarioUf,
+      peso,
+      altura,
+      largura,
+      comprimento,
+      valorDeclarado,
+      descricaoConteudo
+    } = req.body;
+
+    if (!pedido || !destinatarioNome || !destinatarioCep) {
+      return res.status(400).json({ error: 'Pedido, nome e CEP do destinatário são obrigatórios' });
+    }
+
+    const resultado = await totalExpressService.registrarColeta({
+      pedido,
+      destinatarioNome,
+      destinatarioCpfCnpj,
+      destinatarioTelefone,
+      destinatarioEmail,
+      destinatarioCep: destinatarioCep.replace(/\D/g, ''),
+      destinatarioLogradouro,
+      destinatarioNumero,
+      destinatarioComplemento,
+      destinatarioBairro,
+      destinatarioCidade,
+      destinatarioUf,
+      peso: parseFloat(peso) || 0.5,
+      altura: parseFloat(altura) || 10,
+      largura: parseFloat(largura) || 10,
+      comprimento: parseFloat(comprimento) || 10,
+      valorDeclarado: parseFloat(valorDeclarado) || 0,
+      descricaoConteudo
+    });
+
+    if (resultado.success && resultado.codigoRastreio && envio_id) {
+      await envioService.updateEnvio(envio_id, adminId, {
+        codigo_rastreio: resultado.codigoRastreio,
+        transportadora_nome: 'Total Express',
+        status: 'aguardando_coleta'
+      });
+
+      await envioService.addRastreamentoEvento({
+        envio_id: envio_id,
+        codigo_rastreio: resultado.codigoRastreio,
+        data_hora: new Date().toISOString(),
+        status: 'Registrado na Total Express',
+        descricao: `AWB: ${resultado.awb}`,
+        origem_api: true
+      });
+    }
+
+    res.json(resultado);
+  } catch (error: any) {
+    console.error('[TotalExpress] Erro ao registrar coleta:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.get('/total-express/rastrear/:codigo', async (req: Request, res: Response) => {
+  try {
+    const { codigo } = req.params;
+    const resultado = await totalExpressService.rastrear(codigo);
+    res.json(resultado);
+  } catch (error: any) {
+    console.error('[TotalExpress] Erro no rastreamento:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Webhook para receber atualizações de status da Total Express
+// Autenticado via secret header para segurança
+router.post('/webhooks/total-express', async (req: Request, res: Response) => {
+  try {
+    // Validar secret para autenticação do webhook
+    const webhookSecret = req.headers['x-totalexpress-secret'] || req.headers['authorization'];
+    const expectedSecret = process.env.TOTAL_EXPRESS_WEBHOOK_SECRET || process.env.TOTAL_EXPRESS_PASS;
+    
+    if (!expectedSecret) {
+      console.log('[TotalExpress Webhook] Secret não configurado - webhook desabilitado');
+      return res.status(503).json({ error: 'Webhook não configurado' });
+    }
+    
+    // Aceitar tanto header customizado quanto Bearer token
+    const receivedSecret = typeof webhookSecret === 'string' 
+      ? webhookSecret.replace('Bearer ', '') 
+      : null;
+      
+    if (!receivedSecret || receivedSecret !== expectedSecret) {
+      console.warn('[TotalExpress Webhook] Tentativa não autorizada');
+      return res.status(401).json({ error: 'Não autorizado' });
+    }
+
+    const { awb, status, dataEvento, descricao, local } = req.body;
+    
+    console.log('[TotalExpress Webhook] Recebido:', { awb, status });
+
+    if (!awb) {
+      return res.status(400).json({ error: 'AWB é obrigatório' });
+    }
+
+    // Validar status permitidos
+    const validStatuses = ['COLETADO', 'EM_TRANSITO', 'SAIU_ENTREGA', 'ENTREGUE', 'DEVOLVIDO', 'PENDENTE', 'CANCELADO'];
+    if (status && !validStatuses.includes(status.toUpperCase())) {
+      console.warn('[TotalExpress Webhook] Status inválido:', status);
+      return res.status(400).json({ error: 'Status inválido' });
+    }
+
+    const resultado = await envioService.getRastreamentoByCodigo(awb);
+    
+    if (resultado.envio) {
+      await envioService.addRastreamentoEvento({
+        envio_id: resultado.envio.id,
+        codigo_rastreio: awb,
+        data_hora: dataEvento || new Date().toISOString(),
+        status: status || 'Atualização',
+        descricao: descricao || '',
+        local: local || '',
+        origem_api: true
+      });
+
+      const statusMap: Record<string, string> = {
+        'COLETADO': 'coletado',
+        'EM_TRANSITO': 'em_transito',
+        'SAIU_ENTREGA': 'saiu_entrega',
+        'ENTREGUE': 'entregue',
+        'DEVOLVIDO': 'devolvido'
+      };
+
+      if (statusMap[status?.toUpperCase()]) {
+        await envioService.updateEnvio(resultado.envio.id, resultado.envio.admin_id, {
+          status: statusMap[status.toUpperCase()] as any
+        });
+      }
+
+      console.log('[TotalExpress Webhook] Evento registrado para envio:', resultado.envio.id);
+    }
+
+    res.send('OK');
+  } catch (error: any) {
+    console.error('[TotalExpress Webhook] Erro:', error);
     res.status(500).json({ error: error.message });
   }
 });
