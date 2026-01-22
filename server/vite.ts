@@ -33,6 +33,7 @@ export async function setupVite(app: Express, server: Server) {
       middlewareMode: true,
       hmr: {
         server: server, // Use the existing HTTP server for HMR websocket
+        timeout: 30000,
       },
       allowedHosts: true,
     },

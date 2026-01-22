@@ -186,3 +186,4 @@
 [x] 183. All background jobs, queues, and polling services running
 [x] 184. Project import to Replit environment completed successfully - January 22, 2026
 [x] 185. Configured workflow with webview output type for port 5000 to ensure preview stability - January 22, 2026
+[x] 186. Increased HMR timeouts in vite.config.ts and server/vite.ts to prevent connection loss in preview - January 22, 2026
