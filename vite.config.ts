@@ -43,7 +43,7 @@ export default defineConfig(({ mode }) => ({
       protocol: 'wss',
       host: process.env.REPLIT_DEV_DOMAIN,
       clientPort: 443,
-      timeout: 30000,
+      timeout: 120000,
     } : true,
   },
   build: {
