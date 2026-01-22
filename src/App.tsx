@@ -3,30 +3,116 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "./contexts/AuthContext";
 import { NotificationProvider } from "./contexts/NotificationContext";
 import { queryClient } from "./lib/queryClient";
-import PlatformRouter from "./platforms/PlatformRouter";
 import { InstallPWAButton } from "./components/InstallPWAButton";
 import { Loader2 } from "lucide-react";
 
-/**
- * App Principal - Versão Profissional com Separação Desktop/Mobile
- * 
- * Detecta automaticamente a plataforma (desktop vs mobile) e renderiza
- * o app apropriado com design e navegação otimizados para cada plataforma.
- * 
- * Arquitetura:
- * - Desktop: Header horizontal + navegação superior
- * - Mobile: Header compacto + navegação inferior (bottom nav)
- * - Roteamento completamente separado e independente
- * 
- * NOTA: HMSRoomProvider foi movido para Meeting100ms para evitar carregar o SDK 100ms
- * em todas as páginas, melhorando significativamente o tempo de carregamento no mobile.
- */
+const LoadingFallback = () => (
+  <div className="min-h-screen flex items-center justify-center bg-background">
+    <Loader2 className="w-8 h-8 animate-spin text-primary" />
+  </div>
+);
+
+const FormLoader = () => (
+  <div className="min-h-screen flex flex-col items-center justify-center bg-background">
+    <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" />
+    <p className="text-muted-foreground text-sm">Carregando formulário...</p>
+  </div>
+);
+
 const AssinaturaClientPage = lazy(() => import('./pages/AssinaturaClientPage'));
+const ReuniaoPublica = lazy(() => import('./pages/ReuniaoPublica'));
+const FormularioPublicoWrapper = lazy(() => import('./features/formularios-platform/pages/FormularioPublicoWrapper'));
+const PublicStore = lazy(() => import('./features/revendedora/pages/public/PublicStore'));
+const PublicCheckout = lazy(() => import('./features/revendedora/pages/public/PublicCheckout'));
+const PlatformRouter = lazy(() => import('./platforms/PlatformRouter'));
+
+const PublicRoutes = () => {
+  const location = useLocation();
+  const path = location.pathname;
+  
+  if (path.startsWith('/assinar/')) {
+    return (
+      <Suspense fallback={<LoadingFallback />}>
+        <AssinaturaClientPage />
+      </Suspense>
+    );
+  }
+  
+  if (path.startsWith('/f/') || 
+      path.startsWith('/form/') || 
+      path.startsWith('/formulario/') ||
+      /^\/[^/]+\/form\//.test(path)) {
+    return (
+      <Suspense fallback={<FormLoader />}>
+        <FormularioPublicoWrapper />
+      </Suspense>
+    );
+  }
+  
+  if (path.startsWith('/reuniao/') || path.startsWith('/reuniao-publica/')) {
+    return (
+      <Suspense fallback={<LoadingFallback />}>
+        <ReuniaoPublica />
+      </Suspense>
+    );
+  }
+  
+  if (path.startsWith('/loja/')) {
+    return (
+      <Suspense fallback={<LoadingFallback />}>
+        <PublicStore />
+      </Suspense>
+    );
+  }
+  
+  if (path.startsWith('/checkout/')) {
+    return (
+      <Suspense fallback={<LoadingFallback />}>
+        <PublicCheckout />
+      </Suspense>
+    );
+  }
+  
+  return null;
+};
+
+const isPublicRoute = (path: string): boolean => {
+  return (
+    path.startsWith('/assinar/') ||
+    path.startsWith('/f/') ||
+    path.startsWith('/form/') ||
+    path.startsWith('/formulario/') ||
+    path.startsWith('/reuniao/') ||
+    path.startsWith('/reuniao-publica/') ||
+    path.startsWith('/loja/') ||
+    path.startsWith('/checkout/') ||
+    /^\/[^/]+\/form\//.test(path)
+  );
+};
+
+const AppRoutes = () => {
+  const location = useLocation();
+  
+  if (isPublicRoute(location.pathname)) {
+    return <PublicRoutes />;
+  }
+  
+  return (
+    <AuthProvider>
+      <NotificationProvider>
+        <Suspense fallback={<LoadingFallback />}>
+          <PlatformRouter />
+        </Suspense>
+        <InstallPWAButton />
+      </NotificationProvider>
+    </AuthProvider>
+  );
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -46,24 +132,7 @@ const App = () => (
             v7_relativeSplatPath: true,
           }}
         >
-          <AuthProvider>
-            <NotificationProvider>
-              <Routes>
-                <Route 
-                  path="/assinar/:token" 
-                  element={
-                    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-background"><Loader2 className="w-12 h-12 animate-spin text-primary" /></div>}>
-                      <AssinaturaClientPage />
-                    </Suspense>
-                  } 
-                />
-                <Route path="/*" element={<PlatformRouter />} />
-              </Routes>
-              
-              {/* PWA Install Button - Aparece em todas as páginas no canto inferior direito (desktop only) */}
-              <InstallPWAButton />
-            </NotificationProvider>
-          </AuthProvider>
+          <AppRoutes />
         </BrowserRouter>
       </TooltipProvider>
     </ThemeProvider>
