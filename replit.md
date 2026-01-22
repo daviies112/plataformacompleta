@@ -103,6 +103,16 @@ ExecutiveAI Pro utilizes a modern web stack designed for scalability and maintai
   - Memoized ProgressTrackerDisplay component with memo() and useMemo()
   - Expected improvement: ~50% faster Time to Interactive (from 3-5s to ~1.5s)
 
+- **Performance Optimization - Code Splitting (January 2026):** Implemented aggressive code splitting to reduce initial bundle size from 4.8MB to 2.1MB (56% reduction). Heavy libraries are now loaded on demand:
+  - `face-detection` chunk (624KB): TensorFlow + face-api.js for biometric verification
+  - `video-meeting` chunk (490KB): 100ms SDK for video conferences
+  - `pdf-generator` chunk (727KB): html2pdf + jsPDF for PDF generation
+  - `charts` chunk (387KB): Recharts for dashboard analytics
+  - `spreadsheet` chunk (415KB): xlsx for Excel exports
+  - `animations` chunk (114KB): Framer Motion for verification flow
+  - `monitoring` chunk (249KB): Sentry for error tracking
+  - Plus: supabase, barcode, date-utils, validation, query, http, router, icons chunks
+  
 - **Total Express Shipping Integration (January 2026):** Integrated Total Express carrier API for briefcase deliveries in the Envios page. Features include:
   - Created `server/services/totalExpressService.ts` with freight quotation, shipment registration, and tracking capabilities
   - Automatic inclusion in freight calculations when credentials are configured

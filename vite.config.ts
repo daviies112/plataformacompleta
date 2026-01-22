@@ -47,7 +47,6 @@ export default defineConfig(({ mode }) => ({
     } : true,
   },
   build: {
-    // Otimizações de build para performance
     target: 'esnext',
     minify: 'esbuild',
     sourcemap: mode === 'development',
@@ -56,16 +55,67 @@ export default defineConfig(({ mode }) => ({
         main: path.resolve(__dirname, 'index.html'),
       },
       output: {
-        // Code splitting para melhor cache
-        manualChunks: {
-          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'ui-vendor': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-select'],
-          // Removido platform chunks - React.lazy() já faz o code splitting automaticamente
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('face-api') || id.includes('@tensorflow') || id.includes('tfjs')) {
+              return 'face-detection';
+            }
+            if (id.includes('fabric')) {
+              return 'label-designer';
+            }
+            if (id.includes('framer-motion') || id.includes('motion-dom')) {
+              return 'animations';
+            }
+            if (id.includes('recharts') || id.includes('d3-')) {
+              return 'charts';
+            }
+            if (id.includes('@100mslive') || id.includes('hms')) {
+              return 'video-meeting';
+            }
+            if (id.includes('html2pdf') || id.includes('jspdf') || id.includes('html2canvas')) {
+              return 'pdf-generator';
+            }
+            if (id.includes('@supabase')) {
+              return 'supabase';
+            }
+            if (id.includes('xlsx') || id.includes('exceljs')) {
+              return 'spreadsheet';
+            }
+            if (id.includes('@sentry')) {
+              return 'monitoring';
+            }
+            if (id.includes('qrcode') || id.includes('jsbarcode')) {
+              return 'barcode';
+            }
+            if (id.includes('date-fns')) {
+              return 'date-utils';
+            }
+            if (id.includes('zod')) {
+              return 'validation';
+            }
+            if (id.includes('@tanstack/react-query')) {
+              return 'query';
+            }
+            if (id.includes('axios')) {
+              return 'http';
+            }
+            if (id.includes('react') || id.includes('react-dom')) {
+              return 'react-core';
+            }
+            if (id.includes('react-router') || id.includes('wouter')) {
+              return 'router';
+            }
+            if (id.includes('@radix-ui')) {
+              return 'ui-vendor';
+            }
+            if (id.includes('lucide-react')) {
+              return 'icons';
+            }
+          }
         },
       },
     },
-    // Chunk size warnings
-    chunkSizeWarningLimit: 1000,
+    chunkSizeWarningLimit: 500,
   },
   plugins: [tsconfigPaths(), react(), mode === "development" && componentTagger()].filter(Boolean),
   resolve: {
