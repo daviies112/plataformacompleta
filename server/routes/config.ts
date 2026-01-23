@@ -2524,10 +2524,16 @@ export function setupConfigRoutes(app: Express) {
         .limit(1);
       
       if (configFromDb[0]) {
+        const decryptedUser = decrypt(configFromDb[0].user);
+        const decryptedReid = decrypt(configFromDb[0].reid);
+        
         return res.json({
           configured: true,
+          user: decryptedUser,
+          reid: decryptedReid,
+          serviceType: configFromDb[0].service,
+          profitMargin: configFromDb[0].profitMargin,
           testMode: configFromDb[0].testMode,
-          service: configFromDb[0].service,
           createdAt: configFromDb[0].createdAt,
           updatedAt: configFromDb[0].updatedAt,
         });
@@ -2633,6 +2639,10 @@ export function setupConfigRoutes(app: Express) {
       
       console.log(`✅ [TotalExpress] Configuração salva para tenant ${tenantId}`);
       
+      // Invalidate cache so new credentials are used immediately
+      const { totalExpressService } = await import("../services/totalExpressService");
+      totalExpressService.invalidateCache(tenantId);
+      
       return res.json({
         success: true,
         message: "Configuração do Total Express salva com sucesso",
@@ -2689,6 +2699,10 @@ export function setupConfigRoutes(app: Express) {
       
       await db.delete(totalExpressConfig)
         .where(eq(totalExpressConfig.tenantId, tenantId));
+      
+      // Invalidate cache so system falls back to env vars immediately
+      const { totalExpressService } = await import("../services/totalExpressService");
+      totalExpressService.invalidateCache(tenantId);
       
       console.log(`🗑️ [TotalExpress] Configuração removida para tenant ${tenantId}`);
       

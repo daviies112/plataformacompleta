@@ -18,7 +18,9 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Video, Workflow, Copy, RefreshCw, Trash2, Check, Eye, EyeOff } from "lucide-react";
+import { Loader2, Video, Workflow, Copy, RefreshCw, Trash2, Check, Eye, EyeOff, Truck } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 
 const configSchema = z.object({
@@ -41,6 +43,14 @@ export default function Configuracoes() {
   const [generatedApiKey, setGeneratedApiKey] = useState<string | null>(null);
   const [showApiKey, setShowApiKey] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  const [totalExpressUser, setTotalExpressUser] = useState("");
+  const [totalExpressPass, setTotalExpressPass] = useState("");
+  const [totalExpressReid, setTotalExpressReid] = useState("");
+  const [totalExpressService, setTotalExpressService] = useState("EXP");
+  const [profitMargin, setProfitMargin] = useState("40");
+  const [testMode, setTestMode] = useState(false);
+  const [showTotalExpressPass, setShowTotalExpressPass] = useState(false);
 
   const { data: tenant, isLoading } = useQuery({
     queryKey: ["/api/tenants/me"],
@@ -292,6 +302,180 @@ export default function Configuracoes() {
         description: "API Key copiada para a área de transferência",
       });
     }
+  };
+
+  const { data: totalExpressConfig, isLoading: isLoadingTotalExpress } = useQuery({
+    queryKey: ["/api/config/total-express"],
+    queryFn: async () => {
+      try {
+        const response = await fetch("/api/config/total-express", {
+          headers: { "Authorization": `Bearer ${localStorage.getItem('token')}` },
+        });
+        if (!response.ok) return { configured: false };
+        return response.json();
+      } catch (error) {
+        console.error("❌ [TotalExpress] Erro ao carregar config:", error);
+        return { configured: false };
+      }
+    },
+  });
+
+  useEffect(() => {
+    if (totalExpressConfig?.configured) {
+      setTotalExpressUser(totalExpressConfig.user || "");
+      setTotalExpressReid(totalExpressConfig.reid || "");
+      setTotalExpressService(totalExpressConfig.serviceType || "EXP");
+      const marginPercent = totalExpressConfig.profitMargin 
+        ? Math.round((totalExpressConfig.profitMargin - 1) * 100).toString()
+        : "40";
+      setProfitMargin(marginPercent);
+      setTestMode(totalExpressConfig.testMode || false);
+    }
+  }, [totalExpressConfig]);
+
+  const saveTotalExpressMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const response = await fetch("/api/config/total-express", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Erro ao salvar configuração");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/config/total-express"] });
+      setTotalExpressPass("");
+      toast({
+        title: "TotalExpress configurado",
+        description: "Credenciais salvas com sucesso",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const testTotalExpressMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const response = await fetch("/api/config/total-express/test", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Credenciais inválidas");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Sucesso!",
+        description: "Conexão com TotalExpress validada com sucesso",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro na validação",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteTotalExpressMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch("/api/config/total-express", {
+        method: "DELETE",
+        headers: { 
+          "Authorization": `Bearer ${localStorage.getItem('token')}`
+        },
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Erro ao remover configuração");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      setTotalExpressUser("");
+      setTotalExpressPass("");
+      setTotalExpressReid("");
+      setTotalExpressService("EXP");
+      setProfitMargin("40");
+      setTestMode(false);
+      queryClient.invalidateQueries({ queryKey: ["/api/config/total-express"] });
+      toast({
+        title: "Configuração removida",
+        description: "Credenciais do TotalExpress foram removidas",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSaveTotalExpress = () => {
+    if (!totalExpressUser || !totalExpressReid) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Usuário e Reid são obrigatórios",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!totalExpressConfig?.configured && !totalExpressPass) {
+      toast({
+        title: "Senha obrigatória",
+        description: "A senha é obrigatória na primeira configuração",
+        variant: "destructive",
+      });
+      return;
+    }
+    const marginDecimal = 1 + (parseFloat(profitMargin) / 100);
+    saveTotalExpressMutation.mutate({
+      user: totalExpressUser,
+      password: totalExpressPass || undefined,
+      reid: totalExpressReid,
+      serviceType: totalExpressService,
+      profitMargin: marginDecimal,
+      testMode,
+    });
+  };
+
+  const handleTestTotalExpress = () => {
+    if (!totalExpressUser || !totalExpressReid) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Preencha usuário e Reid para testar",
+        variant: "destructive",
+      });
+      return;
+    }
+    testTotalExpressMutation.mutate({
+      user: totalExpressUser,
+      password: totalExpressPass || undefined,
+      reid: totalExpressReid,
+      serviceType: totalExpressService,
+    });
   };
 
   function onSubmit(values: z.infer<typeof configSchema>) {
@@ -720,6 +904,203 @@ export default function Configuracoes() {
                     </div>
                   </>
                 )}
+              </CardContent>
+            </Card>
+
+            <Card className="md:col-span-2">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Truck className="h-5 w-5 text-emerald-500" />
+                    <div>
+                      <CardTitle>Integração TotalExpress</CardTitle>
+                      <CardDescription>
+                        Configure as credenciais para cotação e envio de fretes
+                      </CardDescription>
+                    </div>
+                  </div>
+                  {isLoadingTotalExpress ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : totalExpressConfig?.configured ? (
+                    <Badge variant="default" className="bg-green-500" data-testid="badge-totalexpress-configured">Configurado</Badge>
+                  ) : (
+                    <Badge variant="secondary" data-testid="badge-totalexpress-not-configured">Não configurado</Badge>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Usuário *</label>
+                    <Input
+                      value={totalExpressUser}
+                      onChange={(e) => setTotalExpressUser(e.target.value)}
+                      placeholder="Usuário TotalExpress"
+                      data-testid="input-totalexpress-user"
+                    />
+                    <p className="text-xs text-muted-foreground">Usuário de acesso à API</p>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Senha {!totalExpressConfig?.configured && "*"}</label>
+                    <div className="flex gap-2">
+                      <Input
+                        type={showTotalExpressPass ? "text" : "password"}
+                        value={totalExpressPass}
+                        onChange={(e) => setTotalExpressPass(e.target.value)}
+                        placeholder={totalExpressConfig?.configured ? "••••••••" : "Senha TotalExpress"}
+                        data-testid="input-totalexpress-password"
+                      />
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="outline"
+                        onClick={() => setShowTotalExpressPass(!showTotalExpressPass)}
+                        data-testid="button-toggle-totalexpress-password"
+                      >
+                        {showTotalExpressPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {totalExpressConfig?.configured 
+                        ? "Deixe em branco para manter a senha atual" 
+                        : "Senha de acesso à API"}
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Reid *</label>
+                    <Input
+                      value={totalExpressReid}
+                      onChange={(e) => setTotalExpressReid(e.target.value)}
+                      placeholder="Código Reid"
+                      data-testid="input-totalexpress-reid"
+                    />
+                    <p className="text-xs text-muted-foreground">Código de identificação do remetente</p>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Tipo de Serviço</label>
+                    <Select value={totalExpressService} onValueChange={setTotalExpressService}>
+                      <SelectTrigger data-testid="select-totalexpress-service">
+                        <SelectValue placeholder="Selecione o serviço" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="EXP" data-testid="select-item-exp">EXP - Expresso</SelectItem>
+                        <SelectItem value="ESP" data-testid="select-item-esp">ESP - Especial</SelectItem>
+                        <SelectItem value="PRM" data-testid="select-item-prm">PRM - Premium</SelectItem>
+                        <SelectItem value="STD" data-testid="select-item-std">STD - Standard</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">Modalidade de entrega padrão</p>
+                  </div>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Margem de Lucro (%)</label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        min="0"
+                        max="500"
+                        value={profitMargin}
+                        onChange={(e) => setProfitMargin(e.target.value)}
+                        placeholder="40"
+                        className="w-24"
+                        data-testid="input-totalexpress-profit-margin"
+                      />
+                      <span className="text-sm text-muted-foreground">%</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Markup sobre o valor do frete (ex: 40 = 40% de margem)
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Modo de Teste</label>
+                    <div className="flex items-center space-x-2 pt-2">
+                      <Checkbox
+                        id="totalexpress-testmode"
+                        checked={testMode}
+                        onCheckedChange={(checked) => setTestMode(!!checked)}
+                        data-testid="checkbox-totalexpress-testmode"
+                      />
+                      <label 
+                        htmlFor="totalexpress-testmode" 
+                        className="text-sm text-muted-foreground cursor-pointer"
+                      >
+                        Usar ambiente de homologação
+                      </label>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Ative para testar sem gerar envios reais
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-2 flex-wrap">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={testTotalExpressMutation.isPending || !totalExpressUser || !totalExpressReid}
+                    onClick={handleTestTotalExpress}
+                    data-testid="button-test-totalexpress"
+                  >
+                    {testTotalExpressMutation.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Testando...
+                      </>
+                    ) : (
+                      "Testar Conexão"
+                    )}
+                  </Button>
+                  <Button
+                    type="button"
+                    disabled={saveTotalExpressMutation.isPending || !totalExpressUser || !totalExpressReid}
+                    onClick={handleSaveTotalExpress}
+                    data-testid="button-save-totalexpress"
+                  >
+                    {saveTotalExpressMutation.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Salvando...
+                      </>
+                    ) : (
+                      "Salvar Configuração"
+                    )}
+                  </Button>
+                  {totalExpressConfig?.configured && (
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      disabled={deleteTotalExpressMutation.isPending}
+                      onClick={() => deleteTotalExpressMutation.mutate()}
+                      data-testid="button-delete-totalexpress"
+                    >
+                      {deleteTotalExpressMutation.isPending ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Removendo...
+                        </>
+                      ) : (
+                        <>
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Remover Configuração
+                        </>
+                      )}
+                    </Button>
+                  )}
+                </div>
+
+                <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 space-y-2">
+                  <p className="text-sm font-medium text-emerald-900">
+                    ℹ️ Sobre a TotalExpress:
+                  </p>
+                  <ul className="text-sm text-emerald-800 space-y-1 ml-4 list-disc">
+                    <li>Solicite suas credenciais no portal da TotalExpress</li>
+                    <li>O código Reid identifica seu cadastro como remetente</li>
+                    <li>A margem de lucro será aplicada sobre o valor do frete retornado</li>
+                    <li>Use o modo de teste para validar a integração antes de ir para produção</li>
+                  </ul>
+                </div>
               </CardContent>
             </Card>
 

@@ -1,6 +1,6 @@
 {
   "isRunning": true,
-  "startedAt": "2026-01-23T22:52:01.796Z",
+  "startedAt": "2026-01-23T23:07:51.584Z",
   "lastExecutions": {
     "dev-daviemericko_gmail_com-dev-daviemericko_gmail_com": {
       "clientId": "dev-daviemericko_gmail_com",
@@ -32,7 +32,7 @@
     "totalNewClientsDetected": 1,
     "totalEventsCreated": 0,
     "totalErrors": 0,
-    "uptime": 599
+    "uptime": 0
   },
   "settings": {
     "detectionIntervalMinutes": 2,
