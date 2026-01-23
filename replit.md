@@ -63,3 +63,42 @@ ExecutiveAI Pro employs a modern web stack with a multi-tenant, API-driven archi
 - **WhatsApp Business API:** For business communication.
 - **Pagar.me:** Brazilian payment gateway for PIX and credit card payments, including payment splitting and tokenization.
 - **Shipping Carrier APIs:** Correios, Jadlog, Loggi, Azul Cargo, Total Express for shipping services.
+
+## TotalExpress API Integration
+
+**Authentication:** HTTP Basic Authentication (user:password encoded in Base64 in Authorization header)
+
+**Endpoint:** `https://edi.totalexpress.com.br/webservice_calculo_frete.php`
+
+**Required Secrets:**
+- `TOTAL_EXPRESS_USER` - Username for API access
+- `TOTAL_EXPRESS_PASS` - Password for API access
+- `TOTAL_EXPRESS_REID` - REID (origin identifier associated with the account)
+- `TOTAL_EXPRESS_SERVICE` - Service type code (must be `EXP`, `ESP`, `PRM`, or `STD`)
+
+**Valid Service Types:**
+| Code | Description |
+|------|-------------|
+| `EXP` | Expresso (most common) |
+| `ESP` | Especial |
+| `PRM` | Premium |
+| `STD` | Standard |
+
+**WSDL Parameters (calcularFreteRequest):**
+- `TipoServico` (string) - Service type code (EXP, ESP, etc.)
+- `CepDestino` (integer) - Destination ZIP code (origin is associated with REID)
+- `Peso` (string) - Weight in kg (e.g., "1.00")
+- `ValorDeclarado` (string) - Declared value in BRL (e.g., "100.00")
+- `TipoEntrega` (integer) - Delivery type (0 = standard)
+- `Altura`, `Largura`, `Profundidade` (integer, optional) - Dimensions in cm
+
+**Response Fields:**
+- `CodigoProc` - Processing code (0 = success)
+- `ValorServico` - Freight cost (e.g., "15,36")
+- `Prazo` - Delivery time in days
+- `ErroConsultaFrete` - Error message if failed
+
+**Important Notes:**
+- CEP origin is NOT sent in the request - it's associated with the REID
+- Do NOT send credentials in XML body - use HTTP Basic Auth header only
+- Service type "Expresso-01" is INVALID - use "EXP" instead
