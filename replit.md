@@ -106,3 +106,10 @@ ExecutiveAI Pro employs a modern web stack with a multi-tenant, API-driven archi
 - CEP origin is NOT sent in the request - it's associated with the REID
 - Do NOT send credentials in XML body - use HTTP Basic Auth header only
 - Service type "Expresso-01" is INVALID - use "EXP" instead
+
+**Frontend Integration:**
+- Public route available at `POST /api/public/frete/cotar` (no authentication required)
+- Request: `{ cepDestino, peso, altura, largura, comprimento, valorDeclarado }`
+- Response: `{ success, transportadora_nome, servico, valor_frete, prazo_dias, error? }`
+- CEP de origem is fixed (associated with REID account) - shown as readonly in UI
+- Page: `/envio` (Cotação de Frete section)

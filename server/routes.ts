@@ -102,6 +102,33 @@ export async function registerRoutes(app: Express) {
   app.use("/api/public/checkout", pagarmePublicRoutes);
   app.use("/api/public/store", publicStoreRoutes);
 
+  // Public shipping quote route - allows freight calculation without authentication
+  const { totalExpressService } = await import("./services/totalExpressService");
+  app.post("/api/public/frete/cotar", async (req, res) => {
+    try {
+      const { cepDestino, peso, altura, largura, comprimento, valorDeclarado } = req.body;
+
+      if (!cepDestino || !peso) {
+        return res.status(400).json({ error: "CEP de destino e peso são obrigatórios" });
+      }
+
+      const cotacao = await totalExpressService.cotarFrete({
+        cepOrigem: "04552000", // Fixed origin CEP (associated with REID)
+        cepDestino: String(cepDestino).replace(/\D/g, ''),
+        peso: parseFloat(peso) || 0.5,
+        altura: parseFloat(altura) || 10,
+        largura: parseFloat(largura) || 15,
+        comprimento: parseFloat(comprimento) || 20,
+        valorDeclarado: parseFloat(valorDeclarado) || 100
+      });
+
+      res.json(cotacao);
+    } catch (error: any) {
+      console.error("[PublicFrete] Erro na cotação:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Import utilities for protection logic
   const { log } = await import("./vite");
   const { SUPABASE_CONFIGURED } = await import("./config/supabaseOwner");

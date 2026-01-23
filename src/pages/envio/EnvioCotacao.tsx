@@ -20,7 +20,6 @@ interface CotacaoFrete {
 }
 
 interface CotacaoRequest {
-  cepOrigem: string;
   cepDestino: string;
   peso: number;
   altura: number;
@@ -29,36 +28,74 @@ interface CotacaoRequest {
   valorDeclarado: number;
 }
 
+// CEP de origem fixo (associado ao REID da TotalExpress)
+// Este CEP é configurado na conta TotalExpress e não pode ser alterado
+const CEP_ORIGEM_FIXO = "04552-000"; // São Paulo - Ponto principal
+
 const EnvioCotacao = () => {
   const { toast } = useToast();
   const [cotacoes, setCotacoes] = useState<CotacaoFrete[]>([]);
   const [formData, setFormData] = useState({
-    cepOrigem: "",
     cepDestino: "",
-    peso: "",
-    altura: "",
-    largura: "",
-    comprimento: "",
-    valorDeclarado: ""
+    peso: "0.5",
+    altura: "10",
+    largura: "15",
+    comprimento: "20",
+    valorDeclarado: "100.00"
   });
 
   const calcularMutation = useMutation({
     mutationFn: async (data: CotacaoRequest) => {
-      const response = await apiRequest("POST", "/api/envio/cotacoes/calcular", data);
-      return response.json();
+      // Usar a rota pública de cotação TotalExpress (não requer autenticação)
+      const response = await fetch("/api/public/frete/cotar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cepDestino: data.cepDestino.replace(/\D/g, ''),
+          peso: data.peso,
+          altura: data.altura,
+          largura: data.largura,
+          comprimento: data.comprimento,
+          valorDeclarado: data.valorDeclarado
+        })
+      });
+      const result = await response.json();
+      
+      // A API retorna um único resultado do TotalExpress
+      // Transformar em array para compatibilidade com a interface
+      if (result.success && result.valor_frete > 0) {
+        return [{
+          id: 'total-express-1',
+          transportadora_nome: result.transportadora_nome,
+          servico: result.servico,
+          valor_frete: result.valor_frete,
+          prazo_dias: result.prazo_dias
+        }];
+      } else if (result.error) {
+        throw new Error(result.error);
+      }
+      return [];
     },
     onSuccess: (data: CotacaoFrete[]) => {
       setCotacoes(data);
-      toast({
-        title: "Cotações calculadas",
-        description: `${data.length} opções de frete encontradas.`
-      });
+      if (data.length > 0) {
+        toast({
+          title: "Cotação realizada",
+          description: `Frete: R$ ${data[0].valor_frete.toFixed(2).replace('.', ',')} - ${data[0].prazo_dias} dias úteis`
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Nenhuma cotação disponível",
+          description: "Não foi possível obter cotação para este destino."
+        });
+      }
     },
     onError: (error: Error) => {
       toast({
         variant: "destructive",
         title: "Erro ao calcular frete",
-        description: error.message || "Tente novamente mais tarde."
+        description: error.message || "Verifique se as credenciais TotalExpress estão configuradas."
       });
     }
   });
@@ -71,14 +108,22 @@ const EnvioCotacao = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!formData.cepDestino || formData.cepDestino.replace(/\D/g, '').length < 8) {
+      toast({
+        variant: "destructive",
+        title: "CEP inválido",
+        description: "Digite um CEP de destino válido com 8 dígitos."
+      });
+      return;
+    }
+    
     const request: CotacaoRequest = {
-      cepOrigem: formData.cepOrigem,
       cepDestino: formData.cepDestino,
-      peso: parseFloat(formData.peso) || 0,
-      altura: parseFloat(formData.altura) || 0,
-      largura: parseFloat(formData.largura) || 0,
-      comprimento: parseFloat(formData.comprimento) || 0,
-      valorDeclarado: parseFloat(formData.valorDeclarado) || 0
+      peso: parseFloat(formData.peso) || 0.5,
+      altura: parseFloat(formData.altura) || 10,
+      largura: parseFloat(formData.largura) || 15,
+      comprimento: parseFloat(formData.comprimento) || 20,
+      valorDeclarado: parseFloat(formData.valorDeclarado) || 100
     };
 
     calcularMutation.mutate(request);
@@ -128,13 +173,13 @@ const EnvioCotacao = () => {
                         <Label htmlFor="cepOrigem">CEP de origem</Label>
                         <Input 
                           id="cepOrigem" 
-                          placeholder="00000-000" 
-                          className="mt-1.5" 
-                          required
-                          value={formData.cepOrigem}
-                          onChange={handleInputChange}
+                          value={CEP_ORIGEM_FIXO}
+                          className="mt-1.5 bg-muted cursor-not-allowed" 
+                          disabled
+                          readOnly
                           data-testid="input-cep-origem"
                         />
+                        <p className="text-xs text-muted-foreground mt-1">Ponto principal (fixo)</p>
                       </div>
                       <div>
                         <Label htmlFor="cepDestino">CEP de destino</Label>
