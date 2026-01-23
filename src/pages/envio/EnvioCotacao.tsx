@@ -8,7 +8,7 @@ import { Package, Truck, Clock, Shield, Star, ArrowRight, AlertCircle } from "lu
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { useLocation } from "wouter";
+import { useNavigate } from "react-router-dom";
 import EnvioNavigation from "./EnvioNavigation";
 
 interface CotacaoFrete {
@@ -34,7 +34,7 @@ const CEP_ORIGEM_FIXO = "32315-090"; // Contagem/MG - Ponto principal
 
 const EnvioCotacao = () => {
   const { toast } = useToast();
-  const [, navigate] = useLocation();
+  const navigate = useNavigate();
   const [cotacoes, setCotacoes] = useState<CotacaoFrete[]>([]);
   const [formData, setFormData] = useState({
     cepDestino: "",
