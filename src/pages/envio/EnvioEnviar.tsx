@@ -39,29 +39,43 @@ interface ContratoPendente {
   signed_at?: string;
 }
 
-interface EnvioCreateRequest {
-  contract_id: string;
-  destinatario_nome: string;
-  destinatario_cpf_cnpj?: string;
-  destinatario_email?: string;
-  destinatario_telefone?: string;
-  destinatario_cep: string;
-  destinatario_logradouro?: string;
-  destinatario_numero?: string;
-  destinatario_complemento?: string;
-  destinatario_cidade?: string;
-  destinatario_uf?: string;
-  peso_kg: number;
-  altura_cm: number;
-  largura_cm: number;
-  comprimento_cm: number;
-  valor_declarado?: number;
+interface TotalExpressRegistroRequest {
+  envio_id?: string;
+  pedido: string;
+  destinatarioNome: string;
+  destinatarioCpfCnpj?: string;
+  destinatarioTelefone?: string;
+  destinatarioEmail?: string;
+  destinatarioCep: string;
+  destinatarioLogradouro?: string;
+  destinatarioNumero?: string;
+  destinatarioComplemento?: string;
+  destinatarioBairro?: string;
+  destinatarioCidade?: string;
+  destinatarioUf?: string;
+  peso: number;
+  altura: number;
+  largura: number;
+  comprimento: number;
+  valorDeclarado: number;
+  descricaoConteudo?: string;
+  custoFrete?: number;
 }
 
-interface EnvioCreateResponse {
+interface TotalExpressRegistroResponse {
+  success: boolean;
+  awb?: string;
+  codigoRastreio?: string;
+  etiquetaUrl?: string;
+  numeroPedido?: string;
+  error?: string;
+}
+
+interface EnvioResult {
   id: string;
   codigo_rastreio: string;
   status: string;
+  etiquetaUrl?: string;
 }
 
 interface CotacaoSelecionada {
@@ -82,7 +96,7 @@ interface CotacaoSelecionada {
 const EnvioEnviar = () => {
   const { toast } = useToast();
   const [selectedContrato, setSelectedContrato] = useState<ContratoPendente | null>(null);
-  const [envioResult, setEnvioResult] = useState<EnvioCreateResponse | null>(null);
+  const [envioResult, setEnvioResult] = useState<EnvioResult | null>(null);
   const [cotacaoSelecionada, setCotacaoSelecionada] = useState<CotacaoSelecionada | null>(null);
   const [formData, setFormData] = useState({
     peso: "",
@@ -120,6 +134,7 @@ const EnvioEnviar = () => {
     rua: "",
     numero: "",
     complemento: "",
+    bairro: "",
     cidade: "",
     uf: "",
     cep: ""
@@ -130,24 +145,38 @@ const EnvioEnviar = () => {
   });
 
   const createEnvioMutation = useMutation({
-    mutationFn: async (data: EnvioCreateRequest) => {
-      const response = await apiRequest("POST", "/api/envio/envios", data);
+    mutationFn: async (data: TotalExpressRegistroRequest) => {
+      const response = await apiRequest("POST", "/api/envio/total-express/registrar", data);
       return response.json();
     },
-    onSuccess: (data: EnvioCreateResponse) => {
-      setEnvioResult(data);
-      queryClient.invalidateQueries({ queryKey: ['/api/envio/contratos-pendentes'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/envio/envios'] });
-      toast({
-        title: "Envio criado com sucesso!",
-        description: `Código de rastreio: ${data.codigo_rastreio}`
-      });
+    onSuccess: (data: TotalExpressRegistroResponse) => {
+      if (data.success && data.codigoRastreio) {
+        setEnvioResult({
+          id: data.numeroPedido || '',
+          codigo_rastreio: data.codigoRastreio,
+          status: 'aguardando_coleta',
+          etiquetaUrl: data.etiquetaUrl
+        });
+        queryClient.invalidateQueries({ queryKey: ['/api/envio/contratos-pendentes'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/envio/envios'] });
+        toast({
+          title: "Envio registrado na TotalExpress!",
+          description: `Código de rastreio: ${data.codigoRastreio}`
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Erro ao registrar envio",
+          description: data.error || "Não foi possível obter o código de rastreio"
+        });
+      }
     },
-    onError: (error: Error) => {
+    onError: (error: any) => {
+      const errorData = error?.data || {};
       toast({
         variant: "destructive",
         title: "Erro ao criar envio",
-        description: error.message || "Tente novamente mais tarde."
+        description: errorData.error || error.message || "Tente novamente mais tarde."
       });
     }
   });
@@ -166,19 +195,20 @@ const EnvioEnviar = () => {
     setSelectedContrato(contrato);
     setEnvioResult(null);
     setFormData({
-      peso: "",
-      altura: "",
-      largura: "",
-      comprimento: "",
-      valor_declarado: ""
+      peso: cotacaoSelecionada?.peso || "",
+      altura: cotacaoSelecionada?.altura || "",
+      largura: cotacaoSelecionada?.largura || "",
+      comprimento: cotacaoSelecionada?.comprimento || "",
+      valor_declarado: cotacaoSelecionada?.valorDeclarado || ""
     });
     setAddressData({
       rua: contrato.address_street || "",
       numero: contrato.address_number || "",
       complemento: contrato.address_complement || "",
+      bairro: "",
       cidade: contrato.address_city || "",
       uf: contrato.address_state || "",
-      cep: contrato.address_zipcode || ""
+      cep: contrato.address_zipcode || cotacaoSelecionada?.cepDestino || ""
     });
   };
 
@@ -196,23 +226,28 @@ const EnvioEnviar = () => {
       return;
     }
 
-    const request: EnvioCreateRequest = {
-      contract_id: selectedContrato.id,
-      destinatario_nome: selectedContrato.client_name,
-      destinatario_cpf_cnpj: selectedContrato.client_cpf,
-      destinatario_email: selectedContrato.client_email,
-      destinatario_telefone: selectedContrato.client_phone,
-      destinatario_logradouro: addressData.rua,
-      destinatario_numero: addressData.numero,
-      destinatario_complemento: addressData.complemento,
-      destinatario_cidade: addressData.cidade,
-      destinatario_uf: addressData.uf,
-      destinatario_cep: addressData.cep,
-      peso_kg: parseFloat(formData.peso) || 0,
-      altura_cm: parseFloat(formData.altura) || 0,
-      largura_cm: parseFloat(formData.largura) || 0,
-      comprimento_cm: parseFloat(formData.comprimento) || 0,
-      valor_declarado: parseFloat(formData.valor_declarado) || 0
+    const pedido = `PED-${selectedContrato.id.substring(0, 8).toUpperCase()}-${Date.now().toString().slice(-6)}`;
+
+    const request: TotalExpressRegistroRequest = {
+      pedido,
+      destinatarioNome: selectedContrato.client_name,
+      destinatarioCpfCnpj: selectedContrato.client_cpf,
+      destinatarioEmail: selectedContrato.client_email,
+      destinatarioTelefone: selectedContrato.client_phone,
+      destinatarioLogradouro: addressData.rua,
+      destinatarioNumero: addressData.numero,
+      destinatarioComplemento: addressData.complemento,
+      destinatarioBairro: addressData.bairro || '',
+      destinatarioCidade: addressData.cidade,
+      destinatarioUf: addressData.uf,
+      destinatarioCep: addressData.cep,
+      peso: parseFloat(formData.peso) || 0.5,
+      altura: parseFloat(formData.altura) || 10,
+      largura: parseFloat(formData.largura) || 10,
+      comprimento: parseFloat(formData.comprimento) || 10,
+      valorDeclarado: parseFloat(formData.valor_declarado) || 50,
+      descricaoConteudo: 'Produtos',
+      custoFrete: cotacaoSelecionada?.valor_frete || 0
     };
 
     createEnvioMutation.mutate(request);
@@ -229,8 +264,8 @@ const EnvioEnviar = () => {
   };
 
   const handlePrintLabel = () => {
-    if (envioResult?.id) {
-      window.open(`/api/envio/envios/${envioResult.id}/etiqueta`, '_blank');
+    if (envioResult?.codigo_rastreio) {
+      window.open(`/api/envio/total-express/etiqueta/${envioResult.codigo_rastreio}`, '_blank');
     }
   };
 
@@ -248,6 +283,7 @@ const EnvioEnviar = () => {
       rua: "",
       numero: "",
       complemento: "",
+      bairro: "",
       cidade: "",
       uf: "",
       cep: ""

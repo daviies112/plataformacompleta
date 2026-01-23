@@ -17,6 +17,19 @@ function getAdminId(req: Request): string {
   return 'system';
 }
 
+// HTML escape helper to prevent XSS
+function escapeHtml(text: string): string {
+  if (!text) return '';
+  const map: Record<string, string> = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;'
+  };
+  return text.replace(/[&<>"']/g, m => map[m] || m);
+}
+
 // ==================== CONTRATOS PENDENTES ====================
 
 router.get('/contratos-pendentes', async (req: Request, res: Response) => {
@@ -478,6 +491,212 @@ router.get('/total-express/rastrear/:codigo', async (req: Request, res: Response
     console.error('[TotalExpress] Erro no rastreamento:', error);
     res.status(500).json({ error: error.message });
   }
+});
+
+// ==================== ETIQUETAS ====================
+
+router.get('/envios/:id/etiqueta', async (req: Request, res: Response) => {
+  try {
+    const adminId = getAdminId(req);
+    const envio = await envioService.getEnvioById(req.params.id, adminId);
+    
+    if (!envio) {
+      return res.status(404).json({ error: 'Envio não encontrado' });
+    }
+
+    if (!envio.codigo_rastreio) {
+      return res.status(400).json({ error: 'Envio não possui código de rastreio' });
+    }
+
+    // Check if it's a test mode tracking code
+    if (totalExpressService.isTestMode() || envio.codigo_rastreio.startsWith('TE')) {
+      // Return a simple HTML label for test mode with escaped content
+      const htmlLabel = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Etiqueta - ${escapeHtml(envio.codigo_rastreio)}</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    .label { border: 2px solid #000; padding: 20px; max-width: 400px; margin: 0 auto; }
+    .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 15px; }
+    .header h1 { margin: 0; font-size: 18px; }
+    .header .test-badge { background: #ff9800; color: white; padding: 5px 10px; border-radius: 4px; display: inline-block; margin-top: 10px; }
+    .section { margin-bottom: 15px; }
+    .section-title { font-weight: bold; color: #333; margin-bottom: 5px; font-size: 12px; }
+    .tracking { text-align: center; font-size: 24px; font-weight: bold; letter-spacing: 2px; margin: 20px 0; padding: 15px; background: #f5f5f5; border: 1px dashed #ccc; }
+    .barcode { text-align: center; font-family: 'Libre Barcode 39', monospace; font-size: 48px; }
+    .info { font-size: 14px; line-height: 1.5; }
+    @media print { .test-badge { print-color-adjust: exact; } }
+  </style>
+</head>
+<body>
+  <div class="label">
+    <div class="header">
+      <h1>TOTAL EXPRESS</h1>
+      <div class="test-badge">MODO TESTE</div>
+    </div>
+    
+    <div class="tracking">${escapeHtml(envio.codigo_rastreio)}</div>
+    
+    <div class="section">
+      <div class="section-title">DESTINATÁRIO:</div>
+      <div class="info">
+        <strong>${escapeHtml(envio.destinatario_nome || 'N/A')}</strong><br>
+        ${escapeHtml(envio.destinatario_logradouro || '')} ${escapeHtml(envio.destinatario_numero || '')}<br>
+        ${envio.destinatario_complemento ? escapeHtml(envio.destinatario_complemento) + '<br>' : ''}
+        ${escapeHtml(envio.destinatario_bairro || '')}<br>
+        ${escapeHtml(envio.destinatario_cidade || '')} - ${escapeHtml(envio.destinatario_uf || '')}<br>
+        CEP: ${escapeHtml(envio.destinatario_cep || '')}
+      </div>
+    </div>
+    
+    <div class="section">
+      <div class="section-title">DADOS DO PACOTE:</div>
+      <div class="info">
+        Peso: ${envio.peso_kg || 0} kg<br>
+        Dimensões: ${envio.altura_cm || 0} x ${envio.largura_cm || 0} x ${envio.comprimento_cm || 0} cm<br>
+        Valor declarado: R$ ${(envio.valor_declarado || 0).toFixed(2)}
+      </div>
+    </div>
+    
+    <div style="text-align: center; margin-top: 20px; font-size: 12px; color: #666;">
+      Esta é uma etiqueta de TESTE.<br>
+      Para produção, configure TOTAL_EXPRESS_TEST_MODE=false
+    </div>
+  </div>
+  <script>window.print();</script>
+</body>
+</html>`;
+      
+      res.setHeader('Content-Type', 'text/html');
+      return res.send(htmlLabel);
+    }
+
+    // Get real label from TotalExpress
+    const etiquetaResult = await totalExpressService.obterEtiqueta(envio.codigo_rastreio);
+    
+    if (!etiquetaResult.success) {
+      return res.status(500).json({ error: etiquetaResult.error || 'Erro ao obter etiqueta' });
+    }
+
+    if (etiquetaResult.pdfBase64) {
+      const pdfBuffer = Buffer.from(etiquetaResult.pdfBase64, 'base64');
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `inline; filename="etiqueta-${envio.codigo_rastreio}.pdf"`);
+      return res.send(pdfBuffer);
+    }
+
+    if (etiquetaResult.pdfUrl) {
+      return res.redirect(etiquetaResult.pdfUrl);
+    }
+
+    return res.status(500).json({ error: 'Etiqueta não disponível' });
+
+  } catch (error: any) {
+    console.error('[Envio] Erro ao obter etiqueta:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.get('/total-express/etiqueta/:awb', async (req: Request, res: Response) => {
+  try {
+    const { awb } = req.params;
+    const adminId = getAdminId(req);
+    
+    // Security: Always verify the AWB belongs to this admin's shipments
+    const resultado = await envioService.getRastreamentoByCodigo(awb, adminId);
+    if (!resultado.envio) {
+      return res.status(404).json({ error: 'Envio não encontrado ou não autorizado' });
+    }
+    
+    // Test mode - generate HTML label (only if AWB verified above)
+    if (totalExpressService.isTestMode() || awb.startsWith('TE')) {
+      const envio = resultado.envio;
+      const htmlLabel = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Etiqueta - ${escapeHtml(awb)}</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    .label { border: 2px solid #000; padding: 20px; max-width: 400px; margin: 0 auto; }
+    .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 15px; }
+    .header h1 { margin: 0; font-size: 18px; }
+    .header .test-badge { background: #ff9800; color: white; padding: 5px 10px; border-radius: 4px; display: inline-block; margin-top: 10px; }
+    .section { margin-bottom: 15px; }
+    .section-title { font-weight: bold; color: #333; margin-bottom: 5px; font-size: 12px; }
+    .tracking { text-align: center; font-size: 24px; font-weight: bold; letter-spacing: 2px; margin: 20px 0; padding: 15px; background: #f5f5f5; border: 1px dashed #ccc; }
+    .info { font-size: 14px; line-height: 1.5; }
+    @media print { .test-badge { print-color-adjust: exact; } }
+  </style>
+</head>
+<body>
+  <div class="label">
+    <div class="header">
+      <h1>TOTAL EXPRESS</h1>
+      <div class="test-badge">MODO TESTE</div>
+    </div>
+    <div class="tracking">${escapeHtml(awb)}</div>
+    <div class="section">
+      <div class="section-title">DESTINATÁRIO:</div>
+      <div class="info">
+        ${envio ? `
+        <strong>${escapeHtml(envio.destinatario_nome || 'N/A')}</strong><br>
+        ${escapeHtml(envio.destinatario_logradouro || '')} ${escapeHtml(envio.destinatario_numero || '')}<br>
+        ${envio.destinatario_complemento ? escapeHtml(envio.destinatario_complemento) + '<br>' : ''}
+        ${escapeHtml(envio.destinatario_bairro || '')}<br>
+        ${escapeHtml(envio.destinatario_cidade || '')} - ${escapeHtml(envio.destinatario_uf || '')}<br>
+        CEP: ${escapeHtml(envio.destinatario_cep || '')}
+        ` : 'Dados não disponíveis'}
+      </div>
+    </div>
+    <div style="text-align: center; margin-top: 20px; font-size: 12px; color: #666;">
+      Esta é uma etiqueta de TESTE.
+    </div>
+  </div>
+  <script>window.print();</script>
+</body>
+</html>`;
+      
+      res.setHeader('Content-Type', 'text/html');
+      return res.send(htmlLabel);
+    }
+
+    const etiquetaResult = await totalExpressService.obterEtiqueta(awb);
+    
+    if (!etiquetaResult.success) {
+      return res.status(500).json({ error: etiquetaResult.error || 'Erro ao obter etiqueta' });
+    }
+
+    if (etiquetaResult.pdfBase64) {
+      const pdfBuffer = Buffer.from(etiquetaResult.pdfBase64, 'base64');
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `inline; filename="etiqueta-${awb}.pdf"`);
+      return res.send(pdfBuffer);
+    }
+
+    if (etiquetaResult.pdfUrl) {
+      return res.redirect(etiquetaResult.pdfUrl);
+    }
+
+    return res.status(500).json({ error: 'Etiqueta não disponível' });
+  } catch (error: any) {
+    console.error('[TotalExpress] Erro ao obter etiqueta:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.get('/total-express/test-mode', async (req: Request, res: Response) => {
+  res.json({
+    testMode: totalExpressService.isTestMode(),
+    configured: totalExpressService.isConfigured(),
+    message: totalExpressService.isTestMode() 
+      ? 'Modo de teste ativo - envios serão simulados sem custos' 
+      : 'Modo produção - envios serão registrados na TotalExpress'
+  });
 });
 
 // Webhook para receber atualizações de status da Total Express

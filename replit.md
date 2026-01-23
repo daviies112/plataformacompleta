@@ -107,9 +107,38 @@ ExecutiveAI Pro employs a modern web stack with a multi-tenant, API-driven archi
 - Do NOT send credentials in XML body - use HTTP Basic Auth header only
 - Service type "Expresso-01" is INVALID - use "EXP" instead
 
-**Frontend Integration:**
-- Public route available at `POST /api/public/frete/cotar` (no authentication required)
+**Test Mode (Development):**
+- Set `TOTAL_EXPRESS_TEST_MODE=true` to enable test mode
+- In test mode, shipments are simulated WITHOUT actually registering with TotalExpress
+- Tracking codes are generated locally (format: `TE{timestamp}BR`)
+- Labels print in test mode with a "MODO TESTE" badge
+- Test mode is useful for development and testing without incurring shipping costs
+- For production, set `TOTAL_EXPRESS_TEST_MODE=false` or remove the variable
+
+**API Endpoints:**
+
+*Quote (Public):*
+- `POST /api/public/frete/cotar` - No authentication required
 - Request: `{ cepDestino, peso, altura, largura, comprimento, valorDeclarado }`
 - Response: `{ success, transportadora_nome, servico, valor_frete, prazo_dias, error? }`
-- CEP de origem is fixed (associated with REID account) - shown as readonly in UI
-- Page: `/envio` (Cotação de Frete section)
+
+*Register Shipment (Authenticated):*
+- `POST /api/envio/total-express/registrar` - Creates shipment with TotalExpress
+- Request includes: `pedido`, `destinatarioNome`, `destinatarioCep`, dimensions, weight, etc.
+- Response: `{ success, codigoRastreio, awb, etiquetaUrl?, error? }`
+
+*Labels:*
+- `GET /api/envio/total-express/etiqueta/:awb` - Download/print shipping label
+- Returns PDF or HTML label (test mode returns HTML with auto-print)
+
+*Tracking:*
+- `GET /api/envio/total-express/rastrear/:codigo` - Track shipment
+
+*Test Mode Status:*
+- `GET /api/envio/total-express/test-mode` - Check if test mode is active
+
+**Frontend Pages:**
+- `/envio` - Quote page (Cotação de Frete)
+- `/envio/enviar` - Create shipment page
+- `/envio/lista` - Shipment list
+- `/envio/rastreamento` - Tracking page
