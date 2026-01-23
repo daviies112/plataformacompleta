@@ -336,6 +336,8 @@ router.get('/total-express/status', async (req: Request, res: Response) => {
 
 router.post('/total-express/cotar', async (req: Request, res: Response) => {
   try {
+    const session = (req as any).session;
+    const tenantId = session?.tenantId || session?.userId;
     const { cepOrigem, cepDestino, peso, altura, largura, comprimento, valorDeclarado } = req.body;
 
     if (!cepOrigem || !cepDestino || !peso) {
@@ -350,7 +352,7 @@ router.post('/total-express/cotar', async (req: Request, res: Response) => {
       largura: parseFloat(largura) || 10,
       comprimento: parseFloat(comprimento) || 10,
       valorDeclarado: parseFloat(valorDeclarado) || 0
-    });
+    }, tenantId);
 
     res.json(cotacao);
   } catch (error: any) {

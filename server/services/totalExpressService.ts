@@ -1,4 +1,17 @@
 import axios from 'axios';
+import { db } from '../db';
+import { totalExpressConfig } from '../../shared/db-schema';
+import { eq } from 'drizzle-orm';
+import { decrypt } from '../lib/credentialsManager';
+
+export interface TenantCredentials {
+  user: string;
+  pass: string;
+  reid: string;
+  service: string;
+  testMode: boolean;
+  profitMargin: number;
+}
 
 export interface TotalExpressCotacaoRequest {
   cepOrigem: string;
@@ -54,10 +67,15 @@ export interface TotalExpressRegistroResponse {
 class TotalExpressService {
   private apiBaseUrl = 'https://edi.totalexpress.com.br';
   
-  // Profit margin applied to all freight quotes (40% = 1.40)
-  private readonly PROFIT_MARGIN = 1.40;
+  // Default profit margin applied to all freight quotes (40% = 1.40)
+  private readonly DEFAULT_PROFIT_MARGIN = 1.40;
   
-  private getCredentials() {
+  // Cache for tenant credentials (avoid DB calls on every request)
+  private credentialsCache: Map<string, { credentials: TenantCredentials; timestamp: number }> = new Map();
+  private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+  // Get credentials from environment variables (fallback)
+  private getEnvCredentials() {
     const user = process.env.TOTAL_EXPRESS_USER;
     const pass = process.env.TOTAL_EXPRESS_PASS;
     const reid = process.env.TOTAL_EXPRESS_REID;
@@ -65,18 +83,74 @@ class TotalExpressService {
     
     return { user, pass, reid, service };
   }
+
+  // Get credentials for a specific tenant from database
+  async getTenantCredentials(tenantId: string): Promise<TenantCredentials | null> {
+    // Check cache first
+    const cached = this.credentialsCache.get(tenantId);
+    if (cached && Date.now() - cached.timestamp < this.CACHE_TTL) {
+      return cached.credentials;
+    }
+
+    try {
+      const configFromDb = await db.select().from(totalExpressConfig)
+        .where(eq(totalExpressConfig.tenantId, tenantId))
+        .limit(1);
+      
+      if (configFromDb[0]) {
+        const credentials: TenantCredentials = {
+          user: decrypt(configFromDb[0].user),
+          pass: decrypt(configFromDb[0].password),
+          reid: decrypt(configFromDb[0].reid),
+          service: configFromDb[0].service || 'EXP',
+          testMode: configFromDb[0].testMode ?? true,
+          profitMargin: configFromDb[0].profitMargin || this.DEFAULT_PROFIT_MARGIN,
+        };
+        
+        // Cache the credentials
+        this.credentialsCache.set(tenantId, { credentials, timestamp: Date.now() });
+        
+        return credentials;
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('[TotalExpress] Erro ao buscar credenciais do tenant:', error);
+      return null;
+    }
+  }
+
+  // Get credentials - tries tenant first, then falls back to env vars
+  async getCredentials(tenantId?: string): Promise<{ user?: string; pass?: string; reid?: string; service: string; testMode: boolean; profitMargin: number }> {
+    // Try tenant credentials first
+    if (tenantId) {
+      const tenantCreds = await this.getTenantCredentials(tenantId);
+      if (tenantCreds) {
+        console.log(`[TotalExpress] Usando credenciais do tenant ${tenantId}`);
+        return tenantCreds;
+      }
+    }
+    
+    // Fallback to environment variables
+    const envCreds = this.getEnvCredentials();
+    return {
+      ...envCreds,
+      testMode: process.env.TOTAL_EXPRESS_TEST_MODE === 'true',
+      profitMargin: this.DEFAULT_PROFIT_MARGIN,
+    };
+  }
   
-  private getBasicAuthHeader(): string {
-    const { user, pass } = this.getCredentials();
+  private getBasicAuthHeaderFromCreds(user: string, pass: string): string {
     if (!user || !pass) return '';
     return 'Basic ' + Buffer.from(`${user}:${pass}`).toString('base64');
   }
-  
+
+  // Legacy method - checks env vars only
   isConfigured(): boolean {
-    const { user, pass, reid } = this.getCredentials();
+    const { user, pass, reid } = this.getEnvCredentials();
     const configured = !!(user && pass && reid);
     
-    console.log('[TotalExpress] Credenciais:', {
+    console.log('[TotalExpress] Credenciais (env):', {
       user: user ? `${user.substring(0, 4)}...${user.slice(-4)}` : 'NÃO CONFIGURADO',
       pass: pass ? `Configurado (${pass.length} chars)` : 'NÃO CONFIGURADO',
       reid: reid || 'NÃO CONFIGURADO',
@@ -86,12 +160,85 @@ class TotalExpressService {
     return configured;
   }
 
+  // Check if tenant has TotalExpress configured
+  async isConfiguredForTenant(tenantId: string): Promise<boolean> {
+    const creds = await this.getTenantCredentials(tenantId);
+    return creds !== null;
+  }
+
   isTestMode(): boolean {
     return process.env.TOTAL_EXPRESS_TEST_MODE === 'true';
   }
 
-  async cotarFrete(dados: TotalExpressCotacaoRequest): Promise<TotalExpressCotacaoResponse> {
-    const { user, pass, reid, service } = this.getCredentials();
+  // Test credentials without saving
+  async testCredentials(user: string, password: string, reid: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      const authHeader = this.getBasicAuthHeaderFromCreds(user, password);
+      
+      // Make a simple quote request to test credentials
+      const soapEnvelope = `<?xml version="1.0" encoding="UTF-8"?>
+<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" 
+                   xmlns:ns1="urn:calcularFrete"
+                   xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                   xmlns:SOAP-ENC="http://schemas.xmlsoap.org/soap/encoding/"
+                   SOAP-ENV:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
+  <SOAP-ENV:Body>
+    <ns1:calcularFrete>
+      <calcularFreteRequest xsi:type="ns1:calcularFreteRequest">
+        <TipoServico xsi:type="xsd:string">EXP</TipoServico>
+        <CepDestino xsi:type="xsd:nonNegativeInteger">01310100</CepDestino>
+        <Peso xsi:type="xsd:string">1.00</Peso>
+        <ValorDeclarado xsi:type="xsd:string">100.00</ValorDeclarado>
+        <TipoEntrega xsi:type="xsd:nonNegativeInteger">0</TipoEntrega>
+        <Altura xsi:type="xsd:nonNegativeInteger">10</Altura>
+        <Largura xsi:type="xsd:nonNegativeInteger">10</Largura>
+        <Profundidade xsi:type="xsd:nonNegativeInteger">10</Profundidade>
+      </calcularFreteRequest>
+    </ns1:calcularFrete>
+  </SOAP-ENV:Body>
+</SOAP-ENV:Envelope>`;
+
+      const url = `${this.apiBaseUrl}/webservice_calculo_frete.php`;
+      
+      const response = await axios.post(url, soapEnvelope, {
+        headers: {
+          'Content-Type': 'text/xml; charset=utf-8',
+          'SOAPAction': 'urn:simulaFrete#calcularFrete',
+          'Authorization': authHeader
+        },
+        timeout: 15000
+      });
+
+      const data = response.data;
+      
+      // Check for authentication errors
+      if (response.status === 401) {
+        return { success: false, error: 'Credenciais inválidas' };
+      }
+      
+      // Check for valid response (even an error response means auth worked)
+      if (typeof data === 'string' && data.includes('calcularFreteResponse')) {
+        return { success: true };
+      }
+      
+      return { success: false, error: 'Resposta inesperada da API' };
+    } catch (error: any) {
+      if (error.response?.status === 401) {
+        return { success: false, error: 'Credenciais inválidas' };
+      }
+      return { success: false, error: error.message || 'Erro ao conectar com Total Express' };
+    }
+  }
+
+  // Invalidate cache for a tenant (call after saving new credentials)
+  invalidateCache(tenantId: string): void {
+    this.credentialsCache.delete(tenantId);
+  }
+
+  async cotarFrete(dados: TotalExpressCotacaoRequest, tenantId?: string): Promise<TotalExpressCotacaoResponse> {
+    const creds = await this.getCredentials(tenantId);
+    const { user, pass, reid, service, profitMargin } = creds;
     
     if (!user || !pass || !reid) {
       console.log('[TotalExpress] Credenciais não configuradas');
@@ -119,7 +266,8 @@ class TotalExpressService {
         peso: pesoFinal,
         valorDeclarado: dados.valorDeclarado,
         tipoServico,
-        usuario: user.substring(0, 4) + '...'
+        usuario: user.substring(0, 4) + '...',
+        tenantId: tenantId || 'env'
       });
 
       const soapEnvelope = `<?xml version="1.0" encoding="UTF-8"?>
@@ -151,7 +299,7 @@ class TotalExpressService {
         headers: {
           'Content-Type': 'text/xml; charset=utf-8',
           'SOAPAction': 'urn:simulaFrete#calcularFrete',
-          'Authorization': this.getBasicAuthHeader()
+          'Authorization': this.getBasicAuthHeaderFromCreds(user, pass)
         },
         timeout: 15000
       });
@@ -183,10 +331,10 @@ class TotalExpressService {
           const valorOriginal = parseFloat(valorMatch[1].replace(',', '.'));
           const prazo = prazoMatch ? parseInt(prazoMatch[1]) : 5;
           
-          // Apply profit margin to the freight value
-          const valorComMargem = Math.round(valorOriginal * this.PROFIT_MARGIN * 100) / 100;
+          // Apply profit margin to the freight value (from tenant config or default)
+          const valorComMargem = Math.round(valorOriginal * profitMargin * 100) / 100;
 
-          console.log('[TotalExpress] Cotação bem-sucedida:', { valorOriginal, valorComMargem, prazo });
+          console.log('[TotalExpress] Cotação bem-sucedida:', { valorOriginal, valorComMargem, prazo, margem: profitMargin });
           return {
             success: true,
             transportadora_nome: 'Total Express',

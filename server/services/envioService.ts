@@ -231,8 +231,9 @@ class EnvioService {
       cotacoes.push(created);
     }
 
-    // Adicionar cotação Total Express se configurado
-    if (totalExpressService.isConfigured()) {
+    // Adicionar cotação Total Express se configurado (tenant ou env vars)
+    const hasTenantConfig = await totalExpressService.isConfiguredForTenant(adminId);
+    if (hasTenantConfig || totalExpressService.isConfigured()) {
       try {
         const cotacaoTotalExpress = await totalExpressService.cotarFrete({
           cepOrigem: dados.cepOrigem,
@@ -242,7 +243,7 @@ class EnvioService {
           largura: dados.largura,
           comprimento: dados.comprimento,
           valorDeclarado: dados.valorDeclarado
-        });
+        }, adminId);
 
         if (cotacaoTotalExpress.success && cotacaoTotalExpress.valor_frete > 0) {
           const cotacaoTE: Partial<CotacaoFrete> = {
