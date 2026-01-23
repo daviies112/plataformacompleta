@@ -1,7 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { apiRequest } from '@/lib/queryClient';
-import { useNotionStore } from '@/stores/notionStore';
-import { reloadSupabaseCredentials } from '@/lib/supabase';
 
 interface User {
   id: string;
@@ -197,12 +195,19 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         localStorage.setItem('client_credentials', JSON.stringify(defaultCredentials));
         
         // Recarregar credenciais e workspace do Supabase após login bem-sucedido
+        // Usando import dinâmico para evitar carregar módulos pesados antes do login
         console.log('🔄 Login bem-sucedido - recarregando credenciais do Supabase...');
-        await reloadSupabaseCredentials();
-        
-        console.log('🔄 Recarregando workspace do Supabase...');
-        const reloadWorkspace = useNotionStore.getState().reloadFromSupabase;
-        await reloadWorkspace();
+        try {
+          const { reloadSupabaseCredentials } = await import('@/lib/supabase');
+          await reloadSupabaseCredentials();
+          
+          console.log('🔄 Recarregando workspace do Supabase...');
+          const { useNotionStore } = await import('@/stores/notionStore');
+          const reloadWorkspace = useNotionStore.getState().reloadFromSupabase;
+          await reloadWorkspace();
+        } catch (e) {
+          console.warn('⚠️ Supabase/workspace reload opcional falhou:', e);
+        }
         
         setIsLoading(false);
         return true;

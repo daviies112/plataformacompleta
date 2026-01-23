@@ -1,0 +1,23 @@
+🔄 Tentativa 1/5 de carregar credenciais Supabase...
+usePWAInstall.ts:112 📱 [PWA] Device Info: Object
+usePWAInstall.ts:176 🧪 [PWA] Modo desenvolvimento detectado - botão sempre visível para testes
+AuthContext.tsx:69 [AuthContext] Checking session...
+usePWAInstall.ts:125 ✅ [PWA] Service Worker registrado: https://48d4e85d-fa2d-4f1a-924c-85d8fb696d12-00-2iexcnnb3smfy.spock.replit.dev/
+api/config/supabase/credentials:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)Understand this error
+supabase.ts:96 ℹ️ [SUPABASE] Usuário não autenticado - credenciais serão carregadas após login
+supabase.ts:185 ℹ️ [SUPABASE] Credenciais não disponíveis - usuário pode não estar autenticado
+workspaceStorage.ts:447 ⚠️ Supabase não configurado - usando localStorage
+sentry.ts:34 ⚠️ Sentry não configurado - Monitoramento desativado
+api/notifications/vapid-public-key:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)Understand this error
+AuthContext.tsx:73 [AuthContext] Session check response: Object
+AuthContext.tsx:129 [AuthContext] Setting isLoading to false
+NotificationContext.tsx:186 [Notifications] Não autenticado - limpando dados
+consultar-cpf:1 <meta name="apple-mobile-web-app-capable" content="yes"> is deprecated. Please include <meta name="mobile-web-app-capable" content="yes">Understand this warning
+consultar-cpf:1 Error while trying to use the following icon from the Manifest: https://48d4e85d-fa2d-4f1a-924c-85d8fb696d12-00-2iexcnnb3smfy.spock.replit.dev/icons/icon-192x192.png (Download error or resource isn't a valid image)Understand this warning
+client.ts:14 [Supabase] No credentials provided. Using stub client.
+createSupabaseClient @ client.ts:14Understand this warning
+useBiometric.ts:22 🔐 Verificação de suporte biométrico: Object
+Index.tsx:40 📱 Estado biometricSupported atualizado: false
+Index.tsx:32 ✅ Resultado checkSupport: true
+Index.tsx:34 ✅ biometricSupported setado para: true
+Index.tsx:40 📱 Estado biometricSupported atualizado: true

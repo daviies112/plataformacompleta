@@ -56,7 +56,7 @@ ExecutiveAI Pro employs a modern web stack with a multi-tenant, API-driven archi
     - CPF consultations and shipping work normally without checking or charging credits
     - No "insufficient balance" errors will appear
     - Once Pagar.me is configured, the credit system activates automatically
-- **Performance Optimizations:** Aggressive code splitting for public routes and heavy libraries, leading to significant improvements in loading times for public pages.
+- **Performance Optimizations:** Aggressive code splitting for public routes and heavy libraries, leading to significant improvements in loading times for public pages. Login page is treated as a public route to avoid loading unnecessary modules (notionStore, workspaceStorage, Supabase credentials) before authentication. AuthContext uses dynamic imports for Supabase and workspace reloading to defer heavy module loading until after successful login.
 
 ## External Dependencies
 

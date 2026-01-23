@@ -29,6 +29,8 @@ const ReuniaoPublica = lazy(() => import('./pages/ReuniaoPublica'));
 const FormularioPublicoWrapper = lazy(() => import('./features/formularios-platform/pages/FormularioPublicoWrapper'));
 const PublicStore = lazy(() => import('./features/revendedora/pages/public/PublicStore'));
 const PublicCheckout = lazy(() => import('./features/revendedora/pages/public/PublicCheckout'));
+const LoginPage = lazy(() => import('./pages/Index'));
+const ResellerLogin = lazy(() => import('./platforms/reseller/pages/Login'));
 const PlatformRouter = lazy(() => import('./platforms/PlatformRouter'));
 
 const PublicRoutes = () => {
@@ -78,11 +80,32 @@ const PublicRoutes = () => {
     );
   }
   
+  if (path === '/login' || path === '/') {
+    return (
+      <AuthProvider>
+        <Suspense fallback={<LoadingFallback />}>
+          <LoginPage />
+        </Suspense>
+      </AuthProvider>
+    );
+  }
+  
+  if (path === '/reseller-login') {
+    return (
+      <Suspense fallback={<LoadingFallback />}>
+        <ResellerLogin />
+      </Suspense>
+    );
+  }
+  
   return null;
 };
 
 const isPublicRoute = (path: string): boolean => {
   return (
+    path === '/' ||
+    path === '/login' ||
+    path === '/reseller-login' ||
     path.startsWith('/assinar/') ||
     path.startsWith('/f/') ||
     path.startsWith('/form/') ||
