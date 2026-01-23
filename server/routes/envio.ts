@@ -2,6 +2,7 @@ import { Router, Request, Response } from 'express';
 import { envioService } from '../services/envioService';
 import { totalExpressService } from '../services/totalExpressService';
 import { walletService } from '../services/walletService';
+import { isPagarmeConfigured } from '../middleware/checkBalance';
 
 const router = Router();
 
@@ -381,9 +382,10 @@ router.post('/total-express/registrar', async (req: Request, res: Response) => {
     // Calculate shipping price with 35% margin
     const carrierCost = parseFloat(custoFrete) || 0;
     const shippingPrice = carrierCost > 0 ? walletService.calculateShippingPrice(carrierCost) : 0;
+    const walletSystemEnabled = isPagarmeConfigured();
     
-    // WALLET: Verificar saldo antes de registrar envio (only if there's a cost)
-    if (tenantId && shippingPrice > 0) {
+    // WALLET: Verificar saldo antes de registrar envio (apenas se Pagar.me configurado)
+    if (walletSystemEnabled && tenantId && shippingPrice > 0) {
       const balanceCheck = await walletService.checkBalance(tenantId, shippingPrice);
       if (!balanceCheck.sufficient) {
         return res.status(402).json({
@@ -418,8 +420,8 @@ router.post('/total-express/registrar', async (req: Request, res: Response) => {
       descricaoConteudo
     });
 
-    // WALLET: Debitar saldo APÓS registro bem-sucedido (only if there's a cost)
-    if (resultado.success && tenantId && shippingPrice > 0) {
+    // WALLET: Debitar saldo APÓS registro bem-sucedido (apenas se Pagar.me configurado)
+    if (walletSystemEnabled && resultado.success && tenantId && shippingPrice > 0) {
       const debitResult = await walletService.debitFunds(
         tenantId,
         shippingPrice,

@@ -52,6 +52,10 @@ ExecutiveAI Pro employs a modern web stack with a multi-tenant, API-driven archi
   - Database tables: `wallets`, `wallet_transactions`, `service_prices`
   - Atomic balance updates with conditional SQL UPDATE to prevent race conditions
   - Webhook idempotency using in-memory Map (24-hour TTL)
+  - **IMPORTANT:** The wallet/credit system is **ONLY active when Pagar.me credentials are configured** (`CHAVE_SECRETA` or `CHAVE_SECRETA_TESTE` + `CHAVE_PUBLICA` or `CHAVE_PUBLICA_TESTE`). Without Pagar.me credentials:
+    - CPF consultations and shipping work normally without checking or charging credits
+    - No "insufficient balance" errors will appear
+    - Once Pagar.me is configured, the credit system activates automatically
 - **Performance Optimizations:** Aggressive code splitting for public routes and heavy libraries, leading to significant improvements in loading times for public pages.
 
 ## External Dependencies

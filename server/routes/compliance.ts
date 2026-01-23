@@ -8,6 +8,7 @@ import { db } from "../db.js";
 import { datacorpChecks, users } from "../../shared/db-schema.js";
 import { eq, desc, or, inArray } from "drizzle-orm";
 import { walletService } from "../services/walletService.js";
+import { isPagarmeConfigured } from "../middleware/checkBalance.js";
 
 const DEMO_TENANT_ID = "00000000-0000-0000-0000-000000000001";
 
@@ -120,9 +121,11 @@ export function setupComplianceRoutes(): Router {
         ? (req.session.tenantId || req.session.userId!)  // Usar tenantId da sessão ou fallback para userId
         : DEMO_TENANT_ID;      // DEMO apenas para anônimos
       
-      // WALLET: Verificar saldo APENAS para usuários autenticados (não cobrar DEMO)
+      // WALLET: Verificar saldo APENAS se Pagar.me estiver configurado E usuário autenticado
       const CPF_SERVICE_PRICE = 2.00; // R$ 2,00 por consulta
-      if (isAuthenticated) {
+      const walletSystemEnabled = isPagarmeConfigured();
+      
+      if (walletSystemEnabled && isAuthenticated) {
         const balanceCheck = await walletService.checkBalance(finalTenantId, CPF_SERVICE_PRICE);
         if (!balanceCheck.sufficient) {
           return res.status(402).json({
@@ -153,8 +156,8 @@ export function setupComplianceRoutes(): Router {
         forceRefresh: forceRefresh || false, // Passa o parâmetro forceRefresh
       });
 
-      // WALLET: Debitar saldo APÓS consulta bem-sucedida (apenas para autenticados)
-      if (isAuthenticated && result && !result.error) {
+      // WALLET: Debitar saldo APÓS consulta bem-sucedida (apenas se Pagar.me configurado E autenticado)
+      if (walletSystemEnabled && isAuthenticated && result && !result.error) {
         const debitResult = await walletService.debitFunds(
           finalTenantId,
           CPF_SERVICE_PRICE,

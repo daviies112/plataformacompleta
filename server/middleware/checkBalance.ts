@@ -10,11 +10,25 @@ export interface WalletRequest extends Request {
   };
   servicePrice?: number;
   serviceName?: string;
+  walletSystemEnabled?: boolean;
+}
+
+function isPagarmeConfigured(): boolean {
+  const secretKey = process.env.CHAVE_SECRETA_TESTE || process.env.CHAVE_SECRETA || '';
+  const publicKey = process.env.CHAVE_PUBLICA_TESTE || process.env.CHAVE_PUBLICA || '';
+  return !!(secretKey && publicKey);
 }
 
 export const checkBalance = (serviceCode: string) => {
   return async (req: WalletRequest, res: Response, next: NextFunction) => {
     try {
+      if (!isPagarmeConfigured()) {
+        console.log(`[checkBalance] Pagar.me não configurado - permitindo ${serviceCode} sem verificar saldo`);
+        req.walletSystemEnabled = false;
+        return next();
+      }
+
+      req.walletSystemEnabled = true;
       const tenantId = (req as any).user?.tenantId;
       
       if (!tenantId) {
@@ -80,6 +94,11 @@ export const debitAfterSuccess = async (
   metadata?: Record<string, any>
 ): Promise<boolean> => {
   try {
+    if (!isPagarmeConfigured()) {
+      console.log(`[debitAfterSuccess] Pagar.me não configurado - ${serviceCode} não será cobrado`);
+      return true;
+    }
+
     const price = await walletService.getServicePrice(serviceCode);
     
     if (price === null) {
@@ -110,13 +129,18 @@ export const checkBalanceSimple = async (
   sufficient: boolean; 
   price: number; 
   balance: number; 
-  error?: string 
+  error?: string;
+  walletSystemEnabled?: boolean;
 }> => {
   try {
+    if (!isPagarmeConfigured()) {
+      return { sufficient: true, price: 0, balance: 0, walletSystemEnabled: false };
+    }
+
     const price = await walletService.getServicePrice(serviceCode);
     
     if (price === null) {
-      return { sufficient: true, price: 0, balance: 0 };
+      return { sufficient: true, price: 0, balance: 0, walletSystemEnabled: true };
     }
 
     const wallet = await walletService.getWallet(tenantId);
@@ -126,7 +150,8 @@ export const checkBalanceSimple = async (
         sufficient: false, 
         price, 
         balance: parseFloat(wallet.balance),
-        error: 'WALLET_FROZEN'
+        error: 'WALLET_FROZEN',
+        walletSystemEnabled: true
       };
     }
 
@@ -136,6 +161,7 @@ export const checkBalanceSimple = async (
       sufficient: balance >= price,
       price,
       balance,
+      walletSystemEnabled: true
     };
   } catch (error: any) {
     console.error('[checkBalanceSimple] Error:', error);
@@ -143,7 +169,10 @@ export const checkBalanceSimple = async (
       sufficient: false, 
       price: 0, 
       balance: 0,
-      error: error.message 
+      error: error.message,
+      walletSystemEnabled: true
     };
   }
 };
+
+export { isPagarmeConfigured };
