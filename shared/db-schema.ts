@@ -1,4 +1,4 @@
-import { pgTable, serial, varchar, text, timestamp, integer, json, boolean, date, uuid, jsonb, index, numeric, uniqueIndex } from 'drizzle-orm/pg-core';
+import { pgTable, serial, varchar, text, timestamp, integer, json, boolean, date, uuid, jsonb, index, numeric, uniqueIndex, real } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 import { createInsertSchema } from 'drizzle-zod';
 import { z } from 'zod';
@@ -274,6 +274,22 @@ export const hms100msConfig = pgTable('hms_100ms_config', {
   updatedAt: timestamp('updated_at').defaultNow()
 }, (table) => ({
   tenantUnique: uniqueIndex('idx_hms_100ms_tenant_unique').on(table.tenantId),
+}));
+
+// Total Express Configuration Table (Shipping Integration)
+export const totalExpressConfig = pgTable('total_express_config', {
+  id: serial('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  user: text('user').notNull(),
+  password: text('password').notNull(),
+  reid: text('reid').notNull(),
+  service: text('service').default('EXP'),
+  testMode: boolean('test_mode').default(true),
+  profitMargin: real('profit_margin').default(1.40),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow()
+}, (table) => ({
+  tenantUnique: uniqueIndex('idx_total_express_tenant_unique').on(table.tenantId),
 }));
 
 // WhatsApp QR Codes Table
