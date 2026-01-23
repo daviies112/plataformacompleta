@@ -54,6 +54,9 @@ export interface TotalExpressRegistroResponse {
 class TotalExpressService {
   private apiBaseUrl = 'https://edi.totalexpress.com.br';
   
+  // Profit margin applied to all freight quotes (40% = 1.40)
+  private readonly PROFIT_MARGIN = 1.40;
+  
   private getCredentials() {
     const user = process.env.TOTAL_EXPRESS_USER;
     const pass = process.env.TOTAL_EXPRESS_PASS;
@@ -177,15 +180,18 @@ class TotalExpressService {
         }
 
         if (valorMatch) {
-          const valor = parseFloat(valorMatch[1].replace(',', '.'));
+          const valorOriginal = parseFloat(valorMatch[1].replace(',', '.'));
           const prazo = prazoMatch ? parseInt(prazoMatch[1]) : 5;
+          
+          // Apply profit margin to the freight value
+          const valorComMargem = Math.round(valorOriginal * this.PROFIT_MARGIN * 100) / 100;
 
-          console.log('[TotalExpress] Cotação bem-sucedida:', { valor, prazo });
+          console.log('[TotalExpress] Cotação bem-sucedida:', { valorOriginal, valorComMargem, prazo });
           return {
             success: true,
             transportadora_nome: 'Total Express',
             servico: tipoServico,
-            valor_frete: valor,
+            valor_frete: valorComMargem,
             prazo_dias: prazo
           };
         }
