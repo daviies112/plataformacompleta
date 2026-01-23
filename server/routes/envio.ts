@@ -472,7 +472,7 @@ router.post('/total-express/registrar', async (req: Request, res: Response) => {
         // Create new envio record for tracking
         const novoEnvio = await envioService.createEnvio({
           admin_id: adminId,
-          contrato_id: null,
+          contract_id: null,
           transportadora_nome: 'Total Express',
           codigo_rastreio: resultado.codigoRastreio,
           status: 'aguardando_coleta',
