@@ -7,8 +7,8 @@ import { Separator } from "@/components/ui/separator";
 import { Package, Truck, Clock, Shield, Star, ArrowRight, AlertCircle } from "lucide-react";
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "wouter";
 import EnvioNavigation from "./EnvioNavigation";
 
 interface CotacaoFrete {
@@ -34,6 +34,7 @@ const CEP_ORIGEM_FIXO = "32315-090"; // Contagem/MG - Ponto principal
 
 const EnvioCotacao = () => {
   const { toast } = useToast();
+  const [, navigate] = useLocation();
   const [cotacoes, setCotacoes] = useState<CotacaoFrete[]>([]);
   const [formData, setFormData] = useState({
     cepDestino: "",
@@ -139,6 +140,22 @@ const EnvioCotacao = () => {
   const showResults = cotacoes.length > 0;
   const loading = calcularMutation.isPending;
   const hasError = calcularMutation.isError;
+
+  const handleSelectCotacao = (cotacao: CotacaoFrete) => {
+    // Store cotação data in sessionStorage for the next page
+    const cotacaoData = {
+      ...cotacao,
+      cepOrigem: CEP_ORIGEM_FIXO,
+      cepDestino: formData.cepDestino,
+      peso: formData.peso,
+      altura: formData.altura,
+      largura: formData.largura,
+      comprimento: formData.comprimento,
+      valorDeclarado: formData.valorDeclarado
+    };
+    sessionStorage.setItem('cotacaoSelecionada', JSON.stringify(cotacaoData));
+    navigate("/envio/enviar");
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -408,7 +425,11 @@ const EnvioCotacao = () => {
                                 </p>
                               </div>
 
-                              <Button className="gap-2" data-testid={`button-selecionar-${cotacao.id}`}>
+                              <Button 
+                                className="gap-2" 
+                                data-testid={`button-selecionar-${cotacao.id}`}
+                                onClick={() => handleSelectCotacao(cotacao)}
+                              >
                                 Selecionar
                                 <ArrowRight className="h-4 w-4" />
                               </Button>

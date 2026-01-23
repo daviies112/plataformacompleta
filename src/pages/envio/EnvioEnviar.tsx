@@ -13,9 +13,10 @@ import {
   Printer,
   Loader2,
   AlertCircle,
-  Copy
+  Copy,
+  Truck
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -63,10 +64,26 @@ interface EnvioCreateResponse {
   status: string;
 }
 
+interface CotacaoSelecionada {
+  id: string;
+  transportadora_nome: string;
+  servico: string;
+  valor_frete: number;
+  prazo_dias: number;
+  cepOrigem: string;
+  cepDestino: string;
+  peso: string;
+  altura: string;
+  largura: string;
+  comprimento: string;
+  valorDeclarado: string;
+}
+
 const EnvioEnviar = () => {
   const { toast } = useToast();
   const [selectedContrato, setSelectedContrato] = useState<ContratoPendente | null>(null);
   const [envioResult, setEnvioResult] = useState<EnvioCreateResponse | null>(null);
+  const [cotacaoSelecionada, setCotacaoSelecionada] = useState<CotacaoSelecionada | null>(null);
   const [formData, setFormData] = useState({
     peso: "",
     altura: "",
@@ -74,6 +91,30 @@ const EnvioEnviar = () => {
     comprimento: "",
     valor_declarado: ""
   });
+
+  // Load cotação data from sessionStorage on mount
+  useEffect(() => {
+    const cotacaoData = sessionStorage.getItem('cotacaoSelecionada');
+    if (cotacaoData) {
+      try {
+        const cotacao = JSON.parse(cotacaoData) as CotacaoSelecionada;
+        setCotacaoSelecionada(cotacao);
+        setFormData({
+          peso: cotacao.peso || "",
+          altura: cotacao.altura || "",
+          largura: cotacao.largura || "",
+          comprimento: cotacao.comprimento || "",
+          valor_declarado: cotacao.valorDeclarado || ""
+        });
+        setAddressData(prev => ({
+          ...prev,
+          cep: cotacao.cepDestino || ""
+        }));
+      } catch (e) {
+        console.error("Error parsing cotacao data:", e);
+      }
+    }
+  }, []);
 
   const [addressData, setAddressData] = useState({
     rua: "",
@@ -277,6 +318,44 @@ const EnvioEnviar = () => {
             </div>
             <EnvioNavigation />
           </div>
+
+          {/* Cotação Selecionada */}
+          {cotacaoSelecionada && (
+            <Card className="mb-6 border-primary/50 bg-primary/5">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between flex-wrap gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <Truck className="h-6 w-6 text-primary" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-semibold text-foreground">
+                          {cotacaoSelecionada.transportadora_nome}
+                        </h4>
+                        <Badge className="bg-primary text-primary-foreground">
+                          Cotação Selecionada
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {cotacaoSelecionada.servico} - {cotacaoSelecionada.prazo_dias} dias úteis
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-6">
+                    <div className="text-sm text-muted-foreground">
+                      <span className="font-medium">CEP:</span> {cotacaoSelecionada.cepOrigem} → {cotacaoSelecionada.cepDestino}
+                    </div>
+                    <div className="text-right">
+                      <p className="text-2xl font-bold text-primary">
+                        R$ {cotacaoSelecionada.valor_frete.toFixed(2).replace('.', ',')}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           <div className="grid lg:grid-cols-3 gap-8">
             <Card className="lg:col-span-1">
