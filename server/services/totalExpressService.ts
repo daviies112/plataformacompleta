@@ -49,28 +49,44 @@ export interface TotalExpressRegistroResponse {
 }
 
 class TotalExpressService {
-  private user = process.env.TOTAL_EXPRESS_USER;
-  private pass = process.env.TOTAL_EXPRESS_PASS;
-  private reid = process.env.TOTAL_EXPRESS_REID;
-  private service = process.env.TOTAL_EXPRESS_SERVICE;
-  
   private apiBaseUrl = 'https://edi.totalexpress.com.br';
   
+  // Read credentials dynamically each time (not cached at class initialization)
+  private getCredentials() {
+    const user = process.env.TOTAL_EXPRESS_USER;
+    const pass = process.env.TOTAL_EXPRESS_PASS;
+    const reid = process.env.TOTAL_EXPRESS_REID;
+    const service = process.env.TOTAL_EXPRESS_SERVICE;
+    
+    console.log('[TotalExpress] Verificando credenciais:', {
+      user: user ? `${user.substring(0, 4)}...` : 'NÃO CONFIGURADO',
+      pass: pass ? `${pass.substring(0, 4)}...` : 'NÃO CONFIGURADO',
+      reid: reid || 'NÃO CONFIGURADO',
+      service: service || 'NÃO CONFIGURADO (usando EXP)'
+    });
+    
+    return { user, pass, reid, service };
+  }
+  
   isConfigured(): boolean {
-    return !!(this.user && this.pass && this.reid);
+    const { user, pass, reid } = this.getCredentials();
+    return !!(user && pass && reid);
   }
 
   private getAuthParams() {
+    const { user, pass, reid, service } = this.getCredentials();
     return {
-      Usuario: this.user,
-      Senha: this.pass,
-      Reid: this.reid,
-      Servico: this.service || 'EXP'
+      Usuario: user,
+      Senha: pass,
+      Reid: reid,
+      Servico: service || 'EXP'
     };
   }
 
   async cotarFrete(dados: TotalExpressCotacaoRequest): Promise<TotalExpressCotacaoResponse> {
-    if (!this.isConfigured()) {
+    const { user, pass, reid, service } = this.getCredentials();
+    
+    if (!user || !pass || !reid) {
       console.log('[TotalExpress] Credenciais não configuradas');
       return {
         success: false,
@@ -96,7 +112,9 @@ class TotalExpressService {
         cepOrigem,
         cepDestino,
         peso: pesoFinal,
-        valorDeclarado: dados.valorDeclarado
+        valorDeclarado: dados.valorDeclarado,
+        usuario: user.substring(0, 4) + '...',
+        reid: reid
       });
 
       // Construir envelope SOAP para chamar o método calcularFrete
@@ -110,10 +128,10 @@ class TotalExpressService {
   <SOAP-ENV:Body>
     <ns1:calcularFrete>
       <calcularFreteRequest xsi:type="ns1:calcularFreteRequest">
-        <usuario xsi:type="xsd:string">${this.escapeXml(this.user || '')}</usuario>
-        <senha xsi:type="xsd:string">${this.escapeXml(this.pass || '')}</senha>
-        <reid xsi:type="xsd:string">${this.escapeXml(this.reid || '')}</reid>
-        <servico xsi:type="xsd:string">${this.escapeXml(this.service || 'EXP')}</servico>
+        <usuario xsi:type="xsd:string">${this.escapeXml(user)}</usuario>
+        <senha xsi:type="xsd:string">${this.escapeXml(pass)}</senha>
+        <reid xsi:type="xsd:string">${this.escapeXml(reid)}</reid>
+        <servico xsi:type="xsd:string">${this.escapeXml(service || 'EXP')}</servico>
         <cep_origem xsi:type="xsd:string">${cepOrigem}</cep_origem>
         <cep_destino xsi:type="xsd:string">${cepDestino}</cep_destino>
         <peso xsi:type="xsd:string">${pesoFinal.toFixed(2)}</peso>
@@ -153,7 +171,7 @@ class TotalExpressService {
           return {
             success: false,
             transportadora_nome: 'Total Express',
-            servico: this.service || 'Expresso',
+            servico: service || 'Expresso',
             valor_frete: 0,
             prazo_dias: 0,
             error: `Erro Total Express: ${erroMatch[1]}`
@@ -168,7 +186,7 @@ class TotalExpressService {
           return {
             success: true,
             transportadora_nome: 'Total Express',
-            servico: this.service || 'Expresso',
+            servico: service || 'Expresso',
             valor_frete: valor,
             prazo_dias: prazo
           };
@@ -202,7 +220,9 @@ class TotalExpressService {
   }
 
   async registrarColeta(dados: TotalExpressRegistroRequest): Promise<TotalExpressRegistroResponse> {
-    if (!this.isConfigured()) {
+    const { user, pass, reid, service } = this.getCredentials();
+    
+    if (!user || !pass || !reid) {
       return {
         success: false,
         error: 'Credenciais não configuradas'
@@ -214,13 +234,19 @@ class TotalExpressService {
 
       const cepDestino = dados.destinatarioCep.replace(/\D/g, '');
       
+      console.log('[TotalExpress] Registrando coleta com credenciais:', {
+        usuario: user.substring(0, 4) + '...',
+        reid: reid,
+        service: service || 'EXP'
+      });
+      
       const xmlBody = `<?xml version="1.0" encoding="UTF-8"?>
 <Encomendas>
   <Remetente>
-    <Usuario>${this.user}</Usuario>
-    <Senha>${this.pass}</Senha>
-    <Reid>${this.reid}</Reid>
-    <Servico>${this.service || 'EXP'}</Servico>
+    <Usuario>${user}</Usuario>
+    <Senha>${pass}</Senha>
+    <Reid>${reid}</Reid>
+    <Servico>${service || 'EXP'}</Servico>
   </Remetente>
   <Encomenda>
     <Pedido>${dados.pedido}</Pedido>

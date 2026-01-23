@@ -108,6 +108,59 @@ router.get('/envios/stats', async (req: Request, res: Response) => {
   }
 });
 
+// Diagnostic endpoint to test TotalExpress credentials
+router.get('/total-express/diagnostico', async (req: Request, res: Response) => {
+  try {
+    const user = process.env.TOTAL_EXPRESS_USER;
+    const pass = process.env.TOTAL_EXPRESS_PASS;
+    const reid = process.env.TOTAL_EXPRESS_REID;
+    const service = process.env.TOTAL_EXPRESS_SERVICE;
+    
+    const credentialsStatus = {
+      TOTAL_EXPRESS_USER: user ? { configured: true, value: `${user.substring(0, 4)}...${user.slice(-4)}` } : { configured: false },
+      TOTAL_EXPRESS_PASS: pass ? { configured: true, length: pass.length } : { configured: false },
+      TOTAL_EXPRESS_REID: reid ? { configured: true, value: reid } : { configured: false },
+      TOTAL_EXPRESS_SERVICE: service ? { configured: true, value: service } : { configured: false, default: 'EXP' }
+    };
+    
+    const isConfigured = !!(user && pass && reid);
+    
+    // Test a simple cotação to see if API responds
+    let apiTest = null;
+    if (isConfigured) {
+      try {
+        const testResult = await totalExpressService.cotarFrete({
+          cepOrigem: '01310100', // CEP São Paulo
+          cepDestino: '22041080', // CEP Rio de Janeiro
+          peso: 1,
+          altura: 10,
+          largura: 10,
+          comprimento: 10,
+          valorDeclarado: 100
+        });
+        apiTest = {
+          success: testResult.success,
+          error: testResult.error,
+          valor_frete: testResult.valor_frete,
+          prazo_dias: testResult.prazo_dias
+        };
+      } catch (apiError: any) {
+        apiTest = { success: false, error: apiError.message };
+      }
+    }
+    
+    res.json({
+      status: isConfigured ? 'configured' : 'not_configured',
+      credentials: credentialsStatus,
+      apiTest,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error: any) {
+    console.error('[TotalExpress] Erro no diagnóstico:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 router.get('/envios/:id', async (req: Request, res: Response) => {
   try {
     const adminId = getAdminId(req);
