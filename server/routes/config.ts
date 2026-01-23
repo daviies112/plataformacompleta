@@ -18,7 +18,8 @@ import {
   monitoringConfig,
   appSettings,
   supabaseConfig,
-  hms100msConfig
+  hms100msConfig,
+  totalExpressConfig
 } from "../../shared/db-schema";
 import { eq, and } from "drizzle-orm";
 import { encrypt, decrypt } from '../lib/credentialsManager';
@@ -2509,6 +2510,197 @@ export function setupConfigRoutes(app: Express) {
         success: false,
         error: "Credenciais inválidas ou 100ms API indisponível",
         message: error.message,
+      });
+    }
+  });
+
+  // ===== TOTAL EXPRESS CONFIGURATION =====
+
+  app.get("/api/config/total-express", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const tenantId = req.user!.tenantId;
+      const configFromDb = await db.select().from(totalExpressConfig)
+        .where(eq(totalExpressConfig.tenantId, tenantId))
+        .limit(1);
+      
+      if (configFromDb[0]) {
+        return res.json({
+          configured: true,
+          testMode: configFromDb[0].testMode,
+          service: configFromDb[0].service,
+          createdAt: configFromDb[0].createdAt,
+          updatedAt: configFromDb[0].updatedAt,
+        });
+      }
+      
+      return res.json({
+        configured: false,
+      });
+    } catch (error) {
+      console.error("Erro ao buscar configuração do Total Express:", error);
+      return res.json({
+        configured: false,
+      });
+    }
+  });
+
+  app.get("/api/config/total-express/credentials", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const tenantId = req.user!.tenantId;
+      const configFromDb = await db.select().from(totalExpressConfig)
+        .where(eq(totalExpressConfig.tenantId, tenantId))
+        .limit(1);
+      
+      if (configFromDb[0]) {
+        const decryptedUser = decrypt(configFromDb[0].user);
+        const decryptedPassword = decrypt(configFromDb[0].password);
+        const decryptedReid = decrypt(configFromDb[0].reid);
+        
+        return res.json({
+          success: true,
+          credentials: {
+            user: decryptedUser,
+            password: decryptedPassword,
+            reid: decryptedReid,
+            service: configFromDb[0].service || 'EXP',
+            testMode: configFromDb[0].testMode ?? true,
+            profitMargin: configFromDb[0].profitMargin || 1.40,
+          }
+        });
+      }
+      
+      return res.status(404).json({
+        success: false,
+        error: "Credenciais não encontradas"
+      });
+    } catch (error) {
+      console.error("Erro ao buscar credenciais do Total Express:", error);
+      return res.status(500).json({
+        success: false,
+        error: "Erro ao buscar credenciais",
+        message: error instanceof Error ? error.message : "Erro desconhecido",
+      });
+    }
+  });
+  
+  app.post("/api/config/total-express", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { user, password, reid, service, testMode, profitMargin } = req.body;
+      const tenantId = req.user!.tenantId;
+      
+      if (!user || !password || !reid) {
+        return res.status(400).json({
+          error: "Usuário, senha e REID são obrigatórios",
+        });
+      }
+      
+      // Validate service type
+      const validServices = ['EXP', 'ESP', 'PRM', 'STD'];
+      const serviceType = validServices.includes(service) ? service : 'EXP';
+      
+      const encryptedUser = encrypt(user);
+      const encryptedPassword = encrypt(password);
+      const encryptedReid = encrypt(reid);
+      
+      const existingConfig = await db.select().from(totalExpressConfig)
+        .where(eq(totalExpressConfig.tenantId, tenantId))
+        .limit(1);
+      
+      if (existingConfig[0]) {
+        await db
+          .update(totalExpressConfig)
+          .set({
+            user: encryptedUser,
+            password: encryptedPassword,
+            reid: encryptedReid,
+            service: serviceType,
+            testMode: testMode ?? true,
+            profitMargin: profitMargin || 1.40,
+            updatedAt: new Date(),
+          })
+          .where(eq(totalExpressConfig.tenantId, tenantId));
+      } else {
+        await db.insert(totalExpressConfig).values({
+          tenantId,
+          user: encryptedUser,
+          password: encryptedPassword,
+          reid: encryptedReid,
+          service: serviceType,
+          testMode: testMode ?? true,
+          profitMargin: profitMargin || 1.40,
+        });
+      }
+      
+      console.log(`✅ [TotalExpress] Configuração salva para tenant ${tenantId}`);
+      
+      return res.json({
+        success: true,
+        message: "Configuração do Total Express salva com sucesso",
+      });
+    } catch (error) {
+      console.error("Erro ao salvar configuração do Total Express:", error);
+      return res.status(500).json({
+        success: false,
+        error: "Erro ao salvar configuração",
+        message: error instanceof Error ? error.message : "Erro desconhecido",
+      });
+    }
+  });
+
+  app.post("/api/config/total-express/test", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const { user, password, reid } = req.body;
+      
+      if (!user || !password || !reid) {
+        return res.status(400).json({
+          success: false,
+          error: "Usuário, senha e REID são obrigatórios para testar",
+        });
+      }
+      
+      // Test connection by making a simple quote request
+      const { totalExpressService } = await import("../services/totalExpressService");
+      const testResult = await totalExpressService.testCredentials(user, password, reid);
+      
+      if (testResult.success) {
+        return res.json({
+          success: true,
+          message: "Credenciais do Total Express validadas com sucesso",
+        });
+      }
+      
+      return res.status(400).json({
+        success: false,
+        error: testResult.error || "Credenciais inválidas",
+      });
+    } catch (error: any) {
+      console.error("Erro ao testar credenciais do Total Express:", error.message);
+      return res.status(400).json({
+        success: false,
+        error: "Credenciais inválidas ou Total Express API indisponível",
+        message: error.message,
+      });
+    }
+  });
+
+  app.delete("/api/config/total-express", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const tenantId = req.user!.tenantId;
+      
+      await db.delete(totalExpressConfig)
+        .where(eq(totalExpressConfig.tenantId, tenantId));
+      
+      console.log(`🗑️ [TotalExpress] Configuração removida para tenant ${tenantId}`);
+      
+      return res.json({
+        success: true,
+        message: "Configuração do Total Express removida",
+      });
+    } catch (error) {
+      console.error("Erro ao remover configuração do Total Express:", error);
+      return res.status(500).json({
+        success: false,
+        error: "Erro ao remover configuração",
       });
     }
   });
