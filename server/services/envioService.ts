@@ -356,14 +356,15 @@ class EnvioService {
   async createEnvio(envio: Partial<Envio>): Promise<Envio> {
     const client = this.getClient();
     
-    const codigoRastreio = this.gerarCodigoRastreio();
+    // Use provided tracking code or generate a new one
+    const codigoRastreio = envio.codigo_rastreio || this.gerarCodigoRastreio();
     
     const { data, error } = await client
       .from('envios')
       .insert({
         ...envio,
         codigo_rastreio: codigoRastreio,
-        status: 'pendente'
+        status: envio.status || 'pendente'
       })
       .select()
       .single();
