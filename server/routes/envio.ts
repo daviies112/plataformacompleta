@@ -458,21 +458,54 @@ router.post('/total-express/registrar', async (req: Request, res: Response) => {
       }
     }
 
-    if (resultado.success && resultado.codigoRastreio && envio_id) {
-      await envioService.updateEnvio(envio_id, adminId, {
-        codigo_rastreio: resultado.codigoRastreio,
-        transportadora_nome: 'Total Express',
-        status: 'aguardando_coleta'
-      });
+    if (resultado.success && resultado.codigoRastreio) {
+      let finalEnvioId = envio_id;
+      
+      if (envio_id) {
+        // Update existing envio
+        await envioService.updateEnvio(envio_id, adminId, {
+          codigo_rastreio: resultado.codigoRastreio,
+          transportadora_nome: 'Total Express',
+          status: 'aguardando_coleta'
+        });
+      } else {
+        // Create new envio record for tracking
+        const novoEnvio = await envioService.createEnvio({
+          admin_id: adminId,
+          contrato_id: null,
+          transportadora_nome: 'Total Express',
+          codigo_rastreio: resultado.codigoRastreio,
+          status: 'aguardando_coleta',
+          destinatario_nome: destinatarioNome,
+          destinatario_cpf_cnpj: destinatarioCpfCnpj || null,
+          destinatario_telefone: destinatarioTelefone || null,
+          destinatario_email: destinatarioEmail || null,
+          destinatario_cep: destinatarioCep?.replace(/\D/g, ''),
+          destinatario_logradouro: destinatarioLogradouro || null,
+          destinatario_numero: destinatarioNumero || null,
+          destinatario_complemento: destinatarioComplemento || null,
+          destinatario_bairro: destinatarioBairro || null,
+          destinatario_cidade: destinatarioCidade || null,
+          destinatario_uf: destinatarioUf || null,
+          peso_kg: parseFloat(peso) || 0.5,
+          altura_cm: parseFloat(altura) || 10,
+          largura_cm: parseFloat(largura) || 10,
+          comprimento_cm: parseFloat(comprimento) || 10,
+          valor_declarado: parseFloat(valorDeclarado) || 0
+        });
+        finalEnvioId = novoEnvio?.id;
+      }
 
-      await envioService.addRastreamentoEvento({
-        envio_id: envio_id,
-        codigo_rastreio: resultado.codigoRastreio,
-        data_hora: new Date().toISOString(),
-        status: 'Registrado na Total Express',
-        descricao: `AWB: ${resultado.awb}`,
-        origem_api: true
-      });
+      if (finalEnvioId) {
+        await envioService.addRastreamentoEvento({
+          envio_id: finalEnvioId,
+          codigo_rastreio: resultado.codigoRastreio,
+          data_hora: new Date().toISOString(),
+          status: 'Registrado na Total Express',
+          descricao: `AWB: ${resultado.awb}`,
+          origem_api: true
+        });
+      }
     }
 
     res.json(resultado);
