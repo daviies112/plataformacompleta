@@ -51,36 +51,33 @@ export interface TotalExpressRegistroResponse {
 class TotalExpressService {
   private apiBaseUrl = 'https://edi.totalexpress.com.br';
   
-  // Read credentials dynamically each time (not cached at class initialization)
   private getCredentials() {
     const user = process.env.TOTAL_EXPRESS_USER;
     const pass = process.env.TOTAL_EXPRESS_PASS;
     const reid = process.env.TOTAL_EXPRESS_REID;
     const service = process.env.TOTAL_EXPRESS_SERVICE;
     
-    console.log('[TotalExpress] Verificando credenciais:', {
-      user: user ? `${user.substring(0, 4)}...` : 'NÃO CONFIGURADO',
-      pass: pass ? `${pass.substring(0, 4)}...` : 'NÃO CONFIGURADO',
-      reid: reid || 'NÃO CONFIGURADO',
-      service: service || 'NÃO CONFIGURADO (usando EXP)'
-    });
-    
     return { user, pass, reid, service };
+  }
+  
+  private getBasicAuthHeader(): string {
+    const { user, pass } = this.getCredentials();
+    if (!user || !pass) return '';
+    return 'Basic ' + Buffer.from(`${user}:${pass}`).toString('base64');
   }
   
   isConfigured(): boolean {
     const { user, pass, reid } = this.getCredentials();
-    return !!(user && pass && reid);
-  }
-
-  private getAuthParams() {
-    const { user, pass, reid, service } = this.getCredentials();
-    return {
-      Usuario: user,
-      Senha: pass,
-      Reid: reid,
-      Servico: service || 'EXP'
-    };
+    const configured = !!(user && pass && reid);
+    
+    console.log('[TotalExpress] Credenciais:', {
+      user: user ? `${user.substring(0, 4)}...${user.slice(-4)}` : 'NÃO CONFIGURADO',
+      pass: pass ? `Configurado (${pass.length} chars)` : 'NÃO CONFIGURADO',
+      reid: reid || 'NÃO CONFIGURADO',
+      configured
+    });
+    
+    return configured;
   }
 
   async cotarFrete(dados: TotalExpressCotacaoRequest): Promise<TotalExpressCotacaoResponse> {
@@ -91,7 +88,7 @@ class TotalExpressService {
       return {
         success: false,
         transportadora_nome: 'Total Express',
-        servico: 'Expresso',
+        servico: 'EXP',
         valor_frete: 0,
         prazo_dias: 0,
         error: 'Credenciais não configuradas'
@@ -99,25 +96,22 @@ class TotalExpressService {
     }
 
     try {
-      const cepOrigem = dados.cepOrigem.replace(/\D/g, '');
       const cepDestino = dados.cepDestino.replace(/\D/g, '');
       
       const pesoReal = dados.peso;
       const pesoCubado = (dados.altura * dados.largura * dados.comprimento) / 6000;
       const pesoFinal = Math.max(pesoReal, pesoCubado);
 
-      const url = `${this.apiBaseUrl}/webservice_calculo_frete.php`;
+      const tipoServico = service || 'EXP';
       
-      console.log('[TotalExpress] Cotando frete via SOAP:', {
-        cepOrigem,
+      console.log('[TotalExpress] Cotando frete:', {
         cepDestino,
         peso: pesoFinal,
         valorDeclarado: dados.valorDeclarado,
-        usuario: user.substring(0, 4) + '...',
-        reid: reid
+        tipoServico,
+        usuario: user.substring(0, 4) + '...'
       });
 
-      // Construir envelope SOAP para chamar o método calcularFrete
       const soapEnvelope = `<?xml version="1.0" encoding="UTF-8"?>
 <SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/" 
                    xmlns:ns1="urn:calcularFrete"
@@ -128,79 +122,74 @@ class TotalExpressService {
   <SOAP-ENV:Body>
     <ns1:calcularFrete>
       <calcularFreteRequest xsi:type="ns1:calcularFreteRequest">
-        <usuario xsi:type="xsd:string">${this.escapeXml(user)}</usuario>
-        <senha xsi:type="xsd:string">${this.escapeXml(pass)}</senha>
-        <reid xsi:type="xsd:string">${this.escapeXml(reid)}</reid>
-        <servico xsi:type="xsd:string">${this.escapeXml(service || 'EXP')}</servico>
-        <cep_origem xsi:type="xsd:string">${cepOrigem}</cep_origem>
-        <cep_destino xsi:type="xsd:string">${cepDestino}</cep_destino>
-        <peso xsi:type="xsd:string">${pesoFinal.toFixed(2)}</peso>
-        <valor_declarado xsi:type="xsd:string">${dados.valorDeclarado.toFixed(2)}</valor_declarado>
+        <TipoServico xsi:type="xsd:string">${this.escapeXml(tipoServico)}</TipoServico>
+        <CepDestino xsi:type="xsd:nonNegativeInteger">${cepDestino}</CepDestino>
+        <Peso xsi:type="xsd:string">${pesoFinal.toFixed(2)}</Peso>
+        <ValorDeclarado xsi:type="xsd:string">${dados.valorDeclarado.toFixed(2)}</ValorDeclarado>
+        <TipoEntrega xsi:type="xsd:nonNegativeInteger">0</TipoEntrega>
+        <Altura xsi:type="xsd:nonNegativeInteger">${Math.round(dados.altura)}</Altura>
+        <Largura xsi:type="xsd:nonNegativeInteger">${Math.round(dados.largura)}</Largura>
+        <Profundidade xsi:type="xsd:nonNegativeInteger">${Math.round(dados.comprimento)}</Profundidade>
       </calcularFreteRequest>
     </ns1:calcularFrete>
   </SOAP-ENV:Body>
 </SOAP-ENV:Envelope>`;
 
+      const url = `${this.apiBaseUrl}/webservice_calculo_frete.php`;
+      
       const response = await axios.post(url, soapEnvelope, {
         headers: {
           'Content-Type': 'text/xml; charset=utf-8',
-          'SOAPAction': 'urn:simulaFrete#calcularFrete'
+          'SOAPAction': 'urn:simulaFrete#calcularFrete',
+          'Authorization': this.getBasicAuthHeader()
         },
         timeout: 15000
       });
 
       const data = response.data;
-      console.log('[TotalExpress] Resposta SOAP recebida (preview):', typeof data === 'string' ? data.substring(0, 300) : data);
+      console.log('[TotalExpress] Resposta recebida (preview):', typeof data === 'string' ? data.substring(0, 400) : data);
       
       if (typeof data === 'string') {
-        // Parse SOAP response - tentar múltiplos padrões
-        const valorMatch = data.match(/<valor[^>]*>([^<]+)<\/valor>/i) || 
-                          data.match(/<Valor[^>]*>([^<]+)<\/Valor>/i) ||
-                          data.match(/<frete[^>]*>([^<]+)<\/frete>/i) ||
-                          data.match(/<vl_frete[^>]*>([^<]+)<\/vl_frete>/i);
-        const prazoMatch = data.match(/<prazo[^>]*>([^<]+)<\/prazo>/i) || 
-                          data.match(/<Prazo[^>]*>([^<]+)<\/Prazo>/i) ||
-                          data.match(/<dias[^>]*>([^<]+)<\/dias>/i);
-        const erroMatch = data.match(/<erro[^>]*>([^<]+)<\/erro>/i) || 
-                         data.match(/<Erro[^>]*>([^<]+)<\/Erro>/i) ||
-                         data.match(/<faultstring[^>]*>([^<]+)<\/faultstring>/i) ||
-                         data.match(/<mensagem[^>]*>([^<]+)<\/mensagem>/i);
+        const erroMatch = data.match(/<ErroConsultaFrete[^>]*>([^<]+)<\/ErroConsultaFrete>/i);
+        const valorMatch = data.match(/<ValorServico[^>]*>([^<]+)<\/ValorServico>/i);
+        const prazoMatch = data.match(/<Prazo[^>]*>([^<]+)<\/Prazo>/i);
+        const codigoMatch = data.match(/<CodigoProc[^>]*>([^<]+)<\/CodigoProc>/i);
         
-        if (erroMatch && erroMatch[1] && erroMatch[1].trim() !== '0' && erroMatch[1].trim() !== '' && !erroMatch[1].toLowerCase().includes('sucesso')) {
-          console.log('[TotalExpress] Erro na cotação:', erroMatch[1]);
+        const codigoProc = codigoMatch ? parseInt(codigoMatch[1]) : -1;
+        
+        if (erroMatch && erroMatch[1]) {
+          console.log('[TotalExpress] Erro na cotação:', erroMatch[1], 'CodigoProc:', codigoProc);
           return {
             success: false,
             transportadora_nome: 'Total Express',
-            servico: service || 'Expresso',
+            servico: tipoServico,
             valor_frete: 0,
             prazo_dias: 0,
             error: `Erro Total Express: ${erroMatch[1]}`
           };
         }
 
-        const valor = valorMatch ? parseFloat(valorMatch[1].replace(',', '.')) : 0;
-        const prazo = prazoMatch ? parseInt(prazoMatch[1]) : 5;
+        if (valorMatch) {
+          const valor = parseFloat(valorMatch[1].replace(',', '.'));
+          const prazo = prazoMatch ? parseInt(prazoMatch[1]) : 5;
 
-        if (valor > 0) {
           console.log('[TotalExpress] Cotação bem-sucedida:', { valor, prazo });
           return {
             success: true,
             transportadora_nome: 'Total Express',
-            servico: service || 'Expresso',
+            servico: tipoServico,
             valor_frete: valor,
             prazo_dias: prazo
           };
         }
         
-        // Log resposta completa para debug se não encontrou valor
-        console.log('[TotalExpress] Resposta sem valor de frete detectado:', data.substring(0, 1000));
+        console.log('[TotalExpress] Resposta sem valor de frete:', data.substring(0, 800));
       }
 
-      console.log('[TotalExpress] Resposta inesperada:', data);
       return {
         success: false,
         transportadora_nome: 'Total Express',
-        servico: 'Expresso',
+        servico: tipoServico,
         valor_frete: 0,
         prazo_dias: 0,
         error: 'Resposta inesperada da API'
@@ -208,10 +197,22 @@ class TotalExpressService {
 
     } catch (error: any) {
       console.error('[TotalExpress] Erro na cotação:', error.message);
+      
+      if (error.response?.status === 401) {
+        return {
+          success: false,
+          transportadora_nome: 'Total Express',
+          servico: 'EXP',
+          valor_frete: 0,
+          prazo_dias: 0,
+          error: 'Credenciais inválidas ou acesso negado'
+        };
+      }
+      
       return {
         success: false,
         transportadora_nome: 'Total Express',
-        servico: 'Expresso',
+        servico: 'EXP',
         valor_frete: 0,
         prazo_dias: 0,
         error: error.message || 'Erro ao conectar com Total Express'
@@ -231,25 +232,26 @@ class TotalExpressService {
 
     try {
       const url = `${this.apiBaseUrl}/webservice_e_total.php`;
-
       const cepDestino = dados.destinatarioCep.replace(/\D/g, '');
+      const tipoServico = service || 'EXP';
       
-      console.log('[TotalExpress] Registrando coleta com credenciais:', {
+      console.log('[TotalExpress] Registrando coleta:', {
+        pedido: dados.pedido,
         usuario: user.substring(0, 4) + '...',
         reid: reid,
-        service: service || 'EXP'
+        service: tipoServico
       });
       
       const xmlBody = `<?xml version="1.0" encoding="UTF-8"?>
 <Encomendas>
   <Remetente>
-    <Usuario>${user}</Usuario>
-    <Senha>${pass}</Senha>
-    <Reid>${reid}</Reid>
-    <Servico>${service || 'EXP'}</Servico>
+    <Usuario>${this.escapeXml(user)}</Usuario>
+    <Senha>${this.escapeXml(pass)}</Senha>
+    <Reid>${this.escapeXml(reid)}</Reid>
+    <Servico>${this.escapeXml(tipoServico)}</Servico>
   </Remetente>
   <Encomenda>
-    <Pedido>${dados.pedido}</Pedido>
+    <Pedido>${this.escapeXml(dados.pedido)}</Pedido>
     <NomeDestinatario>${this.escapeXml(dados.destinatarioNome)}</NomeDestinatario>
     <CpfCnpjDestinatario>${dados.destinatarioCpfCnpj?.replace(/\D/g, '') || ''}</CpfCnpjDestinatario>
     <TelefoneDestinatario>${dados.destinatarioTelefone?.replace(/\D/g, '') || ''}</TelefoneDestinatario>
@@ -262,30 +264,30 @@ class TotalExpressService {
     <UfDestinatario>${dados.destinatarioUf || ''}</UfDestinatario>
     <CepDestinatario>${cepDestino}</CepDestinatario>
     <Peso>${dados.peso.toFixed(2)}</Peso>
-    <Altura>${dados.altura}</Altura>
-    <Largura>${dados.largura}</Largura>
-    <Comprimento>${dados.comprimento}</Comprimento>
+    <Altura>${Math.round(dados.altura)}</Altura>
+    <Largura>${Math.round(dados.largura)}</Largura>
+    <Comprimento>${Math.round(dados.comprimento)}</Comprimento>
     <ValorDeclarado>${dados.valorDeclarado.toFixed(2)}</ValorDeclarado>
     <DescricaoConteudo>${this.escapeXml(dados.descricaoConteudo || 'Produtos')}</DescricaoConteudo>
   </Encomenda>
 </Encomendas>`;
 
-      console.log('[TotalExpress] Registrando coleta para pedido:', dados.pedido);
-
       const response = await axios.post(url, xmlBody, {
         headers: {
-          'Content-Type': 'application/xml'
+          'Content-Type': 'application/xml',
+          'Authorization': this.getBasicAuthHeader()
         },
         timeout: 30000
       });
 
       const responseData = response.data;
+      console.log('[TotalExpress] Resposta registro:', typeof responseData === 'string' ? responseData.substring(0, 500) : responseData);
 
       if (typeof responseData === 'string') {
-        const awbMatch = responseData.match(/<Awb>([^<]+)<\/Awb>/);
-        const etiquetaMatch = responseData.match(/<Etiqueta>([^<]+)<\/Etiqueta>/);
-        const erroMatch = responseData.match(/<Erro>([^<]+)<\/Erro>/);
-        const mensagemMatch = responseData.match(/<Mensagem>([^<]+)<\/Mensagem>/);
+        const awbMatch = responseData.match(/<Awb>([^<]+)<\/Awb>/i);
+        const etiquetaMatch = responseData.match(/<Etiqueta>([^<]+)<\/Etiqueta>/i);
+        const erroMatch = responseData.match(/<Erro>([^<]+)<\/Erro>/i);
+        const mensagemMatch = responseData.match(/<Mensagem>([^<]+)<\/Mensagem>/i);
 
         if (erroMatch && erroMatch[1] !== '0' && erroMatch[1] !== '') {
           const errorMsg = mensagemMatch ? mensagemMatch[1] : erroMatch[1];
@@ -310,7 +312,6 @@ class TotalExpressService {
         }
       }
 
-      console.log('[TotalExpress] Resposta do registro:', responseData);
       return {
         success: false,
         error: 'Não foi possível obter o código de rastreio'
@@ -335,7 +336,9 @@ class TotalExpressService {
     }>;
     error?: string;
   }> {
-    if (!this.isConfigured()) {
+    const { user, pass, reid, service } = this.getCredentials();
+    
+    if (!user || !pass || !reid) {
       return { success: false, error: 'Credenciais não configuradas' };
     }
 
@@ -344,8 +347,14 @@ class TotalExpressService {
 
       const response = await axios.get(url, {
         params: {
-          ...this.getAuthParams(),
+          Usuario: user,
+          Senha: pass,
+          Reid: reid,
+          Servico: service || 'EXP',
           Awb: codigoRastreio
+        },
+        headers: {
+          'Authorization': this.getBasicAuthHeader()
         },
         timeout: 15000
       });
@@ -359,14 +368,14 @@ class TotalExpressService {
       }> = [];
 
       if (typeof data === 'string') {
-        const eventoMatches = data.matchAll(/<Evento>([\s\S]*?)<\/Evento>/g);
+        const eventoMatches = data.matchAll(/<Evento>([\s\S]*?)<\/Evento>/gi);
         
         for (const match of eventoMatches) {
           const eventoXml = match[1];
-          const dataMatch = eventoXml.match(/<Data>([^<]+)<\/Data>/);
-          const statusMatch = eventoXml.match(/<Status>([^<]+)<\/Status>/);
-          const descricaoMatch = eventoXml.match(/<Descricao>([^<]+)<\/Descricao>/);
-          const localMatch = eventoXml.match(/<Local>([^<]+)<\/Local>/);
+          const dataMatch = eventoXml.match(/<Data>([^<]+)<\/Data>/i);
+          const statusMatch = eventoXml.match(/<Status>([^<]+)<\/Status>/i);
+          const descricaoMatch = eventoXml.match(/<Descricao>([^<]+)<\/Descricao>/i);
+          const localMatch = eventoXml.match(/<Local>([^<]+)<\/Local>/i);
 
           if (statusMatch || descricaoMatch) {
             eventos.push({
