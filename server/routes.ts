@@ -113,7 +113,7 @@ export async function registerRoutes(app: Express) {
       }
 
       const cotacao = await totalExpressService.cotarFrete({
-        cepOrigem: "04552000", // Fixed origin CEP (associated with REID)
+        cepOrigem: "32315090", // Fixed origin CEP (associated with REID)
         cepDestino: String(cepDestino).replace(/\D/g, ''),
         peso: parseFloat(peso) || 0.5,
         altura: parseFloat(altura) || 10,

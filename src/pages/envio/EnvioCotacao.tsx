@@ -30,7 +30,7 @@ interface CotacaoRequest {
 
 // CEP de origem fixo (associado ao REID da TotalExpress)
 // Este CEP é configurado na conta TotalExpress e não pode ser alterado
-const CEP_ORIGEM_FIXO = "04552-000"; // São Paulo - Ponto principal
+const CEP_ORIGEM_FIXO = "32315-090"; // Contagem/MG - Ponto principal
 
 const EnvioCotacao = () => {
   const { toast } = useToast();
