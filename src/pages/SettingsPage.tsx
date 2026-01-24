@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from 'next-themes';
-import { Settings, User, Shield, Plug, Database, Calendar, MessageSquare, Zap, Video, CreditCard, Webhook, Activity, Search, Bell, ChevronDown, Sun, Moon, Code, Server, Cloud, BarChart3, Copy, Eye, EyeOff, RefreshCw, Trash2, Check, Link2 } from 'lucide-react';
+import { Settings, User, Shield, Plug, Database, Calendar, MessageSquare, Zap, Video, CreditCard, Webhook, Activity, Search, Bell, ChevronDown, Sun, Moon, Code, Server, Cloud, BarChart3, Copy, Eye, EyeOff, RefreshCw, Trash2, Check, Link2, Truck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -104,6 +104,7 @@ const SettingsPage = () => {
     optimizer: false,
     hms100ms: false,
     monitoring: false,
+    totalexpress: false,
   });
   
   const [generatedN8nApiKey, setGeneratedN8nApiKey] = useState<string | null>(null);
@@ -159,6 +160,7 @@ const SettingsPage = () => {
     better_stack: { source_token: '', ingesting_host: '' },
     bigdatacorp: { token_id: '', chave_token: '' },
     supabase_master: { url: '', service_role_key: '' },
+    totalexpress: { user: '', password: '', reid: '', service_type: 'EXP', profit_margin: '40', test_mode: false },
     cache: {
       progressive_ttl_enabled: 'false',
       access_threshold_high: '100',
@@ -513,6 +515,89 @@ const SettingsPage = () => {
     },
   });
 
+  const saveTotalExpressMutation = useMutation({
+    mutationFn: async (credentials: any) => {
+      const response = await fetch('/api/config/total-express', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          user: credentials.user,
+          password: credentials.password || undefined,
+          reid: credentials.reid,
+          serviceType: credentials.service_type,
+          profitMargin: 1 + (parseFloat(credentials.profit_margin) / 100),
+          testMode: credentials.test_mode
+        }),
+      });
+      if (!response.ok) throw new Error((await response.json()).error);
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "TotalExpress configurado", description: "Credenciais de frete salvas!" });
+      queryClient.invalidateQueries({ queryKey: ['/api/config/total-express'] });
+      setIntegrationForms(prev => ({
+        ...prev,
+        totalexpress: { ...prev.totalexpress, password: '' }
+      }));
+    },
+    onError: (error: any) => {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const testTotalExpressMutation = useMutation({
+    mutationFn: async (credentials: any) => {
+      const response = await fetch('/api/config/total-express/test', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          user: credentials.user,
+          password: credentials.password || undefined,
+          reid: credentials.reid,
+          serviceType: credentials.service_type,
+        }),
+      });
+      if (!response.ok) throw new Error((await response.json()).error);
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Conexão validada", description: "Credenciais TotalExpress verificadas com sucesso!" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Erro de conexão", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const deleteTotalExpressMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch('/api/config/total-express', {
+        method: 'DELETE',
+        headers: { 
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+      });
+      if (!response.ok) throw new Error((await response.json()).error);
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Configuração removida", description: "Credenciais TotalExpress foram removidas" });
+      queryClient.invalidateQueries({ queryKey: ['/api/config/total-express'] });
+      setIntegrationForms(prev => ({
+        ...prev,
+        totalexpress: { user: '', password: '', reid: '', service_type: 'EXP', profit_margin: '40', test_mode: false }
+      }));
+    },
+    onError: (error: any) => {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    },
+  });
+
   const saveSupabaseMasterMutation = useMutation({
     mutationFn: async (credentials: any) => {
       const response = await fetch('/api/config/supabase-master', {
@@ -814,6 +899,15 @@ const SettingsPage = () => {
     retry: false,
   });
 
+  const { data: totalExpressConfig, isLoading: isLoadingTotalExpress } = useQuery({
+    queryKey: ['/api/config/total-express'],
+    enabled: isAuthenticated && !isLoading,
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
+    retry: false,
+  });
+
   const generateN8nMeetingApiKeyMutation = useMutation({
     mutationFn: async () => {
       const response = await fetch('/api/n8n/api-key/generate', {
@@ -1098,6 +1192,24 @@ const SettingsPage = () => {
       }));
     }
   }, [hms100msCredentials]);
+
+  useEffect(() => {
+    if (totalExpressConfig?.configured) {
+      setIntegrationForms(prev => ({
+        ...prev,
+        totalexpress: {
+          user: totalExpressConfig.user || '',
+          password: '',
+          reid: totalExpressConfig.reid || '',
+          service_type: totalExpressConfig.serviceType || 'EXP',
+          profit_margin: totalExpressConfig.profitMargin 
+            ? Math.round((totalExpressConfig.profitMargin - 1) * 100).toString()
+            : '40',
+          test_mode: totalExpressConfig.testMode || false
+        }
+      }));
+    }
+  }, [totalExpressConfig]);
 
   const handleSaveIntegration = (integrationType: string) => {
     const credentials = integrationForms[integrationType as keyof typeof integrationForms];
@@ -2271,6 +2383,181 @@ const SettingsPage = () => {
                 >
                   Testar Conexão
                 </PremiumButton>
+              </div>
+            </div>
+          </CollapsibleSection>
+
+          {/* TotalExpress Section */}
+          <CollapsibleSection
+            openSections={openSections}
+            setOpenSections={setOpenSections}
+            id="totalexpress"
+            title="Frete TotalExpress"
+            description="Cotação e envio de fretes com TotalExpress"
+            icon={Truck}
+          >
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 mb-4">
+                {isLoadingTotalExpress ? (
+                  <Badge className="bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300">
+                    Carregando...
+                  </Badge>
+                ) : totalExpressConfig?.configured ? (
+                  <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300" data-testid="badge-totalexpress-configured">
+                    Configurado
+                  </Badge>
+                ) : (
+                  <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300" data-testid="badge-totalexpress-not-configured">
+                    Não configurado
+                  </Badge>
+                )}
+              </div>
+              
+              <div className="grid gap-4 md:grid-cols-2">
+                <PremiumInput
+                  label="Usuário *"
+                  value={integrationForms.totalexpress.user}
+                  onChange={(e) => setIntegrationForms({
+                    ...integrationForms,
+                    totalexpress: { ...integrationForms.totalexpress, user: e.target.value }
+                  })}
+                  placeholder="Usuário TotalExpress"
+                  data-testid="input-totalexpress-user"
+                />
+                
+                <div className="space-y-2">
+                  <Label>Senha {!totalExpressConfig?.configured && "*"}</Label>
+                  <div className="flex gap-2">
+                    <PremiumInput
+                      type="password"
+                      value={integrationForms.totalexpress.password}
+                      onChange={(e) => setIntegrationForms({
+                        ...integrationForms,
+                        totalexpress: { ...integrationForms.totalexpress, password: e.target.value }
+                      })}
+                      placeholder={totalExpressConfig?.configured ? "••••••••" : "Senha TotalExpress"}
+                      data-testid="input-totalexpress-password"
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {totalExpressConfig?.configured 
+                      ? "Deixe em branco para manter a senha atual" 
+                      : "Senha de acesso à API"}
+                  </p>
+                </div>
+              </div>
+              
+              <div className="grid gap-4 md:grid-cols-2">
+                <PremiumInput
+                  label="REID *"
+                  value={integrationForms.totalexpress.reid}
+                  onChange={(e) => setIntegrationForms({
+                    ...integrationForms,
+                    totalexpress: { ...integrationForms.totalexpress, reid: e.target.value }
+                  })}
+                  placeholder="Código REID"
+                  data-testid="input-totalexpress-reid"
+                />
+                
+                <div className="space-y-2">
+                  <Label>Tipo de Serviço</Label>
+                  <Select 
+                    value={integrationForms.totalexpress.service_type} 
+                    onValueChange={(value) => setIntegrationForms({
+                      ...integrationForms,
+                      totalexpress: { ...integrationForms.totalexpress, service_type: value }
+                    })}
+                  >
+                    <SelectTrigger data-testid="select-totalexpress-service">
+                      <SelectValue placeholder="Selecione o serviço" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="EXP" data-testid="select-item-exp">EXP - Expresso</SelectItem>
+                      <SelectItem value="ESP" data-testid="select-item-esp">ESP - Especial</SelectItem>
+                      <SelectItem value="PRM" data-testid="select-item-prm">PRM - Premium</SelectItem>
+                      <SelectItem value="STD" data-testid="select-item-std">STD - Standard</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <PremiumInput
+                  label="Margem de Lucro (%)"
+                  type="number"
+                  value={integrationForms.totalexpress.profit_margin}
+                  onChange={(e) => setIntegrationForms({
+                    ...integrationForms,
+                    totalexpress: { ...integrationForms.totalexpress, profit_margin: e.target.value }
+                  })}
+                  placeholder="40"
+                  data-testid="input-totalexpress-margin"
+                />
+                
+                <div className="space-y-2">
+                  <Label>Modo de Teste</Label>
+                  <PremiumSwitch
+                    checked={integrationForms.totalexpress.test_mode as boolean}
+                    onCheckedChange={(checked) => setIntegrationForms({
+                      ...integrationForms,
+                      totalexpress: { ...integrationForms.totalexpress, test_mode: checked }
+                    })}
+                    label={integrationForms.totalexpress.test_mode ? "Ativado (sem cobranças reais)" : "Desativado (produção)"}
+                    data-testid="switch-totalexpress-testmode"
+                  />
+                </div>
+              </div>
+
+              <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800">
+                <p className="text-sm text-blue-800 dark:text-blue-200">
+                  <strong>Sobre o REID:</strong> O REID é o código de identificação do remetente associado à sua conta TotalExpress. 
+                  Cada REID está vinculado a um CEP de origem. Para diferentes origens, configure diferentes REIDs.
+                </p>
+              </div>
+              
+              <div className="flex gap-3">
+                <PremiumButton 
+                  onClick={() => {
+                    if (!integrationForms.totalexpress.user || !integrationForms.totalexpress.reid) {
+                      toast({ title: "Erro", description: "Por favor, preencha usuário e REID", variant: "destructive" });
+                      return;
+                    }
+                    if (!totalExpressConfig?.configured && !integrationForms.totalexpress.password) {
+                      toast({ title: "Erro", description: "Por favor, preencha a senha", variant: "destructive" });
+                      return;
+                    }
+                    saveTotalExpressMutation.mutate(integrationForms.totalexpress);
+                  }}
+                  isLoading={saveTotalExpressMutation.isPending}
+                  variant="primary"
+                  data-testid="button-save-totalexpress"
+                >
+                  Salvar Configuração
+                </PremiumButton>
+                <PremiumButton 
+                  variant="secondary"
+                  onClick={() => {
+                    if (!integrationForms.totalexpress.user || !integrationForms.totalexpress.reid) {
+                      toast({ title: "Erro", description: "Por favor, preencha usuário e REID", variant: "destructive" });
+                      return;
+                    }
+                    testTotalExpressMutation.mutate(integrationForms.totalexpress);
+                  }}
+                  disabled={testTotalExpressMutation.isPending || !integrationForms.totalexpress.user || !integrationForms.totalexpress.reid}
+                  data-testid="button-test-totalexpress"
+                >
+                  {testTotalExpressMutation.isPending ? "Testando..." : "Testar Conexão"}
+                </PremiumButton>
+                {totalExpressConfig?.configured && (
+                  <PremiumButton 
+                    variant="outline"
+                    onClick={() => deleteTotalExpressMutation.mutate()}
+                    disabled={deleteTotalExpressMutation.isPending}
+                    data-testid="button-delete-totalexpress"
+                  >
+                    {deleteTotalExpressMutation.isPending ? "Removendo..." : "Remover"}
+                  </PremiumButton>
+                )}
               </div>
             </div>
           </CollapsibleSection>
