@@ -14,10 +14,14 @@ import {
   Loader2,
   AlertCircle,
   Copy,
-  Truck
+  Truck,
+  Search,
+  History,
+  X
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useDebounce } from "@/hooks/use-debounce";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import EnvioNavigation from "./EnvioNavigation";
@@ -93,11 +97,32 @@ interface CotacaoSelecionada {
   valorDeclarado: string;
 }
 
+interface DestinatarioAnterior {
+  id: string;
+  destinatario_nome: string;
+  destinatario_cpf_cnpj?: string;
+  destinatario_telefone?: string;
+  destinatario_email?: string;
+  destinatario_cep?: string;
+  destinatario_logradouro?: string;
+  destinatario_numero?: string;
+  destinatario_complemento?: string;
+  destinatario_bairro?: string;
+  destinatario_cidade?: string;
+  destinatario_uf?: string;
+  ultimo_envio?: string;
+}
+
 const EnvioEnviar = () => {
   const { toast } = useToast();
   const [selectedContrato, setSelectedContrato] = useState<ContratoPendente | null>(null);
   const [envioResult, setEnvioResult] = useState<EnvioResult | null>(null);
   const [cotacaoSelecionada, setCotacaoSelecionada] = useState<CotacaoSelecionada | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const [selectedDestinatario, setSelectedDestinatario] = useState<DestinatarioAnterior | null>(null);
+  const searchRef = useRef<HTMLDivElement>(null);
+  const debouncedSearch = useDebounce(searchQuery, 300);
   const [formData, setFormData] = useState({
     peso: "",
     altura: "",
@@ -143,6 +168,67 @@ const EnvioEnviar = () => {
   const { data: contratos = [], isLoading, error } = useQuery<ContratoPendente[]>({
     queryKey: ['/api/envio/contratos-pendentes'],
   });
+
+  const { data: destinatariosAnteriores = [], isLoading: isLoadingDestinatarios } = useQuery<DestinatarioAnterior[]>({
+    queryKey: ['/api/envio/envios/destinatarios', debouncedSearch],
+    queryFn: async () => {
+      const response = await fetch(`/api/envio/envios/destinatarios?search=${encodeURIComponent(debouncedSearch)}&limit=10`);
+      if (!response.ok) throw new Error('Erro ao buscar destinatários');
+      return response.json();
+    },
+    enabled: showSearchResults || debouncedSearch.length > 0,
+  });
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setShowSearchResults(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSelectDestinatario = (destinatario: DestinatarioAnterior) => {
+    setSelectedDestinatario(destinatario);
+    setSelectedContrato(null);
+    setShowSearchResults(false);
+    setSearchQuery("");
+    setEnvioResult(null);
+    setFormData({
+      peso: cotacaoSelecionada?.peso || "",
+      altura: cotacaoSelecionada?.altura || "",
+      largura: cotacaoSelecionada?.largura || "",
+      comprimento: cotacaoSelecionada?.comprimento || "",
+      valor_declarado: cotacaoSelecionada?.valorDeclarado || ""
+    });
+    setAddressData({
+      rua: destinatario.destinatario_logradouro || "",
+      numero: destinatario.destinatario_numero || "",
+      complemento: destinatario.destinatario_complemento || "",
+      bairro: destinatario.destinatario_bairro || "",
+      cidade: destinatario.destinatario_cidade || "",
+      uf: destinatario.destinatario_uf || "",
+      cep: destinatario.destinatario_cep || cotacaoSelecionada?.cepDestino || ""
+    });
+    toast({
+      title: "Destinatário selecionado",
+      description: `${destinatario.destinatario_nome} - ${destinatario.destinatario_cidade}, ${destinatario.destinatario_uf}`
+    });
+  };
+
+  const clearDestinatario = () => {
+    setSelectedDestinatario(null);
+    setAddressData({
+      rua: "",
+      numero: "",
+      complemento: "",
+      bairro: "",
+      cidade: "",
+      uf: "",
+      cep: ""
+    });
+  };
 
   const createEnvioMutation = useMutation({
     mutationFn: async (data: TotalExpressRegistroRequest) => {
@@ -215,7 +301,7 @@ const EnvioEnviar = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!selectedContrato) return;
+    if (!selectedContrato && !selectedDestinatario) return;
 
     if (!addressData.cep || addressData.cep.trim() === "") {
       toast({
@@ -226,14 +312,15 @@ const EnvioEnviar = () => {
       return;
     }
 
-    const pedido = `PED-${selectedContrato.id.substring(0, 8).toUpperCase()}-${Date.now().toString().slice(-6)}`;
+    const sourceId = selectedContrato?.id || selectedDestinatario?.id || Date.now().toString();
+    const pedido = `PED-${sourceId.substring(0, 8).toUpperCase()}-${Date.now().toString().slice(-6)}`;
 
     const request: TotalExpressRegistroRequest = {
       pedido,
-      destinatarioNome: selectedContrato.client_name,
-      destinatarioCpfCnpj: selectedContrato.client_cpf,
-      destinatarioEmail: selectedContrato.client_email,
-      destinatarioTelefone: selectedContrato.client_phone,
+      destinatarioNome: selectedContrato?.client_name || selectedDestinatario?.destinatario_nome || "",
+      destinatarioCpfCnpj: selectedContrato?.client_cpf || selectedDestinatario?.destinatario_cpf_cnpj,
+      destinatarioEmail: selectedContrato?.client_email || selectedDestinatario?.destinatario_email,
+      destinatarioTelefone: selectedContrato?.client_phone || selectedDestinatario?.destinatario_telefone,
       destinatarioLogradouro: addressData.rua,
       destinatarioNumero: addressData.numero,
       destinatarioComplemento: addressData.complemento,
@@ -271,7 +358,9 @@ const EnvioEnviar = () => {
 
   const handleNewEnvio = () => {
     setSelectedContrato(null);
+    setSelectedDestinatario(null);
     setEnvioResult(null);
+    setSearchQuery("");
     setFormData({
       peso: "",
       altura: "",
@@ -394,61 +483,163 @@ const EnvioEnviar = () => {
           )}
 
           <div className="grid lg:grid-cols-3 gap-8">
-            <Card className="lg:col-span-1">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5 text-primary" />
-                  Contratos Pendentes
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {isLoading ? (
-                  <div className="space-y-3">
-                    {[1, 2, 3].map((i) => (
-                      <Skeleton key={i} className="h-24 w-full" />
-                    ))}
-                  </div>
-                ) : contratos.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground">
-                      Nenhum contrato pendente de envio
-                    </p>
-                  </div>
-                ) : (
-                  <ScrollArea className="h-[500px] pr-4">
-                    <div className="space-y-3">
-                      {contratos.map((contrato) => (
-                        <Card
-                          key={contrato.id}
-                          className={`cursor-pointer transition-all hover:border-primary/50 ${
-                            selectedContrato?.id === contrato.id 
-                              ? 'border-primary ring-1 ring-primary/20' 
-                              : ''
-                          }`}
-                          onClick={() => handleSelectContrato(contrato)}
-                          data-testid={`card-contrato-${contrato.id}`}
+            <div className="lg:col-span-1 space-y-4">
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <History className="h-5 w-5 text-amber-500" />
+                    Reenviar para Destinatário
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div ref={searchRef} className="relative">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Buscar por nome..."
+                        value={searchQuery}
+                        onChange={(e) => {
+                          setSearchQuery(e.target.value);
+                          setShowSearchResults(true);
+                        }}
+                        onFocus={() => setShowSearchResults(true)}
+                        className="pl-9 pr-8"
+                        data-testid="input-search-destinatario"
+                      />
+                      {searchQuery && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6"
+                          onClick={() => {
+                            setSearchQuery("");
+                            setShowSearchResults(false);
+                          }}
                         >
-                          <CardContent className="p-4">
-                            <div className="flex items-start justify-between gap-2 mb-2">
-                              <h4 className="font-medium text-foreground line-clamp-1">
-                                {contrato.client_name}
-                              </h4>
-                              <Badge variant="outline" className="shrink-0">
-                                {formatDate(contrato.signed_at || "")}
-                              </Badge>
+                          <X className="h-3 w-3" />
+                        </Button>
+                      )}
+                    </div>
+                    
+                    {showSearchResults && (
+                      <div className="absolute z-50 w-full mt-1 bg-popover border rounded-md shadow-lg max-h-64 overflow-auto">
+                        {isLoadingDestinatarios ? (
+                          <div className="p-3 text-center">
+                            <Loader2 className="h-4 w-4 animate-spin mx-auto" />
+                          </div>
+                        ) : destinatariosAnteriores.length === 0 ? (
+                          <div className="p-3 text-center text-sm text-muted-foreground">
+                            {searchQuery ? "Nenhum destinatário encontrado" : "Digite para buscar"}
+                          </div>
+                        ) : (
+                          destinatariosAnteriores.map((dest) => (
+                            <div
+                              key={dest.id}
+                              className="p-3 hover:bg-accent cursor-pointer border-b last:border-b-0"
+                              onClick={() => handleSelectDestinatario(dest)}
+                              data-testid={`option-destinatario-${dest.id}`}
+                            >
+                              <div className="font-medium text-sm">{dest.destinatario_nome}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {dest.destinatario_cidade}, {dest.destinatario_uf} - CEP: {dest.destinatario_cep}
+                              </div>
+                              {dest.ultimo_envio && (
+                                <div className="text-xs text-muted-foreground mt-1">
+                                  Último envio: {formatDate(dest.ultimo_envio)}
+                                </div>
+                              )}
                             </div>
-                            <p className="text-sm text-muted-foreground mb-1">
-                              {contrato.address_city}, {contrato.address_state}
-                            </p>
-                          </CardContent>
-                        </Card>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  
+                  {selectedDestinatario && (
+                    <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-md">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="font-medium text-sm flex items-center gap-2">
+                            <History className="h-4 w-4 text-amber-600" />
+                            {selectedDestinatario.destinatario_nome}
+                          </div>
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {selectedDestinatario.destinatario_cidade}, {selectedDestinatario.destinatario_uf}
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 shrink-0"
+                          onClick={clearDestinatario}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5 text-primary" />
+                    Contratos Pendentes
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {isLoading ? (
+                    <div className="space-y-3">
+                      {[1, 2, 3].map((i) => (
+                        <Skeleton key={i} className="h-24 w-full" />
                       ))}
                     </div>
-                  </ScrollArea>
-                )}
-              </CardContent>
-            </Card>
+                  ) : contratos.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground">
+                        Nenhum contrato pendente de envio
+                      </p>
+                    </div>
+                  ) : (
+                    <ScrollArea className="h-[400px] pr-4">
+                      <div className="space-y-3">
+                        {contratos.map((contrato) => (
+                          <Card
+                            key={contrato.id}
+                            className={`cursor-pointer transition-all hover:border-primary/50 ${
+                              selectedContrato?.id === contrato.id 
+                                ? 'border-primary ring-1 ring-primary/20' 
+                                : ''
+                            }`}
+                            onClick={() => {
+                              handleSelectContrato(contrato);
+                              setSelectedDestinatario(null);
+                            }}
+                            data-testid={`card-contrato-${contrato.id}`}
+                          >
+                            <CardContent className="p-4">
+                              <div className="flex items-start justify-between gap-2 mb-2">
+                                <h4 className="font-medium text-foreground line-clamp-1">
+                                  {contrato.client_name}
+                                </h4>
+                                <Badge variant="outline" className="shrink-0">
+                                  {formatDate(contrato.signed_at || "")}
+                                </Badge>
+                              </div>
+                              <p className="text-sm text-muted-foreground mb-1">
+                                {contrato.address_city}, {contrato.address_state}
+                              </p>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
 
             <div className="lg:col-span-2">
               {envioResult ? (
@@ -509,17 +700,17 @@ const EnvioEnviar = () => {
                     </div>
                   </CardContent>
                 </Card>
-              ) : !selectedContrato ? (
+              ) : !selectedContrato && !selectedDestinatario ? (
                 <Card className="h-full flex items-center justify-center min-h-[500px]">
                   <div className="text-center p-8">
                     <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mx-auto mb-4">
                       <Package className="h-8 w-8 text-muted-foreground" />
                     </div>
                     <h3 className="text-lg font-medium text-foreground mb-2">
-                      Selecione um contrato
+                      Selecione um destinatário
                     </h3>
                     <p className="text-muted-foreground">
-                      Escolha um contrato na lista para criar o envio
+                      Escolha um contrato pendente ou busque um destinatário anterior
                     </p>
                   </div>
                 </Card>
@@ -537,13 +728,19 @@ const EnvioEnviar = () => {
                         <div className="flex items-center gap-2 text-foreground">
                           <User className="h-4 w-4" />
                           <h4 className="font-medium">Dados do Cliente</h4>
+                          {selectedDestinatario && (
+                            <Badge variant="outline" className="bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800">
+                              <History className="h-3 w-3 mr-1" />
+                              Reenvio
+                            </Badge>
+                          )}
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div>
                             <Label htmlFor="nome">Nome</Label>
                             <Input 
                               id="nome" 
-                              value={selectedContrato.client_name || ''} 
+                              value={selectedContrato?.client_name || selectedDestinatario?.destinatario_nome || ''} 
                               readOnly 
                               className="mt-1.5 bg-muted"
                               data-testid="input-nome"
@@ -553,7 +750,7 @@ const EnvioEnviar = () => {
                             <Label htmlFor="cpf">CPF</Label>
                             <Input 
                               id="cpf" 
-                              value={selectedContrato.client_cpf || ''} 
+                              value={selectedContrato?.client_cpf || selectedDestinatario?.destinatario_cpf_cnpj || ''} 
                               readOnly 
                               className="mt-1.5 bg-muted"
                               data-testid="input-cpf"
@@ -563,7 +760,7 @@ const EnvioEnviar = () => {
                             <Label htmlFor="email">Email</Label>
                             <Input 
                               id="email" 
-                              value={selectedContrato.client_email || ''} 
+                              value={selectedContrato?.client_email || selectedDestinatario?.destinatario_email || ''} 
                               readOnly 
                               className="mt-1.5 bg-muted"
                               data-testid="input-email"
@@ -573,7 +770,7 @@ const EnvioEnviar = () => {
                             <Label htmlFor="telefone">Telefone</Label>
                             <Input 
                               id="telefone" 
-                              value={selectedContrato.client_phone || ''} 
+                              value={selectedContrato?.client_phone || selectedDestinatario?.destinatario_telefone || ''} 
                               readOnly 
                               className="mt-1.5 bg-muted"
                               data-testid="input-telefone"

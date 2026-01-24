@@ -354,6 +354,52 @@ class EnvioService {
     return data;
   }
 
+  async searchDestinatarios(adminId: string, search: string, limit = 10): Promise<{
+    id: string;
+    destinatario_nome: string;
+    destinatario_cpf_cnpj?: string;
+    destinatario_telefone?: string;
+    destinatario_email?: string;
+    destinatario_cep?: string;
+    destinatario_logradouro?: string;
+    destinatario_numero?: string;
+    destinatario_complemento?: string;
+    destinatario_bairro?: string;
+    destinatario_cidade?: string;
+    destinatario_uf?: string;
+    ultimo_envio?: string;
+  }[]> {
+    const client = this.getClient();
+    
+    let query = client
+      .from('envios')
+      .select('id, destinatario_nome, destinatario_cpf_cnpj, destinatario_telefone, destinatario_email, destinatario_cep, destinatario_logradouro, destinatario_numero, destinatario_complemento, destinatario_bairro, destinatario_cidade, destinatario_uf, created_at')
+      .eq('admin_id', adminId)
+      .order('created_at', { ascending: false });
+    
+    if (search && search.trim().length > 0) {
+      query = query.ilike('destinatario_nome', `%${search}%`);
+    }
+    
+    const { data, error } = await query.limit(limit * 3);
+    
+    if (error) throw error;
+    
+    const uniqueDestinatarios = new Map<string, any>();
+    for (const envio of (data || [])) {
+      const key = `${envio.destinatario_nome?.toLowerCase()}-${envio.destinatario_cep}`;
+      if (!uniqueDestinatarios.has(key)) {
+        uniqueDestinatarios.set(key, {
+          ...envio,
+          ultimo_envio: envio.created_at
+        });
+        if (uniqueDestinatarios.size >= limit) break;
+      }
+    }
+    
+    return Array.from(uniqueDestinatarios.values());
+  }
+
   async createEnvio(envio: Partial<Envio>): Promise<Envio> {
     const client = this.getClient();
     

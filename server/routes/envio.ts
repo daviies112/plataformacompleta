@@ -122,6 +122,20 @@ router.get('/envios/stats', async (req: Request, res: Response) => {
   }
 });
 
+router.get('/envios/destinatarios', async (req: Request, res: Response) => {
+  try {
+    const adminId = getAdminId(req);
+    const search = (req.query.search as string) || '';
+    const limit = parseInt(req.query.limit as string) || 10;
+    
+    const destinatarios = await envioService.searchDestinatarios(adminId, search, limit);
+    res.json(destinatarios);
+  } catch (error: any) {
+    console.error('[Envio] Erro ao buscar destinatários:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Diagnostic endpoint to test TotalExpress credentials
 router.get('/total-express/diagnostico', async (req: Request, res: Response) => {
   try {
