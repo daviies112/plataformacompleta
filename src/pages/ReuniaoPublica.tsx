@@ -1,12 +1,26 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Meeting100msWithProvider } from "@/components/Meeting100ms";
-import { MeetingLobby } from "@/components/MeetingLobby";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 import { api, getAuthToken } from "@/lib/api";
 import { DEFAULT_ROOM_DESIGN_CONFIG, type RoomDesignConfig } from "@/types/reuniao";
+
+const Meeting100msWithProvider = lazy(() => 
+  import("@/components/Meeting100ms").then(m => ({ default: m.Meeting100msWithProvider }))
+);
+const MeetingLobby = lazy(() => 
+  import("@/components/MeetingLobby").then(m => ({ default: m.MeetingLobby }))
+);
+
+const MeetingLoader = () => (
+  <div className="flex items-center justify-center h-screen bg-background">
+    <div className="text-center">
+      <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto mb-4" />
+      <p className="text-muted-foreground">Carregando sala de reunião...</p>
+    </div>
+  </div>
+);
 
 type MeetingStep = "lobby" | "meeting" | "ended";
 
@@ -200,13 +214,15 @@ export default function ReuniaoPublica() {
 
   if (step === "lobby" && !autoJoin) {
     return (
-      <MeetingLobby
-        meetingTitle={meeting.titulo || "Reuniao"}
-        onJoin={handleJoinFromLobby}
-        participantName={userName}
-        onParticipantNameChange={setUserName}
-        config={roomConfig}
-      />
+      <Suspense fallback={<MeetingLoader />}>
+        <MeetingLobby
+          meetingTitle={meeting.titulo || "Reuniao"}
+          onJoin={handleJoinFromLobby}
+          participantName={userName}
+          onParticipantNameChange={setUserName}
+          config={roomConfig}
+        />
+      </Suspense>
     );
   }
 
@@ -237,13 +253,15 @@ export default function ReuniaoPublica() {
       userName: userName || "Participante"
     });
     return (
-      <Meeting100msWithProvider
-        authToken={token100ms}
-        roomId={meeting.roomId100ms}
-        userName={userName || "Participante"}
-        onLeave={handleLeave}
-        config={roomConfig}
-      />
+      <Suspense fallback={<MeetingLoader />}>
+        <Meeting100msWithProvider
+          authToken={token100ms}
+          roomId={meeting.roomId100ms}
+          userName={userName || "Participante"}
+          onLeave={handleLeave}
+          config={roomConfig}
+        />
+      </Suspense>
     );
   }
 
