@@ -2659,7 +2659,22 @@ export function setupConfigRoutes(app: Express) {
 
   app.post("/api/config/total-express/test", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const { user, password, reid } = req.body;
+      const tenantId = req.user!.tenantId;
+      let { user, password, reid } = req.body;
+      
+      // If password is not provided, try to get it from existing config
+      if (!password) {
+        const existingConfig = await db.select().from(totalExpressConfig)
+          .where(eq(totalExpressConfig.tenantId, tenantId))
+          .limit(1);
+        
+        if (existingConfig[0]) {
+          password = decrypt(existingConfig[0].password);
+          // Also use existing user/reid if not provided
+          if (!user) user = decrypt(existingConfig[0].user);
+          if (!reid) reid = decrypt(existingConfig[0].reid);
+        }
+      }
       
       if (!user || !password || !reid) {
         return res.status(400).json({
