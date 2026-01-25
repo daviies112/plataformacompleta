@@ -139,7 +139,7 @@ const isUUID = (str: string): boolean => {
 };
 
 const FormularioPublico = (_props: FormularioPublicoProps) => {
-  const params = useParams();
+  const params = useParams() as { token?: string; id?: string; companySlug?: string };
   const token = params.token;
   // 🔥 FIX: Remover query string do formIdOrSlug (wouter pode incluir query params no path)
   const rawFormIdOrSlug = params.id;
@@ -668,7 +668,7 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
   const welcomeConfig = useMemo(() => {
     if (!form) return { title: "Bem-vindo!", description: "Por favor, preencha o formulário a seguir.", imageUrl: null, buttonText: "Começar", titleSize: "2xl", logoAlign: "center" };
     
-    const config = (form.welcomePageConfig as any) || (form.welcomeConfig as any) || {};
+    const config = ((form as any).welcomePageConfig) || (form.welcomeConfig as any) || {};
     const elements = (form.questions as any[] | null) || (form.elements as any[] | null) || [];
     
     const heading = elements.find((el: any) => el.type === 'heading' && el.level === 1);
