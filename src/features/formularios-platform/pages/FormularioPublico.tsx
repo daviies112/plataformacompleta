@@ -629,6 +629,70 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
   const questionPages = useMemo(() => form ? groupQuestionsByPages(form) : [], [form]);
   const allQuestions = useMemo(() => questionPages.flatMap(p => p.questions), [questionPages]);
 
+  // 🔥 FIX: Move ALL useMemo hooks BEFORE conditional returns to avoid Hooks order violation
+  const defaultDesign = {
+    colors: {
+      primary: "hsl(221, 83%, 53%)",
+      secondary: "hsl(210, 40%, 96%)",
+      background: "hsl(0, 0%, 100%)",
+      text: "hsl(222, 47%, 11%)",
+      button: "hsl(221, 83%, 53%)",
+      buttonText: "hsl(0, 0%, 100%)"
+    },
+    typography: {
+      fontFamily: "Inter",
+      titleSize: "2xl",
+      textSize: "base"
+    },
+    spacing: "comfortable"
+  };
+
+  const design = useMemo(() => {
+    if (!form) return defaultDesign;
+    const baseDesign = (form.designConfig as any) ?? {};
+    return {
+      ...defaultDesign,
+      ...baseDesign,
+      colors: {
+        ...defaultDesign.colors,
+        ...(baseDesign.colors || {})
+      },
+      typography: {
+        ...defaultDesign.typography,
+        ...(baseDesign.typography || {})
+      },
+      spacing: baseDesign.spacing || defaultDesign.spacing
+    };
+  }, [form]);
+
+  const welcomeConfig = useMemo(() => {
+    if (!form) return { title: "Bem-vindo!", description: "Por favor, preencha o formulário a seguir.", imageUrl: null, buttonText: "Começar", titleSize: "2xl", logoAlign: "center" };
+    
+    const config = (form.welcomePageConfig as any) || (form.welcomeConfig as any) || {};
+    const elements = (form.questions as any[] | null) || (form.elements as any[] | null) || [];
+    
+    const heading = elements.find((el: any) => el.type === 'heading' && el.level === 1);
+    const text = elements.find((el: any) => el.type === 'text');
+    
+    const title = config.title || heading?.text || form.title || "Bem-vindo!";
+    const description = config.description || text?.content || form.description || "Por favor, preencha o formulário a seguir.";
+    const imageUrl = config.logo || config.imageUrl || (form.welcomeConfig as any)?.imageUrl || null;
+    const buttonText = config.buttonText || "Começar";
+
+    return {
+      title,
+      description,
+      imageUrl,
+      buttonText,
+      titleSize: config.titleSize || "2xl",
+      logoAlign: config.logoAlign || "center"
+    };
+  }, [form]);
+
+  const colors = design.colors;
+  const totalSteps = 1 + 1 + 1 + questionPages.length + 1; // welcome + personal + address + pages de perguntas + completion
+  const progress = currentStep === 0 ? 0 : Math.min(100, Math.round(((currentStep) / (totalSteps - 1)) * 100));
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(to bottom right, #ffffff, #f8fafc)' }}>
@@ -651,76 +715,6 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
       </div>
     );
   }
-
-  // Usar MESMA lógica de merge de cores do FormPreview.tsx
-  const defaultDesign = {
-    colors: {
-      primary: "hsl(221, 83%, 53%)",
-      secondary: "hsl(210, 40%, 96%)",
-      background: "hsl(0, 0%, 100%)",
-      text: "hsl(222, 47%, 11%)",
-      button: "hsl(221, 83%, 53%)",
-      buttonText: "hsl(0, 0%, 100%)"
-    },
-    typography: {
-      fontFamily: "Inter",
-      titleSize: "2xl",
-      textSize: "base"
-    },
-    spacing: "comfortable"
-  };
-
-  const baseDesign = (form.designConfig as any) ?? {};
-  const design = {
-    ...defaultDesign,
-    ...baseDesign,
-    colors: {
-      ...defaultDesign.colors,
-      ...(baseDesign.colors || {})
-    },
-    typography: {
-      ...defaultDesign.typography,
-      ...(baseDesign.typography || {})
-    },
-    spacing: baseDesign.spacing || defaultDesign.spacing
-  };
-
-  // 🔥 FIX: Welcome page content rendering
-  const welcomeConfig = useMemo(() => {
-    if (!form) return { title: "Bem-vindo!", description: "Por favor, preencha o formulário a seguir.", imageUrl: null, buttonText: "Começar" };
-    
-    // As per SimplifiedFormWizard.tsx, welcome data can be in welcomePageConfig
-    // OR extracted from the first heading and text elements
-    const config = (form.welcomePageConfig as any) || (form.welcomeConfig as any) || {};
-    const elements = (form.questions as any[] | null) || (form.elements as any[] | null) || [];
-    
-    const heading = elements.find((el: any) => el.type === 'heading' && el.level === 1);
-    const text = elements.find((el: any) => el.type === 'text');
-    
-    // Use the most reliable sources for each field
-    const title = config.title || heading?.text || form.title || "Bem-vindo!";
-    const description = config.description || text?.content || form.description || "Por favor, preencha o formulário a seguir.";
-    const imageUrl = config.logo || config.imageUrl || (form.welcomeConfig as any)?.imageUrl || null;
-    const buttonText = config.buttonText || "Começar";
-
-    return {
-      title,
-      description,
-      imageUrl,
-      buttonText,
-      titleSize: config.titleSize || "2xl",
-      logoAlign: config.logoAlign || "center"
-    };
-  }, [form]);
-
-  const colors = design.colors;
-  
-  const getTotalSteps = () => {
-    return 1 + 1 + 1 + questionPages.length + 1; // welcome + personal + address + pages de perguntas + completion
-  };
-  
-  const totalSteps = getTotalSteps();
-  const progress = currentStep === 0 ? 0 : Math.min(100, Math.round(((currentStep) / (totalSteps - 1)) * 100));
 
   // PÁGINA DE BOAS-VINDAS (Step 0)
   if (currentStep === 0) {
