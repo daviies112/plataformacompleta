@@ -697,11 +697,17 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
     const heading = elements.find((el: any) => el.type === 'heading' && el.level === 1);
     const text = elements.find((el: any) => el.type === 'text');
     
+    // Use the most reliable sources for each field
+    const title = config.title || heading?.text || form.title || "Bem-vindo!";
+    const description = config.description || text?.content || form.description || "Por favor, preencha o formulário a seguir.";
+    const imageUrl = config.logo || config.imageUrl || (form.welcomeConfig as any)?.imageUrl || null;
+    const buttonText = config.buttonText || "Começar";
+
     return {
-      title: config.title || heading?.text || form.title || "Bem-vindo!",
-      description: config.description || text?.content || form.description || "Por favor, preencha o formulário a seguir.",
-      imageUrl: config.logo || config.imageUrl || welcomeConfigLegacy.imageUrl || null,
-      buttonText: config.buttonText || "Começar",
+      title,
+      description,
+      imageUrl,
+      buttonText,
       titleSize: config.titleSize || "2xl",
       logoAlign: config.logoAlign || "center"
     };
