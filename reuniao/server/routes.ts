@@ -1,7 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { db } from "./db";
-import { users, tenants, usuariosTenant, reunioes, transcricoes, gravacoes, meetingTypes, meetingBookings, meetingTenantMapping, meetingConfirmationPages, meetingTemplates } from "@shared/schema";
+import { users, tenants, usuariosTenant, reunioes, transcricoes, gravacoes, meetingTypes, meetingBookings, meetingTenantMapping, meetingConfirmationPages, meetingTemplates, hms100msConfig } from "@shared/schema";
 import { eq, and, gte, lte, desc, sql } from "drizzle-orm";
 
 // ==================== HELPER UTILITIES ====================
@@ -3205,6 +3205,60 @@ export async function registerRoutes(
         return res.status(404).json({ message: "Reunião não encontrada" });
       }
 
+      // 🔥 FIX: Buscar roomDesignConfig da tabela hms_100ms_config (onde o design é salvo)
+      // em vez de buscar da tabela tenants (que não é atualizada pela página de Design)
+      const [hmsConfig] = await db
+        .select()
+        .from(hms100msConfig)
+        .where(eq(hms100msConfig.tenantId, tenant.id))
+        .limit(1);
+
+      const defaultRoomDesignConfig = {
+        branding: {
+          logo: tenant.logoUrl,
+          logoSize: 40,
+          companyName: tenant.nome,
+          showCompanyName: true
+        },
+        colors: {
+          background: '#0f172a',
+          controlsBackground: '#18181b',
+          controlsText: '#ffffff',
+          primaryButton: '#3b82f6',
+          dangerButton: '#ef4444',
+          avatarBackground: '#3b82f6',
+          avatarText: '#ffffff',
+          participantNameBackground: 'rgba(0, 0, 0, 0.6)',
+          participantNameText: '#ffffff'
+        },
+        lobby: {
+          title: 'Pronto para participar?',
+          subtitle: '',
+          buttonText: 'Participar agora',
+          showDeviceSelectors: true,
+          showCameraPreview: true,
+          backgroundImage: null
+        },
+        meeting: {
+          showParticipantCount: true,
+          showMeetingCode: true,
+          showRecordingIndicator: true,
+          enableReactions: true,
+          enableChat: true,
+          enableScreenShare: true,
+          enableRaiseHand: true
+        },
+        endScreen: {
+          title: 'Reunião Encerrada',
+          message: 'Obrigado por participar!',
+          showFeedback: false,
+          redirectUrl: null
+        }
+      };
+
+      // Prioridade: hms_100ms_config > tenant.roomDesignConfig > default
+      const roomDesignConfig = (hmsConfig?.roomDesignConfig as any) || tenant.roomDesignConfig || defaultRoomDesignConfig;
+
       const defaultDesignConfig = {
         colors: {
           primary: "hsl(221, 83%, 53%)",
@@ -3245,48 +3299,7 @@ export async function registerRoutes(
           logoUrl: tenant.logoUrl,
         },
         designConfig: defaultDesignConfig,
-        roomDesignConfig: tenant.roomDesignConfig || {
-          branding: {
-            logo: tenant.logoUrl,
-            logoSize: 40,
-            companyName: tenant.nome,
-            showCompanyName: true
-          },
-          colors: {
-            background: '#0f172a',
-            controlsBackground: '#18181b',
-            controlsText: '#ffffff',
-            primaryButton: '#3b82f6',
-            dangerButton: '#ef4444',
-            avatarBackground: '#3b82f6',
-            avatarText: '#ffffff',
-            participantNameBackground: 'rgba(0, 0, 0, 0.6)',
-            participantNameText: '#ffffff'
-          },
-          lobby: {
-            title: 'Pronto para participar?',
-            subtitle: '',
-            buttonText: 'Participar agora',
-            showDeviceSelectors: true,
-            showCameraPreview: true,
-            backgroundImage: null
-          },
-          meeting: {
-            showParticipantCount: true,
-            showMeetingCode: true,
-            showRecordingIndicator: true,
-            enableReactions: true,
-            enableChat: true,
-            enableScreenShare: true,
-            enableRaiseHand: true
-          },
-          endScreen: {
-            title: 'Reunião Encerrada',
-            message: 'Obrigado por participar!',
-            showFeedback: false,
-            redirectUrl: null
-          }
-        },
+        roomDesignConfig,
       });
     } catch (error) {
       console.error("[PublicMeetingRoom] Get room error:", error);

@@ -73,6 +73,65 @@ export const tenants = pgTable("tenants", {
   index("tenants_slug_idx").on(table.slug),
 ]);
 
+// 100ms Configuration Table (matches shared/db-schema.ts for cross-app compatibility)
+export const hms100msConfig = pgTable('hms_100ms_config', {
+  id: integer('id').primaryKey().generatedAlwaysAsIdentity(),
+  tenantId: text('tenant_id').notNull(),
+  appAccessKey: text('app_access_key').notNull(),
+  appSecret: text('app_secret').notNull(),
+  managementToken: text('management_token'),
+  templateId: text('template_id'),
+  apiBaseUrl: text('api_base_url').default('https://api.100ms.live/v2'),
+  roomDesignConfig: jsonb('room_design_config').default({
+    branding: {
+      logo: null,
+      logoSize: 40,
+      logoPosition: 'left',
+      companyName: '',
+      showCompanyName: true,
+      showLogoInLobby: true,
+      showLogoInMeeting: true,
+      showLogoInEnd: true
+    },
+    colors: {
+      background: '#0f172a',
+      controlsBackground: '#18181b',
+      controlsText: '#ffffff',
+      primaryButton: '#3b82f6',
+      dangerButton: '#ef4444',
+      avatarBackground: '#3b82f6',
+      avatarText: '#ffffff',
+      participantNameBackground: 'rgba(0, 0, 0, 0.6)',
+      participantNameText: '#ffffff'
+    },
+    lobby: {
+      title: 'Pronto para participar?',
+      subtitle: '',
+      buttonText: 'Participar agora',
+      showDeviceSelectors: true,
+      showCameraPreview: true,
+      backgroundImage: null
+    },
+    meeting: {
+      showParticipantCount: true,
+      showMeetingCode: true,
+      showRecordingIndicator: true,
+      enableReactions: true,
+      enableChat: true,
+      enableScreenShare: true,
+      enableRaiseHand: true
+    },
+    endScreen: {
+      title: 'Reunião Encerrada',
+      message: 'Obrigado por participar!',
+      showFeedback: false,
+      redirectUrl: null
+    }
+  }),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow()
+});
+
 export const usuariosTenant = pgTable("usuarios_tenant", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   tenantId: uuid("tenant_id").references(() => tenants.id).notNull(),
