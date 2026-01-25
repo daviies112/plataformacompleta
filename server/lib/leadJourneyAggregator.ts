@@ -1470,8 +1470,9 @@ async function fetchAssinaturaContracts(tenantId: string): Promise<Map<string, A
   if (!supabase) return new Map();
   
   try {
+    // Try 'contracts' table first (correct table name), fallback to 'assinatura_contracts' for compatibility
     let query = supabase
-      .from('assinatura_contracts')
+      .from('contracts')
       .select('*')
       .order('created_at', { ascending: false })
       .limit(500);
@@ -1480,15 +1481,33 @@ async function fetchAssinaturaContracts(tenantId: string): Promise<Map<string, A
       query = query.eq('tenant_id', tenantId);
     }
     
-    const { data, error } = await query;
+    let { data, error } = await query;
+    
+    // Fallback to assinatura_contracts if contracts doesn't exist
+    if (error && (error.code === '42P01' || error.message.includes('does not exist') || error.message.includes('schema cache'))) {
+      console.log('ℹ️ [LeadJourneyAggregator] Tabela contracts não encontrada, tentando assinatura_contracts...');
+      let fallbackQuery = supabase
+        .from('assinatura_contracts')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(500);
+      
+      if (tenantId !== 'default-tenant') {
+        fallbackQuery = fallbackQuery.eq('tenant_id', tenantId);
+      }
+      
+      const fallbackResult = await fallbackQuery;
+      data = fallbackResult.data;
+      error = fallbackResult.error;
+    }
     
     if (error) {
       if (error.code === '42P01' || error.message.includes('does not exist') || error.message.includes('schema cache')) {
-        console.log('ℹ️ [LeadJourneyAggregator] Tabela assinatura_contracts não existe');
+        console.log('ℹ️ [LeadJourneyAggregator] Nenhuma tabela de contratos encontrada');
         return new Map();
       }
       
-      console.error('❌ [LeadJourneyAggregator] Erro ao buscar assinatura_contracts:', error.message);
+      console.error('❌ [LeadJourneyAggregator] Erro ao buscar contratos:', error.message);
       return new Map();
     }
     
@@ -1519,7 +1538,10 @@ async function fetchAssinaturaContracts(tenantId: string): Promise<Map<string, A
       }
     }
     
-    console.log(`✅ [LeadJourneyAggregator] Carregados ${(data || []).length} contratos de assinatura_contracts`);
+    // Log contract keys for debugging
+    const contractKeys = Array.from(assinaturaMap.keys());
+    console.log(`✅ [LeadJourneyAggregator] Carregados ${(data || []).length} contratos da tabela contracts`);
+    console.log(`📋 [Contracts] Keys in map: ${contractKeys.slice(0, 10).join(', ')}${contractKeys.length > 10 ? '...' : ''}`);
     return assinaturaMap;
   } catch (error: any) {
     console.error('❌ [LeadJourneyAggregator] Exceção ao buscar assinatura_contracts:', error.message);
