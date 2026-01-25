@@ -40,6 +40,12 @@ ExecutiveAI Pro employs a modern web stack with a multi-tenant, API-driven archi
 - **Calendar:** Monthly grid view for meeting management.
 - **SFU Recording System:** Server-side recording of video conferences.
 - **Digital Signature System:** Comprehensive platform for digital contracts, including biometric verification, document capture, identity validation, multi-step client signing, and real-time previews. Contracts are automatically generated upon meeting conclusion.
+  - **Document Validation:** Intelligent validation of Brazilian documents (CNH, RG, Passaporte) with:
+    - Selfie detection to reject photos of faces instead of documents
+    - CNH validation: horizontal format (1.3-1.8 aspect ratio), minimum 400x250 resolution
+    - RG validation: requires BOTH front and back photos, flexible aspect ratio (0.6-1.6)
+    - Passaporte validation: vertical format (0.65-1.0 aspect ratio), MRZ zone detection
+    - API endpoint: `POST /api/assinatura/public/validate-document`
 - **Contract Creation Flow:** Automatically creates contracts from `form_submissions` data upon meeting conclusion, utilizing flexible phone search patterns and backend fallbacks for address data.
 - **Background Jobs & Automation:** Utilizes background job queues for async processing (e.g., form submission processing, lead synchronization, CPF auto-checks) which must be initialized on server startup.
 - **Session Management:** Session cookies are configured with `sameSite: 'none'` and `secure: true` for Replit preview environments.
