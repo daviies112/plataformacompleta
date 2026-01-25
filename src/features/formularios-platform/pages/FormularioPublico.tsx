@@ -685,11 +685,27 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
     spacing: baseDesign.spacing || defaultDesign.spacing
   };
 
-  const welcomeConfig = (form.welcomeConfig as any) || {
-    title: "Bem-vindo!",
-    description: "Por favor, preencha o formulário a seguir.",
-    imageUrl: null
-  };
+  // 🔥 FIX: Welcome page content rendering
+  const welcomeConfig = useMemo(() => {
+    if (!form) return { title: "Bem-vindo!", description: "Por favor, preencha o formulário a seguir.", imageUrl: null, buttonText: "Começar" };
+    
+    // As per SimplifiedFormWizard.tsx, welcome data can be in welcomePageConfig
+    // OR extracted from the first heading and text elements
+    const config = (form.welcomePageConfig as any) || (form.welcomeConfig as any) || {};
+    const elements = (form.questions as any[] | null) || (form.elements as any[] | null) || [];
+    
+    const heading = elements.find((el: any) => el.type === 'heading' && el.level === 1);
+    const text = elements.find((el: any) => el.type === 'text');
+    
+    return {
+      title: config.title || heading?.text || form.title || "Bem-vindo!",
+      description: config.description || text?.content || form.description || "Por favor, preencha o formulário a seguir.",
+      imageUrl: config.logo || config.imageUrl || welcomeConfigLegacy.imageUrl || null,
+      buttonText: config.buttonText || "Começar",
+      titleSize: config.titleSize || "2xl",
+      logoAlign: config.logoAlign || "center"
+    };
+  }, [form]);
 
   const colors = design.colors;
   
@@ -726,7 +742,7 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
               className="px-8"
             >
               <Sparkles className="mr-2 h-5 w-5" />
-              Começar
+              {welcomeConfig.buttonText}
             </Button>
           </CardFooter>
         </Card>
