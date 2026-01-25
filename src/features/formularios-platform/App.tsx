@@ -18,9 +18,9 @@ import NotFound from "./pages/NotFound";
 const FormularioPublico = lazy(() => import("./pages/FormularioPublico"));
 
 const FormLoader = () => (
-  <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-white to-blue-50">
-    <Loader2 className="w-10 h-10 animate-spin text-blue-500 mb-4" />
-    <p className="text-gray-500 text-sm">Carregando formulário...</p>
+  <div className="min-h-screen flex flex-col items-center justify-center" style={{ background: 'linear-gradient(to bottom right, hsl(0, 0%, 100%), hsl(210, 40%, 96%))' }}>
+    <Loader2 className="w-10 h-10 animate-spin mb-4" style={{ color: 'hsl(221, 83%, 53%)' }} />
+    <p className="text-sm" style={{ color: 'hsl(215, 16%, 47%)' }}>Carregando formulário...</p>
   </div>
 );
 
@@ -73,21 +73,17 @@ const App = () => (
             </Route>
             
             <Route path="/preview-temp" component={PreviewTemp} />
-            <Route path="/:companySlug/form/:id">
-              <Suspense fallback={<FormLoader />}>
+            <Suspense fallback={<FormLoader />}>
+              <Route path="/:companySlug/form/:id">
                 <FormularioPublico />
-              </Suspense>
-            </Route>
-            <Route path="/form/:id">
-              <Suspense fallback={<FormLoader />}>
+              </Route>
+              <Route path="/form/:id">
                 <FormularioPublico />
-              </Suspense>
-            </Route>
-            <Route path="/f/:token">
-              <Suspense fallback={<FormLoader />}>
+              </Route>
+              <Route path="/f/:token">
                 <FormularioPublico />
-              </Suspense>
-            </Route>
+              </Route>
+            </Suspense>
             <Route component={NotFound} />
           </Switch>
         </Router>
