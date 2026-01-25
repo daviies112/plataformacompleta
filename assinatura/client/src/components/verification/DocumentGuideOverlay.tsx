@@ -4,9 +4,10 @@ import type { DocumentDetectionResult } from '@/types/verification';
 interface DocumentGuideOverlayProps {
   detectionResult: DocumentDetectionResult | null;
   isCapturing: boolean;
+  sideLabel?: string;
 }
 
-export const DocumentGuideOverlay = ({ detectionResult, isCapturing }: DocumentGuideOverlayProps) => {
+export const DocumentGuideOverlay = ({ detectionResult, isCapturing, sideLabel }: DocumentGuideOverlayProps) => {
   const isReady = detectionResult?.detected && 
     detectionResult?.fullyVisible && 
     detectionResult?.goodFocus &&
@@ -73,7 +74,7 @@ export const DocumentGuideOverlay = ({ detectionResult, isCapturing }: DocumentG
           {/* Inner guide text */}
           <div className="absolute inset-0 flex items-center justify-center">
             <p className="text-muted-foreground/50 text-sm font-medium text-center px-4">
-              Posicione o documento aqui
+              {sideLabel ? `Posicione ${sideLabel} aqui` : 'Posicione o documento aqui'}
             </p>
           </div>
         </motion.div>

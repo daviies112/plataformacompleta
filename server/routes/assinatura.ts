@@ -6,6 +6,7 @@ import * as path from 'path';
 import { assinaturaSupabaseService, AssinaturaContract, AssinaturaGlobalConfig } from '../services/assinatura-supabase';
 import { supabaseOwner, SUPABASE_CONFIGURED } from '../config/supabaseOwner';
 import { assinaturaLogger } from '../lib/logger';
+import { validateDocument, quickValidate } from '../lib/document-validator';
 
 const router = Router();
 
@@ -1391,6 +1392,77 @@ router.delete('/contracts/:id', async (req: Request, res: Response) => {
   } catch (error) {
     console.error('[Assinatura] Erro ao deletar contrato:', error);
     res.status(500).json({ error: 'Falha ao deletar contrato' });
+  }
+});
+
+// ==================== DOCUMENT VALIDATION ENDPOINTS ====================
+
+/**
+ * POST /validate-document
+ * Validates a Brazilian document image (CNH, RG, Passport)
+ * Detects selfies and validates document characteristics
+ */
+router.post('/validate-document', async (req: Request, res: Response) => {
+  try {
+    const { image, documentType, side } = req.body;
+    
+    if (!image) {
+      return res.status(400).json({
+        valid: false,
+        isSelfie: false,
+        confidence: 0,
+        issues: ['Imagem não fornecida'],
+        documentType: null
+      });
+    }
+    
+    if (!documentType) {
+      return res.status(400).json({
+        valid: false,
+        isSelfie: false,
+        confidence: 0,
+        issues: ['Tipo de documento não especificado'],
+        documentType: null
+      });
+    }
+    
+    const result = await validateDocument(image, documentType, side);
+    res.json(result);
+  } catch (error) {
+    console.error("[Assinatura] Error validating document:", error);
+    res.status(500).json({
+      valid: false,
+      isSelfie: false,
+      confidence: 0,
+      issues: ['Erro interno ao validar documento'],
+      documentType: null
+    });
+  }
+});
+
+/**
+ * POST /validate-document/quick
+ * Quick pre-upload validation check
+ */
+router.post('/validate-document/quick', (req: Request, res: Response) => {
+  try {
+    const { image } = req.body;
+    
+    if (!image) {
+      return res.json({
+        valid: false,
+        reason: 'Imagem não fornecida'
+      });
+    }
+    
+    const result = quickValidate(image);
+    res.json(result);
+  } catch (error) {
+    console.error("[Assinatura] Error in quick validation:", error);
+    res.json({
+      valid: false,
+      reason: 'Erro ao processar imagem'
+    });
   }
 });
 

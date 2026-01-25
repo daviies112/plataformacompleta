@@ -96,10 +96,14 @@ export const VerificationFlow = ({
     goToStep('document');
   }, [saveSelfie, goToStep]);
 
-  const handleDocumentCapture = useCallback((imageData: string, documentType: DocumentType) => {
-    setDocumentImage(imageData);
-    saveDocument(imageData, documentType);
-    sessionStorage.setItem('verification_document', imageData);
+  const handleDocumentCapture = useCallback((images: string[], documentType: DocumentType) => {
+    const primaryImage = images[0];
+    setDocumentImage(primaryImage);
+    saveDocument(primaryImage, documentType);
+    sessionStorage.setItem('verification_document', primaryImage);
+    if (images.length > 1) {
+      sessionStorage.setItem('verification_document_back', images[1]);
+    }
     goToStep('processing');
   }, [saveDocument, goToStep]);
 

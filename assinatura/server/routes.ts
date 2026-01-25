@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { storage } from "./storage";
 import { insertContractSchema, insertContractPartialSchema, insertSignatureLogSchema, insertUserSchema, insertAuditTrailSchema } from "@shared/schema";
 import { z } from "zod";
+import { validateDocument, quickValidate } from "./document-validator";
 
 /**
  * API ROUTES - EXPRESS SERVER
@@ -54,6 +55,106 @@ export function registerRoutes(app: Express): void {
       res.json({
         url: '',
         key: ''
+      });
+    }
+  });
+
+  // ==================== DOCUMENT VALIDATION ENDPOINTS ====================
+  // These endpoints are public (no auth required) as they're used during the signature flow
+
+  /**
+   * POST /api/assinatura/public/validate-document
+   * Validates a Brazilian document image (CNH, RG, Passport)
+   * Detects selfies and validates document characteristics
+   * 
+   * Request Body:
+   * {
+   *   "image": "base64 encoded image (with or without data URL prefix)",
+   *   "documentType": "CNH" | "RG" | "PASSAPORTE" | "auto",
+   *   "side": "front" | "back" (optional, for RG)
+   * }
+   * 
+   * Response:
+   * {
+   *   "valid": boolean,
+   *   "isSelfie": boolean,
+   *   "confidence": number (0-100),
+   *   "issues": string[],
+   *   "documentType": string | null
+   * }
+   */
+  app.post("/api/assinatura/public/validate-document", async (req, res) => {
+    try {
+      const { image, documentType, side } = req.body;
+      
+      if (!image) {
+        return res.status(400).json({
+          valid: false,
+          isSelfie: false,
+          confidence: 0,
+          issues: ['Imagem não fornecida'],
+          documentType: null
+        });
+      }
+      
+      if (!documentType) {
+        return res.status(400).json({
+          valid: false,
+          isSelfie: false,
+          confidence: 0,
+          issues: ['Tipo de documento não especificado'],
+          documentType: null
+        });
+      }
+      
+      const result = await validateDocument(image, documentType, side);
+      res.json(result);
+    } catch (error) {
+      console.error("Error validating document:", error);
+      res.status(500).json({
+        valid: false,
+        isSelfie: false,
+        confidence: 0,
+        issues: ['Erro interno ao validar documento'],
+        documentType: null
+      });
+    }
+  });
+
+  /**
+   * POST /api/assinatura/public/validate-document/quick
+   * Quick pre-upload validation check
+   * Only checks basic image validity and obvious selfie detection
+   * 
+   * Request Body:
+   * {
+   *   "image": "base64 encoded image"
+   * }
+   * 
+   * Response:
+   * {
+   *   "valid": boolean,
+   *   "reason": string
+   * }
+   */
+  app.post("/api/assinatura/public/validate-document/quick", (req, res) => {
+    try {
+      const { image } = req.body;
+      
+      if (!image) {
+        return res.json({
+          valid: false,
+          reason: 'Imagem não fornecida'
+        });
+      }
+      
+      const result = quickValidate(image);
+      res.json(result);
+    } catch (error) {
+      console.error("Error in quick validation:", error);
+      res.json({
+        valid: false,
+        reason: 'Erro ao processar imagem'
       });
     }
   });

@@ -1,6 +1,6 @@
 export type VerificationStep = 'welcome' | 'selfie' | 'document' | 'processing' | 'result';
 
-export type DocumentType = 'CNH' | 'RG' | 'RNE' | 'PASSPORT';
+export type DocumentType = 'CNH' | 'RG' | 'PASSPORT';
 
 export interface FaceDetectionResult {
   detected: boolean;
