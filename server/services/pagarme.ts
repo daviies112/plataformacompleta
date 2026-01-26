@@ -209,14 +209,20 @@ interface PagarmeOrderResponse {
 export class PagarmeService {
   private secretKey: string;
   private publicKey: string;
+  private accountId: string;
 
   constructor() {
     // Try test keys first, then production keys
     this.secretKey = process.env.CHAVE_SECRETA_TESTE || process.env.CHAVE_SECRETA || '';
     this.publicKey = process.env.CHAVE_PUBLICA_TESTE || process.env.CHAVE_PUBLICA || '';
+    this.accountId = process.env.CHAVE_ID_TESTE || process.env.CHAVE_ID || '';
 
     if (process.env.CHAVE_SECRETA_TESTE || process.env.CHAVE_PUBLICA_TESTE) {
       console.log('[Pagar.me] Usando credenciais de TESTE');
+    }
+    
+    if (this.accountId) {
+      console.log('[Pagar.me] Account ID configurado:', this.accountId.substring(0, 8) + '...');
     }
 
     if (!this.secretKey) {
@@ -225,6 +231,10 @@ export class PagarmeService {
     if (!this.publicKey) {
       console.warn('[Pagar.me] Nenhuma chave pública configurada (CHAVE_PUBLICA_TESTE ou CHAVE_PUBLICA)');
     }
+  }
+  
+  getAccountId(): string | null {
+    return this.accountId || null;
   }
 
   private getAuthHeader(): string {
