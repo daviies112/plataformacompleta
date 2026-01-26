@@ -785,7 +785,7 @@ router.post('/contracts', async (req: Request, res: Response) => {
       client_phone: client_phone || null,
       contract_html: contract_html || null,
       protocol_number: protocolNum,
-      status: status || 'pending',
+      status: status || 'sem preencher',
       access_token,
       created_at: new Date().toISOString(),
       signed_at: null,
@@ -872,7 +872,7 @@ router.post('/contracts', async (req: Request, res: Response) => {
         ...addressData,
         contract_html: contract_html || null,
         protocol_number: protocolNum,
-        status: status || 'pending',
+        status: status || 'sem preencher',
         access_token,
         signature_url, // URL completa para envio via WhatsApp/N8N
         ...customizations

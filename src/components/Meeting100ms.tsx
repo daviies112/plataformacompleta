@@ -1000,7 +1000,7 @@ export function Meeting100ms({
                             console.log("[Meeting100ms] Nenhum dado de formulário encontrado, usando nome da reunião");
                           }
                           
-                          // Criar contrato com dados pré-preenchidos
+                          // Criar contrato com dados pré-preenchidos e status inicial "sem preencher"
                           const response = await fetch('/api/assinatura/public/contracts', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -1009,6 +1009,7 @@ export function Meeting100ms({
                               client_cpf: participantData.cpf || '',
                               client_email: participantData.email || '',
                               client_phone: participantData.telefone || '',
+                              status: 'sem preencher',
                             }),
                           });
                           
