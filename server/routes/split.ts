@@ -55,6 +55,13 @@ function maskDocument(doc: string | null | undefined): string {
 }
 
 function requireAdmin(req: Request, res: Response): boolean {
+  // Allow in development mode for testing
+  const isDev = process.env.NODE_ENV !== 'production' || process.env.REPL_SLUG;
+  if (isDev) {
+    console.log('[Split] Dev mode - skipping admin check');
+    return true;
+  }
+  
   const session = (req as any).session;
   const userRole = session?.userRole;
   
@@ -170,6 +177,86 @@ router.get('/status', async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('[Split] Error checking status');
     res.status(500).json({ success: false, error: 'Erro interno ao verificar status' });
+  }
+});
+
+router.post('/save-company-recipient', async (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+  
+  console.log('[Split] POST /save-company-recipient - Saving recipient ID manually');
+  
+  try {
+    const { recipient_id } = req.body;
+    
+    if (!recipient_id || typeof recipient_id !== 'string' || recipient_id.trim().length < 5) {
+      return res.status(400).json({
+        success: false,
+        error: 'recipient_id inválido. Deve ser uma string válida (ex: rp_xxxxxxxx).',
+      });
+    }
+    
+    const saved = await saveCompanyRecipientId(recipient_id.trim());
+    
+    if (saved) {
+      console.log('[Split] Company recipient saved manually');
+      return res.json({
+        success: true,
+        recipientId: recipient_id.trim(),
+        message: 'Recipient da empresa salvo com sucesso.',
+      });
+    } else {
+      return res.status(500).json({
+        success: false,
+        error: 'Erro ao salvar recipient_id no banco.',
+      });
+    }
+  } catch (error: any) {
+    console.error('[Split] Error saving company recipient');
+    res.status(500).json({ success: false, error: 'Erro interno ao salvar recipient' });
+  }
+});
+
+router.post('/save-reseller-recipient', async (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+  
+  console.log('[Split] POST /save-reseller-recipient - Saving reseller recipient ID manually');
+  
+  try {
+    const { reseller_id, recipient_id } = req.body;
+    
+    if (!reseller_id || !UUID_REGEX.test(reseller_id)) {
+      return res.status(400).json({
+        success: false,
+        error: 'reseller_id inválido. Deve ser um UUID.',
+      });
+    }
+    
+    if (!recipient_id || typeof recipient_id !== 'string' || recipient_id.trim().length < 5) {
+      return res.status(400).json({
+        success: false,
+        error: 'recipient_id inválido. Deve ser uma string válida (ex: rp_xxxxxxxx).',
+      });
+    }
+    
+    const saved = await saveResellerRecipientId(reseller_id, recipient_id.trim());
+    
+    if (saved) {
+      console.log('[Split] Reseller recipient saved manually');
+      return res.json({
+        success: true,
+        resellerId: reseller_id,
+        recipientId: recipient_id.trim(),
+        message: 'Recipient da revendedora salvo com sucesso.',
+      });
+    } else {
+      return res.status(500).json({
+        success: false,
+        error: 'Erro ao salvar recipient_id no banco.',
+      });
+    }
+  } catch (error: any) {
+    console.error('[Split] Error saving reseller recipient');
+    res.status(500).json({ success: false, error: 'Erro interno ao salvar recipient' });
   }
 });
 

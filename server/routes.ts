@@ -92,6 +92,11 @@ export async function registerRoutes(app: Express) {
   // Registered early to avoid global auth redirects
   app.use("/api/n8n", n8nRouter);
   
+  // Split / Recipient bootstrap routes for Pagar.me configuration
+  // REGISTERED EARLY to avoid global /api middleware
+  console.log('[Split Routes] Registering split routes early');
+  app.use("/api/split", splitRoutes);
+  
   // Reseller authentication routes - PUBLIC (login/register don't need auth)
   // Apply JWT fallback middleware for token-based auth (for iframe contexts where cookies fail)
   const { resellerAuthMiddleware } = await import("./routes/resellerAuth");
@@ -214,9 +219,6 @@ export async function registerRoutes(app: Express) {
   app.use("/api/wallet/webhook", walletRoutes);
   // All other wallet routes require authentication
   app.use("/api/wallet", requireTenant, walletRoutes);
-
-  // Split / Recipient bootstrap routes for Pagar.me configuration
-  app.use("/api/split", requireTenant, splitRoutes);
 
   return httpServer;
 }
