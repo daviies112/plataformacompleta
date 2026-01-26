@@ -192,7 +192,7 @@ export const ResidenceProofStep = (props: ResidenceProofStepProps = {}) => {
         title: 'Continuando sem validação',
         description: 'O comprovante será revisado manualmente.'
       });
-      setCurrentStep(5);
+      setCurrentStep(5); // Go to App Download step
     } catch (error) {
       console.error('Error saving residence proof:', error);
       toast({
@@ -206,7 +206,7 @@ export const ResidenceProofStep = (props: ResidenceProofStepProps = {}) => {
   };
 
   const proceedToNextStep = () => {
-    setCurrentStep(5);
+    setCurrentStep(5); // Go to App Download step
   };
 
   useEffect(() => {

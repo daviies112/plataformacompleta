@@ -95,6 +95,11 @@ interface ContractData {
   address_city?: string | null;
   address_state?: string | null;
   address_zipcode?: string | null;
+  residence_proof_validated?: boolean;
+  residence_proof_confidence?: number;
+  residence_proof_extracted_address?: string | null;
+  residence_proof_date?: string | null;
+  residence_proof_manual_review?: boolean;
 }
 
 interface ProgressTrackerDisplayProps {
@@ -282,6 +287,8 @@ const AssinaturaClientContent = () => {
     }
   }, [contract]);
 
+  const { setResidenceProofPhoto, setResidenceProofValidated } = useContract();
+
   useEffect(() => {
     if (contract && currentStep === 0) {
       setGovbrData({
@@ -296,13 +303,42 @@ const AssinaturaClientContent = () => {
         protocol_number: contract.protocol_number || undefined,
         contract_html: contract.contract_html || undefined
       });
-      // Inicia diretamente na verificação (Step 1), pulando a tela de progresso inicial (Step 0)
-      setCurrentStep(1);
+      
+      // Rehydrate residence proof state from contract data
+      if (contract.residence_proof_validated !== undefined) {
+        setResidenceProofValidated(contract.residence_proof_validated);
+        console.log('[AssinaturaClientPage] Rehydrated residence proof validated:', contract.residence_proof_validated);
+      }
+      
+      // Determine starting step based on contract progress
+      // Steps: 0=Progress, 1=Verification, 2=Contract, 3=Address, 4=ResidenceProof, 5=AppDownload, 6=Success
+      let startingStep = 1; // Default: start at verification
+      
+      if (contract.signed_at) {
+        // Contract is signed - check further progress
+        if (contract.residence_proof_validated || contract.residence_proof_manual_review) {
+          // Residence proof completed - go to app download
+          startingStep = 5;
+          console.log('[AssinaturaClientPage] Resuming at App Download (step 5)');
+        } else if (contract.address_street) {
+          // Address filled - go to residence proof
+          startingStep = 4;
+          console.log('[AssinaturaClientPage] Resuming at Residence Proof (step 4)');
+        } else {
+          // Contract signed but no address - go to address form
+          startingStep = 3;
+          console.log('[AssinaturaClientPage] Resuming at Address Form (step 3)');
+        }
+      }
+      
+      setCurrentStep(startingStep);
     }
-  }, [contract, currentStep, setGovbrData, setContractData, setCurrentStep]);
+  }, [contract, currentStep, setGovbrData, setContractData, setCurrentStep, setResidenceProofValidated, setResidenceProofPhoto]);
 
   // Preload next step during current step for faster transitions
   useEffect(() => {
+    // Preload next step components for faster transitions
+    // Steps: 0=Progress, 1=Verification, 2=Contract, 3=Address/ResellerWelcome, 4=ResidenceProof, 5=AppPromotion, 6=Success
     if (currentStep === 0 || currentStep === 1) {
       import('@/components/assinatura/verification/VerificationFlow');
       import('@/components/assinatura/steps/ContractStep');
