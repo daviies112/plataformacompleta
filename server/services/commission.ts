@@ -1,6 +1,19 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import * as fs from 'fs';
 import * as path from 'path';
+
+// Get Supabase Master/Owner client (for revendedoras table)
+function getMasterSupabaseClient(): SupabaseClient | null {
+  const url = process.env.SUPABASE_OWNER_URL || process.env.SUPABASE_MASTER_URL;
+  const key = process.env.SUPABASE_OWNER_SERVICE_KEY || process.env.SUPABASE_MASTER_SERVICE_ROLE_KEY;
+  
+  if (!url || !key) {
+    console.warn('[Commission] Master/Owner Supabase not configured');
+    return null;
+  }
+  
+  return createClient(url, key);
+}
 
 export interface SalesTier {
   id: string;
@@ -187,8 +200,12 @@ export async function getCompanyRecipientId(): Promise<string | null> {
 
 export async function getResellerRecipientId(resellerId: string): Promise<string | null> {
   try {
-    const supabase = getSupabaseClient();
-    if (!supabase) return null;
+    // Revendedoras table is in Master/Owner Supabase
+    const supabase = getMasterSupabaseClient();
+    if (!supabase) {
+      console.warn('[Commission] Master Supabase not configured for recipient lookup');
+      return null;
+    }
 
     const { data, error } = await supabase
       .from('revendedoras')
@@ -201,6 +218,7 @@ export async function getResellerRecipientId(resellerId: string): Promise<string
       return null;
     }
 
+    console.log(`[Commission] Found recipient_id for reseller ${resellerId}:`, data.pagarme_recipient_id);
     return data.pagarme_recipient_id || null;
   } catch (error) {
     console.error('[Commission] Error getting reseller recipient:', error);
@@ -236,8 +254,12 @@ export async function saveCompanyRecipientId(recipientId: string): Promise<boole
 
 export async function saveResellerRecipientId(resellerId: string, recipientId: string): Promise<boolean> {
   try {
-    const supabase = getSupabaseClient();
-    if (!supabase) return false;
+    // Revendedoras table is in Master/Owner Supabase
+    const supabase = getMasterSupabaseClient();
+    if (!supabase) {
+      console.error('[Commission] Master Supabase not configured for saving recipient');
+      return false;
+    }
 
     const { error } = await supabase
       .from('revendedoras')

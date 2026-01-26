@@ -11,6 +11,8 @@ import {
   createRevendedoraFromContract
 } from '../lib/masterSyncService';
 import { pool } from '../db';
+import { pagarmeService } from '../services/pagarme';
+import { saveResellerRecipientId, getResellerRecipientId } from '../services/commission';
 
 const JWT_SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV === 'development' ? 'dev-only-secret' : (() => { throw new Error('JWT_SECRET must be set in production'); })());
 const JWT_EXPIRY = '7d';
@@ -1507,6 +1509,207 @@ router.post('/store-config', async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('[StoreConfig] Error saving:', error);
     res.status(500).json({ error: 'Erro ao salvar configuração: ' + error.message });
+  }
+});
+
+// ==================== PAGAR.ME RECIPIENT (Recebedor) ====================
+
+// Get reseller's Pagar.me recipient status
+router.get('/reseller/pagarme-recipient', resellerAuthMiddleware, async (req, res) => {
+  try {
+    const auth = getAuthenticatedReseller(req);
+    if (!auth) {
+      return res.status(401).json({ error: 'Não autenticado' });
+    }
+
+    const recipientId = await getResellerRecipientId(auth.userId);
+    
+    if (!recipientId) {
+      return res.json({ 
+        hasRecipient: false,
+        message: 'Recebedor não cadastrado. Configure seus dados bancários para receber pagamentos.'
+      });
+    }
+
+    // Fetch recipient details from Pagar.me
+    try {
+      const recipient = await pagarmeService.getRecipient(recipientId);
+      return res.json({
+        hasRecipient: true,
+        recipientId: recipient.id,
+        status: recipient.status,
+        email: recipient.email,
+        createdAt: recipient.created_at,
+        bankAccount: recipient.default_bank_account ? {
+          bank: recipient.default_bank_account.bank,
+          type: recipient.default_bank_account.type,
+          lastDigits: recipient.default_bank_account.account_number?.slice(-4) || '****',
+        } : null
+      });
+    } catch (pagarmeError: any) {
+      console.error('[ResellerRecipient] Error fetching from Pagar.me:', pagarmeError.message);
+      return res.json({
+        hasRecipient: true,
+        recipientId,
+        status: 'unknown',
+        error: 'Não foi possível obter detalhes do recebedor'
+      });
+    }
+
+  } catch (error: any) {
+    console.error('[ResellerRecipient] Error:', error);
+    res.status(500).json({ error: 'Erro ao buscar recebedor: ' + error.message });
+  }
+});
+
+// Create or update reseller's Pagar.me recipient
+router.post('/reseller/pagarme-recipient', resellerAuthMiddleware, async (req, res) => {
+  try {
+    const auth = getAuthenticatedReseller(req);
+    if (!auth) {
+      return res.status(401).json({ error: 'Não autenticado' });
+    }
+
+    // Check if already has recipient
+    const existingRecipientId = await getResellerRecipientId(auth.userId);
+    if (existingRecipientId) {
+      console.log('[ResellerRecipient] Recipient already exists:', existingRecipientId);
+      return res.status(400).json({ 
+        error: 'Recebedor já cadastrado',
+        recipientId: existingRecipientId,
+        message: 'Você já possui um recebedor cadastrado. Para alterar dados bancários, use a opção de atualização.'
+      });
+    }
+
+    // Validate request body
+    const { 
+      name, 
+      email, 
+      document, 
+      motherName,
+      birthdate,
+      monthlyIncome,
+      professionalOccupation,
+      phone, 
+      address, 
+      bankAccount 
+    } = req.body;
+
+    if (!name || !email || !document || !motherName || !birthdate) {
+      return res.status(400).json({ error: 'Dados pessoais obrigatórios: nome, email, CPF, nome da mãe e data de nascimento' });
+    }
+    if (!phone?.ddd || !phone?.number) {
+      return res.status(400).json({ error: 'Telefone obrigatório (DDD e número)' });
+    }
+    if (!address?.street || !address?.number || !address?.neighborhood || !address?.city || !address?.state || !address?.zip_code) {
+      return res.status(400).json({ error: 'Endereço completo obrigatório' });
+    }
+    if (!bankAccount?.holder_name || !bankAccount?.holder_document || !bankAccount?.bank || !bankAccount?.branch_number || !bankAccount?.account_number || !bankAccount?.account_check_digit || !bankAccount?.type) {
+      return res.status(400).json({ error: 'Dados bancários completos obrigatórios' });
+    }
+
+    console.log('[ResellerRecipient] Creating recipient for reseller:', auth.userId);
+
+    // Create recipient in Pagar.me
+    const recipient = await pagarmeService.createIndividualRecipient({
+      code: `reseller_${auth.userId}`,
+      name,
+      email,
+      document,
+      mother_name: motherName,
+      birthdate,
+      monthly_income: monthlyIncome || 3000,
+      professional_occupation: professionalOccupation || 'Revendedor(a)',
+      phone: {
+        ddd: phone.ddd,
+        number: phone.number,
+      },
+      address: {
+        street: address.street,
+        number: address.number,
+        complementary: address.complement || 'N/A',
+        neighborhood: address.neighborhood,
+        city: address.city,
+        state: address.state,
+        zip_code: address.zip_code,
+      },
+      bank_account: {
+        holder_name: bankAccount.holder_name,
+        holder_document: bankAccount.holder_document,
+        bank: bankAccount.bank,
+        branch_number: bankAccount.branch_number,
+        branch_check_digit: bankAccount.branch_check_digit || '',
+        account_number: bankAccount.account_number,
+        account_check_digit: bankAccount.account_check_digit,
+        type: bankAccount.type,
+      },
+      transfer_settings: {
+        transfer_enabled: true,
+        transfer_interval: 'weekly',
+        transfer_day: 5, // Friday
+      },
+    });
+
+    console.log('[ResellerRecipient] Recipient created:', recipient.id);
+
+    // Save recipient ID to database
+    const saved = await saveResellerRecipientId(auth.userId, recipient.id);
+    if (!saved) {
+      console.error('[ResellerRecipient] Failed to save recipient ID to database');
+    }
+
+    res.json({
+      success: true,
+      recipientId: recipient.id,
+      status: recipient.status,
+      message: 'Recebedor cadastrado com sucesso! Agora você pode receber pagamentos com split automático.'
+    });
+
+  } catch (error: any) {
+    console.error('[ResellerRecipient] Error creating:', error);
+    res.status(500).json({ error: error.message || 'Erro ao criar recebedor no Pagar.me' });
+  }
+});
+
+// Update reseller's bank account
+router.patch('/reseller/pagarme-recipient/bank', resellerAuthMiddleware, async (req, res) => {
+  try {
+    const auth = getAuthenticatedReseller(req);
+    if (!auth) {
+      return res.status(401).json({ error: 'Não autenticado' });
+    }
+
+    const recipientId = await getResellerRecipientId(auth.userId);
+    if (!recipientId) {
+      return res.status(400).json({ error: 'Recebedor não encontrado. Cadastre primeiro.' });
+    }
+
+    const { bankAccount } = req.body;
+    if (!bankAccount) {
+      return res.status(400).json({ error: 'Dados bancários obrigatórios' });
+    }
+
+    const updatedRecipient = await pagarmeService.updateRecipientBankAccount(recipientId, {
+      holder_name: bankAccount.holder_name,
+      holder_document: bankAccount.holder_document,
+      holder_type: 'individual',
+      bank: bankAccount.bank,
+      branch_number: bankAccount.branch_number,
+      branch_check_digit: bankAccount.branch_check_digit || '',
+      account_number: bankAccount.account_number,
+      account_check_digit: bankAccount.account_check_digit,
+      type: bankAccount.type,
+    });
+
+    res.json({
+      success: true,
+      recipientId: updatedRecipient.id,
+      message: 'Dados bancários atualizados com sucesso!'
+    });
+
+  } catch (error: any) {
+    console.error('[ResellerRecipient] Error updating bank:', error);
+    res.status(500).json({ error: error.message || 'Erro ao atualizar dados bancários' });
   }
 });
 

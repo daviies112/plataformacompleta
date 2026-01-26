@@ -208,7 +208,6 @@ async function saveSaleToSupabase(saleData: {
       reseller_amount: resellerAmount,
       company_amount: companyAmount,
       commission_percentage: resellerPercentage,
-      commission_tier: tierName,
       paid: isPaid,
       paid_at: isPaid ? new Date().toISOString() : null,
       customer_name: saleData.customerName || null,
