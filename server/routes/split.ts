@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
+import fetch from 'node-fetch';
 import { pagarmeService } from '../services/pagarme';
 import {
   getCompanyRecipientId,
@@ -727,6 +728,238 @@ router.post('/test-pix-no-split', async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error('[Split] Error creating test PIX order (no split):', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Erro interno ao criar pedido de teste',
+      details: error.message,
+    });
+  }
+});
+
+router.post('/test-card-split', async (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+  
+  console.log('[Split] POST /test-card-split - Creating test CARD order WITH split');
+  
+  try {
+    if (!pagarmeService.isConfigured()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Pagar.me não configurado.',
+      });
+    }
+    
+    const companyRecipientId = await getCompanyRecipientId();
+    if (!companyRecipientId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Company recipient não configurado.',
+      });
+    }
+    
+    const testAmount = req.body.amount || 1000;
+    
+    const splitRules = [
+      {
+        amount: 100,
+        recipient_id: companyRecipientId,
+        type: 'percentage' as const,
+        options: {
+          charge_processing_fee: true,
+          charge_remainder_fee: true,
+          liable: true,
+        },
+      },
+    ];
+    
+    const orderData = {
+      customer: {
+        name: 'Cliente Teste Card',
+        email: 'teste.card@example.com',
+        document: '11111111111',
+        document_type: 'CPF' as const,
+        type: 'individual' as const,
+        phones: {
+          mobile_phone: {
+            country_code: '55',
+            area_code: '11',
+            number: '999999999',
+          },
+        },
+      },
+      items: [
+        {
+          amount: testAmount,
+          description: 'Produto de teste - Card com split',
+          quantity: 1,
+          code: 'TEST_CARD_SPLIT',
+        },
+      ],
+      payments: [
+        {
+          payment_method: 'credit_card',
+          credit_card: {
+            installments: 1,
+            statement_descriptor: 'NEXUS TEST',
+            card: {
+              number: '4000000000000010',
+              holder_name: 'TESTE SPLIT',
+              holder_document: '11111111111',
+              exp_month: 12,
+              exp_year: 2030,
+              cvv: '123',
+              billing_address: {
+                line_1: 'Av Paulista, 1000',
+                line_2: 'Apto 1',
+                zip_code: '01310100',
+                city: 'São Paulo',
+                state: 'SP',
+                country: 'BR',
+              },
+            },
+          },
+          split: splitRules,
+        },
+      ],
+    };
+    
+    console.log('[Split] Creating test Card order with split');
+    console.log('[Split] Split rules:', JSON.stringify(splitRules));
+    
+    const response = await fetch('https://api.pagar.me/core/v5/orders', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${Buffer.from(`${process.env.CHAVE_SECRETA_PRODUCAO || process.env.CHAVE_SECRETA_TESTE}:`).toString('base64')}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(orderData),
+    });
+    
+    const order = await response.json() as any;
+    
+    console.log('[Split] Card order response:', JSON.stringify(order, null, 2));
+    
+    res.json({
+      success: response.ok,
+      orderId: order.id,
+      orderCode: order.code,
+      status: order.status,
+      amount: order.amount,
+      hasSplit: true,
+      splitRules: splitRules.map(r => ({
+        recipientId: r.recipient_id.substring(0, 20) + '...',
+        percentage: r.amount,
+        type: r.type,
+      })),
+      chargeStatus: order.charges?.[0]?.status,
+      gatewayResponse: order.charges?.[0]?.last_transaction?.gateway_response,
+      rawResponse: order,
+    });
+  } catch (error: any) {
+    console.error('[Split] Error creating test Card order:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Erro interno ao criar pedido de teste',
+      details: error.message,
+    });
+  }
+});
+
+router.post('/test-card-no-split', async (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+  
+  console.log('[Split] POST /test-card-no-split - Creating test CARD order WITHOUT split');
+  
+  try {
+    if (!pagarmeService.isConfigured()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Pagar.me não configurado.',
+      });
+    }
+    
+    const testAmount = req.body.amount || 1000;
+    
+    const orderData = {
+      customer: {
+        name: 'Cliente Teste Card',
+        email: 'teste.card@example.com',
+        document: '11111111111',
+        document_type: 'CPF',
+        type: 'individual',
+        phones: {
+          mobile_phone: {
+            country_code: '55',
+            area_code: '11',
+            number: '999999999',
+          },
+        },
+      },
+      items: [
+        {
+          amount: testAmount,
+          description: 'Produto de teste - Card sem split',
+          quantity: 1,
+          code: 'TEST_CARD',
+        },
+      ],
+      payments: [
+        {
+          payment_method: 'credit_card',
+          credit_card: {
+            installments: 1,
+            statement_descriptor: 'NEXUS TEST',
+            card: {
+              number: '4000000000000010',
+              holder_name: 'TESTE CARD',
+              holder_document: '11111111111',
+              exp_month: 12,
+              exp_year: 2030,
+              cvv: '123',
+              billing_address: {
+                line_1: 'Av Paulista, 1000',
+                line_2: 'Apto 1',
+                zip_code: '01310100',
+                city: 'São Paulo',
+                state: 'SP',
+                country: 'BR',
+              },
+            },
+          },
+        },
+      ],
+    };
+    
+    console.log('[Split] Creating test Card order without split');
+    
+    const response = await fetch('https://api.pagar.me/core/v5/orders', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${Buffer.from(`${process.env.CHAVE_SECRETA_PRODUCAO || process.env.CHAVE_SECRETA_TESTE}:`).toString('base64')}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(orderData),
+    });
+    
+    const order = await response.json() as any;
+    
+    console.log('[Split] Card order (no split) response:', JSON.stringify(order, null, 2));
+    
+    res.json({
+      success: response.ok,
+      orderId: order.id,
+      orderCode: order.code,
+      status: order.status,
+      amount: order.amount,
+      hasSplit: false,
+      chargeStatus: order.charges?.[0]?.status,
+      gatewayResponse: order.charges?.[0]?.last_transaction?.gateway_response,
+      rawResponse: order,
+    });
+  } catch (error: any) {
+    console.error('[Split] Error creating test Card order (no split):', error);
     res.status(500).json({ 
       success: false, 
       error: 'Erro interno ao criar pedido de teste',
