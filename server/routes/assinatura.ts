@@ -92,6 +92,57 @@ async function createEnvioFromContract(contract: any): Promise<void> {
   }
 }
 
+// Função para salvar credenciais do Supabase para a revendedora
+async function saveSupabaseCredentialsForReseller(email: string, adminId: string, supabaseOwnerClient: any): Promise<void> {
+  try {
+    console.log('[NEXUS] Buscando credenciais do admin para salvar na revendedora...');
+    
+    // Buscar credenciais do admin na tabela admin_supabase_credentials
+    const { data: adminCreds, error: credsError } = await supabaseOwnerClient
+      .from('admin_supabase_credentials')
+      .select('supabase_url, supabase_anon_key, supabase_service_role_key')
+      .eq('admin_id', adminId)
+      .single();
+    
+    if (credsError || !adminCreds) {
+      console.warn('[NEXUS] Credenciais do admin não encontradas:', credsError?.message);
+      return;
+    }
+    
+    console.log('[NEXUS] Credenciais do admin encontradas, salvando para revendedora...');
+    
+    // Importar pool para acessar banco local
+    const { pool } = await import('../db.js');
+    
+    // Verificar se já existe config para este email
+    const checkResult = await pool.query(
+      'SELECT id FROM reseller_supabase_configs WHERE reseller_email = $1',
+      [email]
+    );
+    
+    if (checkResult.rows.length === 0) {
+      // Inserir novas credenciais
+      await pool.query(
+        `INSERT INTO reseller_supabase_configs (reseller_email, supabase_url, supabase_anon_key, supabase_service_key)
+         VALUES ($1, $2, $3, $4)`,
+        [email, adminCreds.supabase_url, adminCreds.supabase_anon_key, adminCreds.supabase_service_role_key]
+      );
+      console.log(`[NEXUS] ✅ Credenciais do Supabase salvas automaticamente para: ${email}`);
+    } else {
+      // Atualizar credenciais existentes
+      await pool.query(
+        `UPDATE reseller_supabase_configs 
+         SET supabase_url = $2, supabase_anon_key = $3, supabase_service_key = $4, updated_at = NOW()
+         WHERE reseller_email = $1`,
+        [email, adminCreds.supabase_url, adminCreds.supabase_anon_key, adminCreds.supabase_service_role_key]
+      );
+      console.log(`[NEXUS] ✅ Credenciais do Supabase atualizadas para: ${email}`);
+    }
+  } catch (credsError: any) {
+    console.error('[NEXUS] Erro ao salvar credenciais do Supabase:', credsError.message);
+  }
+}
+
 async function createRevendedoraFromContract(contract: any): Promise<void> {
   console.log('[NEXUS] ========== INICIANDO CRIAÇÃO DE REVENDEDORA ==========');
   console.log('[NEXUS] Contrato recebido:', JSON.stringify({
@@ -174,6 +225,8 @@ async function createRevendedoraFromContract(contract: any): Promise<void> {
 
     if (existing) {
       console.log(`[NEXUS] Revendedora já existe (id: ${existing.id}) - pulando criação`);
+      // Mesmo assim, garantir que as credenciais do Supabase estejam salvas
+      await saveSupabaseCredentialsForReseller(client_email, adminId, supabaseOwner);
       return;
     }
 
@@ -201,6 +254,9 @@ async function createRevendedoraFromContract(contract: any): Promise<void> {
     }
 
     console.log(`[NEXUS] ✅ Revendedora criada automaticamente: ${revendedora.email} (CPF: ${cpfNormalizado})`);
+    
+    // Salvar automaticamente as credenciais do Supabase para a revendedora
+    await saveSupabaseCredentialsForReseller(client_email, adminId, supabaseOwner);
   } catch (error) {
     console.error('[NEXUS] Erro inesperado ao criar revendedora:', error);
   }
