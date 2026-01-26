@@ -212,25 +212,35 @@ export class PagarmeService {
   private accountId: string;
 
   constructor() {
-    // Try test keys first, then production keys
-    this.secretKey = process.env.CHAVE_SECRETA_TESTE || process.env.CHAVE_SECRETA || '';
-    this.publicKey = process.env.CHAVE_PUBLICA_TESTE || process.env.CHAVE_PUBLICA || '';
-    this.accountId = process.env.CHAVE_ID_TESTE || process.env.CHAVE_ID || '';
+    // Try production keys first, then test keys
+    this.secretKey = process.env.CHAVE_SECRETA_PRODUCAO || process.env.CHAVE_SECRETA_TESTE || process.env.CHAVE_SECRETA || '';
+    this.publicKey = process.env.CHAVE_PUBLICA_PRODUCAO || process.env.CHAVE_PUBLICA_TESTE || process.env.CHAVE_PUBLICA || '';
+    this.accountId = process.env.CHAVE_ID_PRODUCAO || process.env.CHAVE_ID_TESTE || process.env.CHAVE_ID || '';
 
-    if (process.env.CHAVE_SECRETA_TESTE || process.env.CHAVE_PUBLICA_TESTE) {
-      console.log('[Pagar.me] Usando credenciais de TESTE');
+    // Determine if using production or test
+    const isProduction = !!(process.env.CHAVE_SECRETA_PRODUCAO || process.env.CHAVE_PUBLICA_PRODUCAO);
+    const isTest = !!(process.env.CHAVE_SECRETA_TESTE || process.env.CHAVE_PUBLICA_TESTE);
+    
+    if (isProduction) {
+      console.log('[Pagar.me] ✅ Usando credenciais de PRODUÇÃO');
+    } else if (isTest) {
+      console.log('[Pagar.me] ⚠️ Usando credenciais de TESTE');
     }
     
     if (this.accountId) {
-      console.log('[Pagar.me] Account ID configurado:', this.accountId.substring(0, 8) + '...');
+      console.log('[Pagar.me] Account ID configurado:', this.accountId.substring(0, 12) + '...');
     }
 
     if (!this.secretKey) {
-      console.warn('[Pagar.me] Nenhuma chave secreta configurada (CHAVE_SECRETA_TESTE ou CHAVE_SECRETA)');
+      console.warn('[Pagar.me] Nenhuma chave secreta configurada');
     }
     if (!this.publicKey) {
-      console.warn('[Pagar.me] Nenhuma chave pública configurada (CHAVE_PUBLICA_TESTE ou CHAVE_PUBLICA)');
+      console.warn('[Pagar.me] Nenhuma chave pública configurada');
     }
+  }
+  
+  isProductionMode(): boolean {
+    return !!(process.env.CHAVE_SECRETA_PRODUCAO);
   }
   
   getAccountId(): string | null {
@@ -515,9 +525,9 @@ export class PagarmeService {
         holder_document: params.bank_account.holder_document.replace(/\D/g, ''),
         bank: params.bank_account.bank,
         branch_number: params.bank_account.branch_number,
-        branch_check_digit: params.bank_account.branch_check_digit || '',
-        account_number: params.bank_account.account_number.replace(/-/g, '').slice(0, -1),
-        account_check_digit: params.bank_account.account_number.slice(-1),
+        ...(params.bank_account.branch_check_digit ? { branch_check_digit: params.bank_account.branch_check_digit } : {}),
+        account_number: params.bank_account.account_number,
+        account_check_digit: params.bank_account.account_check_digit || params.bank_account.account_number.slice(-1),
         type: params.bank_account.type,
       },
       transfer_settings: params.transfer_settings || {
@@ -585,7 +595,7 @@ export class PagarmeService {
         holder_document: params.bank_account.holder_document.replace(/\D/g, ''),
         bank: params.bank_account.bank,
         branch_number: params.bank_account.branch_number,
-        branch_check_digit: params.bank_account.branch_check_digit || '',
+        ...(params.bank_account.branch_check_digit ? { branch_check_digit: params.bank_account.branch_check_digit } : {}),
         account_number: params.bank_account.account_number,
         account_check_digit: params.bank_account.account_check_digit,
         type: params.bank_account.type,

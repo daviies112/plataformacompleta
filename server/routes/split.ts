@@ -103,7 +103,6 @@ const TEST_BANK_ACCOUNT = {
   holder_document: '11444777000161',
   bank: '341',
   branch_number: '0001',
-  branch_check_digit: '',
   account_number: '123456',
   account_check_digit: '7',
   type: 'checking' as const,
@@ -154,12 +153,14 @@ router.get('/status', async (req: Request, res: Response) => {
     }
     
     const accountId = pagarmeService.getAccountId();
+    const isProduction = pagarmeService.isProductionMode();
     
     const status = {
       success: true,
       pagarme: {
         configured: pagarmeConfigured,
-        testMode: !!(process.env.CHAVE_SECRETA_TESTE),
+        productionMode: isProduction,
+        testMode: !isProduction && !!(process.env.CHAVE_SECRETA_TESTE),
         accountId: accountId ? accountId.substring(0, 12) + '...' : null,
         hasAccountId: !!accountId,
       },
