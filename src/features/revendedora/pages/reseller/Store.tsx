@@ -294,42 +294,19 @@ export default function Store() {
       console.log('[Store] Product IDs:', productIds);
 
       const storeData = {
+        reseller_id: resellerId,
         product_ids: productIds,
         is_published: isPublished,
         store_name: storeName,
         store_slug: storeSlug || null,
+        updated_at: new Date().toISOString()
       };
 
-      const { data: existing, error: existingError } = await supabase
+      const { error } = await supabase
         .from('reseller_stores')
-        .select('id')
-        .eq('reseller_id', resellerId)
-        .single();
+        .upsert(storeData, { onConflict: 'reseller_id' });
 
-      if (existingError?.code === '42P01' || existingError?.message?.includes('does not exist')) {
-        console.log('[Store] Table reseller_stores does not exist, saved to localStorage only');
-        toast.success('Configuração da loja salva!');
-        setSaving(false);
-        return;
-      }
-
-      if (existing) {
-        const { error } = await supabase
-          .from('reseller_stores')
-          .update(storeData as any)
-          .eq('reseller_id', resellerId);
-
-        if (error && !error.message?.includes('does not exist')) throw error;
-      } else {
-        const { error } = await supabase
-          .from('reseller_stores')
-          .insert({ 
-            reseller_id: resellerId, 
-            ...storeData
-          } as any);
-
-        if (error && !error.message?.includes('does not exist')) throw error;
-      }
+      if (error && !error.message?.includes('does not exist')) throw error;
 
       console.log('[Store] Store configuration saved successfully');
       toast.success('Configuração da loja salva com sucesso no Supabase!');
