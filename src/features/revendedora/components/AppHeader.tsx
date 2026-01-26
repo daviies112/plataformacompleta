@@ -18,6 +18,7 @@ import {
   ClipboardList,
   Trophy,
   Settings,
+  Banknote,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -39,6 +40,7 @@ const getAdminItems = (basePath: string) => [
   { title: 'Solicitações', url: `${basePath}/product-requests`, icon: ClipboardList },
   { title: 'Revendedores', url: `${basePath}/resellers`, icon: Users },
   { title: 'Configurar Comissões', url: `${basePath}/commission-config`, icon: Percent },
+  { title: 'Dados Bancários', url: `${basePath}/dados-bancarios`, icon: Banknote },
   { title: 'Analytics', url: `${basePath}/analytics`, icon: BarChart3 },
   { title: 'Personalização', url: `${basePath}/branding`, icon: Palette },
 ];

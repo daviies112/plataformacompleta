@@ -58,6 +58,7 @@ import AdminProductRequests from "@/features/revendedora/pages/admin/ProductRequ
 import AdminAnalytics from "@/features/revendedora/pages/admin/Analytics";
 import AdminSettings from "@/features/revendedora/pages/admin/Settings";
 import AdminBranding from "@/features/revendedora/pages/admin/Branding";
+import BankAccountSetup from "@/pages/billing/BankAccountSetup";
 import AdminGamification from "@/features/revendedora/pages/admin/Gamification";
 
 /**
@@ -517,6 +518,30 @@ const DesktopApp = () => {
             <DesktopLayout>
               <CompanyProvider>
                 <AdminLayout basePath="/vendas"><AdminSettings /></AdminLayout>
+              </CompanyProvider>
+            </DesktopLayout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/vendas/dados-bancarios" 
+        element={
+          <ProtectedRoute>
+            <DesktopLayout>
+              <CompanyProvider>
+                <AdminLayout basePath="/vendas"><BankAccountSetup /></AdminLayout>
+              </CompanyProvider>
+            </DesktopLayout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/produto/admin/dados-bancarios" 
+        element={
+          <ProtectedRoute>
+            <DesktopLayout>
+              <CompanyProvider>
+                <AdminLayout><BankAccountSetup /></AdminLayout>
               </CompanyProvider>
             </DesktopLayout>
           </ProtectedRoute>

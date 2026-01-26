@@ -43,6 +43,7 @@ import AdminProductRequests from "@/features/revendedora/pages/admin/ProductRequ
 import AdminAnalytics from "@/features/revendedora/pages/admin/Analytics";
 import AdminSettings from "@/features/revendedora/pages/admin/Settings";
 import AdminBranding from "@/features/revendedora/pages/admin/Branding";
+import BankAccountSetup from "@/pages/billing/BankAccountSetup";
 import AdminGamification from "@/features/revendedora/pages/admin/Gamification";
 
 /**
@@ -338,6 +339,18 @@ const MobileApp = () => {
           </ProtectedRoute>
         } 
       />
+      <Route 
+        path="/produto/admin/dados-bancarios" 
+        element={
+          <ProtectedRoute>
+            <MobileLayout>
+              <CompanyProvider>
+                <AdminLayout><BankAccountSetup /></AdminLayout>
+              </CompanyProvider>
+            </MobileLayout>
+          </ProtectedRoute>
+        } 
+      />
       
       {/* Vendas Routes - Plataforma de Vendas no Header Principal */}
       <Route 
@@ -491,6 +504,18 @@ const MobileApp = () => {
             <MobileLayout>
               <CompanyProvider>
                 <AdminLayout basePath="/vendas"><AdminSettings /></AdminLayout>
+              </CompanyProvider>
+            </MobileLayout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/vendas/dados-bancarios" 
+        element={
+          <ProtectedRoute>
+            <MobileLayout>
+              <CompanyProvider>
+                <AdminLayout basePath="/vendas"><BankAccountSetup /></AdminLayout>
               </CompanyProvider>
             </MobileLayout>
           </ProtectedRoute>
