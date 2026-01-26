@@ -129,101 +129,54 @@ export default function Store() {
     try {
       console.log('[Store] Loading store configuration for reseller:', resellerId);
       
-      // First, load the company name from settings or admin config
-      let companyStoreName = '';
-      try {
-        const { data: settingsData } = await supabase
-          .from('settings')
-          .select('company_name, store_name')
-          .limit(1)
-          .single();
-        
-        if (settingsData) {
-          companyStoreName = settingsData.store_name || settingsData.company_name || '';
-        }
-      } catch (e) {
-        console.log('[Store] Settings table not available, checking admin_settings...');
-        try {
-          const { data: adminSettings } = await supabase
-            .from('admin_settings')
-            .select('company_name, store_name')
-            .limit(1)
-            .single();
-          
-          if (adminSettings) {
-            companyStoreName = adminSettings.store_name || adminSettings.company_name || '';
-          }
-        } catch (e2) {
-          console.log('[Store] No settings tables available');
-        }
-      }
-      
       const { data, error } = await supabase
         .from('reseller_stores')
-        .select('product_ids, is_published, store_name, store_slug')
+        .select('*')
         .eq('reseller_id', resellerId)
-        .single();
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') {
-        if (error.code === '42P01' || error.code === 'PGRST205' || error.message?.includes('does not exist')) {
-          console.log('[Store] Table reseller_stores not found, loading from localStorage');
-          const saved = localStorage.getItem(`reseller_store_config_${resellerId}`);
-          if (saved) {
-            const config = JSON.parse(saved);
-            if (config.product_ids?.length > 0) {
-              const { data: products } = await supabase
-                .from('products')
-                .select('*')
-                .in('id', config.product_ids);
-              setStoreProducts(products || []);
-            }
-            setIsPublished(config.is_published || false);
-            setStoreName(companyStoreName || config.store_name || '');
-            setStoreSlug(config.store_slug || '');
-          } else if (companyStoreName) {
-            setStoreName(companyStoreName);
-          }
-        } else {
-          console.error('[Store] Error loading store configuration:', error);
-          if (companyStoreName) {
-            setStoreName(companyStoreName);
-          }
-        }
-        return;
+      if (error) {
+        console.error('[Store] Error loading from Supabase:', error);
+        throw error;
       }
 
       if (data) {
+        console.log('[Store] Data found in Supabase:', data);
         setIsPublished(data.is_published || false);
-        setStoreName(companyStoreName || data.store_name || '');
+        setStoreName(data.store_name || '');
         setStoreSlug(data.store_slug || '');
         
-        if (data.product_ids && data.product_ids.length > 0) {
+        if (data.product_ids && Array.isArray(data.product_ids) && data.product_ids.length > 0) {
+          console.log('[Store] Fetching products for IDs:', data.product_ids);
           const { data: products, error: productsError } = await supabase
             .from('products')
             .select('*')
             .in('id', data.product_ids);
 
           if (productsError) {
-            console.error('[Store] Error loading store products:', productsError);
-            return;
+            console.error('[Store] Error loading products details:', productsError);
+          } else {
+            console.log('[Store] Products detailed loaded:', products?.length);
+            setStoreProducts(products || []);
           }
-
-          console.log('[Store] Loaded', products?.length || 0, 'products from Supabase');
-          setStoreProducts(products || []);
         } else {
           setStoreProducts([]);
         }
+
+        // Sync to local
         localStorage.setItem(`reseller_store_config_${resellerId}`, JSON.stringify({
-          product_ids: data.product_ids,
+          product_ids: data.product_ids || [],
           is_published: data.is_published,
           store_name: data.store_name,
           store_slug: data.store_slug,
         }));
       } else {
-        console.log('[Store] No store configuration found for reseller, checking localStorage');
+        console.log('[Store] No data in Supabase, checking local fallback');
         const saved = localStorage.getItem(`reseller_store_config_${resellerId}`);
         if (saved) {
           const config = JSON.parse(saved);
+          console.log('[Store] Local config found:', config);
+          
           if (config.product_ids?.length > 0) {
             const { data: products } = await supabase
               .from('products')
@@ -232,12 +185,9 @@ export default function Store() {
             setStoreProducts(products || []);
           }
           setIsPublished(config.is_published || false);
-          setStoreName(companyStoreName || config.store_name || '');
+          setStoreName(config.store_name || '');
           setStoreSlug(config.store_slug || '');
-        } else if (companyStoreName) {
-          setStoreName(companyStoreName);
         }
-        setStoreProducts([]);
       }
     } catch (error) {
       console.error('[Store] Error loading store configuration:', error);
@@ -293,6 +243,8 @@ export default function Store() {
       console.log('[Store] Saving store configuration for reseller:', resellerId);
       console.log('[Store] Product IDs:', productIds);
 
+      // Map products to a simple format for product_ids (array of IDs)
+      // The table expects product_ids as JSONB
       const storeData = {
         reseller_id: resellerId,
         product_ids: productIds,
@@ -302,11 +254,22 @@ export default function Store() {
         updated_at: new Date().toISOString()
       };
 
-      const { error } = await supabase
-        .from('reseller_stores')
-        .upsert(storeData, { onConflict: 'reseller_id' });
+      console.log('[Store] Upserting data:', storeData);
 
-      if (error && !error.message?.includes('does not exist')) throw error;
+      const { data: upsertData, error } = await supabase
+        .from('reseller_stores')
+        .upsert(storeData, { 
+          onConflict: 'reseller_id',
+          ignoreDuplicates: false 
+        })
+        .select();
+
+      if (error) {
+        console.error('[Store] Supabase upsert error:', error);
+        throw error;
+      }
+      
+      console.log('[Store] Upsert result:', upsertData);
 
       console.log('[Store] Store configuration saved successfully');
       toast.success('Configuração da loja salva com sucesso no Supabase!');
