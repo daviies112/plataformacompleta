@@ -93,27 +93,43 @@ async function createEnvioFromContract(contract: any): Promise<void> {
 }
 
 async function createRevendedoraFromContract(contract: any): Promise<void> {
+  console.log('[NEXUS] ========== INICIANDO CRIAÇÃO DE REVENDEDORA ==========');
+  console.log('[NEXUS] Contrato recebido:', JSON.stringify({
+    id: contract.id,
+    client_name: contract.client_name,
+    client_cpf: contract.client_cpf ? contract.client_cpf.substring(0, 3) + '***' : null,
+    client_email: contract.client_email,
+    tenant_id: contract.tenant_id
+  }));
+  
   const { client_name, client_cpf, client_email, client_phone, tenant_id } = contract;
 
   if (!client_cpf || !client_email) {
-    console.log('[NEXUS] Contrato sem CPF ou email - pulando criação de revendedora');
+    console.log('[NEXUS] ❌ Contrato sem CPF ou email - pulando criação de revendedora');
+    console.log('[NEXUS] client_cpf:', client_cpf, 'client_email:', client_email);
     return;
   }
 
   const cpfNormalizado = normalizeCPF(client_cpf);
   if (cpfNormalizado.length !== 11) {
-    console.log('[NEXUS] CPF inválido - pulando criação de revendedora');
+    console.log('[NEXUS] ❌ CPF inválido (tamanho:', cpfNormalizado.length, ') - pulando criação de revendedora');
     return;
   }
+  
+  console.log('[NEXUS] ✓ CPF normalizado:', cpfNormalizado.substring(0, 3) + '***');
 
   try {
-    // Usar supabaseOwner (configurado via SUPABASE_OWNER_URL/KEY) para acessar tabela revendedoras do Master
-    const { supabaseOwner, SUPABASE_CONFIGURED } = await import('../config/supabaseOwner.js');
+    // Usar supabaseOwner já importado no topo do arquivo
+    console.log('[NEXUS] Verificando supabaseOwner...');
+    console.log('[NEXUS] SUPABASE_CONFIGURED:', SUPABASE_CONFIGURED);
+    console.log('[NEXUS] supabaseOwner existe:', !!supabaseOwner);
     
     if (!SUPABASE_CONFIGURED || !supabaseOwner) {
-      console.log('[NEXUS] supabaseOwner não configurado - pulando criação de revendedora');
+      console.log('[NEXUS] ❌ supabaseOwner não configurado - pulando criação de revendedora');
       return;
     }
+    
+    console.log('[NEXUS] ✓ supabaseOwner configurado corretamente');
     
     // Encontrar o admin_id: primeiro tenta do contrato, depois busca no admin_supabase_credentials
     let adminId = tenant_id || null;
@@ -164,6 +180,8 @@ async function createRevendedoraFromContract(contract: any): Promise<void> {
     const senhaHash = crypto.createHash('sha256').update(cpfNormalizado).digest('hex');
     
     // Inserir na tabela revendedoras do Master
+    // Colunas existentes: id, admin_id, nome, email, cpf, status, senha_hash, created_at
+    console.log('[NEXUS] Inserindo revendedora no Master...');
     const { data: revendedora, error: insertError } = await supabaseOwner
       .from('revendedoras')
       .insert({
@@ -171,11 +189,8 @@ async function createRevendedoraFromContract(contract: any): Promise<void> {
         nome: client_name || 'Revendedora',
         cpf: cpfNormalizado,
         email: client_email,
-        telefone: client_phone || null,
         senha_hash: senhaHash,
-        status: 'ativo',
-        comissao_padrao: 10.00,
-        updated_at: new Date().toISOString()
+        status: 'ativo'
       })
       .select()
       .single();
@@ -193,6 +208,135 @@ async function createRevendedoraFromContract(contract: any): Promise<void> {
 
 const CONTRACTS_FILE = path.join(process.cwd(), 'data', 'assinatura_contracts.json');
 const GLOBAL_CONFIG_FILE = path.join(process.cwd(), 'data', 'assinatura_global_config.json');
+
+// Endpoint de diagnóstico para testar conexão com Supabase Owner e tabela revendedoras
+router.get('/public/diagnostico-revendedora', async (req: Request, res: Response) => {
+  const diagnostico: any = {
+    timestamp: new Date().toISOString(),
+    supabaseOwnerConfigured: false,
+    supabaseOwnerConnected: false,
+    adminCredentials: null,
+    revendedorasCount: null,
+    contractsSigned: null,
+    errors: []
+  };
+  
+  try {
+    // 1. Verificar se supabaseOwner está configurado
+    diagnostico.supabaseOwnerConfigured = SUPABASE_CONFIGURED;
+    
+    if (!SUPABASE_CONFIGURED || !supabaseOwner) {
+      diagnostico.errors.push('supabaseOwner não configurado (SUPABASE_OWNER_URL/KEY não definidos)');
+      return res.json(diagnostico);
+    }
+    
+    // 2. Testar conexão buscando admin_supabase_credentials
+    const { data: adminCreds, error: adminError } = await supabaseOwner
+      .from('admin_supabase_credentials')
+      .select('admin_id, project_name')
+      .limit(5);
+    
+    if (adminError) {
+      diagnostico.errors.push(`Erro ao buscar admin_supabase_credentials: ${adminError.message}`);
+    } else {
+      diagnostico.supabaseOwnerConnected = true;
+      diagnostico.adminCredentials = adminCreds;
+    }
+    
+    // 3. Verificar tabela revendedoras
+    const { data: revendedoras, error: revError } = await supabaseOwner
+      .from('revendedoras')
+      .select('id, email, cpf, nome, status, created_at')
+      .order('created_at', { ascending: false })
+      .limit(10);
+    
+    if (revError) {
+      diagnostico.errors.push(`Erro ao buscar revendedoras: ${revError.message}`);
+    } else {
+      diagnostico.revendedorasCount = revendedoras?.length || 0;
+      diagnostico.revendedoras = revendedoras?.map(r => ({
+        id: r.id,
+        email: r.email,
+        cpf: r.cpf ? r.cpf.substring(0, 3) + '***' : null,
+        nome: r.nome,
+        status: r.status
+      }));
+    }
+    
+    // 4. Verificar contratos assinados no Supabase Cliente
+    if (assinaturaSupabaseService.isConnected()) {
+      const supabaseClient = assinaturaSupabaseService.getSupabaseClient();
+      if (supabaseClient) {
+        const { data: contracts, error: contractError } = await supabaseClient
+          .from('contracts')
+          .select('id, client_name, client_email, client_cpf, status, signed_at')
+          .eq('status', 'signed')
+          .order('signed_at', { ascending: false })
+          .limit(5);
+        
+        if (contractError) {
+          diagnostico.errors.push(`Erro ao buscar contracts: ${contractError.message}`);
+        } else {
+          diagnostico.contractsSigned = contracts?.map(c => ({
+            id: c.id,
+            client_name: c.client_name,
+            client_email: c.client_email,
+            client_cpf: c.client_cpf ? c.client_cpf.substring(0, 3) + '***' : null,
+            status: c.status
+          }));
+        }
+      }
+    }
+    
+    res.json(diagnostico);
+  } catch (error: any) {
+    diagnostico.errors.push(`Erro geral: ${error.message}`);
+    res.json(diagnostico);
+  }
+});
+
+// Endpoint para forçar sincronização manual de contrato para revendedora
+router.post('/public/sync-revendedora/:contractId', async (req: Request, res: Response) => {
+  const { contractId } = req.params;
+  
+  try {
+    if (!SUPABASE_CONFIGURED || !supabaseOwner) {
+      return res.status(500).json({ error: 'supabaseOwner não configurado' });
+    }
+    
+    // Buscar contrato no Supabase Cliente
+    const supabaseClient = assinaturaSupabaseService.getSupabaseClient();
+    if (!supabaseClient) {
+      return res.status(500).json({ error: 'Supabase Cliente não conectado' });
+    }
+    
+    const { data: contract, error: contractError } = await supabaseClient
+      .from('contracts')
+      .select('*')
+      .eq('id', contractId)
+      .single();
+    
+    if (contractError || !contract) {
+      return res.status(404).json({ error: 'Contrato não encontrado', details: contractError?.message });
+    }
+    
+    // Chamar função de criação de revendedora
+    console.log('[SYNC] Forçando sincronização de contrato:', contractId);
+    console.log('[SYNC] Dados do contrato:', {
+      client_name: contract.client_name,
+      client_email: contract.client_email,
+      client_cpf: contract.client_cpf,
+      tenant_id: contract.tenant_id
+    });
+    
+    await createRevendedoraFromContract(contract);
+    
+    res.json({ success: true, message: 'Sincronização executada - verifique logs' });
+  } catch (error: any) {
+    console.error('[SYNC] Erro:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
 
 interface LocalContract {
   id: string;
