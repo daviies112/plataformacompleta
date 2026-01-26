@@ -1,6 +1,7 @@
 import { supabaseOwner } from '../config/supabaseOwner';
 import { totalExpressService } from './totalExpressService';
-// Usando supabaseOwner diretamente para acessar contracts
+import { assinaturaSupabaseService } from './assinatura-supabase';
+// Usando supabaseOwner para envios/transportadoras e assinaturaSupabase para contracts
 
 export interface Transportadora {
   id: string;
@@ -592,9 +593,22 @@ class EnvioService {
     console.log('[EnvioService] Buscando contratos pendentes para adminId:', adminId);
     const client = this.getClient();
     
+    if (!client) {
+      console.error('[EnvioService] Cliente Supabase Owner não disponível!');
+      return [];
+    }
+    
+    // Obter cliente do Supabase do CLIENTE (onde estão os contracts)
+    const clienteSupabase = assinaturaSupabaseService.getSupabaseClient();
+    if (!clienteSupabase) {
+      console.error('[EnvioService] Cliente Supabase do CLIENTE não disponível!');
+      return [];
+    }
+    
     let contractIdsComEnvio: string[] = [];
     
     try {
+      // Buscar envios existentes do supabaseOwner (onde está a tabela envios)
       const { data: enviosExistentes, error: enviosError } = await client
         .from('envios')
         .select('contract_id')
@@ -605,16 +619,16 @@ class EnvioService {
         contractIdsComEnvio = enviosExistentes
           .map((e: any) => e.contract_id)
           .filter(Boolean);
+        console.log('[EnvioService] Contratos já com envio:', contractIdsComEnvio.length);
       }
     } catch (err) {
       console.error('[EnvioService] Erro ao buscar contract_ids dos envios:', err);
     }
 
-    // Buscar contratos diretamente do supabaseOwner (onde estão os contracts)
-    console.log('[EnvioService] Buscando contratos diretamente do Supabase Owner');
+    // Buscar contratos do Supabase do CLIENTE (onde está a tabela contracts)
+    console.log('[EnvioService] Buscando contratos do Supabase CLIENTE');
     
-    // Query básica sem tenant_id/user_id (nem todas as tabelas contracts têm essas colunas)
-    const { data: allContracts, error: contractsError } = await client
+    const { data: allContracts, error: contractsError } = await clienteSupabase
       .from('contracts')
       .select('id, client_name, client_cpf, client_email, client_phone, address_street, address_number, address_complement, address_city, address_state, address_zipcode, signed_at, status')
       .eq('status', 'signed')
@@ -622,10 +636,11 @@ class EnvioService {
     
     if (contractsError) {
       console.error('[EnvioService] Erro ao buscar contratos:', contractsError);
+      console.error('[EnvioService] Detalhes do erro:', JSON.stringify(contractsError, null, 2));
       return [];
     }
     
-    console.log('[EnvioService] Total de contratos assinados encontrados:', allContracts?.length || 0);
+    console.log('[EnvioService] Total de contratos assinados (status=signed) encontrados:', allContracts?.length || 0);
     
     // Filtrar contratos que já têm envio criado
     const pendingContracts = (allContracts || []).filter((contract: any) => {

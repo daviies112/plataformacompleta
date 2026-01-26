@@ -203,6 +203,10 @@ class AssinaturaSupabaseService {
     return this.initialized && this.supabase !== null;
   }
   
+  getSupabaseClient(): SupabaseClient | null {
+    return this.supabase;
+  }
+  
   private loadLocalGlobalConfig(): AssinaturaGlobalConfig | null {
     try {
       if (fs.existsSync(GLOBAL_CONFIG_FILE)) {
