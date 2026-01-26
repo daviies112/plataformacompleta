@@ -275,7 +275,7 @@ router.get('/sales-debug', async (req: any, res) => {
     // Get sales count by reseller_id (no PII exposed)
     const { data: sales, error: salesError } = await supabase
       .from('sales_with_split')
-      .select('reseller_id, status')
+      .select('reseller_id, status, pagarme_order_id, created_at')
       .order('created_at', { ascending: false })
       .limit(100);
     
@@ -294,7 +294,27 @@ router.get('/sales-debug', async (req: any, res) => {
       salesCountByReseller[s.reseller_id] = (salesCountByReseller[s.reseller_id] || 0) + 1;
     });
     
+    // Check specific sale by pagarme_order_id if query param provided
+    const searchOrderId = req.query.order_id as string;
+    let specificSale = null;
+    if (searchOrderId) {
+      const { data: foundSale } = await supabase
+        .from('sales_with_split')
+        .select('id, reseller_id, pagarme_order_id, total_amount, status, created_at')
+        .eq('pagarme_order_id', searchOrderId)
+        .maybeSingle();
+      specificSale = foundSale;
+    }
+    
+    // Get recent sales with pagarme_order_id
+    const recentSalesWithOrderId = (sales || [])
+      .filter(s => s.pagarme_order_id)
+      .slice(0, 5)
+      .map(s => ({ reseller_id: s.reseller_id, pagarme_order_id: s.pagarme_order_id, created_at: s.created_at }));
+    
     res.json({
+      specificSale,
+      recentSalesWithOrderId,
       sales: {
         totalCount: sales?.length || 0,
         resellerIds: salesResellerIds,
