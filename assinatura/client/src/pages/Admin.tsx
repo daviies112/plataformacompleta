@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -10,12 +10,70 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { brandConfig, contractConfig } from '@/config/branding';
-import { FileText, Copy, Check, Plus, Trash2, Clock, CheckCircle2, Users, FileCheck, Gift, AlertCircle, Camera, Shield, Smartphone } from 'lucide-react';
+import { FileText, Copy, Check, Plus, Trash2, Clock, CheckCircle2, Users, FileCheck, Gift, AlertCircle, Camera, Shield, Smartphone, Loader2, Save } from 'lucide-react';
 import { validateCPF, formatCPF, formatPhone } from '@/lib/validators';
 import { VerificationFlow } from '@/components/verification/VerificationFlow';
 import { ProgressTrackerStep } from '@/components/steps/ProgressTrackerStep';
 import { ContractDetailsModal } from '@/components/modals/ContractDetailsModal';
 import type { Contract } from '@shared/schema';
+
+interface GlobalSettings {
+  primary_color?: string;
+  text_color?: string;
+  font_family?: string;
+  font_size?: string;
+  logo_url?: string;
+  logo_size?: string;
+  logo_position?: string;
+  company_name?: string;
+  footer_text?: string;
+  verification_primary_color?: string;
+  verification_text_color?: string;
+  verification_font_family?: string;
+  verification_font_size?: string;
+  verification_logo_url?: string;
+  verification_logo_size?: string;
+  verification_logo_position?: string;
+  verification_footer_text?: string;
+  verification_welcome_text?: string;
+  verification_instructions?: string;
+  verification_background_image?: string;
+  verification_background_color?: string;
+  verification_header_background_color?: string;
+  verification_header_logo_url?: string;
+  verification_header_company_name?: string;
+  progress_card_color?: string;
+  progress_button_color?: string;
+  progress_text_color?: string;
+  progress_title?: string;
+  progress_subtitle?: string;
+  progress_step1_title?: string;
+  progress_step1_description?: string;
+  progress_step2_title?: string;
+  progress_step2_description?: string;
+  progress_step3_title?: string;
+  progress_step3_description?: string;
+  progress_button_text?: string;
+  progress_font_family?: string;
+  progress_font_size?: string;
+  maleta_card_color?: string;
+  maleta_button_color?: string;
+  maleta_text_color?: string;
+  parabens_title?: string;
+  parabens_subtitle?: string;
+  parabens_description?: string;
+  parabens_card_color?: string;
+  parabens_background_color?: string;
+  parabens_button_color?: string;
+  parabens_text_color?: string;
+  parabens_font_family?: string;
+  parabens_form_title?: string;
+  parabens_button_text?: string;
+  app_store_url?: string;
+  google_play_url?: string;
+  contract_title?: string;
+  clauses?: any;
+}
 
 interface ContractClause {
   title: string;
@@ -116,6 +174,221 @@ const Admin = () => {
   // URLs dos Aplicativos
   const [appStoreUrl, setAppStoreUrl] = useState('');
   const [googlePlayUrl, setGooglePlayUrl] = useState('');
+
+  // Auto-save state tracking
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
+  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Load global settings from Supabase
+  const { data: globalSettings, isLoading: isLoadingSettings } = useQuery<GlobalSettings>({
+    queryKey: ['/api/config/global-settings'],
+    staleTime: 0, // Always fetch fresh
+  });
+
+  // Apply loaded settings to local state
+  useEffect(() => {
+    if (globalSettings && Object.keys(globalSettings).length > 0 && !settingsLoaded) {
+      // Contract appearance
+      if (globalSettings.primary_color) setPrimaryColor(globalSettings.primary_color);
+      if (globalSettings.text_color) setTextColor(globalSettings.text_color);
+      if (globalSettings.font_family) setFontFamily(globalSettings.font_family);
+      if (globalSettings.font_size) setFontSize(globalSettings.font_size);
+      if (globalSettings.logo_url) { setLogoUrl(globalSettings.logo_url); setLogoPreview(globalSettings.logo_url); }
+      if (globalSettings.logo_size) setLogoSize(globalSettings.logo_size as 'small' | 'medium' | 'large');
+      if (globalSettings.logo_position) setLogoPosition(globalSettings.logo_position as 'center' | 'left' | 'right');
+      if (globalSettings.company_name) setCompanyName(globalSettings.company_name);
+      if (globalSettings.footer_text) setFooterText(globalSettings.footer_text);
+      if (globalSettings.contract_title) setContractTitle(globalSettings.contract_title);
+      if (globalSettings.clauses && Array.isArray(globalSettings.clauses)) setClauses(globalSettings.clauses);
+      
+      // Verification
+      if (globalSettings.verification_primary_color) setVerificationPrimaryColor(globalSettings.verification_primary_color);
+      if (globalSettings.verification_text_color) setVerificationTextColor(globalSettings.verification_text_color);
+      if (globalSettings.verification_font_family) setVerificationFontFamily(globalSettings.verification_font_family);
+      if (globalSettings.verification_font_size) setVerificationFontSize(globalSettings.verification_font_size);
+      if (globalSettings.verification_logo_url) { setVerificationLogoUrl(globalSettings.verification_logo_url); setVerificationLogoPreview(globalSettings.verification_logo_url); }
+      if (globalSettings.verification_logo_size) setVerificationLogoSize(globalSettings.verification_logo_size as 'small' | 'medium' | 'large');
+      if (globalSettings.verification_logo_position) setVerificationLogoPosition(globalSettings.verification_logo_position as 'center' | 'left' | 'right');
+      if (globalSettings.verification_footer_text) setVerificationFooterText(globalSettings.verification_footer_text);
+      if (globalSettings.verification_welcome_text) setVerificationWelcomeText(globalSettings.verification_welcome_text);
+      if (globalSettings.verification_instructions) setVerificationInstructions(globalSettings.verification_instructions);
+      if (globalSettings.verification_background_image) { setVerificationBackgroundImage(globalSettings.verification_background_image); setVerificationBackgroundPreview(globalSettings.verification_background_image); }
+      if (globalSettings.verification_background_color) setVerificationBackgroundColor(globalSettings.verification_background_color);
+      if (globalSettings.verification_header_background_color) setVerificationHeaderBackgroundColor(globalSettings.verification_header_background_color);
+      if (globalSettings.verification_header_logo_url) { setVerificationHeaderLogoUrl(globalSettings.verification_header_logo_url); setVerificationHeaderLogoPreview(globalSettings.verification_header_logo_url); }
+      if (globalSettings.verification_header_company_name) setVerificationHeaderCompanyName(globalSettings.verification_header_company_name);
+      
+      // Progress tracker
+      if (globalSettings.progress_card_color) setProgressCardColor(globalSettings.progress_card_color);
+      if (globalSettings.progress_button_color) setProgressButtonColor(globalSettings.progress_button_color);
+      if (globalSettings.progress_text_color) setProgressTextColor(globalSettings.progress_text_color);
+      if (globalSettings.progress_title) setProgressTitle(globalSettings.progress_title);
+      if (globalSettings.progress_subtitle) setProgressSubtitle(globalSettings.progress_subtitle);
+      if (globalSettings.progress_step1_title) setProgressStep1Title(globalSettings.progress_step1_title);
+      if (globalSettings.progress_step1_description) setProgressStep1Description(globalSettings.progress_step1_description);
+      if (globalSettings.progress_step2_title) setProgressStep2Title(globalSettings.progress_step2_title);
+      if (globalSettings.progress_step2_description) setProgressStep2Description(globalSettings.progress_step2_description);
+      if (globalSettings.progress_step3_title) setProgressStep3Title(globalSettings.progress_step3_title);
+      if (globalSettings.progress_step3_description) setProgressStep3Description(globalSettings.progress_step3_description);
+      if (globalSettings.progress_button_text) setProgressButtonText(globalSettings.progress_button_text);
+      if (globalSettings.progress_font_family) setProgressFontFamily(globalSettings.progress_font_family);
+      if (globalSettings.progress_font_size) setProgressFontSize(globalSettings.progress_font_size);
+      
+      // Maleta
+      if (globalSettings.maleta_card_color) setMaletaCardColor(globalSettings.maleta_card_color);
+      if (globalSettings.maleta_button_color) setMaletaButtonColor(globalSettings.maleta_button_color);
+      if (globalSettings.maleta_text_color) setMaletaTextColor(globalSettings.maleta_text_color);
+      
+      // Parabéns
+      if (globalSettings.parabens_title) setParabensTitle(globalSettings.parabens_title);
+      if (globalSettings.parabens_subtitle) setParabensSubtitle(globalSettings.parabens_subtitle);
+      if (globalSettings.parabens_description) setParabensDescription(globalSettings.parabens_description);
+      if (globalSettings.parabens_card_color) setParabensCardColor(globalSettings.parabens_card_color);
+      if (globalSettings.parabens_background_color) setParabensBackgroundColor(globalSettings.parabens_background_color);
+      if (globalSettings.parabens_button_color) setParabensButtonColor(globalSettings.parabens_button_color);
+      if (globalSettings.parabens_text_color) setParabensTextColor(globalSettings.parabens_text_color);
+      if (globalSettings.parabens_font_family) setParabensFontFamily(globalSettings.parabens_font_family);
+      if (globalSettings.parabens_form_title) setParabensFormTitle(globalSettings.parabens_form_title);
+      if (globalSettings.parabens_button_text) setParabensButtonText(globalSettings.parabens_button_text);
+      
+      // Apps
+      if (globalSettings.app_store_url) setAppStoreUrl(globalSettings.app_store_url);
+      if (globalSettings.google_play_url) setGooglePlayUrl(globalSettings.google_play_url);
+      
+      setSettingsLoaded(true);
+    }
+  }, [globalSettings, settingsLoaded]);
+
+  // Save settings mutation
+  const saveSettingsMutation = useMutation({
+    mutationFn: async (settings: GlobalSettings) => {
+      const response = await apiRequest('POST', '/api/config/global-settings', settings);
+      return response.json();
+    },
+    onSuccess: () => {
+      setIsSavingSettings(false);
+    },
+    onError: (error) => {
+      console.error('Error saving settings:', error);
+      setIsSavingSettings(false);
+    },
+  });
+
+  // Auto-save function with debounce (500ms)
+  const triggerAutoSave = useCallback(() => {
+    if (!settingsLoaded) return; // Don't save until initial load is complete
+    
+    if (autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current);
+    }
+    
+    setIsSavingSettings(true);
+    
+    autoSaveTimeoutRef.current = setTimeout(() => {
+      const currentSettings: GlobalSettings = {
+        primary_color: primaryColor,
+        text_color: textColor,
+        font_family: fontFamily,
+        font_size: fontSize,
+        logo_url: logoUrl,
+        logo_size: logoSize,
+        logo_position: logoPosition,
+        company_name: companyName,
+        footer_text: footerText,
+        contract_title: contractTitle,
+        clauses: clauses,
+        verification_primary_color: verificationPrimaryColor,
+        verification_text_color: verificationTextColor,
+        verification_font_family: verificationFontFamily,
+        verification_font_size: verificationFontSize,
+        verification_logo_url: verificationLogoUrl,
+        verification_logo_size: verificationLogoSize,
+        verification_logo_position: verificationLogoPosition,
+        verification_footer_text: verificationFooterText,
+        verification_welcome_text: verificationWelcomeText,
+        verification_instructions: verificationInstructions,
+        verification_background_image: verificationBackgroundImage,
+        verification_background_color: verificationBackgroundColor,
+        verification_header_background_color: verificationHeaderBackgroundColor,
+        verification_header_logo_url: verificationHeaderLogoUrl,
+        verification_header_company_name: verificationHeaderCompanyName,
+        progress_card_color: progressCardColor,
+        progress_button_color: progressButtonColor,
+        progress_text_color: progressTextColor,
+        progress_title: progressTitle,
+        progress_subtitle: progressSubtitle,
+        progress_step1_title: progressStep1Title,
+        progress_step1_description: progressStep1Description,
+        progress_step2_title: progressStep2Title,
+        progress_step2_description: progressStep2Description,
+        progress_step3_title: progressStep3Title,
+        progress_step3_description: progressStep3Description,
+        progress_button_text: progressButtonText,
+        progress_font_family: progressFontFamily,
+        progress_font_size: progressFontSize,
+        maleta_card_color: maletaCardColor,
+        maleta_button_color: maletaButtonColor,
+        maleta_text_color: maletaTextColor,
+        parabens_title: parabensTitle,
+        parabens_subtitle: parabensSubtitle,
+        parabens_description: parabensDescription,
+        parabens_card_color: parabensCardColor,
+        parabens_background_color: parabensBackgroundColor,
+        parabens_button_color: parabensButtonColor,
+        parabens_text_color: parabensTextColor,
+        parabens_font_family: parabensFontFamily,
+        parabens_form_title: parabensFormTitle,
+        parabens_button_text: parabensButtonText,
+        app_store_url: appStoreUrl,
+        google_play_url: googlePlayUrl,
+      };
+      
+      saveSettingsMutation.mutate(currentSettings);
+    }, 500);
+  }, [
+    settingsLoaded, primaryColor, textColor, fontFamily, fontSize, logoUrl, logoSize, logoPosition,
+    companyName, footerText, contractTitle, clauses, verificationPrimaryColor, verificationTextColor,
+    verificationFontFamily, verificationFontSize, verificationLogoUrl, verificationLogoSize,
+    verificationLogoPosition, verificationFooterText, verificationWelcomeText, verificationInstructions,
+    verificationBackgroundImage, verificationBackgroundColor, verificationHeaderBackgroundColor,
+    verificationHeaderLogoUrl, verificationHeaderCompanyName, progressCardColor, progressButtonColor,
+    progressTextColor, progressTitle, progressSubtitle, progressStep1Title, progressStep1Description,
+    progressStep2Title, progressStep2Description, progressStep3Title, progressStep3Description,
+    progressButtonText, progressFontFamily, progressFontSize, maletaCardColor, maletaButtonColor,
+    maletaTextColor, parabensTitle, parabensSubtitle, parabensDescription, parabensCardColor,
+    parabensBackgroundColor, parabensButtonColor, parabensTextColor, parabensFontFamily,
+    parabensFormTitle, parabensButtonText, appStoreUrl, googlePlayUrl, saveSettingsMutation
+  ]);
+
+  // Trigger auto-save when any customization changes
+  useEffect(() => {
+    if (settingsLoaded) {
+      triggerAutoSave();
+    }
+  }, [
+    primaryColor, textColor, fontFamily, fontSize, logoUrl, logoSize, logoPosition,
+    companyName, footerText, contractTitle, verificationPrimaryColor, verificationTextColor,
+    verificationFontFamily, verificationFontSize, verificationLogoUrl, verificationLogoSize,
+    verificationLogoPosition, verificationFooterText, verificationWelcomeText, verificationInstructions,
+    verificationBackgroundImage, verificationBackgroundColor, verificationHeaderBackgroundColor,
+    verificationHeaderLogoUrl, verificationHeaderCompanyName, progressCardColor, progressButtonColor,
+    progressTextColor, progressTitle, progressSubtitle, progressStep1Title, progressStep1Description,
+    progressStep2Title, progressStep2Description, progressStep3Title, progressStep3Description,
+    progressButtonText, progressFontFamily, progressFontSize, maletaCardColor, maletaButtonColor,
+    maletaTextColor, parabensTitle, parabensSubtitle, parabensDescription, parabensCardColor,
+    parabensBackgroundColor, parabensButtonColor, parabensTextColor, parabensFontFamily,
+    parabensFormTitle, parabensButtonText, appStoreUrl, googlePlayUrl
+  ]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const { data: contracts = [], isLoading: isLoadingContracts } = useQuery<Contract[]>({
     queryKey: ['/api/contracts'],
@@ -476,6 +749,19 @@ const Admin = () => {
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-foreground" data-testid="text-company-name">{brandConfig.companyName}</h1>
           <p className="text-muted-foreground mt-2">Gerenciador de Contratos para Assinatura</p>
+          {/* Indicador de salvamento automático */}
+          {(isSavingSettings || isLoadingSettings) && (
+            <div className="flex items-center justify-center gap-2 mt-2 text-sm text-muted-foreground">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span>{isLoadingSettings ? 'Carregando configurações...' : 'Salvando configurações...'}</span>
+            </div>
+          )}
+          {settingsLoaded && !isSavingSettings && !isLoadingSettings && (
+            <div className="flex items-center justify-center gap-2 mt-2 text-sm text-green-600">
+              <Save className="w-4 h-4" />
+              <span>Configurações salvas automaticamente</span>
+            </div>
+          )}
         </div>
 
         {generatedUrl && (

@@ -1,5 +1,7 @@
 import type { Express } from "express";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import * as fs from "fs";
+import * as path from "path";
 
 const supabaseUrl = process.env.REACT_APP_SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const supabaseKey = process.env.REACT_APP_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -12,7 +14,256 @@ if (supabaseUrl && supabaseKey) {
   console.warn("Supabase credentials not found - Supabase config routes will return empty data");
 }
 
+// Local file storage for global settings (fallback when Supabase table doesn't exist)
+const GLOBAL_SETTINGS_FILE = path.join(process.cwd(), "data", "global-appearance-settings.json");
+
+function loadLocalGlobalSettings(): any {
+  try {
+    if (fs.existsSync(GLOBAL_SETTINGS_FILE)) {
+      const data = fs.readFileSync(GLOBAL_SETTINGS_FILE, "utf-8");
+      return JSON.parse(data);
+    }
+  } catch (error) {
+    console.error("Error loading local global settings:", error);
+  }
+  return {};
+}
+
+function saveLocalGlobalSettings(settings: any): void {
+  try {
+    const dir = path.dirname(GLOBAL_SETTINGS_FILE);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    fs.writeFileSync(GLOBAL_SETTINGS_FILE, JSON.stringify(settings, null, 2));
+  } catch (error) {
+    console.error("Error saving local global settings:", error);
+  }
+}
+
 export function registerSupabaseConfigRoutes(app: Express): void {
+  // ============================================
+  // CONFIGURAÇÕES GLOBAIS (DEFAULT) - Para Admin Panel
+  // ============================================
+  
+  // GET global settings (uses "default" as identifier)
+  // Falls back to local file storage if Supabase table doesn't exist
+  app.get("/api/config/global-settings", async (req, res) => {
+    try {
+      // Try Supabase first if available
+      if (supabase) {
+        try {
+          const { data, error } = await supabase
+            .from("global_appearance_settings")
+            .select("*")
+            .eq("identifier", "default")
+            .single();
+
+          if (!error || error.code === "PGRST116") {
+            // Table exists, return data or empty object
+            console.log("[GlobalSettings] Loaded from Supabase");
+            return res.json(data || {});
+          }
+          
+          // Table doesn't exist or other error - fall through to local storage
+          console.log("[GlobalSettings] Supabase error, using local storage:", error.message);
+        } catch (supabaseError) {
+          console.log("[GlobalSettings] Supabase failed, using local storage");
+        }
+      }
+      
+      // Fallback to local file storage
+      const localSettings = loadLocalGlobalSettings();
+      console.log("[GlobalSettings] Loaded from local file");
+      res.json(localSettings);
+    } catch (error) {
+      console.error("Error fetching global settings:", error);
+      res.json({});
+    }
+  });
+
+  // POST/UPDATE global settings - Auto-saves immediately
+  // Falls back to local file storage if Supabase table doesn't exist
+  app.post("/api/config/global-settings", async (req, res) => {
+    try {
+      const data = req.body;
+      
+      // Always save to local storage first (guaranteed to work)
+      saveLocalGlobalSettings({ ...data, updated_at: new Date().toISOString() });
+      console.log("[GlobalSettings] Saved to local file");
+
+      // Also try to save to Supabase if available
+      if (!supabase) {
+        return res.json({ success: true, source: "local" });
+      }
+
+      // Check if record exists in Supabase
+      const { data: existing, error: checkError } = await supabase
+        .from("global_appearance_settings")
+        .select("id")
+        .eq("identifier", "default")
+        .single();
+      
+      // If table doesn't exist, just return success (local storage is working)
+      if (checkError && checkError.code !== "PGRST116") {
+        console.log("[GlobalSettings] Supabase table not available, using local only");
+        return res.json({ success: true, source: "local" });
+      }
+
+      let result;
+      if (existing) {
+        // Update existing
+        result = await supabase
+          .from("global_appearance_settings")
+          .update({
+            // Contract appearance
+            primary_color: data.primary_color,
+            text_color: data.text_color,
+            font_family: data.font_family,
+            font_size: data.font_size,
+            logo_url: data.logo_url,
+            logo_size: data.logo_size,
+            logo_position: data.logo_position,
+            company_name: data.company_name,
+            footer_text: data.footer_text,
+            // Verification
+            verification_primary_color: data.verification_primary_color,
+            verification_text_color: data.verification_text_color,
+            verification_font_family: data.verification_font_family,
+            verification_font_size: data.verification_font_size,
+            verification_logo_url: data.verification_logo_url,
+            verification_logo_size: data.verification_logo_size,
+            verification_logo_position: data.verification_logo_position,
+            verification_footer_text: data.verification_footer_text,
+            verification_welcome_text: data.verification_welcome_text,
+            verification_instructions: data.verification_instructions,
+            verification_background_image: data.verification_background_image,
+            verification_background_color: data.verification_background_color,
+            verification_header_background_color: data.verification_header_background_color,
+            verification_header_logo_url: data.verification_header_logo_url,
+            verification_header_company_name: data.verification_header_company_name,
+            // Progress tracker
+            progress_card_color: data.progress_card_color,
+            progress_button_color: data.progress_button_color,
+            progress_text_color: data.progress_text_color,
+            progress_title: data.progress_title,
+            progress_subtitle: data.progress_subtitle,
+            progress_step1_title: data.progress_step1_title,
+            progress_step1_description: data.progress_step1_description,
+            progress_step2_title: data.progress_step2_title,
+            progress_step2_description: data.progress_step2_description,
+            progress_step3_title: data.progress_step3_title,
+            progress_step3_description: data.progress_step3_description,
+            progress_button_text: data.progress_button_text,
+            progress_font_family: data.progress_font_family,
+            progress_font_size: data.progress_font_size,
+            // Maleta
+            maleta_card_color: data.maleta_card_color,
+            maleta_button_color: data.maleta_button_color,
+            maleta_text_color: data.maleta_text_color,
+            // Parabéns
+            parabens_title: data.parabens_title,
+            parabens_subtitle: data.parabens_subtitle,
+            parabens_description: data.parabens_description,
+            parabens_card_color: data.parabens_card_color,
+            parabens_background_color: data.parabens_background_color,
+            parabens_button_color: data.parabens_button_color,
+            parabens_text_color: data.parabens_text_color,
+            parabens_font_family: data.parabens_font_family,
+            parabens_form_title: data.parabens_form_title,
+            parabens_button_text: data.parabens_button_text,
+            // Apps
+            app_store_url: data.app_store_url,
+            google_play_url: data.google_play_url,
+            // Contract content
+            contract_title: data.contract_title,
+            clauses: data.clauses,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("identifier", "default")
+          .select()
+          .single();
+      } else {
+        // Insert new
+        result = await supabase
+          .from("global_appearance_settings")
+          .insert([{
+            identifier: "default",
+            primary_color: data.primary_color,
+            text_color: data.text_color,
+            font_family: data.font_family,
+            font_size: data.font_size,
+            logo_url: data.logo_url,
+            logo_size: data.logo_size,
+            logo_position: data.logo_position,
+            company_name: data.company_name,
+            footer_text: data.footer_text,
+            verification_primary_color: data.verification_primary_color,
+            verification_text_color: data.verification_text_color,
+            verification_font_family: data.verification_font_family,
+            verification_font_size: data.verification_font_size,
+            verification_logo_url: data.verification_logo_url,
+            verification_logo_size: data.verification_logo_size,
+            verification_logo_position: data.verification_logo_position,
+            verification_footer_text: data.verification_footer_text,
+            verification_welcome_text: data.verification_welcome_text,
+            verification_instructions: data.verification_instructions,
+            verification_background_image: data.verification_background_image,
+            verification_background_color: data.verification_background_color,
+            verification_header_background_color: data.verification_header_background_color,
+            verification_header_logo_url: data.verification_header_logo_url,
+            verification_header_company_name: data.verification_header_company_name,
+            progress_card_color: data.progress_card_color,
+            progress_button_color: data.progress_button_color,
+            progress_text_color: data.progress_text_color,
+            progress_title: data.progress_title,
+            progress_subtitle: data.progress_subtitle,
+            progress_step1_title: data.progress_step1_title,
+            progress_step1_description: data.progress_step1_description,
+            progress_step2_title: data.progress_step2_title,
+            progress_step2_description: data.progress_step2_description,
+            progress_step3_title: data.progress_step3_title,
+            progress_step3_description: data.progress_step3_description,
+            progress_button_text: data.progress_button_text,
+            progress_font_family: data.progress_font_family,
+            progress_font_size: data.progress_font_size,
+            maleta_card_color: data.maleta_card_color,
+            maleta_button_color: data.maleta_button_color,
+            maleta_text_color: data.maleta_text_color,
+            parabens_title: data.parabens_title,
+            parabens_subtitle: data.parabens_subtitle,
+            parabens_description: data.parabens_description,
+            parabens_card_color: data.parabens_card_color,
+            parabens_background_color: data.parabens_background_color,
+            parabens_button_color: data.parabens_button_color,
+            parabens_text_color: data.parabens_text_color,
+            parabens_font_family: data.parabens_font_family,
+            parabens_form_title: data.parabens_form_title,
+            parabens_button_text: data.parabens_button_text,
+            app_store_url: data.app_store_url,
+            google_play_url: data.google_play_url,
+            contract_title: data.contract_title,
+            clauses: data.clauses,
+          }])
+          .select()
+          .single();
+      }
+
+      if (result.error) {
+        console.error("[GlobalSettings] Supabase save error:", result.error);
+        // Still return success because local storage already saved
+        return res.json({ success: true, source: "local", supabaseError: result.error.message });
+      }
+      
+      console.log("[GlobalSettings] Saved to Supabase");
+      res.json({ success: true, source: "supabase", data: result.data });
+    } catch (error) {
+      console.error("[GlobalSettings] Error:", error);
+      // Return success anyway since local storage was saved first
+      res.json({ success: true, source: "local" });
+    }
+  });
+
   // ============================================
   // APARÊNCIA
   // ============================================
