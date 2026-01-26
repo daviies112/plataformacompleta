@@ -32,6 +32,7 @@ import pagarmeRoutes from "./routes/pagarme";
 import pagarmePublicRoutes from "./routes/pagarmePublic";
 import publicStoreRoutes from "./routes/publicStore";
 import walletRoutes from "./routes/wallet";
+import splitRoutes from "./routes/split";
 
 // Configure multer for logo uploads
 const logoStorage = multer.diskStorage({
@@ -213,6 +214,9 @@ export async function registerRoutes(app: Express) {
   app.use("/api/wallet/webhook", walletRoutes);
   // All other wallet routes require authentication
   app.use("/api/wallet", requireTenant, walletRoutes);
+
+  // Split / Recipient bootstrap routes for Pagar.me configuration
+  app.use("/api/split", requireTenant, splitRoutes);
 
   return httpServer;
 }

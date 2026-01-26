@@ -36,6 +36,7 @@ import AdminProductRequests from "@/features/revendedora/pages/admin/ProductRequ
 import AdminSettings from "@/features/revendedora/pages/admin/Settings";
 import AdminBranding from "@/features/revendedora/pages/admin/Branding";
 import AdminGamification from "@/features/revendedora/pages/admin/Gamification";
+import AdminSplitTest from "@/features/revendedora/pages/admin/SplitTest";
 
 const RevendedoraApp = () => {
   return (
@@ -68,6 +69,7 @@ const RevendedoraApp = () => {
       <Route path="/revendedora/admin/settings" element={<AdminLayout><AdminSettings /></AdminLayout>} />
       <Route path="/revendedora/admin/branding" element={<AdminLayout><AdminBranding /></AdminLayout>} />
       <Route path="/revendedora/admin/gamification" element={<AdminLayout><AdminGamification /></AdminLayout>} />
+      <Route path="/revendedora/admin/split-test" element={<AdminLayout><AdminSplitTest /></AdminLayout>} />
       
       {/* ===== ROTAS REVENDEDORA (apos login) ===== */}
       <Route path="/revendedora/reseller/dashboard" element={<ResellerLayout><ResellerDashboard /></ResellerLayout>} />
