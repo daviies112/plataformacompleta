@@ -336,7 +336,10 @@ router.post('/webhook', async (req, res) => {
 
 router.post('/onboarding-empresa', authenticateToken, async (req: AuthRequest, res) => {
   try {
-    if (req.session?.userRole === 'reseller') {
+    // Verificar se o usuário é admin (não reseller)
+    // Usar req.user?.role que é definido pelo authenticateToken baseado na sessão
+    const userRole = req.user?.role || req.session?.userRole;
+    if (userRole === 'reseller') {
       return res.status(403).json({ error: 'Acesso restrito a administradores' });
     }
 

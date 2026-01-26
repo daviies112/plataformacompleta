@@ -23,6 +23,7 @@ router.post('/login', async (req: Request, res: Response) => {
       req.session.userEmail = email;
       req.session.userName = `Dev User (${email})`;
       req.session.tenantId = tenantId; // Cada email é um tenant 100% independente
+      req.session.userRole = 'admin'; // Definir role como admin para dev bypass
       req.session.supabaseUrl = null;
       req.session.supabaseKey = null;
       
@@ -118,6 +119,7 @@ router.post('/login', async (req: Request, res: Response) => {
     req.session.userEmail = admin.email;
     req.session.userName = admin.nome;
     req.session.tenantId = admin.id; // Cada usuário é um tenant independente
+    req.session.userRole = 'admin'; // Definir role como admin
     req.session.supabaseUrl = admin.supabase_url;
     req.session.supabaseKey = admin.supabase_anon_key;
 
