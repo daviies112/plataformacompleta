@@ -266,6 +266,21 @@ const AssinaturaClientContent = () => {
   const contract = fullData?.contract || null;
   const participantData = fullData?.participantData || null;
 
+  // Debug: Log address data from contract
+  useEffect(() => {
+    if (contract) {
+      console.log('[AssinaturaClientPage] Contract address data:', {
+        address_street: contract.address_street,
+        address_number: contract.address_number,
+        address_city: contract.address_city,
+        address_state: contract.address_state,
+        address_zipcode: contract.address_zipcode,
+        address_neighborhood: contract.address_neighborhood,
+        address_complement: contract.address_complement
+      });
+    }
+  }, [contract]);
+
   useEffect(() => {
     if (contract && currentStep === 0) {
       setGovbrData({
