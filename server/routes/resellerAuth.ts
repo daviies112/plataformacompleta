@@ -428,8 +428,24 @@ router.post('/login', async (req: Request, res: Response) => {
     req.session.comissao = Number(revendedora.comissao_padrao);
     req.session.projectName = projectName;
     
-    // NOTA: Credenciais do Supabase NÃO são armazenadas na sessão por segurança
-    // Use getAdminCredentials(tenantId) quando precisar das credenciais
+    // Auto-preencher credenciais do Admin para a revendedora no banco local se não existirem
+    if (adminCredentials) {
+      try {
+        await pool.query(
+          `INSERT INTO reseller_supabase_configs (reseller_email, supabase_url, supabase_anon_key, supabase_service_key)
+           VALUES ($1, $2, $3, $4)
+           ON CONFLICT (reseller_email) DO UPDATE SET
+           supabase_url = EXCLUDED.supabase_url,
+           supabase_anon_key = EXCLUDED.supabase_anon_key,
+           supabase_service_key = EXCLUDED.supabase_service_key,
+           updated_at = NOW()`,
+          [revendedora.email, adminCredentials.supabase_url, adminCredentials.supabase_anon_key, adminCredentials.supabase_service_key]
+        );
+        console.log(`✅ [NEXUS] Credenciais sincronizadas automaticamente para ${revendedora.email}`);
+      } catch (syncErr) {
+        console.error('[NEXUS] Erro ao sincronizar credenciais no login:', syncErr);
+      }
+    }
 
     const token = generateResellerToken({
       userId: revendedora.id,
