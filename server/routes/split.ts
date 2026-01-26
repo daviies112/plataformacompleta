@@ -7,6 +7,12 @@ import {
   getResellerRecipientId,
   saveCompanyRecipientId,
   saveResellerRecipientId,
+  calculateSplitWithFees,
+  generatePagarmeSplitRules,
+  DEVELOPER_RECIPIENT_ID,
+  PAGARME_FEE_PERCENTAGE,
+  DEVELOPER_FEE_PERCENTAGE,
+  TOTAL_PLATFORM_FEE_PERCENTAGE,
 } from '../services/commission';
 import { createClient } from '@supabase/supabase-js';
 
@@ -960,6 +966,201 @@ router.post('/test-card-no-split', async (req: Request, res: Response) => {
     });
   } catch (error: any) {
     console.error('[Split] Error creating test Card order (no split):', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Erro interno ao criar pedido de teste',
+      details: error.message,
+    });
+  }
+});
+
+// ============================================================
+// ENDPOINT: Calcular Split com Comissões (apenas simulação)
+// ============================================================
+router.post('/calculate-commission', async (req: Request, res: Response) => {
+  console.log('[Split] POST /calculate-commission - Calculating split with fees');
+  
+  const { 
+    amount = 10000, 
+    companyPercentage = 50, 
+    resellerPercentage = 50 
+  } = req.body;
+  
+  const calculation = calculateSplitWithFees(
+    amount,
+    companyPercentage,
+    resellerPercentage,
+    'Simulação'
+  );
+  
+  res.json({
+    success: true,
+    message: 'Cálculo de comissões (simulação)',
+    input: {
+      valorTotal: `R$ ${(amount / 100).toFixed(2)}`,
+      empresaPercentual: `${companyPercentage}%`,
+      revendedoraPercentual: `${resellerPercentage}%`,
+    },
+    taxas: {
+      taxaTotal: `${TOTAL_PLATFORM_FEE_PERCENTAGE}%`,
+      taxaPagarme: `${PAGARME_FEE_PERCENTAGE}%`,
+      taxaDesenvolvedor: `${DEVELOPER_FEE_PERCENTAGE}%`,
+      valorTaxaTotal: `R$ ${(calculation.platformFeeAmount / 100).toFixed(2)}`,
+      valorPagarme: `R$ ${(calculation.pagarmeAmount / 100).toFixed(2)}`,
+      valorDesenvolvedor: `R$ ${(calculation.developerAmount / 100).toFixed(2)}`,
+    },
+    divisao: {
+      valorDistribuivel: `R$ ${(calculation.distributableAmount / 100).toFixed(2)}`,
+      valorEmpresa: `R$ ${(calculation.companyAmount / 100).toFixed(2)}`,
+      valorRevendedora: `R$ ${(calculation.resellerAmount / 100).toFixed(2)}`,
+    },
+    resumo: {
+      valorOriginal: `R$ ${(calculation.originalAmount / 100).toFixed(2)}`,
+      desenvolvedor: `R$ ${(calculation.developerAmount / 100).toFixed(2)} (${DEVELOPER_FEE_PERCENTAGE}%)`,
+      empresa: `R$ ${(calculation.companyAmount / 100).toFixed(2)} (${companyPercentage}% de ${100 - TOTAL_PLATFORM_FEE_PERCENTAGE}%)`,
+      revendedora: `R$ ${(calculation.resellerAmount / 100).toFixed(2)} (${resellerPercentage}% de ${100 - TOTAL_PLATFORM_FEE_PERCENTAGE}%)`,
+    },
+    rawCalculation: calculation,
+  });
+});
+
+// ============================================================
+// ENDPOINT: Testar Split Completo com Comissões (CARTÃO)
+// ============================================================
+router.post('/test-full-split', async (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+  
+  console.log('[Split] POST /test-full-split - Creating test order WITH full commission split');
+  
+  try {
+    if (!pagarmeService.isConfigured()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Pagar.me não configurado.',
+      });
+    }
+    
+    const { 
+      amount = 10000,
+      companyPercentage = 50,
+      resellerPercentage = 50,
+      companyRecipientId,
+      resellerRecipientId,
+    } = req.body;
+    
+    // Usar recipient do desenvolvedor como fallback para testes
+    const effectiveCompanyId = companyRecipientId || DEVELOPER_RECIPIENT_ID;
+    const effectiveResellerId = resellerRecipientId || DEVELOPER_RECIPIENT_ID;
+    
+    // Calcular split com taxas
+    const calculation = calculateSplitWithFees(
+      amount,
+      companyPercentage,
+      resellerPercentage,
+      'Teste'
+    );
+    
+    // Gerar regras de split
+    const splitRules = generatePagarmeSplitRules(
+      calculation,
+      effectiveCompanyId,
+      effectiveResellerId
+    );
+    
+    const orderData = {
+      customer: {
+        name: 'Cliente Teste Split Completo',
+        email: 'teste.fullsplit@example.com',
+        document: '11111111111',
+        document_type: 'CPF',
+        type: 'individual',
+        phones: {
+          mobile_phone: {
+            country_code: '55',
+            area_code: '11',
+            number: '999999999',
+          },
+        },
+      },
+      items: [
+        {
+          amount: amount,
+          description: 'Produto de teste - Split completo com comissões',
+          quantity: 1,
+          code: 'TEST_FULL_SPLIT',
+        },
+      ],
+      payments: [
+        {
+          payment_method: 'credit_card',
+          credit_card: {
+            installments: 1,
+            statement_descriptor: 'NEXUS SPLIT',
+            card: {
+              number: '4000000000000010',
+              holder_name: 'TESTE FULL SPLIT',
+              holder_document: '11111111111',
+              exp_month: 12,
+              exp_year: 2030,
+              cvv: '123',
+              billing_address: {
+                line_1: 'Av Paulista, 1000',
+                line_2: 'Apto 1',
+                zip_code: '01310100',
+                city: 'São Paulo',
+                state: 'SP',
+                country: 'BR',
+              },
+            },
+          },
+          split: splitRules,
+        },
+      ],
+    };
+    
+    console.log('[Split] Creating test order with full commission split');
+    console.log('[Split] Split rules:', JSON.stringify(splitRules, null, 2));
+    
+    const response = await fetch('https://api.pagar.me/core/v5/orders', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${Buffer.from(`${process.env.CHAVE_SECRETA_PRODUCAO || process.env.CHAVE_SECRETA_TESTE}:`).toString('base64')}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify(orderData),
+    });
+    
+    const order = await response.json() as any;
+    
+    console.log('[Split] Full split order response:', JSON.stringify(order, null, 2));
+    
+    res.json({
+      success: response.ok,
+      message: 'Teste de split completo com comissões',
+      orderId: order.id,
+      orderCode: order.code,
+      status: order.status,
+      amount: order.amount,
+      calculation: {
+        valorOriginal: `R$ ${(calculation.originalAmount / 100).toFixed(2)}`,
+        taxaDesenvolvedor: `R$ ${(calculation.developerAmount / 100).toFixed(2)} (${DEVELOPER_FEE_PERCENTAGE}%)`,
+        valorDistribuivel: `R$ ${(calculation.distributableAmount / 100).toFixed(2)} (${100 - TOTAL_PLATFORM_FEE_PERCENTAGE}%)`,
+        valorEmpresa: `R$ ${(calculation.companyAmount / 100).toFixed(2)} (${companyPercentage}%)`,
+        valorRevendedora: `R$ ${(calculation.resellerAmount / 100).toFixed(2)} (${resellerPercentage}%)`,
+      },
+      splitRules: splitRules.map(r => ({
+        recipientId: r.recipient_id.substring(0, 25) + '...',
+        amount: `R$ ${(r.amount / 100).toFixed(2)}`,
+        type: r.type,
+        liable: r.options.liable,
+      })),
+      chargeStatus: order.charges?.[0]?.status,
+      splitApplied: order.charges?.[0]?.last_transaction?.split,
+      rawResponse: order,
+    });
+  } catch (error: any) {
+    console.error('[Split] Error creating full split order:', error);
     res.status(500).json({ 
       success: false, 
       error: 'Erro interno ao criar pedido de teste',
