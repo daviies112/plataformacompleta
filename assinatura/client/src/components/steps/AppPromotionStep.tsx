@@ -177,7 +177,7 @@ export const AppPromotionStep = () => {
           <Button 
             variant="ghost" 
             className="text-neutral-400 hover:text-amber-700 transition-colors flex items-center gap-2 mx-auto font-light tracking-wide"
-            onClick={() => setCurrentStep(5)}
+            onClick={() => setCurrentStep(6)}
           >
             Acessar painel web <ArrowRight className="w-4 h-4" />
           </Button>

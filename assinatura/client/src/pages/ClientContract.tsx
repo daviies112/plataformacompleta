@@ -4,6 +4,7 @@ import { ContractProvider, useContract } from '@/contexts/ContractContext';
 import { VerificationFlow } from '@/components/verification/VerificationFlow';
 import { ContractStep } from '@/components/steps/ContractStep';
 import { ResellerWelcomeStep } from '@/components/steps/ResellerWelcomeStep';
+import { ResidenceProofStep } from '@/components/steps/ResidenceProofStep';
 import { AppPromotionStep } from '@/components/steps/AppPromotionStep';
 import { SuccessStep } from '@/components/steps/SuccessStep';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -416,8 +417,18 @@ const ClientContractFlow = ({ contract }: { contract: ContractRecord }) => {
           />
         );
       case 4:
-        return <AppPromotionStep />;
+        return (
+          <ResidenceProofStep
+            parabens_card_color={contract.parabens_card_color}
+            parabens_background_color={contract.parabens_background_color}
+            parabens_button_color={contract.parabens_button_color}
+            parabens_text_color={contract.parabens_text_color}
+            parabens_font_family={contract.parabens_font_family}
+          />
+        );
       case 5:
+        return <AppPromotionStep />;
+      case 6:
         return <SuccessStep />;
       default:
         return (
