@@ -113,23 +113,22 @@ export type Database = {
           id: string
           product_id: string
           reseller_id: string
-          company_id: string
+          company_id: string | null
           payment_method: string
           status: string | null
           total_amount: number
           reseller_amount: number
           company_amount: number
           commission_percentage: number | null
+          quantity: number | null
           paid: boolean | null
           paid_at: string | null
-          gateway_type: string | null
-          gateway_charge_id: string | null
+          pagarme_order_id: string | null
+          pagarme_charge_id: string | null
           customer_name: string | null
           customer_email: string | null
           customer_phone: string | null
-          pix_qrcode: string | null
-          pix_qrcode_text: string | null
-          pix_expires_at: string | null
+          customer_document: string | null
           created_at: string | null
           updated_at: string | null
         }
@@ -137,23 +136,22 @@ export type Database = {
           id?: string
           product_id: string
           reseller_id: string
-          company_id: string
+          company_id?: string | null
           payment_method: string
           status?: string | null
           total_amount: number
           reseller_amount: number
           company_amount: number
           commission_percentage?: number | null
+          quantity?: number | null
           paid?: boolean | null
           paid_at?: string | null
-          gateway_type?: string | null
-          gateway_charge_id?: string | null
+          pagarme_order_id?: string | null
+          pagarme_charge_id?: string | null
           customer_name?: string | null
           customer_email?: string | null
           customer_phone?: string | null
-          pix_qrcode?: string | null
-          pix_qrcode_text?: string | null
-          pix_expires_at?: string | null
+          customer_document?: string | null
           created_at?: string | null
           updated_at?: string | null
         }
@@ -161,23 +159,22 @@ export type Database = {
           id?: string
           product_id?: string
           reseller_id?: string
-          company_id?: string
+          company_id?: string | null
           payment_method?: string
           status?: string | null
           total_amount?: number
           reseller_amount?: number
           company_amount?: number
           commission_percentage?: number | null
+          quantity?: number | null
           paid?: boolean | null
           paid_at?: string | null
-          gateway_type?: string | null
-          gateway_charge_id?: string | null
+          pagarme_order_id?: string | null
+          pagarme_charge_id?: string | null
           customer_name?: string | null
           customer_email?: string | null
           customer_phone?: string | null
-          pix_qrcode?: string | null
-          pix_qrcode_text?: string | null
-          pix_expires_at?: string | null
+          customer_document?: string | null
           created_at?: string | null
           updated_at?: string | null
         }

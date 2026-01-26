@@ -236,6 +236,98 @@ cache_redis_connected ${cacheStats.redisConnected ? 1 : 0}
   res.send(metrics);
 });
 
+/**
+ * GET /api/health/supabase-tables
+ * Check if required tables exist in Supabase CLIENT database
+ */
+router.get('/supabase-tables', async (req, res) => {
+  try {
+    const fs = await import('fs');
+    const path = await import('path');
+    const { createClient } = await import('@supabase/supabase-js');
+    
+    const configPath = path.join(process.cwd(), 'data', 'supabase-config.json');
+    if (!fs.existsSync(configPath)) {
+      return res.json({
+        status: 'not_configured',
+        message: 'Supabase cliente não configurado',
+        tables: []
+      });
+    }
+    
+    const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    const supabaseUrl = config.url || config.supabaseUrl;
+    const supabaseKey = config.serviceRoleKey || config.anonKey || config.supabaseAnonKey;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      return res.json({
+        status: 'missing_credentials',
+        message: 'Credenciais do Supabase cliente incompletas',
+        configKeys: Object.keys(config),
+        tables: []
+      });
+    }
+    
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    
+    const requiredTables = [
+      'sales_with_split',
+      'reseller_stores',
+      'products',
+      'bank_accounts',
+      'withdrawals',
+      'commission_config'
+    ];
+    
+    const tableStatus: { name: string; exists: boolean; count?: number; error?: string }[] = [];
+    
+    for (const tableName of requiredTables) {
+      try {
+        const { count, error } = await supabase
+          .from(tableName)
+          .select('*', { count: 'exact', head: true });
+        
+        if (error) {
+          tableStatus.push({
+            name: tableName,
+            exists: false,
+            error: error.message
+          });
+        } else {
+          tableStatus.push({
+            name: tableName,
+            exists: true,
+            count: count || 0
+          });
+        }
+      } catch (err: any) {
+        tableStatus.push({
+          name: tableName,
+          exists: false,
+          error: err.message
+        });
+      }
+    }
+    
+    const allExist = tableStatus.every(t => t.exists);
+    
+    res.json({
+      status: allExist ? 'ok' : 'missing_tables',
+      message: allExist 
+        ? 'Todas as tabelas necessárias existem' 
+        : 'Algumas tabelas estão faltando. Execute o SQL de criação.',
+      supabaseUrl: supabaseUrl.substring(0, 30) + '...',
+      tables: tableStatus,
+      sqlFile: '/docs/SQL_CREATE_SALES_TABLE.sql'
+    });
+  } catch (error: any) {
+    res.status(500).json({
+      status: 'error',
+      message: error.message
+    });
+  }
+});
+
 function maskUrl(url: string): string {
   try {
     const parsed = new URL(url);

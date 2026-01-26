@@ -208,13 +208,14 @@ async function saveSaleToSupabase(saleData: {
       reseller_amount: resellerAmount,
       company_amount: companyAmount,
       commission_percentage: resellerPercentage,
+      quantity: saleData.quantity,
       paid: isPaid,
       paid_at: isPaid ? new Date().toISOString() : null,
-      customer_name: saleData.customerName || null,
-      customer_email: saleData.customerEmail || null,
       pagarme_order_id: saleData.pagarmeOrderId,
       pagarme_charge_id: saleData.pagarmeChargeId || null,
-      quantity: saleData.quantity,
+      customer_name: saleData.customerName || null,
+      customer_email: saleData.customerEmail || null,
+      customer_document: saleData.customerDocument || null,
       created_at: new Date().toISOString(),
     };
 
