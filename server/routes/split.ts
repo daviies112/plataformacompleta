@@ -1319,4 +1319,169 @@ router.get('/resellers-analytics', async (req: Request, res: Response) => {
   }
 });
 
+// ============================================================
+// COMMISSION CONFIG ENDPOINTS
+// ============================================================
+
+router.get('/commission-config', async (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+  
+  console.log('[Split] GET /commission-config - Loading commission configuration');
+  
+  try {
+    const fs = await import('fs');
+    const path = await import('path');
+    const configPath = path.join(process.cwd(), 'data', 'supabase-config.json');
+    
+    if (!fs.existsSync(configPath)) {
+      console.log('[Split] No tenant config file, using defaults');
+      return res.json({
+        success: true,
+        config: {
+          id: 'default',
+          use_dynamic_tiers: true,
+          sales_tiers: getDefaultTiers(),
+        }
+      });
+    }
+    
+    const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+    if (!config.supabaseUrl || !(config.supabaseServiceKey || config.supabaseAnonKey)) {
+      console.log('[Split] Invalid tenant config, using defaults');
+      return res.json({
+        success: true,
+        config: {
+          id: 'default',
+          use_dynamic_tiers: true,
+          sales_tiers: getDefaultTiers(),
+        }
+      });
+    }
+    
+    const tenantSupabase = createClient(
+      config.supabaseUrl,
+      config.supabaseServiceKey || config.supabaseAnonKey,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    );
+    
+    const { data, error } = await tenantSupabase
+      .from('commission_config')
+      .select('*')
+      .eq('id', 'default')
+      .single();
+    
+    if (error) {
+      console.log('[Split] No commission_config found, using defaults:', error.message);
+      return res.json({
+        success: true,
+        config: {
+          id: 'default',
+          use_dynamic_tiers: true,
+          sales_tiers: getDefaultTiers(),
+        }
+      });
+    }
+    
+    console.log('[Split] Commission config loaded successfully');
+    res.json({
+      success: true,
+      config: data,
+    });
+  } catch (error: any) {
+    console.error('[Split] Error loading commission config:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erro ao carregar configuração de comissões',
+    });
+  }
+});
+
+router.post('/commission-config', async (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+  
+  console.log('[Split] POST /commission-config - Saving commission configuration');
+  
+  try {
+    const { use_dynamic_tiers, sales_tiers } = req.body;
+    
+    if (typeof use_dynamic_tiers !== 'boolean') {
+      return res.status(400).json({
+        success: false,
+        error: 'use_dynamic_tiers deve ser boolean',
+      });
+    }
+    
+    if (!Array.isArray(sales_tiers) || sales_tiers.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'sales_tiers deve ser um array com pelo menos uma faixa',
+      });
+    }
+    
+    const fs = await import('fs');
+    const path = await import('path');
+    const configPath = path.join(process.cwd(), 'data', 'supabase-config.json');
+    
+    if (!fs.existsSync(configPath)) {
+      return res.status(500).json({
+        success: false,
+        error: 'Configuração do Supabase não encontrada',
+      });
+    }
+    
+    const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+    if (!config.supabaseUrl || !(config.supabaseServiceKey || config.supabaseAnonKey)) {
+      return res.status(500).json({
+        success: false,
+        error: 'Credenciais do Supabase inválidas',
+      });
+    }
+    
+    const tenantSupabase = createClient(
+      config.supabaseUrl,
+      config.supabaseServiceKey || config.supabaseAnonKey,
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    );
+    
+    const { data, error } = await tenantSupabase
+      .from('commission_config')
+      .upsert({
+        id: 'default',
+        use_dynamic_tiers,
+        sales_tiers,
+        updated_at: new Date().toISOString(),
+      })
+      .select();
+    
+    if (error) {
+      console.error('[Split] Error saving commission config:', error);
+      return res.status(500).json({
+        success: false,
+        error: `Erro ao salvar: ${error.message}`,
+      });
+    }
+    
+    console.log('[Split] Commission config saved successfully');
+    res.json({
+      success: true,
+      config: data?.[0] || { id: 'default', use_dynamic_tiers, sales_tiers },
+    });
+  } catch (error: any) {
+    console.error('[Split] Error saving commission config:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erro ao salvar configuração de comissões',
+    });
+  }
+});
+
+function getDefaultTiers() {
+  return [
+    { id: '1', name: 'Iniciante', min_monthly_sales: 0, max_monthly_sales: 2000, reseller_percentage: 65, company_percentage: 35 },
+    { id: '2', name: 'Bronze', min_monthly_sales: 2000, max_monthly_sales: 4500, reseller_percentage: 70, company_percentage: 30 },
+    { id: '3', name: 'Prata', min_monthly_sales: 4500, max_monthly_sales: 10000, reseller_percentage: 75, company_percentage: 25 },
+    { id: '4', name: 'Ouro', min_monthly_sales: 10000, reseller_percentage: 80, company_percentage: 20 },
+  ];
+}
+
 export default router;

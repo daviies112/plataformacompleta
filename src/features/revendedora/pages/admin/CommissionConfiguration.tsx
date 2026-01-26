@@ -1,5 +1,4 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,6 +16,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { SalesTier } from '@/types/database';
+import { apiRequest } from '@/lib/queryClient';
 
 export default function CommissionConfiguration() {
   const [loading, setLoading] = useState(true);
@@ -25,36 +25,21 @@ export default function CommissionConfiguration() {
   const [salesTiers, setSalesTiers] = useState<SalesTier[]>([]);
   const [companyId, setCompanyId] = useState<string>('');
 
-  useEffect(() => {
-    loadConfiguration();
-  }, []);
-
-  const loadConfiguration = async () => {
+  const loadConfiguration = useCallback(async () => {
     try {
-      console.log('[Commission Config] Loading configuration from Supabase...');
+      console.log('[Commission Config] Loading configuration from API...');
       
-      // Carregar configuração do Supabase
-      const { data, error } = await (supabase as any)
-        .from('commission_config')
-        .select('*')
-        .eq('id', 'default')
-        .single();
-
-      if (error) {
-        console.error('[Commission Config] Error loading:', error);
-        // Se a tabela não existe, usar valores padrão
-        setSalesTiers(getDefaultTiers());
-        setCompanyId('default');
-        toast.info('Usando configuração padrão');
-      } else if (data) {
-        console.log('[Commission Config] Configuration loaded successfully:', data);
-        setUseDynamicTiers(data.use_dynamic_tiers || false);
-        setSalesTiers(data.sales_tiers || getDefaultTiers());
+      const response = await fetch('/api/split/commission-config');
+      const result = await response.json();
+      
+      if (result.success && result.config) {
+        console.log('[Commission Config] Configuration loaded successfully:', result.config);
+        setUseDynamicTiers(result.config.use_dynamic_tiers || false);
+        setSalesTiers(result.config.sales_tiers || getDefaultTiers());
         setCompanyId('default');
         toast.success('Configuração de comissões carregada!');
       } else {
         console.log('[Commission Config] No data found, using defaults');
-        // Configuração padrão
         setSalesTiers(getDefaultTiers());
         setCompanyId('default');
       }
@@ -65,7 +50,11 @@ export default function CommissionConfiguration() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadConfiguration();
+  }, [loadConfiguration]);
 
   const getDefaultTiers = (): SalesTier[] => {
     return [
@@ -151,7 +140,6 @@ export default function CommissionConfiguration() {
     console.log('[Commission Config] Current tiers:', salesTiers);
     console.log('[Commission Config] Use dynamic tiers:', useDynamicTiers);
     
-    // Validar faixas
     for (let i = 0; i < salesTiers.length; i++) {
       const tier = salesTiers[i];
       
@@ -173,25 +161,23 @@ export default function CommissionConfiguration() {
 
     setSaving(true);
     try {
-      console.log('[Commission Config] Saving to Supabase...');
+      console.log('[Commission Config] Saving via API...');
       
-      // Salvar no Supabase
-      const { error, data } = await (supabase as any)
-        .from('commission_config')
-        .upsert({
-          id: 'default',
+      const response = await apiRequest('/api/split/commission-config', {
+        method: 'POST',
+        body: JSON.stringify({
           use_dynamic_tiers: useDynamicTiers,
           sales_tiers: salesTiers,
-          updated_at: new Date().toISOString(),
-        })
-        .select();
+        }),
+      });
 
-      if (error) {
-        console.error('[Commission Config] Save error:', error);
-        throw error;
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Erro ao salvar');
       }
       
-      console.log('[Commission Config] Saved successfully:', data);
+      console.log('[Commission Config] Saved successfully:', result);
       toast.success('Configuração de comissões salva com sucesso!', {
         description: 'As alterações serão aplicadas imediatamente em novos pagamentos.'
       });
