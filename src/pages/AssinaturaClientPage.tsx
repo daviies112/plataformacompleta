@@ -87,6 +87,13 @@ interface ContractData {
   parabens_form_title?: string | null;
   app_store_url?: string | null;
   google_play_url?: string | null;
+  address_street?: string | null;
+  address_number?: string | null;
+  address_complement?: string | null;
+  address_neighborhood?: string | null;
+  address_city?: string | null;
+  address_state?: string | null;
+  address_zipcode?: string | null;
 }
 
 interface ProgressTrackerDisplayProps {
@@ -475,7 +482,15 @@ const AssinaturaClientContent = () => {
             parabens_font_family={contract.parabens_font_family || undefined}
             parabens_form_title={contract.parabens_form_title || undefined}
             parabens_button_text={contract.parabens_button_text || undefined}
-            initialAddress={participantData?.participantData?.endereco ? {
+            initialAddress={(contract.address_street || contract.address_city || contract.address_zipcode) ? {
+              street: contract.address_street || '',
+              number: contract.address_number || '',
+              neighborhood: contract.address_neighborhood || '',
+              city: contract.address_city || '',
+              state: contract.address_state || '',
+              zipcode: contract.address_zipcode || '',
+              complement: contract.address_complement || ''
+            } : (participantData?.participantData?.endereco ? {
               street: participantData.participantData.endereco.rua || '',
               number: participantData.participantData.endereco.numero || '',
               neighborhood: participantData.participantData.endereco.bairro || '',
@@ -483,7 +498,7 @@ const AssinaturaClientContent = () => {
               state: participantData.participantData.endereco.estado || '',
               zipcode: participantData.participantData.endereco.cep || '',
               complement: participantData.participantData.endereco.complemento || ''
-            } : undefined}
+            } : undefined)}
           />
         </Suspense>
       </div>
