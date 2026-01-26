@@ -84,13 +84,14 @@ function getImageDimensions(base64Data: string): ImageDimensions | null {
 }
 
 /**
- * Estimates if an image is likely a selfie based on file size and aspect ratio
+ * Estimates if an image is likely a selfie based on multiple heuristics
  * Selfies typically have:
- * - Larger file sizes (more detail in face)
- * - More square or vertical aspect ratios
- * - Higher compression quality (phone cameras)
+ * - Vertical or square aspect ratios (phone held vertically)
+ * - High resolution (modern phone cameras)
+ * - No visible document edges/borders
+ * - Face occupying significant portion of frame
  */
-function detectSelfieHeuristics(base64Data: string, dimensions: ImageDimensions | null): { isSelfie: boolean; confidence: number; reasons: string[] } {
+function detectSelfieHeuristics(base64Data: string, dimensions: ImageDimensions | null, documentType?: string): { isSelfie: boolean; confidence: number; reasons: string[] } {
   const reasons: string[] = [];
   let selfieScore = 0;
   
@@ -103,24 +104,78 @@ function detectSelfieHeuristics(base64Data: string, dimensions: ImageDimensions 
     const aspectRatio = dimensions.width / dimensions.height;
     const imageArea = dimensions.width * dimensions.height;
     
-    // Selfies are typically vertical (portrait mode) or square
-    if (aspectRatio < 0.9) {
+    // Phone selfies are typically 3:4 or 9:16 (aspect ratio ~0.56-0.75)
+    // This is the strongest indicator of a selfie
+    if (aspectRatio >= 0.5 && aspectRatio <= 0.8) {
+      selfieScore += 45; // High score - typical selfie ratio
+      reasons.push('Proporção 3:4 ou 9:16 (típica de selfie de celular)');
+    } else if (aspectRatio > 0.8 && aspectRatio < 0.95) {
+      selfieScore += 30;
+      reasons.push('Imagem em formato vertical (possível selfie)');
+    } else if (aspectRatio >= 0.95 && aspectRatio <= 1.05) {
       selfieScore += 25;
-      reasons.push('Imagem em formato vertical (típico de selfie)');
-    } else if (aspectRatio >= 0.9 && aspectRatio <= 1.1) {
-      selfieScore += 15;
-      reasons.push('Imagem em formato quadrado (possível selfie)');
+      reasons.push('Imagem quadrada (possível selfie ou foto de rosto)');
     }
     
-    // Very high resolution images with square-ish ratio suggest selfie
-    if (imageArea > 2000000 && aspectRatio < 1.3) {
-      selfieScore += 15;
-      reasons.push('Alta resolução em formato não-documento');
+    // Very high resolution with vertical orientation = likely selfie
+    // Modern phones take 12MP+ photos (4000x3000 = 12M pixels)
+    if (imageArea > 3000000 && aspectRatio < 1.0) {
+      selfieScore += 25;
+      reasons.push('Alta resolução em formato retrato (típico de câmera frontal)');
+    } else if (imageArea > 1500000 && aspectRatio < 0.85) {
+      selfieScore += 20;
+      reasons.push('Resolução elevada em formato muito vertical');
     }
     
-    // Documents are typically horizontal (landscape)
+    // Documents have specific aspect ratios
+    // CNH: ~1.55-1.6 (horizontal)
+    // Passaporte aberto: ~1.4 (duas páginas)
+    // Passaporte página: ~0.7 (vertical, mas com MRZ)
+    // RG: varies by state, typically ~0.65-0.75 or ~1.4-1.5
+    
+    // If claiming to be CNH but image is vertical - VERY suspicious
+    if (documentType?.toUpperCase() === 'CNH' && aspectRatio < 1.0) {
+      selfieScore += 50; // CNH MUST be horizontal
+      reasons.push('CNH deve ser horizontal - esta imagem é vertical');
+    }
+    
+    // RG validation: RGs can be vertical in 3:4 ratio when photographed
+    // But 9:16 is too narrow - that's a selfie
+    if (documentType?.toUpperCase() === 'RG') {
+      // 9:16 ratio (0.5625) is almost always a selfie - too narrow for any document
+      if (aspectRatio >= 0.5 && aspectRatio <= 0.62) {
+        selfieScore += 40;
+        reasons.push('Proporção 9:16 é muito estreita para RG');
+      }
+      // RG in typical photo ratio (3:4 = 0.75) is acceptable - REDUCE score
+      else if (aspectRatio >= 0.65 && aspectRatio <= 0.85) {
+        selfieScore -= 25; // This is a valid RG photo ratio
+      }
+    }
+    
+    // Passport page has specific ratios
+    // Closed passport page: ~0.7 (vertical)
+    // Open passport (2 pages): ~1.4 (horizontal)
+    if (documentType?.toUpperCase() === 'PASSAPORTE' || documentType?.toUpperCase() === 'PASSPORT') {
+      // 9:16 ratio is too narrow for passport
+      if (aspectRatio >= 0.5 && aspectRatio <= 0.62) {
+        selfieScore += 40;
+        reasons.push('Proporção 9:16 é muito estreita para passaporte');
+      }
+      // Passport page in 3:4 or similar vertical ratio is valid - REDUCE score
+      else if (aspectRatio >= 0.65 && aspectRatio <= 0.85) {
+        selfieScore -= 25; // This is a valid passport photo ratio
+      }
+    }
+    
+    // Documents are typically horizontal (landscape) - reduce score
     if (aspectRatio > 1.3 && aspectRatio < 1.8) {
-      selfieScore -= 20; // Likely a document
+      selfieScore -= 30; // Likely a real document
+    }
+    
+    // Very wide images are almost certainly documents
+    if (aspectRatio >= 1.8) {
+      selfieScore -= 40;
     }
   }
   
@@ -129,21 +184,23 @@ function detectSelfieHeuristics(base64Data: string, dimensions: ImageDimensions 
     const pixelCount = dimensions.width * dimensions.height;
     const bytesPerPixel = estimatedBytes / pixelCount;
     
-    // Selfies with detailed faces have higher bytes per pixel
-    if (bytesPerPixel > 0.5) {
-      selfieScore += 10;
-      reasons.push('Alta densidade de dados (típico de foto facial detalhada)');
+    // Selfies with detailed faces tend to have higher bytes per pixel
+    // Documents with text tend to compress better
+    if (bytesPerPixel > 0.6 && dimensions.width < dimensions.height) {
+      selfieScore += 15;
+      reasons.push('Alta densidade de dados em imagem vertical');
     }
   }
   
   // Large file size without dimensions (fallback)
-  if (!dimensions && estimatedKB > 500) {
-    selfieScore += 10;
-    reasons.push('Arquivo grande (possível foto de alta qualidade)');
+  if (!dimensions && estimatedKB > 800) {
+    selfieScore += 15;
+    reasons.push('Arquivo muito grande (possível foto de alta qualidade)');
   }
   
-  const isSelfie = selfieScore >= 40;
-  const confidence = Math.min(100, Math.max(0, selfieScore * 2));
+  // Lower threshold for detection - be more aggressive
+  const isSelfie = selfieScore >= 35;
+  const confidence = Math.min(100, Math.max(0, selfieScore * 1.5));
   
   return { isSelfie, confidence, reasons };
 }
@@ -292,26 +349,27 @@ export async function validateDocument(
   // Extract image dimensions
   const dimensions = getImageDimensions(imageBase64);
   
-  // Normalize document type for comparison
-  const normalizedDocType = documentType.toUpperCase();
-  const isKnownDocumentType = ['CNH', 'RG', 'PASSAPORTE', 'PASSPORT'].includes(normalizedDocType);
+  // Check for selfie - now considers document type for smarter detection
+  // This allows vertical documents (RG, Passport) while still catching selfies
+  const selfieCheck = detectSelfieHeuristics(imageBase64, dimensions, documentType);
   
-  // Check for selfie - but only when document type is NOT specified or is 'auto'
-  // RG and Passport can be vertical, so we skip aggressive selfie detection for known document types
-  const selfieCheck = detectSelfieHeuristics(imageBase64, dimensions);
-  
-  // For known document types (RG, PASSPORT), vertical images are expected
-  // Only flag as selfie if document type is unknown/auto AND selfie score is high
-  const shouldRejectAsSelfie = !isKnownDocumentType && selfieCheck.isSelfie;
-  
-  if (shouldRejectAsSelfie) {
+  // ALWAYS reject if detected as selfie - no bypass for known document types
+  // The improved heuristics now handle vertical documents properly
+  if (selfieCheck.isSelfie) {
+    console.log('[DocumentValidator] Selfie detected:', {
+      score: selfieCheck.confidence,
+      documentType,
+      dimensions,
+      reasons: selfieCheck.reasons
+    });
+    
     return {
       valid: false,
       isSelfie: true,
       confidence: selfieCheck.confidence,
       issues: [
-        'Imagem parece ser uma selfie ou foto de rosto',
-        'Por favor, envie uma foto do documento (CNH, RG ou Passaporte)',
+        'Esta foto parece ser uma selfie ou foto de rosto',
+        'Por favor, fotografe o documento em formato adequado',
         ...selfieCheck.reasons
       ],
       documentType: null
