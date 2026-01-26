@@ -1001,6 +1001,8 @@ export function Meeting100ms({
                           }
                           
                           // Criar contrato com dados pré-preenchidos e status inicial "sem preencher"
+                          // Incluir dados de endereço do form_submissions
+                          const endereco = participantData.endereco || {};
                           const response = await fetch('/api/assinatura/public/contracts', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -1010,6 +1012,16 @@ export function Meeting100ms({
                               client_email: participantData.email || '',
                               client_phone: participantData.telefone || '',
                               status: 'sem preencher',
+                              // Dados de endereço do form_submissions
+                              client_address: endereco.rua ? {
+                                street: endereco.rua,
+                                number: endereco.numero,
+                                complement: endereco.complemento,
+                                neighborhood: endereco.bairro,
+                                city: endereco.cidade,
+                                state: endereco.estado,
+                                zipcode: endereco.cep
+                              } : undefined,
                             }),
                           });
                           
