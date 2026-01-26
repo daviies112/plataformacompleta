@@ -488,7 +488,8 @@ const ClientContract = () => {
       }
 
       try {
-        const response = await fetch(`/api/contracts/${token}`);
+        // Usar o endpoint /full que inclui as configurações globais mescladas
+        const response = await fetch(`/api/assinatura/public/contracts/${token}/full`);
 
         if (!response.ok) {
           if (response.status === 404) {
@@ -501,7 +502,8 @@ const ClientContract = () => {
         }
 
         const data = await response.json();
-        setContract(data);
+        // O endpoint /full retorna { contract, participantData, globalConfig }
+        setContract(data.contract || data);
         setLoading(false);
       } catch (err) {
         console.error('Error fetching contract:', err);

@@ -593,10 +593,60 @@ router.get('/contracts/:token/full', async (req: Request, res: Response) => {
       console.warn('[Assinatura/Full] Participant data lookup failed:', err);
     }
 
+    // Buscar configurações globais para usar como fallback
+    const globalConfig = await assinaturaSupabaseService.getGlobalConfig() || getGlobalConfigCached();
+    
+    // Mesclar configurações globais com contrato (contrato tem prioridade se não for null)
+    const mergedContract = {
+      ...contract,
+      primary_color: contract.primary_color || globalConfig.primary_color,
+      text_color: contract.text_color || globalConfig.text_color,
+      font_family: contract.font_family || globalConfig.font_family,
+      font_size: contract.font_size || globalConfig.font_size,
+      logo_url: contract.logo_url || globalConfig.logo_url,
+      logo_size: contract.logo_size || globalConfig.logo_size,
+      logo_position: contract.logo_position || globalConfig.logo_position,
+      company_name: contract.company_name || globalConfig.company_name,
+      footer_text: contract.footer_text || globalConfig.footer_text,
+      maleta_card_color: contract.maleta_card_color || globalConfig.maleta_card_color,
+      maleta_button_color: contract.maleta_button_color || globalConfig.maleta_button_color,
+      maleta_text_color: contract.maleta_text_color || globalConfig.maleta_text_color,
+      verification_primary_color: contract.verification_primary_color || globalConfig.verification_primary_color || globalConfig.primary_color,
+      verification_text_color: contract.verification_text_color || globalConfig.verification_text_color,
+      verification_font_family: contract.verification_font_family || globalConfig.verification_font_family,
+      verification_font_size: contract.verification_font_size || globalConfig.verification_font_size,
+      verification_logo_url: contract.verification_logo_url || globalConfig.verification_logo_url,
+      verification_logo_size: contract.verification_logo_size || globalConfig.verification_logo_size,
+      verification_logo_position: contract.verification_logo_position || globalConfig.verification_logo_position,
+      verification_footer_text: contract.verification_footer_text || globalConfig.verification_footer_text,
+      verification_welcome_text: contract.verification_welcome_text || globalConfig.verification_welcome_text,
+      verification_instructions: contract.verification_instructions || globalConfig.verification_instructions,
+      verification_security_text: contract.verification_security_text || globalConfig.verification_security_text,
+      verification_background_color: contract.verification_background_color || globalConfig.verification_background_color,
+      verification_header_background_color: contract.verification_header_background_color || globalConfig.verification_header_background_color,
+      verification_header_company_name: contract.verification_header_company_name || globalConfig.verification_header_company_name,
+      progress_card_color: contract.progress_card_color || globalConfig.progress_card_color,
+      progress_button_color: contract.progress_button_color || globalConfig.progress_button_color,
+      progress_text_color: contract.progress_text_color || globalConfig.progress_text_color,
+      progress_title: contract.progress_title || globalConfig.progress_title,
+      progress_subtitle: contract.progress_subtitle || globalConfig.progress_subtitle,
+      parabens_title: contract.parabens_title || globalConfig.parabens_title,
+      parabens_subtitle: contract.parabens_subtitle || globalConfig.parabens_subtitle,
+      parabens_description: contract.parabens_description || globalConfig.parabens_description,
+      parabens_card_color: contract.parabens_card_color || globalConfig.parabens_card_color,
+      parabens_background_color: contract.parabens_background_color || globalConfig.parabens_background_color,
+      parabens_button_color: contract.parabens_button_color || globalConfig.parabens_button_color,
+      parabens_text_color: contract.parabens_text_color || globalConfig.parabens_text_color,
+      parabens_font_family: contract.parabens_font_family || globalConfig.parabens_font_family,
+      parabens_form_title: contract.parabens_form_title || globalConfig.parabens_form_title,
+      parabens_button_text: contract.parabens_button_text || globalConfig.parabens_button_text,
+    };
+
     res.set('Cache-Control', 'private, max-age=300');
     return res.json({
-      contract,
-      participantData
+      contract: mergedContract,
+      participantData,
+      globalConfig // Incluir para debug/referência
     });
   } catch (error: any) {
     console.error('[Assinatura/Full] Error:', error);

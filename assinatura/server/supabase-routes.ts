@@ -44,8 +44,12 @@ function saveLocalGlobalSettings(settings: any): void {
 export function registerSupabaseConfigRoutes(app: Express): void {
   // ============================================
   // CONFIGURAÇÕES GLOBAIS (DEFAULT) - Para Admin Panel
+  // NOTA: Os endpoints principais estão em server/routes/assinatura.ts:
+  //   - GET/PUT /api/assinatura/public/global-config
+  // Os endpoints abaixo são DEPRECATED e serão removidos em versões futuras.
   // ============================================
   
+  // DEPRECATED: Use /api/assinatura/public/global-config instead
   // GET global settings (uses "default" as identifier)
   // Falls back to local file storage if Supabase table doesn't exist
   app.get("/api/config/global-settings", async (req, res) => {

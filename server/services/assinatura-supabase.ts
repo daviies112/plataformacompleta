@@ -228,6 +228,29 @@ class AssinaturaSupabaseService {
   }
   
   async getGlobalConfig(tenantId: string = 'default'): Promise<AssinaturaGlobalConfig | null> {
+    // Tenta buscar do Supabase primeiro
+    if (this.supabase) {
+      try {
+        const { data, error } = await this.supabase
+          .from('global_appearance_settings')
+          .select('*')
+          .eq('identifier', 'default')
+          .single();
+        
+        if (data && !error) {
+          console.log('[AssinaturaSupabase] ✅ Config global carregada do Supabase');
+          // Mapeia campos do Supabase para o formato esperado
+          return {
+            ...data,
+            tenant_id: tenantId
+          } as AssinaturaGlobalConfig;
+        }
+      } catch (error) {
+        console.error('[AssinaturaSupabase] Erro ao buscar do Supabase:', error);
+      }
+    }
+    
+    // Fallback para arquivo local
     const localConfig = this.loadLocalGlobalConfig();
     if (localConfig) {
       return localConfig;
@@ -241,8 +264,105 @@ class AssinaturaSupabaseService {
       tenant_id: tenantId,
       updated_at: new Date().toISOString()
     };
+    
+    // Sempre salva localmente primeiro (backup)
     this.saveLocalGlobalConfig(updatedConfig);
     console.log('[AssinaturaSupabase] Config global salva localmente');
+    
+    // Tenta salvar no Supabase se conectado
+    if (this.supabase) {
+      try {
+        // Verifica se já existe registro
+        const { data: existing } = await this.supabase
+          .from('global_appearance_settings')
+          .select('id')
+          .eq('identifier', 'default')
+          .single();
+        
+        const supabaseData = {
+          identifier: 'default',
+          logo_url: config.logo_url,
+          logo_size: config.logo_size,
+          logo_position: config.logo_position,
+          company_name: config.company_name,
+          footer_text: config.footer_text,
+          primary_color: config.primary_color,
+          text_color: config.text_color,
+          font_family: config.font_family,
+          font_size: config.font_size,
+          maleta_card_color: config.maleta_card_color,
+          maleta_button_color: config.maleta_button_color,
+          maleta_text_color: config.maleta_text_color,
+          verification_primary_color: config.verification_primary_color,
+          verification_text_color: config.verification_text_color,
+          verification_font_family: config.verification_font_family,
+          verification_font_size: config.verification_font_size,
+          verification_logo_url: config.verification_logo_url,
+          verification_logo_size: config.verification_logo_size,
+          verification_logo_position: config.verification_logo_position,
+          verification_footer_text: config.verification_footer_text,
+          verification_welcome_text: config.verification_welcome_text,
+          verification_instructions: config.verification_instructions,
+          verification_security_text: config.verification_security_text,
+          verification_background_color: config.verification_background_color,
+          verification_header_background_color: config.verification_header_background_color,
+          verification_header_company_name: config.verification_header_company_name,
+          progress_card_color: config.progress_card_color,
+          progress_button_color: config.progress_button_color,
+          progress_text_color: config.progress_text_color,
+          progress_title: config.progress_title,
+          progress_subtitle: config.progress_subtitle,
+          progress_step1_title: config.progress_step1_title,
+          progress_step1_description: config.progress_step1_description,
+          progress_step2_title: config.progress_step2_title,
+          progress_step2_description: config.progress_step2_description,
+          progress_step3_title: config.progress_step3_title,
+          progress_step3_description: config.progress_step3_description,
+          progress_button_text: config.progress_button_text,
+          progress_font_family: config.progress_font_family,
+          parabens_title: config.parabens_title,
+          parabens_subtitle: config.parabens_subtitle,
+          parabens_description: config.parabens_description,
+          parabens_card_color: config.parabens_card_color,
+          parabens_background_color: config.parabens_background_color,
+          parabens_button_color: config.parabens_button_color,
+          parabens_text_color: config.parabens_text_color,
+          parabens_font_family: config.parabens_font_family,
+          parabens_form_title: config.parabens_form_title,
+          parabens_button_text: config.parabens_button_text,
+          app_store_url: config.app_store_url,
+          google_play_url: config.google_play_url,
+          contract_title: config.contract_title,
+          clauses: config.clauses
+        };
+        
+        if (existing) {
+          const { error } = await this.supabase
+            .from('global_appearance_settings')
+            .update(supabaseData)
+            .eq('identifier', 'default');
+          
+          if (error) {
+            console.error('[AssinaturaSupabase] Erro ao atualizar no Supabase:', error);
+          } else {
+            console.log('[AssinaturaSupabase] ✅ Config global salva no Supabase');
+          }
+        } else {
+          const { error } = await this.supabase
+            .from('global_appearance_settings')
+            .insert([supabaseData]);
+          
+          if (error) {
+            console.error('[AssinaturaSupabase] Erro ao inserir no Supabase:', error);
+          } else {
+            console.log('[AssinaturaSupabase] ✅ Config global criada no Supabase');
+          }
+        }
+      } catch (error) {
+        console.error('[AssinaturaSupabase] Erro ao salvar no Supabase:', error);
+      }
+    }
+    
     return updatedConfig;
   }
   

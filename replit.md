@@ -40,6 +40,14 @@ ExecutiveAI Pro employs a modern web stack with a multi-tenant, API-driven archi
 - **Calendar:** Monthly grid view for meeting management.
 - **SFU Recording System:** Server-side recording of video conferences.
 - **Digital Signature System:** Comprehensive platform for digital contracts, including biometric verification, document capture, identity validation, multi-step client signing, and real-time previews. Contracts are automatically generated upon meeting conclusion.
+  - **Global Appearance Settings:** Centralized customization system for all public contract/signature pages:
+    - Supabase table: `global_appearance_settings` (identifier='default')
+    - Local fallback: `data/assinatura_global_config.json`
+    - API endpoints:
+      - `GET /api/assinatura/public/global-config` - Fetch current settings (public)
+      - `PUT /api/assinatura/public/global-config` - Save settings (public, auto-saves to Supabase + local)
+    - Settings include: primary_color, text_color, font_family, logo_url, company_name, verification colors, progress page colors, parabens page colors, etc.
+    - Contract pages automatically merge global settings with contract-specific overrides (contract values take priority if not null)
   - **Document Validation:** Intelligent validation of Brazilian documents (CNH, RG, Passaporte) with:
     - Selfie detection to reject photos of faces instead of documents
     - CNH validation: horizontal format (1.3-1.8 aspect ratio), minimum 400x250 resolution
