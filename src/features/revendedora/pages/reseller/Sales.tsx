@@ -93,7 +93,10 @@ export default function ResellerSales() {
         setLoading(false);
         return;
       }
-      console.log('[Sales] Loading sales for reseller:', resellerId);
+      console.log('[Sales] ===== DEBUG =====');
+      console.log('[Sales] Loading sales for reseller_id:', resellerId);
+      console.log('[Sales] Se não aparecer vendas, verifique se este ID corresponde ao da loja');
+      console.log('[Sales] Acesse /api/health/sales-debug para ver os IDs das vendas existentes');
 
       const { data: salesData, error: salesError } = await supabase
         .from('sales_with_split')

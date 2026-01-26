@@ -237,6 +237,89 @@ cache_redis_connected ${cacheStats.redisConnected ? 1 : 0}
 });
 
 /**
+ * GET /api/health/sales-debug
+ * Debug sales data - check reseller_ids and sales (dev only, no PII)
+ * Only available in development or with admin session
+ */
+router.get('/sales-debug', async (req: any, res) => {
+  try {
+    // Restrict to development environment or authenticated admin
+    const isDev = process.env.NODE_ENV === 'development' || !process.env.NODE_ENV;
+    const isAdmin = req.session?.userRole === 'admin';
+    
+    if (!isDev && !isAdmin) {
+      return res.status(403).json({ 
+        error: 'Acesso restrito',
+        message: 'Este endpoint só está disponível em ambiente de desenvolvimento ou para administradores autenticados'
+      });
+    }
+    const fs = await import('fs');
+    const path = await import('path');
+    const { createClient } = await import('@supabase/supabase-js');
+    
+    const configPath = path.join(process.cwd(), 'data', 'supabase-config.json');
+    if (!fs.existsSync(configPath)) {
+      return res.json({ error: 'Supabase não configurado' });
+    }
+    
+    const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    const supabaseUrl = config.url || config.supabaseUrl;
+    const supabaseKey = config.serviceRoleKey || config.anonKey || config.supabaseAnonKey;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      return res.json({ error: 'Credenciais incompletas' });
+    }
+    
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    
+    // Get sales count by reseller_id (no PII exposed)
+    const { data: sales, error: salesError } = await supabase
+      .from('sales_with_split')
+      .select('reseller_id, status')
+      .order('created_at', { ascending: false })
+      .limit(100);
+    
+    // Get all reseller_stores (no PII)
+    const { data: stores, error: storesError } = await supabase
+      .from('reseller_stores')
+      .select('id, reseller_id, store_slug, is_published');
+    
+    // Get unique reseller_ids from sales
+    const salesResellerIds = [...new Set((sales || []).map(s => s.reseller_id))];
+    const storesResellerIds = [...new Set((stores || []).map(s => s.reseller_id))];
+    
+    // Count sales per reseller_id
+    const salesCountByReseller: Record<string, number> = {};
+    (sales || []).forEach(s => {
+      salesCountByReseller[s.reseller_id] = (salesCountByReseller[s.reseller_id] || 0) + 1;
+    });
+    
+    res.json({
+      sales: {
+        totalCount: sales?.length || 0,
+        resellerIds: salesResellerIds,
+        countByReseller: salesCountByReseller,
+        error: salesError?.message
+      },
+      stores: {
+        count: stores?.length || 0,
+        resellerIds: storesResellerIds,
+        items: (stores || []).map(s => ({ id: s.id, reseller_id: s.reseller_id, store_slug: s.store_slug, is_published: s.is_published })),
+        error: storesError?.message
+      },
+      howToFix: {
+        description: 'Se as vendas não aparecem, o reseller_id no login precisa corresponder ao usado nas vendas.',
+        sqlMigration: 'Execute o SQL em /docs/SQL_MIGRATE_RESELLER_ID.sql para migrar os IDs',
+        salesResellerIds,
+        storesResellerIds
+      }
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
  * GET /api/health/supabase-tables
  * Check if required tables exist in Supabase CLIENT database
  */
