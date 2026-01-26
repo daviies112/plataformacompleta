@@ -763,10 +763,14 @@ router.get('/settings', async (req: Request, res: Response) => {
 });
 
 // Helper function to get authenticated reseller from session or token
-async function getAuthenticatedReseller(req: Request): Promise<{ email: string; tenantId: string | null } | null> {
+async function getAuthenticatedReseller(req: Request): Promise<{ email: string; userId: string; tenantId: string | null } | null> {
   // Check session first
-  if (req.session?.userEmail && req.session?.userRole === 'reseller') {
-    return { email: req.session.userEmail, tenantId: req.session.tenantId || null };
+  if (req.session?.userEmail && req.session?.userRole === 'reseller' && req.session?.userId) {
+    return { 
+      email: req.session.userEmail, 
+      userId: req.session.userId,
+      tenantId: req.session.tenantId || null 
+    };
   }
   
   // Try to get from JWT token
@@ -774,7 +778,7 @@ async function getAuthenticatedReseller(req: Request): Promise<{ email: string; 
   if (authHeader?.startsWith('Bearer ')) {
     const token = authHeader.slice(7);
     const payload = verifyResellerToken(token);
-    if (payload && payload.userRole === 'reseller') {
+    if (payload && payload.userRole === 'reseller' && payload.userId) {
       // Populate session for future requests
       req.session.userId = payload.userId;
       req.session.userEmail = payload.userEmail;
@@ -783,7 +787,11 @@ async function getAuthenticatedReseller(req: Request): Promise<{ email: string; 
       req.session.tenantId = payload.tenantId;
       req.session.comissao = payload.comissao;
       req.session.projectName = payload.projectName;
-      return { email: payload.userEmail, tenantId: payload.tenantId || null };
+      return { 
+        email: payload.userEmail, 
+        userId: payload.userId,
+        tenantId: payload.tenantId || null 
+      };
     } else {
       console.log('[AUTH-DEBUG] JWT token inválido ou não é reseller');
     }
@@ -1296,38 +1304,54 @@ router.post('/supabase-config/test', async (req: Request, res: Response) => {
 // Returns { client, adminId } or throws error with specific message
 async function getStoreSupabaseClient(userEmail: string): Promise<{ client: any, adminId: string }> {
   const master = getMasterClient();
-  if (!master) {
-    console.log('[StoreConfig] Master client not available');
-    throw new Error('SUPABASE_NOT_CONFIGURED');
-  }
-
-  // Get admin_id from reseller
-  const { data: revendedora, error: revendedoraError } = await master
-    .from('revendedoras')
-    .select('admin_id')
-    .eq('email', userEmail)
-    .single();
-
-  if (revendedoraError || !revendedora?.admin_id) {
-    console.log('[StoreConfig] Reseller not linked to admin:', userEmail, revendedoraError?.message);
-    throw new Error('RESELLER_NOT_LINKED');
-  }
-
-  // Get admin credentials with service_role_key
-  const adminCreds = await getAdminCredentials(revendedora.admin_id);
-  if (!adminCreds?.supabase_url || !adminCreds?.supabase_service_key) {
-    console.log('[StoreConfig] Admin credentials not configured for:', revendedora.admin_id);
-    throw new Error('ADMIN_CREDS_NOT_CONFIGURED');
-  }
-
-  console.log('[StoreConfig] Using admin Supabase:', adminCreds.supabase_url.substring(0, 40) + '...');
   
-  // Create client with service_role key (bypasses RLS)
-  const { createClient } = await import('@supabase/supabase-js');
-  return {
-    client: createClient(adminCreds.supabase_url, adminCreds.supabase_service_key),
-    adminId: revendedora.admin_id
-  };
+  // Try Master client first
+  if (master) {
+    // Get admin_id from reseller
+    const { data: revendedora, error: revendedoraError } = await master
+      .from('revendedoras')
+      .select('admin_id')
+      .eq('email', userEmail)
+      .single();
+
+    if (!revendedoraError && revendedora?.admin_id) {
+      // Get admin credentials with service_role_key
+      const adminCreds = await getAdminCredentials(revendedora.admin_id);
+      if (adminCreds?.supabase_url && adminCreds?.supabase_service_key) {
+        console.log('[StoreConfig] Using admin Supabase via Master:', adminCreds.supabase_url.substring(0, 40) + '...');
+        
+        const { createClient } = await import('@supabase/supabase-js');
+        return {
+          client: createClient(adminCreds.supabase_url, adminCreds.supabase_service_key),
+          adminId: revendedora.admin_id
+        };
+      }
+    }
+  }
+  
+  // Fallback: Try config file credentials
+  console.log('[StoreConfig] Master not available, trying config file fallback');
+  try {
+    const fs = await import('fs');
+    const configPath = './data/cliente_supabase_config.json';
+    if (fs.existsSync(configPath)) {
+      const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+      if (config.supabase_url && config.supabase_service_key) {
+        console.log('[StoreConfig] Using config file Supabase:', config.supabase_url.substring(0, 40) + '...');
+        
+        const { createClient } = await import('@supabase/supabase-js');
+        return {
+          client: createClient(config.supabase_url, config.supabase_service_key),
+          adminId: 'config-file'
+        };
+      }
+    }
+  } catch (e) {
+    console.log('[StoreConfig] Config file fallback failed:', e);
+  }
+  
+  console.log('[StoreConfig] No Supabase credentials available');
+  throw new Error('SUPABASE_NOT_CONFIGURED');
 }
 
 // GET /api/reseller/store-config - Load store configuration from Supabase

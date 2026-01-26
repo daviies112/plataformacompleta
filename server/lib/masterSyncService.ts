@@ -1,20 +1,31 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { supabaseOwner, SUPABASE_CONFIGURED } from '../config/supabaseOwner';
 
-// Credenciais do Supabase Master (central)
-const MASTER_URL = process.env.SUPABASE_URL || '';
-const MASTER_KEY = process.env.SERVICE_ROLE_KEY || '';
-
 let supabaseMaster: SupabaseClient | null = null;
+let masterInitialized = false;
+
+// Função para obter credenciais em tempo de execução
+function getMasterCredentials(): { url: string; key: string } {
+  // Prioridade: OWNER > MASTER > genérico
+  const url = process.env.SUPABASE_OWNER_URL || process.env.SUPABASE_MASTER_URL || '';
+  const key = process.env.SUPABASE_OWNER_SERVICE_KEY || process.env.SUPABASE_MASTER_SERVICE_ROLE_KEY || '';
+  return { url, key };
+}
 
 export function getMasterClient(): SupabaseClient | null {
-  if (!MASTER_URL || !MASTER_KEY) {
-    console.warn('[MasterSync] Credenciais do Supabase Master não configuradas');
+  const { url, key } = getMasterCredentials();
+  
+  if (!url || !key) {
+    if (!masterInitialized) {
+      console.warn('[MasterSync] Credenciais do Supabase Master/Owner não configuradas (SUPABASE_OWNER_URL/KEY)');
+      masterInitialized = true;
+    }
     return null;
   }
   
   if (!supabaseMaster) {
-    supabaseMaster = createClient(MASTER_URL, MASTER_KEY);
+    console.log('[MasterSync] Conectando ao Supabase Owner/Master:', url.substring(0, 40) + '...');
+    supabaseMaster = createClient(url, key);
   }
   
   return supabaseMaster;
