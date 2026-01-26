@@ -596,9 +596,29 @@ router.get('/contracts/:token/full', async (req: Request, res: Response) => {
     // Buscar configurações globais para usar como fallback
     const globalConfig = await assinaturaSupabaseService.getGlobalConfig() || getGlobalConfigCached();
     
+    // Mapear campos de endereço do formato aninhado (local) para campos individuais (esperado pelo frontend)
+    const localContractTyped = contract as any;
+    const addressFromNestedObject = localContractTyped.address && typeof localContractTyped.address === 'object' ? {
+      address_street: localContractTyped.address.street || null,
+      address_number: localContractTyped.address.number || null,
+      address_complement: localContractTyped.address.complement || null,
+      address_neighborhood: localContractTyped.address.neighborhood || null,
+      address_city: localContractTyped.address.city || null,
+      address_state: localContractTyped.address.state || null,
+      address_zipcode: localContractTyped.address.zipcode || null,
+    } : {};
+    
     // Mesclar configurações globais com contrato (contrato tem prioridade se não for null)
     const mergedContract = {
       ...contract,
+      // Garantir que campos de endereço individuais existam (prioritário: campos diretos > objeto aninhado)
+      address_street: contract.address_street || addressFromNestedObject.address_street || null,
+      address_number: contract.address_number || addressFromNestedObject.address_number || null,
+      address_complement: contract.address_complement || addressFromNestedObject.address_complement || null,
+      address_neighborhood: contract.address_neighborhood || addressFromNestedObject.address_neighborhood || null,
+      address_city: contract.address_city || addressFromNestedObject.address_city || null,
+      address_state: contract.address_state || addressFromNestedObject.address_state || null,
+      address_zipcode: contract.address_zipcode || addressFromNestedObject.address_zipcode || null,
       primary_color: contract.primary_color || globalConfig.primary_color,
       text_color: contract.text_color || globalConfig.text_color,
       font_family: contract.font_family || globalConfig.font_family,
