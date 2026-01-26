@@ -1201,9 +1201,9 @@ router.get('/resellers-analytics', async (req: Request, res: Response) => {
   console.log('[Split] GET /resellers-analytics - Fetching real reseller data');
   
   try {
-    const supabase = getMasterSupabaseClient();
+    const supabaseOwner = getMasterSupabaseClient();
     
-    if (!supabase) {
+    if (!supabaseOwner) {
       console.error('[Split] Supabase Owner not configured');
       return res.status(500).json({
         success: false,
@@ -1211,7 +1211,7 @@ router.get('/resellers-analytics', async (req: Request, res: Response) => {
       });
     }
     
-    const resellersResult = await supabase
+    const resellersResult = await supabaseOwner
       .from('revendedoras')
       .select('*');
     
@@ -1223,20 +1223,53 @@ router.get('/resellers-analytics', async (req: Request, res: Response) => {
       });
     }
     
-    let salesResult = await supabase
-      .from('vendas_revendedora')
-      .select('id, reseller_id, revendedora_id, total_amount, valor_total, reseller_amount, valor_revendedora, company_amount, valor_empresa, paid, pago, paid_at, data_pagamento, created_at');
+    // Buscar vendas do Supabase do tenant (onde as vendas realmente estão)
+    let salesResult: { data: any[] | null; error: any } = { data: [], error: null };
     
-    if (salesResult.error) {
-      console.log('[Split] vendas_revendedora not found, trying sales_with_split...');
-      salesResult = await supabase
-        .from('sales_with_split')
-        .select('id, reseller_id, total_amount, reseller_amount, company_amount, paid, paid_at, created_at');
-    }
+    // Tentar carregar credenciais do tenant do arquivo de configuração
+    const fs = await import('fs');
+    const path = await import('path');
+    const configPath = path.join(process.cwd(), 'data', 'supabase-config.json');
     
-    if (salesResult.error) {
-      console.log('[Split] No sales table found, returning resellers only');
-      salesResult = { data: [], error: null };
+    if (fs.existsSync(configPath)) {
+      try {
+        const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+        if (config.supabaseUrl && (config.supabaseServiceKey || config.supabaseAnonKey)) {
+          const { createClient } = await import('@supabase/supabase-js');
+          const tenantSupabase = createClient(
+            config.supabaseUrl, 
+            config.supabaseServiceKey || config.supabaseAnonKey,
+            { auth: { autoRefreshToken: false, persistSession: false } }
+          );
+          
+          console.log('[Split] Fetching sales from tenant Supabase:', config.supabaseUrl);
+          
+          // Buscar sales_with_split do Supabase do tenant
+          salesResult = await tenantSupabase
+            .from('sales_with_split')
+            .select('id, reseller_id, product_id, total_amount, reseller_amount, company_amount, paid, paid_at, status, created_at');
+          
+          if (salesResult.error) {
+            console.log('[Split] Error fetching sales_with_split from tenant:', salesResult.error);
+            salesResult = { data: [], error: null };
+          } else {
+            console.log('[Split] Found', salesResult.data?.length || 0, 'sales in tenant Supabase');
+          }
+        }
+      } catch (e) {
+        console.error('[Split] Error loading tenant config:', e);
+      }
+    } else {
+      console.log('[Split] No tenant config file found, trying Owner Supabase for sales...');
+      // Fallback para Owner Supabase
+      salesResult = await supabaseOwner
+        .from('vendas_revendedora')
+        .select('id, reseller_id, revendedora_id, total_amount, valor_total, reseller_amount, valor_revendedora, company_amount, valor_empresa, paid, pago, paid_at, data_pagamento, created_at');
+      
+      if (salesResult.error) {
+        console.log('[Split] vendas_revendedora not found in Owner, no sales available');
+        salesResult = { data: [], error: null };
+      }
     }
     
     const normalizedResellers = (resellersResult.data || []).map((r: any) => ({
