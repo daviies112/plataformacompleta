@@ -1537,12 +1537,51 @@ router.post('/validate-document/quick', (req: Request, res: Response) => {
 });
 
 /**
+ * POST /save-residence-proof
+ * Saves proof of residence data to contract (for manual review cases)
+ */
+router.post('/save-residence-proof', async (req: Request, res: Response) => {
+  try {
+    const { contractId, imageBase64, validated, manualReviewRequired } = req.body;
+    
+    if (!contractId) {
+      return res.status(400).json({ success: false, message: 'Contract ID não fornecido' });
+    }
+    
+    console.log(`[Assinatura] Salvando comprovante de residência para contrato: ${contractId}`);
+    
+    const updates = {
+      residence_proof_photo: imageBase64 ? imageBase64.substring(0, 500) + '...[truncated]' : null,
+      residence_proof_validated: validated || false,
+      residence_proof_manual_review: manualReviewRequired || false,
+      residence_proof_date: new Date().toISOString()
+    };
+    
+    const localContract = localContractsStore.get(contractId);
+    if (localContract) {
+      const updatedContract = { ...localContract, ...updates };
+      localContractsStore.set(contractId, updatedContract);
+      saveLocalContracts(localContractsStore);
+    }
+    
+    if (assinaturaSupabaseService.isConnected()) {
+      await assinaturaSupabaseService.updateContractByToken(contractId, updates);
+    }
+    
+    return res.json({ success: true, message: 'Comprovante salvo com sucesso' });
+  } catch (error: any) {
+    console.error('[Assinatura] Erro ao salvar comprovante:', error);
+    return res.status(500).json({ success: false, message: 'Erro ao salvar comprovante' });
+  }
+});
+
+/**
  * POST /validate-residence-proof
  * Validates a proof of residence photo using AI to extract address and compare with provided data
  */
 router.post('/validate-residence-proof', async (req: Request, res: Response) => {
   try {
-    const { imageBase64, addressData } = req.body;
+    const { contractId, imageBase64, addressData } = req.body;
     
     if (!imageBase64) {
       return res.status(400).json({
@@ -1566,6 +1605,7 @@ router.post('/validate-residence-proof', async (req: Request, res: Response) => 
     
     console.log('[Assinatura] Validando comprovante de residência...');
     console.log('[Assinatura] Endereço informado:', JSON.stringify(addressData));
+    console.log('[Assinatura] Contract ID:', contractId);
     
     const openaiApiKey = process.env.OPENAI_API_KEY || process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
     const openaiBaseUrl = process.env.OPENAI_BASE_URL || process.env.AI_INTEGRATIONS_OPENAI_BASE_URL;
@@ -1650,6 +1690,27 @@ Responda APENAS em JSON válido com esta estrutura:
         
         console.log(`[Assinatura] Comparação: rua=${streetMatch}, cidade=${cityMatch}, confiança=${confidence}, match=${isMatch}`);
         
+        if (contractId) {
+          const proofUpdates = {
+            residence_proof_validated: isMatch,
+            residence_proof_confidence: confidence,
+            residence_proof_extracted_address: extractedAddress,
+            residence_proof_date: new Date().toISOString(),
+            residence_proof_manual_review: !isMatch
+          };
+          
+          const localContract = localContractsStore.get(contractId);
+          if (localContract) {
+            localContractsStore.set(contractId, { ...localContract, ...proofUpdates });
+            saveLocalContracts(localContractsStore);
+          }
+          
+          if (assinaturaSupabaseService.isConnected()) {
+            await assinaturaSupabaseService.updateContractByToken(contractId, proofUpdates);
+          }
+          console.log(`[Assinatura] Dados do comprovante salvos para contrato: ${contractId}`);
+        }
+        
         return res.json({
           success: true,
           match: isMatch,
@@ -1672,6 +1733,27 @@ Responda APENAS em JSON válido com esta estrutura:
     }
     
     console.log('[Assinatura] IA não configurada - usando validação simplificada');
+    
+    if (contractId) {
+      const proofUpdates = {
+        residence_proof_validated: true,
+        residence_proof_confidence: 0.7,
+        residence_proof_extracted_address: `${addressData.street}, ${addressData.number} - ${addressData.city}/${addressData.state}`,
+        residence_proof_date: new Date().toISOString(),
+        residence_proof_manual_review: true
+      };
+      
+      const localContract = localContractsStore.get(contractId);
+      if (localContract) {
+        localContractsStore.set(contractId, { ...localContract, ...proofUpdates });
+        saveLocalContracts(localContractsStore);
+      }
+      
+      if (assinaturaSupabaseService.isConnected()) {
+        await assinaturaSupabaseService.updateContractByToken(contractId, proofUpdates);
+      }
+      console.log(`[Assinatura] Dados do comprovante salvos para contrato: ${contractId} (modo simplificado)`);
+    }
     
     return res.json({
       success: true,

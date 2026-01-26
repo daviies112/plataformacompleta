@@ -23,6 +23,7 @@ import {
 const VerificationFlow = lazy(() => import('@/components/assinatura/verification/VerificationFlow').then(m => ({ default: m.VerificationFlow })));
 const ContractStep = lazy(() => import('@/components/assinatura/steps/ContractStep').then(m => ({ default: m.ContractStep })));
 const ResellerWelcomeStep = lazy(() => import('@/components/assinatura/steps/ResellerWelcomeStep').then(m => ({ default: m.ResellerWelcomeStep })));
+const ResidenceProofStep = lazy(() => import('@/components/assinatura/steps/ResidenceProofStep').then(m => ({ default: m.ResidenceProofStep })));
 const AppPromotionStep = lazy(() => import('@/components/assinatura/steps/AppPromotionStep').then(m => ({ default: m.AppPromotionStep })));
 const SuccessStep = lazy(() => import('@/components/assinatura/steps/SuccessStep').then(m => ({ default: m.SuccessStep })));
 
@@ -130,7 +131,7 @@ const ProgressTrackerDisplay = memo(({ currentStep, contract }: ProgressTrackerD
     },
   ], [contract?.progress_step1_title, contract?.progress_step1_description, contract?.progress_step2_title, contract?.progress_step2_description, contract?.progress_step3_title, contract?.progress_step3_description]);
 
-  const stepMapping = [0, 1, 1, 2, 2, 2];
+  const stepMapping = [0, 1, 1, 2, 2, 2, 2];
   const activeStepIndex = stepMapping[currentStep] || 0;
 
   return (
@@ -308,8 +309,10 @@ const AssinaturaClientContent = () => {
     } else if (currentStep === 2) {
       import('@/components/assinatura/steps/ResellerWelcomeStep');
     } else if (currentStep === 3) {
-      import('@/components/assinatura/steps/AppPromotionStep');
+      import('@/components/assinatura/steps/ResidenceProofStep');
     } else if (currentStep === 4) {
+      import('@/components/assinatura/steps/AppPromotionStep');
+    } else if (currentStep === 5) {
       import('@/components/assinatura/steps/SuccessStep');
     }
   }, [currentStep]);
@@ -525,13 +528,30 @@ const AssinaturaClientContent = () => {
       <div className="min-h-screen bg-background">
         <ProgressTrackerDisplay currentStep={currentStep} contract={contract} />
         <Suspense fallback={<StepLoader />}>
-          <AppPromotionStep />
+          <ResidenceProofStep 
+            parabens_card_color={contract.parabens_card_color || undefined}
+            parabens_background_color={contract.parabens_background_color || undefined}
+            parabens_button_color={contract.parabens_button_color || undefined}
+            parabens_text_color={contract.parabens_text_color || undefined}
+            parabens_font_family={contract.parabens_font_family || undefined}
+          />
         </Suspense>
       </div>
     );
   }
 
   if (currentStep === 5) {
+    return (
+      <div className="min-h-screen bg-background">
+        <ProgressTrackerDisplay currentStep={currentStep} contract={contract} />
+        <Suspense fallback={<StepLoader />}>
+          <AppPromotionStep />
+        </Suspense>
+      </div>
+    );
+  }
+
+  if (currentStep === 6) {
     return (
       <div className="min-h-screen bg-background">
         <Suspense fallback={<StepLoader />}>

@@ -33,6 +33,10 @@ interface ContractContextType {
   setContractData: (data: ContractData | null) => void;
   addressData: AddressData | null;
   setAddressData: (data: AddressData | null) => void;
+  residenceProofPhoto: string | null;
+  setResidenceProofPhoto: (photo: string | null) => void;
+  residenceProofValidated: boolean;
+  setResidenceProofValidated: (validated: boolean) => void;
   resetFlow: () => void;
 }
 
@@ -43,12 +47,16 @@ export const ContractProvider = ({ children }: { children: ReactNode }) => {
   const [govbrData, setGovbrData] = useState<GovBRData | null>(null);
   const [contractData, setContractData] = useState<ContractData | null>(null);
   const [addressData, setAddressData] = useState<AddressData | null>(null);
+  const [residenceProofPhoto, setResidenceProofPhoto] = useState<string | null>(null);
+  const [residenceProofValidated, setResidenceProofValidated] = useState(false);
 
   const resetFlow = () => {
     setCurrentStep(0);
     setGovbrData(null);
     setContractData(null);
     setAddressData(null);
+    setResidenceProofPhoto(null);
+    setResidenceProofValidated(false);
   };
 
   return (
@@ -62,6 +70,10 @@ export const ContractProvider = ({ children }: { children: ReactNode }) => {
         setContractData,
         addressData,
         setAddressData,
+        residenceProofPhoto,
+        setResidenceProofPhoto,
+        residenceProofValidated,
+        setResidenceProofValidated,
         resetFlow,
       }}
     >
