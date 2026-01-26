@@ -46,6 +46,7 @@ import Financeiro from "@/pages/Financeiro";
 
 // Import Revendedora Admin components for /produto/admin/* routes
 import { CompanyProvider } from "@/features/revendedora/contexts/CompanyContext";
+import { AdminSupabaseProvider } from "@/features/revendedora/contexts/AdminSupabaseContext";
 import { AdminLayout } from "@/features/revendedora/layouts/AdminLayout";
 import AdminDashboard from "@/features/revendedora/pages/admin/Dashboard";
 import AdminProducts from "@/features/revendedora/pages/admin/Products";
@@ -262,9 +263,11 @@ const DesktopApp = () => {
         element={
           <ProtectedRoute>
             <DesktopLayout>
-              <CompanyProvider>
-                <AdminLayout><AdminResellers /></AdminLayout>
-              </CompanyProvider>
+              <AdminSupabaseProvider>
+                <CompanyProvider>
+                  <AdminLayout><AdminResellers /></AdminLayout>
+                </CompanyProvider>
+              </AdminSupabaseProvider>
             </DesktopLayout>
           </ProtectedRoute>
         } 
@@ -322,9 +325,11 @@ const DesktopApp = () => {
         element={
           <ProtectedRoute>
             <DesktopLayout>
-              <CompanyProvider>
-                <AdminLayout><AdminAnalytics /></AdminLayout>
-              </CompanyProvider>
+              <AdminSupabaseProvider>
+                <CompanyProvider>
+                  <AdminLayout><AdminAnalytics /></AdminLayout>
+                </CompanyProvider>
+              </AdminSupabaseProvider>
             </DesktopLayout>
           </ProtectedRoute>
         } 
@@ -420,9 +425,11 @@ const DesktopApp = () => {
         element={
           <ProtectedRoute>
             <DesktopLayout>
-              <CompanyProvider>
-                <AdminLayout basePath="/vendas"><AdminResellers /></AdminLayout>
-              </CompanyProvider>
+              <AdminSupabaseProvider>
+                <CompanyProvider>
+                  <AdminLayout basePath="/vendas"><AdminResellers /></AdminLayout>
+                </CompanyProvider>
+              </AdminSupabaseProvider>
             </DesktopLayout>
           </ProtectedRoute>
         } 
@@ -480,9 +487,11 @@ const DesktopApp = () => {
         element={
           <ProtectedRoute>
             <DesktopLayout>
-              <CompanyProvider>
-                <AdminLayout basePath="/vendas"><AdminAnalytics /></AdminLayout>
-              </CompanyProvider>
+              <AdminSupabaseProvider>
+                <CompanyProvider>
+                  <AdminLayout basePath="/vendas"><AdminAnalytics /></AdminLayout>
+                </CompanyProvider>
+              </AdminSupabaseProvider>
             </DesktopLayout>
           </ProtectedRoute>
         } 

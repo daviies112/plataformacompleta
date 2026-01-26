@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
+import { SupabaseClient } from '@supabase/supabase-js';
 import { useSupabase } from '@/features/revendedora/contexts/SupabaseContext';
+import { useAdminSupabase } from '@/features/revendedora/contexts/AdminSupabaseContext';
 
 interface ResellerSalesData {
   reseller_id: string;
@@ -73,26 +75,30 @@ const MONTH_NAMES = [
 ];
 
 export function useResellerAnalytics(): UseResellerAnalyticsResult {
-  const { client: supabase, loading: supabaseLoading, configured } = useSupabase();
+  const adminContext = useAdminSupabase();
+  const resellerContext = useSupabase();
+  
+  const adminReady = !adminContext.loading && adminContext.configured && adminContext.client;
+  const resellerReady = !resellerContext.loading && resellerContext.configured && resellerContext.client;
+  
+  const supabase = adminContext.client || resellerContext.client;
+  const supabaseLoading = adminContext.loading || resellerContext.loading;
+  const configured = adminReady || resellerReady;
+
+  
   const [resellers, setResellers] = useState<Reseller[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadData = async () => {
-    if (!supabase) {
-      setLoading(false);
-      setError('Supabase not configured');
-      return;
-    }
-
+  const loadData = async (client: SupabaseClient) => {
     try {
       setLoading(true);
       setError(null);
 
       const [resellersResult, salesResult] = await Promise.all([
-        supabase.from('resellers').select('*'),
-        supabase
+        client.from('resellers').select('*'),
+        client
           .from('sales_with_split')
           .select('id, reseller_id, total_amount, reseller_amount, company_amount, paid, paid_at, created_at')
           .eq('paid', true)
@@ -119,14 +125,14 @@ export function useResellerAnalytics(): UseResellerAnalyticsResult {
       return;
     }
 
-    loadData();
+    loadData(supabase);
 
     const salesChannel = supabase
       .channel('reseller_sales_analytics')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'sales_with_split' },
-        () => loadData()
+        () => loadData(supabase)
       )
       .subscribe();
 
@@ -135,7 +141,7 @@ export function useResellerAnalytics(): UseResellerAnalyticsResult {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'resellers' },
-        () => loadData()
+        () => loadData(supabase)
       )
       .subscribe();
 

@@ -12,7 +12,7 @@ interface SupabaseContextType {
 
 const SupabaseContext = createContext<SupabaseContextType>({
   client: null,
-  loading: true,
+  loading: false,
   error: null,
   configured: false,
   refresh: async () => {},
