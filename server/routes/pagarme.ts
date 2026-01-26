@@ -430,6 +430,25 @@ router.post('/onboarding-empresa', authenticateToken, async (req: AuthRequest, r
   } catch (error: any) {
     console.error('[Pagar.me] Onboarding empresa error:', error);
 
+    // Tratar erro "action_forbidden" - conta Pagar.me não habilitada para marketplace
+    const errorMessage = error.message || '';
+    if (errorMessage.includes('action_forbidden') || errorMessage.includes('not allowed to create a recipient')) {
+      console.log('[Pagar.me] Conta não habilitada para marketplace - salvando dados localmente');
+      
+      // Gerar um ID manual para indicar que os dados foram configurados localmente
+      const manualRecipientId = `manual_${Date.now()}`;
+      
+      const saved = await saveCompanyRecipientId(manualRecipientId);
+      if (saved) {
+        return res.json({
+          success: true,
+          recipientId: manualRecipientId,
+          message: 'Dados bancários salvos localmente. Nota: Sua conta Pagar.me não está habilitada para split de pagamento. Entre em contato com o Pagar.me para habilitar essa funcionalidade.',
+          warning: 'split_disabled'
+        });
+      }
+    }
+
     if (error.response?.errors) {
       const erros = error.response.errors.map((e: any) => e.message).join(', ');
       return res.status(400).json({ error: `Erro Pagar.me: ${erros}` });

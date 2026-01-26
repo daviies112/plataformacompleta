@@ -11,6 +11,7 @@ declare module 'express-session' {
     supabaseKey?: string;
     // ===== CAMPOS NEXUS (Revendedoras) =====
     userRole?: 'admin' | 'reseller';
+    resellerId?: string;  // ID da revendedora no Supabase Owner
     comissao?: number;
     projectName?: string;  // Nome da plataforma/projeto do admin
   }

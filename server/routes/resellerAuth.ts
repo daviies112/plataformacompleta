@@ -22,6 +22,7 @@ interface ResellerTokenPayload {
   userEmail: string;
   userName: string;
   userRole: 'reseller';
+  resellerId: string; // ID da revendedora para endpoints de pagamento
   tenantId: string | null;
   comissao: number;
   projectName?: string;
@@ -53,6 +54,7 @@ export function resellerAuthMiddleware(req: Request, _res: Response, next: NextF
       req.session.userEmail = payload.userEmail;
       req.session.userName = payload.userName;
       req.session.userRole = payload.userRole;
+      req.session.resellerId = payload.resellerId; // ID da revendedora para endpoints de pagamento
       req.session.tenantId = payload.tenantId;
       req.session.comissao = payload.comissao;
       req.session.projectName = payload.projectName;
@@ -287,6 +289,7 @@ router.post('/login', async (req: Request, res: Response) => {
       req.session.userEmail = email;
       req.session.userName = 'Revendedora Teste';
       req.session.userRole = 'reseller';
+      req.session.resellerId = 'dev-reseller-1'; // ID da revendedora para endpoints de pagamento
       req.session.tenantId = 'dev-admin-default';
       req.session.comissao = 10;
 
@@ -302,6 +305,7 @@ router.post('/login', async (req: Request, res: Response) => {
         userEmail: email,
         userName: 'Revendedora Teste',
         userRole: 'reseller',
+        resellerId: 'dev-reseller-1', // ID da revendedora para endpoints de pagamento
         tenantId: 'dev-admin-default',
         comissao: 10
       });
@@ -426,6 +430,7 @@ router.post('/login', async (req: Request, res: Response) => {
     req.session.userEmail = revendedora.email;
     req.session.userName = revendedora.nome;
     req.session.userRole = 'reseller';
+    req.session.resellerId = revendedora.id; // ID da revendedora para endpoints de pagamento
     req.session.tenantId = adminId; // CRUCIAL: Tenant é o Admin
     req.session.comissao = Number(revendedora.comissao_padrao);
     req.session.projectName = projectName;
@@ -454,6 +459,7 @@ router.post('/login', async (req: Request, res: Response) => {
       userEmail: revendedora.email,
       userName: revendedora.nome || '',
       userRole: 'reseller',
+      resellerId: revendedora.id, // ID da revendedora para endpoints de pagamento
       tenantId: adminId,
       comissao: Number(revendedora.comissao_padrao) || 0,
       projectName: projectName
@@ -1517,7 +1523,7 @@ router.post('/store-config', async (req: Request, res: Response) => {
 // Get reseller's Pagar.me recipient status
 router.get('/reseller/pagarme-recipient', resellerAuthMiddleware, async (req, res) => {
   try {
-    const auth = getAuthenticatedReseller(req);
+    const auth = await getAuthenticatedReseller(req);
     if (!auth) {
       return res.status(401).json({ error: 'Não autenticado' });
     }
@@ -1565,7 +1571,7 @@ router.get('/reseller/pagarme-recipient', resellerAuthMiddleware, async (req, re
 // Create or update reseller's Pagar.me recipient
 router.post('/reseller/pagarme-recipient', resellerAuthMiddleware, async (req, res) => {
   try {
-    const auth = getAuthenticatedReseller(req);
+    const auth = await getAuthenticatedReseller(req);
     if (!auth) {
       return res.status(401).json({ error: 'Não autenticado' });
     }
@@ -1674,7 +1680,7 @@ router.post('/reseller/pagarme-recipient', resellerAuthMiddleware, async (req, r
 // Update reseller's bank account
 router.patch('/reseller/pagarme-recipient/bank', resellerAuthMiddleware, async (req, res) => {
   try {
-    const auth = getAuthenticatedReseller(req);
+    const auth = await getAuthenticatedReseller(req);
     if (!auth) {
       return res.status(401).json({ error: 'Não autenticado' });
     }
