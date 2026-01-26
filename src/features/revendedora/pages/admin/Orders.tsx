@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { getResellerId as getStoredResellerId } from '@/features/revendedora/lib/resellerAuth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Search, ShoppingCart } from 'lucide-react';
@@ -19,21 +20,39 @@ export default function AdminOrders() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
+  const getResellerId = (): string | null => {
+    const storedReseller = getStoredResellerId();
+    if (storedReseller) return storedReseller;
+    console.error('[AdminOrders] Reseller ID não encontrado no localStorage');
+    return null;
+  };
+
   useEffect(() => {
     loadOrders();
   }, []);
 
   const loadOrders = async () => {
     try {
+      const resellerId = getResellerId();
+      if (!resellerId) {
+        console.error('[AdminOrders] Cannot load orders: reseller_id is missing');
+        toast.error('Por favor, faça login novamente');
+        setLoading(false);
+        return;
+      }
+      console.log('[AdminOrders] Loading orders for reseller:', resellerId);
+
       const { data, error } = await supabase
         .from('orders')
         .select('*')
+        .eq('reseller_id', resellerId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
+      console.log('[AdminOrders] Loaded', (data || []).length, 'orders for reseller:', resellerId);
       setOrders(data || []);
     } catch (error) {
-      console.error('Error loading orders:', error);
+      console.error('[AdminOrders] Error loading orders:', error);
       toast.error('Erro ao carregar pedidos');
     } finally {
       setLoading(false);

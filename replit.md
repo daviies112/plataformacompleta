@@ -33,6 +33,15 @@ ExecutiveAI Pro employs a modern web stack with a multi-tenant, API-driven archi
 
 - **Shipping Platform:** Integrates with multiple carriers (Correios, Jadlog, Loggi, Azul Cargo) for freight quotation and tracking.
 - **NEXUS Reseller Platform:** An authenticated portal for resellers with dashboards, sales tracking, and financial summaries, ensuring data isolation via `reseller_id` filtering.
+  - **Multi-Tenant Data Isolation:** All reseller data is isolated by `reseller_id`:
+    - **Isolated Tables:** reseller_stores, reseller_profiles, reseller_alerts, sales_with_split, withdrawals, bank_accounts, orders, payment_links, product_requests, commission_splits, gamification_activities
+    - **Shared Tables (no reseller_id):** products, gamification_badges, gamification_challenges, gamification_rewards, gamification_leagues, gamification_config, commission_config (global settings)
+  - **Dual Persistence Strategy:** Store configuration uses localStorage with reseller_id prefix + Supabase fallback
+    - localStorage keys: `reseller_store_config_${resellerId}`, `commission_config_${resellerId}`
+    - Automatic fallback when Supabase tables don't exist
+  - **Two Supabase Instances:**
+    - Cliente (axrvyrpefpntacuibyds.supabase.co): contracts, forms, reseller data
+    - Master (uniewwcpalbctkahdyxv.supabase.co): revendedoras table for login/registration
 - **CPF Validation:** Multi-tiered fallback system for data retrieval and compliance.
 - **WhatsApp Business:** Automated messaging integration.
 - **n8n Integration:** Allows tenants to generate API keys for custom automation workflows, especially for meeting creation.

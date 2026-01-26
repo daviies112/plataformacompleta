@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSupabase } from '@/features/revendedora/contexts/SupabaseContext';
+import { getResellerId as getStoredResellerId } from '@/features/revendedora/lib/resellerAuth';
 
 interface ResellerAlert {
   id: string;
@@ -46,12 +47,20 @@ interface UseResellerAlertsResult {
 
 const DROP_THRESHOLD = 30;
 
-export function useResellerAlerts(): UseResellerAlertsResult {
+export function useResellerAlerts(resellerId?: string): UseResellerAlertsResult {
   const { client: supabase, loading: supabaseLoading, configured } = useSupabase();
   
   const [alerts, setAlerts] = useState<ResellerAlert[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const getResellerId = useCallback((): string | null => {
+    if (resellerId) return resellerId;
+    const storedReseller = getStoredResellerId();
+    if (storedReseller) return storedReseller;
+    console.error('[ResellerAlerts] Reseller ID não encontrado no localStorage');
+    return null;
+  }, [resellerId]);
 
   const loadAlerts = useCallback(async () => {
     if (!supabase) {
@@ -60,17 +69,28 @@ export function useResellerAlerts(): UseResellerAlertsResult {
       return;
     }
 
+    const currentResellerId = getResellerId();
+    if (!currentResellerId) {
+      console.error('[ResellerAlerts] Cannot load alerts: reseller_id is missing');
+      setLoading(false);
+      setError('Reseller ID not found');
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
+      console.log('[ResellerAlerts] Loading alerts for reseller:', currentResellerId);
 
       const { data, error: fetchError } = await supabase
         .from('reseller_alerts')
         .select('*')
+        .eq('reseller_id', currentResellerId)
         .eq('is_active', true)
         .order('created_at', { ascending: false });
 
       if (fetchError) throw fetchError;
+      console.log('[ResellerAlerts] Loaded', (data || []).length, 'alerts for reseller:', currentResellerId);
       setAlerts((data as ResellerAlert[]) || []);
     } catch (err: any) {
       console.error('[ResellerAlerts] Error loading alerts:', err);
@@ -78,7 +98,7 @@ export function useResellerAlerts(): UseResellerAlertsResult {
     } finally {
       setLoading(false);
     }
-  }, [supabase]);
+  }, [supabase, getResellerId]);
 
   useEffect(() => {
     if (supabaseLoading) return;
@@ -89,11 +109,22 @@ export function useResellerAlerts(): UseResellerAlertsResult {
 
     loadAlerts();
 
+    const currentResellerId = getResellerId();
+    if (!currentResellerId) {
+      console.error('[ResellerAlerts] Cannot setup realtime: reseller_id is missing');
+      return;
+    }
+
     const channel = supabase
       .channel('reseller_alerts_changes')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'reseller_alerts' },
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'reseller_alerts',
+          filter: `reseller_id=eq.${currentResellerId}`
+        },
         () => loadAlerts()
       )
       .subscribe();
@@ -101,7 +132,7 @@ export function useResellerAlerts(): UseResellerAlertsResult {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [loadAlerts, supabase, supabaseLoading]);
+  }, [loadAlerts, supabase, supabaseLoading, getResellerId]);
 
   const checkExistingAlert = useCallback(async (
     resellerId: string,

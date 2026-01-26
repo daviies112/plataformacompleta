@@ -84,10 +84,38 @@ export default function Store() {
     return null;
   };
 
+  const ensureTableExists = async () => {
+    if (!supabase) return false;
+    
+    try {
+      const { error } = await supabase
+        .from('reseller_stores')
+        .select('id')
+        .limit(1);
+      
+      if (error?.code === '42P01') {
+        console.log('[Store] Table reseller_stores not found, will use localStorage fallback');
+        return false;
+      }
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
   const loadStoreConfiguration = async () => {
+    const resellerId = getResellerId();
+    console.log('[Store] Loading config for reseller:', resellerId);
+    
+    if (!resellerId) {
+      console.error('[Store] Cannot load store configuration: reseller_id is missing');
+      toast.error('Por favor, faça login novamente');
+      return;
+    }
+    
     if (!supabase) {
       console.log('[Store] Supabase not configured, using localStorage fallback');
-      const saved = localStorage.getItem('reseller_store_config');
+      const saved = localStorage.getItem(`reseller_store_config_${resellerId}`);
       if (saved) {
         const config = JSON.parse(saved);
         setStoreProducts(config.products || []);
@@ -99,12 +127,6 @@ export default function Store() {
     }
 
     try {
-      const resellerId = getResellerId();
-      if (!resellerId) {
-        console.error('[Store] Cannot load store configuration: reseller_id is missing');
-        toast.error('Por favor, faça login novamente');
-        return;
-      }
       console.log('[Store] Loading store configuration for reseller:', resellerId);
       
       // First, load the company name from settings or admin config
@@ -143,21 +165,35 @@ export default function Store() {
         .single();
 
       if (error && error.code !== 'PGRST116') {
-        if (error.code === 'PGRST205') {
-          console.log('[Store] Table reseller_stores not found, using empty store');
+        if (error.code === '42P01' || error.code === 'PGRST205' || error.message?.includes('does not exist')) {
+          console.log('[Store] Table reseller_stores not found, loading from localStorage');
+          const saved = localStorage.getItem(`reseller_store_config_${resellerId}`);
+          if (saved) {
+            const config = JSON.parse(saved);
+            if (config.product_ids?.length > 0) {
+              const { data: products } = await supabase
+                .from('products')
+                .select('*')
+                .in('id', config.product_ids);
+              setStoreProducts(products || []);
+            }
+            setIsPublished(config.is_published || false);
+            setStoreName(companyStoreName || config.store_name || '');
+            setStoreSlug(config.store_slug || '');
+          } else if (companyStoreName) {
+            setStoreName(companyStoreName);
+          }
         } else {
           console.error('[Store] Error loading store configuration:', error);
-        }
-        // Still set the company name if available
-        if (companyStoreName) {
-          setStoreName(companyStoreName);
+          if (companyStoreName) {
+            setStoreName(companyStoreName);
+          }
         }
         return;
       }
 
       if (data) {
         setIsPublished(data.is_published || false);
-        // Use company name from settings, fallback to store_name from record
         setStoreName(companyStoreName || data.store_name || '');
         setStoreSlug(data.store_slug || '');
         
@@ -177,20 +213,49 @@ export default function Store() {
         } else {
           setStoreProducts([]);
         }
+        localStorage.setItem(`reseller_store_config_${resellerId}`, JSON.stringify({
+          product_ids: data.product_ids,
+          is_published: data.is_published,
+          store_name: data.store_name,
+          store_slug: data.store_slug,
+        }));
       } else {
-        console.log('[Store] No store configuration found for reseller');
-        if (companyStoreName) {
+        console.log('[Store] No store configuration found for reseller, checking localStorage');
+        const saved = localStorage.getItem(`reseller_store_config_${resellerId}`);
+        if (saved) {
+          const config = JSON.parse(saved);
+          if (config.product_ids?.length > 0) {
+            const { data: products } = await supabase
+              .from('products')
+              .select('*')
+              .in('id', config.product_ids);
+            setStoreProducts(products || []);
+          }
+          setIsPublished(config.is_published || false);
+          setStoreName(companyStoreName || config.store_name || '');
+          setStoreSlug(config.store_slug || '');
+        } else if (companyStoreName) {
           setStoreName(companyStoreName);
         }
         setStoreProducts([]);
       }
     } catch (error) {
       console.error('[Store] Error loading store configuration:', error);
+      const saved = localStorage.getItem(`reseller_store_config_${resellerId}`);
+      if (saved) {
+        const config = JSON.parse(saved);
+        setStoreProducts(config.products || []);
+        setIsPublished(config.is_published || false);
+        setStoreName(config.store_name || '');
+        setStoreSlug(config.store_slug || '');
+      }
     }
   };
 
   const saveStoreConfiguration = async () => {
     setSaving(true);
+    const resellerId = getResellerId();
+    
     try {
       const slugRegex = /^[a-z0-9-]+$/;
       if (storeSlug && !slugRegex.test(storeSlug)) {
@@ -199,37 +264,34 @@ export default function Store() {
         return;
       }
 
-      if (!supabase) {
-        console.log('[Store] Supabase not configured, using localStorage fallback');
-        const config = {
-          products: storeProducts,
-          is_published: isPublished,
-          store_name: storeName,
-          store_slug: storeSlug,
-        };
-        localStorage.setItem('reseller_store_config', JSON.stringify(config));
-        toast.success('Configuração da loja salva localmente!');
-        setSaving(false);
-        return;
-      }
-
-      const resellerId = getResellerId();
       if (!resellerId) {
         console.error('[Store] Cannot save store configuration: reseller_id is missing');
         toast.error('Por favor, faça login novamente');
         setSaving(false);
         return;
       }
+
       const productIds = storeProducts.map(p => p.id);
+      const localConfig = {
+        product_ids: productIds,
+        products: storeProducts,
+        is_published: isPublished,
+        store_name: storeName,
+        store_slug: storeSlug,
+      };
       
+      localStorage.setItem(`reseller_store_config_${resellerId}`, JSON.stringify(localConfig));
+      console.log('[Store] Saved to localStorage for reseller:', resellerId);
+
+      if (!supabase) {
+        console.log('[Store] Supabase not configured, saved to localStorage only');
+        toast.success('Configuração da loja salva!');
+        setSaving(false);
+        return;
+      }
+
       console.log('[Store] Saving store configuration for reseller:', resellerId);
       console.log('[Store] Product IDs:', productIds);
-
-      const { data: existing } = await supabase
-        .from('reseller_stores')
-        .select('id')
-        .eq('reseller_id', resellerId)
-        .single();
 
       const storeData = {
         product_ids: productIds,
@@ -238,13 +300,26 @@ export default function Store() {
         store_slug: storeSlug || null,
       };
 
+      const { data: existing, error: existingError } = await supabase
+        .from('reseller_stores')
+        .select('id')
+        .eq('reseller_id', resellerId)
+        .single();
+
+      if (existingError?.code === '42P01' || existingError?.message?.includes('does not exist')) {
+        console.log('[Store] Table reseller_stores does not exist, saved to localStorage only');
+        toast.success('Configuração da loja salva!');
+        setSaving(false);
+        return;
+      }
+
       if (existing) {
         const { error } = await supabase
           .from('reseller_stores')
           .update(storeData as any)
           .eq('reseller_id', resellerId);
 
-        if (error) throw error;
+        if (error && !error.message?.includes('does not exist')) throw error;
       } else {
         const { error } = await supabase
           .from('reseller_stores')
@@ -253,7 +328,7 @@ export default function Store() {
             ...storeData
           } as any);
 
-        if (error) throw error;
+        if (error && !error.message?.includes('does not exist')) throw error;
       }
 
       console.log('[Store] Store configuration saved successfully');

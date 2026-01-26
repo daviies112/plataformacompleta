@@ -52,14 +52,19 @@ export function calculateDynamicCommission(
 /**
  * Obtém a configuração de comissões salva
  * 
+ * @param resellerId - ID do revendedor para isolar dados por tenant
  * @returns Configuração de comissões ou null se não existir
  */
-export function getCommissionConfig(): {
+export function getCommissionConfig(resellerId?: string): {
   use_dynamic_tiers: boolean;
   sales_tiers: SalesTier[];
 } | null {
   try {
-    const savedConfig = localStorage.getItem('commission_config');
+    const storageKey = resellerId 
+      ? `commission_config_${resellerId}` 
+      : 'commission_config';
+    console.log('[CommissionCalculator] Loading config from localStorage:', storageKey);
+    const savedConfig = localStorage.getItem(storageKey);
     if (savedConfig) {
       const config = JSON.parse(savedConfig);
       return {
@@ -68,10 +73,29 @@ export function getCommissionConfig(): {
       };
     }
   } catch (error) {
-    console.error('Erro ao carregar configuração de comissões:', error);
+    console.error('[CommissionCalculator] Erro ao carregar configuração de comissões:', error);
   }
   
   return null;
+}
+
+/**
+ * Salva a configuração de comissões
+ * 
+ * @param resellerId - ID do revendedor para isolar dados por tenant
+ * @param config - Configuração de comissões
+ */
+export function saveCommissionConfig(resellerId: string, config: {
+  use_dynamic_tiers: boolean;
+  sales_tiers: SalesTier[];
+}): void {
+  try {
+    const storageKey = `commission_config_${resellerId}`;
+    console.log('[CommissionCalculator] Saving config to localStorage:', storageKey);
+    localStorage.setItem(storageKey, JSON.stringify(config));
+  } catch (error) {
+    console.error('[CommissionCalculator] Erro ao salvar configuração de comissões:', error);
+  }
 }
 
 /**

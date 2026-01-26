@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { getResellerId as getStoredResellerId } from '@/features/revendedora/lib/resellerAuth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Search, Package, ClipboardList } from 'lucide-react';
@@ -57,21 +58,39 @@ export default function AdminProductRequests() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
+  const getResellerId = (): string | null => {
+    const storedReseller = getStoredResellerId();
+    if (storedReseller) return storedReseller;
+    console.error('[AdminProductRequests] Reseller ID não encontrado no localStorage');
+    return null;
+  };
+
   useEffect(() => {
     loadRequests();
   }, []);
 
   const loadRequests = async () => {
     try {
+      const resellerId = getResellerId();
+      if (!resellerId) {
+        console.error('[AdminProductRequests] Cannot load requests: reseller_id is missing');
+        toast.error('Por favor, faça login novamente');
+        setLoading(false);
+        return;
+      }
+      console.log('[AdminProductRequests] Loading product requests for reseller:', resellerId);
+
       const { data, error } = await supabase
         .from('product_requests')
         .select('*, reseller:reseller_id(*), product:product_id(*)')
+        .eq('reseller_id', resellerId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
+      console.log('[AdminProductRequests] Loaded', (data || []).length, 'requests for reseller:', resellerId);
       setRequests((data as unknown as ProductRequest[]) || []);
     } catch (error) {
-      console.error('Error loading product requests:', error);
+      console.error('[AdminProductRequests] Error loading product requests:', error);
       toast.error('Erro ao carregar solicitações de produtos');
     } finally {
       setLoading(false);
@@ -81,12 +100,22 @@ export default function AdminProductRequests() {
   const updateStatus = async (requestId: string, newStatus: string) => {
     setUpdatingId(requestId);
     try {
+      const resellerId = getResellerId();
+      if (!resellerId) {
+        console.error('[AdminProductRequests] Cannot update status: reseller_id is missing');
+        toast.error('Por favor, faça login novamente');
+        setUpdatingId(null);
+        return;
+      }
+
       const { error } = await supabase
         .from('product_requests')
         .update({ status: newStatus })
-        .eq('id', requestId);
+        .eq('id', requestId)
+        .eq('reseller_id', resellerId);
 
       if (error) throw error;
+      console.log('[AdminProductRequests] Updated status for request:', requestId, 'to:', newStatus);
 
       setRequests(prev =>
         prev.map(req =>
@@ -97,7 +126,7 @@ export default function AdminProductRequests() {
       const statusLabel = STATUS_OPTIONS.find(s => s.value === newStatus)?.label || newStatus;
       toast.success(`Status atualizado para: ${statusLabel}`);
     } catch (error) {
-      console.error('Error updating status:', error);
+      console.error('[AdminProductRequests] Error updating status:', error);
       toast.error('Erro ao atualizar status');
     } finally {
       setUpdatingId(null);

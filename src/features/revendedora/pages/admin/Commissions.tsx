@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { getResellerId as getStoredResellerId } from '@/features/revendedora/lib/resellerAuth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Wallet } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -17,21 +18,39 @@ export default function AdminCommissions() {
   const [commissions, setCommissions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const getResellerId = (): string | null => {
+    const storedReseller = getStoredResellerId();
+    if (storedReseller) return storedReseller;
+    console.error('[AdminCommissions] Reseller ID não encontrado no localStorage');
+    return null;
+  };
+
   useEffect(() => {
     loadCommissions();
   }, []);
 
   const loadCommissions = async () => {
     try {
+      const resellerId = getResellerId();
+      if (!resellerId) {
+        console.error('[AdminCommissions] Cannot load commissions: reseller_id is missing');
+        toast.error('Por favor, faça login novamente');
+        setLoading(false);
+        return;
+      }
+      console.log('[AdminCommissions] Loading commissions for reseller:', resellerId);
+
       const { data, error } = await supabase
         .from('commission_splits')
         .select('*')
+        .eq('reseller_id', resellerId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
+      console.log('[AdminCommissions] Loaded', (data || []).length, 'commissions for reseller:', resellerId);
       setCommissions(data || []);
     } catch (error) {
-      console.error('Error loading commissions:', error);
+      console.error('[AdminCommissions] Error loading commissions:', error);
       toast.error('Erro ao carregar comissões');
     } finally {
       setLoading(false);
