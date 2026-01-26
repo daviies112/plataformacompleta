@@ -42,6 +42,11 @@ ExecutiveAI Pro employs a modern web stack with a multi-tenant, API-driven archi
   - **Two Supabase Instances:**
     - Cliente (axrvyrpefpntacuibyds.supabase.co): contracts, forms, reseller data
     - Master (uniewwcpalbctkahdyxv.supabase.co): revendedoras table for login/registration
+  - **Data Isolation & Persistence:**
+    - All reseller-specific tables (reseller_stores, sales_with_split, etc.) MUST include a `reseller_id` column for multi-tenant isolation.
+    - Store configuration uses an `upsert` strategy on the `reseller_stores` table with `onConflict: 'reseller_id'` to prevent duplicates and ensure persistence.
+    - Local fallback: `localStorage` with prefix `reseller_store_config_${resellerId}` is used as a secondary cache.
+    - Global settings like `products` are shared across all resellers.
 - **CPF Validation:** Multi-tiered fallback system for data retrieval and compliance.
 - **WhatsApp Business:** Automated messaging integration.
 - **n8n Integration:** Allows tenants to generate API keys for custom automation workflows, especially for meeting creation.
