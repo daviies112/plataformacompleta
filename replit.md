@@ -36,9 +36,11 @@ ExecutiveAI Pro employs a modern web stack with a multi-tenant, API-driven archi
   - **Multi-Tenant Data Isolation:** All reseller data is isolated by `reseller_id`:
     - **Isolated Tables:** reseller_stores, reseller_profiles, reseller_alerts, sales_with_split, withdrawals, bank_accounts, orders, payment_links, product_requests, commission_splits, gamification_activities
     - **Shared Tables (no reseller_id):** products, gamification_badges, gamification_challenges, gamification_rewards, gamification_leagues, gamification_config, commission_config (global settings)
-  - **Dual Persistence Strategy:** Store configuration uses localStorage with reseller_id prefix + Supabase fallback
-    - localStorage keys: `reseller_store_config_${resellerId}`, `commission_config_${resellerId}`
-    - Automatic fallback when Supabase tables don't exist
+  - **Store Configuration Persistence:** Uses backend API with admin's service_role key for reliable Supabase access
+    - API endpoints: `GET/POST /api/reseller/store-config`
+    - Backend flow: getAuthenticatedReseller → getStoreSupabaseClient (gets admin credentials via Master) → upsert to reseller_stores
+    - Error codes: `TABLE_NOT_FOUND`, `SUPABASE_NOT_CONFIGURED`, `RESELLER_NOT_LINKED`, `ADMIN_CREDS_NOT_CONFIGURED`
+    - localStorage used as secondary cache only (prefix: `reseller_store_config_${resellerId}`)
   - **Two Supabase Instances:**
     - Cliente (axrvyrpefpntacuibyds.supabase.co): contracts, forms, reseller data
     - Master (uniewwcpalbctkahdyxv.supabase.co): revendedoras table for login/registration
