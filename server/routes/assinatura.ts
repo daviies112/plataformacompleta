@@ -107,13 +107,34 @@ async function createRevendedoraFromContract(contract: any): Promise<void> {
   }
 
   try {
-    // Usar Supabase Master com service_role_key para bypassar RLS
-    const { getSupabaseMasterForTenant } = await import('../lib/supabaseMaster.js');
+    // Usar supabaseOwner (configurado via SUPABASE_OWNER_URL/KEY) para acessar tabela revendedoras do Master
+    const { supabaseOwner, SUPABASE_CONFIGURED } = await import('../config/supabaseOwner.js');
     
-    // Primeiro, encontrar o tenant_id
-    let adminId = tenant_id || process.env.DEFAULT_ADMIN_ID || null;
+    if (!SUPABASE_CONFIGURED || !supabaseOwner) {
+      console.log('[NEXUS] supabaseOwner não configurado - pulando criação de revendedora');
+      return;
+    }
+    
+    // Encontrar o admin_id: primeiro tenta do contrato, depois busca no admin_supabase_credentials
+    let adminId = tenant_id || null;
     
     if (!adminId) {
+      // Buscar admin_id na tabela admin_supabase_credentials usando o supabaseOwner
+      console.log('[NEXUS] Buscando admin_id na tabela admin_supabase_credentials...');
+      const { data: adminCreds } = await supabaseOwner
+        .from('admin_supabase_credentials')
+        .select('admin_id')
+        .limit(1)
+        .single();
+      
+      if (adminCreds?.admin_id) {
+        adminId = adminCreds.admin_id;
+        console.log(`[NEXUS] Admin encontrado: ${adminId}`);
+      }
+    }
+    
+    if (!adminId) {
+      // Fallback: tentar via form_submission
       console.log('[NEXUS] Tentando encontrar tenant via form_submission...');
       adminId = await findTenantIdFromSubmission(client_email, client_cpf);
     }
@@ -123,17 +144,8 @@ async function createRevendedoraFromContract(contract: any): Promise<void> {
       return;
     }
 
-    // Obter cliente Supabase Master com service_role_key
-    let supabaseMaster;
-    try {
-      supabaseMaster = await getSupabaseMasterForTenant(adminId);
-    } catch (e) {
-      console.log('[NEXUS] Supabase Master não disponível - pulando criação de revendedora');
-      return;
-    }
-
-    // Verificar se já existe
-    const { data: existing, error: checkError } = await supabaseMaster
+    // Verificar se já existe na tabela revendedoras do Master
+    const { data: existing, error: checkError } = await supabaseOwner
       .from('revendedoras')
       .select('id')
       .or(`cpf.eq.${cpfNormalizado},email.eq.${client_email}`)
@@ -151,7 +163,8 @@ async function createRevendedoraFromContract(contract: any): Promise<void> {
 
     const senhaHash = crypto.createHash('sha256').update(cpfNormalizado).digest('hex');
     
-    const { data: revendedora, error: insertError } = await supabaseMaster
+    // Inserir na tabela revendedoras do Master
+    const { data: revendedora, error: insertError } = await supabaseOwner
       .from('revendedoras')
       .insert({
         admin_id: adminId,
