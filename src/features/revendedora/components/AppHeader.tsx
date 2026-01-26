@@ -30,16 +30,17 @@ interface AppHeaderProps {
   role?: string;
   companyName?: string;
   companyLogo?: string | null;
+  basePath?: string;
 }
 
-const adminItems = [
-  { title: 'Dashboard', url: '/produto/admin/dashboard', icon: LayoutDashboard },
-  { title: 'Produtos', url: '/produto/admin/products', icon: Package },
-  { title: 'Solicitações', url: '/produto/admin/product-requests', icon: ClipboardList },
-  { title: 'Revendedores', url: '/produto/admin/resellers', icon: Users },
-  { title: 'Configurar Comissões', url: '/produto/admin/commission-config', icon: Percent },
-  { title: 'Analytics', url: '/produto/admin/analytics', icon: BarChart3 },
-  { title: 'Personalização', url: '/produto/admin/branding', icon: Palette },
+const getAdminItems = (basePath: string) => [
+  { title: 'Dashboard', url: `${basePath}/dashboard`, icon: LayoutDashboard },
+  { title: 'Produtos', url: `${basePath}/products`, icon: Package },
+  { title: 'Solicitações', url: `${basePath}/product-requests`, icon: ClipboardList },
+  { title: 'Revendedores', url: `${basePath}/resellers`, icon: Users },
+  { title: 'Configurar Comissões', url: `${basePath}/commission-config`, icon: Percent },
+  { title: 'Analytics', url: `${basePath}/analytics`, icon: BarChart3 },
+  { title: 'Personalização', url: `${basePath}/branding`, icon: Palette },
 ];
 
 const resellerItems = [
@@ -57,9 +58,11 @@ export function AppHeader({
   role,
   companyName = 'UP Vendas',
   companyLogo,
+  basePath = '/produto/admin',
 }: AppHeaderProps) {
   const navigate = useNavigate();
   const location = useLocation();
+  const adminItems = getAdminItems(basePath);
   const items = type === 'admin' || role === 'admin' ? adminItems : resellerItems;
 
   const isActive = (url: string) => location.pathname === url || location.pathname.startsWith(url);
@@ -143,7 +146,7 @@ export function AppHeader({
 
         <div className="flex items-center gap-2">
           <NotificationBell />
-          <Button variant="ghost" size="sm" onClick={() => navigate(type === 'admin' || role === 'admin' ? '/produto' : '/revendedora')}>
+          <Button variant="ghost" size="sm" onClick={() => navigate(type === 'admin' || role === 'admin' ? (basePath === '/vendas' ? '/vendas' : '/produto') : '/revendedora')}>
             <Home className="h-4 w-4" />
           </Button>
         </div>

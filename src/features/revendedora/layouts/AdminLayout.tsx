@@ -5,9 +5,10 @@ import { useCompany } from '@/features/revendedora/contexts/CompanyContext';
 
 interface AdminLayoutProps {
   children: ReactNode;
+  basePath?: string;
 }
 
-export function AdminLayout({ children }: AdminLayoutProps) {
+export function AdminLayout({ children, basePath = '/produto/admin' }: AdminLayoutProps) {
   const { company } = useCompanyBranding();
   const { loading } = useCompany();
 
@@ -23,6 +24,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     <div className="min-h-screen flex flex-col">
       <AppHeader 
         type="admin"
+        basePath={basePath}
         companyName={company?.company_name}
         companyLogo={company?.logo_url}
       />

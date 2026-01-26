@@ -365,6 +365,164 @@ const DesktopApp = () => {
         } 
       />
       
+      {/* Vendas Routes - Plataforma de Vendas no Header Principal */}
+      <Route 
+        path="/vendas" 
+        element={
+          <ProtectedRoute>
+            <DesktopLayout>
+              <CompanyProvider>
+                <AdminLayout basePath="/vendas"><AdminDashboard /></AdminLayout>
+              </CompanyProvider>
+            </DesktopLayout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/vendas/dashboard" 
+        element={
+          <ProtectedRoute>
+            <DesktopLayout>
+              <CompanyProvider>
+                <AdminLayout basePath="/vendas"><AdminDashboard /></AdminLayout>
+              </CompanyProvider>
+            </DesktopLayout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/vendas/products" 
+        element={
+          <ProtectedRoute>
+            <DesktopLayout>
+              <CompanyProvider>
+                <AdminLayout basePath="/vendas"><AdminProducts /></AdminLayout>
+              </CompanyProvider>
+            </DesktopLayout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/vendas/orders" 
+        element={
+          <ProtectedRoute>
+            <DesktopLayout>
+              <CompanyProvider>
+                <AdminLayout basePath="/vendas"><AdminOrders /></AdminLayout>
+              </CompanyProvider>
+            </DesktopLayout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/vendas/resellers" 
+        element={
+          <ProtectedRoute>
+            <DesktopLayout>
+              <CompanyProvider>
+                <AdminLayout basePath="/vendas"><AdminResellers /></AdminLayout>
+              </CompanyProvider>
+            </DesktopLayout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/vendas/resellers/:id" 
+        element={
+          <ProtectedRoute>
+            <DesktopLayout>
+              <CompanyProvider>
+                <AdminLayout basePath="/vendas"><AdminResellerDetails /></AdminLayout>
+              </CompanyProvider>
+            </DesktopLayout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/vendas/commissions" 
+        element={
+          <ProtectedRoute>
+            <DesktopLayout>
+              <CompanyProvider>
+                <AdminLayout basePath="/vendas"><AdminCommissions /></AdminLayout>
+              </CompanyProvider>
+            </DesktopLayout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/vendas/commission-config" 
+        element={
+          <ProtectedRoute>
+            <DesktopLayout>
+              <CompanyProvider>
+                <AdminLayout basePath="/vendas"><AdminCommissionConfiguration /></AdminLayout>
+              </CompanyProvider>
+            </DesktopLayout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/vendas/product-requests" 
+        element={
+          <ProtectedRoute>
+            <DesktopLayout>
+              <CompanyProvider>
+                <AdminLayout basePath="/vendas"><AdminProductRequests /></AdminLayout>
+              </CompanyProvider>
+            </DesktopLayout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/vendas/analytics" 
+        element={
+          <ProtectedRoute>
+            <DesktopLayout>
+              <CompanyProvider>
+                <AdminLayout basePath="/vendas"><AdminAnalytics /></AdminLayout>
+              </CompanyProvider>
+            </DesktopLayout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/vendas/branding" 
+        element={
+          <ProtectedRoute>
+            <DesktopLayout>
+              <CompanyProvider>
+                <AdminLayout basePath="/vendas"><AdminBranding /></AdminLayout>
+              </CompanyProvider>
+            </DesktopLayout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/vendas/gamification" 
+        element={
+          <ProtectedRoute>
+            <DesktopLayout>
+              <CompanyProvider>
+                <AdminLayout basePath="/vendas"><AdminGamification /></AdminLayout>
+              </CompanyProvider>
+            </DesktopLayout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/vendas/settings" 
+        element={
+          <ProtectedRoute>
+            <DesktopLayout>
+              <CompanyProvider>
+                <AdminLayout basePath="/vendas"><AdminSettings /></AdminLayout>
+              </CompanyProvider>
+            </DesktopLayout>
+          </ProtectedRoute>
+        } 
+      />
+      
       <Route 
         path="/kanban" 
         element={
