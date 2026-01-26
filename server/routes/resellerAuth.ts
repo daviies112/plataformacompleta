@@ -1288,4 +1288,202 @@ router.post('/supabase-config/test', async (req: Request, res: Response) => {
   }
 });
 
+// ============================================================================
+// STORE CONFIGURATION ENDPOINTS - Saves to Supabase Cliente with service_role
+// ============================================================================
+
+// Helper to get Supabase client for store operations (uses service_role key)
+// Returns { client, adminId } or throws error with specific message
+async function getStoreSupabaseClient(userEmail: string): Promise<{ client: any, adminId: string }> {
+  const master = getMasterClient();
+  if (!master) {
+    console.log('[StoreConfig] Master client not available');
+    throw new Error('SUPABASE_NOT_CONFIGURED');
+  }
+
+  // Get admin_id from reseller
+  const { data: revendedora, error: revendedoraError } = await master
+    .from('revendedoras')
+    .select('admin_id')
+    .eq('email', userEmail)
+    .single();
+
+  if (revendedoraError || !revendedora?.admin_id) {
+    console.log('[StoreConfig] Reseller not linked to admin:', userEmail, revendedoraError?.message);
+    throw new Error('RESELLER_NOT_LINKED');
+  }
+
+  // Get admin credentials with service_role_key
+  const adminCreds = await getAdminCredentials(revendedora.admin_id);
+  if (!adminCreds?.supabase_url || !adminCreds?.supabase_service_key) {
+    console.log('[StoreConfig] Admin credentials not configured for:', revendedora.admin_id);
+    throw new Error('ADMIN_CREDS_NOT_CONFIGURED');
+  }
+
+  console.log('[StoreConfig] Using admin Supabase:', adminCreds.supabase_url.substring(0, 40) + '...');
+  
+  // Create client with service_role key (bypasses RLS)
+  const { createClient } = await import('@supabase/supabase-js');
+  return {
+    client: createClient(adminCreds.supabase_url, adminCreds.supabase_service_key),
+    adminId: revendedora.admin_id
+  };
+}
+
+// GET /api/reseller/store-config - Load store configuration from Supabase
+router.get('/store-config', async (req: Request, res: Response) => {
+  try {
+    const auth = await getAuthenticatedReseller(req);
+    if (!auth) {
+      return res.status(401).json({ error: 'Não autenticado' });
+    }
+
+    const resellerId = auth.userId;
+    console.log('[StoreConfig] Loading config for reseller:', resellerId);
+
+    try {
+      const { client: supabase } = await getStoreSupabaseClient(auth.email);
+      
+      const { data, error } = await supabase
+        .from('reseller_stores')
+        .select('*')
+        .eq('reseller_id', resellerId)
+        .maybeSingle();
+
+      if (error) {
+        // Table might not exist - check error code
+        if (error.code === '42P01' || error.message?.includes('does not exist')) {
+          console.log('[StoreConfig] Table reseller_stores does not exist in Supabase Cliente');
+          return res.status(503).json({ 
+            error: 'TABLE_NOT_FOUND',
+            message: 'A tabela reseller_stores não existe no Supabase. Execute o SQL de criação.'
+          });
+        }
+        throw error;
+      }
+
+      if (data) {
+        console.log('[StoreConfig] Found config in Supabase:', { 
+          resellerId, 
+          productCount: data.product_ids?.length || 0,
+          isPublished: data.is_published
+        });
+        return res.json({
+          success: true,
+          data: {
+            product_ids: data.product_ids || [],
+            is_published: data.is_published || false,
+            store_name: data.store_name || '',
+            store_slug: data.store_slug || ''
+          },
+          source: 'supabase'
+        });
+      }
+
+      console.log('[StoreConfig] No config found for reseller:', resellerId);
+      return res.json({ success: true, data: null, source: 'supabase' });
+
+    } catch (supabaseError: any) {
+      // Specific error codes for frontend to handle
+      if (supabaseError.message === 'SUPABASE_NOT_CONFIGURED') {
+        return res.status(503).json({ error: 'SUPABASE_NOT_CONFIGURED', message: 'Supabase Master não configurado' });
+      }
+      if (supabaseError.message === 'RESELLER_NOT_LINKED') {
+        return res.status(400).json({ error: 'RESELLER_NOT_LINKED', message: 'Revendedora não vinculada a um administrador' });
+      }
+      if (supabaseError.message === 'ADMIN_CREDS_NOT_CONFIGURED') {
+        return res.status(503).json({ error: 'ADMIN_CREDS_NOT_CONFIGURED', message: 'Credenciais do admin não configuradas' });
+      }
+      
+      console.error('[StoreConfig] Supabase error:', supabaseError.message);
+      return res.status(500).json({ error: 'SUPABASE_ERROR', message: supabaseError.message });
+    }
+
+  } catch (error: any) {
+    console.error('[StoreConfig] Error loading:', error);
+    res.status(500).json({ error: 'Erro ao carregar configuração: ' + error.message });
+  }
+});
+
+// POST /api/reseller/store-config - Save store configuration to Supabase
+router.post('/store-config', async (req: Request, res: Response) => {
+  try {
+    const auth = await getAuthenticatedReseller(req);
+    if (!auth) {
+      return res.status(401).json({ error: 'Não autenticado' });
+    }
+
+    const resellerId = auth.userId;
+    const { product_ids, is_published, store_name, store_slug } = req.body;
+
+    console.log('[StoreConfig] Saving config for reseller:', resellerId);
+    console.log('[StoreConfig] Data:', { 
+      productCount: product_ids?.length || 0, 
+      isPublished: is_published,
+      storeName: store_name
+    });
+
+    try {
+      const { client: supabase } = await getStoreSupabaseClient(auth.email);
+      
+      const storeData = {
+        reseller_id: resellerId,
+        product_ids: product_ids || [],
+        is_published: is_published || false,
+        store_name: store_name || '',
+        store_slug: store_slug || null,
+        updated_at: new Date().toISOString()
+      };
+
+      const { data, error } = await supabase
+        .from('reseller_stores')
+        .upsert(storeData, { 
+          onConflict: 'reseller_id',
+          ignoreDuplicates: false 
+        })
+        .select();
+
+      if (error) {
+        console.error('[StoreConfig] Supabase upsert error:', error);
+        
+        // Table might not exist
+        if (error.code === '42P01' || error.message?.includes('does not exist')) {
+          return res.status(503).json({ 
+            error: 'TABLE_NOT_FOUND',
+            message: 'A tabela reseller_stores não existe no Supabase. Execute o SQL de criação.'
+          });
+        }
+        throw error;
+      }
+
+      console.log('[StoreConfig] Saved to Supabase successfully');
+
+      return res.json({
+        success: true,
+        data: data?.[0] || storeData,
+        source: 'supabase'
+      });
+
+    } catch (supabaseError: any) {
+      // Specific error codes for frontend to handle
+      if (supabaseError.message === 'SUPABASE_NOT_CONFIGURED') {
+        return res.status(503).json({ error: 'SUPABASE_NOT_CONFIGURED', message: 'Supabase Master não configurado' });
+      }
+      if (supabaseError.message === 'RESELLER_NOT_LINKED') {
+        return res.status(400).json({ error: 'RESELLER_NOT_LINKED', message: 'Revendedora não vinculada a um administrador' });
+      }
+      if (supabaseError.message === 'ADMIN_CREDS_NOT_CONFIGURED') {
+        return res.status(503).json({ error: 'ADMIN_CREDS_NOT_CONFIGURED', message: 'Credenciais do admin não configuradas' });
+      }
+      
+      console.error('[StoreConfig] Supabase save error:', supabaseError.message);
+      return res.status(500).json({ error: 'SUPABASE_ERROR', message: supabaseError.message });
+    }
+
+  } catch (error: any) {
+    console.error('[StoreConfig] Error saving:', error);
+    res.status(500).json({ error: 'Erro ao salvar configuração: ' + error.message });
+  }
+});
+
 export default router;
