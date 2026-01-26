@@ -469,79 +469,81 @@ class AssinaturaSupabaseService {
     try {
       const globalConfig = await this.getGlobalConfig(tenantId);
       
-      // Valores padrão para colunas NOT NULL no Supabase
+      // IMPORTANTE: Usar APENAS colunas que existem na tabela contracts do Supabase
+      // Colunas existentes baseadas na estrutura real da tabela do usuário
       const contractData: any = {
-        client_name: contract.client_name,
-        client_cpf: contract.client_cpf || '', // NOT NULL no Supabase
-        client_email: contract.client_email || '', // NOT NULL no Supabase
-        client_phone: contract.client_phone || '', // NOT NULL no Supabase
-        // Campos de endereço - CRÍTICOS para impressão de código dos Correios
-        // Nota: address_neighborhood não existe na tabela do Supabase, usar apenas os campos existentes
+        // Campos obrigatórios (NOT NULL)
+        client_name: contract.client_name || '',
+        client_cpf: contract.client_cpf || '',
+        client_email: contract.client_email || '',
+        contract_html: contract.contract_html || '<p>Contrato pendente de configuração</p>',
+        
+        // Campos opcionais existentes na tabela
+        client_phone: contract.client_phone || null,
+        status: contract.status || 'sem preencher',
+        access_token: contract.access_token,
+        protocol_number: contract.protocol_number || `CONT-${Date.now()}`,
+        signature_url: contract.signature_url || null,
+        
+        // Campos de endereço
         address_street: contract.address_street || null,
         address_number: contract.address_number || null,
         address_complement: contract.address_complement || null,
         address_city: contract.address_city || null,
         address_state: contract.address_state || null,
         address_zipcode: contract.address_zipcode || null,
-        status: contract.status || 'pending',
-        access_token: contract.access_token,
-        protocol_number: contract.protocol_number || `CONT-${Date.now()}`,
-        contract_html: contract.contract_html || '<p>Contrato pendente de configuração</p>',
-        logo_url: contract.logo_url ?? globalConfig?.logo_url,
-        logo_size: contract.logo_size ?? globalConfig?.logo_size,
-        logo_position: contract.logo_position ?? globalConfig?.logo_position,
-        primary_color: contract.primary_color ?? globalConfig?.primary_color,
-        text_color: contract.text_color ?? globalConfig?.text_color,
-        font_family: contract.font_family ?? globalConfig?.font_family,
-        font_size: contract.font_size ?? globalConfig?.font_size,
-        company_name: contract.company_name ?? globalConfig?.company_name,
-        footer_text: contract.footer_text ?? globalConfig?.footer_text,
-        maleta_card_color: contract.maleta_card_color ?? globalConfig?.maleta_card_color,
-        maleta_button_color: contract.maleta_button_color ?? globalConfig?.maleta_button_color,
-        maleta_text_color: contract.maleta_text_color ?? globalConfig?.maleta_text_color,
-        verification_primary_color: contract.verification_primary_color ?? globalConfig?.verification_primary_color,
-        verification_text_color: contract.verification_text_color ?? globalConfig?.verification_text_color,
-        verification_font_family: contract.verification_font_family ?? globalConfig?.verification_font_family,
-        verification_font_size: contract.verification_font_size ?? globalConfig?.verification_font_size,
-        verification_logo_url: contract.verification_logo_url ?? globalConfig?.verification_logo_url,
-        verification_logo_size: contract.verification_logo_size ?? globalConfig?.verification_logo_size,
-        verification_logo_position: contract.verification_logo_position ?? globalConfig?.verification_logo_position,
-        verification_footer_text: contract.verification_footer_text ?? globalConfig?.verification_footer_text,
-        verification_welcome_text: contract.verification_welcome_text ?? globalConfig?.verification_welcome_text,
-        verification_instructions: contract.verification_instructions ?? globalConfig?.verification_instructions,
-        verification_security_text: contract.verification_security_text ?? globalConfig?.verification_security_text,
-        verification_background_color: contract.verification_background_color ?? globalConfig?.verification_background_color,
-        verification_header_background_color: contract.verification_header_background_color ?? globalConfig?.verification_header_background_color,
-        verification_header_company_name: contract.verification_header_company_name ?? globalConfig?.verification_header_company_name,
-        progress_card_color: contract.progress_card_color ?? globalConfig?.progress_card_color,
-        progress_button_color: contract.progress_button_color ?? globalConfig?.progress_button_color,
-        progress_text_color: contract.progress_text_color ?? globalConfig?.progress_text_color,
-        progress_title: contract.progress_title ?? globalConfig?.progress_title,
-        progress_subtitle: contract.progress_subtitle ?? globalConfig?.progress_subtitle,
-        progress_step1_title: contract.progress_step1_title ?? globalConfig?.progress_step1_title,
-        progress_step1_description: contract.progress_step1_description ?? globalConfig?.progress_step1_description,
-        progress_step2_title: contract.progress_step2_title ?? globalConfig?.progress_step2_title,
-        progress_step2_description: contract.progress_step2_description ?? globalConfig?.progress_step2_description,
-        progress_step3_title: contract.progress_step3_title ?? globalConfig?.progress_step3_title,
-        progress_step3_description: contract.progress_step3_description ?? globalConfig?.progress_step3_description,
-        progress_button_text: contract.progress_button_text ?? globalConfig?.progress_button_text,
-        progress_font_family: contract.progress_font_family ?? globalConfig?.progress_font_family,
-        parabens_title: contract.parabens_title ?? globalConfig?.parabens_title,
-        parabens_subtitle: contract.parabens_subtitle ?? globalConfig?.parabens_subtitle,
-        parabens_description: contract.parabens_description ?? globalConfig?.parabens_description,
-        parabens_card_color: contract.parabens_card_color ?? globalConfig?.parabens_card_color,
-        parabens_background_color: contract.parabens_background_color ?? globalConfig?.parabens_background_color,
-        parabens_button_color: contract.parabens_button_color ?? globalConfig?.parabens_button_color,
-        parabens_text_color: contract.parabens_text_color ?? globalConfig?.parabens_text_color,
-        parabens_font_family: contract.parabens_font_family ?? globalConfig?.parabens_font_family,
-        parabens_form_title: contract.parabens_form_title ?? globalConfig?.parabens_form_title,
-        parabens_button_text: contract.parabens_button_text ?? globalConfig?.parabens_button_text,
-        app_store_url: contract.app_store_url ?? globalConfig?.app_store_url,
-        google_play_url: contract.google_play_url ?? globalConfig?.google_play_url,
-        created_at: new Date().toISOString(),
-        // Campos para controle de envio WhatsApp via N8N
-        signature_url: contract.signature_url || null,
-        whatsapp_enviado: false // Começa como FALSE, N8N vai enviar WhatsApp
+        
+        // Customização visual (colunas que existem na tabela)
+        logo_url: contract.logo_url ?? globalConfig?.logo_url ?? null,
+        logo_size: contract.logo_size ?? globalConfig?.logo_size ?? null,
+        logo_position: contract.logo_position ?? globalConfig?.logo_position ?? null,
+        primary_color: contract.primary_color ?? globalConfig?.primary_color ?? null,
+        text_color: contract.text_color ?? globalConfig?.text_color ?? null,
+        font_family: contract.font_family ?? globalConfig?.font_family ?? null,
+        font_size: contract.font_size ?? globalConfig?.font_size ?? null,
+        company_name: contract.company_name ?? globalConfig?.company_name ?? null,
+        footer_text: contract.footer_text ?? globalConfig?.footer_text ?? null,
+        
+        // Verificação (apenas colunas que existem)
+        verification_primary_color: contract.verification_primary_color ?? globalConfig?.verification_primary_color ?? null,
+        verification_text_color: contract.verification_text_color ?? globalConfig?.verification_text_color ?? null,
+        verification_welcome_text: contract.verification_welcome_text ?? globalConfig?.verification_welcome_text ?? null,
+        verification_instructions: contract.verification_instructions ?? globalConfig?.verification_instructions ?? null,
+        verification_footer_text: contract.verification_footer_text ?? globalConfig?.verification_footer_text ?? null,
+        verification_security_text: contract.verification_security_text ?? globalConfig?.verification_security_text ?? null,
+        verification_header_company_name: contract.verification_header_company_name ?? globalConfig?.verification_header_company_name ?? null,
+        verification_header_background_color: contract.verification_header_background_color ?? globalConfig?.verification_header_background_color ?? null,
+        
+        // Progress (apenas colunas que existem)
+        progress_title: contract.progress_title ?? globalConfig?.progress_title ?? null,
+        progress_subtitle: contract.progress_subtitle ?? globalConfig?.progress_subtitle ?? null,
+        progress_step1_title: contract.progress_step1_title ?? globalConfig?.progress_step1_title ?? null,
+        progress_step1_description: contract.progress_step1_description ?? globalConfig?.progress_step1_description ?? null,
+        progress_step2_title: contract.progress_step2_title ?? globalConfig?.progress_step2_title ?? null,
+        progress_step2_description: contract.progress_step2_description ?? globalConfig?.progress_step2_description ?? null,
+        progress_step3_title: contract.progress_step3_title ?? globalConfig?.progress_step3_title ?? null,
+        progress_step3_description: contract.progress_step3_description ?? globalConfig?.progress_step3_description ?? null,
+        progress_card_color: contract.progress_card_color ?? globalConfig?.progress_card_color ?? null,
+        progress_button_color: contract.progress_button_color ?? globalConfig?.progress_button_color ?? null,
+        progress_text_color: contract.progress_text_color ?? globalConfig?.progress_text_color ?? null,
+        progress_font_family: contract.progress_font_family ?? globalConfig?.progress_font_family ?? null,
+        progress_button_text: contract.progress_button_text ?? globalConfig?.progress_button_text ?? null,
+        
+        // Parabéns (apenas colunas que existem)
+        parabens_title: contract.parabens_title ?? globalConfig?.parabens_title ?? null,
+        parabens_subtitle: contract.parabens_subtitle ?? globalConfig?.parabens_subtitle ?? null,
+        parabens_description: contract.parabens_description ?? globalConfig?.parabens_description ?? null,
+        parabens_button_text: contract.parabens_button_text ?? globalConfig?.parabens_button_text ?? null,
+        parabens_button_color: contract.parabens_button_color ?? globalConfig?.parabens_button_color ?? null,
+        parabens_card_color: contract.parabens_card_color ?? globalConfig?.parabens_card_color ?? null,
+        parabens_background_color: contract.parabens_background_color ?? globalConfig?.parabens_background_color ?? null,
+        
+        // Apps
+        app_store_url: contract.app_store_url ?? globalConfig?.app_store_url ?? null,
+        google_play_url: contract.google_play_url ?? globalConfig?.google_play_url ?? null,
+        
+        // WhatsApp
+        whatsapp_enviado: false
       };
       
       console.log('[AssinaturaSupabase] Creating contract in Supabase contracts table:', {
