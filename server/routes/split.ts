@@ -1195,4 +1195,95 @@ router.get('/recipient/:recipientId', async (req: Request, res: Response) => {
   }
 });
 
+router.get('/resellers-analytics', async (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+  
+  console.log('[Split] GET /resellers-analytics - Fetching real reseller data');
+  
+  try {
+    const supabase = getMasterSupabaseClient();
+    
+    if (!supabase) {
+      console.error('[Split] Supabase Owner not configured');
+      return res.status(500).json({
+        success: false,
+        error: 'Supabase Owner não configurado.',
+      });
+    }
+    
+    const resellersResult = await supabase
+      .from('revendedoras')
+      .select('*');
+    
+    if (resellersResult.error) {
+      console.error('[Split] Error fetching revendedoras:', resellersResult.error);
+      return res.status(500).json({
+        success: false,
+        error: 'Erro ao buscar revendedoras',
+      });
+    }
+    
+    let salesResult = await supabase
+      .from('vendas_revendedora')
+      .select('id, reseller_id, revendedora_id, total_amount, valor_total, reseller_amount, valor_revendedora, company_amount, valor_empresa, paid, pago, paid_at, data_pagamento, created_at');
+    
+    if (salesResult.error) {
+      console.log('[Split] vendas_revendedora not found, trying sales_with_split...');
+      salesResult = await supabase
+        .from('sales_with_split')
+        .select('id, reseller_id, total_amount, reseller_amount, company_amount, paid, paid_at, created_at');
+    }
+    
+    if (salesResult.error) {
+      console.log('[Split] No sales table found, returning resellers only');
+      salesResult = { data: [], error: null };
+    }
+    
+    const normalizedResellers = (resellersResult.data || []).map((r: any) => ({
+      id: r.id,
+      nome: r.nome || r.full_name || r.name || null,
+      full_name: r.full_name || r.nome || r.name || null,
+      email: r.email || null,
+      telefone: r.telefone || r.phone || null,
+      phone: r.phone || r.telefone || null,
+      nivel: r.nivel ?? r.level ?? 1,
+      level: r.level ?? r.nivel ?? 1,
+      is_active: r.is_active ?? true,
+      created_at: r.created_at || null,
+    }));
+    
+    const normalizedSales = (salesResult.data || [])
+      .map((sale: any) => {
+        const resellerId = sale.reseller_id || sale.revendedora_id;
+        if (!resellerId) return null;
+        
+        return {
+          id: sale.id,
+          reseller_id: resellerId,
+          total_amount: sale.total_amount || sale.valor_total || 0,
+          reseller_amount: sale.reseller_amount || sale.valor_revendedora || 0,
+          company_amount: sale.company_amount || sale.valor_empresa || 0,
+          paid: sale.paid ?? sale.pago ?? false,
+          paid_at: sale.paid_at || sale.data_pagamento || null,
+          created_at: sale.created_at || null,
+        };
+      })
+      .filter(Boolean);
+    
+    console.log(`[Split] Loaded ${normalizedResellers.length} resellers and ${normalizedSales.length} sales`);
+    
+    res.json({
+      success: true,
+      resellers: normalizedResellers,
+      sales: normalizedSales,
+    });
+  } catch (error: any) {
+    console.error('[Split] Error in resellers-analytics:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Erro interno ao buscar dados',
+    });
+  }
+});
+
 export default router;

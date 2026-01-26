@@ -1,7 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
-import { SupabaseClient } from '@supabase/supabase-js';
-import { useSupabase } from '@/features/revendedora/contexts/SupabaseContext';
-import { useAdminSupabase } from '@/features/revendedora/contexts/AdminSupabaseContext';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { apiRequest } from '@/lib/queryClient';
 
 interface ResellerSalesData {
   reseller_id: string;
@@ -47,6 +45,7 @@ interface Reseller {
   id: string;
   nome: string | null;
   full_name?: string | null;
+  name?: string | null;
   email: string | null;
   telefone: string | null;
   phone?: string | null;
@@ -75,81 +74,44 @@ const MONTH_NAMES = [
 ];
 
 export function useResellerAnalytics(): UseResellerAnalyticsResult {
-  const adminContext = useAdminSupabase();
-  const resellerContext = useSupabase();
-  
-  const adminReady = !adminContext.loading && adminContext.configured && adminContext.client;
-  const resellerReady = !resellerContext.loading && resellerContext.configured && resellerContext.client;
-  
-  const supabase = adminContext.client || resellerContext.client;
-  const supabaseLoading = adminContext.loading || resellerContext.loading;
-  const configured = adminReady || resellerReady;
-
-  
   const [resellers, setResellers] = useState<Reseller[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const loadData = async (client: SupabaseClient) => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const [resellersResult, salesResult] = await Promise.all([
-        client.from('resellers').select('*'),
-        client
-          .from('sales_with_split')
-          .select('id, reseller_id, total_amount, reseller_amount, company_amount, paid, paid_at, created_at')
-          .eq('paid', true)
-      ]);
+      console.log('[ResellerAnalytics] Fetching data from /api/split/resellers-analytics');
+      
+      const response = await fetch('/api/split/resellers-analytics');
+      const data = await response.json();
+      
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Erro ao buscar dados');
+      }
 
-      if (resellersResult.error) throw resellersResult.error;
-      if (salesResult.error) throw salesResult.error;
-
-      setResellers(resellersResult.data || []);
-      setSales(salesResult.data || []);
+      console.log(`[ResellerAnalytics] Loaded ${data.resellers?.length || 0} resellers and ${data.sales?.length || 0} sales`);
+      
+      setResellers(data.resellers || []);
+      setSales(data.sales || []);
     } catch (err: any) {
       console.error('[ResellerAnalytics] Error:', err);
       setError(err.message || 'Erro ao carregar dados');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    if (supabaseLoading) return;
-    if (!supabase || !configured) {
-      setLoading(false);
-      setError('Supabase not configured');
-      return;
-    }
-
-    loadData(supabase);
-
-    const salesChannel = supabase
-      .channel('reseller_sales_analytics')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'sales_with_split' },
-        () => loadData(supabase)
-      )
-      .subscribe();
-
-    const resellersChannel = supabase
-      .channel('resellers_analytics')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'resellers' },
-        () => loadData(supabase)
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(salesChannel);
-      supabase.removeChannel(resellersChannel);
-    };
-  }, [supabase, supabaseLoading, configured]);
+    loadData();
+    
+    const interval = setInterval(loadData, 60000);
+    
+    return () => clearInterval(interval);
+  }, [loadData]);
 
   const resellersData = useMemo(() => {
     const salesByReseller = new Map<string, Sale[]>();
@@ -167,9 +129,11 @@ export function useResellerAnalytics(): UseResellerAnalyticsResult {
     return resellers.map(reseller => {
       const resellerSales = salesByReseller.get(reseller.id) || [];
       
+      const paidSales = resellerSales.filter(s => s.paid === true);
+      
       const monthlyMap = new Map<string, MonthlyStats>();
       
-      resellerSales.forEach(sale => {
+      paidSales.forEach(sale => {
         const saleDate = new Date(sale.paid_at || sale.created_at || new Date());
         const monthKey = `${saleDate.getFullYear()}-${saleDate.getMonth()}`;
         
@@ -197,9 +161,9 @@ export function useResellerAnalytics(): UseResellerAnalyticsResult {
           return b.month_number - a.month_number;
         });
 
-      const totalSalesAmount = resellerSales.reduce((sum, s) => sum + (s.total_amount || 0), 0);
-      const totalResellerProfit = resellerSales.reduce((sum, s) => sum + (s.reseller_amount || 0), 0);
-      const totalCompanyProfit = resellerSales.reduce((sum, s) => sum + (s.company_amount || 0), 0);
+      const totalSalesAmount = paidSales.reduce((sum, s) => sum + (s.total_amount || 0), 0);
+      const totalResellerProfit = paidSales.reduce((sum, s) => sum + (s.reseller_amount || 0), 0);
+      const totalCompanyProfit = paidSales.reduce((sum, s) => sum + (s.company_amount || 0), 0);
 
       const currentMonthStats = monthlySales.find(
         m => m.year === currentYear && m.month_number === currentMonth
@@ -245,14 +209,16 @@ export function useResellerAnalytics(): UseResellerAnalyticsResult {
         hasSalesDrop = dropPercentage >= 30;
       }
 
+      const resellerName = reseller.full_name || reseller.name || reseller.nome || 'Sem nome';
+
       return {
         reseller_id: reseller.id,
-        reseller_name: reseller.full_name || reseller.nome || 'Sem nome',
+        reseller_name: resellerName,
         reseller_email: reseller.email || '',
         reseller_phone: reseller.phone || reseller.telefone || null,
         reseller_level: reseller.level ?? reseller.nivel ?? 1,
         is_active: reseller.is_active ?? true,
-        total_sales_count: resellerSales.length,
+        total_sales_count: paidSales.length,
         total_sales_amount: totalSalesAmount,
         total_reseller_profit: totalResellerProfit,
         total_company_profit: totalCompanyProfit,
@@ -282,7 +248,7 @@ export function useResellerAnalytics(): UseResellerAnalyticsResult {
 
   return {
     resellersData,
-    loading: loading || supabaseLoading,
+    loading,
     error,
     refetch: loadData,
     totals

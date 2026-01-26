@@ -43,7 +43,7 @@ ExecutiveAI Pro utilizes a modern web stack with a multi-tenant, API-driven arch
 - **Performance Optimizations:** Aggressive code splitting for public routes and heavy libraries, and dynamic imports for authentication-related modules to improve loading times. **Note:** Core routing components (PlatformRouter, RevendedoraApp) use static imports to avoid Suspense/lazy loading issues in development.
 - **Admin Supabase Context:** AdminSupabaseProvider fetches Supabase credentials via `/api/config/supabase/credentials` for admin pages. The `useResellerAnalytics` hook uses both AdminSupabaseContext and SupabaseContext to support data fetching in both admin and reseller contexts.
 - **Dynamic Branding System:** CompanyContext provides centralized branding synchronization from Supabase `companies` table to reseller dashboard. Colors, logo, and styling automatically update in real-time via realtime subscriptions and polling. The system applies CSS variables dynamically to theme the entire reseller interface.
-- **Platform Analytics:** Comprehensive analytics dashboard for admins showing platform-wide sales metrics, top resellers, commission distribution, monthly trends, and resellers at risk (30%+ sales drop detection).
+- **Platform Analytics:** Comprehensive analytics dashboard for admins showing platform-wide sales metrics, top resellers, commission distribution, monthly trends, and resellers at risk (30%+ sales drop detection). Data is fetched from Supabase Owner tables (`revendedoras`, `vendas_revendedora`) via `/api/split/resellers-analytics` endpoint using `SUPABASE_OWNER_SERVICE_KEY`.
 
 ## External Dependencies
 
