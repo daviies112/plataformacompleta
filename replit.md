@@ -40,7 +40,7 @@ ExecutiveAI Pro utilizes a modern web stack with a multi-tenant, API-driven arch
 - **Public Checkout System:** Allows unauthenticated customers to make purchases from public storefronts, ensuring security through server-side price validation.
 - **Wallet / Credit System:** A pre-paid credit system for services like CPF consultation and shipping, with atomic balance updates and webhook idempotency. This system activates only when Pagar.me credentials are configured.
 - **Pagar.me Split Payment:** Implements dynamic payment splitting between the platform and resellers based on monthly sales volume tiers. This requires both company and reseller Pagar.me recipient IDs to be configured.
-- **Performance Optimizations:** Aggressive code splitting for public routes and heavy libraries, and dynamic imports for authentication-related modules to improve loading times.
+- **Performance Optimizations:** Aggressive code splitting for public routes and heavy libraries, and dynamic imports for authentication-related modules to improve loading times. **Note:** Core routing components (PlatformRouter, RevendedoraApp) use static imports to avoid Suspense/lazy loading issues in development.
 - **Dynamic Branding System:** CompanyContext provides centralized branding synchronization from Supabase `companies` table to reseller dashboard. Colors, logo, and styling automatically update in real-time via realtime subscriptions and polling. The system applies CSS variables dynamically to theme the entire reseller interface.
 - **Platform Analytics:** Comprehensive analytics dashboard for admins showing platform-wide sales metrics, top resellers, commission distribution, monthly trends, and resellers at risk (30%+ sales drop detection).
 

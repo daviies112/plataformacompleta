@@ -7,12 +7,12 @@ import { Loader2 } from 'lucide-react';
 // Componentes principais - imports estáticos para evitar problemas de lazy loading em dev
 import DesktopApp from './desktop/DesktopApp';
 import MobileApp from './mobile/MobileApp';
+import RevendedoraApp from '@/features/revendedora/RevendedoraApp';
 
 // Rotas públicas - lazy loading para performance (carregam separadamente)
 const ReuniaoPublica = lazy(() => import('@/pages/ReuniaoPublica'));
 const FormularioPublicoWrapper = lazy(() => import('@/features/formularios-platform/pages/FormularioPublicoWrapper'));
 const ResellerApp = lazy(() => import('./reseller/ResellerApp'));
-const RevendedoraApp = lazy(() => import('@/features/revendedora/RevendedoraApp'));
 const PublicStore = lazy(() => import('@/features/revendedora/pages/public/PublicStore'));
 const PublicCheckout = lazy(() => import('@/features/revendedora/pages/public/PublicCheckout'));
 
@@ -102,12 +102,9 @@ const PlatformRouter = () => {
 
   // ===== NEXUS: Plataforma Revendedora =====
   // Se for rota de revendedora, renderizar RevendedoraApp diretamente (fora do DesktopApp/MobileApp)
+  // Import estático para evitar problemas de lazy loading em dev
   if (location.pathname.startsWith('/revendedora') || location.pathname.startsWith('/reseller') || location.pathname === '/reseller-login') {
-    return (
-      <Suspense fallback={<LoadingFallback />}>
-        <RevendedoraApp />
-      </Suspense>
-    );
+    return <RevendedoraApp />;
   }
 
   // Componentes principais não precisam de Suspense (imports estáticos)

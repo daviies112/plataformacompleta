@@ -99,15 +99,22 @@ function applyBrandingToCSS(branding: BrandingConfig) {
 }
 
 export function CompanyProvider({ children }: { children: ReactNode }) {
-  const { client: supabase, loading: supabaseLoading, configured } = useSupabase();
+  let supabaseContext: { client: any; loading: boolean; configured: boolean } = { client: null, loading: false, configured: false };
+  try {
+    supabaseContext = useSupabase();
+  } catch {
+    // SupabaseProvider not available, use defaults
+  }
+  const { client: supabase, loading: supabaseLoading, configured } = supabaseContext;
   const [reseller, setReseller] = useState<Reseller | null>(null);
   const [branding, setBranding] = useState<BrandingConfig>(DEFAULT_BRANDING);
   const [loading, setLoading] = useState(false);
-  const [brandingLoading, setBrandingLoading] = useState(true);
+  const [brandingLoading, setBrandingLoading] = useState(false);
 
   const fetchBrandingData = useCallback(async () => {
     if (!supabase || !configured) {
       console.log('[CompanyContext] Supabase not configured, using default branding');
+      applyBrandingToCSS(DEFAULT_BRANDING);
       setBrandingLoading(false);
       return;
     }
@@ -186,11 +193,15 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    if (supabaseLoading) return;
+    if (supabaseLoading) {
+      return;
+    }
     
     fetchBrandingData();
 
-    if (!supabase || !configured) return;
+    if (!supabase || !configured) {
+      return;
+    }
 
     const channel = supabase
       .channel('branding_updates')

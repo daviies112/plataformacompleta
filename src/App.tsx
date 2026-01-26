@@ -24,6 +24,10 @@ const FormLoader = () => (
   </div>
 );
 
+// Static imports for main components to avoid Suspense issues in development
+import PlatformRouter from './platforms/PlatformRouter';
+
+// Lazy loaded routes
 const AssinaturaClientPage = lazy(() => import('./pages/AssinaturaClientPage'));
 const ReuniaoPublica = lazy(() => import('./pages/ReuniaoPublica'));
 const FormularioPublicoWrapper = lazy(() => import('./features/formularios-platform/pages/FormularioPublicoWrapper'));
@@ -31,7 +35,6 @@ const PublicStore = lazy(() => import('./features/revendedora/pages/public/Publi
 const PublicCheckout = lazy(() => import('./features/revendedora/pages/public/PublicCheckout'));
 const LoginPage = lazy(() => import('./pages/Index'));
 const ResellerLogin = lazy(() => import('./platforms/reseller/pages/Login'));
-const PlatformRouter = lazy(() => import('./platforms/PlatformRouter'));
 
 const PublicRoutes = () => {
   const location = useLocation();
@@ -128,9 +131,7 @@ const AppRoutes = () => {
   return (
     <AuthProvider>
       <NotificationProvider>
-        <Suspense fallback={<LoadingFallback />}>
-          <PlatformRouter />
-        </Suspense>
+        <PlatformRouter />
         <InstallPWAButton />
       </NotificationProvider>
     </AuthProvider>
