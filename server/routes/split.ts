@@ -666,6 +666,75 @@ router.post('/test-order', async (req: Request, res: Response) => {
   }
 });
 
+router.post('/test-pix-no-split', async (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+  
+  console.log('[Split] POST /test-pix-no-split - Creating test PIX order WITHOUT split');
+  
+  try {
+    if (!pagarmeService.isConfigured()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Pagar.me não configurado.',
+      });
+    }
+    
+    const testAmount = req.body.amount || 100;
+    
+    const order = await pagarmeService.createPixOrder({
+      customer: {
+        name: 'Cliente Teste PIX',
+        email: 'teste.pix@example.com',
+        document: '12345678909',
+        document_type: 'CPF',
+        type: 'individual',
+        phones: {
+          mobile_phone: {
+            country_code: '55',
+            area_code: '11',
+            number: '999999999',
+          },
+        },
+      },
+      items: [
+        {
+          amount: testAmount,
+          description: 'Produto de teste - PIX sem split',
+          quantity: 1,
+          code: 'TEST_PIX',
+        },
+      ],
+      expiresIn: 3600,
+    });
+    
+    console.log('[Split] Test PIX order (no split) created successfully');
+    
+    const pixData = order.charges?.[0]?.last_transaction;
+    
+    res.json({
+      success: true,
+      orderId: order.id,
+      orderCode: order.code,
+      status: order.status,
+      amount: order.amount,
+      hasSplit: false,
+      pix: pixData ? {
+        qrCode: pixData.qr_code,
+        qrCodeUrl: pixData.qr_code_url,
+        expiresAt: pixData.expires_at,
+      } : null,
+      rawResponse: order,
+    });
+  } catch (error: any) {
+    console.error('[Split] Error creating test PIX order (no split):', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Erro interno ao criar pedido de teste',
+      details: error.message,
+    });
+  }
+});
+
 router.get('/recipient/:recipientId', async (req: Request, res: Response) => {
   if (!requireAdmin(req, res)) return;
   
