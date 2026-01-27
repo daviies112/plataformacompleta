@@ -1746,6 +1746,8 @@ export async function checkCompliance(
       return {
         id: newHistoryCheck.id,
         checkId: newHistoryCheck.id,
+        personName: personName || normalizedCachedPayload?._basic_data?.Result?.[0]?.BasicData?.Name || null,
+        personCpf: personCpf,
         status: cachedCheck.status as ComplianceStatus,
         riskScore: typeof riskScoreValue === 'number' ? riskScoreValue : parseFloat(riskScoreValue.toString()),
         fromCache: true,
@@ -1826,6 +1828,8 @@ export async function checkCompliance(
     return {
       id: cachedCheck.id,
       checkId: cachedCheck.id,
+      personName: cachedPersonNameFinal || normalizedCachedPayload?._basic_data?.Result?.[0]?.BasicData?.Name || null,
+      personCpf: cachedPersonCpf,
       status: cachedCheck.status as ComplianceStatus,
       riskScore: typeof riskScoreValue === 'number' ? riskScoreValue : parseFloat(riskScoreValue.toString()),
       fromCache: true,
@@ -1999,6 +2003,8 @@ export async function checkCompliance(
   return {
     id: newCheck.id,
     checkId: newCheck.id,
+    personName: personName || basicData?.Name || null,
+    personCpf: personCpf,
     status: riskAnalysis.status,
     riskScore: riskAnalysis.riskScore,
     fromCache: false,
@@ -2112,6 +2118,8 @@ export async function reprocessCheck(checkId: string, tenantId: string, userId?:
   return {
     id: existingCheck.id,
     checkId: existingCheck.id,
+    personName: existingCheckData.person_name || existingCheckData.personName || (existingCheck.payload as any)?._basic_data?.Result?.[0]?.BasicData?.Name || null,
+    personCpf: existingCheckData.person_cpf || existingCheckData.personCpf || null,
     status: riskAnalysis.status,
     riskScore: riskAnalysis.riskScore,
     fromCache: true,

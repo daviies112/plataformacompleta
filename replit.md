@@ -150,6 +150,7 @@ These routes use `requireAdmin` middleware and fetch from Tenant Supabase `produ
 
 | Date | Change |
 |------|--------|
+| 2026-01-27 | Added personName/personCpf to all checkCompliance return paths for proper name display |
 | 2026-01-27 | Fixed PDF download error - API now returns both `id` and `checkId` for compatibility |
 | 2026-01-27 | Fixed CPF history data persistence - payload now saved correctly with all 3 APIs |
 | 2026-01-27 | Fixed process count extraction in history (using correct path TotalLawsuits) |
