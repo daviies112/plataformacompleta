@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSupabase } from '@/features/revendedora/contexts/SupabaseContext';
-import { supabase as mainSupabaseClient } from '@/integrations/supabase/client';
+import { getSupabaseClient } from '@/integrations/supabase/client';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 export interface ProductInventoryMetrics {
   productId: string;
@@ -59,15 +60,36 @@ export function useInventoryForecasting(): UseInventoryForecastingReturn {
   const [resellers, setResellers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [mainClient, setMainClient] = useState<SupabaseClient | null>(null);
+
+  // Initialize main Supabase client asynchronously
+  useEffect(() => {
+    let mounted = true;
+    
+    async function initClient() {
+      try {
+        const client = await getSupabaseClient();
+        if (mounted && client) {
+          setMainClient(client);
+        }
+      } catch (err) {
+        console.error('[InventoryForecasting] Failed to init main client:', err);
+      }
+    }
+    
+    if (!contextClient) {
+      initClient();
+    }
+    
+    return () => { mounted = false; };
+  }, [contextClient]);
 
   // Use context client if available, otherwise use main client
-  const supabase = contextClient || mainSupabaseClient;
+  const supabase = contextClient || mainClient;
   const isReady = supabase !== null;
 
   const loadData = useCallback(async () => {
-    if (!isReady) {
-      setLoading(false);
-      setError('Supabase not configured');
+    if (!isReady || !supabase) {
       return;
     }
 
