@@ -12,17 +12,19 @@ Este documento consolida TODAS as informações necessárias para exportar o pro
 
 ### Estatísticas da Plataforma
 
-| Categoria | Quantidade |
-|-----------|------------|
-| Arquivos Backend (server/) | 142 arquivos .ts |
-| Arquivos Frontend (src/) | 904 arquivos .tsx/.ts |
-| Endpoints de API | 269 |
-| Tabelas Supabase | 68 (9 Owner + 59 Tenant) |
-| Variáveis de Ambiente | 106 |
-| Integrações Externas | 11 |
-| Automações/Pollers | 9 |
-| Arquivos de Dados Persistentes | 10 |
-| Documentos de Referência | 20 |
+| Categoria | Quantidade | Fonte Autoritativa |
+|-----------|------------|-------------------|
+| Arquivos Backend (server/) | 142 arquivos .ts | - |
+| Arquivos Frontend (src/) | 904 arquivos .tsx/.ts | - |
+| Endpoints de API | 269 | `data/audit/api_routes.json` |
+| Tabelas Supabase | 68 (9 Owner + 59 Tenant) | `data/audit/supabase_tables.json` |
+| Variáveis de Ambiente | 106 | `data/audit/environment_vars.json` |
+| Integrações Externas | 11 | `data/audit/integrations.json` |
+| Automações/Pollers | 28 (9 pollers + 19 jobs) | `data/audit/automations.json` |
+| Arquivos de Dados Persistentes | 10 | `data/audit/data_files.json` |
+| Documentos de Referência | 20 | `docs/` |
+
+> **IMPORTANTE:** Os arquivos em `data/audit/` contêm a lista completa e autoritativa de cada categoria. Este documento resume os pontos críticos, mas para reconstrução 100%, consulte os arquivos de auditoria.
 
 ---
 
@@ -103,8 +105,20 @@ grep -n "closed: true" server/services/pagarme.ts
 | `server/lib/cpfCompliancePoller.ts` | Poller de CPF | SIM |
 | `server/lib/contractSyncPoller.ts` | Sincroniza contratos | SIM |
 | `server/config/supabaseOwner.ts` | Config Supabase Owner | SIM |
-| `server/index.ts` | Entry point | SIM |
+| `server/index.ts` | Entry point principal | SIM |
 | `server/routes.ts` | Registro de rotas | SIM |
+| `server/routes/auth.ts` | Autenticação admin | SIM |
+| `server/routes/resellerAuth.ts` | Autenticação revendedoras | SIM |
+| `server/lib/multiTenantAuth.ts` | Middleware multi-tenant | SIM |
+| `server/lib/multiTenantSupabase.ts` | Supabase multi-tenant | SIM |
+| `server/lib/walletService.ts` | Sistema de carteira | SIM |
+| `server/routes/wallet.ts` | Rotas de carteira | SIM |
+| `server/lib/NotificationService.ts` | Notificações | SIM |
+| `server/lib/queue.ts` | Sistema de filas | SIM |
+| `server/storage.ts` | Interface de storage | SIM |
+| `server/db.ts` | Conexão Drizzle ORM | SIM |
+
+> **NOTA:** Para lista completa de todos os 142 arquivos backend, exportar todo o diretório `server/` é obrigatório.
 
 ### 2.2 Frontend (src/)
 
@@ -352,15 +366,27 @@ Ver arquivos em `docs/`:
 
 ### 7.2 Após Importar
 
-- [ ] Configurar secrets no novo ambiente
-- [ ] Restaurar `data/supabase-config.json`
+**Fase 1: Configuração Básica**
+- [ ] Configurar secrets no novo ambiente (ver Seção 3)
+- [ ] Restaurar `data/supabase-config.json` (CRÍTICO!)
+- [ ] Restaurar `data/credentials.json` (CRÍTICO!)
 - [ ] Executar `npm install`
 - [ ] Executar `npm run dev`
 - [ ] Verificar logs (sem erros críticos)
-- [ ] Testar login admin
-- [ ] Testar login revendedora
-- [ ] Testar pagamento PIX
-- [ ] Testar consulta CPF
+
+**Fase 2: Verificar Conexões Supabase**
+- [ ] Verificar `SUPABASE_OWNER_URL` aponta para o projeto correto
+- [ ] Verificar `SUPABASE_OWNER_SERVICE_KEY` é válido
+- [ ] Testar query: `GET /api/supabase/check-connection` deve retornar `{ connected: true }`
+- [ ] Se usar Master: verificar `SUPABASE_MASTER_URL` e `SUPABASE_MASTER_SERVICE_ROLE_KEY`
+- [ ] Verificar `data/supabase-config.json` contém credenciais do Tenant corretas
+
+**Fase 3: Testes Funcionais**
+- [ ] Testar login admin (usa Owner Supabase)
+- [ ] Testar login revendedora (usa Owner Supabase, tabela `revendedoras`)
+- [ ] Testar pagamento PIX (usa Pagar.me, verificar `closed: true`)
+- [ ] Testar consulta CPF (usa BigDataCorp, verificar Master Supabase)
+- [ ] Testar solicitação de produtos (usa Tenant Supabase)
 
 ### 7.3 Verificação de Integridade
 
@@ -432,6 +458,30 @@ re_cmkn7cdx110b10l9tp8yk0j92
 1. Verificar tabela `product_requests` no Tenant
 2. Verificar rota `/api/split/product-requests`
 3. Verificar conexão Tenant Supabase
+
+### 9.5 Erro de conexão Supabase após importação
+
+1. Verificar `data/supabase-config.json` foi restaurado
+2. Verificar formato do JSON está correto:
+```json
+{
+  "url": "https://xxx.supabase.co",
+  "anonKey": "eyJxxx",
+  "serviceKey": "eyJxxx"
+}
+```
+3. Verificar `data/credentials.json` foi restaurado
+4. Verificar secrets `SUPABASE_OWNER_URL` e `SUPABASE_OWNER_SERVICE_KEY`
+5. Testar conexão: `curl http://localhost:5000/api/supabase/check-connection`
+6. Se erro "relation not found": criar tabelas no Supabase (ver docs/SQL_*.sql)
+
+### 9.6 Login de admin/revendedora falha
+
+1. Verificar Owner Supabase está configurado
+2. Verificar tabela `admins` existe no Owner
+3. Verificar tabela `revendedoras` existe no Owner
+4. Verificar `SESSION_SECRET` está configurado
+5. Limpar cookies do navegador
 
 ---
 
