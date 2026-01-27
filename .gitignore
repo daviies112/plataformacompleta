@@ -1,0 +1,57 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+
+# Environment files (NUNCA commitar)
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+/tmp/logs/
+
+# Testing
+coverage/
+
+# Cache
+.cache/
+.parcel-cache/
+
+# Replit
+.replit.nix
+
+# TypeScript
+*.tsbuildinfo
+
+# Temporary files
+*.tmp
+*.temp
+
+# IMPORTANTE: Arquivos de dados sensíveis
+# Os arquivos em data/ contêm credenciais e devem ser tratados com cuidado
+# NÃO adicione data/ ao gitignore se precisar preservar configurações
+# data/credentials.json - Credenciais criptografadas
+# data/supabase-config.json - Configuração do Supabase

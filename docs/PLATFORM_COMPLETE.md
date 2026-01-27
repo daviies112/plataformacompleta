@@ -42,7 +42,7 @@
 |---------|------------|
 | Tabelas Supabase | 68 (9 Owner + 59 Tenant) |
 | Endpoints API | 287 |
-| Variáveis de Ambiente | 67 |
+| Variáveis de Ambiente | 106 |
 | Integrações Externas | 11 |
 | Processos Automáticos | 28 |
 | Páginas Frontend | 109+ |
@@ -141,6 +141,76 @@
 | `SENTRY_DSN` | Monitoring | Sentry error tracking |
 | `N8N_WEBHOOK_URL` | Automação | Webhooks n8n |
 
+### WhatsApp/Evolution API
+
+| Variável | Categoria | Descrição |
+|----------|-----------|-----------|
+| `EVOLUTION_API_URL` | Evolution | URL da API Evolution |
+| `EVOLUTION_API_KEY` | Evolution | Chave de API |
+| `EVOLUTION_INSTANCE` | Evolution | Nome da instância |
+| `API_KEY_EVOLUTION` | Evolution | Chave alternativa |
+| `URL_EVOLUTION` | Evolution | URL alternativa |
+| `NOME_DA_INSTANCIA` | Evolution | Nome da instância (legado) |
+
+### Email (Resend)
+
+| Variável | Categoria | Descrição |
+|----------|-----------|-----------|
+| `RESEND_API_KEY` | Resend | API key do Resend |
+| `RESEND_FROM_EMAIL` | Resend | Email de origem |
+| `ALERT_EMAIL` | Alertas | Email para alertas |
+
+### Push Notifications (Firebase/VAPID)
+
+| Variável | Categoria | Descrição |
+|----------|-----------|-----------|
+| `FIREBASE_PROJECT_ID` | Firebase | ID do projeto |
+| `FIREBASE_CLIENT_EMAIL` | Firebase | Email do service account |
+| `FIREBASE_PRIVATE_KEY` | Firebase | Chave privada |
+| `VAPID_PUBLIC_KEY` | VAPID | Chave pública push |
+| `VAPID_PRIVATE_KEY` | VAPID | Chave privada push |
+
+### Automação (Configuração)
+
+| Variável | Categoria | Descrição |
+|----------|-----------|-----------|
+| `AUTOMATION_PROCESSING_ENABLED` | Automação | Habilitar processamento |
+| `AUTOMATION_PERSIST_STATE` | Automação | Persistir estado |
+| `AUTOMATION_MAX_RETRIES` | Automação | Tentativas máximas |
+| `AUTOMATION_RETRY_DELAY_SECONDS` | Automação | Delay entre tentativas |
+| `FORM_SYNC_ENABLED` | Sync | Habilitar sync forms |
+| `FORM_SYNC_INTERVAL_MINUTES` | Sync | Intervalo de sync (min) |
+| `CPF_SYNC_ENABLED` | Sync | Habilitar sync CPF |
+| `CPF_SYNC_INTERVAL_MINUTES` | Sync | Intervalo CPF (min) |
+| `CLIENT_DETECTION_INTERVAL_MINUTES` | Sync | Intervalo detecção |
+
+### Monitoring (Better Stack/Sentry)
+
+| Variável | Categoria | Descrição |
+|----------|-----------|-----------|
+| `BETTER_STACK_URL` | Better Stack | URL do Better Stack |
+| `BETTER_STACK_SOURCE_TOKEN` | Better Stack | Token de fonte |
+| `SENTRY_DSN` | Sentry | DSN do Sentry |
+| `SENTRY_ENABLE_DEV` | Sentry | Habilitar em dev |
+| `LOG_LEVEL` | Logging | Nível de log |
+
+### Outras
+
+| Variável | Categoria | Descrição |
+|----------|-----------|-----------|
+| `APP_URL` | Geral | URL da aplicação |
+| `API_URL` | Geral | URL base da API |
+| `ICAL_URL` | Calendário | URL iCal para reuniões |
+| `DEFAULT_TENANT_ID` | Multi-tenant | ID tenant padrão |
+| `DEV_SUPABASE_FALLBACK` | Dev | Fallback Supabase dev |
+| `ENCRYPTION_KEY` | Segurança | Chave criptografia legada |
+| `N8N_API_KEY` | n8n | API key n8n |
+| `N8N_ALERT_WEBHOOK_URL` | n8n | Webhook alertas |
+| `PLUGGY_CLIENT_ID` | Pluggy | Open banking ID |
+| `PLUGGY_CLIENT_SECRET` | Pluggy | Open banking secret |
+| `TOTAL_EXPRESS_WEBHOOK_SECRET` | Total Express | Secret webhook |
+
+> **Total: 106 variáveis de ambiente mapeadas**
 > **Arquivo completo:** `/data/audit/environment_vars.json`
 
 ---

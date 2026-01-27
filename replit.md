@@ -97,7 +97,7 @@ For a comprehensive and exhaustive documentation of the entire platform, see:
 **`docs/PLATFORM_COMPLETE.md`** - Master document with:
 - All 68 Supabase tables (9 Owner + 59 Tenant)
 - All 287 API endpoints
-- All 67 environment variables
+- All 106 environment variables
 - All 11 external integrations
 - All 28 automated processes
 - All 109+ frontend pages
