@@ -86,3 +86,74 @@ ExecutiveAI Pro utilizes a modern web stack with a multi-tenant, API-driven arch
 - **Pagar.me:** Brazilian payment gateway for PIX and credit card payments, supporting payment splitting and tokenization.
 - **Shipping Carrier APIs:** Correios, Jadlog, Loggi, Azul Cargo, Total Express for freight quotation and tracking services.
 - **OpenAI API:** Used for AI-powered address extraction in residence proof validation (if configured).
+- **BigDataCorp API:** CPF/CNPJ consultation for compliance and credit analysis.
+- **Sentry:** Error monitoring and tracking.
+- **Redis/Upstash:** Optional caching layer.
+
+## Complete Platform Documentation
+
+For a comprehensive and exhaustive documentation of the entire platform, see:
+
+**`docs/PLATFORM_COMPLETE.md`** - Master document with:
+- All 68 Supabase tables (9 Owner + 59 Tenant)
+- All 287 API endpoints
+- All 67 environment variables
+- All 11 external integrations
+- All 28 automated processes
+- All 109+ frontend pages
+- Export/import guides
+- Troubleshooting section
+
+## Audit Files
+
+Detailed JSON audits are available in `/data/audit/`:
+
+| File | Description |
+|------|-------------|
+| `api_routes.json` | 287 endpoints with auth types |
+| `automations.json` | 28 pollers and background jobs |
+| `data_files.json` | 14 persistent data files |
+| `environment_vars.json` | 67 environment variables |
+| `frontend_structure.json` | 109+ pages and components |
+| `integrations.json` | 11 external integrations |
+| `supabase_tables.json` | 68 tables with field definitions |
+
+## Key Admin Routes
+
+| Route | Description |
+|-------|-------------|
+| `/vendas/dashboard` | Sales overview |
+| `/vendas/products` | Product management |
+| `/vendas/product-requests` | Reseller product requests |
+| `/vendas/resellers` | Reseller management |
+| `/vendas/commission-config` | Commission tier configuration |
+| `/vendas/bank-data` | Bank account management |
+| `/vendas/analytics` | Platform analytics |
+
+## Reseller Authentication
+
+Resellers authenticate via `/api/reseller/auth/login` with:
+- Email
+- CPF (11 digits)
+
+The system checks the `revendedoras` table in Owner Supabase and issues a JWT token.
+
+## Product Requests System
+
+Admin views reseller product requests via:
+- **GET** `/api/split/product-requests` - List all requests
+- **PATCH** `/api/split/product-requests/:id` - Update status
+
+These routes use `requireAdmin` middleware and fetch from Tenant Supabase `product_requests` table.
+
+## Recent Changes Log
+
+| Date | Change |
+|------|--------|
+| 2026-01-27 | Fixed product requests admin route (was using reseller auth) |
+| 2026-01-27 | Created comprehensive platform audit documentation |
+| 2026-01-27 | Fixed stock forecasting infinite loading |
+
+---
+
+**Last Updated:** 2026-01-27
