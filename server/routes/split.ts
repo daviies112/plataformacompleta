@@ -1484,4 +1484,113 @@ function getDefaultTiers() {
   ];
 }
 
+// GET /api/split/product-requests - List all product requests for admin
+router.get('/product-requests', async (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+  
+  console.log('[Split] GET /product-requests - Loading product requests for admin');
+  
+  try {
+    const fs = await import('fs');
+    const path = await import('path');
+    const configPath = path.join(process.cwd(), 'data', 'supabase-config.json');
+    
+    if (!fs.existsSync(configPath)) {
+      console.log('[Split] No tenant config file');
+      return res.json({ success: true, data: [] });
+    }
+    
+    const configData = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+    const tenantClient = createClient(configData.url, configData.serviceKey);
+    
+    // Fetch all product requests
+    const { data: requests, error } = await tenantClient
+      .from('product_requests')
+      .select('*, product:product_id(id, description, reference, image)')
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      if (error.code === '42P01') {
+        console.log('[Split] product_requests table does not exist');
+        return res.json({ success: true, data: [] });
+      }
+      throw error;
+    }
+    
+    console.log('[Split] Found', requests?.length || 0, 'product requests');
+    
+    // Get reseller info from Owner Supabase
+    const supabaseOwner = getMasterSupabaseClient();
+    const resellerIds = [...new Set((requests || []).map(r => r.reseller_id))];
+    let resellersMap: Record<string, any> = {};
+    
+    if (supabaseOwner && resellerIds.length > 0) {
+      const { data: resellers } = await supabaseOwner
+        .from('revendedoras')
+        .select('id, nome, email')
+        .in('id', resellerIds);
+      
+      resellersMap = (resellers || []).reduce((acc, r) => {
+        acc[r.id] = r;
+        return acc;
+      }, {} as Record<string, any>);
+    }
+    
+    // Combine data
+    const enrichedData = (requests || []).map(request => ({
+      ...request,
+      reseller: resellersMap[request.reseller_id] || null
+    }));
+    
+    res.json({ success: true, data: enrichedData });
+    
+  } catch (error: any) {
+    console.error('[Split] Error loading product requests:', error);
+    res.status(500).json({ success: false, error: error.message || 'Erro ao carregar solicitações' });
+  }
+});
+
+// PATCH /api/split/product-requests/:id - Update product request status
+router.patch('/product-requests/:id', async (req: Request, res: Response) => {
+  if (!requireAdmin(req, res)) return;
+  
+  const { id } = req.params;
+  const { status } = req.body;
+  
+  console.log('[Split] PATCH /product-requests/:id - Updating status for', id);
+  
+  if (!status) {
+    return res.status(400).json({ success: false, error: 'Status é obrigatório' });
+  }
+  
+  try {
+    const fs = await import('fs');
+    const path = await import('path');
+    const configPath = path.join(process.cwd(), 'data', 'supabase-config.json');
+    
+    if (!fs.existsSync(configPath)) {
+      return res.status(400).json({ success: false, error: 'Configuração não encontrada' });
+    }
+    
+    const configData = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+    const tenantClient = createClient(configData.url, configData.serviceKey);
+    
+    const { data, error } = await tenantClient
+      .from('product_requests')
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    
+    console.log('[Split] Updated product request status:', id, '->', status);
+    res.json({ success: true, data });
+    
+  } catch (error: any) {
+    console.error('[Split] Error updating product request:', error);
+    res.status(500).json({ success: false, error: error.message || 'Erro ao atualizar status' });
+  }
+});
+
 export default router;

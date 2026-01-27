@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { resellerFetch } from '@/features/revendedora/lib/resellerAuth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Search, Package, ClipboardList } from 'lucide-react';
@@ -65,7 +64,9 @@ export default function AdminProductRequests() {
     try {
       console.log('[AdminProductRequests] Loading ALL product requests via API');
 
-      const response = await resellerFetch('/api/reseller/admin/product-requests');
+      const response = await fetch('/api/split/product-requests', {
+        credentials: 'include'
+      });
       console.log('[AdminProductRequests] Response status:', response.status);
       
       const result = await response.json();
@@ -88,8 +89,9 @@ export default function AdminProductRequests() {
   const updateStatus = async (requestId: string, newStatus: string) => {
     setUpdatingId(requestId);
     try {
-      const response = await resellerFetch(`/api/reseller/admin/product-requests/${requestId}`, {
+      const response = await fetch(`/api/split/product-requests/${requestId}`, {
         method: 'PATCH',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus })
       });
