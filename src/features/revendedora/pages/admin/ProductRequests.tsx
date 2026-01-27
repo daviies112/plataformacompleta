@@ -66,7 +66,10 @@ export default function AdminProductRequests() {
       console.log('[AdminProductRequests] Loading ALL product requests via API');
 
       const response = await resellerFetch('/api/reseller/admin/product-requests');
+      console.log('[AdminProductRequests] Response status:', response.status);
+      
       const result = await response.json();
+      console.log('[AdminProductRequests] Response body:', result);
 
       if (!response.ok) {
         throw new Error(result.error || 'Erro ao carregar solicitações');

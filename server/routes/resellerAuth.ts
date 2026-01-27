@@ -2105,6 +2105,7 @@ router.get('/admin/product-requests', resellerAuthMiddleware, async (req, res) =
     }
 
     const tenantClient = createTenantClient(adminCreds);
+    console.log('[ProductRequest Admin] Fetching product_requests from tenant...');
 
     // Admin vê TODAS as solicitações (sem filtro de reseller_id)
     const { data, error } = await tenantClient
@@ -2112,7 +2113,14 @@ router.get('/admin/product-requests', resellerAuthMiddleware, async (req, res) =
       .select('*, product:product_id(id, description, reference, image)')
       .order('created_at', { ascending: false });
 
+    console.log('[ProductRequest Admin] Query result:', { 
+      count: data?.length || 0, 
+      error: error?.message || null,
+      errorCode: error?.code || null
+    });
+
     if (error) {
+      console.error('[ProductRequest Admin] Query error:', error);
       if (error.code === '42P01') {
         return res.json({ success: true, data: [] });
       }
