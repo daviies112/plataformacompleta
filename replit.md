@@ -150,6 +150,9 @@ These routes use `requireAdmin` middleware and fetch from Tenant Supabase `produ
 
 | Date | Change |
 |------|--------|
+| 2026-01-27 | Fixed CPF history data persistence - payload now saved correctly with all 3 APIs |
+| 2026-01-27 | Fixed process count extraction in history (using correct path TotalLawsuits) |
+| 2026-01-27 | Fixed history merge logic - prioritizes full datacorp_checks records over summaries |
 | 2026-01-27 | Fixed BigDataCorp field mapping (TotalProcesses→TotalLawsuits, ProcessList→Lawsuits) |
 | 2026-01-27 | Added normalization for party fields (PartyType→Type, PartyCategory→Polarity) |
 | 2026-01-27 | Added debug logging in bigdatacorpClient.ts for API response tracking |
