@@ -67,3 +67,37 @@ ExecutiveAI Pro utilizes a modern web stack with a multi-tenant, API-driven arch
 - **BigDataCorp API:** CPF/CNPJ consultation for compliance and credit analysis.
 - **Sentry:** Error monitoring and tracking.
 - **Redis/Upstash:** Optional caching layer.
+
+## Documentação Crítica para Exportação
+
+### Documento Master de Exportação
+
+**`docs/EXPORT_MASTER_GUIDE.md`** - Guia definitivo para exportação:
+- Correções críticas que NUNCA podem ser perdidas (PIX, BigDataCorp)
+- Checklist completo de exportação/importação
+- Todos os arquivos essenciais documentados
+- Troubleshooting de problemas comuns
+
+### Correções Críticas do Pagar.me
+
+**`docs/PAGARME_PIX_CRITICAL_FIXES.md`** - Correções obrigatórias:
+- `closed: true` - Campo obrigatório em todas as orders
+- `expires_in` como STRING (não number)
+- Arquivo afetado: `server/services/pagarme.ts`
+
+### Documento de Plataforma Completa
+
+**`docs/PLATFORM_COMPLETE.md`** - Visão geral:
+- 68 tabelas Supabase (9 Owner + 59 Tenant)
+- 269 endpoints de API
+- 106 variáveis de ambiente
+- 11 integrações externas
+
+### Arquivos de Auditoria
+
+Pasta `data/audit/` contém JSONs com auditoria completa:
+- `api_routes.json` - 269 endpoints documentados
+- `automations.json` - 9 pollers e jobs
+- `integrations.json` - 11 integrações
+- `supabase_tables.json` - 68 tabelas
+- `environment_vars.json` - 106 variáveis
