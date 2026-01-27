@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useSupabase } from '@/features/revendedora/contexts/SupabaseContext';
+import { resellerFetch } from '@/features/revendedora/lib/resellerAuth';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Search, Package, ClipboardList } from 'lucide-react';
@@ -51,7 +51,6 @@ const STATUS_OPTIONS = [
 ];
 
 export default function AdminProductRequests() {
-  const { client: supabase, loading: supabaseLoading, configured } = useSupabase();
   const [requests, setRequests] = useState<ProductRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -59,33 +58,23 @@ export default function AdminProductRequests() {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!supabaseLoading && configured) {
-      loadRequests();
-    } else if (!supabaseLoading && !configured) {
-      setLoading(false);
-    }
-  }, [supabaseLoading, configured]);
+    loadRequests();
+  }, []);
 
   const loadRequests = async () => {
-    if (!supabase) {
-      console.log('[AdminProductRequests] Supabase not configured');
-      setLoading(false);
-      return;
-    }
-
     try {
-      console.log('[AdminProductRequests] Loading ALL product requests (admin view)');
+      console.log('[AdminProductRequests] Loading ALL product requests via API');
 
-      // Admin vê TODAS as solicitações (sem filtro de reseller_id)
-      const { data, error } = await supabase
-        .from('product_requests')
-        .select('*, reseller:reseller_id(*), product:product_id(*)')
-        .order('created_at', { ascending: false });
+      const response = await resellerFetch('/api/admin/product-requests');
+      const result = await response.json();
 
-      if (error) throw error;
-      console.log('[AdminProductRequests] Loaded', (data || []).length, 'requests');
-      setRequests((data as unknown as ProductRequest[]) || []);
-    } catch (error) {
+      if (!response.ok) {
+        throw new Error(result.error || 'Erro ao carregar solicitações');
+      }
+
+      console.log('[AdminProductRequests] Loaded', (result.data || []).length, 'requests');
+      setRequests(result.data || []);
+    } catch (error: any) {
       console.error('[AdminProductRequests] Error loading product requests:', error);
       toast.error('Erro ao carregar solicitações de produtos');
     } finally {
@@ -94,19 +83,20 @@ export default function AdminProductRequests() {
   };
 
   const updateStatus = async (requestId: string, newStatus: string) => {
-    if (!supabase) {
-      toast.error('Banco de dados não configurado');
-      return;
-    }
-
     setUpdatingId(requestId);
     try {
-      const { error } = await supabase
-        .from('product_requests')
-        .update({ status: newStatus })
-        .eq('id', requestId);
+      const response = await resellerFetch(`/api/admin/product-requests/${requestId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus })
+      });
 
-      if (error) throw error;
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Erro ao atualizar status');
+      }
+
       console.log('[AdminProductRequests] Updated status for request:', requestId, 'to:', newStatus);
 
       setRequests(prev =>
@@ -117,7 +107,7 @@ export default function AdminProductRequests() {
 
       const statusLabel = STATUS_OPTIONS.find(s => s.value === newStatus)?.label || newStatus;
       toast.success(`Status atualizado para: ${statusLabel}`);
-    } catch (error) {
+    } catch (error: any) {
       console.error('[AdminProductRequests] Error updating status:', error);
       toast.error('Erro ao atualizar status');
     } finally {

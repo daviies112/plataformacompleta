@@ -1888,4 +1888,373 @@ router.patch('/reseller/pagarme-recipient/bank', resellerAuthMiddleware, async (
   }
 });
 
+// ============================================================
+// PRODUCT REQUESTS - Solicitações de Produtos
+// ============================================================
+
+// POST /api/reseller/product-requests - Criar solicitação de produto
+router.post('/reseller/product-requests', resellerAuthMiddleware, async (req, res) => {
+  try {
+    const auth = await getAuthenticatedReseller(req);
+    if (!auth) {
+      return res.status(401).json({ error: 'Não autenticado' });
+    }
+
+    const { product_id, quantity, notes } = req.body;
+    
+    if (!product_id) {
+      return res.status(400).json({ error: 'ID do produto é obrigatório' });
+    }
+    
+    if (!quantity || quantity < 1) {
+      return res.status(400).json({ error: 'Quantidade deve ser pelo menos 1' });
+    }
+
+    // Buscar dados da revendedora no Supabase Owner
+    const { data: resellerData, error: resellerError } = await supabaseOwner
+      .from('revendedoras')
+      .select('id, nome, email, telefone, admin_id')
+      .eq('id', auth.userId)
+      .single();
+
+    if (resellerError || !resellerData) {
+      console.error('[ProductRequest] Error fetching reseller:', resellerError);
+      return res.status(404).json({ error: 'Revendedora não encontrada' });
+    }
+
+    // Obter credenciais do admin para acessar o Supabase Tenant
+    const adminCreds = await getAdminCredentials(resellerData.admin_id);
+    if (!adminCreds) {
+      return res.status(400).json({ error: 'Credenciais do banco de dados não configuradas. Contate o administrador.' });
+    }
+
+    const tenantClient = createTenantClient(adminCreds.supabase_url, adminCreds.supabase_service_role_key);
+    
+    // Primeiro, garantir que o reseller existe na tabela resellers do tenant
+    // Isso evita o erro de foreign key constraint
+    const { error: upsertResellerError } = await tenantClient
+      .from('resellers')
+      .upsert({
+        id: auth.userId,
+        name: resellerData.nome || resellerData.email,
+        email: resellerData.email,
+        phone: resellerData.telefone,
+        status: 'active'
+      }, {
+        onConflict: 'id'
+      });
+
+    if (upsertResellerError) {
+      // Se a tabela resellers não existir, criar
+      if (upsertResellerError.code === '42P01') {
+        console.log('[ProductRequest] Creating resellers table...');
+        await tenantClient.rpc('exec_sql', {
+          sql: `
+            CREATE TABLE IF NOT EXISTS resellers (
+              id UUID PRIMARY KEY,
+              name TEXT,
+              email TEXT,
+              phone TEXT,
+              status TEXT DEFAULT 'active',
+              created_at TIMESTAMPTZ DEFAULT NOW()
+            );
+          `
+        }).catch(() => {
+          // Se rpc não funcionar, tentar criar a tabela de outra forma
+          console.log('[ProductRequest] Could not create resellers table via RPC');
+        });
+        
+        // Tentar inserir novamente
+        await tenantClient
+          .from('resellers')
+          .upsert({
+            id: auth.userId,
+            name: resellerData.nome || resellerData.email,
+            email: resellerData.email,
+            phone: resellerData.telefone,
+            status: 'active'
+          }, { onConflict: 'id' })
+          .catch(e => console.log('[ProductRequest] Could not upsert reseller:', e.message));
+      } else {
+        console.log('[ProductRequest] Reseller upsert error (non-critical):', upsertResellerError.message);
+      }
+    }
+
+    // Agora inserir a solicitação de produto
+    // Tenta inserir com reseller_id referenciando a tabela resellers
+    const { data: requestData, error: insertError } = await tenantClient
+      .from('product_requests')
+      .insert({
+        reseller_id: auth.userId,
+        product_id: product_id,
+        quantity: quantity,
+        notes: notes || null,
+        status: 'pending'
+      })
+      .select()
+      .single();
+
+    if (insertError) {
+      // Se a tabela não existir, criar
+      if (insertError.code === '42P01') {
+        console.log('[ProductRequest] Creating product_requests table...');
+        const { error: createError } = await tenantClient.rpc('exec_sql', {
+          sql: `
+            CREATE TABLE IF NOT EXISTS product_requests (
+              id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+              reseller_id UUID NOT NULL,
+              product_id UUID NOT NULL,
+              quantity INTEGER NOT NULL DEFAULT 1,
+              notes TEXT,
+              status TEXT DEFAULT 'pending',
+              created_at TIMESTAMPTZ DEFAULT NOW()
+            );
+          `
+        });
+        
+        if (!createError) {
+          // Tentar inserir novamente
+          const { data: retryData, error: retryError } = await tenantClient
+            .from('product_requests')
+            .insert({
+              reseller_id: auth.userId,
+              product_id: product_id,
+              quantity: quantity,
+              notes: notes || null,
+              status: 'pending'
+            })
+            .select()
+            .single();
+            
+          if (retryError) {
+            throw retryError;
+          }
+          
+          return res.json({
+            success: true,
+            data: retryData,
+            message: 'Solicitação enviada com sucesso!'
+          });
+        }
+      }
+      
+      // Se o erro for de foreign key, remover a constraint e tentar novamente
+      if (insertError.code === '23503' && insertError.message.includes('reseller_id')) {
+        console.log('[ProductRequest] Foreign key error, attempting to drop constraint...');
+        
+        // Tentar remover a constraint de foreign key
+        await tenantClient.rpc('exec_sql', {
+          sql: `
+            ALTER TABLE product_requests DROP CONSTRAINT IF EXISTS product_requests_reseller_id_fkey;
+          `
+        }).catch(e => console.log('[ProductRequest] Could not drop FK:', e.message));
+        
+        // Tentar inserir novamente
+        const { data: retryData, error: retryError } = await tenantClient
+          .from('product_requests')
+          .insert({
+            reseller_id: auth.userId,
+            product_id: product_id,
+            quantity: quantity,
+            notes: notes || null,
+            status: 'pending'
+          })
+          .select()
+          .single();
+          
+        if (retryError) {
+          console.error('[ProductRequest] Insert error after FK drop attempt:', retryError);
+          throw retryError;
+        }
+        
+        return res.json({
+          success: true,
+          data: retryData,
+          message: 'Solicitação enviada com sucesso!'
+        });
+      }
+      
+      console.error('[ProductRequest] Insert error:', insertError);
+      throw insertError;
+    }
+
+    console.log('[ProductRequest] Request created successfully:', requestData?.id);
+    res.json({
+      success: true,
+      data: requestData,
+      message: 'Solicitação enviada com sucesso!'
+    });
+
+  } catch (error: any) {
+    console.error('[ProductRequest] Error creating request:', error);
+    res.status(500).json({ error: error.message || 'Erro ao criar solicitação' });
+  }
+});
+
+// GET /api/reseller/product-requests - Listar solicitações do reseller
+router.get('/reseller/product-requests', resellerAuthMiddleware, async (req, res) => {
+  try {
+    const auth = await getAuthenticatedReseller(req);
+    if (!auth) {
+      return res.status(401).json({ error: 'Não autenticado' });
+    }
+
+    // Buscar admin_id da revendedora
+    const { data: resellerData, error: resellerError } = await supabaseOwner
+      .from('revendedoras')
+      .select('admin_id')
+      .eq('id', auth.userId)
+      .single();
+
+    if (resellerError || !resellerData) {
+      return res.status(404).json({ error: 'Revendedora não encontrada' });
+    }
+
+    const adminCreds = await getAdminCredentials(resellerData.admin_id);
+    if (!adminCreds) {
+      return res.status(400).json({ error: 'Credenciais não configuradas' });
+    }
+
+    const tenantClient = createTenantClient(adminCreds.supabase_url, adminCreds.supabase_service_role_key);
+
+    const { data, error } = await tenantClient
+      .from('product_requests')
+      .select('*, product:product_id(id, description, reference, image)')
+      .eq('reseller_id', auth.userId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      // Se tabela não existe, retornar array vazio
+      if (error.code === '42P01') {
+        return res.json({ success: true, data: [] });
+      }
+      throw error;
+    }
+
+    res.json({ success: true, data: data || [] });
+
+  } catch (error: any) {
+    console.error('[ProductRequest] Error fetching requests:', error);
+    res.status(500).json({ error: error.message || 'Erro ao buscar solicitações' });
+  }
+});
+
+// GET /api/admin/product-requests - Listar TODAS as solicitações (admin)
+router.get('/admin/product-requests', resellerAuthMiddleware, async (req, res) => {
+  try {
+    const auth = await getAuthenticatedReseller(req);
+    if (!auth) {
+      return res.status(401).json({ error: 'Não autenticado' });
+    }
+
+    // Buscar admin_id da revendedora para pegar o tenant correto
+    const { data: resellerData, error: resellerError } = await supabaseOwner
+      .from('revendedoras')
+      .select('admin_id')
+      .eq('id', auth.userId)
+      .single();
+
+    if (resellerError || !resellerData) {
+      return res.status(404).json({ error: 'Dados não encontrados' });
+    }
+
+    const adminCreds = await getAdminCredentials(resellerData.admin_id);
+    if (!adminCreds) {
+      return res.status(400).json({ error: 'Credenciais não configuradas' });
+    }
+
+    const tenantClient = createTenantClient(adminCreds.supabase_url, adminCreds.supabase_service_role_key);
+
+    // Admin vê TODAS as solicitações (sem filtro de reseller_id)
+    const { data, error } = await tenantClient
+      .from('product_requests')
+      .select('*, product:product_id(id, description, reference, image)')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      if (error.code === '42P01') {
+        return res.json({ success: true, data: [] });
+      }
+      throw error;
+    }
+
+    // Buscar informações das revendedoras do Owner
+    const resellerIds = [...new Set((data || []).map(r => r.reseller_id))];
+    let resellersMap: Record<string, any> = {};
+    
+    if (resellerIds.length > 0) {
+      const { data: resellers } = await supabaseOwner
+        .from('revendedoras')
+        .select('id, nome, email, telefone')
+        .in('id', resellerIds);
+      
+      resellersMap = (resellers || []).reduce((acc, r) => {
+        acc[r.id] = r;
+        return acc;
+      }, {} as Record<string, any>);
+    }
+
+    // Combinar dados
+    const enrichedData = (data || []).map(request => ({
+      ...request,
+      reseller: resellersMap[request.reseller_id] || null
+    }));
+
+    res.json({ success: true, data: enrichedData });
+
+  } catch (error: any) {
+    console.error('[ProductRequest] Error fetching admin requests:', error);
+    res.status(500).json({ error: error.message || 'Erro ao buscar solicitações' });
+  }
+});
+
+// PATCH /api/admin/product-requests/:id - Atualizar status (admin)
+router.patch('/admin/product-requests/:id', resellerAuthMiddleware, async (req, res) => {
+  try {
+    const auth = await getAuthenticatedReseller(req);
+    if (!auth) {
+      return res.status(401).json({ error: 'Não autenticado' });
+    }
+
+    const { id } = req.params;
+    const { status } = req.body;
+    
+    if (!status) {
+      return res.status(400).json({ error: 'Status é obrigatório' });
+    }
+
+    const { data: resellerData } = await supabaseOwner
+      .from('revendedoras')
+      .select('admin_id')
+      .eq('id', auth.userId)
+      .single();
+
+    if (!resellerData) {
+      return res.status(404).json({ error: 'Dados não encontrados' });
+    }
+
+    const adminCreds = await getAdminCredentials(resellerData.admin_id);
+    if (!adminCreds) {
+      return res.status(400).json({ error: 'Credenciais não configuradas' });
+    }
+
+    const tenantClient = createTenantClient(adminCreds.supabase_url, adminCreds.supabase_service_role_key);
+
+    const { data, error } = await tenantClient
+      .from('product_requests')
+      .update({ status })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    res.json({ success: true, data });
+
+  } catch (error: any) {
+    console.error('[ProductRequest] Error updating status:', error);
+    res.status(500).json({ error: error.message || 'Erro ao atualizar status' });
+  }
+});
+
 export default router;

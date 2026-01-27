@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Package, Loader2, ShoppingCart } from 'lucide-react';
 import { toast } from 'sonner';
-import { useSupabase } from '@/features/revendedora/contexts/SupabaseContext';
+import { resellerFetch } from '@/features/revendedora/lib/resellerAuth';
 
 interface ProductRequestModalProps {
   product: any;
@@ -29,7 +29,6 @@ export function ProductRequestModal({
   onClose,
   resellerId
 }: ProductRequestModalProps) {
-  const { client: supabase, configured } = useSupabase();
   const [quantity, setQuantity] = useState(1);
   const [notes, setNotes] = useState('');
   const [processing, setProcessing] = useState(false);
@@ -49,25 +48,22 @@ export function ProductRequestModal({
       return;
     }
 
-    if (!supabase || !configured) {
-      toast.error('Banco de dados não configurado. Configure nas Configurações.');
-      return;
-    }
-
     setProcessing(true);
     try {
-      const { error } = await supabase
-        .from('product_requests')
-        .insert({
-          reseller_id: resellerId,
+      const response = await resellerFetch('/api/reseller/product-requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           product_id: product.id,
           quantity: quantity,
-          notes: notes.trim() || null,
-          status: 'pending'
-        });
+          notes: notes.trim() || null
+        })
+      });
 
-      if (error) {
-        throw error;
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro ao enviar solicitação');
       }
 
       toast.success('Solicitação enviada com sucesso! A empresa será notificada.');
