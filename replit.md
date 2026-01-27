@@ -150,6 +150,9 @@ These routes use `requireAdmin` middleware and fetch from Tenant Supabase `produ
 
 | Date | Change |
 |------|--------|
+| 2026-01-27 | Fixed BigDataCorp field mapping (TotalProcesses→TotalLawsuits, ProcessList→Lawsuits) |
+| 2026-01-27 | Added normalization for party fields (PartyType→Type, PartyCategory→Polarity) |
+| 2026-01-27 | Added debug logging in bigdatacorpClient.ts for API response tracking |
 | 2026-01-27 | Fixed product requests admin route (was using reseller auth) |
 | 2026-01-27 | Created comprehensive platform audit documentation |
 | 2026-01-27 | Fixed stock forecasting infinite loading |
