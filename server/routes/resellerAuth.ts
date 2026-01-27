@@ -1928,7 +1928,7 @@ router.post('/product-requests', resellerAuthMiddleware, async (req, res) => {
       return res.status(400).json({ error: 'Credenciais do banco de dados não configuradas. Contate o administrador.' });
     }
 
-    const tenantClient = createTenantClient(adminCreds.supabase_url, adminCreds.supabase_service_role_key);
+    const tenantClient = createTenantClient(adminCreds);
     
     console.log('[ProductRequest] Inserting product request for reseller:', auth.userId);
 
@@ -2064,7 +2064,7 @@ router.get('/product-requests', resellerAuthMiddleware, async (req, res) => {
       return res.status(400).json({ error: 'Credenciais não configuradas' });
     }
 
-    const tenantClient = createTenantClient(adminCreds.supabase_url, adminCreds.supabase_service_role_key);
+    const tenantClient = createTenantClient(adminCreds);
 
     const { data, error } = await tenantClient
       .from('product_requests')
@@ -2112,7 +2112,7 @@ router.get('/admin/product-requests', resellerAuthMiddleware, async (req, res) =
       return res.status(400).json({ error: 'Credenciais não configuradas' });
     }
 
-    const tenantClient = createTenantClient(adminCreds.supabase_url, adminCreds.supabase_service_role_key);
+    const tenantClient = createTenantClient(adminCreds);
 
     // Admin vê TODAS as solicitações (sem filtro de reseller_id)
     const { data, error } = await tenantClient
@@ -2187,7 +2187,7 @@ router.patch('/admin/product-requests/:id', resellerAuthMiddleware, async (req, 
       return res.status(400).json({ error: 'Credenciais não configuradas' });
     }
 
-    const tenantClient = createTenantClient(adminCreds.supabase_url, adminCreds.supabase_service_role_key);
+    const tenantClient = createTenantClient(adminCreds);
 
     const { data, error } = await tenantClient
       .from('product_requests')
