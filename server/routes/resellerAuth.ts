@@ -1933,20 +1933,35 @@ router.post('/product-requests', resellerAuthMiddleware, async (req, res) => {
     console.log('[ProductRequest] Inserting product request for reseller:', auth.userId);
 
     // Primeiro, garantir que o reseller existe no Tenant DB (para satisfazer FK)
-    // Fazer upsert silencioso - se falhar, continuamos mesmo assim
-    const { error: upsertError } = await tenantClient
-      .from('resellers')
-      .upsert({
-        id: auth.userId,
-        name: resellerData.nome || resellerData.email,
-        email: resellerData.email,
-        status: 'active'
-      }, { onConflict: 'id' });
+    // Tentar várias estruturas de colunas possíveis
+    const resellerInsertAttempts = [
+      // Estrutura 1: id, nome (mínimo para tabelas com nome NOT NULL)
+      { id: auth.userId, nome: resellerData.nome || resellerData.email },
+      // Estrutura 2: id, nome, email
+      { id: auth.userId, nome: resellerData.nome || resellerData.email, email: resellerData.email },
+      // Estrutura 3: id, nome, email, status (português)
+      { id: auth.userId, nome: resellerData.nome || resellerData.email, email: resellerData.email, status: 'ativo' },
+      // Estrutura 4: apenas id (se nome for nullable)
+      { id: auth.userId }
+    ];
     
-    if (upsertError) {
-      console.log('[ProductRequest] Reseller upsert (non-critical):', upsertError.message);
-    } else {
-      console.log('[ProductRequest] Reseller synced to tenant DB:', auth.userId);
+    let resellerSynced = false;
+    for (const data of resellerInsertAttempts) {
+      const { error } = await tenantClient
+        .from('resellers')
+        .upsert(data, { onConflict: 'id' });
+      
+      if (!error) {
+        console.log('[ProductRequest] Reseller synced to tenant DB:', auth.userId);
+        resellerSynced = true;
+        break;
+      } else {
+        console.log('[ProductRequest] Reseller upsert attempt failed:', error.message);
+      }
+    }
+    
+    if (!resellerSynced) {
+      console.log('[ProductRequest] Could not sync reseller - will try insert anyway');
     }
 
     // Agora inserir a solicitação de produto
@@ -1965,21 +1980,24 @@ router.post('/product-requests', resellerAuthMiddleware, async (req, res) => {
     if (insertError) {
       console.error('[ProductRequest] Insert error:', insertError);
       
-      // Se o erro for de foreign key mesmo após upsert, tentar inserir sem o FK
+      // Se o erro for de foreign key, a tabela resellers pode não existir ou ter estrutura diferente
       if (insertError.code === '23503') {
-        console.log('[ProductRequest] FK constraint error - resellers table might not exist or have different structure');
+        console.log('[ProductRequest] FK constraint error - attempting direct insert with minimal reseller data');
         
-        // Tentar criar tabela resellers se não existir
-        await tenantClient
+        // Tentar insert direto com id e nome (nome é obrigatório)
+        const { error: directInsertError } = await tenantClient
           .from('resellers')
-          .insert({
-            id: auth.userId,
-            name: resellerData.nome || resellerData.email,
-            email: resellerData.email,
-            status: 'active'
-          })
-          .then(() => console.log('[ProductRequest] Reseller inserted'))
-          .catch(() => console.log('[ProductRequest] Could not insert reseller'));
+          .insert({ id: auth.userId, nome: resellerData.nome || resellerData.email });
+        
+        if (directInsertError) {
+          console.log('[ProductRequest] Direct reseller insert failed:', directInsertError.message);
+          // Se a tabela não existir (42P01), informar erro específico
+          if (directInsertError.code === '42P01') {
+            throw new Error('A tabela de revendedores não existe no banco de dados. Crie a tabela "resellers" com coluna "id" (UUID) como chave primária.');
+          }
+        } else {
+          console.log('[ProductRequest] Reseller inserted with minimal data');
+        }
         
         // Tentar novamente
         const { data: retryData, error: retryError } = await tenantClient
@@ -1996,7 +2014,7 @@ router.post('/product-requests', resellerAuthMiddleware, async (req, res) => {
           
         if (retryError) {
           console.error('[ProductRequest] Insert still failed:', retryError);
-          throw new Error('Não foi possível criar a solicitação. A tabela de revendedores pode não estar configurada corretamente. Contate o administrador.');
+          throw new Error('Não foi possível criar a solicitação. Verifique se a tabela "resellers" existe com coluna "id" (UUID) no banco de dados do tenant.');
         }
         
         return res.json({
