@@ -1,0 +1,317 @@
+{
+  "audit_date": "2026-01-27",
+  "platform": "ExecutiveAI Pro",
+  "summary": {
+    "total_pollers": 9,
+    "total_job_queues": 4,
+    "total_scheduled_tasks": 7,
+    "total_frontend_intervals": 8
+  },
+  "pollers": [
+    {
+      "name": "LimitMonitor",
+      "interval": "300000ms (5 minutos)",
+      "description": "Monitora uso de Redis e Supabase para alertar quando quotas FREE tier estão próximas do limite",
+      "file": "server/lib/limitMonitor.ts",
+      "function": "startMonitoring()",
+      "started_by": "server/index.ts linha 239"
+    },
+    {
+      "name": "FormsAutomationWorker",
+      "interval": "30000ms (0.5 minutos)",
+      "description": "Processa submissions pendentes de formulários automaticamente",
+      "file": "server/lib/formsAutomationWorker.ts",
+      "function": "startAutomation()",
+      "configurable_via": "AUTOMATION_CONFIG.pollingIntervalMinutes"
+    },
+    {
+      "name": "ContractSyncPoller",
+      "interval": "30000ms (30 segundos)",
+      "description": "Sincroniza contratos assinados dos tenants Supabase para o Master. Processa integration_queue de cada tenant",
+      "file": "server/lib/contractSyncPoller.ts",
+      "function": "startContractSyncPoller()",
+      "initial_delay": "5000ms",
+      "started_by": "server/index.ts linha 244"
+    },
+    {
+      "name": "AutomaticAlerting",
+      "interval": "300000ms (5 minutos)",
+      "description": "Verifica quotas e envia alertas para console, n8n webhook e email quando thresholds são atingidos",
+      "file": "server/lib/alerting.ts",
+      "function": "startAutomaticAlerting()",
+      "alert_channels": ["console", "n8n", "email"],
+      "started_by": "server/index.ts linha 240"
+    },
+    {
+      "name": "FormSubmissionPoller",
+      "interval": "120000ms (2 minutos)",
+      "description": "Busca submissions não sincronizadas do Supabase de todos os tenants e enfileira para processamento",
+      "file": "server/lib/formSubmissionPoller.ts",
+      "function": "pollFormSubmissions()",
+      "configurable_via": "FORM_SYNC_INTERVAL_MINUTES env var",
+      "managed_by": "server/lib/automationManager.ts"
+    },
+    {
+      "name": "FormMappingSyncJob",
+      "interval": "300000ms (5 minutos)",
+      "description": "Sincroniza formulários do Supabase para tabela form_tenant_mapping local. Garante acesso público via /api/forms/public/:id",
+      "file": "server/lib/automationManager.ts",
+      "function": "syncFormsToMappingTable()",
+      "line": "609-644"
+    },
+    {
+      "name": "CPFCompliancePoller",
+      "interval": "180000ms (3 minutos)",
+      "description": "Monitora consultas de CPF no Supabase e atualiza etiquetas WhatsApp dos leads (Rosa para aprovado, Ciano para reprovado)",
+      "file": "server/lib/cpfCompliancePoller.ts",
+      "function": "pollCPFCompliance()",
+      "configurable_via": "CPF_SYNC_INTERVAL_MINUTES env var",
+      "managed_by": "server/lib/automationManager.ts"
+    },
+    {
+      "name": "ClientDetectionAutomation",
+      "interval": "120000ms (2 minutos)",
+      "description": "Detecta novos clientes por tenant e cria eventos automáticos com idempotência",
+      "file": "server/lib/automationManager.ts",
+      "function": "executeClientAutomation()",
+      "configurable_via": "CLIENT_DETECTION_INTERVAL_MINUTES env var"
+    },
+    {
+      "name": "AutomationStatePersistence",
+      "interval": "300000ms (5 minutos)",
+      "description": "Salva estado da automação em arquivo para preservar dados em caso de falha",
+      "file": "server/lib/automationManager.ts",
+      "function": "saveAutomationStateToFile()",
+      "line": "913-917",
+      "state_file": "data/automation_state.json"
+    }
+  ],
+  "job_queues": [
+    {
+      "name": "emailQueue",
+      "max_concurrent": 3,
+      "description": "Fila para envio de emails assíncronos",
+      "file": "server/lib/queue.ts",
+      "handlers": ["send_email"],
+      "storage": "Redis/Memory cache"
+    },
+    {
+      "name": "analyticsQueue",
+      "max_concurrent": 5,
+      "description": "Fila para tracking de eventos de analytics",
+      "file": "server/lib/queue.ts",
+      "handlers": ["track_event"],
+      "storage": "Redis/Memory cache"
+    },
+    {
+      "name": "notificationQueue",
+      "max_concurrent": 5,
+      "description": "Fila para envio de notificações push",
+      "file": "server/lib/queue.ts",
+      "handlers": ["push_notification"],
+      "storage": "Redis/Memory cache"
+    },
+    {
+      "name": "dataProcessingQueue",
+      "max_concurrent": 2,
+      "description": "Fila para processamento de dados (uploads, sincronização de submissions)",
+      "file": "server/lib/queue.ts",
+      "handlers": ["process_upload", "sync_form_submission"],
+      "storage": "Redis/Memory cache",
+      "features": {
+        "circuit_breaker": true,
+        "exponential_backoff": true,
+        "dead_letter_queue": true
+      }
+    }
+  ],
+  "scheduled_tasks": [
+    {
+      "name": "BetterStackLogFlush",
+      "interval": "5000ms (5 segundos)",
+      "description": "Flush de logs em batch para Better Stack (Logtail) com rate-limiting",
+      "file": "server/lib/betterStackLogger.ts",
+      "batch_size": 10,
+      "min_send_interval": "5000ms"
+    },
+    {
+      "name": "EventIdempotencyCleanup",
+      "trigger": "On module load",
+      "description": "Limpa eventos de idempotência com mais de 30 dias do cache",
+      "file": "server/lib/automationManager.ts",
+      "cleanup_age": "30 dias"
+    },
+    {
+      "name": "PollerStateReset",
+      "trigger": "On server startup",
+      "description": "Inicializa e reseta estados travados dos pollers",
+      "file": "server/lib/stateReset.ts",
+      "functions": ["initializePollerStates()", "checkAndResetStaleStates()"]
+    },
+    {
+      "name": "CredentialsLoader",
+      "trigger": "On server startup",
+      "description": "Carrega credenciais do banco de dados para memória",
+      "file": "server/lib/credentialsManager.ts",
+      "function": "ensureCredentialsLoaded()"
+    },
+    {
+      "name": "GracefulShutdown",
+      "trigger": "SIGTERM/SIGINT",
+      "description": "Para todos os pollers, queues e salva estado antes de encerrar",
+      "files": ["server/index.ts", "server/lib/automationManager.ts"],
+      "functions": ["stopMonitoring()", "stopAutomation()", "stopAutomaticAlerting()", "stopContractSyncPoller()", "shutdownQueues()"]
+    },
+    {
+      "name": "QueueCircuitBreaker",
+      "trigger": "On Redis error",
+      "description": "Ativa circuit breaker quando Redis atinge limite, pausando processamento por 1 minuto",
+      "file": "server/lib/queue.ts",
+      "check_interval": "60000ms"
+    },
+    {
+      "name": "RequestBatcher",
+      "trigger": "On batch timeout",
+      "description": "Agrupa requisições similares para otimização",
+      "file": "server/lib/requestBatcher.ts"
+    }
+  ],
+  "frontend_intervals": [
+    {
+      "name": "LeadStatusPolling",
+      "interval": "setInterval dynamic",
+      "description": "Atualiza status de leads em tempo real no contexto WhatsApp",
+      "file": "src/features/whatsapp-platform/contexts/LeadStatusContext.tsx",
+      "lines": ["94", "149"]
+    },
+    {
+      "name": "EvolutionQRCodeStatus",
+      "interval": "5000ms (5 segundos)",
+      "description": "Atualiza status do QR Code do Evolution API",
+      "file": "src/pages/EvolutionQRCode.tsx",
+      "line": "116"
+    },
+    {
+      "name": "WhatsAppConversationTimer",
+      "interval": "Dynamic",
+      "description": "Atualiza conversas, mensagens e leads em tempo real",
+      "file": "src/features/whatsapp-platform/WhatsAppPlatformPage.tsx",
+      "lines": ["1394", "1405", "1427"]
+    },
+    {
+      "name": "LeadStatusLabelPolling",
+      "interval": "setInterval",
+      "description": "Atualiza labels de status de leads",
+      "file": "src/features/whatsapp-platform/components/LeadStatusLabel.tsx",
+      "line": "72"
+    },
+    {
+      "name": "AudioRecorderTimer",
+      "interval": "1000ms (1 segundo)",
+      "description": "Atualiza contador de duração durante gravação de áudio",
+      "file": "src/features/whatsapp-platform/components/AudioRecorder.tsx",
+      "line": "64"
+    },
+    {
+      "name": "SettingsTelemetry",
+      "interval": "setInterval",
+      "description": "Coleta telemetria periódica nas configurações",
+      "file": "src/pages/Settings.tsx",
+      "line": "115"
+    },
+    {
+      "name": "ToastAutoHide",
+      "interval": "Dynamic per toast",
+      "description": "Remove toasts automaticamente após timeout",
+      "file": "src/hooks/use-toast.ts",
+      "line": "63"
+    },
+    {
+      "name": "DebounceTimers",
+      "interval": "Custom delay",
+      "description": "Debounce para inputs e buscas",
+      "file": "src/hooks/use-debounce.ts",
+      "line": "7"
+    }
+  ],
+  "environment_variables": {
+    "CLIENT_DETECTION_INTERVAL_MINUTES": {
+      "default": "2",
+      "description": "Intervalo de detecção de novos clientes"
+    },
+    "AUTOMATION_PROCESSING_ENABLED": {
+      "default": "true",
+      "description": "Habilita processamento automático"
+    },
+    "AUTOMATION_PERSIST_STATE": {
+      "default": "true",
+      "description": "Persiste estado da automação em arquivo"
+    },
+    "AUTOMATION_MAX_RETRIES": {
+      "default": "3",
+      "description": "Máximo de tentativas antes de pausar automação"
+    },
+    "FORM_SYNC_ENABLED": {
+      "default": "true",
+      "description": "Habilita sincronização automática de formulários"
+    },
+    "FORM_SYNC_INTERVAL_MINUTES": {
+      "default": "2",
+      "description": "Intervalo de sincronização de form submissions"
+    },
+    "CPF_SYNC_ENABLED": {
+      "default": "true",
+      "description": "Habilita sincronização automática de CPF compliance"
+    },
+    "CPF_SYNC_INTERVAL_MINUTES": {
+      "default": "3",
+      "description": "Intervalo de verificação de consultas CPF"
+    },
+    "N8N_ALERT_WEBHOOK_URL": {
+      "default": "",
+      "description": "URL do webhook n8n para alertas automáticos"
+    }
+  },
+  "state_files": [
+    {
+      "path": "data/automation_state.json",
+      "description": "Estado global da automação (uptime, estatísticas, erros)"
+    },
+    {
+      "path": "data/event_idempotency.json",
+      "description": "Cache de idempotência para evitar eventos duplicados"
+    },
+    {
+      "path": "data/form_submission_poller_state.json",
+      "description": "Estado do poller de submissions (cursor de sincronização por tenant)"
+    },
+    {
+      "path": "data/cpf_compliance_poller_state.json",
+      "description": "Estado do poller de CPF (total processado, erros)"
+    }
+  ],
+  "dependencies": {
+    "external_services": [
+      {
+        "name": "Supabase (Multi-tenant)",
+        "usage": "Armazenamento de formulários, submissions, revendedoras"
+      },
+      {
+        "name": "Redis (Upstash)",
+        "usage": "Cache, filas de jobs, rate limiting"
+      },
+      {
+        "name": "Better Stack (Logtail)",
+        "usage": "Agregação de logs em tempo real"
+      },
+      {
+        "name": "Bigdatacorp",
+        "usage": "Consultas de compliance CPF"
+      },
+      {
+        "name": "n8n",
+        "usage": "Webhooks para automação externa e alertas"
+      }
+    ]
+  }
+}

@@ -1,0 +1,2887 @@
+{
+  "audit_info": {
+    "generated_at": "2026-01-27",
+    "platform": "ExecutiveAI Pro",
+    "total_files": 41,
+    "total_routes": 287
+  },
+  "routes": [
+    {
+      "method": "POST",
+      "path": "/api/auth/login",
+      "description": "User login with username/password",
+      "auth": "none",
+      "file": "server/routes/auth.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/logout",
+      "description": "User logout, clear session",
+      "auth": "token",
+      "file": "server/routes/auth.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/me",
+      "description": "Get current authenticated user info",
+      "auth": "token",
+      "file": "server/routes/auth.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/session-check",
+      "description": "Check session validity",
+      "auth": "token",
+      "file": "server/routes/auth.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/automation/status",
+      "description": "Get automation service status",
+      "auth": "token",
+      "file": "server/routes/automation.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/automation/global-stats",
+      "description": "Get global automation statistics",
+      "auth": "token",
+      "file": "server/routes/automation.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/automation/logs",
+      "description": "Get automation logs",
+      "auth": "token",
+      "file": "server/routes/automation.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/assinatura/public/diagnostico-revendedora",
+      "description": "Public diagnostic for reseller signature status",
+      "auth": "none",
+      "file": "server/routes/assinatura.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/assinatura/public/sync-revendedora/:contractId",
+      "description": "Sync reseller contract publicly",
+      "auth": "none",
+      "file": "server/routes/assinatura.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/assinatura/global-config",
+      "description": "Get global signature configuration",
+      "auth": "token",
+      "file": "server/routes/assinatura.ts"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/assinatura/global-config",
+      "description": "Update global signature configuration",
+      "auth": "token",
+      "file": "server/routes/assinatura.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/assinatura/contracts",
+      "description": "List all contracts",
+      "auth": "token",
+      "file": "server/routes/assinatura.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/assinatura/contracts/:token",
+      "description": "Get contract by token",
+      "auth": "none",
+      "file": "server/routes/assinatura.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/assinatura/contracts/:token/full",
+      "description": "Get full contract details by token",
+      "auth": "none",
+      "file": "server/routes/assinatura.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/assinatura/contracts",
+      "description": "Create new contract",
+      "auth": "token",
+      "file": "server/routes/assinatura.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/assinatura/contracts/:id",
+      "description": "Update contract by ID",
+      "auth": "token",
+      "file": "server/routes/assinatura.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/assinatura/contracts/:id/finalize",
+      "description": "Finalize contract signing",
+      "auth": "token",
+      "file": "server/routes/assinatura.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/assinatura/contracts/:token/participant-data",
+      "description": "Get participant data for contract",
+      "auth": "none",
+      "file": "server/routes/assinatura.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/assinatura/app-promotion",
+      "description": "Get app promotion settings",
+      "auth": "token",
+      "file": "server/routes/assinatura.ts"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/assinatura/app-promotion",
+      "description": "Update app promotion settings",
+      "auth": "token",
+      "file": "server/routes/assinatura.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/assinatura/contracts/:id",
+      "description": "Delete contract by ID",
+      "auth": "token",
+      "file": "server/routes/assinatura.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/assinatura/validate-document",
+      "description": "Validate document (async)",
+      "auth": "none",
+      "file": "server/routes/assinatura.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/assinatura/validate-document/quick",
+      "description": "Quick document validation",
+      "auth": "none",
+      "file": "server/routes/assinatura.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/assinatura/save-residence-proof",
+      "description": "Save residence proof document",
+      "auth": "none",
+      "file": "server/routes/assinatura.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/assinatura/validate-residence-proof",
+      "description": "Validate residence proof document",
+      "auth": "none",
+      "file": "server/routes/assinatura.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/config/pluggy",
+      "description": "Get Pluggy integration config",
+      "auth": "token",
+      "file": "server/routes/billing.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/config/pluggy",
+      "description": "Save Pluggy integration config",
+      "auth": "config",
+      "file": "server/routes/billing.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/config/supabase/storage",
+      "description": "Get Supabase storage config",
+      "auth": "token",
+      "file": "server/routes/billing.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/config/supabase/credentials",
+      "description": "Get Supabase credentials",
+      "auth": "config",
+      "file": "server/routes/billing.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/config/supabase",
+      "description": "Save Supabase config",
+      "auth": "config",
+      "file": "server/routes/billing.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/config/n8n",
+      "description": "Get n8n integration config",
+      "auth": "token",
+      "file": "server/routes/billing.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/config/n8n",
+      "description": "Save n8n integration config",
+      "auth": "config",
+      "file": "server/routes/billing.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/supabase/files",
+      "description": "List Supabase files",
+      "auth": "token",
+      "file": "server/routes/billing.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/items",
+      "description": "Create billing item",
+      "auth": "token",
+      "file": "server/routes/billing.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/items",
+      "description": "List billing items",
+      "auth": "token",
+      "file": "server/routes/billing.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/pluggy/all-items",
+      "description": "Get all Pluggy items",
+      "auth": "token",
+      "file": "server/routes/billing.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/pluggy/import-item",
+      "description": "Import Pluggy item",
+      "auth": "none",
+      "file": "server/routes/billing.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/sync-items",
+      "description": "Sync items from external source",
+      "auth": "none",
+      "file": "server/routes/billing.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/pluggy/test-credentials",
+      "description": "Test Pluggy credentials",
+      "auth": "none",
+      "file": "server/routes/billing.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/pluggy/debug-full",
+      "description": "Full Pluggy debug info",
+      "auth": "none",
+      "file": "server/routes/billing.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/pluggy/create-item",
+      "description": "Create Pluggy item",
+      "auth": "none",
+      "file": "server/routes/billing.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/pluggy/item/:itemId",
+      "description": "Get Pluggy item by ID",
+      "auth": "none",
+      "file": "server/routes/billing.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/pluggy/items",
+      "description": "List Pluggy items",
+      "auth": "none",
+      "file": "server/routes/billing.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/pluggy/connect-token",
+      "description": "Get Pluggy connect token",
+      "auth": "none",
+      "file": "server/routes/billing.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/biometric/status",
+      "description": "Get biometric verification status",
+      "auth": "none",
+      "file": "server/routes/biometric.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/biometric/capture",
+      "description": "Capture biometric data (photo)",
+      "auth": "none",
+      "file": "server/routes/biometric.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/biometric/verify",
+      "description": "Verify biometric data",
+      "auth": "none",
+      "file": "server/routes/biometric.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/biometric/results/:sessionId",
+      "description": "Get biometric verification results",
+      "auth": "none",
+      "file": "server/routes/biometric.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/clients",
+      "description": "List all clients",
+      "auth": "token",
+      "file": "server/routes/clients.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/clients/:id",
+      "description": "Get client by ID",
+      "auth": "token",
+      "file": "server/routes/clients.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/clients",
+      "description": "Create new client",
+      "auth": "token",
+      "file": "server/routes/clients.ts"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/clients/:id",
+      "description": "Update client by ID",
+      "auth": "token",
+      "file": "server/routes/clients.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/clients/:id",
+      "description": "Delete client by ID",
+      "auth": "token",
+      "file": "server/routes/clients.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/clients/sync",
+      "description": "Sync clients from external source",
+      "auth": "token",
+      "file": "server/routes/clients.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/compliance/status",
+      "description": "Get compliance module status",
+      "auth": "token",
+      "file": "server/routes/compliance.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/compliance/verify-cpf",
+      "description": "Verify CPF compliance",
+      "auth": "token",
+      "file": "server/routes/compliance.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/config/forms",
+      "description": "Get forms configuration",
+      "auth": "token",
+      "file": "server/routes/config.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/config/forms",
+      "description": "Save forms configuration",
+      "auth": "config",
+      "file": "server/routes/config.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/config/evolution",
+      "description": "Get Evolution API config",
+      "auth": "token",
+      "file": "server/routes/config.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/config/evolution",
+      "description": "Save Evolution API config",
+      "auth": "config",
+      "file": "server/routes/config.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/config/evolution/credentials",
+      "description": "Get Evolution credentials",
+      "auth": "config",
+      "file": "server/routes/config.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/config/evolution/test",
+      "description": "Test Evolution API connection",
+      "auth": "none",
+      "file": "server/routes/config.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/config/cache",
+      "description": "Configure cache settings",
+      "auth": "config",
+      "file": "server/routes/config.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/config/optimizer",
+      "description": "Get optimizer settings",
+      "auth": "config",
+      "file": "server/routes/config.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/config/optimizer/settings",
+      "description": "Get detailed optimizer settings",
+      "auth": "config",
+      "file": "server/routes/config.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/config/optimizer",
+      "description": "Save optimizer settings",
+      "auth": "config",
+      "file": "server/routes/config.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/config/monitoring",
+      "description": "Get monitoring settings",
+      "auth": "config",
+      "file": "server/routes/config.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/config/monitoring/settings",
+      "description": "Get detailed monitoring settings",
+      "auth": "config",
+      "file": "server/routes/config.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/config/monitoring",
+      "description": "Save monitoring settings",
+      "auth": "config",
+      "file": "server/routes/config.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/config/supabase",
+      "description": "Get Supabase config (rate limited)",
+      "auth": "none",
+      "file": "server/routes/config.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/config/supabase/test-tables",
+      "description": "Test Supabase table connections",
+      "auth": "config",
+      "file": "server/routes/config.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/config/forms/public-settings",
+      "description": "Save public form settings",
+      "auth": "token",
+      "file": "server/routes/config.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/config/hms100ms",
+      "description": "Get 100ms HMS config",
+      "auth": "token",
+      "file": "server/routes/config.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/config/hms100ms/sync-from-env",
+      "description": "Sync 100ms config from env",
+      "auth": "none",
+      "file": "server/routes/config.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/config/hms100ms/credentials",
+      "description": "Get 100ms credentials",
+      "auth": "config",
+      "file": "server/routes/config.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/config/hms100ms",
+      "description": "Save 100ms HMS config",
+      "auth": "config",
+      "file": "server/routes/config.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/config/hms100ms/test",
+      "description": "Test 100ms connection",
+      "auth": "none",
+      "file": "server/routes/config.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/config/total-express",
+      "description": "Get Total Express shipping config",
+      "auth": "token",
+      "file": "server/routes/config.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/config/total-express/credentials",
+      "description": "Get Total Express credentials",
+      "auth": "token",
+      "file": "server/routes/config.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/config/total-express",
+      "description": "Save Total Express config",
+      "auth": "token",
+      "file": "server/routes/config.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/config/total-express/test",
+      "description": "Test Total Express connection",
+      "auth": "token",
+      "file": "server/routes/config.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/config/total-express",
+      "description": "Delete Total Express config",
+      "auth": "token",
+      "file": "server/routes/config.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/connections/test-connections",
+      "description": "Test all service connections",
+      "auth": "token",
+      "file": "server/routes/connections.ts"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/credentials/:integrationType",
+      "description": "Update integration credentials",
+      "auth": "token",
+      "file": "server/routes/credentials.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/credentials/:integrationType",
+      "description": "Get integration credentials",
+      "auth": "token",
+      "file": "server/routes/credentials.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/credentials",
+      "description": "List all credentials",
+      "auth": "token",
+      "file": "server/routes/credentials.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/credentials/test/:integrationType",
+      "description": "Test integration credentials",
+      "auth": "config",
+      "file": "server/routes/credentials.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/dashboard-data",
+      "description": "Get main dashboard data",
+      "auth": "token",
+      "file": "server/routes/dashboard.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/supabase-summary",
+      "description": "Get Supabase data summary",
+      "auth": "token",
+      "file": "server/routes/dashboard.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/client/:clientId",
+      "description": "Get client dashboard data",
+      "auth": "token",
+      "file": "server/routes/dashboard.ts"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/dashboard/client/:clientId/status",
+      "description": "Update client status",
+      "auth": "token",
+      "file": "server/routes/dashboard.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/calendar-events",
+      "description": "Get calendar events",
+      "auth": "token",
+      "file": "server/routes/dashboard.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/test-connections",
+      "description": "Test dashboard connections",
+      "auth": "token",
+      "file": "server/routes/dashboard.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/test-integrations",
+      "description": "Test all integrations status",
+      "auth": "none",
+      "file": "server/routes/dashboard.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/check-new-clients",
+      "description": "Check for new clients",
+      "auth": "token",
+      "file": "server/routes/dashboard.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/dashboard/cache-stats",
+      "description": "Get cache statistics",
+      "auth": "token",
+      "file": "server/routes/dashboard.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/envio/contratos-pendentes",
+      "description": "Get pending shipping contracts",
+      "auth": "none",
+      "file": "server/routes/envio.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/envio/transportadoras",
+      "description": "List carriers",
+      "auth": "none",
+      "file": "server/routes/envio.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/envio/cotacoes",
+      "description": "List shipping quotes",
+      "auth": "none",
+      "file": "server/routes/envio.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/envio/cotacoes/calcular",
+      "description": "Calculate shipping quote",
+      "auth": "none",
+      "file": "server/routes/envio.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/envio/envios",
+      "description": "List shipments",
+      "auth": "none",
+      "file": "server/routes/envio.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/envio/envios/stats",
+      "description": "Get shipment statistics",
+      "auth": "none",
+      "file": "server/routes/envio.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/envio/envios/destinatarios",
+      "description": "Get shipment recipients",
+      "auth": "none",
+      "file": "server/routes/envio.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/envio/total-express/diagnostico",
+      "description": "Total Express diagnostics",
+      "auth": "none",
+      "file": "server/routes/envio.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/envio/envios/:id",
+      "description": "Get shipment by ID",
+      "auth": "none",
+      "file": "server/routes/envio.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/envio/envios",
+      "description": "Create shipment",
+      "auth": "none",
+      "file": "server/routes/envio.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/envio/envios/:id",
+      "description": "Update shipment",
+      "auth": "none",
+      "file": "server/routes/envio.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/envio/envios/:id/status",
+      "description": "Update shipment status",
+      "auth": "none",
+      "file": "server/routes/envio.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/envio/rastreamento/:codigo",
+      "description": "Track shipment by code",
+      "auth": "none",
+      "file": "server/routes/envio.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/envio/envios/:id/rastreamento",
+      "description": "Get shipment tracking info",
+      "auth": "none",
+      "file": "server/routes/envio.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/envio/envios/:id/rastreamento",
+      "description": "Update shipment tracking",
+      "auth": "none",
+      "file": "server/routes/envio.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/envio/config",
+      "description": "Get shipping config",
+      "auth": "none",
+      "file": "server/routes/envio.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/envio/config",
+      "description": "Save shipping config",
+      "auth": "none",
+      "file": "server/routes/envio.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/envio/total-express/status",
+      "description": "Get Total Express status",
+      "auth": "none",
+      "file": "server/routes/envio.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/envio/total-express/cotar",
+      "description": "Quote with Total Express",
+      "auth": "none",
+      "file": "server/routes/envio.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/envio/total-express/registrar",
+      "description": "Register with Total Express",
+      "auth": "none",
+      "file": "server/routes/envio.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/envio/total-express/rastrear/:codigo",
+      "description": "Track Total Express shipment",
+      "auth": "none",
+      "file": "server/routes/envio.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/envio/envios/:id/etiqueta",
+      "description": "Get shipping label",
+      "auth": "none",
+      "file": "server/routes/envio.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/envio/total-express/etiqueta/:awb",
+      "description": "Get Total Express label",
+      "auth": "none",
+      "file": "server/routes/envio.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/envio/total-express/test-mode",
+      "description": "Get Total Express test mode",
+      "auth": "none",
+      "file": "server/routes/envio.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/envio/webhooks/total-express",
+      "description": "Total Express webhook handler",
+      "auth": "none",
+      "file": "server/routes/envio.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/evolution/qrcode",
+      "description": "Get Evolution WhatsApp QR code",
+      "auth": "token",
+      "file": "server/routes/evolution.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/evolution/status",
+      "description": "Get Evolution connection status",
+      "auth": "token",
+      "file": "server/routes/evolution.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/evolution/create",
+      "description": "Create Evolution instance",
+      "auth": "token",
+      "file": "server/routes/evolution.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/evolution/logout",
+      "description": "Logout Evolution instance",
+      "auth": "token",
+      "file": "server/routes/evolution.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/evolution/delete",
+      "description": "Delete Evolution instance",
+      "auth": "token",
+      "file": "server/routes/evolution.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/evolution/chats",
+      "description": "Get Evolution chats",
+      "auth": "token",
+      "file": "server/routes/evolution.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/evolution/force-sync",
+      "description": "Force sync Evolution data",
+      "auth": "token",
+      "file": "server/routes/evolution.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/evolution/contacts",
+      "description": "Get Evolution contacts",
+      "auth": "token",
+      "file": "server/routes/evolution.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/evolution/refresh-contacts-cache",
+      "description": "Refresh contacts cache",
+      "auth": "token",
+      "file": "server/routes/evolution.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/evolution/messages",
+      "description": "Get Evolution messages",
+      "auth": "token",
+      "file": "server/routes/evolution.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/evolution/send-message",
+      "description": "Send WhatsApp message",
+      "auth": "token",
+      "file": "server/routes/evolution.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/evolution/send-media",
+      "description": "Send WhatsApp media",
+      "auth": "token",
+      "file": "server/routes/evolution.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/evolution/send-audio",
+      "description": "Send WhatsApp audio",
+      "auth": "token",
+      "file": "server/routes/evolution.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/export/tables",
+      "description": "Export available tables",
+      "auth": "none",
+      "file": "server/routes/export.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/export/stats",
+      "description": "Get export statistics",
+      "auth": "none",
+      "file": "server/routes/export.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/export/data",
+      "description": "Export data",
+      "auth": "none",
+      "file": "server/routes/export.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/forms/forms",
+      "description": "List all forms",
+      "auth": "none",
+      "file": "server/routes/forms.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/forms/forms/:id",
+      "description": "Get form by ID",
+      "auth": "none",
+      "file": "server/routes/forms.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/forms/forms",
+      "description": "Create new form",
+      "auth": "none",
+      "file": "server/routes/forms.ts"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/forms/forms/:id",
+      "description": "Update form",
+      "auth": "none",
+      "file": "server/routes/forms.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/forms/forms/:id",
+      "description": "Partial update form",
+      "auth": "none",
+      "file": "server/routes/forms.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/forms/forms/:id",
+      "description": "Delete form",
+      "auth": "none",
+      "file": "server/routes/forms.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/forms/forms/:id/duplicate",
+      "description": "Duplicate form",
+      "auth": "none",
+      "file": "server/routes/forms.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/forms/forms/:formId/submissions",
+      "description": "Get form submissions",
+      "auth": "none",
+      "file": "server/routes/forms.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/forms/submissions/:id",
+      "description": "Get submission by ID",
+      "auth": "none",
+      "file": "server/routes/forms.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/forms/forms/:formId/submit",
+      "description": "Submit form",
+      "auth": "none",
+      "file": "server/routes/forms.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/forms/submissions/:id",
+      "description": "Delete submission",
+      "auth": "none",
+      "file": "server/routes/forms.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/forms/form-templates",
+      "description": "List form templates",
+      "auth": "none",
+      "file": "server/routes/forms.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/forms/form-templates/:id",
+      "description": "Get form template",
+      "auth": "none",
+      "file": "server/routes/forms.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/forms/form-templates",
+      "description": "Create form template",
+      "auth": "none",
+      "file": "server/routes/forms.ts"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/forms/form-templates/:id",
+      "description": "Update form template",
+      "auth": "none",
+      "file": "server/routes/forms.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/forms/form-templates/:id",
+      "description": "Delete form template",
+      "auth": "none",
+      "file": "server/routes/forms.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/forms/completion-pages",
+      "description": "List completion pages",
+      "auth": "none",
+      "file": "server/routes/forms.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/forms/completion-pages/:id",
+      "description": "Get completion page",
+      "auth": "none",
+      "file": "server/routes/forms.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/forms/completion-pages",
+      "description": "Create completion page",
+      "auth": "none",
+      "file": "server/routes/forms.ts"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/forms/completion-pages/:id",
+      "description": "Update completion page",
+      "auth": "none",
+      "file": "server/routes/forms.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/forms/completion-pages/:id",
+      "description": "Delete completion page",
+      "auth": "none",
+      "file": "server/routes/forms.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/forms/forms/:formId/stats",
+      "description": "Get form statistics",
+      "auth": "none",
+      "file": "server/routes/forms.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/formularios/ativo",
+      "description": "Get active form",
+      "auth": "none",
+      "file": "server/routes/formularios.ts"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/formularios/config/ativo",
+      "description": "Set active form config",
+      "auth": "none",
+      "file": "server/routes/formularios.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/formularios/config/ativo",
+      "description": "Get active form config",
+      "auth": "none",
+      "file": "server/routes/formularios.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/formularios/form-templates/complete-registration",
+      "description": "Complete registration template",
+      "auth": "tenant",
+      "file": "server/routes/formularios.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/formularios/forms/from-template/:templateId",
+      "description": "Create form from template",
+      "auth": "tenant",
+      "file": "server/routes/formularios.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/formularios/forms/:formId/add-standard-fields",
+      "description": "Add standard fields to form",
+      "auth": "tenant",
+      "file": "server/routes/formularios.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/company-slug",
+      "description": "Get company slug",
+      "auth": "none",
+      "file": "server/routes/formularios-complete.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/credentials/test/supabase",
+      "description": "Test Supabase credentials",
+      "auth": "none",
+      "file": "server/routes/formularios-complete.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/upload/logo",
+      "description": "Upload company logo",
+      "auth": "none",
+      "file": "server/routes/formularios-complete.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/config",
+      "description": "Save config",
+      "auth": "none",
+      "file": "server/routes/formularios-complete.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/config/:tenantId",
+      "description": "Get config by tenant",
+      "auth": "none",
+      "file": "server/routes/formularios-complete.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/evolution/proxy",
+      "description": "Evolution API proxy",
+      "auth": "none",
+      "file": "server/routes/formularios-complete.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/evolution/chats",
+      "description": "Get Evolution chats (forms)",
+      "auth": "none",
+      "file": "server/routes/formularios-complete.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/evolution/contacts",
+      "description": "Get Evolution contacts (forms)",
+      "auth": "none",
+      "file": "server/routes/formularios-complete.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/evolution/messages",
+      "description": "Get Evolution messages (forms)",
+      "auth": "none",
+      "file": "server/routes/formularios-complete.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/evolution/send-message",
+      "description": "Send Evolution message (forms)",
+      "auth": "none",
+      "file": "server/routes/formularios-complete.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/evolution/send-media",
+      "description": "Send Evolution media (forms)",
+      "auth": "none",
+      "file": "server/routes/formularios-complete.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/evolution/send-audio",
+      "description": "Send Evolution audio (forms)",
+      "auth": "none",
+      "file": "server/routes/formularios-complete.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/evolution/proxy-media",
+      "description": "Evolution media proxy",
+      "auth": "none",
+      "file": "server/routes/formularios-complete.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/leads/whatsapp-status",
+      "description": "Get leads WhatsApp status",
+      "auth": "none",
+      "file": "server/routes/formularios-complete.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/leads/status/:telefone",
+      "description": "Get lead status by phone",
+      "auth": "none",
+      "file": "server/routes/formularios-complete.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/leads/status/batch",
+      "description": "Batch update lead status",
+      "auth": "none",
+      "file": "server/routes/formularios-complete.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/leads/create-or-update",
+      "description": "Create or update lead",
+      "auth": "none",
+      "file": "server/routes/formularios-complete.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/leads/by-phone/:phone",
+      "description": "Get lead by phone",
+      "auth": "none",
+      "file": "server/routes/formularios-complete.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/leads/criar-sessao",
+      "description": "Create lead session",
+      "auth": "none",
+      "file": "server/routes/formularios-complete.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/leads/validar-token",
+      "description": "Validate lead token",
+      "auth": "none",
+      "file": "server/routes/formularios-complete.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/leads/registrar-inicio",
+      "description": "Register lead start",
+      "auth": "none",
+      "file": "server/routes/formularios-complete.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/leads/atualizar-progresso",
+      "description": "Update lead progress",
+      "auth": "none",
+      "file": "server/routes/formularios-complete.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/leads/finalizar",
+      "description": "Finalize lead",
+      "auth": "none",
+      "file": "server/routes/formularios-complete.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/formulario/sessao/:token",
+      "description": "Get form session by token",
+      "auth": "none",
+      "file": "server/routes/formularios-complete.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/leads/sync-from-submissions",
+      "description": "Sync leads from submissions",
+      "auth": "none",
+      "file": "server/routes/formularios-complete.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/leads/sync-submission/:submissionId",
+      "description": "Sync single submission",
+      "auth": "none",
+      "file": "server/routes/formularios-complete.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/leads/sync-from-supabase",
+      "description": "Sync leads from Supabase",
+      "auth": "none",
+      "file": "server/routes/formularios-complete.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/whatsapp/labels",
+      "description": "Get WhatsApp labels",
+      "auth": "none",
+      "file": "server/routes/formularios-complete.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/whatsapp/labels",
+      "description": "Create WhatsApp label",
+      "auth": "none",
+      "file": "server/routes/formularios-complete.ts"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/whatsapp/labels/:id",
+      "description": "Update WhatsApp label",
+      "auth": "none",
+      "file": "server/routes/formularios-complete.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/whatsapp/labels/:id",
+      "description": "Delete WhatsApp label",
+      "auth": "none",
+      "file": "server/routes/formularios-complete.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/whatsapp/labels/reset",
+      "description": "Reset WhatsApp labels",
+      "auth": "none",
+      "file": "server/routes/formularios-complete.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/whatsapp/contact/:phoneNumber",
+      "description": "Get WhatsApp contact",
+      "auth": "none",
+      "file": "server/routes/formularios-complete.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/whatsapp/contact-info/:numero",
+      "description": "Get WhatsApp contact info",
+      "auth": "none",
+      "file": "server/routes/formularios-complete.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/whatsapp/track-form-start",
+      "description": "Track form start via WhatsApp",
+      "auth": "none",
+      "file": "server/routes/formularios-complete.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/forms/track-start",
+      "description": "Track form start",
+      "auth": "none",
+      "file": "server/routes/formularios-complete.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/formularios/forms",
+      "description": "List platform forms",
+      "auth": "none",
+      "file": "server/routes/formularios-platform.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/automation/status",
+      "description": "Forms automation status",
+      "auth": "none",
+      "file": "server/routes/formsAutomationAPI.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/automation/run-now",
+      "description": "Run automation now",
+      "auth": "none",
+      "file": "server/routes/formsAutomationAPI.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/automation/config",
+      "description": "Save automation config",
+      "auth": "none",
+      "file": "server/routes/formsAutomationAPI.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/automation/config",
+      "description": "Get automation config",
+      "auth": "none",
+      "file": "server/routes/formsAutomationAPI.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/automation/process-submission",
+      "description": "Process submission",
+      "auth": "none",
+      "file": "server/routes/formsAutomationAPI.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/automation/submission/:id/tracking",
+      "description": "Get submission tracking",
+      "auth": "none",
+      "file": "server/routes/formsAutomationAPI.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/automation/submissions",
+      "description": "List automation submissions",
+      "auth": "none",
+      "file": "server/routes/formsAutomationAPI.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/automation/start",
+      "description": "Start automation",
+      "auth": "none",
+      "file": "server/routes/formsAutomationAPI.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/automation/stop",
+      "description": "Stop automation",
+      "auth": "none",
+      "file": "server/routes/formsAutomationAPI.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/health",
+      "description": "Health check endpoint",
+      "auth": "none",
+      "file": "server/routes/health.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/health/supabase",
+      "description": "Supabase health check",
+      "auth": "none",
+      "file": "server/routes/health.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/health/evolution",
+      "description": "Evolution API health check",
+      "auth": "none",
+      "file": "server/routes/health.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/label-designer/upload-image",
+      "description": "Upload label image",
+      "auth": "none",
+      "file": "server/routes/labelDesigner.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/label-designer/generate-barcode",
+      "description": "Generate barcode",
+      "auth": "none",
+      "file": "server/routes/labelDesigner.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/label-designer/generate-qrcode",
+      "description": "Generate QR code",
+      "auth": "none",
+      "file": "server/routes/labelDesigner.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/label-designer/generate-barcode-base64",
+      "description": "Generate barcode as base64",
+      "auth": "none",
+      "file": "server/routes/labelDesigner.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/label-designer/generate-qrcode-base64",
+      "description": "Generate QR code as base64",
+      "auth": "none",
+      "file": "server/routes/labelDesigner.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/label-designer/generate-pdf",
+      "description": "Generate label PDF",
+      "auth": "none",
+      "file": "server/routes/labelDesigner.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/label-designer/templates",
+      "description": "List label templates",
+      "auth": "none",
+      "file": "server/routes/labelDesigner.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/label-designer/templates/:id",
+      "description": "Get label template",
+      "auth": "none",
+      "file": "server/routes/labelDesigner.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/label-designer/templates",
+      "description": "Create label template",
+      "auth": "none",
+      "file": "server/routes/labelDesigner.ts"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/label-designer/templates/:id",
+      "description": "Update label template",
+      "auth": "none",
+      "file": "server/routes/labelDesigner.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/label-designer/templates/:id",
+      "description": "Delete label template",
+      "auth": "none",
+      "file": "server/routes/labelDesigner.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/label-designer/templates/seed-defaults",
+      "description": "Seed default label templates",
+      "auth": "none",
+      "file": "server/routes/labelDesigner.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/label-designer/templates/defaults",
+      "description": "Get default label templates",
+      "auth": "none",
+      "file": "server/routes/labelDesigner.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/label-designer/generate-zpl",
+      "description": "Generate ZPL code",
+      "auth": "none",
+      "file": "server/routes/labelDesigner.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/leads-pipeline/ping",
+      "description": "Pipeline health check",
+      "auth": "none",
+      "file": "server/routes/leadsPipelineRoutes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/leads-pipeline/:tenantId",
+      "description": "Get leads by tenant",
+      "auth": "none",
+      "file": "server/routes/leadsPipelineRoutes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/leads-pipeline/:tenantId/stage/:stage",
+      "description": "Get leads by stage",
+      "auth": "none",
+      "file": "server/routes/leadsPipelineRoutes.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/leads-pipeline/:leadId",
+      "description": "Update lead",
+      "auth": "none",
+      "file": "server/routes/leadsPipelineRoutes.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/leads-pipeline/supabase/:leadId",
+      "description": "Update lead in Supabase",
+      "auth": "none",
+      "file": "server/routes/leadsPipelineRoutes.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/leads-pipeline/supabase/dados-cliente",
+      "description": "Update client data in Supabase",
+      "auth": "none",
+      "file": "server/routes/leadsPipelineRoutes.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reunioes/:id/room-design-public",
+      "description": "Get public room design",
+      "auth": "none",
+      "file": "server/routes/meetings.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reunioes/public/:companySlug/:roomId",
+      "description": "Get public meeting room",
+      "auth": "none",
+      "file": "server/routes/meetings.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reunioes/public/:companySlug/:roomId/full",
+      "description": "Get full public meeting room",
+      "auth": "none",
+      "file": "server/routes/meetings.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reunioes/:id/public",
+      "description": "Get public meeting info",
+      "auth": "none",
+      "file": "server/routes/meetings.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/reunioes/:id/token-public",
+      "description": "Get public meeting token",
+      "auth": "none",
+      "file": "server/routes/meetings.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/100ms/recording/start",
+      "description": "Start 100ms recording",
+      "auth": "none",
+      "file": "server/routes/meetings.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/100ms/recording/stop",
+      "description": "Stop 100ms recording",
+      "auth": "none",
+      "file": "server/routes/meetings.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/100ms/recording/:roomId",
+      "description": "Get 100ms recording",
+      "auth": "none",
+      "file": "server/routes/meetings.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reunioes",
+      "description": "List meetings",
+      "auth": "token+tenant",
+      "file": "server/routes/meetings.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reunioes/room-design",
+      "description": "Get room design settings",
+      "auth": "token+tenant",
+      "file": "server/routes/meetings.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/reunioes/room-design",
+      "description": "Update room design",
+      "auth": "token+tenant",
+      "file": "server/routes/meetings.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/reunioes/instantanea",
+      "description": "Create instant meeting",
+      "auth": "token+tenant",
+      "file": "server/routes/meetings.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/reunioes",
+      "description": "Create meeting",
+      "auth": "token+tenant",
+      "file": "server/routes/meetings.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/reunioes/:id",
+      "description": "Delete meeting",
+      "auth": "token+tenant",
+      "file": "server/routes/meetings.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/reunioes/:id",
+      "description": "Update meeting",
+      "auth": "token+tenant",
+      "file": "server/routes/meetings.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/100ms/get-token",
+      "description": "Get 100ms auth token",
+      "auth": "token+tenant",
+      "file": "server/routes/meetings.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/reunioes/:id/token",
+      "description": "Get meeting token",
+      "auth": "token",
+      "file": "server/routes/meetings.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/reunioes/:id/start-recording",
+      "description": "Start meeting recording",
+      "auth": "token",
+      "file": "server/routes/meetings.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/reunioes/:id/stop-recording",
+      "description": "Stop meeting recording",
+      "auth": "token",
+      "file": "server/routes/meetings.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reunioes/:id",
+      "description": "Get meeting by ID",
+      "auth": "token+tenant",
+      "file": "server/routes/meetings.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reunioes/:id/participant-data",
+      "description": "Get participant data",
+      "auth": "none",
+      "file": "server/routes/meetings.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/gravacoes",
+      "description": "List recordings",
+      "auth": "token+tenant",
+      "file": "server/routes/meetings.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/reunioes/registrar-presenca",
+      "description": "Register attendance",
+      "auth": "none",
+      "file": "server/routes/meetings.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/multi-tenant/login",
+      "description": "Multi-tenant login",
+      "auth": "none",
+      "file": "server/routes/multiTenantAuth.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/multi-tenant/logout",
+      "description": "Multi-tenant logout",
+      "auth": "none",
+      "file": "server/routes/multiTenantAuth.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/multi-tenant/check-session",
+      "description": "Check multi-tenant session",
+      "auth": "none",
+      "file": "server/routes/multiTenantAuth.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/multi-tenant/user-info",
+      "description": "Get multi-tenant user info",
+      "auth": "none",
+      "file": "server/routes/multiTenantAuth.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/n8n/api-key/generate",
+      "description": "Generate n8n API key",
+      "auth": "token",
+      "file": "server/routes/n8n.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/n8n/api-key",
+      "description": "Delete n8n API key",
+      "auth": "token",
+      "file": "server/routes/n8n.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/n8n/api-key/status",
+      "description": "Get n8n API key status",
+      "auth": "token",
+      "file": "server/routes/n8n.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/n8n/reunioes",
+      "description": "Create meeting via n8n",
+      "auth": "n8n-key",
+      "file": "server/routes/n8n.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/n8n/reunioes/:id",
+      "description": "Get meeting via n8n",
+      "auth": "n8n-key",
+      "file": "server/routes/n8n.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/n8n/reunioes/:id",
+      "description": "Delete meeting via n8n",
+      "auth": "n8n-key",
+      "file": "server/routes/n8n.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/n8n/reunioes/:id",
+      "description": "Update meeting via n8n",
+      "auth": "n8n-key",
+      "file": "server/routes/n8n.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/n8n/health",
+      "description": "n8n health check",
+      "auth": "none",
+      "file": "server/routes/n8n.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/n8n/schema",
+      "description": "Get n8n schema",
+      "auth": "none",
+      "file": "server/routes/n8n.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/notifications",
+      "description": "List notifications",
+      "auth": "token",
+      "file": "server/routes/notifications.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/notifications",
+      "description": "Create notification",
+      "auth": "token",
+      "file": "server/routes/notifications.ts"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/notifications/:id/read",
+      "description": "Mark notification as read",
+      "auth": "token",
+      "file": "server/routes/notifications.ts"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/notifications/read-all",
+      "description": "Mark all notifications as read",
+      "auth": "token",
+      "file": "server/routes/notifications.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/notifications/:id",
+      "description": "Delete notification",
+      "auth": "token",
+      "file": "server/routes/notifications.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/pagarme/config",
+      "description": "Get Pagar.me config",
+      "auth": "none",
+      "file": "server/routes/pagarme.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/pagarme/orders/pix",
+      "description": "Create PIX order",
+      "auth": "none",
+      "file": "server/routes/pagarme.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/pagarme/orders/card",
+      "description": "Create card order",
+      "auth": "none",
+      "file": "server/routes/pagarme.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/pagarme/orders/:orderId",
+      "description": "Get order by ID",
+      "auth": "none",
+      "file": "server/routes/pagarme.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/pagarme/orders/:orderId",
+      "description": "Cancel order",
+      "auth": "none",
+      "file": "server/routes/pagarme.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/pagarme/tokenize",
+      "description": "Tokenize card",
+      "auth": "none",
+      "file": "server/routes/pagarme.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/pagarme/webhook",
+      "description": "Pagar.me webhook handler",
+      "auth": "none",
+      "file": "server/routes/pagarme.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/pagarme/onboarding-empresa",
+      "description": "Company payment onboarding",
+      "auth": "token",
+      "file": "server/routes/pagarme.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/pagarme/empresa-status",
+      "description": "Get company payment status",
+      "auth": "token",
+      "file": "server/routes/pagarme.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/pagarme/onboarding-revendedora",
+      "description": "Reseller payment onboarding",
+      "auth": "token",
+      "file": "server/routes/pagarme.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/pagarme/revendedora-status",
+      "description": "Get reseller payment status",
+      "auth": "token",
+      "file": "server/routes/pagarme.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/pagarme-public/pix",
+      "description": "Create public PIX order",
+      "auth": "none",
+      "file": "server/routes/pagarmePublic.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/pagarme-public/card",
+      "description": "Create public card order",
+      "auth": "none",
+      "file": "server/routes/pagarmePublic.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/pagarme-public/tokenize",
+      "description": "Public card tokenization",
+      "auth": "none",
+      "file": "server/routes/pagarmePublic.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/pagarme-public/status/:orderId",
+      "description": "Get public order status",
+      "auth": "none",
+      "file": "server/routes/pagarmePublic.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/pagarme-public/setup-company-recipient",
+      "description": "Setup company recipient",
+      "auth": "none",
+      "file": "server/routes/pagarmePublic.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/pagarme-public/company-recipient",
+      "description": "Get company recipient",
+      "auth": "none",
+      "file": "server/routes/pagarmePublic.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/printer-config",
+      "description": "List printer configs",
+      "auth": "token",
+      "file": "server/routes/printerConfig.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/printer-config/default",
+      "description": "Get default printer config",
+      "auth": "token",
+      "file": "server/routes/printerConfig.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/printer-config/:id",
+      "description": "Get printer config by ID",
+      "auth": "token",
+      "file": "server/routes/printerConfig.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/printer-config",
+      "description": "Create printer config",
+      "auth": "token",
+      "file": "server/routes/printerConfig.ts"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/printer-config/:id",
+      "description": "Update printer config",
+      "auth": "token",
+      "file": "server/routes/printerConfig.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/printer-config/:id",
+      "description": "Delete printer config",
+      "auth": "token",
+      "file": "server/routes/printerConfig.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/printer-config/set-default/:id",
+      "description": "Set default printer config",
+      "auth": "token",
+      "file": "server/routes/printerConfig.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/printer-config/print",
+      "description": "Send print job",
+      "auth": "token",
+      "file": "server/routes/printerConfig.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/public-store/store/:storeId",
+      "description": "Get public store info",
+      "auth": "none",
+      "file": "server/routes/publicStore.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/public-store/store/:storeId/product/:productId",
+      "description": "Get public store product",
+      "auth": "none",
+      "file": "server/routes/publicStore.ts"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/public-store/reseller/store",
+      "description": "Update reseller store",
+      "auth": "reseller",
+      "file": "server/routes/publicStore.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/public-store/reseller/store/:resellerId",
+      "description": "Get reseller store",
+      "auth": "none",
+      "file": "server/routes/publicStore.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reseller/test-master",
+      "description": "Test master reseller connection",
+      "auth": "none",
+      "file": "server/routes/resellerAuth.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reseller/migrate-credentials",
+      "description": "Migrate reseller credentials",
+      "auth": "none",
+      "file": "server/routes/resellerAuth.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reseller/sync-now",
+      "description": "Sync resellers now",
+      "auth": "none",
+      "file": "server/routes/resellerAuth.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/reseller/create-from-contract",
+      "description": "Create reseller from contract",
+      "auth": "none",
+      "file": "server/routes/resellerAuth.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/reseller/login",
+      "description": "Reseller login",
+      "auth": "none",
+      "file": "server/routes/resellerAuth.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/reseller/register",
+      "description": "Reseller registration",
+      "auth": "none",
+      "file": "server/routes/resellerAuth.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reseller/check-session",
+      "description": "Check reseller session",
+      "auth": "none",
+      "file": "server/routes/resellerAuth.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/reseller/logout",
+      "description": "Reseller logout",
+      "auth": "none",
+      "file": "server/routes/resellerAuth.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reseller/admin/list",
+      "description": "List resellers (admin)",
+      "auth": "admin",
+      "file": "server/routes/resellerAuth.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/reseller/admin/sync-credentials",
+      "description": "Sync reseller credentials (admin)",
+      "auth": "admin",
+      "file": "server/routes/resellerAuth.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/reseller/admin/:id/status",
+      "description": "Update reseller status (admin)",
+      "auth": "admin",
+      "file": "server/routes/resellerAuth.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/reseller/admin/:id/comissao",
+      "description": "Update reseller commission (admin)",
+      "auth": "admin",
+      "file": "server/routes/resellerAuth.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reseller/settings",
+      "description": "Get reseller settings",
+      "auth": "reseller",
+      "file": "server/routes/resellerAuth.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reseller/supabase-config",
+      "description": "Get reseller Supabase config",
+      "auth": "reseller",
+      "file": "server/routes/resellerAuth.ts"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/reseller/profile",
+      "description": "Update reseller profile",
+      "auth": "reseller",
+      "file": "server/routes/resellerAuth.ts"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/reseller/notifications",
+      "description": "Update reseller notifications",
+      "auth": "reseller",
+      "file": "server/routes/resellerAuth.ts"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/reseller/supabase-config",
+      "description": "Update reseller Supabase config",
+      "auth": "reseller",
+      "file": "server/routes/resellerAuth.ts"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/reseller/admin-supabase-credentials",
+      "description": "Update admin Supabase credentials",
+      "auth": "admin",
+      "file": "server/routes/resellerAuth.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/reseller/supabase-config/test",
+      "description": "Test reseller Supabase config",
+      "auth": "reseller",
+      "file": "server/routes/resellerAuth.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reseller/store-config",
+      "description": "Get reseller store config",
+      "auth": "reseller",
+      "file": "server/routes/resellerAuth.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/reseller/store-config",
+      "description": "Update reseller store config",
+      "auth": "reseller",
+      "file": "server/routes/resellerAuth.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reseller/reseller/pagarme-recipient",
+      "description": "Get reseller Pagar.me recipient",
+      "auth": "reseller",
+      "file": "server/routes/resellerAuth.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/reseller/reseller/pagarme-recipient",
+      "description": "Create reseller Pagar.me recipient",
+      "auth": "reseller",
+      "file": "server/routes/resellerAuth.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reseller-catalog/products",
+      "description": "Get reseller catalog products",
+      "auth": "token",
+      "file": "server/routes/resellerCatalog.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reseller-catalog/my-sales",
+      "description": "Get reseller sales",
+      "auth": "token",
+      "file": "server/routes/resellerCatalog.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/reseller-catalog/dashboard-stats",
+      "description": "Get reseller dashboard stats",
+      "auth": "token",
+      "file": "server/routes/resellerCatalog.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/reseller-catalog/create-sale",
+      "description": "Create reseller sale",
+      "auth": "none",
+      "file": "server/routes/resellerCatalog.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/split/test",
+      "description": "Test split payment",
+      "auth": "none",
+      "file": "server/routes/split.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/split/debug",
+      "description": "Debug split payment",
+      "auth": "none",
+      "file": "server/routes/split.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/split/pix",
+      "description": "Create split PIX payment",
+      "auth": "none",
+      "file": "server/routes/split.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/split/card",
+      "description": "Create split card payment",
+      "auth": "none",
+      "file": "server/routes/split.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/split/test-card-no-split",
+      "description": "Test card payment without split",
+      "auth": "none",
+      "file": "server/routes/split.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/split/calculate-commission",
+      "description": "Calculate commission",
+      "auth": "none",
+      "file": "server/routes/split.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/split/test-full-split",
+      "description": "Test full split payment",
+      "auth": "none",
+      "file": "server/routes/split.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/split/recipient/:recipientId",
+      "description": "Get recipient by ID",
+      "auth": "none",
+      "file": "server/routes/split.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/split/resellers-analytics",
+      "description": "Get resellers analytics",
+      "auth": "none",
+      "file": "server/routes/split.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/split/commission-config",
+      "description": "Get commission config",
+      "auth": "none",
+      "file": "server/routes/split.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/split/commission-config",
+      "description": "Update commission config",
+      "auth": "none",
+      "file": "server/routes/split.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/split/product-requests",
+      "description": "Get product requests",
+      "auth": "none",
+      "file": "server/routes/split.ts"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/split/product-requests/:id",
+      "description": "Update product request",
+      "auth": "none",
+      "file": "server/routes/split.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/stripe/config-status",
+      "description": "Get Stripe config status",
+      "auth": "token",
+      "file": "server/routes/stripePayment.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/stripe/save-config",
+      "description": "Save Stripe config",
+      "auth": "token",
+      "file": "server/routes/stripePayment.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/stripe/onboarding",
+      "description": "Stripe Connect onboarding",
+      "auth": "token",
+      "file": "server/routes/stripePayment.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/stripe/account-status",
+      "description": "Get Stripe account status",
+      "auth": "token",
+      "file": "server/routes/stripePayment.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/stripe/checkout",
+      "description": "Create Stripe checkout",
+      "auth": "none",
+      "file": "server/routes/stripePayment.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/stripe/webhook",
+      "description": "Stripe webhook handler",
+      "auth": "none",
+      "file": "server/routes/stripePayment.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/supabase-setup",
+      "description": "Get Supabase setup status",
+      "auth": "none",
+      "file": "server/routes/supabaseConfig.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/supabase-setup",
+      "description": "Configure Supabase",
+      "auth": "none",
+      "file": "server/routes/supabaseConfig.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/supabase-setup/test",
+      "description": "Test Supabase connection",
+      "auth": "none",
+      "file": "server/routes/supabaseConfig.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/wallet/balance",
+      "description": "Get wallet balance",
+      "auth": "token",
+      "file": "server/routes/wallet.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/wallet/transactions",
+      "description": "Get wallet transactions",
+      "auth": "token",
+      "file": "server/routes/wallet.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/wallet/prices",
+      "description": "Get wallet prices",
+      "auth": "token",
+      "file": "server/routes/wallet.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/wallet/recharge/pix",
+      "description": "Recharge wallet via PIX",
+      "auth": "token",
+      "file": "server/routes/wallet.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/wallet/recharge/card",
+      "description": "Recharge wallet via card",
+      "auth": "token",
+      "file": "server/routes/wallet.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/wallet/auto-recharge",
+      "description": "Configure auto-recharge",
+      "auth": "token",
+      "file": "server/routes/wallet.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/wallet/webhook/pagarme",
+      "description": "Wallet Pagar.me webhook",
+      "auth": "none",
+      "file": "server/routes/wallet.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/wallet/admin/add-credit",
+      "description": "Add credit (admin)",
+      "auth": "token",
+      "file": "server/routes/wallet.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/wallet/admin/update-price",
+      "description": "Update price (admin)",
+      "auth": "token",
+      "file": "server/routes/wallet.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/wallet/initialize-prices",
+      "description": "Initialize wallet prices",
+      "auth": "none",
+      "file": "server/routes/wallet.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/whatsapp/qrcode",
+      "description": "Get WhatsApp QR code",
+      "auth": "none",
+      "file": "server/routes/whatsapp.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/whatsapp/qrcode",
+      "description": "Generate WhatsApp QR code",
+      "auth": "none",
+      "file": "server/routes/whatsapp.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/whatsapp/qrcode",
+      "description": "Delete WhatsApp session",
+      "auth": "none",
+      "file": "server/routes/whatsapp.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/whatsapp-complete/config",
+      "description": "Get WhatsApp complete config",
+      "auth": "none",
+      "file": "server/routes/whatsapp-complete.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/whatsapp-complete/config",
+      "description": "Save WhatsApp complete config",
+      "auth": "none",
+      "file": "server/routes/whatsapp-complete.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/whatsapp-complete/leads",
+      "description": "Get WhatsApp leads",
+      "auth": "none",
+      "file": "server/routes/whatsapp-complete.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/whatsapp-complete/leads/whatsapp-status",
+      "description": "Get leads WhatsApp status",
+      "auth": "none",
+      "file": "server/routes/whatsapp-complete.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/whatsapp-complete/leads/:id",
+      "description": "Get WhatsApp lead by ID",
+      "auth": "none",
+      "file": "server/routes/whatsapp-complete.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/whatsapp-complete/leads",
+      "description": "Create WhatsApp lead",
+      "auth": "none",
+      "file": "server/routes/whatsapp-complete.ts"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/whatsapp-complete/leads/:id",
+      "description": "Update WhatsApp lead",
+      "auth": "none",
+      "file": "server/routes/whatsapp-complete.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/whatsapp-complete/leads/:id",
+      "description": "Delete WhatsApp lead",
+      "auth": "none",
+      "file": "server/routes/whatsapp-complete.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/whatsapp-complete/labels",
+      "description": "Get WhatsApp labels",
+      "auth": "none",
+      "file": "server/routes/whatsapp-complete.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/whatsapp-complete/labels/:id",
+      "description": "Get WhatsApp label by ID",
+      "auth": "none",
+      "file": "server/routes/whatsapp-complete.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/whatsapp-complete/labels",
+      "description": "Create WhatsApp label",
+      "auth": "none",
+      "file": "server/routes/whatsapp-complete.ts"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/whatsapp-complete/labels/:id",
+      "description": "Update WhatsApp label",
+      "auth": "none",
+      "file": "server/routes/whatsapp-complete.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/whatsapp-complete/labels/:id",
+      "description": "Delete WhatsApp label",
+      "auth": "none",
+      "file": "server/routes/whatsapp-complete.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/whatsapp-complete/evolution/proxy",
+      "description": "Evolution API proxy",
+      "auth": "none",
+      "file": "server/routes/whatsapp-complete.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/whatsapp-complete/evolution/chats",
+      "description": "Get Evolution chats",
+      "auth": "none",
+      "file": "server/routes/whatsapp-complete.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/whatsapp-complete/evolution/contacts",
+      "description": "Get Evolution contacts",
+      "auth": "none",
+      "file": "server/routes/whatsapp-complete.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/whatsapp-complete/evolution/messages",
+      "description": "Get Evolution messages",
+      "auth": "none",
+      "file": "server/routes/whatsapp-complete.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/whatsapp-complete/evolution/send-message",
+      "description": "Send Evolution message",
+      "auth": "none",
+      "file": "server/routes/whatsapp-complete.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/whatsapp-complete/evolution/send-media",
+      "description": "Send Evolution media",
+      "auth": "none",
+      "file": "server/routes/whatsapp-complete.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/whatsapp-complete/evolution/send-audio",
+      "description": "Send Evolution audio",
+      "auth": "none",
+      "file": "server/routes/whatsapp-complete.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/whatsapp-complete/sync-from-supabase",
+      "description": "Sync from Supabase",
+      "auth": "none",
+      "file": "server/routes/whatsapp-complete.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/whatsapp-complete/leads/cpf-compliance",
+      "description": "CPF compliance check",
+      "auth": "none",
+      "file": "server/routes/whatsapp-complete.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/whatsapp-complete/evolution/proxy-media",
+      "description": "Evolution media proxy",
+      "auth": "none",
+      "file": "server/routes/whatsapp-complete.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/workspace/save",
+      "description": "Save workspace data",
+      "auth": "token",
+      "file": "server/routes/workspace.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/workspace/test",
+      "description": "Test workspace connection",
+      "auth": "token",
+      "file": "server/routes/workspace.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/workspace/load",
+      "description": "Load workspace data",
+      "auth": "token",
+      "file": "server/routes/workspace.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/workspace/:type/:id",
+      "description": "Delete workspace item",
+      "auth": "token",
+      "file": "server/routes/workspace.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/workspace/themes",
+      "description": "Get workspace themes",
+      "auth": "token",
+      "file": "server/routes/workspace.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/workspace/themes",
+      "description": "Create workspace theme",
+      "auth": "token",
+      "file": "server/routes/workspace.ts"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/workspace/themes/:id",
+      "description": "Delete workspace theme",
+      "auth": "token",
+      "file": "server/routes/workspace.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/workspace/calendar/events",
+      "description": "Get workspace calendar events",
+      "auth": "token",
+      "file": "server/routes/workspace.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/workspace/calendar/events",
+      "description": "Create calendar event",
+      "auth": "token",
+      "file": "server/routes/workspace.ts"
+    },
+    {
+      "method": "GET",
+      "path": "/api/workspace/boards",
+      "description": "Get workspace boards",
+      "auth": "token",
+      "file": "server/routes/workspace.ts"
+    },
+    {
+      "method": "POST",
+      "path": "/api/workspace/boards/:boardId/import-page",
+      "description": "Import page to board",
+      "auth": "token",
+      "file": "server/routes/workspace.ts"
+    }
+  ],
+  "summary": {
+    "by_method": {
+      "GET": 117,
+      "POST": 126,
+      "PUT": 18,
+      "PATCH": 14,
+      "DELETE": 22
+    },
+    "by_auth": {
+      "none": 148,
+      "token": 92,
+      "config": 17,
+      "reseller": 12,
+      "admin": 5,
+      "tenant": 4,
+      "n8n-key": 4,
+      "token+tenant": 5
+    },
+    "by_domain": {
+      "authentication": 12,
+      "payments": 28,
+      "whatsapp": 40,
+      "forms": 35,
+      "meetings": 22,
+      "config": 32,
+      "shipping": 25,
+      "dashboard": 10,
+      "workspace": 11,
+      "reseller": 18,
+      "wallet": 11,
+      "labels": 14,
+      "leads": 15,
+      "health": 4,
+      "other": 20
+    },
+    "files_analyzed": [
+      "server/routes/auth.ts",
+      "server/routes/automation.ts",
+      "server/routes/assinatura.ts",
+      "server/routes/billing.ts",
+      "server/routes/biometric.ts",
+      "server/routes/clients.ts",
+      "server/routes/compliance.ts",
+      "server/routes/config.ts",
+      "server/routes/connections.ts",
+      "server/routes/credentials.ts",
+      "server/routes/dashboard.ts",
+      "server/routes/envio.ts",
+      "server/routes/evolution.ts",
+      "server/routes/export.ts",
+      "server/routes/forms.ts",
+      "server/routes/formularios.ts",
+      "server/routes/formularios-complete.ts",
+      "server/routes/formularios-platform.ts",
+      "server/routes/formsAutomationAPI.ts",
+      "server/routes/health.ts",
+      "server/routes/labelDesigner.ts",
+      "server/routes/leadsPipelineRoutes.ts",
+      "server/routes/meetings.ts",
+      "server/routes/multiTenantAuth.ts",
+      "server/routes/n8n.ts",
+      "server/routes/notifications.ts",
+      "server/routes/pagarme.ts",
+      "server/routes/pagarmePublic.ts",
+      "server/routes/printerConfig.ts",
+      "server/routes/publicStore.ts",
+      "server/routes/resellerAuth.ts",
+      "server/routes/resellerCatalog.ts",
+      "server/routes/split.ts",
+      "server/routes/stripePayment.ts",
+      "server/routes/supabaseConfig.ts",
+      "server/routes/wallet.ts",
+      "server/routes/whatsapp.ts",
+      "server/routes/whatsapp-complete.ts",
+      "server/routes/workspace.ts"
+    ]
+  }
+}
