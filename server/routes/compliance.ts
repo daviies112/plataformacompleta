@@ -55,14 +55,13 @@ function convertSupabaseCheckToCamelCase(check: any) {
   let processCount = 0;
   try {
     const payload = check.payload || {};
-    // Prioridade 1: Extrair do helper subjectInfo se o payload estiver formatado
-    // Prioridade 2: Buscar em diferentes caminhos possíveis do payload BigDataCorp
-    const processes = payload?.Processes?.Result || payload?.Result?.[0]?.Processes?.Result || [];
-    processCount = processes.length;
-    
-    // Fallback: Se o payload for o objeto final já processado (BigDataCorp raw)
-    if (processCount === 0 && payload?.Result?.[0]?.Processes?.Result) {
-       processCount = payload.Result[0].Processes.Result.length;
+    // Prioridade 1: Buscar TotalLawsuits diretamente (campo numérico)
+    const processData = payload?.Result?.[0]?.Processes;
+    if (processData?.TotalLawsuits !== undefined) {
+      processCount = processData.TotalLawsuits;
+    } else if (processData?.Lawsuits && Array.isArray(processData.Lawsuits)) {
+      // Prioridade 2: Contar array de Lawsuits
+      processCount = processData.Lawsuits.length;
     }
   } catch (e) {
     // Silent fail
@@ -365,32 +364,51 @@ export function setupComplianceRoutes(): Router {
               .limit(limit);
             
             if (!clienteError && clienteData && clienteData.length > 0) {
-              const clienteChecksMapped = clienteData.map((item: any) => ({
-                id: item.id,
-                cpf_hash: item.cpf_hash || '',
-                cpf_encrypted: item.cpf_encrypted || item.cpf || '',
-                tenant_id: tenantUUID,
-                status: item.status || 'pending',
-                risk_score: item.risco || item.risk_score || item.score || 0,
-                consulted_at: item.data_consulta || item.created_at || item.consulted_at,
-                response_data: item.response_data || item.result_data || item.payload || {},
-                payload: item.payload || item.result_data || item.response_data || {},
-                name: item.nome || item.name || item.person_name || '',
-                person_name: item.nome || item.person_name || item.name || '',
-                person_cpf: item.cpf || item.person_cpf || '',
-                created_by: item.created_by || userUUID,
-                lead_id: item.lead_id,
-                submission_id: item.submission_id,
-                created_at: item.created_at,
-                updated_at: item.updated_at || item.created_at,
-                source: 'supabase_cliente',
-              }));
-              
-              // Mesclar e remover duplicados por ID
+              // CORREÇÃO: cpf_compliance_results são registros RESUMIDOS sem payload completo
+              // Só incluir se NÃO houver um registro correspondente em datacorp_checks
+              // O campo check_id em cpf_compliance_results referencia o id em datacorp_checks
               const existingIds = new Set(checks.map(c => c.id));
-              const newChecks = clienteChecksMapped.filter(c => !existingIds.has(c.id));
-              checks = [...checks, ...newChecks];
-              console.log('[CPF History] Registros complementares do Cliente:', newChecks.length);
+              const existingCheckIds = new Set(checks.map(c => c.id)); // datacorp_checks IDs
+              
+              // Filtrar apenas registros cujo check_id NÃO existe em datacorp_checks
+              const orphanRecords = clienteData.filter((item: any) => {
+                // Se tem check_id e esse check_id já existe, pular
+                if (item.check_id && existingCheckIds.has(item.check_id)) {
+                  return false;
+                }
+                // Se o próprio id já existe, pular
+                if (existingIds.has(item.id)) {
+                  return false;
+                }
+                return true;
+              });
+              
+              if (orphanRecords.length > 0) {
+                const clienteChecksMapped = orphanRecords.map((item: any) => ({
+                  id: item.id,
+                  cpf_hash: item.cpf_hash || '',
+                  cpf_encrypted: item.cpf_encrypted || item.cpf || '',
+                  tenant_id: tenantUUID,
+                  status: item.status || 'pending',
+                  risk_score: item.risco || item.risk_score || item.score || 0,
+                  consulted_at: item.data_consulta || item.created_at || item.consulted_at,
+                  response_data: {},
+                  payload: {}, // cpf_compliance_results não tem payload completo
+                  name: item.nome || item.name || item.person_name || '',
+                  person_name: item.nome || item.person_name || item.name || '',
+                  person_cpf: item.cpf || item.person_cpf || '',
+                  created_by: item.created_by || userUUID,
+                  lead_id: item.lead_id,
+                  submission_id: item.submission_id,
+                  created_at: item.created_at,
+                  updated_at: item.updated_at || item.created_at,
+                  source: 'supabase_cliente',
+                  _is_summary_only: true, // Flag para indicar que é registro resumido
+                }));
+                
+                checks = [...checks, ...clienteChecksMapped];
+                console.log('[CPF History] Registros órfãos do Cliente (sem payload completo):', orphanRecords.length);
+              }
             }
           } catch (clienteErr: any) {
             console.log('[CPF History] Erro na busca complementar do Cliente:', clienteErr.message);
@@ -421,7 +439,7 @@ export function setupComplianceRoutes(): Router {
             
             if (!clienteError && clienteData && clienteData.length > 0) {
               // Mapear campos do Supabase Cliente para o formato esperado (compatível com datacorp_checks)
-              // CORREÇÃO: A tabela cpf_compliance_results usa campos específicos que precisam ser mapeados corretamente
+              // NOTA: cpf_compliance_results são registros RESUMIDOS sem payload completo
               checks = clienteData.map((item: any) => ({
                 id: item.id,
                 cpf_hash: item.cpf_hash || '',
@@ -430,8 +448,8 @@ export function setupComplianceRoutes(): Router {
                 status: item.status || 'pending',
                 risk_score: item.risco || item.risk_score || item.score || 0,
                 consulted_at: item.data_consulta || item.created_at || item.consulted_at,
-                response_data: item.response_data || item.result_data || item.payload || {},
-                payload: item.payload || item.result_data || item.response_data || {},
+                response_data: {},
+                payload: {}, // cpf_compliance_results não tem payload completo
                 name: item.nome || item.name || item.person_name || '',
                 person_name: item.nome || item.person_name || item.name || '',
                 person_cpf: item.cpf || item.person_cpf || '',
@@ -441,8 +459,9 @@ export function setupComplianceRoutes(): Router {
                 created_at: item.created_at,
                 updated_at: item.updated_at || item.created_at,
                 source: 'supabase_cliente',
+                _is_summary_only: true, // Flag para indicar que é registro resumido
               }));
-              console.log('[CPF History] Registros encontrados no Supabase Cliente:', checks.length);
+              console.log('[CPF History] Registros do Supabase Cliente (resumidos, sem payload completo):', checks.length);
             } else {
               throw new Error(clienteError?.message || 'Nenhum dado no Supabase Cliente');
             }
