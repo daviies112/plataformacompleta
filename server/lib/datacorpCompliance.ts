@@ -1744,6 +1744,7 @@ export async function checkCompliance(
       });
       
       return {
+        id: newHistoryCheck.id,
         checkId: newHistoryCheck.id,
         status: cachedCheck.status as ComplianceStatus,
         riskScore: typeof riskScoreValue === 'number' ? riskScoreValue : parseFloat(riskScoreValue.toString()),
@@ -1823,6 +1824,7 @@ export async function checkCompliance(
     });
     
     return {
+      id: cachedCheck.id,
       checkId: cachedCheck.id,
       status: cachedCheck.status as ComplianceStatus,
       riskScore: typeof riskScoreValue === 'number' ? riskScoreValue : parseFloat(riskScoreValue.toString()),
@@ -1995,6 +1997,7 @@ export async function checkCompliance(
   });
   
   return {
+    id: newCheck.id,
     checkId: newCheck.id,
     status: riskAnalysis.status,
     riskScore: riskAnalysis.riskScore,
@@ -2107,6 +2110,7 @@ export async function reprocessCheck(checkId: string, tenantId: string, userId?:
   const expiresAtValue = existingCheckData.expires_at || existingCheckData.expiresAt;
   
   return {
+    id: existingCheck.id,
     checkId: existingCheck.id,
     status: riskAnalysis.status,
     riskScore: riskAnalysis.riskScore,
