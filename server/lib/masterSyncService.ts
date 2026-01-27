@@ -1,5 +1,6 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { supabaseOwner, SUPABASE_CONFIGURED } from '../config/supabaseOwner';
+import { pool } from '../db';
 
 let supabaseMaster: SupabaseClient | null = null;
 let masterInitialized = false;
@@ -156,6 +157,30 @@ export async function createRevendedoraFromContract(data: RevendedoraData): Prom
     }
     
     console.log(`✅ [MasterSync] Revendedora criada: ${emailNormalizado} (Admin: ${data.admin_id})`);
+    
+    // 🔄 AUTO-SYNC: Copiar credenciais do admin para a revendedora automaticamente
+    try {
+      const adminCredentials = await getAdminCredentials(data.admin_id);
+      
+      if (adminCredentials) {
+        await pool.query(
+          `INSERT INTO reseller_supabase_configs (reseller_email, supabase_url, supabase_anon_key, supabase_service_key, updated_at)
+           VALUES ($1, $2, $3, $4, NOW())
+           ON CONFLICT (reseller_email) DO UPDATE SET
+           supabase_url = EXCLUDED.supabase_url,
+           supabase_anon_key = EXCLUDED.supabase_anon_key,
+           supabase_service_key = EXCLUDED.supabase_service_key,
+           updated_at = NOW()`,
+          [emailNormalizado, adminCredentials.supabase_url, adminCredentials.supabase_anon_key, adminCredentials.supabase_service_key]
+        );
+        console.log(`✅ [MasterSync] Credenciais Supabase copiadas para: ${emailNormalizado}`);
+      } else {
+        console.warn(`⚠️ [MasterSync] Admin ${data.admin_id} não tem credenciais em admin_supabase_credentials`);
+      }
+    } catch (credError) {
+      console.error('[MasterSync] Erro ao copiar credenciais:', credError);
+    }
+    
     return revendedora?.id || null;
     
   } catch (error) {

@@ -137,6 +137,74 @@ router.get('/test-master', async (_req: Request, res: Response) => {
   }
 });
 
+// GET /api/reseller/migrate-credentials - Migração única: sincroniza credenciais de todas as revendedoras existentes
+router.get('/migrate-credentials', async (_req: Request, res: Response) => {
+  try {
+    const master = getMasterClient();
+    if (!master) {
+      return res.status(503).json({ error: 'Supabase Master não configurado' });
+    }
+    
+    // 1. Buscar todos os admins com credenciais
+    const admins = await getAllAdminsWithCredentials();
+    
+    if (!admins.length) {
+      return res.json({ status: 'no_admins', message: 'Nenhum admin com credenciais' });
+    }
+    
+    const results: any[] = [];
+    let totalSynced = 0;
+    
+    // 2. Para cada admin, buscar revendedoras e sincronizar credenciais
+    for (const admin of admins) {
+      const { data: revendedoras, error } = await master
+        .from('revendedoras')
+        .select('id, email, nome')
+        .eq('admin_id', admin.admin_id);
+      
+      if (error || !revendedoras?.length) {
+        results.push({ admin_id: admin.admin_id, error: error?.message || 'Nenhuma revendedora' });
+        continue;
+      }
+      
+      const adminResult = { admin_id: admin.admin_id, revendedoras: [] as any[] };
+      
+      for (const rev of revendedoras) {
+        try {
+          await pool.query(
+            `INSERT INTO reseller_supabase_configs (reseller_email, supabase_url, supabase_anon_key, supabase_service_key, updated_at)
+             VALUES ($1, $2, $3, $4, NOW())
+             ON CONFLICT (reseller_email) DO UPDATE SET
+             supabase_url = EXCLUDED.supabase_url,
+             supabase_anon_key = EXCLUDED.supabase_anon_key,
+             supabase_service_key = EXCLUDED.supabase_service_key,
+             updated_at = NOW()`,
+            [rev.email.toLowerCase().trim(), admin.credentials.supabase_url, admin.credentials.supabase_anon_key, admin.credentials.supabase_service_key]
+          );
+          totalSynced++;
+          adminResult.revendedoras.push({ email: rev.email, synced: true });
+        } catch (syncErr: any) {
+          adminResult.revendedoras.push({ email: rev.email, synced: false, error: syncErr.message });
+        }
+      }
+      
+      results.push(adminResult);
+    }
+    
+    console.log(`✅ [MIGRATE] Credenciais sincronizadas para ${totalSynced} revendedoras`);
+    
+    res.json({
+      status: 'ok',
+      totalSynced,
+      admins: admins.length,
+      results
+    });
+    
+  } catch (error: any) {
+    res.status(500).json({ status: 'error', message: error.message });
+  }
+});
+
 // GET /api/reseller/sync-now - Força sincronização manual de contratos
 router.get('/sync-now', async (_req: Request, res: Response) => {
   try {
@@ -562,10 +630,36 @@ router.post('/register', async (req: Request, res: Response) => {
 
     console.log(`✅ [NEXUS] Revendedora registrada: ${email} -> admin: ${adminId}`);
 
+    // 🔄 AUTO-SYNC: Copiar credenciais do admin para a revendedora automaticamente
+    const resellerEmail = email.toLowerCase().trim();
+    try {
+      const adminCredentials = await getAdminCredentials(adminId);
+      
+      if (adminCredentials) {
+        await pool.query(
+          `INSERT INTO reseller_supabase_configs (reseller_email, supabase_url, supabase_anon_key, supabase_service_key, updated_at)
+           VALUES ($1, $2, $3, $4, NOW())
+           ON CONFLICT (reseller_email) DO UPDATE SET
+           supabase_url = EXCLUDED.supabase_url,
+           supabase_anon_key = EXCLUDED.supabase_anon_key,
+           supabase_service_key = EXCLUDED.supabase_service_key,
+           updated_at = NOW()`,
+          [resellerEmail, adminCredentials.supabase_url, adminCredentials.supabase_anon_key, adminCredentials.supabase_service_key]
+        );
+        console.log(`✅ [NEXUS] Credenciais Supabase do admin copiadas automaticamente para: ${resellerEmail}`);
+      } else {
+        console.warn(`⚠️ [NEXUS] Admin ${adminId} não tem credenciais Supabase configuradas em admin_supabase_credentials`);
+      }
+    } catch (credError) {
+      console.error('[NEXUS] Erro ao copiar credenciais do admin para revendedora:', credError);
+      // Não bloqueia o registro - as credenciais podem ser sincronizadas depois no login
+    }
+
     res.json({
       success: true,
       message: 'Cadastro enviado para aprovacao',
-      id: data.id
+      id: data.id,
+      credentialsSynced: true
     });
 
   } catch (error) {
@@ -637,6 +731,81 @@ router.get('/admin/list', async (req: Request, res: Response) => {
 
   } catch (error) {
     console.error('Erro na listagem:', error);
+    res.status(500).json({ error: 'Erro interno do servidor' });
+  }
+});
+
+// POST /api/reseller/admin/sync-credentials - Sincronizar credenciais Supabase para todas as revendedoras
+router.post('/admin/sync-credentials', async (req: Request, res: Response) => {
+  try {
+    if (!req.session?.userId || req.session?.userRole === 'reseller') {
+      return res.status(403).json({ error: 'Acesso restrito a administradores' });
+    }
+
+    if (!SUPABASE_CONFIGURED || !supabaseOwner) {
+      return res.status(503).json({ error: 'Sistema nao configurado' });
+    }
+
+    const adminId = req.session.tenantId || req.session.userId;
+    
+    // 1. Buscar credenciais do admin
+    const adminCredentials = await getAdminCredentials(adminId);
+    
+    if (!adminCredentials) {
+      return res.status(400).json({ 
+        error: 'Admin não tem credenciais Supabase configuradas em admin_supabase_credentials',
+        adminId
+      });
+    }
+    
+    // 2. Buscar todas as revendedoras do admin
+    const { data: revendedoras, error: queryError } = await supabaseOwner
+      .from('revendedoras')
+      .select('id, email, nome')
+      .eq('admin_id', adminId);
+    
+    if (queryError) {
+      return res.status(500).json({ error: 'Erro ao buscar revendedoras' });
+    }
+    
+    if (!revendedoras?.length) {
+      return res.json({ success: true, synced: 0, message: 'Nenhuma revendedora encontrada' });
+    }
+    
+    // 3. Sincronizar credenciais para cada revendedora
+    let syncedCount = 0;
+    const syncResults: any[] = [];
+    
+    for (const rev of revendedoras) {
+      try {
+        await pool.query(
+          `INSERT INTO reseller_supabase_configs (reseller_email, supabase_url, supabase_anon_key, supabase_service_key, updated_at)
+           VALUES ($1, $2, $3, $4, NOW())
+           ON CONFLICT (reseller_email) DO UPDATE SET
+           supabase_url = EXCLUDED.supabase_url,
+           supabase_anon_key = EXCLUDED.supabase_anon_key,
+           supabase_service_key = EXCLUDED.supabase_service_key,
+           updated_at = NOW()`,
+          [rev.email.toLowerCase().trim(), adminCredentials.supabase_url, adminCredentials.supabase_anon_key, adminCredentials.supabase_service_key]
+        );
+        syncedCount++;
+        syncResults.push({ email: rev.email, success: true });
+      } catch (syncError: any) {
+        syncResults.push({ email: rev.email, success: false, error: syncError.message });
+      }
+    }
+    
+    console.log(`✅ [NEXUS] Credenciais sincronizadas para ${syncedCount}/${revendedoras.length} revendedoras`);
+    
+    res.json({
+      success: true,
+      synced: syncedCount,
+      total: revendedoras.length,
+      results: syncResults
+    });
+
+  } catch (error) {
+    console.error('Erro ao sincronizar credenciais:', error);
     res.status(500).json({ error: 'Erro interno do servidor' });
   }
 });
