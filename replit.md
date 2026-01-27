@@ -209,6 +209,9 @@ These routes use `requireAdmin` middleware and fetch from Tenant Supabase `produ
 
 | Date | Change |
 |------|--------|
+| 2026-01-27 | **CRITICAL PIX FIX**: Added `closed: true` to all Pagar.me order requests (required by API V5 PSP) |
+| 2026-01-27 | **CRITICAL PIX FIX**: Changed `expires_in` from NUMBER to STRING per official Pagar.me documentation |
+| 2026-01-27 | Added `additional_information` field to PIX payments for better transaction tracking |
 | 2026-01-27 | Created comprehensive BigDataCorp CPF Compliance documentation (docs/BIGDATACORP_CPF_COMPLIANCE.md) |
 | 2026-01-27 | Fixed cache-hit not appearing in history - now creates new record with origin_check_id |
 | 2026-01-27 | Added personName/personCpf to all checkCompliance return paths for proper name display |

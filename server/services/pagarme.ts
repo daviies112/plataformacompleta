@@ -292,10 +292,19 @@ export class PagarmeService {
   async createPixOrder(params: CreatePixOrderParams): Promise<PagarmeOrderResponse> {
     const totalAmount = params.items.reduce((sum, item) => sum + (item.amount * item.quantity), 0);
 
+    // CORREÇÃO: expires_in DEVE ser STRING conforme documentação Pagar.me V5 PSP
+    const expiresInSeconds = String(params.expiresIn || 86400);
+
     const paymentConfig: any = {
       payment_method: 'pix',
       pix: {
-        expires_in: params.expiresIn || 86400,
+        expires_in: expiresInSeconds, // STRING conforme documentação oficial
+        additional_information: [
+          {
+            name: 'Pedido',
+            value: 'ExecutiveAI Pro'
+          }
+        ]
       },
     };
 
@@ -318,14 +327,16 @@ export class PagarmeService {
       console.warn('[Pagar.me] WARNING: phones não fornecido para PIX - usando fallback padrão');
     }
 
+    // CORREÇÃO: closed: true é OBRIGATÓRIO conforme documentação Pagar.me V5 PSP
     const orderData = {
+      closed: true, // OBRIGATÓRIO para PIX funcionar corretamente
       customer: {
         name: params.customer.name,
         email: params.customer.email,
         document: params.customer.document.replace(/\D/g, ''),
         document_type: params.customer.document_type || 'CPF',
         type: params.customer.type || 'individual',
-        phones: customerPhones, // Agora sempre envia phones (obrigatório para PIX)
+        phones: customerPhones, // Obrigatório para PIX
         ...(params.customer.address && { address: params.customer.address }),
       },
       items: params.items.map(item => ({
@@ -337,7 +348,7 @@ export class PagarmeService {
       payments: [paymentConfig],
     };
 
-    console.log('[Pagar.me] Creating PIX order');
+    console.log('[Pagar.me] Creating PIX order with closed=true');
 
     return this.request<PagarmeOrderResponse>('/orders', 'POST', orderData);
   }
@@ -369,7 +380,9 @@ export class PagarmeService {
       console.log('[Pagar.me] Card order with SPLIT:', JSON.stringify(params.split));
     }
 
+    // CORREÇÃO: closed: true é OBRIGATÓRIO conforme documentação Pagar.me V5 PSP
     const orderData = {
+      closed: true, // OBRIGATÓRIO para pedidos funcionarem corretamente
       customer: {
         name: params.customer.name,
         email: params.customer.email,
@@ -388,7 +401,7 @@ export class PagarmeService {
       payments: [paymentConfig],
     };
 
-    console.log('[Pagar.me] Creating Card order with token');
+    console.log('[Pagar.me] Creating Card order with token and closed=true');
 
     return this.request<PagarmeOrderResponse>('/orders', 'POST', orderData);
   }
@@ -396,7 +409,9 @@ export class PagarmeService {
   /** @deprecated Use tokenization + createCardOrder instead. This method sends raw card data. */
   async createCardOrderWithData(params: CreateCardOrderWithDataParams): Promise<PagarmeOrderResponse> {
     console.warn('[Pagar.me] SECURITY WARNING: Using deprecated createCardOrderWithData with raw card data. Migrate to tokenization.');
+    // CORREÇÃO: closed: true é OBRIGATÓRIO conforme documentação Pagar.me V5 PSP
     const orderData = {
+      closed: true, // OBRIGATÓRIO para pedidos funcionarem corretamente
       customer: {
         name: params.customer.name,
         email: params.customer.email,
