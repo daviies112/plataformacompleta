@@ -90,6 +90,65 @@ ExecutiveAI Pro utilizes a modern web stack with a multi-tenant, API-driven arch
 - **Sentry:** Error monitoring and tracking.
 - **Redis/Upstash:** Optional caching layer.
 
+## BigDataCorp CPF Compliance System
+
+**Documentação completa:** `docs/BIGDATACORP_CPF_COMPLIANCE.md`
+
+### Arquitetura
+
+| Componente | Descrição |
+|------------|-----------|
+| `server/lib/bigdatacorpClient.ts` | Cliente HTTP para 3 APIs BigDataCorp |
+| `server/lib/datacorpCompliance.ts` | Lógica de cache, análise de risco, salvamento |
+| `server/lib/supabaseMaster.ts` | Conexão com Supabase Master (cache global) |
+| `server/lib/clienteSupabase.ts` | Conexão com Supabase Cliente (resumo) |
+| `server/routes/compliance.ts` | Endpoints REST |
+| `src/pages/consultar-cpf.tsx` | Frontend da consulta |
+
+### Tabelas Requeridas
+
+**Supabase Master:** `datacorp_checks` (payload completo, cache global)
+**Supabase Cliente:** `cpf_compliance_results` (resumo para N8N/WhatsApp)
+**PostgreSQL Local:** `bigdatacorp_config` (credenciais encriptadas por tenant)
+
+### Credenciais Necessárias
+
+```bash
+# Via banco de dados (recomendado - configura em /configuracoes)
+# Tabela: bigdatacorp_config
+# Campos: token_id, chave_token, supabase_master_url, supabase_master_service_role_key
+
+# Via environment variables (fallback)
+TOKEN_ID=xxx
+CHAVE_TOKEN=xxx
+SUPABASE_MASTER_URL=https://xxx.supabase.co
+SUPABASE_MASTER_SERVICE_ROLE_KEY=eyJxxx
+```
+
+### APIs e Custos
+
+| API | Dataset | Custo |
+|-----|---------|-------|
+| basic_data | `basic_data{Datasets:basic_data}` | R$ 0,030 |
+| collections | `collections{Datasets:collections}` | R$ 0,070 |
+| processes | `processes{Datasets:lawsuit_distribution_data}` | R$ 0,070 |
+| **Total** | - | **R$ 0,17** |
+
+### Campo `source` no datacorp_checks
+
+| Valor | Descrição | Custo |
+|-------|-----------|-------|
+| `bigdatacorp_v3_complete` | Nova consulta | R$ 0,17 |
+| `cache_hit_manual` | Cache em consulta manual | R$ 0,00 |
+| `reused_from_cache` | Cache em automação | R$ 0,00 |
+
+### Endpoints Principais
+
+- `POST /api/compliance/check` - Consultar CPF
+- `GET /api/compliance/history` - Histórico de consultas
+- `GET /api/compliance/download-pdf/:id` - Baixar PDF
+- `POST /api/compliance/reprocess/:id` - Reprocessar
+
 ## Complete Platform Documentation
 
 For a comprehensive and exhaustive documentation of the entire platform, see:
@@ -150,6 +209,8 @@ These routes use `requireAdmin` middleware and fetch from Tenant Supabase `produ
 
 | Date | Change |
 |------|--------|
+| 2026-01-27 | Created comprehensive BigDataCorp CPF Compliance documentation (docs/BIGDATACORP_CPF_COMPLIANCE.md) |
+| 2026-01-27 | Fixed cache-hit not appearing in history - now creates new record with origin_check_id |
 | 2026-01-27 | Added personName/personCpf to all checkCompliance return paths for proper name display |
 | 2026-01-27 | Fixed PDF download error - API now returns both `id` and `checkId` for compatibility |
 | 2026-01-27 | Fixed CPF history data persistence - payload now saved correctly with all 3 APIs |
