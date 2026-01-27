@@ -1,0 +1,809 @@
+
+Formulário
+Calendário
+Workspace
+Faturamento
+WhatsApp
+Produto
+Vendas
+Kanban
+Reunião
+Consultar CPF
+Revendedora
+Assinatura
+Envio
+R$ 0
+
+Consultar CPF
+Consulte processos judiciais via Bigdatacorp com cache inteligente
+
+Autenticado
+Você está logado como daviemericko@gmail.com. Suas consultas serão registradas em sua conta.
+Nova Consulta
+Histórico
+Nova Consulta CPF
+Consulte processos judiciais via Bigdatacorp com cache inteligente
+Nome Completo
+MARILEIDE APARECIDA
+CPF
+102.463.016-19
+🔒 CPF criptografado com SHA-256 + AES-256 (conformidade LGPD)
+
+
+Forçar Atualização (3 APIs DataCorp)
+Ignora cache e busca dados frescos: Dados Cadastrais + Processos Financeiros + Processos Judiciais (custo: ~R$ 0,17)
+
+Consultar Processos
+Como funciona:
+1.
+Busca no cache local (economia de custos se já consultado)
+2.
+Se não encontrado, consulta API Bigdatacorp (R$ 0,07)
+3.
+Análise automática de risco jurídico (score 0-10)
+4.
+Resultado armazenado em cache por 60 dias
+
+Instalar App
+Detalhes da Consulta de Processos Judiciais
+Informações completas retornadas pela API Bigdatacorp
+
+Baixar PDF
+Informações da Consulta (API Bigdatacorp)
+Query ID
+
+c65992c4-8ae8-44b8-b362-3916db5c0e12
+
+Data da Consulta
+
+13/01/2026
+
+Tempo de Resposta
+
+397ms
+
+Match Keys
+
+doc{10246301619}
+
+Status da Consulta
+
+Code: 0
+OK
+Status
+Aprovado
+Risco (1-10)
+4
+Total Processos
+5
+
+Nome/CPF
+N/A
+
+N/A
+
+Como Autor
+4
+
+Como Réu
+1
+
+Outros
+0
+
+Primeiro Processo
+12/08/2015
+
+Último Processo
+27/08/2024
+
+Últimos 30 dias
+0
+
+Últimos 90 dias
+0
+
+Últimos 180 dias
+0
+
+Últimos 365 dias
+0
+
+Dados Cadastrais
+CPF Receita Federal
+Nome Completo
+
+MARILEIDE APARECIDA DA SILVA
+
+Status do CPF
+
+REGULAR
+Data Status
+
+22/08/2016
+
+Data de Nascimento
+
+29/07/1987
+
+Idade
+
+38 anos
+
+Sexo
+
+Feminino
+
+Nome da Mãe
+
+REGINA SEVERINA CHAVES DA SILVA
+
+Presença em Cobrança
+Sem Ocorrências
+Total de Ocorrências
+
+0
+
+Últimos 3 meses
+
+0
+
+Últimos 12 meses
+
+0
+
+Meses Consecutivos
+
+0
+
+Consulta Completa DataCorp
+3 APIs em paralelo
+Tempo de Consulta
+
+742ms
+
+Custo Total
+
+R$ 0.170
+
+Dados Cadastrais:
+
+Cobranças:
+
+Processos (5)
+JSON Completo
+50013818320228130604
+ARQUIVADO
+EXECUÇÃO DE TÍTULO EXTRAJUDICIAL
+Informações
+Partes (2)
+Movimentações (18)
+Decisões (0)
+Petições (0)
+Informações do Tribunal
+Tribunal
+
+TJMG
+
+Nível da Corte
+
+1
+
+Tipo da Corte
+
+ESPECIAL CIVEL
+
+Distrito
+
+SANTO ANTONIO DO MONTE
+
+Estado
+
+MG
+
+Classificação
+Classe
+
+N/A
+
+Tipo
+
+EXECUCAO DE TITULO EXTRAJUDICIAL
+
+Assunto Principal
+
+DIREITO CIVIL (899) - OBRIGACOES (7681) - ESPECIES DE TITULOS DE CREDITO (7717) - NOTA PROMISSORIA (4980
+
+Assunto CNJ Inferido
+
+NOTA PROMISSÓRIA
+
+Assunto CNJ Amplo
+
+DIREITO CIVIL
+
+Área
+
+N/A
+
+Instância
+
+N/A
+
+Responsáveis
+Juiz(a)
+
+N/A
+
+Órgão Julgador
+
+JUIZADO ESPECIAL DA COMARCA DE SANTO ANTONIO DO MONTE
+
+Datas Importantes
+Data de Distribuição
+
+28/06/2022
+
+Data de Publicação
+
+12/07/2022
+
+Última Movimentação
+
+13/10/2022
+
+Última Atualização
+
+28/11/2023
+
+Data de Captura
+
+28/11/2023
+
+Data de Encerramento
+
+13/10/2022
+
+Data de Redistribuição
+
+01/01/1
+
+Data de Trânsito em Julgado
+
+01/01/1
+
+Métricas
+Número de Partes
+
+2
+
+Número de Movimentações
+
+18
+
+Número de Páginas
+
+0
+
+Número de Volumes
+
+0
+
+Idade do Processo (dias)
+
+107
+
+Média de Atualizações/Mês
+
+0.00
+
+00107385120195030138
+ARQUIVADO
+Valor da Causa
+
+R$ 4.631,62
+
+Informações
+Partes (5)
+Movimentações (17)
+Decisões (0)
+Petições (0)
+Informações do Tribunal
+Tribunal
+
+TRT3
+
+Nível da Corte
+
+1
+
+Tipo da Corte
+
+TRABALHISTA
+
+Distrito
+
+BELO HORIZONTE
+
+Estado
+
+MG
+
+Classificação
+Classe
+
+N/A
+
+Tipo
+
+RITO SUMARISSIMO
+
+Assunto Principal
+
+AVISO PREVIO
+
+Assunto CNJ Inferido
+
+AVISO PRÉVIO
+
+Assunto CNJ Amplo
+
+DIREITO DO TRABALHO
+
+Área
+
+N/A
+
+Instância
+
+N/A
+
+Responsáveis
+Juiz(a)
+
+N/A
+
+Órgão Julgador
+
+38 VARA DO TRABALHO DE BELO HORIZONTE
+
+Datas Importantes
+Data de Distribuição
+
+12/09/2019
+
+Data de Publicação
+
+30/09/2019
+
+Última Movimentação
+
+14/10/2019
+
+Última Atualização
+
+04/08/2024
+
+Data de Captura
+
+04/08/2024
+
+Data de Encerramento
+
+14/10/2019
+
+Data de Redistribuição
+
+01/01/1
+
+Data de Trânsito em Julgado
+
+14/10/2019
+
+Métricas
+Número de Partes
+
+5
+
+Número de Movimentações
+
+17
+
+Número de Páginas
+
+0
+
+Número de Volumes
+
+0
+
+Idade do Processo (dias)
+
+31
+
+Média de Atualizações/Mês
+
+0.00
+
+00100569420165030011
+ARQUIVADO
+Valor da Causa
+
+R$ 30.716,88
+
+Informações
+Partes (4)
+Movimentações (59)
+Decisões (1)
+Petições (0)
+Informações do Tribunal
+Tribunal
+
+TRT3
+
+Nível da Corte
+
+1
+
+Tipo da Corte
+
+TRABALHISTA
+
+Distrito
+
+BELO HORIZONTE
+
+Estado
+
+MG
+
+Classificação
+Classe
+
+N/A
+
+Tipo
+
+RITO SUMARISSIMO
+
+Assunto Principal
+
+PREVENCAO
+
+Assunto CNJ Inferido
+
+PREVENÇÃO
+
+Assunto CNJ Amplo
+
+DIREITO PROCESSUAL CIVIL E DO TRABALHO
+
+Área
+
+N/A
+
+Instância
+
+N/A
+
+Responsáveis
+Juiz(a)
+
+N/A
+
+Órgão Julgador
+
+11 VARA DO TRABALHO DE BELO HORIZONTE
+
+Datas Importantes
+Data de Distribuição
+
+19/01/2016
+
+Data de Publicação
+
+23/05/2016
+
+Última Movimentação
+
+07/06/2016
+
+Última Atualização
+
+20/05/2025
+
+Data de Captura
+
+20/05/2025
+
+Data de Encerramento
+
+07/06/2016
+
+Data de Redistribuição
+
+31/03/2016
+
+Data de Trânsito em Julgado
+
+07/06/2016
+
+Métricas
+Número de Partes
+
+4
+
+Número de Movimentações
+
+59
+
+Número de Páginas
+
+0
+
+Número de Volumes
+
+0
+
+Idade do Processo (dias)
+
+139
+
+Média de Atualizações/Mês
+
+0.00
+
+00107605320155030105
+ARQUIVADO
+Valor da Causa
+
+R$ 21.862,87
+
+Informações
+Partes (5)
+Movimentações (9)
+Decisões (0)
+Petições (0)
+Informações do Tribunal
+Tribunal
+
+TRT3
+
+Nível da Corte
+
+1
+
+Tipo da Corte
+
+TRABALHISTA
+
+Distrito
+
+BELO HORIZONTE
+
+Estado
+
+MG
+
+Classificação
+Classe
+
+N/A
+
+Tipo
+
+RITO SUMARISSIMO
+
+Assunto Principal
+
+GESTANTE
+
+Assunto CNJ Inferido
+
+GESTANTE
+
+Assunto CNJ Amplo
+
+DIREITO DO TRABALHO
+
+Área
+
+N/A
+
+Instância
+
+N/A
+
+Responsáveis
+Juiz(a)
+
+N/A
+
+Órgão Julgador
+
+26 VARA DO TRABALHO DE BELO HORIZONTE
+
+Datas Importantes
+Data de Distribuição
+
+12/08/2015
+
+Data de Publicação
+
+12/02/2016
+
+Última Movimentação
+
+23/09/2015
+
+Última Atualização
+
+21/05/2025
+
+Data de Captura
+
+21/05/2025
+
+Data de Encerramento
+
+23/09/2015
+
+Data de Redistribuição
+
+01/01/1
+
+Data de Trânsito em Julgado
+
+01/01/1
+
+Métricas
+Número de Partes
+
+5
+
+Número de Movimentações
+
+9
+
+Número de Páginas
+
+0
+
+Número de Volumes
+
+0
+
+Idade do Processo (dias)
+
+41
+
+Média de Atualizações/Mês
+
+0.00
+
+50078785920248130567
+INDEFINIDO
+PROCEDIMENTO COMUM CÍVEL
+Informações
+Partes (4)
+Movimentações (47)
+Decisões (3)
+Petições (0)
+Informações do Tribunal
+Tribunal
+
+TJMG
+
+Nível da Corte
+
+1
+
+Tipo da Corte
+
+CIVEL
+
+Distrito
+
+SABARA
+
+Estado
+
+MG
+
+Classificação
+Classe
+
+N/A
+
+Tipo
+
+PROCEDIMENTO COMUM
+
+Assunto Principal
+
+DIREITO CIVIL (899) - RESPONSABILIDADE CIVIL (10431) - INDENIZACAO POR DANO MORAL (10433 DIREITO CIVIL (899) - RESPONSABILIDADE CIVIL (10431) - INDENIZACAO POR DANO MATERIAL (10439
+
+Assunto CNJ Inferido
+
+INDENIZAÇÃO POR DANO MATERIAL
+
+Assunto CNJ Amplo
+
+DIREITO CIVIL
+
+Área
+
+N/A
+
+Instância
+
+N/A
+
+Responsáveis
+Juiz(a)
+
+N/A
+
+Órgão Julgador
+
+1 VARA CIVEL E DA INFANCIA E DA JUVENTUDE DA COMARCA DE SABARA
+
+Datas Importantes
+Data de Distribuição
+
+27/08/2024
+
+Data de Publicação
+
+02/09/2024
+
+Última Movimentação
+
+01/08/2025
+
+Última Atualização
+
+15/08/2025
+
+Data de Captura
+
+15/08/2025
+
+Data de Encerramento
+
+01/01/1
+
+Data de Redistribuição
+
+01/01/1
+
+Data de Trânsito em Julgado
+
+01/01/1
+
+Métricas
+Número de Partes
+
+4
+
+Número de Movimentações
+
+47
+
+Número de Páginas
+
+0
+
+Número de Volumes
+
+0
+
+Idade do Processo (dias)
+
+504
+
+Média de Atualizações/Mês
+
+2.00
+
+Close
