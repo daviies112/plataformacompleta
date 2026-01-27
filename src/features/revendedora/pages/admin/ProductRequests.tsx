@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { getResellerId as getStoredResellerId } from '@/features/revendedora/lib/resellerAuth';
+import { useSupabase } from '@/features/revendedora/contexts/SupabaseContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Search, Package, ClipboardList } from 'lucide-react';
@@ -52,42 +51,39 @@ const STATUS_OPTIONS = [
 ];
 
 export default function AdminProductRequests() {
+  const { client: supabase, loading: supabaseLoading, configured } = useSupabase();
   const [requests, setRequests] = useState<ProductRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
-  const getResellerId = (): string | null => {
-    const storedReseller = getStoredResellerId();
-    if (storedReseller) return storedReseller;
-    console.error('[AdminProductRequests] Reseller ID não encontrado no localStorage');
-    return null;
-  };
-
   useEffect(() => {
-    loadRequests();
-  }, []);
+    if (!supabaseLoading && configured) {
+      loadRequests();
+    } else if (!supabaseLoading && !configured) {
+      setLoading(false);
+    }
+  }, [supabaseLoading, configured]);
 
   const loadRequests = async () => {
-    try {
-      const resellerId = getResellerId();
-      if (!resellerId) {
-        console.error('[AdminProductRequests] Cannot load requests: reseller_id is missing');
-        toast.error('Por favor, faça login novamente');
-        setLoading(false);
-        return;
-      }
-      console.log('[AdminProductRequests] Loading product requests for reseller:', resellerId);
+    if (!supabase) {
+      console.log('[AdminProductRequests] Supabase not configured');
+      setLoading(false);
+      return;
+    }
 
+    try {
+      console.log('[AdminProductRequests] Loading ALL product requests (admin view)');
+
+      // Admin vê TODAS as solicitações (sem filtro de reseller_id)
       const { data, error } = await supabase
         .from('product_requests')
         .select('*, reseller:reseller_id(*), product:product_id(*)')
-        .eq('reseller_id', resellerId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      console.log('[AdminProductRequests] Loaded', (data || []).length, 'requests for reseller:', resellerId);
+      console.log('[AdminProductRequests] Loaded', (data || []).length, 'requests');
       setRequests((data as unknown as ProductRequest[]) || []);
     } catch (error) {
       console.error('[AdminProductRequests] Error loading product requests:', error);
@@ -98,21 +94,17 @@ export default function AdminProductRequests() {
   };
 
   const updateStatus = async (requestId: string, newStatus: string) => {
+    if (!supabase) {
+      toast.error('Banco de dados não configurado');
+      return;
+    }
+
     setUpdatingId(requestId);
     try {
-      const resellerId = getResellerId();
-      if (!resellerId) {
-        console.error('[AdminProductRequests] Cannot update status: reseller_id is missing');
-        toast.error('Por favor, faça login novamente');
-        setUpdatingId(null);
-        return;
-      }
-
       const { error } = await supabase
         .from('product_requests')
         .update({ status: newStatus })
-        .eq('id', requestId)
-        .eq('reseller_id', resellerId);
+        .eq('id', requestId);
 
       if (error) throw error;
       console.log('[AdminProductRequests] Updated status for request:', requestId, 'to:', newStatus);

@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Package, Loader2, ShoppingCart } from 'lucide-react';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
+import { useSupabase } from '@/features/revendedora/contexts/SupabaseContext';
 
 interface ProductRequestModalProps {
   product: any;
@@ -29,6 +29,7 @@ export function ProductRequestModal({
   onClose,
   resellerId
 }: ProductRequestModalProps) {
+  const { client: supabase, configured } = useSupabase();
   const [quantity, setQuantity] = useState(1);
   const [notes, setNotes] = useState('');
   const [processing, setProcessing] = useState(false);
@@ -45,6 +46,11 @@ export function ProductRequestModal({
   const handleSubmitRequest = async () => {
     if (quantity < 1) {
       toast.error('A quantidade deve ser pelo menos 1');
+      return;
+    }
+
+    if (!supabase || !configured) {
+      toast.error('Banco de dados não configurado. Configure nas Configurações.');
       return;
     }
 
