@@ -24,6 +24,7 @@ import ReuniaoDashboard from "@/pages/ReuniaoDashboard";
 import ReuniaoPage from "@/pages/Reuniao";
 // ReuniaoPublica removido - tratado via lazy loading no PlatformRouter
 import GravacoesPage from "@/pages/Gravacoes";
+import HorariosDisponiveis from "@/pages/HorariosDisponiveis";
 import RoomDesignSettings from "@/pages/RoomDesignSettings";
 import ConsultarCPFPage from "@/pages/consultar-cpf";
 import HistoricoConsultasPage from "@/pages/historico-consultas";
@@ -631,6 +632,17 @@ const DesktopApp = () => {
           <ProtectedRoute>
             <DesktopLayout>
               <GravacoesPage />
+            </DesktopLayout>
+          </ProtectedRoute>
+        } 
+      />
+      
+      <Route 
+        path="/horarios-disponiveis" 
+        element={
+          <ProtectedRoute>
+            <DesktopLayout>
+              <HorariosDisponiveis />
             </DesktopLayout>
           </ProtectedRoute>
         } 

@@ -220,5 +220,9 @@ export async function registerRoutes(app: Express) {
   // All other wallet routes require authentication
   app.use("/api/wallet", requireTenant, walletRoutes);
 
+  // Horarios disponiveis routes (meeting schedules)
+  const { registerHorariosRoutes } = await import("./routes/horarios");
+  registerHorariosRoutes(app);
+
   return httpServer;
 }

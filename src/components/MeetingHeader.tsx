@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useReuniao } from "@/hooks/useReuniao";
 import { Button } from "@/components/ui/button";
-import { Video, Plus, Zap, Palette, Loader2 } from "lucide-react";
+import { Video, Plus, Zap, Palette, Loader2, Clock } from "lucide-react";
 import { useState } from "react";
 import { InstantMeetingModal } from "@/components/InstantMeetingModal";
 import { CreateEventModal } from "@/components/calendar/CreateEventModal";
@@ -78,6 +78,14 @@ export function MeetingHeader({ title, description }: MeetingHeaderProps) {
           onClick={() => navigate("/gravacoes")}
         >
           <Video className="h-4 w-4" /> Gravações
+        </Button>
+        <Button 
+          variant="outline" 
+          className="gap-2"
+          onClick={() => navigate("/horarios-disponiveis")}
+          data-testid="button-horarios"
+        >
+          <Clock className="h-4 w-4" /> Horários
         </Button>
         <Button 
           variant="outline" 

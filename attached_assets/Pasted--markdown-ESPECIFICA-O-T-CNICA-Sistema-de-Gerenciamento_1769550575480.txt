@@ -1,0 +1,430 @@
+```markdown
+# ESPECIFICAÇÃO TÉCNICA: Sistema de Gerenciamento de Horários Disponíveis
+
+## 🎯 OBJETIVO
+
+Criar uma interface web no Replit que permita aos usuários **configurar horários disponíveis** para agendamento de reuniões de forma **100% personalizada**. Os horários configurados serão salvos no Supabase e consumidos pelo workflow do n8n para apresentar aos clientes durante o agendamento.
+
+---
+
+## 📊 ESTRUTURA DO BANCO DE DADOS (SUPABASE)
+
+### **Tabela: `horarios_disponiveis`**
+
+```sql
+CREATE TABLE horarios_disponiveis (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  tenant_id TEXT NOT NULL,
+  dia_semana INTEGER, -- 0=Domingo, 1=Segunda, 2=Terça, 3=Quarta, 4=Quinta, 5=Sexta, 6=Sábado, NULL=Todos os dias
+  horario TIME NOT NULL,
+  periodo TEXT, -- 'manhã', 'tarde', 'noite'
+  tipo_reuniao TEXT NOT NULL, -- 'online', 'presencial', 'ambos'
+  ativo BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Índices para performance
+CREATE INDEX idx_horarios_tenant ON horarios_disponiveis(tenant_id);
+CREATE INDEX idx_horarios_ativo ON horarios_disponiveis(ativo);
+CREATE INDEX idx_horarios_dia ON horarios_disponiveis(dia_semana);
+
+-- RLS (Row Level Security)
+ALTER TABLE horarios_disponiveis ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view their own horarios"
+  ON horarios_disponiveis FOR SELECT
+  USING (tenant_id = current_setting('app.current_tenant'));
+
+CREATE POLICY "Users can insert their own horarios"
+  ON horarios_disponiveis FOR INSERT
+  WITH CHECK (tenant_id = current_setting('app.current_tenant'));
+
+CREATE POLICY "Users can update their own horarios"
+  ON horarios_disponiveis FOR UPDATE
+  USING (tenant_id = current_setting('app.current_tenant'));
+
+CREATE POLICY "Users can delete their own horarios"
+  ON horarios_disponiveis FOR DELETE
+  USING (tenant_id = current_setting('app.current_tenant'));
+```
+
+---
+
+## 🎨 INTERFACE WEB (REPLIT)
+
+### **Página: `/configurar-horarios`**
+
+#### **REQUISITOS FUNCIONAIS**
+
+1. **Autenticação**
+   - Usuário deve estar logado
+   - Identificar `tenant_id` do usuário logado
+
+2. **Visualização de Horários Configurados**
+   - Listar todos os horários cadastrados do `tenant_id` atual
+   - Organizar por dia da semana e horário
+   - Mostrar status (ativo/inativo)
+   - Permitir filtrar por tipo de reunião
+
+3. **Adicionar Novo Horário (100% Personalizável)**
+   - **Dia da Semana**: 
+     - Checkbox para cada dia (Seg, Ter, Qua, Qui, Sex, Sáb, Dom)
+     - Opção "Todos os dias" (salva como `dia_semana = NULL`)
+   - **Horário**: 
+     - Input tipo `time` (HH:MM)
+     - Permitir adicionar múltiplos horários de uma vez
+   - **Período** (auto-detectado ou manual):
+     - Manhã (06:00 - 11:59)
+     - Tarde (12:00 - 17:59)
+     - Noite (18:00 - 05:59)
+   - **Tipo de Reunião**:
+     - Radio button: Online / Presencial / Ambos
+   - **Botão "Adicionar Horário"**
+
+4. **Editar Horário Existente**
+   - Clicar em horário listado abre modal de edição
+   - Permitir alterar qualquer campo
+   - Botão "Salvar Alterações"
+
+5. **Excluir Horário**
+   - Botão de lixeira em cada horário
+   - Confirmação antes de excluir
+   - Soft delete (marcar `ativo = false`) OU hard delete
+
+6. **Ativar/Desativar Horário**
+   - Toggle switch em cada horário
+   - Atualiza campo `ativo` no banco
+
+7. **Visualização em Grade Semanal**
+   - Calendário visual mostrando horários por dia da semana
+   - Cores diferentes para online/presencial/ambos
+
+---
+
+## 💻 IMPLEMENTAÇÃO TÉCNICA
+
+### **Stack Sugerida**
+- **Frontend**: React ou HTML+JavaScript
+- **Backend**: Node.js (Express) ou Python (Flask)
+- **Database**: Supabase (PostgreSQL)
+- **Styling**: Tailwind CSS ou Bootstrap
+
+---
+
+### **API ENDPOINTS (Backend Replit)**
+
+#### **1. GET `/api/horarios`**
+Retorna todos os horários do tenant logado
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "uuid",
+      "tenant_id": "dev-daviemericko_gmail_com",
+      "dia_semana": 1,
+      "horario": "09:00:00",
+      "periodo": "manhã",
+      "tipo_reuniao": "ambos",
+      "ativo": true,
+      "created_at": "2026-01-27T10:00:00Z"
+    }
+  ]
+}
+```
+
+---
+
+#### **2. POST `/api/horarios`**
+Cria um novo horário
+
+**Request Body:**
+```json
+{
+  "dias_semana": [1, 2, 3, 4, 5], // Array de dias OU null para "todos os dias"
+  "horario": "09:00",
+  "tipo_reuniao": "ambos"
+}
+```
+
+**Lógica:**
+1. Detectar período automaticamente baseado no horário
+2. Se `dias_semana = null`, criar 1 registro com `dia_semana = NULL`
+3. Se `dias_semana = [1,2,3]`, criar 3 registros (um para cada dia)
+4. Salvar `tenant_id` do usuário logado
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "5 horários criados com sucesso",
+  "data": [...]
+}
+```
+
+---
+
+#### **3. PUT `/api/horarios/:id`**
+Atualiza um horário existente
+
+**Request Body:**
+```json
+{
+  "dia_semana": 2,
+  "horario": "10:00",
+  "tipo_reuniao": "online",
+  "ativo": true
+}
+```
+
+**Validações:**
+- Verificar se `id` pertence ao `tenant_id` logado
+- Recalcular período se horário mudou
+
+---
+
+#### **4. DELETE `/api/horarios/:id`**
+Exclui um horário
+
+**Opções:**
+- **Soft Delete** (recomendado): `UPDATE horarios_disponiveis SET ativo = false WHERE id = :id`
+- **Hard Delete**: `DELETE FROM horarios_disponiveis WHERE id = :id`
+
+---
+
+#### **5. PATCH `/api/horarios/:id/toggle`**
+Ativa/desativa um horário
+
+**Request Body:**
+```json
+{
+  "ativo": false
+}
+```
+
+---
+
+## 🎨 EXEMPLOS DE UI/UX
+
+### **Tela Principal**
+
+```
+╔════════════════════════════════════════════════════════════╗
+║  📅 CONFIGURAR HORÁRIOS DISPONÍVEIS                        ║
+╠════════════════════════════════════════════════════════════╣
+║                                                            ║
+║  [+ Adicionar Novo Horário]                   [Grade Semanal] ║
+║                                                            ║
+║  ┌─────────────────────────────────────────────────────┐  ║
+║  │ HORÁRIOS CADASTRADOS                                │  ║
+║  ├─────────────────────────────────────────────────────┤  ║
+║  │ Segunda-feira                                       │  ║
+║  │  • 09:00 - Manhã (Ambos) [●][✏️][🗑️]              │  ║
+║  │  • 14:00 - Tarde (Online) [●][✏️][🗑️]             │  ║
+║  │                                                     │  ║
+║  │ Terça-feira                                         │  ║
+║  │  • 09:00 - Manhã (Ambos) [○][✏️][🗑️]              │  ║
+║  │  • 20:00 - Noite (Presencial) [●][✏️][🗑️]         │  ║
+║  └─────────────────────────────────────────────────────┘  ║
+╚════════════════════════════════════════════════════════════╝
+```
+
+---
+
+### **Modal: Adicionar Horário**
+
+```
+╔════════════════════════════════════════════════════════════╗
+║  ➕ ADICIONAR NOVO HORÁRIO                                 ║
+╠════════════════════════════════════════════════════════════╣
+║                                                            ║
+║  📆 Dias da Semana:                                        ║
+║  ☐ Todos os dias                                          ║
+║  ☑ Seg  ☑ Ter  ☑ Qua  ☑ Qui  ☑ Sex  ☐ Sáb  ☐ Dom        ║
+║                                                            ║
+║  ⏰ Horário:                                               ║
+║  [09:00] ← (input type="time")                           ║
+║                                                            ║
+║  📍 Tipo de Reunião:                                       ║
+║  ◉ Ambos    ○ Somente Online    ○ Somente Presencial     ║
+║                                                            ║
+║  [Cancelar]                        [Adicionar Horário]    ║
+╚════════════════════════════════════════════════════════════╝
+```
+
+---
+
+## 🔄 FLUXO DE DADOS
+
+```
+┌─────────────────┐
+│  Usuário acessa │
+│  /configurar-   │
+│  horarios       │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│ Frontend chama  │
+│ GET /api/       │
+│ horarios        │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│ Backend busca   │
+│ no Supabase     │
+│ WHERE tenant_id │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│ Renderiza lista │
+│ de horários     │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│ Usuário clica   │
+│ "Adicionar"     │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│ POST /api/      │
+│ horarios        │
+│ {dias, hora}    │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│ Backend cria    │
+│ registros no    │
+│ Supabase        │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│ n8n workflow    │
+│ consome dados   │
+│ automaticamente │
+└─────────────────┘
+```
+
+---
+
+## ✅ VALIDAÇÕES OBRIGATÓRIAS
+
+1. **Horário válido**: 00:00 a 23:59
+2. **Pelo menos 1 dia selecionado** (a menos que seja "todos os dias")
+3. **Tipo de reunião obrigatório**
+4. **Não permitir duplicatas**: mesmo `tenant_id` + `dia_semana` + `horario`
+5. **tenant_id sempre do usuário logado** (nunca confiar no frontend)
+
+---
+
+## 🎯 CASOS DE USO
+
+### **Caso 1: Empresa quer horários fixos todos os dias**
+```
+Input:
+- Todos os dias: ✓
+- Horários: 09:00, 14:00, 20:00
+- Tipo: Ambos
+
+Resultado no DB:
+id | tenant_id | dia_semana | horario | periodo | tipo_reuniao
+---|-----------|------------|---------|---------|-------------
+1  | tenant_x  | NULL       | 09:00   | manhã   | ambos
+2  | tenant_x  | NULL       | 14:00   | tarde   | ambos
+3  | tenant_x  | NULL       | 20:00   | noite   | ambos
+```
+
+---
+
+### **Caso 2: Terapeuta quer horários diferentes por dia**
+```
+Input:
+- Segunda: 09:00, 14:00 (Ambos)
+- Quarta: 10:00, 15:00 (Online)
+- Sexta: 08:00, 18:00 (Presencial)
+
+Resultado no DB:
+id | tenant_id | dia_semana | horario | periodo | tipo_reuniao
+---|-----------|------------|---------|---------|-------------
+1  | tenant_y  | 1          | 09:00   | manhã   | ambos
+2  | tenant_y  | 1          | 14:00   | tarde   | ambos
+3  | tenant_y  | 3          | 10:00   | manhã   | online
+4  | tenant_y  | 3          | 15:00   | tarde   | online
+5  | tenant_y  | 5          | 08:00   | manhã   | presencial
+6  | tenant_y  | 5          | 18:00   | noite   | presencial
+```
+
+---
+
+### **Caso 3: Apenas online de manhã, presencial à tarde**
+```
+Input:
+- Seg a Sex: 09:00 (Online), 14:00 (Presencial)
+
+Resultado no DB:
+10 registros (5 dias × 2 horários)
+```
+
+---
+
+## 🔒 SEGURANÇA
+
+1. **Autenticação obrigatória** em todas as rotas
+2. **Row Level Security (RLS)** no Supabase
+3. **Validar tenant_id no backend** - nunca confiar no frontend
+4. **CORS configurado** apenas para domínios autorizados
+5. **Rate limiting** para evitar spam
+
+---
+
+## 📱 RESPONSIVIDADE
+
+- Mobile-first design
+- Grade semanal adaptável (colapsa em accordion no mobile)
+- Modals fullscreen em telas pequenas
+
+---
+
+## 🚀 ENTREGÁVEIS
+
+1. ✅ Tabela `horarios_disponiveis` criada no Supabase
+2. ✅ API REST completa (`GET`, `POST`, `PUT`, `DELETE`, `PATCH`)
+3. ✅ Interface web funcional em `/configurar-horarios`
+4. ✅ Documentação de uso para o cliente final
+5. ✅ Testes de integração com n8n workflow
+
+---
+
+## 📝 OBSERVAÇÕES IMPORTANTES
+
+- Os horários configurados aqui serão **automaticamente consumidos** pelo workflow do n8n
+- Amanda (a IA) apresentará esses horários formatados ao cliente durante o agendamento
+- O sistema deve ser **100% autoexplicativo** para o usuário final
+- Permitir **exportar/importar** configurações em JSON (futuro)
+
+---
+
+**TECNOLOGIAS REQUERIDAS:**
+- Node.js v18+
+- Supabase Client Library
+- Express.js (backend)
+- React ou Vanilla JS (frontend)
+- Tailwind CSS (styling)
+
+**PRAZO SUGERIDO:** 5-7 dias úteis
+
+**PRIORIDADE:** Alta (bloqueante para agendamentos personalizados)
+```
+
+---
+
+Este prompt contém **TUDO** que o desenvolvedor do Replit precisa saber para criar o sistema completo! 🚀
