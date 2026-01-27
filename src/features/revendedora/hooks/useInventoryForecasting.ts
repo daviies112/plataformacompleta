@@ -128,8 +128,18 @@ export function useInventoryForecasting(): UseInventoryForecastingReturn {
         supabase.from('resellers').select('id, nome, email')
       ]);
 
+      console.log('[InventoryForecasting] Query results:', {
+        products: productsResult.error ? 'ERROR: ' + productsResult.error.message : productsResult.data?.length,
+        sales: salesResult.error ? 'ERROR: ' + salesResult.error.message : salesResult.data?.length,
+        resellers: resellersResult.error ? 'ERROR: ' + resellersResult.error.message : resellersResult.data?.length
+      });
+
       if (productsResult.error) throw productsResult.error;
       if (salesResult.error) throw salesResult.error;
+      // resellers error is optional - table may not exist in all tenants
+      if (resellersResult.error) {
+        console.warn('[InventoryForecasting] Resellers query failed (optional):', resellersResult.error.message);
+      }
 
       setProducts(productsResult.data || []);
       setSales(salesResult.data || []);
