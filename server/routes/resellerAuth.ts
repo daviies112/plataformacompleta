@@ -1910,10 +1910,10 @@ router.post('/product-requests', resellerAuthMiddleware, async (req, res) => {
       return res.status(400).json({ error: 'Quantidade deve ser pelo menos 1' });
     }
 
-    // Buscar dados da revendedora no Supabase Owner
+    // Buscar dados da revendedora no Supabase Owner (incluindo CPF)
     const { data: resellerData, error: resellerError } = await supabaseOwner
       .from('revendedoras')
-      .select('id, nome, email, admin_id')
+      .select('id, nome, email, cpf, admin_id')
       .eq('id', auth.userId)
       .single();
 
@@ -1933,35 +1933,25 @@ router.post('/product-requests', resellerAuthMiddleware, async (req, res) => {
     console.log('[ProductRequest] Inserting product request for reseller:', auth.userId);
 
     // Primeiro, garantir que o reseller existe no Tenant DB (para satisfazer FK)
-    // Tentar várias estruturas de colunas possíveis
-    const resellerInsertAttempts = [
-      // Estrutura 1: id, nome (mínimo para tabelas com nome NOT NULL)
-      { id: auth.userId, nome: resellerData.nome || resellerData.email },
-      // Estrutura 2: id, nome, email
-      { id: auth.userId, nome: resellerData.nome || resellerData.email, email: resellerData.email },
-      // Estrutura 3: id, nome, email, status (português)
-      { id: auth.userId, nome: resellerData.nome || resellerData.email, email: resellerData.email, status: 'ativo' },
-      // Estrutura 4: apenas id (se nome for nullable)
-      { id: auth.userId }
-    ];
+    // Estrutura da tabela resellers: id, nome (NOT NULL), cpf (NOT NULL), tipo (NOT NULL), nivel (NOT NULL)
+    const resellerData_cpf = resellerData.cpf || '';
+    const resellerInsertData = {
+      id: auth.userId,
+      nome: resellerData.nome || resellerData.email,
+      cpf: resellerData_cpf,
+      tipo: 'revendedora',
+      nivel: 'bronze',
+      email: resellerData.email
+    };
     
-    let resellerSynced = false;
-    for (const data of resellerInsertAttempts) {
-      const { error } = await tenantClient
-        .from('resellers')
-        .upsert(data, { onConflict: 'id' });
-      
-      if (!error) {
-        console.log('[ProductRequest] Reseller synced to tenant DB:', auth.userId);
-        resellerSynced = true;
-        break;
-      } else {
-        console.log('[ProductRequest] Reseller upsert attempt failed:', error.message);
-      }
-    }
+    const { error: upsertError } = await tenantClient
+      .from('resellers')
+      .upsert(resellerInsertData, { onConflict: 'id' });
     
-    if (!resellerSynced) {
-      console.log('[ProductRequest] Could not sync reseller - will try insert anyway');
+    if (upsertError) {
+      console.log('[ProductRequest] Reseller upsert failed:', upsertError.message);
+    } else {
+      console.log('[ProductRequest] Reseller synced to tenant DB:', auth.userId);
     }
 
     // Agora inserir a solicitação de produto
@@ -1984,10 +1974,10 @@ router.post('/product-requests', resellerAuthMiddleware, async (req, res) => {
       if (insertError.code === '23503') {
         console.log('[ProductRequest] FK constraint error - attempting direct insert with minimal reseller data');
         
-        // Tentar insert direto com id e nome (nome é obrigatório)
+        // Tentar insert direto com todos os campos obrigatórios
         const { error: directInsertError } = await tenantClient
           .from('resellers')
-          .insert({ id: auth.userId, nome: resellerData.nome || resellerData.email });
+          .insert(resellerInsertData);
         
         if (directInsertError) {
           console.log('[ProductRequest] Direct reseller insert failed:', directInsertError.message);
