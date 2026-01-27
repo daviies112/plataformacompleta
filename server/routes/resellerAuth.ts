@@ -2119,15 +2119,23 @@ router.get('/admin/product-requests', resellerAuthMiddleware, async (req, res) =
       throw error;
     }
 
-    // Buscar informações das revendedoras do Owner
+    // Buscar informações das revendedoras do Owner (colunas que existem: id, nome, email, cpf, admin_id)
     const resellerIds = [...new Set((data || []).map(r => r.reseller_id))];
     let resellersMap: Record<string, any> = {};
     
+    console.log('[ProductRequest Admin] Looking up resellers:', resellerIds);
+    
     if (resellerIds.length > 0) {
-      const { data: resellers } = await supabaseOwner
+      const { data: resellers, error: resellersError } = await supabaseOwner
         .from('revendedoras')
-        .select('id, nome, email, telefone')
+        .select('id, nome, email')
         .in('id', resellerIds);
+      
+      if (resellersError) {
+        console.error('[ProductRequest Admin] Error fetching resellers:', resellersError);
+      } else {
+        console.log('[ProductRequest Admin] Found resellers:', resellers);
+      }
       
       resellersMap = (resellers || []).reduce((acc, r) => {
         acc[r.id] = r;
