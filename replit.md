@@ -45,6 +45,37 @@ ExecutiveAI Pro utilizes a modern web stack with a multi-tenant, API-driven arch
 - **Dynamic Branding System:** CompanyContext provides centralized branding synchronization from Supabase `companies` table to reseller dashboard. Colors, logo, and styling automatically update in real-time via realtime subscriptions and polling. The system applies CSS variables dynamically to theme the entire reseller interface.
 - **Platform Analytics:** Comprehensive analytics dashboard for admins showing platform-wide sales metrics, top resellers, commission distribution, monthly trends, and resellers at risk (30%+ sales drop detection). Data is fetched from Supabase Owner tables (`revendedoras`, `vendas_revendedora`) via `/api/split/resellers-analytics` endpoint using `SUPABASE_OWNER_SERVICE_KEY`.
 
+- **Commission Configuration System:** Dynamic commission tiers configurable via `/vendas/commission-config` admin page. Configuration is persisted to `commission_config` table in tenant Supabase via `/api/split/commission-config` endpoints. The backend service (`server/services/commission.ts`) automatically reads these configurations when calculating payment splits.
+
+- **Dual Supabase Architecture:**
+  - **Supabase Owner** (`SUPABASE_OWNER_URL`/`SUPABASE_OWNER_SERVICE_KEY`): Centralized authentication, `revendedoras` table for reseller management
+  - **Supabase Tenant** (from `data/supabase-config.json`): Client-specific data including `sales_with_split`, `products`, `commission_config`, and other operational tables
+  - The analytics API aggregates data from both Supabases: resellers from Owner, sales from Tenant
+
+- **Payment Split Logic (Pagar.me):**
+  - Platform fees: 3% Pagar.me + 3% Developer (6% total, fixed)
+  - Remaining 94% divided between company and reseller based on configured tiers:
+    - Iniciante (R$0-2000): 65% reseller / 35% company (configurable)
+    - Bronze (R$2000-4500): 70% / 30%
+    - Prata (R$4500-10000): 75% / 25%
+    - Ouro (R$10000+): 80% / 20%
+  - Developer Recipient ID: `re_cmkn7cdx110b10l9tp8yk0j92`
+
+## Key API Endpoints
+
+- `GET /api/split/resellers-analytics` - Fetch all resellers and sales data for admin dashboard
+- `GET /api/split/commission-config` - Load commission tier configuration
+- `POST /api/split/commission-config` - Save commission tier configuration
+- `POST /api/reseller/login` - Reseller authentication with automatic credential sync
+- `GET /api/reseller/supabase-config` - Get tenant Supabase credentials for reseller
+
+## Critical Data Files (data/ folder)
+
+- `supabase-config.json` - Tenant Supabase credentials (URL, service key, anon key)
+- `credentials.json` - Platform credentials and API keys
+- `assinatura_contracts.json` - Digital signature contracts cache
+- `automation_state.json` - Background job state persistence
+
 ## External Dependencies
 
 - **PostgreSQL:** Primary relational database.
