@@ -1501,7 +1501,15 @@ router.get('/product-requests', async (req: Request, res: Response) => {
     }
     
     const configData = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-    const tenantClient = createClient(configData.url, configData.serviceKey);
+    const supabaseUrl = configData.supabaseUrl || configData.url;
+    const supabaseKey = configData.supabaseServiceKey || configData.serviceKey || configData.supabaseAnonKey;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      console.log('[Split] Invalid tenant config - missing URL or key');
+      return res.json({ success: true, data: [] });
+    }
+    
+    const tenantClient = createClient(supabaseUrl, supabaseKey);
     
     // Fetch all product requests
     const { data: requests, error } = await tenantClient
@@ -1573,7 +1581,14 @@ router.patch('/product-requests/:id', async (req: Request, res: Response) => {
     }
     
     const configData = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-    const tenantClient = createClient(configData.url, configData.serviceKey);
+    const supabaseUrl = configData.supabaseUrl || configData.url;
+    const supabaseKey = configData.supabaseServiceKey || configData.serviceKey || configData.supabaseAnonKey;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(400).json({ success: false, error: 'Configuração inválida' });
+    }
+    
+    const tenantClient = createClient(supabaseUrl, supabaseKey);
     
     const { data, error } = await tenantClient
       .from('product_requests')
