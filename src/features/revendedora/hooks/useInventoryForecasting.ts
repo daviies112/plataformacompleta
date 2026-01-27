@@ -320,10 +320,13 @@ export function useInventoryForecasting(): UseInventoryForecastingReturn {
     };
   }, [metrics]);
 
+  // Only check configured if using context client, not main client
+  const isActuallyLoading = loading || (!clientInitialized);
+  
   return {
     metrics,
     summary,
-    loading: loading || supabaseLoading || !configured,
+    loading: isActuallyLoading,
     error,
     refetch: loadData
   };
