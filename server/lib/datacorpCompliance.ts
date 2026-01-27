@@ -162,6 +162,184 @@ function normalizeParties(data: any): BigdatacorpParty[] {
   return [];
 }
 
+// Normalize a single party from BigDataCorp API format
+// Maps PartyType→Type, PartyCategory→Polarity (BigDataCorp API uses different field names)
+function normalizePartyFromAPI(raw: any): any {
+  return {
+    Name: raw.Name || raw.Nome,
+    Document: raw.Document || raw.Documento || raw.Doc,
+    Type: raw.PartyType || raw.Type || raw.Tipo,
+    Polarity: raw.PartyCategory || raw.Polarity || raw.Polaridade,
+    OAB: raw.OAB,
+    OABState: raw.OABState || raw.EstadoOAB,
+  };
+}
+
+// Normalize a single movement/update from BigDataCorp API format
+// Maps Movements→Updates (BigDataCorp API uses "Movements" not "Updates")
+function normalizeMovementFromAPI(raw: any): any {
+  return {
+    Date: raw.Date || raw.Data,
+    Description: raw.Description || raw.Descricao,
+    Content: raw.Content || raw.Teor,
+    PublicationDate: raw.PublicationDate || raw.DataPublicacao,
+    CaptureDate: raw.CaptureDate || raw.DataCaptura,
+  };
+}
+
+// Normalize a single lawsuit from Portuguese/BigDataCorp API to English field names
+function normalizeLawsuit(raw: any): any {
+  const normalized: any = {};
+  
+  // Map Portuguese and BigDataCorp API field names to our standard English names
+  const fieldMappings: Record<string, string> = {
+    // Portuguese → English
+    'Numero': 'Number',
+    'NumeroProcesso': 'ProcessNumber',
+    'Tribunal': 'Court',
+    'NomeTribunal': 'CourtName',
+    'TipoTribunal': 'CourtType',
+    'NivelTribunal': 'CourtLevel',
+    'DistritoTribunal': 'CourtDistrict',
+    'SecaoTribunal': 'CourtSection',
+    'Estado': 'State',
+    'UF': 'State',
+    'Situacao': 'Status',
+    'StatusProcesso': 'Status',
+    'Valor': 'Value',
+    'Tipo': 'Type',
+    'Classe': 'Class',
+    'Area': 'Area',
+    'Instancia': 'Instance',
+    'Juiz': 'Judge',
+    'OrgaoJulgador': 'JudgingBody',
+    'DataCaptura': 'CaptureDate',
+    'DataEncerramento': 'CloseDate',
+    'DataUltimaMovimentacao': 'LastMovementDate',
+    'DataUltimaAtualizacao': 'LastUpdate',
+    'DataDistribuicao': 'NoticeDate',
+    'DataPublicacao': 'PublicationDate',
+    'DataRedistribuicao': 'RedistributionDate',
+    'DataTransitoJulgado': 'ResJudicataDate',
+    'Assunto': 'Subject',
+    'AssuntoPrincipal': 'MainSubject',
+    'CodigosAssunto': 'SubjectCodes',
+    'AssuntoCNJ': 'InferredCNJSubjectName',
+    'AssuntoCNJAmplo': 'InferredBroadCNJSubjectName',
+    'TipoProcedimentoCNJ': 'InferredCNJProcedureTypeName',
+    'IdadeProcesso': 'LawSuitAge',
+    'NumeroPartes': 'NumberOfParties',
+    'NumeroMovimentacoes': 'NumberOfUpdates',
+    'NumeroPaginas': 'NumberOfPages',
+    'NumeroVolumes': 'NumberOfVolumes',
+    'MediaMovimentacoesMes': 'AverageNumberOfUpdatesPerMonth',
+    'Partes': 'Parties',
+    'Movimentacoes': 'Updates',
+    'Decisoes': 'Decisions',
+    'Peticoes': 'Petitions',
+    // BigDataCorp API → English (different field names from their API)
+    'CnjProcedureType': 'InferredCNJProcedureTypeName',
+    'CnjSubject': 'InferredCNJSubjectName',
+    'CnjBroadSubject': 'InferredBroadCNJSubjectName',
+    'Movements': 'Updates', // BigDataCorp returns "Movements" not "Updates"
+  };
+  
+  // Copy all fields, mapping to English where applicable
+  for (const [key, value] of Object.entries(raw)) {
+    const englishKey = fieldMappings[key] || key;
+    normalized[englishKey] = value;
+  }
+  
+  // Ensure Number field is set (might come from ProcessNumber)
+  if (!normalized.Number && normalized.ProcessNumber) {
+    normalized.Number = normalized.ProcessNumber;
+  }
+  
+  // Normalize nested arrays (Decisions, Petitions, Updates/Movements, Parties)
+  if (normalized.Decisions || raw.Decisoes) {
+    normalized.Decisions = normalizeDecisions(normalized.Decisions || raw.Decisoes);
+  }
+  
+  if (normalized.Petitions || raw.Peticoes) {
+    normalized.Petitions = normalizePetitions(normalized.Petitions || raw.Peticoes);
+  }
+  
+  // Handle Updates (can be "Updates", "Movements", or "Movimentacoes")
+  const rawUpdates = normalized.Updates || raw.Movements || raw.Movimentacoes;
+  if (rawUpdates) {
+    if (Array.isArray(rawUpdates)) {
+      normalized.Updates = rawUpdates.map(normalizeMovementFromAPI);
+    } else if (typeof rawUpdates === 'object' && ('Total' in rawUpdates || 'Items' in rawUpdates)) {
+      normalized.Updates = normalizeUpdates(rawUpdates);
+    } else {
+      normalized.Updates = [];
+    }
+  }
+  
+  // Handle Parties (can be "Parties" or "Partes")
+  const rawParties = normalized.Parties || raw.Partes;
+  if (rawParties) {
+    if (Array.isArray(rawParties)) {
+      // Check if parties need normalization (have BigDataCorp API format)
+      if (rawParties.length > 0 && rawParties[0] && ('PartyType' in rawParties[0] || 'PartyCategory' in rawParties[0])) {
+        normalized.Parties = rawParties.map(normalizePartyFromAPI);
+      } else {
+        normalized.Parties = normalizeParties(rawParties);
+      }
+    } else if (typeof rawParties === 'object' && ('Total' in rawParties || 'Items' in rawParties)) {
+      normalized.Parties = normalizeParties(rawParties);
+    } else {
+      normalized.Parties = [];
+    }
+  }
+  
+  return normalized;
+}
+
+// Normalize the top-level Processes structure from Portuguese/BigDataCorp API to English
+function normalizeProcessesStructure(processes: any): any {
+  if (!processes) return processes;
+  
+  const normalized: any = {};
+  
+  // Map Portuguese and BigDataCorp API field names to English for the Processes object
+  const fieldMappings: Record<string, string> = {
+    // Portuguese field names
+    'Processos': 'Lawsuits',
+    'TotalProcessos': 'TotalLawsuits',
+    'TotalProcessosComoAutor': 'TotalLawsuitsAsAuthor',
+    'TotalProcessosComoReu': 'TotalLawsuitsAsDefendant',
+    'TotalProcessosComoOutro': 'TotalLawsuitsAsOther',
+    'PrimeiroProcessoData': 'FirstLawsuitDate',
+    'UltimoProcessoData': 'LastLawsuitDate',
+    'Ultimos30DiasProcessos': 'Last30DaysLawsuits',
+    'Ultimos90DiasProcessos': 'Last90DaysLawsuits',
+    'Ultimos180DiasProcessos': 'Last180DaysLawsuits',
+    'Ultimos365DiasProcessos': 'Last365DaysLawsuits',
+    // BigDataCorp API field names (different from our expected format)
+    'ProcessList': 'Lawsuits',
+    'TotalProcesses': 'TotalLawsuits',
+    'NextPageId': 'NextPageId', // Keep pagination token
+  };
+  
+  for (const [key, value] of Object.entries(processes)) {
+    const englishKey = fieldMappings[key] || key;
+    normalized[englishKey] = value;
+  }
+  
+  // Ensure we have Lawsuits array (might come from ProcessList)
+  if (!normalized.Lawsuits && processes.ProcessList) {
+    normalized.Lawsuits = processes.ProcessList;
+  }
+  
+  // Ensure we have TotalLawsuits (might come from TotalProcesses)
+  if (normalized.TotalLawsuits === undefined && processes.TotalProcesses !== undefined) {
+    normalized.TotalLawsuits = processes.TotalProcesses;
+  }
+  
+  return normalized;
+}
+
 export function normalizeBigdatacorpResponse(apiResponse: any): any {
   if (!apiResponse || !apiResponse.Result) {
     return apiResponse;
@@ -170,29 +348,35 @@ export function normalizeBigdatacorpResponse(apiResponse: any): any {
   const normalized = JSON.parse(JSON.stringify(apiResponse));
   
   normalized.Result.forEach((result: any) => {
-    if (result.Processes && result.Processes.Lawsuits) {
-      result.Processes.Lawsuits = result.Processes.Lawsuits.map((lawsuit: any) => {
-        const normalizedLawsuit = { ...lawsuit };
-        
-        // Normalize Decisions, Petitions, Updates, and Parties
-        if (lawsuit.Decisions) {
-          normalizedLawsuit.Decisions = normalizeDecisions(lawsuit.Decisions);
-        }
-        
-        if (lawsuit.Petitions) {
-          normalizedLawsuit.Petitions = normalizePetitions(lawsuit.Petitions);
-        }
-        
-        if (lawsuit.Updates) {
-          normalizedLawsuit.Updates = normalizeUpdates(lawsuit.Updates);
-        }
-        
-        if (lawsuit.Parties) {
-          normalizedLawsuit.Parties = normalizeParties(lawsuit.Parties);
-        }
-        
-        return normalizedLawsuit;
-      });
+    // Handle both "Processes" and "Processos" field names
+    const rawProcesses = result.Processes || result.Processos;
+    
+    if (rawProcesses) {
+      // First, normalize the top-level Processes structure
+      const normalizedProcesses = normalizeProcessesStructure(rawProcesses);
+      
+      // Get the lawsuits array (could be "Lawsuits" or "Processos")
+      const rawLawsuits = normalizedProcesses.Lawsuits || rawProcesses.Processos || rawProcesses.Lawsuits || [];
+      
+      // Log for debugging
+      console.log(`[normalizeBigdatacorpResponse] Processing ${rawLawsuits.length} lawsuits`);
+      
+      // Normalize each lawsuit
+      normalizedProcesses.Lawsuits = rawLawsuits.map((lawsuit: any) => normalizeLawsuit(lawsuit));
+      
+      // Ensure all required fields have values
+      normalizedProcesses.TotalLawsuits = normalizedProcesses.TotalLawsuits ?? rawLawsuits.length;
+      normalizedProcesses.TotalLawsuitsAsAuthor = normalizedProcesses.TotalLawsuitsAsAuthor ?? 0;
+      normalizedProcesses.TotalLawsuitsAsDefendant = normalizedProcesses.TotalLawsuitsAsDefendant ?? 0;
+      normalizedProcesses.TotalLawsuitsAsOther = normalizedProcesses.TotalLawsuitsAsOther ?? 0;
+      
+      // Assign the normalized Processes back to result
+      result.Processes = normalizedProcesses;
+      
+      // Remove old Portuguese field if present
+      if (result.Processos) {
+        delete result.Processos;
+      }
     }
   });
   

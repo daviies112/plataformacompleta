@@ -255,8 +255,76 @@ export async function consultarProcessosJudiciais(
       }
     );
 
+    // DEBUG: Log raw response structure for investigation
+    log("🔍 DEBUG - Resposta bruta da API BigDataCorp:", {
+      hasResult: !!response.data.Result,
+      resultLength: response.data.Result?.length,
+      resultKeys: response.data.Result?.[0] ? Object.keys(response.data.Result[0]) : [],
+      statusKeys: response.data.Status ? Object.keys(response.data.Status) : [],
+      queryId: response.data.QueryId,
+    });
+
+    // Check for both Portuguese and English field names in the response
+    const result0 = response.data.Result?.[0];
+    if (result0) {
+      log("🔍 DEBUG - Result[0] structure:", {
+        hasProcesses: !!result0.Processes,
+        hasProcessos: !!(result0 as any).Processos,
+        processesKeys: result0.Processes ? Object.keys(result0.Processes) : [],
+        processosKeys: (result0 as any).Processos ? Object.keys((result0 as any).Processos) : [],
+      });
+      
+      // If API returns Portuguese field names OR different English field names, map them
+      if ((result0 as any).Processos && !result0.Processes) {
+        log("🔄 DEBUG - Detectado campos em português, mapeando para inglês...");
+        const processos = (result0 as any).Processos;
+        result0.Processes = {
+          Lawsuits: processos.Processos || processos.ProcessList || processos.Lawsuits || [],
+          TotalLawsuits: processos.TotalProcessos ?? processos.TotalProcesses ?? processos.TotalLawsuits ?? 0,
+          TotalLawsuitsAsAuthor: processos.TotalProcessosComoAutor ?? processos.TotalLawsuitsAsAuthor ?? 0,
+          TotalLawsuitsAsDefendant: processos.TotalProcessosComoReu ?? processos.TotalLawsuitsAsDefendant ?? 0,
+          TotalLawsuitsAsOther: processos.TotalProcessosComoOutro ?? processos.TotalLawsuitsAsOther ?? 0,
+          FirstLawsuitDate: processos.PrimeiroProcessoData ?? processos.FirstLawsuitDate,
+          LastLawsuitDate: processos.UltimoProcessoData ?? processos.LastLawsuitDate,
+        };
+      }
+      
+      // Handle BigDataCorp API format: TotalProcesses → TotalLawsuits, ProcessList → Lawsuits
+      if (result0.Processes) {
+        const proc = result0.Processes as any;
+        
+        // Map TotalProcesses to TotalLawsuits if needed
+        if (proc.TotalProcesses !== undefined && proc.TotalLawsuits === undefined) {
+          proc.TotalLawsuits = proc.TotalProcesses;
+          log("🔄 DEBUG - Mapeando TotalProcesses → TotalLawsuits:", proc.TotalLawsuits);
+        }
+        
+        // Map ProcessList to Lawsuits if needed
+        if (proc.ProcessList && !proc.Lawsuits) {
+          proc.Lawsuits = proc.ProcessList;
+          log("🔄 DEBUG - Mapeando ProcessList → Lawsuits:", proc.Lawsuits?.length);
+        }
+        
+        // Ensure arrays exist
+        proc.Lawsuits = proc.Lawsuits || proc.ProcessList || [];
+        proc.TotalLawsuits = proc.TotalLawsuits ?? proc.TotalProcesses ?? proc.Lawsuits?.length ?? 0;
+        
+        log("🔄 DEBUG - Após mapeamento:", {
+          totalLawsuits: proc.TotalLawsuits,
+          lawsuitsLength: proc.Lawsuits?.length,
+        });
+      }
+    }
+
     const statusCode = response.data.Status?.processes?.[0]?.Code;
     const statusMessage = response.data.Status?.processes?.[0]?.Message;
+    
+    // DEBUG: Log status info
+    log("🔍 DEBUG - Status da resposta:", {
+      statusCode,
+      statusMessage,
+      fullStatus: response.data.Status,
+    });
     
     if (!response.data.Status || statusCode !== 0) {
       const errorMsg = statusMessage || JSON.stringify(response.data);
@@ -273,6 +341,15 @@ export async function consultarProcessosJudiciais(
       log("Resposta da API não contém dados de processos", { response: response.data });
       throw new Error("Resposta da API não contém dados de processos");
     }
+
+    // DEBUG: Log process data details
+    log("🔍 DEBUG - Dados de processos encontrados:", {
+      totalLawsuits: processData.TotalLawsuits,
+      totalAsAuthor: processData.TotalLawsuitsAsAuthor,
+      totalAsDefendant: processData.TotalLawsuitsAsDefendant,
+      lawsuitsCount: processData.Lawsuits?.length,
+      firstLawsuitNumber: processData.Lawsuits?.[0]?.Number || processData.Lawsuits?.[0]?.ProcessNumber || (processData.Lawsuits?.[0] as any)?.Numero,
+    });
 
     log("Consulta Bigdatacorp bem-sucedida", {
       totalProcessos: processData.TotalLawsuits,

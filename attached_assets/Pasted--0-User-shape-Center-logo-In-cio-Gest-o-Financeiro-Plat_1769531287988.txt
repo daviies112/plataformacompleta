@@ -1,0 +1,949 @@
+
+0
+User shape
+
+
+Center logo
+Início
+
+Gestão
+
+Financeiro
+
+Plataforma
+
+Apps
+
+Ferramentas
+
+Ajuda
+
+Consulta simplificada
+Consulte rapidamente o que deseja
+Escolha o serviço desejado para realizar a consulta
+
+Pessoas
+
+Empresas
+
+Veículos
+
+Ondemand
+
+Marketplace
+
+O que deve ser consultado?
+Selecionar todos
+
+Inativo
+
+Selecione os datasets desejados
+
+Custo estimado da consulta:
+R$ 0,07
+
+A consulta pode gerar custos
+Se você utilizar datasets pagos ou se sua empresa já excedeu o limite de consultas gratuitas, essa consulta será cobrada.
+Documentos da consulta
+Usar chaves alternativas
+
+Inativo
+
+Número do CPF
+
+*
+
+102.463.016-19
+
+Data de nascimento
+
+DD/MM/YYYY
+
+Resultado da consulta
+Processos Judiciais
+Query ID:
+
+c1c935e0-94ce-4c7a-9385-564effb0a57a
+
+Total de Processos:
+
+5
+
+Total de Processos como Autor:
+
+4
+
+Total de Processos como Réu:
+
+1
+
+Número:
+
+50013818320228130604
+
+Status:
+
+ARQUIVADO
+
+Nome da Corte:
+
+TJMG
+
+Instância Judicial:
+
+1
+
+Vara:
+
+ESPECIAL CIVEL
+
+Distrito da Corte:
+
+SANTO ANTONIO DO MONTE
+
+Estado:
+
+MG
+
+Assunto Principal:
+
+DIREITO CIVIL (899) - OBRIGACOES (7681) - ESPECIES DE TITULOS DE CREDITO (7717) - NOTA PROMISSORIA (4980
+
+Data de Distribuição:
+
+28/06/2022
+
+Data de Publicação:
+
+12/07/2022
+
+Data de Captura:
+
+28/11/2023
+
+Data da Última Movimentação:
+
+13/10/2022
+
+Nome do Tipo do Processo no CNJ (Inferido):
+
+EXECUÇÃO DE TÍTULO EXTRAJUDICIAL
+
+Partes:
+
+JOSE TIAGO DA SILVA
+
+Documento:
+
+748.746.326-53
+
+Parte está Ativa:
+
+SIM
+
+Polaridade:
+
+Ativo
+
+É Inferência:
+
+NÃO
+
+Detalhes:
+
+SpecificType:
+
+EXEQUENTE
+
+Data de Ultima Captura da Parte:
+
+28/11/2023
+
+MARILEIDE APARECIDA DA SILVA
+
+Documento:
+
+102.463.016-19
+
+Parte está Ativa:
+
+SIM
+
+Polaridade:
+
+Passivo
+
+É Inferência:
+
+NÃO
+
+Detalhes:
+
+SpecificType:
+
+EXECUTADO(A)
+
+Data de Ultima Captura da Parte:
+
+28/11/2023
+
+Número:
+
+00107385120195030138
+
+Status:
+
+ARQUIVADO
+
+Nome da Corte:
+
+TRT3
+
+Instância Judicial:
+
+1
+
+Vara:
+
+TRABALHISTA
+
+Distrito da Corte:
+
+BELO HORIZONTE
+
+Estado:
+
+MG
+
+Assunto Principal:
+
+AVISO PREVIO
+
+Data de Distribuição:
+
+12/09/2019
+
+Data de Publicação:
+
+30/09/2019
+
+Data de Captura:
+
+04/08/2024
+
+Data da Última Movimentação:
+
+14/10/2019
+
+Nome do Tipo do Processo no CNJ (Inferido):
+
+Não há dados disponíveis
+
+Partes:
+
+M A S
+
+Documento:
+
+Não há dados disponíveis
+
+Parte está Ativa:
+
+NÃO
+
+Polaridade:
+
+Ativo
+
+É Inferência:
+
+Não há dados disponíveis
+
+Detalhes:
+
+SpecificType:
+
+AUTOR
+
+Data de Ultima Captura da Parte:
+
+28/07/2020
+
+D R R B
+
+Documento:
+
+Não há dados disponíveis
+
+Parte está Ativa:
+
+NÃO
+
+Polaridade:
+
+Passivo
+
+É Inferência:
+
+Não há dados disponíveis
+
+Detalhes:
+
+SpecificType:
+
+REU
+
+Data de Ultima Captura da Parte:
+
+28/07/2020
+
+MARILEIDE APARECIDA DA SILVA
+
+Documento:
+
+102.463.016-19
+
+Parte está Ativa:
+
+SIM
+
+Polaridade:
+
+Ativo
+
+É Inferência:
+
+NÃO
+
+Detalhes:
+
+SpecificType:
+
+AUTOR
+
+Data de Ultima Captura da Parte:
+
+04/08/2024
+
+BRUNO SANTOS ANDRADE
+
+Documento:
+
+061.864.926-30
+
+Parte está Ativa:
+
+SIM
+
+Polaridade:
+
+Neutro
+
+É Inferência:
+
+NÃO
+
+Detalhes:
+
+SpecificType:
+
+ADVOGADO
+
+Data de Ultima Captura da Parte:
+
+04/08/2024
+
+DIVINO RETRO RESTAURANTE E BAR LTDA
+
+Documento:
+
+23.456.302/0001-74
+
+Parte está Ativa:
+
+SIM
+
+Polaridade:
+
+Passivo
+
+É Inferência:
+
+NÃO
+
+Detalhes:
+
+SpecificType:
+
+REU
+
+Data de Ultima Captura da Parte:
+
+04/08/2024
+
+Número:
+
+00100569420165030011
+
+Status:
+
+ARQUIVADO
+
+Nome da Corte:
+
+TRT3
+
+Instância Judicial:
+
+1
+
+Vara:
+
+TRABALHISTA
+
+Distrito da Corte:
+
+BELO HORIZONTE
+
+Estado:
+
+MG
+
+Assunto Principal:
+
+PREVENCAO
+
+Data de Distribuição:
+
+19/01/2016
+
+Data de Publicação:
+
+23/05/2016
+
+Data de Captura:
+
+20/05/2025
+
+Data da Última Movimentação:
+
+07/06/2016
+
+Nome do Tipo do Processo no CNJ (Inferido):
+
+Não há dados disponíveis
+
+Partes:
+
+MARILEIDE APARECIDA DA SILVA
+
+Documento:
+
+102.463.016-19
+
+Parte está Ativa:
+
+SIM
+
+Polaridade:
+
+Ativo
+
+É Inferência:
+
+NÃO
+
+Detalhes:
+
+SpecificType:
+
+AUTOR
+
+Data de Ultima Captura da Parte:
+
+20/05/2025
+
+FLAVIA CORREA BALSAMAO LUCAS
+
+Documento:
+
+966.911.236-20
+
+Parte está Ativa:
+
+SIM
+
+Polaridade:
+
+Neutro
+
+É Inferência:
+
+NÃO
+
+Detalhes:
+
+SpecificType:
+
+ADVOGADO
+
+Data de Ultima Captura da Parte:
+
+20/05/2025
+
+PADARIA E LANCHONETE NOSSA SENHORA DAS DORES LTDA ME
+
+Documento:
+
+07.355.457/0001-68
+
+Parte está Ativa:
+
+SIM
+
+Polaridade:
+
+Passivo
+
+É Inferência:
+
+NÃO
+
+Detalhes:
+
+SpecificType:
+
+REU
+
+Data de Ultima Captura da Parte:
+
+20/05/2025
+
+RICARDO ANTONIO AMARAL PEREIRA
+
+Documento:
+
+555.425.736-49
+
+Parte está Ativa:
+
+SIM
+
+Polaridade:
+
+Neutro
+
+É Inferência:
+
+NÃO
+
+Detalhes:
+
+SpecificType:
+
+ADVOGADO
+
+Data de Ultima Captura da Parte:
+
+20/05/2025
+
+Número:
+
+00107605320155030105
+
+Status:
+
+ARQUIVADO
+
+Nome da Corte:
+
+TRT3
+
+Instância Judicial:
+
+1
+
+Vara:
+
+TRABALHISTA
+
+Distrito da Corte:
+
+BELO HORIZONTE
+
+Estado:
+
+MG
+
+Assunto Principal:
+
+GESTANTE
+
+Data de Distribuição:
+
+12/08/2015
+
+Data de Publicação:
+
+12/02/2016
+
+Data de Captura:
+
+21/05/2025
+
+Data da Última Movimentação:
+
+23/09/2015
+
+Nome do Tipo do Processo no CNJ (Inferido):
+
+Não há dados disponíveis
+
+Partes:
+
+M A S
+
+Documento:
+
+Não há dados disponíveis
+
+Parte está Ativa:
+
+NÃO
+
+Polaridade:
+
+Ativo
+
+É Inferência:
+
+Não há dados disponíveis
+
+Detalhes:
+
+SpecificType:
+
+AUTOR
+
+Data de Ultima Captura da Parte:
+
+30/12/2020
+
+FLAVIA CORREA BALSAMAO LUCAS
+
+Documento:
+
+966.911.236-20
+
+Parte está Ativa:
+
+SIM
+
+Polaridade:
+
+Neutro
+
+É Inferência:
+
+NÃO
+
+Detalhes:
+
+SpecificType:
+
+ADVOGADO
+
+Data de Ultima Captura da Parte:
+
+21/05/2025
+
+P L N S D M
+
+Documento:
+
+Não há dados disponíveis
+
+Parte está Ativa:
+
+NÃO
+
+Polaridade:
+
+Passivo
+
+É Inferência:
+
+Não há dados disponíveis
+
+Detalhes:
+
+SpecificType:
+
+REU
+
+Data de Ultima Captura da Parte:
+
+30/12/2020
+
+MARILEIDE APARECIDA DA SILVA
+
+Documento:
+
+102.463.016-19
+
+Parte está Ativa:
+
+SIM
+
+Polaridade:
+
+Ativo
+
+É Inferência:
+
+NÃO
+
+Detalhes:
+
+SpecificType:
+
+AUTOR
+
+Data de Ultima Captura da Parte:
+
+21/05/2025
+
+PADARIA E LANCHONETE NOSSA SENHORA DAS DORES LTDA ME
+
+Documento:
+
+07.355.457/0001-68
+
+Parte está Ativa:
+
+SIM
+
+Polaridade:
+
+Passivo
+
+É Inferência:
+
+NÃO
+
+Detalhes:
+
+SpecificType:
+
+REU
+
+Data de Ultima Captura da Parte:
+
+21/05/2025
+
+Número:
+
+50078785920248130567
+
+Status:
+
+INDEFINIDO
+
+Nome da Corte:
+
+TJMG
+
+Instância Judicial:
+
+1
+
+Vara:
+
+CIVEL
+
+Distrito da Corte:
+
+SABARA
+
+Estado:
+
+MG
+
+Assunto Principal:
+
+DIREITO CIVIL (899) - RESPONSABILIDADE CIVIL (10431) - INDENIZACAO POR DANO MORAL (10433 DIREITO CIVIL (899) - RESPONSABILIDADE CIVIL (10431) - INDENIZACAO POR DANO MATERIAL (10439
+
+Data de Distribuição:
+
+27/08/2024
+
+Data de Publicação:
+
+02/09/2024
+
+Data de Captura:
+
+15/08/2025
+
+Data da Última Movimentação:
+
+01/08/2025
+
+Nome do Tipo do Processo no CNJ (Inferido):
+
+PROCEDIMENTO COMUM CÍVEL
+
+Partes:
+
+MARILEIDE APARECIDA DA SILVA
+
+Documento:
+
+102.463.016-19
+
+Parte está Ativa:
+
+SIM
+
+Polaridade:
+
+Ativo
+
+É Inferência:
+
+NÃO
+
+Detalhes:
+
+SpecificType:
+
+AUTOR
+
+Data de Ultima Captura da Parte:
+
+15/08/2025
+
+ANDRE MANSUR BRANDAO
+
+Documento:
+
+678.700.076-68
+
+Parte está Ativa:
+
+SIM
+
+Polaridade:
+
+Neutro
+
+É Inferência:
+
+NÃO
+
+Detalhes:
+
+SpecificType:
+
+ADVOGADO (AUTOR)
+
+Data de Ultima Captura da Parte:
+
+15/08/2025
+
+TRIP KAR CLUBE DE BENEFICIOS
+
+Documento:
+
+28.301.135/0001-06
+
+Parte está Ativa:
+
+SIM
+
+Polaridade:
+
+Passivo
+
+É Inferência:
+
+NÃO
+
+Detalhes:
+
+SpecificType:
+
+REU/RE
+
+Data de Ultima Captura da Parte:
+
+15/08/2025
+
+GLAUBER FAZENDEIRO MOREIRA
+
+Documento:
+
+085.700.966-40
+
+Parte está Ativa:
+
+SIM
+
+Polaridade:
+
+Neutro
+
+É Inferência:
+
+NÃO
+
+Detalhes:
+
+SpecificType:
+
+ADVOGADO (REU/RE)
+
+Data de Ultima Captura da Parte:
+
+15/08/2025
+
+Meu perfil
+Dados
+Login:
+
+DAVIEMERICKO@GMAIL.COM
+
+Nome:
+
+Davi Emerick
+
+E-mail:
+
+Domínio:
+
+NEXUS INTELLIGENCE
+
+Condições
+Perfil de acesso:
+
+Administrador(a)
+
+Autenticação em dois fatores:
+
+Ativa
+
+Status:
+
+Ativo
+
+Notificações
+Você não possui notificações.
+Você será notificado assim que houver atualizações.
+Bigdatacorp new brand
+2026 Bigdatacorp. Todos os direitos reservados
+
+Política de privacidade
+
+Segurança da informação
+
+This site is protected by reCAPTCHA and the Google Privacy Policy and Terms of Service apply.
