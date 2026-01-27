@@ -1,0 +1,98 @@
+create table public.datacorp_checks (
+  id uuid not null default gen_random_uuid (),
+  cpf_hash text not null,
+  cpf_encrypted text not null,
+  tenant_id uuid not null,
+  lead_id uuid null,
+  submission_id uuid null,
+  status text not null,
+  risk_score numeric(5, 2) null,
+  payload jsonb not null,
+  consulted_at timestamp with time zone not null default now(),
+  expires_at timestamp with time zone not null,
+  source text not null default 'bigdatacorp_v3_complete'::text,
+  api_cost numeric(10, 2) not null default 0.170,
+  created_by uuid null,
+  created_at timestamp with time zone not null default now(),
+  updated_at timestamp with time zone not null default now(),
+  origin_check_id uuid null,
+  person_name text null,
+  person_cpf text null,
+  constraint datacorp_checks_pkey primary key (id),
+  constraint datacorp_checks_origin_check_id_fkey foreign KEY (origin_check_id) references datacorp_checks (id),
+  constraint datacorp_checks_status_check check (
+    (
+      status = any (
+        array[
+          'approved'::text,
+          'rejected'::text,
+          'manual_review'::text,
+          'error'::text,
+          'pending'::text
+        ]
+      )
+    )
+  )
+) TABLESPACE pg_default;
+
+create index IF not exists idx_origin_check_id on public.datacorp_checks using btree (origin_check_id) TABLESPACE pg_default;
+
+create index IF not exists idx_cpf_hash on public.datacorp_checks using btree (cpf_hash) TABLESPACE pg_default;
+
+create index IF not exists idx_tenant_id on public.datacorp_checks using btree (tenant_id) TABLESPACE pg_default;
+
+create index IF not exists idx_status on public.datacorp_checks using btree (status) TABLESPACE pg_default;
+
+create index IF not exists idx_consulted_at on public.datacorp_checks using btree (consulted_at desc) TABLESPACE pg_default;
+
+create index IF not exists idx_expires_at on public.datacorp_checks using btree (expires_at) TABLESPACE pg_default;
+
+create index IF not exists idx_cache_lookup on public.datacorp_checks using btree (cpf_hash, tenant_id, expires_at) TABLESPACE pg_default;
+
+create unique INDEX IF not exists unique_cpf_tenant_time on public.datacorp_checks using btree (cpf_hash, tenant_id, consulted_at) TABLESPACE pg_default;
+
+create index IF not exists idx_datacorp_checks_hash on public.datacorp_checks using btree (cpf_hash) TABLESPACE pg_default;
+
+create index IF not exists idx_datacorp_checks_tenant on public.datacorp_checks using btree (tenant_id) TABLESPACE pg_default;
+
+create index IF not exists idx_datacorp_checks_status on public.datacorp_checks using btree (status) TABLESPACE pg_default;
+
+create index IF not exists idx_datacorp_checks_expires on public.datacorp_checks using btree (expires_at) TABLESPACE pg_default;
+
+create index IF not exists idx_datacorp_checks_consulted on public.datacorp_checks using btree (consulted_at desc) TABLESPACE pg_default;
+
+create index IF not exists idx_datacorp_checks_submission on public.datacorp_checks using btree (submission_id) TABLESPACE pg_default;
+
+create index IF not exists idx_datacorp_checks_lead on public.datacorp_checks using btree (lead_id) TABLESPACE pg_default;
+
+create index IF not exists idx_basic_data_cpf_status on public.datacorp_checks using gin (
+  (
+    (
+      (
+        (
+          (payload -> '_basic_data'::text) -> 'Result'::text
+        ) -> 0
+      ) -> 'BasicData'::text
+    )
+  )
+) TABLESPACE pg_default;
+
+create index IF not exists idx_collections_active on public.datacorp_checks using gin (
+  (
+    (
+      (
+        (
+          (payload -> '_collections'::text) -> 'Result'::text
+        ) -> 0
+      ) -> 'Collections'::text
+    )
+  )
+) TABLESPACE pg_default;
+
+create trigger update_datacorp_checks_updated_at BEFORE
+update on datacorp_checks for EACH row
+execute FUNCTION update_updated_at_column ();
+
+create trigger update_datacorp_checks_updated_at_trigger BEFORE
+update on datacorp_checks for EACH row
+execute FUNCTION update_datacorp_checks_updated_at ();

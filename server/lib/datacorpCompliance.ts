@@ -568,6 +568,8 @@ async function createCheckInSupabase(checkData: {
   createdBy?: string;
   personName?: string;
   personCpf?: string;
+  originCheckId?: string;
+  consultedAt?: Date;
 }): Promise<DatacorpCheck> {
   const supabase = await getSupabaseMasterForTenant(checkData.tenantId);
   const tenantUUID = tenantIdToUUID(checkData.tenantId);
@@ -585,11 +587,12 @@ async function createCheckInSupabase(checkData: {
       status: checkData.status,
       risk_score: checkData.riskScore,
       payload: checkData.payload,
-      consulted_at: new Date().toISOString(),
+      consulted_at: (checkData.consultedAt || new Date()).toISOString(),
       expires_at: checkData.expiresAt.toISOString(),
       source: checkData.source,
       api_cost: checkData.apiCost,
       created_by: checkData.createdBy ? tenantIdToUUID(checkData.createdBy) : null,
+      origin_check_id: checkData.originCheckId || null,
     })
     .select()
     .single();
@@ -1762,9 +1765,14 @@ export async function checkCompliance(
       };
     }
     
-    // Comportamento normal para consultas manuais
+    // Comportamento normal para consultas manuais - AGORA CRIA NOVO REGISTRO NO HISTÓRICO
     const cachedPersonName = (cachedCheck as any).person_name || (cachedCheck as any).personName;
+    const cachedCheckData = cachedCheck as any;
+    const riskScoreValue = cachedCheckData.risk_score ?? cachedCheckData.riskScore ?? 0;
+    const cachedPersonCpf = formatCPF(normalizedCPF);
+    const cachedPersonNameFinal = userProvidedName || cachedCheckData.person_name || cachedCheckData.personName || normalizedCachedPayload?._basic_data?.Result?.[0]?.BasicData?.Name;
     
+    // Atualizar nome no cache original se necessário
     if (userProvidedName && userProvidedName !== cachedPersonName) {
       if (useSupabaseMaster) {
         const supabase = await getSupabaseMasterForTenant(tenantId);
@@ -1783,9 +1791,45 @@ export async function checkCompliance(
       }
     }
     
+    // NOVO: Criar novo registro no datacorp_checks para aparecer no histórico (consulta manual)
+    let newCheckId = cachedCheck.id;
+    if (useSupabaseMaster) {
+      try {
+        log(`📝 Criando registro de cache-hit no histórico (consulta manual)...`);
+        
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + cacheExpirationDays);
+        
+        const newHistoryCheck = await createCheckInSupabase({
+          cpfHash,
+          cpfEncrypted,
+          tenantId,
+          leadId,
+          submissionId,
+          status: cachedCheck.status as ComplianceStatus,
+          riskScore: typeof riskScoreValue === 'number' ? riskScoreValue : parseFloat(riskScoreValue.toString()),
+          payload: normalizedCachedPayload,
+          personName: cachedPersonNameFinal,
+          personCpf: cachedPersonCpf,
+          consultedAt: new Date(),
+          expiresAt,
+          source: 'cache_hit_manual',
+          apiCost: 0,
+          createdBy,
+          originCheckId: cachedCheck.id, // Referência ao registro original
+        });
+        
+        newCheckId = newHistoryCheck.id;
+        log(`✅ Registro de cache-hit criado no histórico: ${newCheckId}`);
+      } catch (historyErr: any) {
+        log(`⚠️ Erro ao criar registro de cache-hit (não crítico): ${historyErr.message}`);
+        // Continua usando o ID do cache original
+      }
+    }
+    
     if (useSupabaseMaster) {
       await createAuditLogInSupabase({
-        checkId: cachedCheck.id,
+        checkId: newCheckId,
         tenantId,
         action: "view",
         userId: createdBy,
@@ -1799,15 +1843,10 @@ export async function checkCompliance(
       });
     }
     
-    const cachedCheckData = cachedCheck as any;
-    
     const consultedAtValue = cachedCheckData.consulted_at || cachedCheckData.consultedAt;
     const expiresAtValue = cachedCheckData.expires_at || cachedCheckData.expiresAt;
-    const riskScoreValue = cachedCheckData.risk_score ?? cachedCheckData.riskScore ?? 0;
     
-    // NOVO: Salvar também no Supabase do Cliente (informações resumidas) - consulta manual com cache
-    const cachedPersonCpf = formatCPF(normalizedCPF);
-    const cachedPersonNameFinal = userProvidedName || cachedCheckData.person_name || cachedCheckData.personName;
+    // Salvar também no Supabase do Cliente (informações resumidas) - consulta manual com cache
     const clienteComplianceDataManual: CPFComplianceResult = {
       nome: cachedPersonNameFinal || null,
       cpf: cachedPersonCpf,
@@ -1818,7 +1857,7 @@ export async function checkCompliance(
       processos: cachedProcessData.TotalLawsuits || 0,
       aprovado: cachedCheck.status === 'approved',
       data_consulta: new Date().toISOString(),
-      check_id: cachedCheck.id,
+      check_id: newCheckId,
     };
     
     saveComplianceToClienteSupabase(clienteComplianceDataManual).catch(err => {
@@ -1826,9 +1865,9 @@ export async function checkCompliance(
     });
     
     return {
-      id: cachedCheck.id,
-      checkId: cachedCheck.id,
-      personName: cachedPersonNameFinal || normalizedCachedPayload?._basic_data?.Result?.[0]?.BasicData?.Name || null,
+      id: newCheckId,
+      checkId: newCheckId,
+      personName: cachedPersonNameFinal || null,
       personCpf: cachedPersonCpf,
       status: cachedCheck.status as ComplianceStatus,
       riskScore: typeof riskScoreValue === 'number' ? riskScoreValue : parseFloat(riskScoreValue.toString()),
@@ -1839,7 +1878,7 @@ export async function checkCompliance(
       firstLawsuitDate: cachedProcessData.FirstLawsuitDate,
       lastLawsuitDate: cachedProcessData.LastLawsuitDate,
       payload: normalizedCachedPayload,
-      consultedAt: consultedAtValue instanceof Date ? consultedAtValue : new Date(consultedAtValue),
+      consultedAt: new Date(),
       expiresAt: expiresAtValue instanceof Date ? expiresAtValue : new Date(expiresAtValue),
     };
   }
