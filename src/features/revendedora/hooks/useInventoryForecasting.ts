@@ -61,32 +61,50 @@ export function useInventoryForecasting(): UseInventoryForecastingReturn {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [mainClient, setMainClient] = useState<SupabaseClient | null>(null);
+  const [clientInitialized, setClientInitialized] = useState(false);
 
-  // Initialize main Supabase client asynchronously
+  // Always try to initialize main Supabase client asynchronously
   useEffect(() => {
     let mounted = true;
     
     async function initClient() {
+      console.log('[InventoryForecasting] Initializing main Supabase client...');
       try {
         const client = await getSupabaseClient();
-        if (mounted && client) {
-          setMainClient(client);
+        console.log('[InventoryForecasting] Main client result:', client ? 'SUCCESS' : 'NULL');
+        if (mounted) {
+          if (client) {
+            setMainClient(client);
+          }
+          setClientInitialized(true);
         }
       } catch (err) {
         console.error('[InventoryForecasting] Failed to init main client:', err);
+        if (mounted) {
+          setClientInitialized(true);
+          setError('Failed to connect to database');
+          setLoading(false);
+        }
       }
     }
     
-    if (!contextClient) {
-      initClient();
-    }
+    // Always init the main client - don't wait for context
+    initClient();
     
     return () => { mounted = false; };
-  }, [contextClient]);
+  }, []);
 
-  // Use context client if available, otherwise use main client
-  const supabase = contextClient || mainClient;
-  const isReady = supabase !== null;
+  // Use context client if available and configured, otherwise use main client
+  const supabase = (configured && contextClient) ? contextClient : mainClient;
+  const isReady = supabase !== null && clientInitialized;
+  
+  console.log('[InventoryForecasting] State:', { 
+    contextClient: !!contextClient, 
+    mainClient: !!mainClient, 
+    configured, 
+    isReady,
+    clientInitialized
+  });
 
   const loadData = useCallback(async () => {
     if (!isReady || !supabase) {

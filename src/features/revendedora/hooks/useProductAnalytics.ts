@@ -1,5 +1,7 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSupabase } from '@/features/revendedora/contexts/SupabaseContext';
+import { getSupabaseClient } from '@/integrations/supabase/client';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 interface ProductWithSales {
   id: string;
@@ -35,18 +37,41 @@ interface ProductAnalytics {
 }
 
 export function useProductAnalytics(): ProductAnalytics {
-  const { client: supabase, loading: supabaseLoading, configured } = useSupabase();
+  const { client: contextClient, loading: supabaseLoading, configured } = useSupabase();
   const [products, setProducts] = useState<any[]>([]);
   const [sales, setSales] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [mainClient, setMainClient] = useState<SupabaseClient | null>(null);
 
-  const loadData = async () => {
+  // Initialize main Supabase client asynchronously
+  useEffect(() => {
+    let mounted = true;
+    
+    async function initClient() {
+      try {
+        const client = await getSupabaseClient();
+        if (mounted && client) {
+          setMainClient(client);
+        }
+      } catch (err) {
+        console.error('[ProductAnalytics] Failed to init main client:', err);
+      }
+    }
+    
+    initClient();
+    return () => { mounted = false; };
+  }, []);
+
+  // Use context client if available and configured, otherwise use main client
+  const supabase = (configured && contextClient) ? contextClient : mainClient;
+
+  const loadData = useCallback(async () => {
     if (!supabase) {
-      setLoading(false);
       return;
     }
 
     try {
+      setLoading(true);
       const [productsResult, salesResult] = await Promise.all([
         supabase.from('products').select('*'),
         supabase
@@ -65,12 +90,10 @@ export function useProductAnalytics(): ProductAnalytics {
     } finally {
       setLoading(false);
     }
-  };
+  }, [supabase]);
 
   useEffect(() => {
-    if (supabaseLoading) return;
-    if (!supabase || !configured) {
-      setLoading(false);
+    if (!supabase) {
       return;
     }
 
@@ -98,7 +121,7 @@ export function useProductAnalytics(): ProductAnalytics {
       supabase.removeChannel(salesChannel);
       supabase.removeChannel(productsChannel);
     };
-  }, [supabase, supabaseLoading, configured]);
+  }, [supabase, loadData]);
 
   const bestSellers = useMemo(() => {
     const salesByProduct = new Map<string, { count: number; revenue: number }>();

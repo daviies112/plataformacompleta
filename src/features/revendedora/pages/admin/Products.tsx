@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useState, useEffect, useCallback } from 'react';
+import { getSupabaseClient } from '@/integrations/supabase/client';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Search, Package, Plus, Pencil, Trash2, Bell, Settings, AlertTriangle, BarChart3, Boxes } from 'lucide-react';
@@ -49,16 +50,37 @@ export default function AdminProducts() {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [inventorySettingsProduct, setInventorySettingsProduct] = useState<any>(null);
   const [inventorySettingsOpen, setInventorySettingsOpen] = useState(false);
+  const [supabaseClient, setSupabaseClient] = useState<SupabaseClient | null>(null);
 
   const { bestSellers, lowStockProducts, loading: analyticsLoading, refetch: refetchAnalytics } = useProductAnalytics();
 
+  // Initialize Supabase client
   useEffect(() => {
-    loadProducts();
+    let mounted = true;
+    
+    async function initClient() {
+      try {
+        const client = await getSupabaseClient();
+        if (mounted && client) {
+          setSupabaseClient(client);
+        }
+      } catch (err) {
+        console.error('[Products] Failed to init Supabase client:', err);
+        toast.error('Erro ao conectar ao banco de dados');
+        setLoading(false);
+      }
+    }
+    
+    initClient();
+    return () => { mounted = false; };
   }, []);
 
-  const loadProducts = async () => {
+  const loadProducts = useCallback(async () => {
+    if (!supabaseClient) return;
+    
     try {
-      const { data, error } = await supabase
+      setLoading(true);
+      const { data, error } = await supabaseClient
         .from('products')
         .select('*')
         .order('description');
@@ -71,7 +93,14 @@ export default function AdminProducts() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [supabaseClient]);
+
+  // Load products when client is ready
+  useEffect(() => {
+    if (supabaseClient) {
+      loadProducts();
+    }
+  }, [supabaseClient, loadProducts]);
 
   const handleEdit = (product: Product) => {
     setEditingProduct(product);
