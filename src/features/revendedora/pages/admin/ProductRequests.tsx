@@ -65,7 +65,7 @@ export default function AdminProductRequests() {
     try {
       console.log('[AdminProductRequests] Loading ALL product requests via API');
 
-      const response = await resellerFetch('/api/admin/product-requests');
+      const response = await resellerFetch('/api/reseller/admin/product-requests');
       const result = await response.json();
 
       if (!response.ok) {
@@ -85,7 +85,7 @@ export default function AdminProductRequests() {
   const updateStatus = async (requestId: string, newStatus: string) => {
     setUpdatingId(requestId);
     try {
-      const response = await resellerFetch(`/api/admin/product-requests/${requestId}`, {
+      const response = await resellerFetch(`/api/reseller/admin/product-requests/${requestId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: newStatus })

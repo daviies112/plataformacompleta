@@ -1893,7 +1893,7 @@ router.patch('/reseller/pagarme-recipient/bank', resellerAuthMiddleware, async (
 // ============================================================
 
 // POST /api/reseller/product-requests - Criar solicitação de produto
-router.post('/reseller/product-requests', resellerAuthMiddleware, async (req, res) => {
+router.post('/product-requests', resellerAuthMiddleware, async (req, res) => {
   try {
     const auth = await getAuthenticatedReseller(req);
     if (!auth) {
@@ -2092,7 +2092,7 @@ router.post('/reseller/product-requests', resellerAuthMiddleware, async (req, re
 });
 
 // GET /api/reseller/product-requests - Listar solicitações do reseller
-router.get('/reseller/product-requests', resellerAuthMiddleware, async (req, res) => {
+router.get('/product-requests', resellerAuthMiddleware, async (req, res) => {
   try {
     const auth = await getAuthenticatedReseller(req);
     if (!auth) {
@@ -2139,7 +2139,7 @@ router.get('/reseller/product-requests', resellerAuthMiddleware, async (req, res
   }
 });
 
-// GET /api/admin/product-requests - Listar TODAS as solicitações (admin)
+// GET /api/reseller/admin/product-requests - Listar TODAS as solicitações (admin)
 router.get('/admin/product-requests', resellerAuthMiddleware, async (req, res) => {
   try {
     const auth = await getAuthenticatedReseller(req);
@@ -2208,7 +2208,7 @@ router.get('/admin/product-requests', resellerAuthMiddleware, async (req, res) =
   }
 });
 
-// PATCH /api/admin/product-requests/:id - Atualizar status (admin)
+// PATCH /api/reseller/admin/product-requests/:id - Atualizar status (admin)
 router.patch('/admin/product-requests/:id', resellerAuthMiddleware, async (req, res) => {
   try {
     const auth = await getAuthenticatedReseller(req);
