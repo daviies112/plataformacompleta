@@ -49,6 +49,26 @@ router.post('/orders/pix', async (req, res) => {
       return res.status(400).json({ error: 'CPF/CNPJ inválido' });
     }
 
+    // OBRIGATÓRIO para PIX: phones deve ser enviado (exigência Pagar.me)
+    if (!customer.phones && !customer.phone) {
+      return res.status(400).json({ error: 'Telefone é obrigatório para pagamento via PIX' });
+    }
+
+    // Se veio phone string, formatar para o formato do Pagar.me
+    const customerWithPhone = { ...customer };
+    if (customer.phone && !customer.phones) {
+      const phoneClean = customer.phone.replace(/\D/g, '');
+      const areaCode = phoneClean.slice(0, 2);
+      const number = phoneClean.slice(2);
+      customerWithPhone.phones = {
+        mobile_phone: {
+          country_code: '55',
+          area_code: areaCode,
+          number: number,
+        }
+      };
+    }
+
     for (const item of items) {
       if (!item.amount || typeof item.amount !== 'number' || item.amount <= 0) {
         return res.status(400).json({ error: 'Cada item deve ter um valor (amount) positivo' });
@@ -62,7 +82,7 @@ router.post('/orders/pix', async (req, res) => {
     }
 
     const order = await pagarmeService.createPixOrder({
-      customer,
+      customer: customerWithPhone,
       items,
       expiresIn: expiresIn || 86400,
     });

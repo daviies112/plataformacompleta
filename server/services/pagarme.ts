@@ -304,6 +304,20 @@ export class PagarmeService {
       console.log('[Pagar.me] PIX order with SPLIT:', JSON.stringify(params.split));
     }
 
+    // IMPORTANTE: phones é OBRIGATÓRIO para PIX segundo documentação Pagar.me
+    // Se não for fornecido, usamos um fallback padrão para não quebrar
+    const customerPhones = params.customer.phones || {
+      mobile_phone: {
+        country_code: '55',
+        area_code: '11',
+        number: '999999999',
+      }
+    };
+
+    if (!params.customer.phones) {
+      console.warn('[Pagar.me] WARNING: phones não fornecido para PIX - usando fallback padrão');
+    }
+
     const orderData = {
       customer: {
         name: params.customer.name,
@@ -311,7 +325,7 @@ export class PagarmeService {
         document: params.customer.document.replace(/\D/g, ''),
         document_type: params.customer.document_type || 'CPF',
         type: params.customer.type || 'individual',
-        ...(params.customer.phones && { phones: params.customer.phones }),
+        phones: customerPhones, // Agora sempre envia phones (obrigatório para PIX)
         ...(params.customer.address && { address: params.customer.address }),
       },
       items: params.items.map(item => ({

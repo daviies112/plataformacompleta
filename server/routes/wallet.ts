@@ -117,6 +117,15 @@ router.post('/recharge/pix', authenticateToken, async (req: AuthRequest, res) =>
         email: userEmail || `${tenantId}@wallet.local`,
         document: '00000000000',
         document_type: 'CPF',
+        type: 'individual',
+        // OBRIGATÓRIO para PIX: phones deve ser enviado (exigência Pagar.me)
+        phones: {
+          mobile_phone: {
+            country_code: '55',
+            area_code: '11',
+            number: '999999999',
+          }
+        },
       },
       items: [{
         amount: Math.round(amount * 100),
