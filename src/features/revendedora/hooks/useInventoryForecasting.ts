@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSupabase } from '@/features/revendedora/contexts/SupabaseContext';
+import { supabase as mainSupabaseClient } from '@/integrations/supabase/client';
 
 export interface ProductInventoryMetrics {
   productId: string;
@@ -52,15 +53,19 @@ interface UseInventoryForecastingReturn {
 }
 
 export function useInventoryForecasting(): UseInventoryForecastingReturn {
-  const { client: supabase, loading: supabaseLoading, configured } = useSupabase();
+  const { client: contextClient, loading: supabaseLoading, configured } = useSupabase();
   const [products, setProducts] = useState<any[]>([]);
   const [sales, setSales] = useState<any[]>([]);
   const [resellers, setResellers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Use context client if available, otherwise use main client
+  const supabase = contextClient || mainSupabaseClient;
+  const isReady = supabase !== null;
+
   const loadData = useCallback(async () => {
-    if (supabaseLoading || !configured || !supabase) {
+    if (!isReady) {
       setLoading(false);
       setError('Supabase not configured');
       return;
@@ -95,10 +100,10 @@ export function useInventoryForecasting(): UseInventoryForecastingReturn {
     } finally {
       setLoading(false);
     }
-  }, [supabase, supabaseLoading, configured]);
+  }, [supabase, isReady]);
 
   useEffect(() => {
-    if (supabaseLoading || !configured || !supabase) return;
+    if (!isReady || !supabase) return;
 
     loadData();
 
@@ -124,7 +129,7 @@ export function useInventoryForecasting(): UseInventoryForecastingReturn {
       supabase.removeChannel(salesChannel);
       supabase.removeChannel(productsChannel);
     };
-  }, [supabase, supabaseLoading, configured, loadData]);
+  }, [supabase, isReady, loadData]);
 
   const metrics = useMemo(() => {
     const resellerMap = new Map(resellers.map(r => [r.id, r.nome || r.email || 'Unknown']));
