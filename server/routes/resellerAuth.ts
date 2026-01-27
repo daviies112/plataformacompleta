@@ -1932,7 +1932,24 @@ router.post('/product-requests', resellerAuthMiddleware, async (req, res) => {
     
     console.log('[ProductRequest] Inserting product request for reseller:', auth.userId);
 
-    // Inserir diretamente na tabela product_requests
+    // Primeiro, garantir que o reseller existe no Tenant DB (para satisfazer FK)
+    // Fazer upsert silencioso - se falhar, continuamos mesmo assim
+    const { error: upsertError } = await tenantClient
+      .from('resellers')
+      .upsert({
+        id: auth.userId,
+        name: resellerData.nome || resellerData.email,
+        email: resellerData.email,
+        status: 'active'
+      }, { onConflict: 'id' });
+    
+    if (upsertError) {
+      console.log('[ProductRequest] Reseller upsert (non-critical):', upsertError.message);
+    } else {
+      console.log('[ProductRequest] Reseller synced to tenant DB:', auth.userId);
+    }
+
+    // Agora inserir a solicitação de produto
     const { data: requestData, error: insertError } = await tenantClient
       .from('product_requests')
       .insert({
@@ -1948,56 +1965,23 @@ router.post('/product-requests', resellerAuthMiddleware, async (req, res) => {
     if (insertError) {
       console.error('[ProductRequest] Insert error:', insertError);
       
-      // Se a tabela não existir, criar e tentar novamente
-      if (insertError.code === '42P01') {
-        console.log('[ProductRequest] Table does not exist, creating...');
-        const createSQL = `
-          CREATE TABLE IF NOT EXISTS product_requests (
-            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-            reseller_id UUID NOT NULL,
-            product_id UUID,
-            quantity INTEGER NOT NULL DEFAULT 1,
-            notes TEXT,
-            status TEXT DEFAULT 'pending',
-            created_at TIMESTAMPTZ DEFAULT NOW()
-          );
-        `;
+      // Se o erro for de foreign key mesmo após upsert, tentar inserir sem o FK
+      if (insertError.code === '23503') {
+        console.log('[ProductRequest] FK constraint error - resellers table might not exist or have different structure');
         
-        await tenantClient.rpc('exec_sql', { sql: createSQL }).catch(e => {
-          console.log('[ProductRequest] Could not create table via RPC:', e.message);
-        });
-        
-        const { data: retryData, error: retryError } = await tenantClient
-          .from('product_requests')
+        // Tentar criar tabela resellers se não existir
+        await tenantClient
+          .from('resellers')
           .insert({
-            reseller_id: auth.userId,
-            product_id: product_id,
-            quantity: quantity,
-            notes: notes || null,
-            status: 'pending'
+            id: auth.userId,
+            name: resellerData.nome || resellerData.email,
+            email: resellerData.email,
+            status: 'active'
           })
-          .select()
-          .single();
-            
-        if (retryError) {
-          throw retryError;
-        }
-          
-        return res.json({
-          success: true,
-          data: retryData,
-          message: 'Solicitação enviada com sucesso!'
-        });
-      }
-      
-      // Se o erro for de foreign key, remover a constraint e tentar novamente
-      if (insertError.code === '23503' && insertError.message.includes('reseller_id')) {
-        console.log('[ProductRequest] Foreign key error, attempting to drop constraint...');
+          .then(() => console.log('[ProductRequest] Reseller inserted'))
+          .catch(() => console.log('[ProductRequest] Could not insert reseller'));
         
-        await tenantClient.rpc('exec_sql', {
-          sql: `ALTER TABLE product_requests DROP CONSTRAINT IF EXISTS product_requests_reseller_id_fkey;`
-        }).catch(e => console.log('[ProductRequest] Could not drop FK:', e.message));
-        
+        // Tentar novamente
         const { data: retryData, error: retryError } = await tenantClient
           .from('product_requests')
           .insert({
@@ -2011,8 +1995,8 @@ router.post('/product-requests', resellerAuthMiddleware, async (req, res) => {
           .single();
           
         if (retryError) {
-          console.error('[ProductRequest] Insert error after FK drop attempt:', retryError);
-          throw retryError;
+          console.error('[ProductRequest] Insert still failed:', retryError);
+          throw new Error('Não foi possível criar a solicitação. A tabela de revendedores pode não estar configurada corretamente. Contate o administrador.');
         }
         
         return res.json({
