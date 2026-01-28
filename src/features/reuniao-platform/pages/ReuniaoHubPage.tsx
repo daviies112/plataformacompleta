@@ -1,7 +1,7 @@
 import { lazy, Suspense, useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Home, Calendar, Video, Settings, Palette, Loader2 } from "lucide-react";
-import { useLocation } from "react-router-dom";
+import { Home, Calendar, Video, Settings, Palette, Loader2, Clock } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
 import ReuniaoDashboardPage from "./ReuniaoDashboardPage";
 
 // Lazy load heavy components
@@ -23,6 +23,7 @@ const LoadingFallback = () => (
 export default function ReuniaoHubPage() {
   const [activeTab, setActiveTab] = useState("home");
   const location = useLocation();
+  const navigate = useNavigate();
   
   // Detect if we are in a direct meeting URL /reuniao/{id}
   const meetingIdMatch = location.pathname.match(/\/reuniao\/([^\/]+)/);
@@ -36,15 +37,23 @@ export default function ReuniaoHubPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Reuniões</h1>
-        <p className="text-muted-foreground mt-1">
-          Plataforma de videoconferências e gerenciamento de reuniões
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Reuniões</h1>
+          <p className="text-muted-foreground mt-1">
+            Plataforma de videoconferências e gerenciamento de reuniões
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" className="gap-2" onClick={() => navigate("/horarios-disponiveis")}>
+            <Clock className="h-4 w-4" />
+            Horários
+          </Button>
+        </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 lg:w-auto">
+        <TabsList className="grid w-full grid-cols-5 lg:w-auto">
           <TabsTrigger value="home" className="gap-2">
             <Home className="h-4 w-4" />
             <span className="hidden sm:inline">Home</span>
@@ -60,6 +69,10 @@ export default function ReuniaoHubPage() {
           <TabsTrigger value="design" className="gap-2">
             <Palette className="h-4 w-4" />
             <span className="hidden sm:inline">Design</span>
+          </TabsTrigger>
+          <TabsTrigger value="horarios" className="gap-2" onClick={() => navigate("/horarios-disponiveis")}>
+            <Clock className="h-4 w-4" />
+            <span className="hidden sm:inline">Horários</span>
           </TabsTrigger>
         </TabsList>
 

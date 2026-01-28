@@ -536,9 +536,11 @@ function MeetingsList() {
     }
   };
 
-  const upcomingMeetings = meetings.filter(m => 
-    m.status === 'agendada' || m.status === 'em_andamento'
-  );
+  const today = format(new Date(), "yyyy-MM-dd");
+  const upcomingMeetings = meetings.filter(m => {
+    const isToday = format(new Date(m.dataInicio), "yyyy-MM-dd") === today;
+    return isToday && (m.status === 'agendada' || m.status === 'em_andamento');
+  });
   const pastMeetings = meetings.filter(m => 
     m.status === 'concluida' || m.status === 'finalizada' || m.status === 'cancelada'
   );
