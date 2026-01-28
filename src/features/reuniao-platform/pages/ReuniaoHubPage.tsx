@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import { lazy, Suspense, useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Home, Calendar, Video, Settings, Palette, Loader2, Clock } from "lucide-react";
@@ -24,6 +25,15 @@ export default function ReuniaoHubPage() {
   const [activeTab, setActiveTab] = useState("home");
   const location = useLocation();
   const navigate = useNavigate();
+  
+  // Update active tab based on query param
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const tabParam = params.get('tab');
+    if (tabParam && ["home", "calendario", "gravacoes", "design"].includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
+  }, [location.search]);
   
   // Detect if we are in a direct meeting URL /reuniao/{id}
   const meetingIdMatch = location.pathname.match(/\/reuniao\/([^\/]+)/);
