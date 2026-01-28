@@ -269,7 +269,7 @@ export const ContractDetailsModal = ({ contract, open, onOpenChange }: ContractD
                 </div>
               </Card>
 
-              {(displayContract?.selfie_photo || displayContract?.document_photo || displayContract?.document_back_photo) && (
+              {(displayContract?.selfie_photo || displayContract?.document_photo || displayContract?.document_back_photo || displayContract?.residence_proof_photo) && (
                 <Card className="p-4">
                   <h3 className="font-bold text-lg mb-3">Fotos do Processo</h3>
                   <div className="flex flex-wrap gap-4">
@@ -338,6 +338,30 @@ export const ContractDetailsModal = ({ contract, open, onOpenChange }: ContractD
                               const target = e.target as HTMLImageElement;
                               if (!target.src.includes('t=')) {
                                 target.src = displayContract.document_back_photo + (displayContract.document_back_photo?.includes('?') ? '&' : '?') + 't=' + Date.now();
+                              } else if (!target.src.includes('placeholder')) {
+                                target.src = 'https://placehold.co/400x300?text=Erro+no+carregamento';
+                              }
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                    {displayContract?.residence_proof_photo && (
+                      <div className="space-y-2 flex-1 min-w-[200px]">
+                        <p className="font-semibold text-sm text-gray-600">Comprovante de Residência</p>
+                        <div className="bg-gray-100 rounded border border-gray-200 overflow-hidden flex items-center justify-center min-h-[200px]">
+                          <img 
+                            src={displayContract.residence_proof_photo} 
+                            alt="Comprovante de Residência" 
+                            className="max-w-full max-h-64 object-contain"
+                            crossOrigin="anonymous"
+                            loading="lazy"
+                            onLoad={() => console.log('Residence proof loaded successfully')}
+                            onError={(e) => {
+                              console.error('Error loading residence proof:', e);
+                              const target = e.target as HTMLImageElement;
+                              if (!target.src.includes('t=')) {
+                                target.src = displayContract.residence_proof_photo + (displayContract.residence_proof_photo?.includes('?') ? '&' : '?') + 't=' + Date.now();
                               } else if (!target.src.includes('placeholder')) {
                                 target.src = 'https://placehold.co/400x300?text=Erro+no+carregamento';
                               }
