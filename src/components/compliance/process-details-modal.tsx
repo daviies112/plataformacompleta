@@ -91,6 +91,9 @@ interface ProcessDetailsModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
+export function ProcessDetailsModal({ check, open, onOpenChange }: ProcessDetailsModalProps) {
+  const [isDownloading, setIsDownloading] = useState(false);
+  
   // Defensive parsing and memoization
   const payload = useMemo(() => {
     if (!check?.payload) return null;
@@ -192,8 +195,6 @@ interface ProcessDetailsModalProps {
     }
   }, [processData, collectionsPayload, basicDataPayload, isCompleteConsultation, hasDebt, payload]);
 
-  if (!check) return null;
-
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return 'N/A';
     try {
@@ -204,6 +205,7 @@ interface ProcessDetailsModalProps {
   };
 
   const handleDownload = async () => {
+    if (!check) return;
     setIsDownloading(true);
     try {
       await downloadPDF(check.id);
@@ -214,6 +216,8 @@ interface ProcessDetailsModalProps {
       setIsDownloading(false);
     }
   };
+
+  if (!check) return null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
