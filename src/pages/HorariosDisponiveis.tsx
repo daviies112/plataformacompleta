@@ -272,21 +272,21 @@ export default function HorariosDisponiveis() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-4 overflow-x-auto pb-4">
+        <div className="flex gap-4 overflow-x-auto pb-6 scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-transparent">
           {["todos", "1", "2", "3", "4", "5", "6", "0"].map((key) => {
             const dayHorarios = groupedHorarios[key] || [];
             return (
-              <div key={key} className="flex flex-col gap-3 min-w-[200px]" data-testid={`column-horarios-${key}`}>
-                <div className="flex items-center justify-between px-1">
-                  <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">
+              <div key={key} className="flex flex-col gap-3 min-w-[280px] w-[280px] shrink-0" data-testid={`column-horarios-${key}`}>
+                <div className="flex items-center justify-between px-2 py-1 bg-muted/50 rounded-t-lg border-b border-primary/10">
+                  <h3 className="font-bold text-[11px] uppercase tracking-widest text-primary/80">
                     {getDiaLabel(key)}
                   </h3>
-                  <span className="text-xs bg-muted px-2 py-0.5 rounded-full text-muted-foreground">
+                  <span className="text-[10px] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-full">
                     {dayHorarios.length}
                   </span>
                 </div>
                 
-                <div className="flex flex-col gap-2 min-h-[100px] p-2 rounded-lg bg-muted/30 border border-dashed border-muted-foreground/20">
+                <div className="flex flex-col gap-3 min-h-[400px] p-2 rounded-b-lg bg-muted/20 border border-t-0 border-muted-foreground/10">
                   {dayHorarios
                     .sort((a, b) => a.horario.localeCompare(b.horario))
                     .map((h) => {
