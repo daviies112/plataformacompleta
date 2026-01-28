@@ -29,26 +29,21 @@ function StatusBadgeLocal({ status }: { status: string }) {
 }
 
 function ScoreGauge({ score }: { score: number }) {
-  // Score de 0 a 1000
-  // Lógica de cores: 0-300 Vermelho, 301-600 Laranja/Amarelo, 601-800 Verde Claro, 801-1000 Verde
   const getScoreColor = (val: number) => {
-    if (val <= 300) return "#ef4444"; // Red
-    if (val <= 500) return "#f97316"; // Orange
-    if (val <= 700) return "#eab308"; // Yellow
-    if (val <= 850) return "#84cc16"; // Lime
-    return "#22c55e"; // Green
+    if (val <= 300) return "#ef4444";
+    if (val <= 500) return "#f97316";
+    if (val <= 700) return "#eab308";
+    if (val <= 850) return "#84cc16";
+    return "#22c55e";
   };
 
   const color = getScoreColor(score);
-  const percentage = score / 1000;
-  const strokeDasharray = 251.2; // 2 * PI * r (r=40)
-  const strokeDashoffset = strokeDasharray * (1 - percentage / 2); // Metade do círculo
-
+  const percentage = Math.min(Math.max(score / 1000, 0), 1);
+  
   return (
     <div className="flex flex-col items-center justify-center p-6 bg-zinc-900/50 rounded-xl border border-zinc-700/50 mb-6">
       <div className="relative w-48 h-24 overflow-hidden">
         <svg viewBox="0 0 100 50" className="w-full h-full">
-          {/* Background track */}
           <path
             d="M 10 50 A 40 40 0 0 1 90 50"
             fill="none"
@@ -56,7 +51,6 @@ function ScoreGauge({ score }: { score: number }) {
             strokeWidth="8"
             strokeLinecap="round"
           />
-          {/* Active segments logic - Simplified to 5 segments for visual appeal like the image */}
           <path
             d="M 10 50 A 40 40 0 0 1 90 50"
             fill="none"
@@ -77,9 +71,6 @@ function ScoreGauge({ score }: { score: number }) {
         <Badge style={{ backgroundColor: color }} className="text-white border-0 px-4 py-1">
           {score > 800 ? "Excelente" : score > 600 ? "Bom" : score > 400 ? "Regular" : "Risco Alto"}
         </Badge>
-        <p className="text-[10px] text-zinc-500 mt-2 text-center max-w-[200px]">
-          Score Universal calculado com base em dados cadastrais, histórico de processos e restrições financeiras.
-        </p>
       </div>
     </div>
   );
@@ -144,31 +135,26 @@ export function ProcessDetailsModal({ check, open, onOpenChange }: ProcessDetail
   const isCompleteConsultation = payload?._datacorp_complete === true;
   const hasDebt = useMemo(() => !!(collectionsPayload?.HasActiveCollections || (collectionsPayload?.TotalOccurrences && collectionsPayload.TotalOccurrences > 0)), [collectionsPayload]);
 
-  // Lógica de Metodologia para o Score (0-1000)
   const universalScore = useMemo(() => {
     try {
       if (!payload || Object.keys(payload).length === 0) return 850;
-      let score = 850; // Base "Boa"
+      let score = 850;
 
-      // 1. Processos Judiciais (Impacto Alto se Réu)
-      const defendantCount = processData?.TotalLawsuitsAsDefendant || 0;
-      const totalLawsuitsCount = processData?.TotalLawsuits || 0;
+      const defendantCount = Number(processData?.TotalLawsuitsAsDefendant || 0);
+      const totalLawsuitsCount = Number(processData?.TotalLawsuits || 0);
       score -= defendantCount * 50;
-      score -= (totalLawsuitsCount - defendantCount) * 10;
+      score -= Math.max(0, totalLawsuitsCount - defendantCount) * 10;
 
-      // 2. Restrições Financeiras (Impacto Crítico)
       if (collectionsPayload?.HasActiveCollections) {
         score -= 300;
-      } else if (collectionsPayload?.TotalOccurrences > 0) {
+      } else if (Number(collectionsPayload?.TotalOccurrences || 0) > 0) {
         score -= 150;
       }
 
-      // 3. Status CPF (Impacto Bloqueante)
       if (basicDataPayload?.TaxIdStatus && basicDataPayload.TaxIdStatus !== 'Regular') {
         score -= 400;
       }
 
-      // 4. Idade do Histórico
       if (processData?.FirstLawsuitDate) {
         const firstDate = new Date(processData.FirstLawsuitDate);
         if (!isNaN(firstDate.getTime())) {
@@ -177,13 +163,11 @@ export function ProcessDetailsModal({ check, open, onOpenChange }: ProcessDetail
         }
       }
 
-      // 5. Histórico de Processos Recentes (Tendência)
-      const recentLawsuits = (processData?.Last30DaysLawsuits || 0) + (processData?.Last90DaysLawsuits || 0);
+      const recentLawsuits = Number(processData?.Last30DaysLawsuits || 0) + Number(processData?.Last90DaysLawsuits || 0);
       if (recentLawsuits > 0) {
         score -= recentLawsuits * 20;
       }
 
-      // Bônus por consistência
       if (isCompleteConsultation && !hasDebt && defendantCount === 0) {
         score += 50;
       }
@@ -198,19 +182,22 @@ export function ProcessDetailsModal({ check, open, onOpenChange }: ProcessDetail
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return 'N/A';
     try {
-      return new Date(dateStr).toLocaleDateString('pt-BR');
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return dateStr;
+      return d.toLocaleDateString('pt-BR');
     } catch {
       return dateStr;
     }
   };
 
   const handleDownload = async () => {
-    if (!check) return;
+    if (!check?.id) return;
     setIsDownloading(true);
     try {
       await downloadPDF(check.id);
       toast.success('PDF gerado com sucesso!');
     } catch (error) {
+      console.error("[ProcessDetailsModal] Download error:", error);
       toast.error('Erro ao gerar PDF');
     } finally {
       setIsDownloading(false);
