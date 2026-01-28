@@ -1,0 +1,1628 @@
+
+Formulário
+Calendário
+Workspace
+Faturamento
+WhatsApp
+Produto
+Vendas
+Kanban
+Reunião
+Consultar CPF
+Revendedora
+Assinatura
+Envio
+R$ 0
+
+Consultar CPF
+Consulte processos judiciais via Bigdatacorp com cache inteligente
+
+Autenticado
+Você está logado como daviemericko@gmail.com. Suas consultas serão registradas em sua conta.
+Nova Consulta
+Histórico
+Histórico de Consultas
+100 consultas encontradas
+Buscar por ID...
+Baixar PDF
+Data/Hora	Nome	CPF	Status	Dados	Risco	Processos	Custo	Ações
+28/01/2026, 09:51	
+Davi Emerick
+145.155.666-79	Aprovado	-	1	0	
+R$ 0,00
+
+
+27/01/2026, 20:24	
+MANUELA APARECIDA
+081.587.766-80	Aprovado	
+6	6	
+R$ 0.17
+
+
+27/01/2026, 20:23	
+DANIELA CRISTINA
+078.761.866-70	Aprovado	
+3	1	
+R$ 0.17
+
+
+27/01/2026, 20:22	
+NEUZA DA CONCEIÇÃO
+747.909.196-68	Aprovado	
+2	0	
+R$ 0.17
+
+
+27/01/2026, 20:20	
+SORAYA OLIVEIRA DE JESUS
+062.997.726-70	Rejeitado	
+5	6	
+R$ 0.17
+
+
+27/01/2026, 20:19	
+RAYSLA MACHADO
+170.344.596-14	Aprovado	
+2	0	
+R$ 0,00
+
+
+27/01/2026, 20:19	
+RAYSLA MACHADO
+170.344.596-14	Aprovado	
+2	0	
+R$ 0.17
+
+
+27/01/2026, 20:18	
+ELAINE BRAGANÇA
+002.527.406-61	Rejeitado	
+4	4	
+R$ 0.17
+
+
+27/01/2026, 20:17	
+Claudirene Dionizio
+036.801.556-46	Aprovado	
+4	1	
+R$ 0.17
+
+
+27/01/2026, 14:29	
+MARILEIDE APARECIDA
+102.463.016-19	Aprovado	
+4	5	
+R$ 0,00
+
+
+23/01/2026, 19:20	
+LEILA MARIA
+074.798.876-55	Aprovado	
+2	0	
+R$ 0.17
+
+
+23/01/2026, 19:19	
+LUIZA PAULA FELIX
+040.931.796-97	Aprovado	
+3	2	
+R$ 0.17
+
+
+23/01/2026, 19:18	
+LOISLENE SILVA
+114.181.486-28	Aprovado	
+2	0	
+R$ 0.17
+
+
+23/01/2026, 19:16	
+LAODICEIA FERREIRA
+036.759.356-47	Rejeitado	
+4	3	
+R$ 0.17
+
+
+20/01/2026, 12:08	
+MARCELA SANTOS
+013.570.076-04	Aprovado	
+3	1	
+R$ 0.17
+
+
+20/01/2026, 12:07	
+michele guimarães
+108.462.706-09	Aprovado	
+4	1	
+R$ 0.17
+
+
+20/01/2026, 12:02	
+SHERLON MIRANDA
+110.057.546-40	Rejeitado	
+5	5	
+R$ 0.17
+
+
+20/01/2026, 12:01	
+Regiane Cristina inocente
+113.797.536-94	Rejeitado	
+5	9	
+R$ 0.17
+
+
+20/01/2026, 12:00	
+susana Valdivino
+090.345.584-60	Rejeitado	
+4	1	
+R$ 0.17
+
+
+16/01/2026, 15:59	
+Carolina de jesus amorim
+139.511.336-00	Rejeitado	
+6	8	
+R$ 0.17
+
+
+16/01/2026, 15:58	
+Luciana wanerla dos santos
+031.532.146-62	Aprovado	
+3	2	
+R$ 0.17
+
+
+16/01/2026, 15:58	
+Jordania fernandes
+016.149.471-47	Aprovado	
+3	1	
+R$ 0.17
+
+
+16/01/2026, 15:57	
+Priscila Martins tristao furtado
+067.605.556-78	Aprovado	
+3	1	
+R$ 0.17
+
+
+16/01/2026, 15:56	
+Ana Maria de Carvalho Barbosa
+093.294.686-08	Aprovado	
+4	4	
+R$ 0.17
+
+
+16/01/2026, 15:56	
+Jaqueline aparecida pereira
+069.773.386-60	Rejeitado	
+4	3	
+R$ 0.17
+
+
+16/01/2026, 15:52	
+Arlete sabino alves
+089.184.596-88	Rejeitado	
+4	1	
+R$ 0.17
+
+
+16/01/2026, 15:51	
+Marcela De Fátima Alves
+097.908.436-90	Rejeitado	
+6	13	
+R$ 0.17
+
+
+16/01/2026, 15:50	
+Maria das Graças Cirilo Silva
+044.871.056-09	Aprovado	
+3	2	
+R$ 0.17
+
+
+16/01/2026, 15:49	
+Ana Paula Braga da Silva
+092.973.106-99	Aprovado	
+2	0	
+R$ 0.17
+
+
+16/01/2026, 15:47	
+Naiara pereira de oliveira da Silva
+018.870.586-48	Rejeitado	
+5	12	
+R$ 0.17
+
+
+14/01/2026, 16:43	
+IRIS CRISTINA SEBASTIÃO
+032.526.096-65	Aprovado	
+4	1	
+R$ 0.17
+
+
+14/01/2026, 16:42	
+MAGDA APARECIDA DE SOUSA GONÇALVES
+039.893.126-77	Rejeitado	
+4	2	
+R$ 0.17
+
+
+14/01/2026, 16:41	
+ALEXANDRA DA LUZ MADUREIRA
+129.847.706-92	Aprovado	
+2	0	
+R$ 0.17
+
+
+13/01/2026, 15:35	
+valeria lima de oliveira
+078.122.766-60	Aprovado	
+4	3	
+R$ 0.17
+
+
+13/01/2026, 15:30	
+JANE EUTÁQUIA AGUIAR CAPRETA CANDIDO
+055.958.816-07	Aprovado	
+3	2	
+R$ 0.17
+
+
+13/01/2026, 15:29	
+RAYLEI MACHADO SILVA
+170.344.306-32	Aprovado	
+2	0	
+R$ 0.17
+
+
+13/01/2026, 15:28	
+vilma leite dos santos
+036.888.826-60	Aprovado	
+5	8	
+R$ 0.17
+
+
+13/01/2026, 15:26	
+ANA PAULA ALVES JERONIMO
+052.043.906-69	Aprovado	
+2	0	
+R$ 0.17
+
+
+13/01/2026, 15:25	
+LESLEY CRISTINA BATISTA
+551.462.446-34	Rejeitado	
+5	6	
+R$ 0.17
+
+
+13/01/2026, 15:24	
+LIDIA DE ALMEIDA ALVES PINTO
+606.053.596-87	Aprovado	
+4	1	
+R$ 0.17
+
+
+13/01/2026, 15:18	
+Vanessa basilio ribeiro da silva
+050.623.806-77	Aprovado	
+5	6	
+R$ 0.17
+
+
+13/01/2026, 15:17	
+JULIANA ANTUNES KIND
+045.697.616-74	Aprovado	
+3	1	
+R$ 0.17
+
+
+13/01/2026, 15:14	
+MIRIAN DA CONCEIÇÃO LOPES SANTANA
+052.035.776-09	Aprovado	
+2	0	
+R$ 0.17
+
+
+13/01/2026, 15:13	
+MARIA CRISTINA GARCIA
+742.015.146-68	Rejeitado	
+4	4	
+R$ 0.17
+
+
+13/01/2026, 15:11	
+PATRICIA RODRIGUES ABREU
+058.716.806-40	Aprovado	
+4	3	
+R$ 0.17
+
+
+13/01/2026, 15:09	
+ALESSANDRA COSTA PINTO DE ALMEIDA
+044.673.006-86	Aprovado	
+5	11	
+R$ 0.17
+
+
+13/01/2026, 15:08	
+ANALY DE MOURA SOUTO
+932.222.386-34	Rejeitado	
+6	11	
+R$ 0.17
+
+
+13/01/2026, 15:06	
+ANTONIA CAMARGO DOS SANTOS
+048.003.056-16	Aprovado	
+4	3	
+R$ 0.17
+
+
+13/01/2026, 15:05	
+JAKELINE KESSILIN DA SILVA
+112.802.886-71	Aprovado	
+4	3	
+R$ 0.17
+
+
+13/01/2026, 15:04	
+GEOVANNA CICERA PEREIRA DOS SANTOS
+110.200.376-01	Aprovado	
+2	0	
+R$ 0.17
+
+
+13/01/2026, 15:03	
+JAQUES ANTONIO DE OLIVEIRA
+034.518.026-78	Aprovado	
+5	6	
+R$ 0.17
+
+
+13/01/2026, 15:03	
+ANNE CAROLINA LAGES FERREIRA
+165.905.556-30	Aprovado	
+2	0	
+R$ 0.17
+
+
+13/01/2026, 15:01	
+MARTA DO NASCIMENTO
+178.969.256-30	Aprovado	
+4	1	
+R$ 0.17
+
+
+13/01/2026, 15:01	
+FLÁVIA CRISTINA DE JJESUS NETO
+910.469.986-68	Rejeitado	-	1	0	
+R$ 0,00
+
+
+13/01/2026, 14:59	
+NILDA APARECIDA RAMIRES REIS MARIANE
+067.676.516-56	Rejeitado	
+6	7	
+R$ 0.17
+
+
+13/01/2026, 14:56	
+Marceia Cristina Machado Mariane
+083.538.986-32	Rejeitado	
+3	2	
+R$ 0.17
+
+
+13/01/2026, 14:49	
+MARILEIDE APARECIDA
+102.463.016-19	Aprovado	
+4	5	
+R$ 0.17
+
+
+13/01/2026, 11:03	
+Davi Emerick
+145.155.666-79	Aprovado	-	1	0	
+R$ 0,00
+
+
+09/01/2026, 19:10	
+Davi Emerick
+145.155.666-79	Aprovado	-	1	0	
+R$ 0,00
+
+
+08/01/2026, 19:21	
+marcia andreia da silva barbosa
+806.239.806-49	Revisão Manual	
+4	3	
+R$ 0,00
+
+
+26/12/2025, 15:39	
+ANGELA MARIA LUIZ
+728.419.826-53	Aprovado	
+2	0	
+R$ 0.17
+
+
+26/12/2025, 15:36	
+Adriana Rosa de Souza
+092.325.736-52	Aprovado	
+3	1	
+R$ 0.17
+
+
+26/12/2025, 15:34	
+Iara do Carmo cândido Brito de Souza
+043.778.076-76	Aprovado	
+4	3	
+R$ 0.17
+
+
+26/12/2025, 15:28	
+Christiane Rezende
+873.771.796-00	Rejeitado	
+5	6	
+R$ 0.17
+
+
+26/12/2025, 15:26	
+Alessandra Gonçalves Araujo
+068.502.486-50	Aprovado	
+4	5	
+R$ 0.17
+
+
+26/12/2025, 15:25	
+Claudia aparecida rosa
+701.534.156-57	Aprovado	
+2	0	
+R$ 0.17
+
+
+26/12/2025, 13:49	
+Davidson Ubiratan do Carmo
+013.745.146-67	Rejeitado	
+6	63	
+R$ 0.17
+
+
+23/12/2025, 14:04	
+Mayra Lemes de Castro
+146.184.116-00	Aprovado	
+3	1	
+R$ 0.17
+
+
+23/12/2025, 14:04	
+Cristiane Alves Aguiar Martins
+957.710.856-34	Aprovado	
+2	0	
+R$ 0.17
+
+
+23/12/2025, 14:03	
+Keliane Teodoro da Silva
+110.057.746-76	Aprovado	
+4	1	
+R$ 0.17
+
+
+23/12/2025, 14:02	
+Nair iara Bruno da Silva
+101.792.936-05	Aprovado	
+2	0	
+R$ 0.17
+
+
+23/12/2025, 14:01	
+Valéria Maria de Souza
+064.830.476-06	Aprovado	
+4	3	
+R$ 0.17
+
+
+19/12/2025, 15:46	
+maisa goncalves
+463.146.446-15	Aprovado	
+3	2	
+R$ 0.17
+
+
+19/12/2025, 15:01	
+Ana Carolina Custodio da Cruz
+122.948.666-65	Aprovado	
+3	1	
+R$ 0.17
+
+
+19/12/2025, 14:59	
+Luciene Cássia Pereira
+034.193.956-04	Rejeitado	
+4	2	
+R$ 0.17
+
+
+19/12/2025, 14:56	
+Miriam Rodrigues Simão
+067.832.316-07	Aprovado	
+4	1	
+R$ 0.17
+
+
+19/12/2025, 14:07	
+Emanuele Diniz Braz
+079.771.356-55	Aprovado	
+4	4	
+R$ 0.17
+
+
+19/12/2025, 14:07	
+Emiliane Rocha Fernandes
+057.900.226-85	Rejeitado	
+6	95	
+R$ 0.17
+
+
+19/12/2025, 14:05	
+Elione clara da costa
+067.143.336-92	Rejeitado	
+3	1	
+R$ 0.17
+
+
+18/12/2025, 17:10	
+Erica Roberta silva
+045.569.436-20	Aprovado	
+3	1	
+R$ 0.17
+
+
+18/12/2025, 17:09	
+Brenda Lorrayne Fagundes chaves
+017.662.866-58	Aprovado	
+4	5	
+R$ 0.17
+
+
+18/12/2025, 17:07	
+STHEFANI MARQUES PAIXÃO
+140.456.406-30	Aprovado	
+3	2	
+R$ 0.17
+
+
+18/12/2025, 16:38	
+Taiana Miranda
+088.839.536-14	Aprovado	
+2	0	
+R$ 0.17
+
+
+18/12/2025, 16:37	
+Gabrielle Martins da Silva
+022.956.116-01	Aprovado	
+4	1	
+R$ 0.17
+
+
+18/12/2025, 16:36	
+Maria Eliza Soares Pereira
+295.302.106-04	Aprovado	
+2	0	
+R$ 0.17
+
+
+18/12/2025, 16:35	
+JACQUELINE DIONISIO DA SILVA ALMEIDA
+047.399.046-67	Aprovado	
+2	0	
+R$ 0.17
+
+
+18/12/2025, 16:27	
+Rosilene Pereira Viana jopetipe
+074.785.226-02	Rejeitado	
+5	6	
+R$ 0.17
+
+
+18/12/2025, 16:23	
+Thamara Fernanda cares de campos
+105.832.106-43	Aprovado	
+2	0	
+R$ 0.17
+
+
+18/12/2025, 16:18	
+Ariane Santos Silva
+112.752.096-29	Rejeitado	
+4	3	
+R$ 0.17
+
+
+15/12/2025, 21:38	
+TESTE CPF NOVO - Maria Santos
+987.654.321-00	Rejeitado	-	3	5	
+R$ 0,00
+
+
+15/12/2025, 21:38	
+João Silva Teste Final
+987.654.321-00	Rejeitado	-	3	5	
+R$ 0,00
+
+
+15/12/2025, 21:38	
+Davi Emerick
+145.155.666-79	Aprovado	-	1	0	
+R$ 0,00
+
+
+15/12/2025, 21:38	
+TESTE CACHE - João Silva
+123.456.789-09	Aprovado	-	1	0	
+R$ 0,00
+
+
+15/12/2025, 21:38	
+Maria Silva Teste Automação
+123.456.789-09	Aprovado	-	1	0	
+R$ 0,00
+
+
+15/12/2025, 21:38	
+João Teste
+145.155.666-79	Aprovado	-	1	0	
+R$ 0,00
+
+
+15/12/2025, 21:38	
+gleice Emerick
+145.155.666-79	Aprovado	-	1	0	
+R$ 0,00
+
+
+15/12/2025, 19:04	
+Celine Silva de Paula
+162.602.846-08	Aprovado	
+2	0	
+R$ 0.17
+
+
+15/12/2025, 19:03	
+Cássia Adriana Pereira da silva
+046.138.326-83	Aprovado	
+4	3	
+R$ 0.17
+
+
+15/12/2025, 19:02	
+Pamela Suellen Salles de Paula
+162.511.746-92	Aprovado	
+2	0	
+R$ 0.17
+
+
+15/12/2025, 19:01	
+Nilssem Josiane de morais
+041.712.466-01	Rejeitado	
+6	8	
+R$ 0.17
+
+
+
+Instalar App
+Detalhes da Consulta de Processos Judiciais
+Informações completas retornadas pela API Bigdatacorp
+
+Baixar PDF
+Score de Confiabilidade
+
+982
+de 1000
+Risco Muito Baixo
+Excelente histórico - Alta confiabilidade
+
+0
+300
+500
+700
+850
+1000
+Maior Risco
+Menor Risco
+Informações da Consulta (API Bigdatacorp)
+Query ID
+
+32a4e61e-f4ac-4128-a06d-5289d2caac79
+
+Data da Consulta
+
+27/01/2026
+
+Tempo de Resposta
+
+886ms
+
+Match Keys
+
+doc{08158776680}
+
+Status da Consulta
+
+Code: 0
+OK
+Status
+Aprovado
+Risco (1-10)
+6
+Total Processos
+6
+
+Nome/CPF
+MANUELA APARECIDA
+
+081.587.766-80
+
+Como Autor
+0
+
+Como Réu
+5
+
+Outros
+1
+
+Primeiro Processo
+16/05/2012
+
+Último Processo
+08/11/2022
+
+Últimos 30 dias
+0
+
+Últimos 90 dias
+0
+
+Últimos 180 dias
+0
+
+Últimos 365 dias
+0
+
+Dados Cadastrais
+CPF Receita Federal
+Nome Completo
+
+MANUELA APARECIDA PEREIRA MARQUES
+
+Status do CPF
+
+REGULAR
+Data Status
+
+22/08/2016
+
+Data de Nascimento
+
+12/04/1988
+
+Idade
+
+37 anos
+
+Sexo
+
+Feminino
+
+Nome da Mãe
+
+MARIA LUCIA PEREIRA
+
+Presença em Cobrança
+Sem Ocorrências
+Total de Ocorrências
+
+0
+
+Últimos 3 meses
+
+0
+
+Últimos 12 meses
+
+0
+
+Meses Consecutivos
+
+0
+
+Consulta Completa DataCorp
+3 APIs em paralelo
+Tempo de Consulta
+
+1035ms
+
+Custo Total
+
+R$ 0.170
+
+Dados Cadastrais:
+
+Cobranças:
+
+Processos (6)
+JSON Completo
+50117305020228130183
+INDEFINIDO
+TERMO CIRCUNSTANCIADO
+Informações
+Partes (8)
+Movimentações (41)
+Decisões (0)
+Petições (0)
+Informações do Tribunal
+Tribunal
+
+TJMG
+
+Nível da Corte
+
+1
+
+Tipo da Corte
+
+CRIMINAL
+
+Distrito
+
+CONSELHEIRO LAFAIETE
+
+Estado
+
+MG
+
+Classificação
+Classe
+
+N/A
+
+Tipo
+
+TERMO CIRCUNSTANCIADO
+
+Assunto Principal
+
+DIREITO PENAL (287) - CONTRAVENCOES PENAIS (3692) - VIAS DE FATO (12345
+
+Assunto CNJ Inferido
+
+VIAS DE FATO
+
+Assunto CNJ Amplo
+
+DIREITO PENAL
+
+Área
+
+N/A
+
+Instância
+
+N/A
+
+Responsáveis
+Juiz(a)
+
+N/A
+
+Órgão Julgador
+
+UNIDADE JURISDICIONAL UNICA - 2 JD DA COMARCA DE CONSELHEIRO LAFAIETE
+
+Datas Importantes
+Data de Distribuição
+
+08/11/2022
+
+Data de Publicação
+
+09/11/2022
+
+Última Movimentação
+
+27/11/2025
+
+Última Atualização
+
+28/12/2025
+
+Data de Captura
+
+28/12/2025
+
+Data de Encerramento
+
+01/01/1
+
+Data de Redistribuição
+
+01/01/1
+
+Data de Trânsito em Julgado
+
+01/01/1
+
+Métricas
+Número de Partes
+
+8
+
+Número de Movimentações
+
+41
+
+Número de Páginas
+
+0
+
+Número de Volumes
+
+0
+
+Idade do Processo (dias)
+
+1176
+
+Média de Atualizações/Mês
+
+1.00
+
+00074552720148130183
+ARQUIVADO
+EXECUÇÃO DE TÍTULO EXTRAJUDICIAL
+Valor da Causa
+
+R$ 146,17
+
+Informações
+Partes (4)
+Movimentações (19)
+Decisões (0)
+Petições (0)
+Informações do Tribunal
+Tribunal
+
+TJMG
+
+Nível da Corte
+
+1
+
+Tipo da Corte
+
+CIVEL
+
+Distrito
+
+CONSELHEIRO LAFAIETE
+
+Estado
+
+MG
+
+Classificação
+Classe
+
+N/A
+
+Tipo
+
+EXECUCAO DE TITULO EXTRAJUDICIAL
+
+Assunto Principal
+
+CIVIL > OBRIGACOES > ESPECIES DE TITULOS DE CREDITO > NOTA PROMISSORIA
+
+Assunto CNJ Inferido
+
+NOTA PROMISSÓRIA
+
+Assunto CNJ Amplo
+
+DIREITO CIVIL
+
+Área
+
+N/A
+
+Instância
+
+N/A
+
+Responsáveis
+Juiz(a)
+
+LUIZ TADEU DIAS
+
+Órgão Julgador
+
+UJ - 1 JD CIVEL
+
+Datas Importantes
+Data de Distribuição
+
+18/03/2014
+
+Data de Publicação
+
+29/01/2015
+
+Última Movimentação
+
+09/12/2021
+
+Última Atualização
+
+08/09/2025
+
+Data de Captura
+
+08/09/2025
+
+Data de Encerramento
+
+20/03/2015
+
+Data de Redistribuição
+
+01/01/1
+
+Data de Trânsito em Julgado
+
+25/04/2014
+
+Métricas
+Número de Partes
+
+4
+
+Número de Movimentações
+
+19
+
+Número de Páginas
+
+0
+
+Número de Volumes
+
+0
+
+Idade do Processo (dias)
+
+367
+
+Média de Atualizações/Mês
+
+0.00
+
+00431299020198130183
+ARQUIVADO
+EXECUÇÃO DE TÍTULO EXTRAJUDICIAL
+Valor da Causa
+
+R$ 265,00
+
+Informações
+Partes (3)
+Movimentações (18)
+Decisões (0)
+Petições (0)
+Informações do Tribunal
+Tribunal
+
+TJMG
+
+Nível da Corte
+
+1
+
+Tipo da Corte
+
+CIVEL
+
+Distrito
+
+CONSELHEIRO LAFAIETE
+
+Estado
+
+MG
+
+Classificação
+Classe
+
+N/A
+
+Tipo
+
+EXECUCAO DE TITULO EXTRAJUDICIAL
+
+Assunto Principal
+
+CIVIL > OBRIGACOES > ESPECIES DE TITULOS DE CREDITO > NOTA PROMISSORIA
+
+Assunto CNJ Inferido
+
+NOTA PROMISSÓRIA
+
+Assunto CNJ Amplo
+
+DIREITO CIVIL
+
+Área
+
+N/A
+
+Instância
+
+N/A
+
+Responsáveis
+Juiz(a)
+
+JOSE LEAO SANTIAGO CAMPOS
+
+Órgão Julgador
+
+UJ - 1 JD CIVEL|MICROEMPRESA
+
+Datas Importantes
+Data de Distribuição
+
+08/05/2019
+
+Data de Publicação
+
+23/03/2023
+
+Última Movimentação
+
+23/03/2023
+
+Última Atualização
+
+24/05/2023
+
+Data de Captura
+
+24/05/2023
+
+Data de Encerramento
+
+23/08/2021
+
+Data de Redistribuição
+
+01/01/1
+
+Data de Trânsito em Julgado
+
+01/01/1
+
+Métricas
+Número de Partes
+
+3
+
+Número de Movimentações
+
+18
+
+Número de Páginas
+
+0
+
+Número de Volumes
+
+0
+
+Idade do Processo (dias)
+
+838
+
+Média de Atualizações/Mês
+
+0.00
+
+00618608120128130183
+ARQUIVADO
+CUMPRIMENTO DE SENTENÇA
+Valor da Causa
+
+R$ 471,32
+
+Informações
+Partes (3)
+Movimentações (369)
+Decisões (2)
+Petições (0)
+Informações do Tribunal
+Tribunal
+
+TJMG
+
+Nível da Corte
+
+1
+
+Tipo da Corte
+
+CIVEL
+
+Distrito
+
+CONSELHEIRO LAFAIETE
+
+Estado
+
+MG
+
+Classificação
+Classe
+
+N/A
+
+Tipo
+
+CUMPRIMENTO DE SENTENCA
+
+Assunto Principal
+
+CIVIL > OBRIGACOES > ESPECIES DE TITULOS DE CREDITO > NOTA PROMISSORIA
+
+Assunto CNJ Inferido
+
+NOTA PROMISSÓRIA
+
+Assunto CNJ Amplo
+
+DIREITO CIVIL
+
+Área
+
+N/A
+
+Instância
+
+N/A
+
+Responsáveis
+Juiz(a)
+
+N/A
+
+Órgão Julgador
+
+1 UJ - 2 JD CIVEL|MICROEMPRESA
+
+Datas Importantes
+Data de Distribuição
+
+16/05/2012
+
+Data de Publicação
+
+04/09/2018
+
+Última Movimentação
+
+16/01/2019
+
+Última Atualização
+
+06/09/2018
+
+Data de Captura
+
+06/09/2018
+
+Data de Encerramento
+
+11/12/2013
+
+Data de Redistribuição
+
+07/11/2012
+
+Data de Trânsito em Julgado
+
+01/09/2017
+
+Métricas
+Número de Partes
+
+3
+
+Número de Movimentações
+
+369
+
+Número de Páginas
+
+0
+
+Número de Volumes
+
+0
+
+Idade do Processo (dias)
+
+573
+
+Média de Atualizações/Mês
+
+2.00
+
+50020885320228130183
+ARQUIVADO
+EXECUÇÃO DE TÍTULO EXTRAJUDICIAL
+Informações
+Partes (4)
+Movimentações (34)
+Decisões (5)
+Petições (0)
+Informações do Tribunal
+Tribunal
+
+TJMG
+
+Nível da Corte
+
+1
+
+Tipo da Corte
+
+CIVEL
+
+Distrito
+
+CONSELHEIRO LAFAIETE
+
+Estado
+
+MG
+
+Classificação
+Classe
+
+N/A
+
+Tipo
+
+EXECUCAO DE TITULO EXTRAJUDICIAL
+
+Assunto Principal
+
+DIREITO CIVIL (899) - OBRIGACOES (7681) - ESPECIES DE TITULOS DE CREDITO (7717) - NOTA PROMISSORIA (4980
+
+Assunto CNJ Inferido
+
+NOTA PROMISSÓRIA
+
+Assunto CNJ Amplo
+
+DIREITO CIVIL
+
+Área
+
+N/A
+
+Instância
+
+N/A
+
+Responsáveis
+Juiz(a)
+
+N/A
+
+Órgão Julgador
+
+UNIDADE JURISDICIONAL UNICA - 2 JD DA COMARCA DE CONSELHEIRO LAFAIETE
+
+Datas Importantes
+Data de Distribuição
+
+07/03/2022
+
+Data de Publicação
+
+01/01/1
+
+Última Movimentação
+
+14/06/2024
+
+Última Atualização
+
+06/11/2024
+
+Data de Captura
+
+06/11/2024
+
+Data de Encerramento
+
+14/06/2024
+
+Data de Redistribuição
+
+01/01/1
+
+Data de Trânsito em Julgado
+
+01/01/1
+
+Métricas
+Número de Partes
+
+4
+
+Número de Movimentações
+
+34
+
+Número de Páginas
+
+0
+
+Número de Volumes
+
+0
+
+Idade do Processo (dias)
+
+830
+
+Média de Atualizações/Mês
+
+0.00
+
+00049786020168130183
+ARQUIVADO
+PROCEDIMENTO DO JUIZADO ESPECIAL CÍVEL
+Valor da Causa
+
+R$ 603,80
+
+Informações
+Partes (3)
+Movimentações (21)
+Decisões (1)
+Petições (0)
+Informações do Tribunal
+Tribunal
+
+TJMG
+
+Nível da Corte
+
+1
+
+Tipo da Corte
+
+ESPECIAL CIVEL
+
+Distrito
+
+CONSELHEIRO LAFAIETE
+
+Estado
+
+MG
+
+Classificação
+Classe
+
+N/A
+
+Tipo
+
+PROCEDIMENTO DO JUIZADO ESPECIAL CIVEL
+
+Assunto Principal
+
+CIVIL > OBRIGACOES > ADIMPLEMENTO E EXTINCAO > PAGAMENTO
+
+Assunto CNJ Inferido
+
+PAGAMENTO
+
+Assunto CNJ Amplo
+
+DIREITO CIVIL
+
+Área
+
+N/A
+
+Instância
+
+N/A
+
+Responsáveis
+Juiz(a)
+
+LUIZ TADEU DIAS
+
+Órgão Julgador
+
+UJ - 1 JD CIVEL
+
+Datas Importantes
+Data de Distribuição
+
+02/02/2016
+
+Data de Publicação
+
+06/03/2017
+
+Última Movimentação
+
+09/12/2021
+
+Última Atualização
+
+25/08/2025
+
+Data de Captura
+
+25/08/2025
+
+Data de Encerramento
+
+14/09/2017
+
+Data de Redistribuição
+
+01/01/1
+
+Data de Trânsito em Julgado
+
+21/07/2017
+
+Métricas
+Número de Partes
+
+3
+
+Número de Movimentações
+
+21
+
+Número de Páginas
+
+0
+
+Número de Volumes
+
+0
+
+Idade do Processo (dias)
+
+590
+
+Média de Atualizações/Mês
+
+0.00
+
+Close
