@@ -575,13 +575,17 @@ function MeetingsList() {
             ) : (
               <>
                 <Video className="h-4 w-4" />
-                Criar Reunião Agora
+                Reunião Instantânea
               </>
             )}
           </Button>
           <Button onClick={() => setCreateDialogOpen(true)} className="gap-2">
             <Plus className="h-4 w-4" />
             Agendar Reunião
+          </Button>
+          <Button variant="outline" onClick={() => navigate("/horarios-disponiveis")} className="gap-2">
+            <Clock className="h-4 w-4" />
+            Horários
           </Button>
         </div>
       </div>

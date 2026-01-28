@@ -10,7 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Clock, Loader2, ArrowLeft, Video, Users, MapPin } from "lucide-react";
+import { Plus, Pencil, Trash2, Clock, Loader2, ArrowLeft, Video, Users, MapPin, Home, Calendar, Palette } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface Horario {
@@ -253,9 +253,23 @@ export default function HorariosDisponiveis() {
             <p className="text-muted-foreground">Configure os horários disponíveis para agendamento de reuniões</p>
           </div>
         </div>
-        <Button onClick={openAddModal} className="gap-2" data-testid="button-add-horario">
-          <Plus className="h-4 w-4" /> Adicionar Horário
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" className="gap-2" onClick={() => navigate("/reuniao")} data-testid="button-nav-home">
+            <Home className="h-4 w-4" /> Home
+          </Button>
+          <Button variant="outline" className="gap-2" onClick={() => navigate("/reuniao")} data-testid="button-nav-calendario">
+            <Calendar className="h-4 w-4" /> Calendário
+          </Button>
+          <Button variant="outline" className="gap-2" onClick={() => navigate("/reuniao")} data-testid="button-nav-gravacoes">
+            <Video className="h-4 w-4" /> Gravações
+          </Button>
+          <Button variant="outline" className="gap-2" onClick={() => navigate("/reuniao")} data-testid="button-nav-design">
+            <Palette className="h-4 w-4" /> Design
+          </Button>
+          <Button onClick={openAddModal} className="gap-2 ml-2" data-testid="button-add-horario">
+            <Plus className="h-4 w-4" /> Adicionar Horário
+          </Button>
+        </div>
       </div>
 
       {horarios.length === 0 ? (
