@@ -8,23 +8,26 @@ import { FileText, Loader2, User, CreditCard, Scale, AlertTriangle, CheckCircle2
 import { downloadPDF } from "@/lib/download-utils";
 import { toast } from "sonner";
 import { calculateUnifiedRisk, getRiskColor } from "@/lib/riskCalculation";
+import type { DatacorpCheck } from "@shared/db-schema";
 
-// Helper function to format CPF inside the component since @shared/schema might have path issues
-function formatCPFLocal(cpf: string | null) {
-  if (!cpf) return "N/A";
-  const numeric = cpf.replace(/\D/g, "");
-  if (numeric.length !== 11) return cpf;
+function formatCPFLocal(cpf: unknown): string {
+  if (cpf === null || cpf === undefined) return "N/A";
+  const str = String(cpf);
+  if (!str || str === "null" || str === "undefined") return "N/A";
+  const numeric = str.replace(/\D/g, "");
+  if (numeric.length !== 11) return str;
   return `${numeric.slice(0, 3)}.${numeric.slice(3, 6)}.${numeric.slice(6, 9)}-${numeric.slice(9)}`;
 }
 
-function StatusBadgeLocal({ status }: { status: string }) {
+function StatusBadgeLocal({ status }: { status: string | null | undefined }) {
+  const safeStatus = status || "pending";
   const config: Record<string, { label: string, color: string }> = {
     approved: { label: "Aprovado", color: "bg-green-600" },
     rejected: { label: "Reprovado", color: "bg-red-600" },
     pending: { label: "Pendente", color: "bg-yellow-600" },
     review: { label: "Em Revisão", color: "bg-blue-600" }
   };
-  const s = config[status] || { label: status, color: "bg-zinc-600" };
+  const s = config[safeStatus] || { label: safeStatus, color: "bg-zinc-600" };
   return <Badge className={s.color}>{s.label}</Badge>;
 }
 
