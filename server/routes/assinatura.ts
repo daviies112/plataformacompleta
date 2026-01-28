@@ -1905,6 +1905,7 @@ Responda APENAS em JSON válido com esta estrutura:
         
         if (contractId) {
           const proofUpdates = {
+            residence_proof_photo: imageBase64 || null,
             residence_proof_validated: isMatch,
             residence_proof_confidence: confidence,
             residence_proof_extracted_address: extractedAddress,
@@ -1921,7 +1922,7 @@ Responda APENAS em JSON válido com esta estrutura:
           if (assinaturaSupabaseService.isConnected()) {
             await assinaturaSupabaseService.updateContractByToken(contractId, proofUpdates);
           }
-          console.log(`[Assinatura] Dados do comprovante salvos para contrato: ${contractId}`);
+          console.log(`[Assinatura] Dados do comprovante salvos para contrato: ${contractId} (com foto: ${imageBase64 ? 'sim' : 'não'})`);
         }
         
         return res.json({
@@ -1949,6 +1950,7 @@ Responda APENAS em JSON válido com esta estrutura:
     
     if (contractId) {
       const proofUpdates = {
+        residence_proof_photo: imageBase64 || null,
         residence_proof_validated: true,
         residence_proof_confidence: 0.7,
         residence_proof_extracted_address: `${addressData.street}, ${addressData.number} - ${addressData.city}/${addressData.state}`,
@@ -1965,7 +1967,7 @@ Responda APENAS em JSON válido com esta estrutura:
       if (assinaturaSupabaseService.isConnected()) {
         await assinaturaSupabaseService.updateContractByToken(contractId, proofUpdates);
       }
-      console.log(`[Assinatura] Dados do comprovante salvos para contrato: ${contractId} (modo simplificado)`);
+      console.log(`[Assinatura] Dados do comprovante salvos para contrato: ${contractId} (modo simplificado, com foto: ${imageBase64 ? 'sim' : 'não'})`);
     }
     
     return res.json({
