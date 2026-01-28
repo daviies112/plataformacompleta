@@ -36,12 +36,35 @@ function StatusBadgeLocal({ status }: { status: string | null | undefined }) {
 }
 
 function ScoreGauge({ score }: { score: number }) {
+  // Score style: higher = better (like credit score)
+  // 0-300: Very High Risk (red)
+  // 301-500: High Risk (orange)
+  // 501-700: Medium Risk (yellow)
+  // 701-850: Low Risk (light green)
+  // 851-1000: Very Low Risk (green)
+  
   const getScoreColor = (val: number) => {
-    if (val <= 300) return "#ef4444";
-    if (val <= 500) return "#f97316";
-    if (val <= 700) return "#eab308";
-    if (val <= 850) return "#84cc16";
-    return "#22c55e";
+    if (val <= 300) return "#dc2626"; // red-600
+    if (val <= 500) return "#ea580c"; // orange-600
+    if (val <= 700) return "#ca8a04"; // yellow-600
+    if (val <= 850) return "#65a30d"; // lime-600
+    return "#16a34a"; // green-600
+  };
+
+  const getScoreLabel = (val: number) => {
+    if (val <= 300) return "Risco Muito Alto";
+    if (val <= 500) return "Risco Alto";
+    if (val <= 700) return "Risco Médio";
+    if (val <= 850) return "Risco Baixo";
+    return "Risco Muito Baixo";
+  };
+
+  const getScoreDescription = (val: number) => {
+    if (val <= 300) return "Múltiplos fatores negativos identificados";
+    if (val <= 500) return "Fatores de risco significativos";
+    if (val <= 700) return "Alguns fatores de atenção";
+    if (val <= 850) return "Bom histórico identificado";
+    return "Excelente histórico - Alta confiabilidade";
   };
 
   const color = getScoreColor(score);
@@ -49,8 +72,10 @@ function ScoreGauge({ score }: { score: number }) {
   
   return (
     <div className="flex flex-col items-center justify-center p-6 bg-zinc-900/50 rounded-xl border border-zinc-700/50 mb-6">
-      <div className="relative w-48 h-24 overflow-hidden">
+      <p className="text-xs text-zinc-500 mb-3 uppercase tracking-wider">Score de Confiabilidade</p>
+      <div className="relative w-56 h-28 overflow-hidden">
         <svg viewBox="0 0 100 50" className="w-full h-full">
+          {/* Background arc */}
           <path
             d="M 10 50 A 40 40 0 0 1 90 50"
             fill="none"
@@ -58,6 +83,7 @@ function ScoreGauge({ score }: { score: number }) {
             strokeWidth="8"
             strokeLinecap="round"
           />
+          {/* Colored arc based on score */}
           <path
             d="M 10 50 A 40 40 0 0 1 90 50"
             fill="none"
@@ -69,15 +95,40 @@ function ScoreGauge({ score }: { score: number }) {
             className="transition-all duration-1000 ease-out"
           />
         </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-end pb-1">
-          <span className="text-4xl font-bold text-zinc-100 leading-none">{Math.round(score)}</span>
+        <div className="absolute inset-0 flex flex-col items-center justify-end pb-2">
+          <span className="text-5xl font-bold leading-none" style={{ color }}>{Math.round(score)}</span>
           <span className="text-xs text-zinc-400 mt-1 uppercase tracking-wider">de 1000</span>
         </div>
       </div>
-      <div className="mt-4 flex flex-col items-center">
-        <Badge style={{ backgroundColor: color }} className="text-white border-0 px-4 py-1">
-          {score > 800 ? "Excelente" : score > 600 ? "Bom" : score > 400 ? "Regular" : "Risco Alto"}
+      <div className="mt-4 flex flex-col items-center gap-2">
+        <Badge style={{ backgroundColor: color }} className="text-white border-0 px-4 py-1.5 text-sm font-semibold">
+          {getScoreLabel(score)}
         </Badge>
+        <p className="text-xs text-zinc-400 text-center max-w-xs">
+          {getScoreDescription(score)}
+        </p>
+      </div>
+      {/* Score scale reference */}
+      <div className="mt-4 w-full max-w-xs">
+        <div className="flex justify-between text-[10px] text-zinc-500 mb-1">
+          <span>0</span>
+          <span>300</span>
+          <span>500</span>
+          <span>700</span>
+          <span>850</span>
+          <span>1000</span>
+        </div>
+        <div className="h-2 rounded-full flex overflow-hidden">
+          <div className="flex-1 bg-red-600" />
+          <div className="flex-1 bg-orange-600" />
+          <div className="flex-1 bg-yellow-600" />
+          <div className="flex-1 bg-lime-600" />
+          <div className="flex-1 bg-green-600" />
+        </div>
+        <div className="flex justify-between text-[9px] text-zinc-500 mt-1">
+          <span>Maior Risco</span>
+          <span>Menor Risco</span>
+        </div>
       </div>
     </div>
   );
