@@ -30,9 +30,17 @@ export default function ReuniaoDashboard() {
   const meetingsArray = Array.isArray(meetings) ? meetings : [];
   
   const upcomingMeetings = meetingsArray
-    .filter((m: Meeting) => new Date(m.dataInicio) > new Date() && (m.status === 'agendada' || m.status === 'reagendada'))
-    .sort((a: Meeting, b: Meeting) => new Date(a.dataInicio).getTime() - new Date(b.dataInicio).getTime())
-    .slice(0, 5);
+    .filter((m: Meeting) => {
+      const meetingDate = new Date(m.dataInicio);
+      const today = new Date();
+      return (
+        meetingDate.getDate() === today.getDate() &&
+        meetingDate.getMonth() === today.getMonth() &&
+        meetingDate.getFullYear() === today.getFullYear() &&
+        (m.status === 'agendada' || m.status === 'reagendada' || m.status === 'em_andamento')
+      );
+    })
+    .sort((a: Meeting, b: Meeting) => new Date(a.dataInicio).getTime() - new Date(b.dataInicio).getTime());
 
   const completedMeetings = meetingsArray.filter((m: Meeting) => m.status === 'finalizada' || m.status === 'concluida');
   const cancelledMeetings = meetingsArray.filter((m: Meeting) => m.status === 'cancelada');
@@ -151,9 +159,9 @@ export default function ReuniaoDashboard() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-1">
         <Card className="col-span-1">
           <CardHeader>
-            <CardTitle>Proximas Reunioes</CardTitle>
+            <CardTitle>Proximas Reunioes de Hoje</CardTitle>
             <CardDescription>
-              Voce tem {upcomingMeetings.length} reunioes agendadas em breve.
+              Voce tem {upcomingMeetings.length} reunioes agendadas para hoje.
             </CardDescription>
           </CardHeader>
           <CardContent>
