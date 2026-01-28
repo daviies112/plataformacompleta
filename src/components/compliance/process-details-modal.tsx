@@ -221,17 +221,21 @@ export function ProcessDetailsModal({ check, open, onOpenChange }: ProcessDetail
       const isCpfRegular = cpfStatus === 'REGULAR' || cpfStatus === '';
       
       // DEFENDANT lawsuits - main risk indicator (person was sued/accused)
-      // Progressive penalty: first ones hurt more, showing pattern
+      // Based on Brazilian average (0.15/year), having multiple as defendant is serious
       if (defendantCount === 1) {
-        score -= 100; // 1 lawsuit = 900 (still good, could be unlucky)
+        score -= 120; // 1 lawsuit = 880 (could be unlucky)
       } else if (defendantCount === 2) {
-        score -= 200; // 2 lawsuits = 800 (attention needed)
-      } else if (defendantCount >= 3 && defendantCount <= 4) {
-        score -= 350; // 3-4 lawsuits = 650 (concerning pattern)
-      } else if (defendantCount >= 5 && defendantCount <= 6) {
-        score -= 500; // 5-6 lawsuits = 500 (high risk)
+        score -= 220; // 2 lawsuits = 780 (attention)
+      } else if (defendantCount === 3) {
+        score -= 350; // 3 lawsuits = 650 (pattern emerging)
+      } else if (defendantCount === 4) {
+        score -= 450; // 4 lawsuits = 550 (concerning)
+      } else if (defendantCount === 5) {
+        score -= 550; // 5 lawsuits = 450 (HIGH RISK - below 500)
+      } else if (defendantCount === 6) {
+        score -= 620; // 6 lawsuits = 380 (HIGH RISK)
       } else if (defendantCount >= 7) {
-        score -= 650 + ((defendantCount - 7) * 30); // 7+ = very high risk
+        score -= 700 + ((defendantCount - 7) * 40); // 7+ = VERY HIGH RISK
       }
       
       // Author lawsuits - less concerning (person defending rights)
