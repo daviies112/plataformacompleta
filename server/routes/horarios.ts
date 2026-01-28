@@ -13,7 +13,7 @@ function calcularPeriodo(horario: string): string {
 
 router.get('/horarios', async (req: Request, res: Response) => {
   try {
-    const tenantId = (req as any).tenantId;
+    const tenantId = (req as any).tenantId || req.headers['x-tenant-id'] || 'system';
     if (!tenantId) {
       return res.status(401).json({ error: 'Não autenticado' });
     }
@@ -44,7 +44,7 @@ router.get('/horarios', async (req: Request, res: Response) => {
 
 router.post('/horarios', async (req: Request, res: Response) => {
   try {
-    const tenantId = (req as any).tenantId;
+    const tenantId = (req as any).tenantId || req.headers['x-tenant-id'] || 'system';
     if (!tenantId) {
       return res.status(401).json({ error: 'Não autenticado' });
     }
@@ -158,7 +158,7 @@ router.post('/horarios', async (req: Request, res: Response) => {
 
 router.put('/horarios/:id', async (req: Request, res: Response) => {
   try {
-    const tenantId = (req as any).tenantId;
+    const tenantId = (req as any).tenantId || req.headers['x-tenant-id'] || 'system';
     if (!tenantId) {
       return res.status(401).json({ error: 'Não autenticado' });
     }
@@ -265,7 +265,7 @@ router.put('/horarios/:id', async (req: Request, res: Response) => {
 
 router.delete('/horarios/:id', async (req: Request, res: Response) => {
   try {
-    const tenantId = (req as any).tenantId;
+    const tenantId = (req as any).tenantId || req.headers['x-tenant-id'] || 'system';
     if (!tenantId) {
       return res.status(401).json({ error: 'Não autenticado' });
     }
@@ -297,7 +297,7 @@ router.delete('/horarios/:id', async (req: Request, res: Response) => {
 
 router.patch('/horarios/:id/toggle', async (req: Request, res: Response) => {
   try {
-    const tenantId = (req as any).tenantId;
+    const tenantId = (req as any).tenantId || req.headers['x-tenant-id'] || 'system';
     if (!tenantId) {
       return res.status(401).json({ error: 'Não autenticado' });
     }

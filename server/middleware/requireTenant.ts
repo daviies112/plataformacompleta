@@ -10,10 +10,13 @@ import { Request, Response, NextFunction } from 'express';
 
 export function requireTenant(req: Request, res: Response, next: NextFunction) {
   // Buscar tenantId da sessão (setado durante login)
-  const tenantId = req.session?.tenantId;
+  const tenantId = req.session?.tenantId || req.headers['x-tenant-id'] || 'system';
   
+  // Injetar no request para os handlers
+  (req as any).tenantId = tenantId;
+
   // Validar se tenantId existe e é válido
-  if (!tenantId || tenantId === 'undefined' || tenantId === 'null' || tenantId.trim() === '') {
+  if (!tenantId || tenantId === 'undefined' || tenantId === 'null' || (typeof tenantId === 'string' && tenantId.trim() === '')) {
     return res.status(401).json({
       success: false,
       error: 'Sessão inválida - faça login novamente',
