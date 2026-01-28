@@ -34,6 +34,12 @@ interface AssinaturaContract {
   selfie_photo?: string | null;
   document_photo?: string | null;
   document_back_photo?: string | null;
+  residence_proof_photo?: string | null;
+  residence_proof_validated?: boolean | null;
+  residence_proof_confidence?: number | null;
+  residence_proof_extracted_address?: string | null;
+  residence_proof_date?: string | null;
+  residence_proof_manual_review?: boolean | null;
   logo_url?: string | null;
   logo_size?: string | null;
   logo_position?: string | null;
@@ -417,6 +423,7 @@ class AssinaturaSupabaseService {
           id: data.id,
           has_selfie: !!data.selfie_photo,
           has_doc: !!data.document_photo,
+          has_residence_proof: !!data.residence_proof_photo,
           has_signed_html: !!data.signed_contract_html
         });
       }
@@ -456,6 +463,7 @@ class AssinaturaSupabaseService {
           status: data.status,
           has_selfie: !!data.selfie_photo,
           has_doc: !!data.document_photo,
+          has_residence_proof: !!data.residence_proof_photo,
           has_signed_html: !!data.signed_contract_html
         });
       }
@@ -583,26 +591,36 @@ class AssinaturaSupabaseService {
       console.log('[AssinaturaSupabase] Updating contract by access_token:', token, {
         has_selfie: !!updates.selfie_photo,
         has_doc: !!updates.document_photo,
+        has_residence_proof: !!updates.residence_proof_photo,
         has_signed_html: !!updates.signed_contract_html,
         status: updates.status
       });
       
+      const updatePayload = {
+        ...updates,
+        updated_at: new Date().toISOString()
+      };
+      
+      console.log('[AssinaturaSupabase] Campos sendo enviados:', Object.keys(updatePayload));
+      if (updates.residence_proof_photo) {
+        console.log('[AssinaturaSupabase] residence_proof_photo tamanho:', updates.residence_proof_photo.length, 'chars');
+      }
+      
       const { data, error } = await this.supabase
         .from('contracts')
-        .update({
-          ...updates,
-          updated_at: new Date().toISOString()
-        })
+        .update(updatePayload)
         .eq('access_token', token)
         .select()
         .single();
       
       if (error) {
         console.error('[AssinaturaSupabase] Error updating contract:', error);
+        console.error('[AssinaturaSupabase] Error details:', JSON.stringify(error, null, 2));
         return null;
       }
       
       console.log('[AssinaturaSupabase] Contrato atualizado:', data.id);
+      console.log('[AssinaturaSupabase] Foto salva no Supabase?', !!data.residence_proof_photo, 'tamanho:', data.residence_proof_photo?.length || 0);
       return data;
     } catch (error) {
       console.error('[AssinaturaSupabase] Erro ao atualizar contrato:', error);
@@ -614,7 +632,13 @@ class AssinaturaSupabaseService {
     if (!this.supabase) return null;
     
     try {
-      console.log('[AssinaturaSupabase] Updating contract by ID:', id);
+      console.log('[AssinaturaSupabase] Updating contract by ID:', id, {
+        has_selfie: !!updates.selfie_photo,
+        has_doc: !!updates.document_photo,
+        has_residence_proof: !!updates.residence_proof_photo,
+        has_signed_html: !!updates.signed_contract_html,
+        status: updates.status
+      });
       
       const { data, error } = await this.supabase
         .from('contracts')

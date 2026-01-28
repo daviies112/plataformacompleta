@@ -1913,14 +1913,26 @@ Responda APENAS em JSON válido com esta estrutura:
             residence_proof_manual_review: !isMatch
           };
           
+          console.log(`[Assinatura] Salvando comprovante de residência para: ${contractId}, foto presente: ${!!imageBase64}, tamanho: ${imageBase64?.length || 0} chars`);
+          
           const localContract = localContractsStore.get(contractId);
           if (localContract) {
             localContractsStore.set(contractId, { ...localContract, ...proofUpdates });
             saveLocalContracts(localContractsStore);
+            console.log(`[Assinatura] Contrato local atualizado: ${contractId}`);
           }
           
           if (assinaturaSupabaseService.isConnected()) {
-            await assinaturaSupabaseService.updateContractByToken(contractId, proofUpdates);
+            let result = await assinaturaSupabaseService.updateContractByToken(contractId, proofUpdates);
+            if (!result) {
+              console.log(`[Assinatura] Tentando atualizar por ID ao invés de token...`);
+              result = await assinaturaSupabaseService.updateContract(contractId, proofUpdates);
+            }
+            if (result) {
+              console.log(`[Assinatura] ✅ Supabase atualizado com sucesso, residence_proof_photo salva`);
+            } else {
+              console.error(`[Assinatura] ❌ Falha ao atualizar Supabase - contrato não encontrado por token nem ID: ${contractId}`);
+            }
           }
           console.log(`[Assinatura] Dados do comprovante salvos para contrato: ${contractId} (com foto: ${imageBase64 ? 'sim' : 'não'})`);
         }
@@ -1958,14 +1970,26 @@ Responda APENAS em JSON válido com esta estrutura:
         residence_proof_manual_review: true
       };
       
+      console.log(`[Assinatura] Salvando comprovante (modo simplificado) para: ${contractId}, foto presente: ${!!imageBase64}, tamanho: ${imageBase64?.length || 0} chars`);
+      
       const localContract = localContractsStore.get(contractId);
       if (localContract) {
         localContractsStore.set(contractId, { ...localContract, ...proofUpdates });
         saveLocalContracts(localContractsStore);
+        console.log(`[Assinatura] Contrato local atualizado: ${contractId}`);
       }
       
       if (assinaturaSupabaseService.isConnected()) {
-        await assinaturaSupabaseService.updateContractByToken(contractId, proofUpdates);
+        let result = await assinaturaSupabaseService.updateContractByToken(contractId, proofUpdates);
+        if (!result) {
+          console.log(`[Assinatura] Tentando atualizar por ID ao invés de token...`);
+          result = await assinaturaSupabaseService.updateContract(contractId, proofUpdates);
+        }
+        if (result) {
+          console.log(`[Assinatura] ✅ Supabase atualizado com sucesso (modo simplificado), residence_proof_photo salva`);
+        } else {
+          console.error(`[Assinatura] ❌ Falha ao atualizar Supabase (modo simplificado) - contrato não encontrado: ${contractId}`);
+        }
       }
       console.log(`[Assinatura] Dados do comprovante salvos para contrato: ${contractId} (modo simplificado, com foto: ${imageBase64 ? 'sim' : 'não'})`);
     }

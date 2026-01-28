@@ -120,7 +120,7 @@ export const ContractDetailsModal = ({ contract, open, onOpenChange }: ContractD
         </div>
       `;
       
-      if (contractData.selfie_photo || contractData.document_photo || contractData.document_back_photo) {
+      if (contractData.selfie_photo || contractData.document_photo || contractData.document_back_photo || contractData.residence_proof_photo) {
         contentHTML += '<div style="margin: 0 0 15px 0; padding-bottom: 10px;">';
         contentHTML += '<h2 style="font-size: 14px; font-weight: bold; margin: 0 0 10px 0;">Fotos do Processo</h2>';
         
