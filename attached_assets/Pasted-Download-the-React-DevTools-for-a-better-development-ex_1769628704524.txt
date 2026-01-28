@@ -1,0 +1,141 @@
+Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+supabase.ts:37 🔄 Tentativa 1/5 de carregar credenciais Supabase...
+client.ts:14 [Supabase] No credentials provided. Using stub client.
+createSupabaseClient @ client.ts:14Understand this warning
+usePWAInstall.ts:112 📱 [PWA] Device Info: Object
+usePWAInstall.ts:176 🧪 [PWA] Modo desenvolvimento detectado - botão sempre visível para testes
+AuthContext.tsx:67 [AuthContext] Checking session...
+usePWAInstall.ts:125 ✅ [PWA] Service Worker registrado: https://e7239b81-060e-4bc0-bb10-1486c0d98ce3-00-3c6msizsux5fz.worf.replit.dev/
+api/config/supabase/credentials:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)Understand this error
+supabase.ts:96 ℹ️ [SUPABASE] Usuário não autenticado - credenciais serão carregadas após login
+supabase.ts:185 ℹ️ [SUPABASE] Credenciais não disponíveis - usuário pode não estar autenticado
+workspaceStorage.ts:447 ⚠️ Supabase não configurado - usando localStorage
+sentry.ts:34 ⚠️ Sentry não configurado - Monitoramento desativado
+api/notifications/vapid-public-key:1  Failed to load resource: the server responded with a status of 401 (Unauthorized)Understand this error
+AuthContext.tsx:71 [AuthContext] Session check response: Object
+AuthContext.tsx:127 [AuthContext] Setting isLoading to false
+AuthContext.tsx:67 [AuthContext] Checking session...
+useBiometric.ts:22 🔐 Verificação de suporte biométrico: Object
+Index.tsx:40 📱 Estado biometricSupported atualizado: false
+Index.tsx:32 ✅ Resultado checkSupport: true
+Index.tsx:34 ✅ biometricSupported setado para: true
+Index.tsx:40 📱 Estado biometricSupported atualizado: true
+NotificationContext.tsx:186 [Notifications] Não autenticado - limpando dados
+AuthContext.tsx:71 [AuthContext] Session check response: Object
+AuthContext.tsx:127 [AuthContext] Setting isLoading to false
+login:1 Error while trying to use the following icon from the Manifest: https://e7239b81-060e-4bc0-bb10-1486c0d98ce3-00-3c6msizsux5fz.worf.replit.dev/icons/icon-192x192.png (Download error or resource isn't a valid image)Understand this warning
+AuthContext.tsx:199 🔄 Login bem-sucedido - recarregando credenciais do Supabase...
+usePWAInstall.ts:112 📱 [PWA] Device Info: Object
+usePWAInstall.ts:176 🧪 [PWA] Modo desenvolvimento detectado - botão sempre visível para testes
+AuthContext.tsx:67 [AuthContext] Checking session...
+supabase.ts:151 🔄 Recarregando credenciais do Supabase após login...
+supabase.ts:143 🔄 [SUPABASE] Cache limpo - próxima chamada irá re-buscar credenciais
+supabase.ts:37 🔄 Tentativa 1/5 de carregar credenciais Supabase...
+usePWAInstall.ts:125 ✅ [PWA] Service Worker registrado: https://e7239b81-060e-4bc0-bb10-1486c0d98ce3-00-3c6msizsux5fz.worf.replit.dev/
+AuthContext.tsx:71 [AuthContext] Session check response: Object
+AuthContext.tsx:127 [AuthContext] Setting isLoading to false
+supabase.ts:109 ✅ Credenciais Supabase carregadas da API (runtime)
+supabase.ts:198 ✅ Cliente Supabase criado com sucesso a partir da API backend
+AuthContext.tsx:204 🔄 Recarregando workspace do Supabase...
+NotificationContext.tsx:186 [Notifications] Não autenticado - limpando dados
+notionStore.ts:899 🔄 Recarregando workspace do Supabase...
+workspaceStorage.ts:292 🔄 Usuário autenticado - carregando workspace do Supabase...
+workspaceStorage.ts:304 📊 Dados do Supabase: Object
+workspaceStorage.ts:308 ✅ Parseando dados do Supabase com suporte a JSON escapado...
+workspaceStorage.ts:309 🔒 GARANTIA: Estes dados do Supabase NUNCA serão deletados automaticamente
+3workspaceStorage.ts:316 📄 Página "Nova Página": 1 blocos, 0 databases
+workspaceStorage.ts:428 ✅ Workspace carregado do Supabase: Object
+notionStore.ts:905 ✅ Dados carregados do Supabase: Object
+workspaceStorage.ts:466 💾 Workspace salvo localmente (cache)
+workspaceStorage.ts:470 📤 Sincronizando com Supabase (apenas insert/update)...
+workspaceStorage.ts:84 🔒 [SYNC] Iniciando sincronização com Supabase...
+workspaceStorage.ts:106 🔑 IDs extraídos do localStorage: Object
+workspaceStorage.ts:138 🔒 Preparando para salvar 3 páginas no Supabase...
+workspaceStorage.ts:161 📄 Dados das páginas: Array(3)
+workspaceStorage.ts:166 ✅ Páginas salvas no Supabase com sucesso!
+workspaceStorage.ts:172 🔒 Preparando para salvar 1 boards no Supabase...
+workspaceStorage.ts:190 📋 Dados dos boards: Array(1)
+workspaceStorage.ts:195 ✅ Boards salvos no Supabase com sucesso!
+workspaceStorage.ts:239 📤 Workspace sincronizado com Supabase (background): Object
+2consultar-cpf.tsx:53 [Histórico CPF] Iniciando busca do histórico...
+history-table.tsx:34 [HistoryTable] Renderizando com: Object
+history-table.tsx:53 [HistoryTable] Dados filtrados: 0 registros
+consultar-cpf.tsx:59 [Histórico CPF] Response status: 200
+consultar-cpf.tsx:66 [Histórico CPF] Dados recebidos: Array(100)
+consultar-cpf.tsx:67 [Histórico CPF] Número de registros: 100
+consultar-cpf.tsx:69 [Histórico CPF] Estado atualizado com 100 registros
+consultar-cpf.tsx:74 [Histórico CPF] Loading finalizado
+history-table.tsx:34 [HistoryTable] Renderizando com: Object
+history-table.tsx:53 [HistoryTable] Dados filtrados: 100 registros
+history-table.tsx:34 [HistoryTable] Renderizando com: Object
+history-table.tsx:53 [HistoryTable] Dados filtrados: 100 registros
+process-details-modal.tsx:914 Uncaught ReferenceError: PartyList is not defined
+    at process-details-modal.tsx:914:30
+    at Array.map (<anonymous>)
+    at ProcessDetailsModal (process-details-modal.tsx:669:29)
+    at renderWithHooks (chunk-I3COAS7K.js?v=f6ab8f40:11548:26)
+    at updateFunctionComponent (chunk-I3COAS7K.js?v=f6ab8f40:14582:28)
+    at beginWork (chunk-I3COAS7K.js?v=f6ab8f40:15924:22)
+    at HTMLUnknownElement.callCallback2 (chunk-I3COAS7K.js?v=f6ab8f40:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-I3COAS7K.js?v=f6ab8f40:3699:24)
+    at invokeGuardedCallback (chunk-I3COAS7K.js?v=f6ab8f40:3733:39)
+    at beginWork$1 (chunk-I3COAS7K.js?v=f6ab8f40:19765:15)Understand this error
+history-table.tsx:34 [HistoryTable] Renderizando com: Object
+history-table.tsx:53 [HistoryTable] Dados filtrados: 100 registros
+process-details-modal.tsx:914 Uncaught ReferenceError: PartyList is not defined
+    at process-details-modal.tsx:914:30
+    at Array.map (<anonymous>)
+    at ProcessDetailsModal (process-details-modal.tsx:669:29)
+    at renderWithHooks (chunk-I3COAS7K.js?v=f6ab8f40:11548:26)
+    at updateFunctionComponent (chunk-I3COAS7K.js?v=f6ab8f40:14582:28)
+    at beginWork (chunk-I3COAS7K.js?v=f6ab8f40:15924:22)
+    at HTMLUnknownElement.callCallback2 (chunk-I3COAS7K.js?v=f6ab8f40:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-I3COAS7K.js?v=f6ab8f40:3699:24)
+    at invokeGuardedCallback (chunk-I3COAS7K.js?v=f6ab8f40:3733:39)
+    at beginWork$1 (chunk-I3COAS7K.js?v=f6ab8f40:19765:15)Understand this error
+chunk-I3COAS7K.js?v=f6ab8f40:14032 The above error occurred in the <ProcessDetailsModal> component:
+
+    at ProcessDetailsModal (https://e7239b81-060e-4bc0-bb10-1486c0d98ce3-00-3c6msizsux5fz.worf.replit.dev/src/components/compliance/process-details-modal.tsx:182:39)
+    at div
+    at div
+    at ConsultarCPFPage (https://e7239b81-060e-4bc0-bb10-1486c0d98ce3-00-3c6msizsux5fz.worf.replit.dev/src/pages/consultar-cpf.tsx:32:47)
+    at div
+    at main
+    at div
+    at DesktopLayout (https://e7239b81-060e-4bc0-bb10-1486c0d98ce3-00-3c6msizsux5fz.worf.replit.dev/src/platforms/desktop/layouts/DesktopLayout.tsx:27:30)
+    at ProtectedRoute (https://e7239b81-060e-4bc0-bb10-1486c0d98ce3-00-3c6msizsux5fz.worf.replit.dev/src/components/ProtectedRoute.tsx:24:34)
+    at RenderedRoute (https://e7239b81-060e-4bc0-bb10-1486c0d98ce3-00-3c6msizsux5fz.worf.replit.dev/node_modules/.vite/deps/react-router-dom.js?v=f6ab8f40:4108:5)
+    at Routes (https://e7239b81-060e-4bc0-bb10-1486c0d98ce3-00-3c6msizsux5fz.worf.replit.dev/node_modules/.vite/deps/react-router-dom.js?v=f6ab8f40:4578:5)
+    at DesktopApp
+    at PlatformRouter (https://e7239b81-060e-4bc0-bb10-1486c0d98ce3-00-3c6msizsux5fz.worf.replit.dev/src/platforms/PlatformRouter.tsx:68:22)
+    at NotificationProvider (https://e7239b81-060e-4bc0-bb10-1486c0d98ce3-00-3c6msizsux5fz.worf.replit.dev/src/contexts/NotificationContext.tsx:34:40)
+    at AuthProvider (https://e7239b81-060e-4bc0-bb10-1486c0d98ce3-00-3c6msizsux5fz.worf.replit.dev/src/contexts/AuthContext.tsx:34:32)
+    at AppRoutes (https://e7239b81-060e-4bc0-bb10-1486c0d98ce3-00-3c6msizsux5fz.worf.replit.dev/src/App.tsx:240:22)
+    at Router (https://e7239b81-060e-4bc0-bb10-1486c0d98ce3-00-3c6msizsux5fz.worf.replit.dev/node_modules/.vite/deps/react-router-dom.js?v=f6ab8f40:4521:15)
+    at BrowserRouter (https://e7239b81-060e-4bc0-bb10-1486c0d98ce3-00-3c6msizsux5fz.worf.replit.dev/node_modules/.vite/deps/react-router-dom.js?v=f6ab8f40:5267:5)
+    at Provider (https://e7239b81-060e-4bc0-bb10-1486c0d98ce3-00-3c6msizsux5fz.worf.replit.dev/node_modules/.vite/deps/chunk-B7UIWAKY.js?v=f6ab8f40:55:15)
+    at TooltipProvider (https://e7239b81-060e-4bc0-bb10-1486c0d98ce3-00-3c6msizsux5fz.worf.replit.dev/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=f6ab8f40:158:5)
+    at O (https://e7239b81-060e-4bc0-bb10-1486c0d98ce3-00-3c6msizsux5fz.worf.replit.dev/node_modules/.vite/deps/next-themes.js?v=f6ab8f40:23:25)
+    at z (https://e7239b81-060e-4bc0-bb10-1486c0d98ce3-00-3c6msizsux5fz.worf.replit.dev/node_modules/.vite/deps/next-themes.js?v=f6ab8f40:21:18)
+    at QueryClientProvider (https://e7239b81-060e-4bc0-bb10-1486c0d98ce3-00-3c6msizsux5fz.worf.replit.dev/node_modules/.vite/deps/@tanstack_react-query.js?v=f6ab8f40:3096:3)
+    at App
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+logCapturedError @ chunk-I3COAS7K.js?v=f6ab8f40:14032Understand this error
+chunk-I3COAS7K.js?v=f6ab8f40:9129 Uncaught ReferenceError: PartyList is not defined
+    at process-details-modal.tsx:914:30
+    at Array.map (<anonymous>)
+    at ProcessDetailsModal (process-details-modal.tsx:669:29)
+    at renderWithHooks (chunk-I3COAS7K.js?v=f6ab8f40:11548:26)
+    at updateFunctionComponent (chunk-I3COAS7K.js?v=f6ab8f40:14582:28)
+    at beginWork (chunk-I3COAS7K.js?v=f6ab8f40:15924:22)
+    at beginWork$1 (chunk-I3COAS7K.js?v=f6ab8f40:19753:22)
+    at performUnitOfWork (chunk-I3COAS7K.js?v=f6ab8f40:19198:20)
+    at workLoopSync (chunk-I3COAS7K.js?v=f6ab8f40:19137:13)
+    at renderRootSync (chunk-I3COAS7K.js?v=f6ab8f40:19116:15)Understand this error
+consultar-cpf.tsx:59 [Histórico CPF] Response status: 200
+consultar-cpf.tsx:66 [Histórico CPF] Dados recebidos: Array(100)
+consultar-cpf.tsx:67 [Histórico CPF] Número de registros: 100
+consultar-cpf.tsx:69 [Histórico CPF] Estado atualizado com 100 registros
+consultar-cpf.tsx:74 [Histórico CPF] Loading finalizado

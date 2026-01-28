@@ -9,6 +9,10 @@ import { downloadPDF } from "@/lib/download-utils";
 import { toast } from "sonner";
 import { calculateUnifiedRisk, getRiskColor } from "@/lib/riskCalculation";
 import type { DatacorpCheck } from "@shared/db-schema";
+import { PartyList } from "@/components/compliance/process-details/party-list";
+import { UpdateTimeline } from "@/components/compliance/process-details/update-timeline";
+import { DecisionList } from "@/components/compliance/process-details/decision-list";
+import { PetitionList } from "@/components/compliance/process-details/petition-list";
 
 function formatCPFLocal(cpf: unknown): string {
   if (cpf === null || cpf === undefined) return "N/A";
