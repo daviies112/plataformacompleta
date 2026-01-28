@@ -4,17 +4,29 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { DatacorpCheck } from "@shared/schema";
-import { formatCPF } from "@shared/schema";
-import { StatusBadge } from "@/components/status-badge";
-import { PartyList } from "@/components/process-details/party-list";
-import { UpdateTimeline } from "@/components/process-details/update-timeline";
-import { DecisionList } from "@/components/process-details/decision-list";
-import { PetitionList } from "@/components/process-details/petition-list";
 import { FileText, Loader2, User, CreditCard, Scale, AlertTriangle, CheckCircle2, TrendingUp } from "lucide-react";
 import { downloadPDF } from "@/lib/download-utils";
 import { toast } from "sonner";
 import { calculateUnifiedRisk, getRiskColor } from "@/lib/riskCalculation";
+
+// Helper function to format CPF inside the component since @shared/schema might have path issues
+function formatCPFLocal(cpf: string | null) {
+  if (!cpf) return "N/A";
+  const numeric = cpf.replace(/\D/g, "");
+  if (numeric.length !== 11) return cpf;
+  return `${numeric.slice(0, 3)}.${numeric.slice(3, 6)}.${numeric.slice(6, 9)}-${numeric.slice(9)}`;
+}
+
+function StatusBadgeLocal({ status }: { status: string }) {
+  const config: Record<string, { label: string, color: string }> = {
+    approved: { label: "Aprovado", color: "bg-green-600" },
+    rejected: { label: "Reprovado", color: "bg-red-600" },
+    pending: { label: "Pendente", color: "bg-yellow-600" },
+    review: { label: "Em Revisão", color: "bg-blue-600" }
+  };
+  const s = config[status] || { label: status, color: "bg-zinc-600" };
+  return <Badge className={s.color}>{s.label}</Badge>;
+}
 
 function ScoreGauge({ score }: { score: number }) {
   // Score de 0 a 1000
@@ -256,7 +268,7 @@ export function ProcessDetailsModal({ check, open, onOpenChange }: ProcessDetail
                 <CardTitle className="text-sm font-medium text-zinc-400">Status</CardTitle>
               </CardHeader>
               <CardContent>
-                <StatusBadge status={check.status} />
+                <StatusBadgeLocal status={check.status} />
               </CardContent>
             </Card>
             
@@ -292,7 +304,7 @@ export function ProcessDetailsModal({ check, open, onOpenChange }: ProcessDetail
                   {check.personName || 'N/A'}
                 </p>
                 <p className="text-xs text-zinc-400 font-mono">
-                  {check.personCpf || 'N/A'}
+                  {formatCPFLocal(check.personCpf)}
                 </p>
               </CardContent>
             </Card>
