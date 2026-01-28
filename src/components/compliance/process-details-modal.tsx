@@ -197,17 +197,56 @@ export function ProcessDetailsModal({ check, open, onOpenChange }: ProcessDetail
     try {
       if (!payload || Object.keys(payload).length === 0) return 850;
       
-      // Score calculation based on Brazilian statistics:
-      // - Average Brazilian: 0.15 new lawsuits per year (~0.45 in 3 years)
-      // - Most people have 0-1 lawsuits total
-      // - Someone with 5+ lawsuits as defendant is 30x+ above average = HIGH RISK
-      //
-      // Scale (higher = more trustworthy):
-      // - 0 processes: 900-1000 (excellent - within average)
-      // - 1-2 as defendant: 700-850 (good - slightly above average)  
-      // - 3-4 as defendant: 500-650 (attention - well above average)
-      // - 5-6 as defendant: 300-500 (risk - very concerning)
-      // - 7+ as defendant: 0-300 (high risk - extreme outlier)
+      /**
+       * =============================================================================
+       * SISTEMA DE SCORE DE CONFIABILIDADE - DOCUMENTAÇÃO COMPLETA
+       * =============================================================================
+       * 
+       * CONCEITO:
+       * Score de 0-1000 para avaliar risco de candidatas a revendedoras.
+       * QUANTO MAIOR O SCORE, MAIS CONFIÁVEL É A PESSOA.
+       * 
+       * ESTATÍSTICAS BRASILEIRAS (CNJ 2023):
+       * - Média brasileira: 0,15 processos novos/pessoa/ano
+       * - Em 3 anos: ~0,45 processos por pessoa
+       * - Realidade: A maioria tem 0 ou 1 processo
+       * - Pessoa com 5+ processos como ré está 30x+ acima da média = ALTO RISCO
+       * 
+       * ESCALA DE SCORE:
+       * | Score     | Classificação     | Ação              |
+       * |-----------|-------------------|-------------------|
+       * | 851-1000  | Risco Muito Baixo | Aprovar           |
+       * | 701-850   | Risco Baixo       | Aprovar c/ atenção|
+       * | 501-700   | Risco Médio       | Avaliar manual    |
+       * | 301-500   | Risco Alto        | Não recomendado   |
+       * | 0-300     | Risco Muito Alto  | Reprovar          |
+       * 
+       * PENALIDADES POR PROCESSOS COMO RÉU:
+       * 1 processo:  -120 (score ~880)
+       * 2 processos: -220 (score ~780)
+       * 3 processos: -350 (score ~650)
+       * 4 processos: -450 (score ~550)
+       * 5 processos: -550 (score ~450) ← RISCO ALTO
+       * 6 processos: -620 (score ~380)
+       * 7+ processos: -700 + (n-7)*40
+       * 
+       * OUTRAS PENALIDADES:
+       * - Por processo como autor: -15 cada
+       * - Por processo como outro: -25 cada
+       * - Dívidas ativas: -200
+       * - Dívidas passadas: -60
+       * - CPF irregular: -300
+       * - Processos últimos 30 dias: -40 cada
+       * - Processos últimos 90 dias: -25 cada
+       * - Processos último ano: -10 cada
+       * 
+       * BÔNUS:
+       * - Sem processos recentes (365 dias) com histórico: +25
+       * - Ficha completamente limpa: +50
+       * 
+       * DOCUMENTAÇÃO COMPLETA: docs/SCORE_SYSTEM_DOCUMENTATION.md
+       * =============================================================================
+       */
       
       let score = 1000;
       

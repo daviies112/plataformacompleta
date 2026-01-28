@@ -68,6 +68,45 @@ ExecutiveAI Pro utilizes a modern web stack with a multi-tenant, API-driven arch
 - **Sentry:** Error monitoring and tracking.
 - **Redis/Upstash:** Optional caching layer.
 
+## Sistema de Score de Confiabilidade (CPF Compliance)
+
+### Conceito
+Score de 0-1000 para avaliar risco de candidatas a revendedoras. **Quanto maior o score, mais confiável a pessoa.**
+
+### Estatísticas Base (CNJ 2023)
+- Média brasileira: 0,15 processos/pessoa/ano
+- Pessoa com 5+ processos como ré está 30x+ acima da média = ALTO RISCO
+
+### Escala de Score
+| Score | Classificação | Ação Recomendada |
+|-------|---------------|------------------|
+| 851-1000 | Risco Muito Baixo | Aprovar |
+| 701-850 | Risco Baixo | Aprovar com atenção |
+| 501-700 | Risco Médio | Avaliar manualmente |
+| 301-500 | Risco Alto | Não recomendado |
+| 0-300 | Risco Muito Alto | Reprovar |
+
+### Penalidades Principais
+- 1 processo como ré: -120 (score ~880)
+- 2 processos como ré: -220 (score ~780)
+- 3 processos como ré: -350 (score ~650)
+- 4 processos como ré: -450 (score ~550)
+- 5 processos como ré: -550 (score ~450) ← RISCO ALTO
+- 6 processos como ré: -620 (score ~380)
+- 7+ processos como ré: -700 + extras
+
+### Outras Penalidades
+- CPF irregular: -300
+- Dívidas ativas: -200
+- Processos últimos 30 dias: -40 cada
+
+### Arquivos do Sistema
+- Código: `src/components/compliance/process-details-modal.tsx`
+- Documentação: `docs/SCORE_SYSTEM_DOCUMENTATION.md`
+- Tipos: `shared/schema.ts`
+
+---
+
 ## Documentação Crítica para Exportação
 
 ### Documento Master de Exportação
