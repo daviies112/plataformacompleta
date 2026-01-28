@@ -148,8 +148,8 @@ export default function ReuniaoDashboard() {
         ))}
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <Card className="col-span-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-1">
+        <Card className="col-span-1">
           <CardHeader>
             <CardTitle>Proximas Reunioes</CardTitle>
             <CardDescription>
@@ -168,49 +168,22 @@ export default function ReuniaoDashboard() {
                   </Button>
                 </div>
               ) : (
-                upcomingMeetings.map((meeting: Meeting) => (
-                  <ReuniaoCard key={meeting.id} meeting={{
-                    id: meeting.id,
-                    titulo: meeting.titulo,
-                    nome: meeting.nome || '',
-                    email: meeting.email || '',
-                    data_inicio: meeting.dataInicio,
-                    data_fim: meeting.dataFim,
-                    status: meeting.status,
-                    link_reuniao: meeting.linkReuniao,
-                    room_id_100ms: meeting.roomId100ms,
-                  }} />
-                ))
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {upcomingMeetings.map((meeting: Meeting) => (
+                    <ReuniaoCard key={meeting.id} meeting={{
+                      id: meeting.id,
+                      titulo: meeting.titulo,
+                      nome: meeting.nome || '',
+                      email: meeting.email || '',
+                      data_inicio: meeting.dataInicio,
+                      data_fim: meeting.dataFim,
+                      status: meeting.status,
+                      link_reuniao: meeting.linkReuniao,
+                      room_id_100ms: meeting.roomId100ms,
+                    }} />
+                  ))}
+                </div>
               )}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="col-span-3">
-          <CardHeader>
-            <CardTitle>API Publica para n8n</CardTitle>
-            <CardDescription>
-              Endpoints disponiveis para automacao.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4 text-sm">
-              <div className="p-3 bg-muted rounded-lg">
-                <p className="font-medium text-green-600">POST /api/public/reunioes</p>
-                <p className="text-xs text-muted-foreground mt-1">Criar reuniao via webhook</p>
-              </div>
-              <div className="p-3 bg-muted rounded-lg">
-                <p className="font-medium text-blue-600">GET /api/public/reunioes</p>
-                <p className="text-xs text-muted-foreground mt-1">Listar reunioes</p>
-              </div>
-              <div className="p-3 bg-muted rounded-lg">
-                <p className="font-medium text-purple-600">POST /api/webhooks/reuniao-iniciada</p>
-                <p className="text-xs text-muted-foreground mt-1">Webhook quando reuniao inicia</p>
-              </div>
-              <div className="p-3 bg-muted rounded-lg">
-                <p className="font-medium text-orange-600">POST /api/webhooks/reuniao-finalizada</p>
-                <p className="text-xs text-muted-foreground mt-1">Webhook quando reuniao termina</p>
-              </div>
             </div>
           </CardContent>
         </Card>
