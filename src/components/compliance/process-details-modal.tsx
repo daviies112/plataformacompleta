@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,10 +11,67 @@ import { PartyList } from "@/components/process-details/party-list";
 import { UpdateTimeline } from "@/components/process-details/update-timeline";
 import { DecisionList } from "@/components/process-details/decision-list";
 import { PetitionList } from "@/components/process-details/petition-list";
-import { FileText, Loader2, User, CreditCard, Scale, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { FileText, Loader2, User, CreditCard, Scale, AlertTriangle, CheckCircle2, TrendingUp } from "lucide-react";
 import { downloadPDF } from "@/lib/download-utils";
 import { toast } from "sonner";
 import { calculateUnifiedRisk, getRiskColor } from "@/lib/riskCalculation";
+
+function ScoreGauge({ score }: { score: number }) {
+  // Score de 0 a 1000
+  // Lógica de cores: 0-300 Vermelho, 301-600 Laranja/Amarelo, 601-800 Verde Claro, 801-1000 Verde
+  const getScoreColor = (val: number) => {
+    if (val <= 300) return "#ef4444"; // Red
+    if (val <= 500) return "#f97316"; // Orange
+    if (val <= 700) return "#eab308"; // Yellow
+    if (val <= 850) return "#84cc16"; // Lime
+    return "#22c55e"; // Green
+  };
+
+  const color = getScoreColor(score);
+  const percentage = score / 1000;
+  const strokeDasharray = 251.2; // 2 * PI * r (r=40)
+  const strokeDashoffset = strokeDasharray * (1 - percentage / 2); // Metade do círculo
+
+  return (
+    <div className="flex flex-col items-center justify-center p-6 bg-zinc-900/50 rounded-xl border border-zinc-700/50 mb-6">
+      <div className="relative w-48 h-24 overflow-hidden">
+        <svg viewBox="0 0 100 50" className="w-full h-full">
+          {/* Background track */}
+          <path
+            d="M 10 50 A 40 40 0 0 1 90 50"
+            fill="none"
+            stroke="#27272a"
+            strokeWidth="8"
+            strokeLinecap="round"
+          />
+          {/* Active segments logic - Simplified to 5 segments for visual appeal like the image */}
+          <path
+            d="M 10 50 A 40 40 0 0 1 90 50"
+            fill="none"
+            stroke={color}
+            strokeWidth="8"
+            strokeLinecap="round"
+            strokeDasharray="125.6"
+            strokeDashoffset={125.6 * (1 - percentage)}
+            className="transition-all duration-1000 ease-out"
+          />
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-end pb-1">
+          <span className="text-4xl font-bold text-zinc-100 leading-none">{Math.round(score)}</span>
+          <span className="text-xs text-zinc-400 mt-1 uppercase tracking-wider">de 1000</span>
+        </div>
+      </div>
+      <div className="mt-4 flex flex-col items-center">
+        <Badge style={{ backgroundColor: color }} className="text-white border-0 px-4 py-1">
+          {score > 800 ? "Excelente" : score > 600 ? "Bom" : score > 400 ? "Regular" : "Risco Alto"}
+        </Badge>
+        <p className="text-[10px] text-zinc-500 mt-2 text-center max-w-[200px]">
+          Score Universal calculado com base em dados cadastrais, histórico de processos e restrições financeiras.
+        </p>
+      </div>
+    </div>
+  );
+}
 
 interface ProcessDetailsModalProps {
   check: DatacorpCheck | null;
@@ -49,6 +106,43 @@ export function ProcessDetailsModal({ check, open, onOpenChange }: ProcessDetail
   const isCompleteConsultation = payload?._datacorp_complete === true;
   const hasDebt = collectionsPayload?.HasActiveCollections || (collectionsPayload?.TotalOccurrences && collectionsPayload.TotalOccurrences > 0);
   
+  // Lógica de Metodologia para o Score (0-1000)
+  const universalScore = useMemo(() => {
+    let score = 850; // Base "Boa"
+
+    // 1. Processos Judiciais (Impacto Alto se Réu)
+    const defendantCount = processData?.TotalLawsuitsAsDefendant || 0;
+    const totalLawsuits = processData?.TotalLawsuits || 0;
+    score -= defendantCount * 50;
+    score -= (totalLawsuits - defendantCount) * 10;
+
+    // 2. Restrições Financeiras (Impacto Crítico)
+    if (collectionsPayload?.HasActiveCollections) {
+      score -= 300;
+    } else if (collectionsPayload?.TotalOccurrences > 0) {
+      score -= 150;
+    }
+
+    // 3. Status CPF (Impacto Bloqueante)
+    if (basicDataPayload?.TaxIdStatus && basicDataPayload.TaxIdStatus !== 'Regular') {
+      score -= 400;
+    }
+
+    // 4. Idade do Histórico
+    if (processData?.FirstLawsuitDate) {
+      const firstDate = new Date(processData.FirstLawsuitDate);
+      const yearsSince = (new Date().getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24 * 365);
+      if (yearsSince < 2) score -= 50; // Histórico muito recente pode ser instável
+    }
+
+    // Bônus por consistência
+    if (isCompleteConsultation && !hasDebt && defendantCount === 0) {
+      score += 50;
+    }
+
+    return Math.min(Math.max(score, 0), 1000);
+  }, [processData, collectionsPayload, basicDataPayload, isCompleteConsultation, hasDebt]);
+
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return 'N/A';
     try {
@@ -100,6 +194,9 @@ export function ProcessDetailsModal({ check, open, onOpenChange }: ProcessDetail
         </DialogHeader>
         
         <div className="space-y-6">
+          {/* Score Universal - Início do Popup conforme solicitado */}
+          <ScoreGauge score={universalScore} />
+
           {/* Informações da Consulta */}
           {(queryId || elapsedMs || queryDate || matchKeys) && (
             <Card className="bg-zinc-900 border-zinc-700">
