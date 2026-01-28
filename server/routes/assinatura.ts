@@ -1764,7 +1764,7 @@ router.post('/save-residence-proof', async (req: Request, res: Response) => {
     console.log(`[Assinatura] Salvando comprovante de residência para contrato: ${contractId}`);
     
     const updates = {
-      residence_proof_photo: imageBase64 ? imageBase64.substring(0, 500) + '...[truncated]' : null,
+      residence_proof_photo: imageBase64 || null,
       residence_proof_validated: validated || false,
       residence_proof_manual_review: manualReviewRequired || false,
       residence_proof_date: new Date().toISOString()

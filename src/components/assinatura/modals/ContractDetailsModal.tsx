@@ -14,6 +14,7 @@ interface Contract {
   selfie_photo?: string;
   document_photo?: string;
   document_back_photo?: string;
+  residence_proof_photo?: string;
   contract_html?: string;
   signed_contract_html?: string;
   protocol_number?: string;
@@ -146,6 +147,15 @@ export const ContractDetailsModal = ({ contract, open, onOpenChange }: ContractD
             <div style="margin-bottom: 12px;">
               <p style="font-weight: 600; font-size: 11px; color: #666; margin: 0 0 5px 0;">Documento (Verso)</p>
               <img src="${contractData.document_back_photo}" style="width: 100%; max-width: 350px; height: auto; border: 1px solid #ddd;" />
+            </div>
+          `;
+        }
+
+        if (contractData.residence_proof_photo) {
+          contentHTML += `
+            <div style="margin-bottom: 12px;">
+              <p style="font-weight: 600; font-size: 11px; color: #666; margin: 0 0 5px 0;">Comprovante de Residência</p>
+              <img src="${contractData.residence_proof_photo}" style="width: 100%; max-width: 350px; height: auto; border: 1px solid #ddd;" />
             </div>
           `;
         }
