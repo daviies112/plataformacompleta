@@ -1,0 +1,907 @@
+Detalhes da Consulta de Processos Judiciais
+Informações completas retornadas pela API Bigdatacorp
+
+Baixar PDF
+Score de Confiabilidade
+
+510
+de 1000
+Risco Médio
+Alguns fatores de atenção
+
+0
+300
+500
+700
+850
+1000
+Maior Risco
+Menor Risco
+Informações da Consulta (API Bigdatacorp)
+Query ID
+
+32a4e61e-f4ac-4128-a06d-5289d2caac79
+
+Data da Consulta
+
+27/01/2026
+
+Tempo de Resposta
+
+886ms
+
+Match Keys
+
+doc{08158776680}
+
+Status da Consulta
+
+Code: 0
+OK
+Status
+Aprovado
+Risco (1-10)
+6
+Total Processos
+6
+
+Nome/CPF
+MANUELA APARECIDA
+
+081.587.766-80
+
+Como Autor
+0
+
+Como Réu
+5
+
+Outros
+1
+
+Primeiro Processo
+16/05/2012
+
+Último Processo
+08/11/2022
+
+Últimos 30 dias
+0
+
+Últimos 90 dias
+0
+
+Últimos 180 dias
+0
+
+Últimos 365 dias
+0
+
+Dados Cadastrais
+CPF Receita Federal
+Nome Completo
+
+MANUELA APARECIDA PEREIRA MARQUES
+
+Status do CPF
+
+REGULAR
+Data Status
+
+22/08/2016
+
+Data de Nascimento
+
+12/04/1988
+
+Idade
+
+37 anos
+
+Sexo
+
+Feminino
+
+Nome da Mãe
+
+MARIA LUCIA PEREIRA
+
+Presença em Cobrança
+Sem Ocorrências
+Total de Ocorrências
+
+0
+
+Últimos 3 meses
+
+0
+
+Últimos 12 meses
+
+0
+
+Meses Consecutivos
+
+0
+
+Consulta Completa DataCorp
+3 APIs em paralelo
+Tempo de Consulta
+
+1035ms
+
+Custo Total
+
+R$ 0.170
+
+Dados Cadastrais:
+
+Cobranças:
+
+Processos (6)
+JSON Completo
+50117305020228130183
+INDEFINIDO
+TERMO CIRCUNSTANCIADO
+Informações
+Partes (8)
+Movimentações (41)
+Decisões (0)
+Petições (0)
+Informações do Tribunal
+Tribunal
+
+TJMG
+
+Nível da Corte
+
+1
+
+Tipo da Corte
+
+CRIMINAL
+
+Distrito
+
+CONSELHEIRO LAFAIETE
+
+Estado
+
+MG
+
+Classificação
+Classe
+
+N/A
+
+Tipo
+
+TERMO CIRCUNSTANCIADO
+
+Assunto Principal
+
+DIREITO PENAL (287) - CONTRAVENCOES PENAIS (3692) - VIAS DE FATO (12345
+
+Assunto CNJ Inferido
+
+VIAS DE FATO
+
+Assunto CNJ Amplo
+
+DIREITO PENAL
+
+Área
+
+N/A
+
+Instância
+
+N/A
+
+Responsáveis
+Juiz(a)
+
+N/A
+
+Órgão Julgador
+
+UNIDADE JURISDICIONAL UNICA - 2 JD DA COMARCA DE CONSELHEIRO LAFAIETE
+
+Datas Importantes
+Data de Distribuição
+
+08/11/2022
+
+Data de Publicação
+
+09/11/2022
+
+Última Movimentação
+
+27/11/2025
+
+Última Atualização
+
+28/12/2025
+
+Data de Captura
+
+28/12/2025
+
+Data de Encerramento
+
+01/01/1
+
+Data de Redistribuição
+
+01/01/1
+
+Data de Trânsito em Julgado
+
+01/01/1
+
+Métricas
+Número de Partes
+
+8
+
+Número de Movimentações
+
+41
+
+Número de Páginas
+
+0
+
+Número de Volumes
+
+0
+
+Idade do Processo (dias)
+
+1176
+
+Média de Atualizações/Mês
+
+1.00
+
+00074552720148130183
+ARQUIVADO
+EXECUÇÃO DE TÍTULO EXTRAJUDICIAL
+Valor da Causa
+
+R$ 146,17
+
+Informações
+Partes (4)
+Movimentações (19)
+Decisões (0)
+Petições (0)
+Informações do Tribunal
+Tribunal
+
+TJMG
+
+Nível da Corte
+
+1
+
+Tipo da Corte
+
+CIVEL
+
+Distrito
+
+CONSELHEIRO LAFAIETE
+
+Estado
+
+MG
+
+Classificação
+Classe
+
+N/A
+
+Tipo
+
+EXECUCAO DE TITULO EXTRAJUDICIAL
+
+Assunto Principal
+
+CIVIL > OBRIGACOES > ESPECIES DE TITULOS DE CREDITO > NOTA PROMISSORIA
+
+Assunto CNJ Inferido
+
+NOTA PROMISSÓRIA
+
+Assunto CNJ Amplo
+
+DIREITO CIVIL
+
+Área
+
+N/A
+
+Instância
+
+N/A
+
+Responsáveis
+Juiz(a)
+
+LUIZ TADEU DIAS
+
+Órgão Julgador
+
+UJ - 1 JD CIVEL
+
+Datas Importantes
+Data de Distribuição
+
+18/03/2014
+
+Data de Publicação
+
+29/01/2015
+
+Última Movimentação
+
+09/12/2021
+
+Última Atualização
+
+08/09/2025
+
+Data de Captura
+
+08/09/2025
+
+Data de Encerramento
+
+20/03/2015
+
+Data de Redistribuição
+
+01/01/1
+
+Data de Trânsito em Julgado
+
+25/04/2014
+
+Métricas
+Número de Partes
+
+4
+
+Número de Movimentações
+
+19
+
+Número de Páginas
+
+0
+
+Número de Volumes
+
+0
+
+Idade do Processo (dias)
+
+367
+
+Média de Atualizações/Mês
+
+0.00
+
+00431299020198130183
+ARQUIVADO
+EXECUÇÃO DE TÍTULO EXTRAJUDICIAL
+Valor da Causa
+
+R$ 265,00
+
+Informações
+Partes (3)
+Movimentações (18)
+Decisões (0)
+Petições (0)
+Informações do Tribunal
+Tribunal
+
+TJMG
+
+Nível da Corte
+
+1
+
+Tipo da Corte
+
+CIVEL
+
+Distrito
+
+CONSELHEIRO LAFAIETE
+
+Estado
+
+MG
+
+Classificação
+Classe
+
+N/A
+
+Tipo
+
+EXECUCAO DE TITULO EXTRAJUDICIAL
+
+Assunto Principal
+
+CIVIL > OBRIGACOES > ESPECIES DE TITULOS DE CREDITO > NOTA PROMISSORIA
+
+Assunto CNJ Inferido
+
+NOTA PROMISSÓRIA
+
+Assunto CNJ Amplo
+
+DIREITO CIVIL
+
+Área
+
+N/A
+
+Instância
+
+N/A
+
+Responsáveis
+Juiz(a)
+
+JOSE LEAO SANTIAGO CAMPOS
+
+Órgão Julgador
+
+UJ - 1 JD CIVEL|MICROEMPRESA
+
+Datas Importantes
+Data de Distribuição
+
+08/05/2019
+
+Data de Publicação
+
+23/03/2023
+
+Última Movimentação
+
+23/03/2023
+
+Última Atualização
+
+24/05/2023
+
+Data de Captura
+
+24/05/2023
+
+Data de Encerramento
+
+23/08/2021
+
+Data de Redistribuição
+
+01/01/1
+
+Data de Trânsito em Julgado
+
+01/01/1
+
+Métricas
+Número de Partes
+
+3
+
+Número de Movimentações
+
+18
+
+Número de Páginas
+
+0
+
+Número de Volumes
+
+0
+
+Idade do Processo (dias)
+
+838
+
+Média de Atualizações/Mês
+
+0.00
+
+00618608120128130183
+ARQUIVADO
+CUMPRIMENTO DE SENTENÇA
+Valor da Causa
+
+R$ 471,32
+
+Informações
+Partes (3)
+Movimentações (369)
+Decisões (2)
+Petições (0)
+Informações do Tribunal
+Tribunal
+
+TJMG
+
+Nível da Corte
+
+1
+
+Tipo da Corte
+
+CIVEL
+
+Distrito
+
+CONSELHEIRO LAFAIETE
+
+Estado
+
+MG
+
+Classificação
+Classe
+
+N/A
+
+Tipo
+
+CUMPRIMENTO DE SENTENCA
+
+Assunto Principal
+
+CIVIL > OBRIGACOES > ESPECIES DE TITULOS DE CREDITO > NOTA PROMISSORIA
+
+Assunto CNJ Inferido
+
+NOTA PROMISSÓRIA
+
+Assunto CNJ Amplo
+
+DIREITO CIVIL
+
+Área
+
+N/A
+
+Instância
+
+N/A
+
+Responsáveis
+Juiz(a)
+
+N/A
+
+Órgão Julgador
+
+1 UJ - 2 JD CIVEL|MICROEMPRESA
+
+Datas Importantes
+Data de Distribuição
+
+16/05/2012
+
+Data de Publicação
+
+04/09/2018
+
+Última Movimentação
+
+16/01/2019
+
+Última Atualização
+
+06/09/2018
+
+Data de Captura
+
+06/09/2018
+
+Data de Encerramento
+
+11/12/2013
+
+Data de Redistribuição
+
+07/11/2012
+
+Data de Trânsito em Julgado
+
+01/09/2017
+
+Métricas
+Número de Partes
+
+3
+
+Número de Movimentações
+
+369
+
+Número de Páginas
+
+0
+
+Número de Volumes
+
+0
+
+Idade do Processo (dias)
+
+573
+
+Média de Atualizações/Mês
+
+2.00
+
+50020885320228130183
+ARQUIVADO
+EXECUÇÃO DE TÍTULO EXTRAJUDICIAL
+Informações
+Partes (4)
+Movimentações (34)
+Decisões (5)
+Petições (0)
+Informações do Tribunal
+Tribunal
+
+TJMG
+
+Nível da Corte
+
+1
+
+Tipo da Corte
+
+CIVEL
+
+Distrito
+
+CONSELHEIRO LAFAIETE
+
+Estado
+
+MG
+
+Classificação
+Classe
+
+N/A
+
+Tipo
+
+EXECUCAO DE TITULO EXTRAJUDICIAL
+
+Assunto Principal
+
+DIREITO CIVIL (899) - OBRIGACOES (7681) - ESPECIES DE TITULOS DE CREDITO (7717) - NOTA PROMISSORIA (4980
+
+Assunto CNJ Inferido
+
+NOTA PROMISSÓRIA
+
+Assunto CNJ Amplo
+
+DIREITO CIVIL
+
+Área
+
+N/A
+
+Instância
+
+N/A
+
+Responsáveis
+Juiz(a)
+
+N/A
+
+Órgão Julgador
+
+UNIDADE JURISDICIONAL UNICA - 2 JD DA COMARCA DE CONSELHEIRO LAFAIETE
+
+Datas Importantes
+Data de Distribuição
+
+07/03/2022
+
+Data de Publicação
+
+01/01/1
+
+Última Movimentação
+
+14/06/2024
+
+Última Atualização
+
+06/11/2024
+
+Data de Captura
+
+06/11/2024
+
+Data de Encerramento
+
+14/06/2024
+
+Data de Redistribuição
+
+01/01/1
+
+Data de Trânsito em Julgado
+
+01/01/1
+
+Métricas
+Número de Partes
+
+4
+
+Número de Movimentações
+
+34
+
+Número de Páginas
+
+0
+
+Número de Volumes
+
+0
+
+Idade do Processo (dias)
+
+830
+
+Média de Atualizações/Mês
+
+0.00
+
+00049786020168130183
+ARQUIVADO
+PROCEDIMENTO DO JUIZADO ESPECIAL CÍVEL
+Valor da Causa
+
+R$ 603,80
+
+Informações
+Partes (3)
+Movimentações (21)
+Decisões (1)
+Petições (0)
+Informações do Tribunal
+Tribunal
+
+TJMG
+
+Nível da Corte
+
+1
+
+Tipo da Corte
+
+ESPECIAL CIVEL
+
+Distrito
+
+CONSELHEIRO LAFAIETE
+
+Estado
+
+MG
+
+Classificação
+Classe
+
+N/A
+
+Tipo
+
+PROCEDIMENTO DO JUIZADO ESPECIAL CIVEL
+
+Assunto Principal
+
+CIVIL > OBRIGACOES > ADIMPLEMENTO E EXTINCAO > PAGAMENTO
+
+Assunto CNJ Inferido
+
+PAGAMENTO
+
+Assunto CNJ Amplo
+
+DIREITO CIVIL
+
+Área
+
+N/A
+
+Instância
+
+N/A
+
+Responsáveis
+Juiz(a)
+
+LUIZ TADEU DIAS
+
+Órgão Julgador
+
+UJ - 1 JD CIVEL
+
+Datas Importantes
+Data de Distribuição
+
+02/02/2016
+
+Data de Publicação
+
+06/03/2017
+
+Última Movimentação
+
+09/12/2021
+
+Última Atualização
+
+25/08/2025
+
+Data de Captura
+
+25/08/2025
+
+Data de Encerramento
+
+14/09/2017
+
+Data de Redistribuição
+
+01/01/1
+
+Data de Trânsito em Julgado
+
+21/07/2017
+
+Métricas
+Número de Partes
+
+3
+
+Número de Movimentações
+
+21
+
+Número de Páginas
+
+0
+
+Número de Volumes
+
+0
+
+Idade do Processo (dias)
+
+590
+
+Média de Atualizações/Mês
+
+0.00
