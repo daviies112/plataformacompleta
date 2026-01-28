@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { Camera, Check, AlertTriangle, RefreshCw, X, FileText, MapPin, Loader2 } from 'lucide-react';
+import { Camera, Check, AlertTriangle, RefreshCw, X, FileText, MapPin, Loader2, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useContract } from '@/contexts/ContractContext';
 import { useToast } from '@/hooks/use-toast';
@@ -34,6 +34,7 @@ export const ResidenceProofStep = (props: ResidenceProofStepProps = {}) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const cardColor = props.parabens_card_color || '#dbeafe';
   const backgroundColor = props.parabens_background_color || '#f0fdf4';
@@ -101,8 +102,46 @@ export const ResidenceProofStep = (props: ResidenceProofStepProps = {}) => {
     setCapturedImage(null);
     setValidationResult(null);
     setShowMismatchConfirm(false);
+    setCameraError(null);
     startCamera();
   }, [startCamera]);
+
+  const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: 'Arquivo inválido',
+        description: 'Por favor, selecione apenas arquivos de imagem.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const base64 = e.target?.result as string;
+      setCapturedImage(base64);
+      setCameraError(null);
+    };
+    reader.onerror = () => {
+      toast({
+        title: 'Erro ao ler arquivo',
+        description: 'Não foi possível ler o arquivo selecionado.',
+        variant: 'destructive'
+      });
+    };
+    reader.readAsDataURL(file);
+
+    if (event.target) {
+      event.target.value = '';
+    }
+  }, [toast]);
+
+  const triggerFileUpload = useCallback(() => {
+    fileInputRef.current?.click();
+  }, []);
 
   const validateResidenceProof = async () => {
     if (!capturedImage || !addressData) {
@@ -268,17 +307,34 @@ export const ResidenceProofStep = (props: ResidenceProofStepProps = {}) => {
               {cameraError ? (
                 <>
                   <AlertTriangle className="w-12 h-12 mb-4 text-amber-500" />
-                  <p className="text-center text-sm mb-4" style={{ color: textColor }}>
+                  <p className="text-center text-sm mb-2 font-medium" style={{ color: textColor }}>
+                    Câmera indisponível
+                  </p>
+                  <p className="text-center text-sm mb-4 opacity-80" style={{ color: textColor }}>
                     {cameraError}
                   </p>
-                  <Button
-                    onClick={startCamera}
-                    className="text-white font-bold"
-                    style={{ backgroundColor: buttonColor }}
-                  >
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    Tentar Novamente
-                  </Button>
+                  <p className="text-center text-sm mb-4 opacity-70" style={{ color: textColor }}>
+                    Você pode enviar uma foto da sua galeria:
+                  </p>
+                  <div className="flex flex-col gap-3 w-full max-w-xs">
+                    <Button
+                      onClick={triggerFileUpload}
+                      className="text-white font-bold h-12"
+                      style={{ backgroundColor: buttonColor }}
+                      data-testid="button-upload-fallback"
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      Enviar Foto da Galeria
+                    </Button>
+                    <Button
+                      onClick={startCamera}
+                      variant="outline"
+                      className="h-10"
+                    >
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Tentar Câmera Novamente
+                    </Button>
+                  </div>
                 </>
               ) : (
                 <>
@@ -286,15 +342,26 @@ export const ResidenceProofStep = (props: ResidenceProofStepProps = {}) => {
                   <p className="text-center text-sm mb-4" style={{ color: textColor }}>
                     Posicione o documento de forma que o endereço fique legível
                   </p>
-                  <Button
-                    onClick={startCamera}
-                    className="text-white font-bold text-lg h-14 px-8"
-                    style={{ backgroundColor: buttonColor }}
-                    data-testid="button-start-camera"
-                  >
-                    <Camera className="w-5 h-5 mr-2" />
-                    Abrir Câmera
-                  </Button>
+                  <div className="flex flex-col gap-3 w-full max-w-xs">
+                    <Button
+                      onClick={startCamera}
+                      className="text-white font-bold text-lg h-14"
+                      style={{ backgroundColor: buttonColor }}
+                      data-testid="button-start-camera"
+                    >
+                      <Camera className="w-5 h-5 mr-2" />
+                      Abrir Câmera
+                    </Button>
+                    <Button
+                      onClick={triggerFileUpload}
+                      variant="outline"
+                      className="h-12"
+                      data-testid="button-upload"
+                    >
+                      <Upload className="w-4 h-4 mr-2" />
+                      Enviar Foto da Galeria
+                    </Button>
+                  </div>
                 </>
               )}
             </div>
@@ -456,6 +523,14 @@ export const ResidenceProofStep = (props: ResidenceProofStepProps = {}) => {
         </div>
 
         <canvas ref={canvasRef} className="hidden" />
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleFileSelect}
+          className="hidden"
+          data-testid="input-file-upload"
+        />
       </div>
     </div>
   );

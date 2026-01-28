@@ -18,6 +18,7 @@ export interface ContractData {
 export interface AddressData {
   street: string;
   number: string;
+  neighborhood: string;
   city: string;
   state: string;
   zipcode: string;

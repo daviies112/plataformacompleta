@@ -100,6 +100,7 @@ export const ResellerWelcomeStep = (props: ResellerWelcomeStepProps = {}) => {
       setAddressData({
         street: formData.street,
         number: formData.number,
+        neighborhood: formData.neighborhood,
         city: formData.city,
         state: formData.state,
         zipcode: formData.zipcode,
