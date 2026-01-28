@@ -197,57 +197,73 @@ export function ProcessDetailsModal({ check, open, onOpenChange }: ProcessDetail
     try {
       if (!payload || Object.keys(payload).length === 0) return 850;
       
-      // Score calculation - Higher = More Trustworthy
-      // Person with 0 processes = ~900-1000 (excellent)
-      // Person with 1-2 as defendant = ~700-850 (good with attention)
-      // Person with 3-5 as defendant = ~450-650 (moderate risk)
-      // Person with 6+ as defendant = ~200-400 (high risk)
+      // Score calculation based on Brazilian statistics:
+      // - Average Brazilian: 0.15 new lawsuits per year (~0.45 in 3 years)
+      // - Most people have 0-1 lawsuits total
+      // - Someone with 5+ lawsuits as defendant is 30x+ above average = HIGH RISK
+      //
+      // Scale (higher = more trustworthy):
+      // - 0 processes: 900-1000 (excellent - within average)
+      // - 1-2 as defendant: 700-850 (good - slightly above average)  
+      // - 3-4 as defendant: 500-650 (attention - well above average)
+      // - 5-6 as defendant: 300-500 (risk - very concerning)
+      // - 7+ as defendant: 0-300 (high risk - extreme outlier)
       
-      let score = 1000; // Start at max - deductions for each risk factor
+      let score = 1000;
       
       const defendantCount = Number(processData?.TotalLawsuitsAsDefendant || 0);
       const totalLawsuitsCount = Number(processData?.TotalLawsuits || 0);
-      const authorCount = Math.max(0, totalLawsuitsCount - defendantCount);
+      const authorCount = Number(processData?.TotalLawsuitsAsAuthor || 0);
+      const otherCount = Number(processData?.TotalLawsuitsAsOther || 0);
       
       // CPF status check - case insensitive
       const cpfStatus = (basicDataPayload?.TaxIdStatus || '').toString().toUpperCase();
       const isCpfRegular = cpfStatus === 'REGULAR' || cpfStatus === '';
       
-      // HEAVY penalties for being defendant - this is the main risk indicator
-      // Each lawsuit as defendant is a significant red flag
-      score -= defendantCount * 80; // -80 per lawsuit as defendant
+      // DEFENDANT lawsuits - main risk indicator (person was sued/accused)
+      // Progressive penalty: first ones hurt more, showing pattern
+      if (defendantCount === 1) {
+        score -= 100; // 1 lawsuit = 900 (still good, could be unlucky)
+      } else if (defendantCount === 2) {
+        score -= 200; // 2 lawsuits = 800 (attention needed)
+      } else if (defendantCount >= 3 && defendantCount <= 4) {
+        score -= 350; // 3-4 lawsuits = 650 (concerning pattern)
+      } else if (defendantCount >= 5 && defendantCount <= 6) {
+        score -= 500; // 5-6 lawsuits = 500 (high risk)
+      } else if (defendantCount >= 7) {
+        score -= 650 + ((defendantCount - 7) * 30); // 7+ = very high risk
+      }
       
-      // Author lawsuits are less concerning (person defending their rights)
-      score -= authorCount * 20;
+      // Author lawsuits - less concerning (person defending rights)
+      score -= authorCount * 15;
       
-      // "Other" role in lawsuits - moderate concern
-      const otherCount = Number(processData?.TotalLawsuitsAsOther || 0);
-      score -= otherCount * 30;
+      // "Other" role - moderate concern
+      score -= otherCount * 25;
       
-      // Active collections - very serious
+      // Active collections - VERY serious (current debt issues)
       if (collectionsPayload?.HasActiveCollections) {
         score -= 200;
       } else if (Number(collectionsPayload?.TotalOccurrences || 0) > 0) {
-        score -= 80; // Past collections
+        score -= 60; // Past collections, now resolved
       }
       
-      // CPF status - irregular is critical
+      // CPF status - irregular is critical red flag
       if (!isCpfRegular) {
         score -= 300;
       }
       
-      // Recent litigation penalties
+      // Recent litigation - more concerning than old cases
       const last30 = Number(processData?.Last30DaysLawsuits || 0);
       const last90 = Number(processData?.Last90DaysLawsuits || 0);
       const last365 = Number(processData?.Last365DaysLawsuits || 0);
       
-      score -= last30 * 50;  // Very recent - big concern
-      score -= Math.max(0, last90 - last30) * 30;
-      score -= Math.max(0, last365 - last90) * 15;
+      score -= last30 * 40;
+      score -= Math.max(0, last90 - last30) * 25;
+      score -= Math.max(0, last365 - last90) * 10;
       
-      // Small bonus for clean recent history (but doesn't offset past issues much)
+      // Small bonus for no recent activity (past issues, currently clean)
       if (last365 === 0 && totalLawsuitsCount > 0) {
-        score += 30; // Minor improvement for no recent activity
+        score += 25;
       }
       
       // Bonus for completely clean record
