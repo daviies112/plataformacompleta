@@ -272,79 +272,93 @@ export default function HorariosDisponiveis() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4">
-          {Object.keys(groupedHorarios)
-            .sort((a, b) => {
-              if (a === "todos") return -1;
-              if (b === "todos") return 1;
-              return Number(a) - Number(b);
-            })
-            .map((key) => (
-              <Card key={key} data-testid={`card-horarios-${key}`}>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg font-medium" data-testid={`title-dia-${key}`}>{getDiaLabel(key)}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {groupedHorarios[key]
-                      .sort((a, b) => a.horario.localeCompare(b.horario))
-                      .map((h) => {
-                        const TipoIcon = getTipoIcon(h.tipo_reuniao);
-                        return (
-                          <div
-                            key={h.id}
-                            className="flex items-center justify-between p-3 rounded-lg border bg-card hover-elevate"
-                            data-testid={`row-horario-${h.id}`}
-                          >
-                            <div className="flex items-center gap-4">
-                              <div className="flex items-center gap-2">
-                                <Clock className="h-4 w-4 text-muted-foreground" />
-                                <span className="font-mono text-lg font-medium" data-testid={`text-horario-${h.id}`}>{formatHorario(h.horario)}</span>
-                              </div>
-                              <span className={`px-2 py-1 rounded text-xs font-medium ${getPeriodoColor(h.periodo)}`} data-testid={`badge-periodo-${h.id}`}>
-                                {h.periodo}
-                              </span>
-                              <div className="flex items-center gap-1 text-muted-foreground">
-                                <TipoIcon className="h-4 w-4" />
-                                <span className="text-sm" data-testid={`text-tipo-${h.id}`}>{getTipoLabel(h.tipo_reuniao)}</span>
-                              </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8 gap-4 overflow-x-auto pb-4">
+          {["todos", "1", "2", "3", "4", "5", "6", "0"].map((key) => {
+            const dayHorarios = groupedHorarios[key] || [];
+            return (
+              <div key={key} className="flex flex-col gap-3 min-w-[200px]" data-testid={`column-horarios-${key}`}>
+                <div className="flex items-center justify-between px-1">
+                  <h3 className="font-semibold text-sm uppercase tracking-wider text-muted-foreground">
+                    {getDiaLabel(key)}
+                  </h3>
+                  <span className="text-xs bg-muted px-2 py-0.5 rounded-full text-muted-foreground">
+                    {dayHorarios.length}
+                  </span>
+                </div>
+                
+                <div className="flex flex-col gap-2 min-h-[100px] p-2 rounded-lg bg-muted/30 border border-dashed border-muted-foreground/20">
+                  {dayHorarios
+                    .sort((a, b) => a.horario.localeCompare(b.horario))
+                    .map((h) => {
+                      const TipoIcon = getTipoIcon(h.tipo_reuniao);
+                      return (
+                        <div
+                          key={h.id}
+                          className={`group relative flex flex-col gap-2 p-3 rounded-md border bg-card shadow-sm transition-all hover:shadow-md ${!h.ativo ? "opacity-60" : ""}`}
+                          data-testid={`card-horario-${h.id}`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-1.5 font-bold text-base">
+                              <Clock className="h-3.5 w-3.5 text-primary" />
+                              {formatHorario(h.horario)}
                             </div>
-                            <div className="flex items-center gap-3">
-                              <div className="flex items-center gap-2">
-                                <Label htmlFor={`switch-${h.id}`} className="text-sm text-muted-foreground">
-                                  {h.ativo ? "Ativo" : "Inativo"}
-                                </Label>
-                                <Switch
-                                  id={`switch-${h.id}`}
-                                  checked={h.ativo}
-                                  onCheckedChange={(checked) => toggleMutation.mutate({ id: h.id, ativo: checked })}
-                                  data-testid={`switch-ativo-${h.id}`}
-                                />
-                              </div>
+                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                               <Button
                                 variant="ghost"
                                 size="icon"
+                                className="h-7 w-7"
                                 onClick={() => openEditModal(h)}
                                 data-testid={`button-edit-${h.id}`}
                               >
-                                <Pencil className="h-4 w-4" />
+                                <Pencil className="h-3 w-3" />
                               </Button>
                               <Button
                                 variant="ghost"
                                 size="icon"
+                                className="h-7 w-7 text-destructive"
                                 onClick={() => handleDelete(h.id)}
                                 data-testid={`button-delete-${h.id}`}
                               >
-                                <Trash2 className="h-4 w-4 text-destructive" />
+                                <Trash2 className="h-3 w-3" />
                               </Button>
                             </div>
                           </div>
-                        );
-                      })}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+
+                          <div className="flex flex-wrap gap-1.5">
+                            <span className={`px-1.5 py-0.5 rounded-sm text-[10px] font-bold uppercase ${getPeriodoColor(h.periodo)}`}>
+                              {h.periodo}
+                            </span>
+                            <div className="flex items-center gap-1 text-[10px] font-medium text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded-sm">
+                              <TipoIcon className="h-3 w-3" />
+                              {getTipoLabel(h.tipo_reuniao)}
+                            </div>
+                          </div>
+
+                          <div className="pt-1 mt-1 border-t border-muted flex items-center justify-between">
+                            <span className="text-[10px] text-muted-foreground">
+                              {h.ativo ? "Disponível" : "Inativo"}
+                            </span>
+                            <Switch
+                              className="scale-75 origin-right"
+                              checked={h.ativo}
+                              onCheckedChange={(checked) => toggleMutation.mutate({ id: h.id, ativo: checked })}
+                              data-testid={`switch-ativo-${h.id}`}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  
+                  {dayHorarios.length === 0 && (
+                    <div className="flex flex-col items-center justify-center py-8 text-center opacity-40">
+                      <Clock className="h-8 w-8 mb-2 stroke-1" />
+                      <span className="text-[10px]">Sem horários</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
 
