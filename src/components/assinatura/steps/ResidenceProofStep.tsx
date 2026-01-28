@@ -59,25 +59,23 @@ export const ResidenceProofStep = (props: ResidenceProofStepProps = {}) => {
         })
       });
 
+      const result = await response.json();
+      
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Erro ao salvar comprovante');
+        throw new Error(result.message || 'Erro ao salvar comprovante');
       }
 
-      console.log('[ResidenceProof] Comprovante salvo com sucesso!');
+      console.log('[ResidenceProof] Comprovante salvo com sucesso!', result);
       
       setResidenceProofPhoto(imageData);
       setResidenceProofValidated(true);
       setIsSaved(true);
+      setIsSaving(false);
       
       toast({
         title: 'Comprovante salvo!',
         description: 'Foto do comprovante de residência registrada com sucesso.'
       });
-
-      setTimeout(() => {
-        setCurrentStep(5);
-      }, 1000);
       
     } catch (error) {
       console.error('[ResidenceProof] Erro ao salvar:', error);
@@ -88,7 +86,7 @@ export const ResidenceProofStep = (props: ResidenceProofStepProps = {}) => {
       });
       setIsSaving(false);
     }
-  }, [addressData, setResidenceProofPhoto, setResidenceProofValidated, setCurrentStep, toast, isSaving, isSaved]);
+  }, [addressData, setResidenceProofPhoto, setResidenceProofValidated, toast, isSaving, isSaved]);
 
   useEffect(() => {
     if (capturedImage && !isSaving && !isSaved) {
@@ -211,7 +209,7 @@ export const ResidenceProofStep = (props: ResidenceProofStepProps = {}) => {
     };
   }, [stopCamera]);
 
-  if (isSaving || isSaved) {
+  if (isSaving) {
     return (
       <div 
         className="min-h-screen flex flex-col items-center justify-center px-4 py-6"
@@ -221,32 +219,48 @@ export const ResidenceProofStep = (props: ResidenceProofStepProps = {}) => {
           className="w-full max-w-md rounded-lg p-8 text-center"
           style={{ backgroundColor: cardColor }}
         >
-          {isSaved ? (
-            <>
-              <div 
-                className="w-20 h-20 mx-auto mb-4 rounded-full flex items-center justify-center"
-                style={{ backgroundColor: buttonColor }}
-              >
-                <Check className="w-10 h-10 text-white" />
-              </div>
-              <h2 className="text-xl font-bold mb-2" style={{ color: textColor }}>
-                Comprovante Salvo!
-              </h2>
-              <p className="text-sm opacity-80" style={{ color: textColor }}>
-                Avançando para a próxima etapa...
-              </p>
-            </>
-          ) : (
-            <>
-              <Loader2 className="w-16 h-16 mx-auto mb-4 animate-spin" style={{ color: buttonColor }} />
-              <h2 className="text-xl font-bold mb-2" style={{ color: textColor }}>
-                Salvando Comprovante...
-              </h2>
-              <p className="text-sm opacity-80" style={{ color: textColor }}>
-                Aguarde enquanto processamos sua foto.
-              </p>
-            </>
-          )}
+          <Loader2 className="w-16 h-16 mx-auto mb-4 animate-spin" style={{ color: buttonColor }} />
+          <h2 className="text-xl font-bold mb-2" style={{ color: textColor }}>
+            Salvando Comprovante...
+          </h2>
+          <p className="text-sm opacity-80" style={{ color: textColor }}>
+            Aguarde enquanto processamos sua foto.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isSaved) {
+    return (
+      <div 
+        className="min-h-screen flex flex-col items-center justify-center px-4 py-6"
+        style={{ fontFamily, backgroundColor }}
+      >
+        <div 
+          className="w-full max-w-md rounded-lg p-8 text-center"
+          style={{ backgroundColor: cardColor }}
+        >
+          <div 
+            className="w-20 h-20 mx-auto mb-4 rounded-full flex items-center justify-center"
+            style={{ backgroundColor: buttonColor }}
+          >
+            <Check className="w-10 h-10 text-white" />
+          </div>
+          <h2 className="text-xl font-bold mb-2" style={{ color: textColor }}>
+            Comprovante Salvo!
+          </h2>
+          <p className="text-sm opacity-80 mb-6" style={{ color: textColor }}>
+            Foto do comprovante de residência registrada com sucesso.
+          </p>
+          <Button
+            onClick={() => setCurrentStep(5)}
+            className="w-full py-3 text-white font-semibold rounded-lg"
+            style={{ backgroundColor: buttonColor }}
+            data-testid="button-continue-residence"
+          >
+            Continuar para Assinatura
+          </Button>
         </div>
       </div>
     );
