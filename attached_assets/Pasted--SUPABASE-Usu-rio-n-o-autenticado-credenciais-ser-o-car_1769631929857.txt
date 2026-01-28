@@ -1,0 +1,77 @@
+ℹ️ [SUPABASE] Usuário não autenticado - credenciais serão carregadas após login
+supabase.ts:185 ℹ️ [SUPABASE] Credenciais não disponíveis - usuário pode não estar autenticado
+workspaceStorage.ts:447 ⚠️ Supabase não configurado - usando localStorage
+sentry.ts:34 ⚠️ Sentry não configurado - Monitoramento desativado
+AssinaturaClientPage.tsx:278 [AssinaturaClientPage] Contract address data: Object
+AssinaturaClientPage.tsx:310 [AssinaturaClientPage] Rehydrated residence proof validated: false
+89c1496c-9728-4a29-a925-95577d89287b:1 Error while trying to use the following icon from the Manifest: https://e7239b81-060e-4bc0-bb10-1486c0d98ce3-00-3c6msizsux5fz.worf.replit.dev/icons/icon-192x192.png (Download error or resource isn't a valid image)Understand this warning
+useFaceDetection.ts:68 Face detection models loaded successfully
+SelfieCapture.tsx:40 SelfieCapture mounted, starting camera immediately...
+useCamera.ts:38 Checking camera support...
+useCamera.ts:46 Requesting camera with high quality constraints...
+useFaceDetection.ts:68 Face detection models loaded successfully
+useCamera.ts:76 Camera stream obtained: 3b63ca48-5e27-47b4-8e08-e18ca683cbb3
+useCamera.ts:77 Video tracks: 1
+useCamera.ts:94 Attaching stream to video element...
+useCamera.ts:121 Attempting to play video...
+useCamera.ts:101 Video can play event fired
+useCamera.ts:105 Video is now playing
+useCamera.ts:106 Video dimensions: 1280 x 720
+useCamera.ts:124 Play promise resolved
+SelfieCapture.tsx:63 Starting face detection interval
+useCamera.ts:200 Capturing image: 1280 x 720
+useCamera.ts:223 Image captured successfully
+useCamera.ts:167 Stopping camera...
+useCamera.ts:171 Track stopped: video ACER HD User Facing (04f2:b773)
+useCamera.ts:196 Cannot capture: video has no dimensions
+SelfieCapture.tsx:123 Failed to capture image
+VerificationFlow.tsx:101 [VerificationFlow] Selfie captured, advancing to document step
+useCamera.ts:167 Stopping camera...
+SelfieCapture.tsx:48 SelfieCapture unmounting, cleaning up...
+DocumentCapture.tsx:48 DocumentCapture: Starting camera for CNH
+useCamera.ts:38 Checking camera support...
+useCamera.ts:46 Requesting camera with high quality constraints...
+useCamera.ts:76 Camera stream obtained: b2803300-8ec2-4b9a-9e74-2f052c728af4
+useCamera.ts:77 Video tracks: 1
+useCamera.ts:94 Attaching stream to video element...
+useCamera.ts:121 Attempting to play video...
+useCamera.ts:101 Video can play event fired
+useCamera.ts:105 Video is now playing
+useCamera.ts:106 Video dimensions: 1280 x 720
+useCamera.ts:124 Play promise resolved
+DocumentCapture.tsx:70 DocumentCapture: Starting detection interval
+DocumentCapture.tsx:99 DocumentCapture: Conditions ideal, starting auto-capture...
+DocumentCapture.tsx:70 DocumentCapture: Starting detection interval
+DocumentCapture.tsx:105 DocumentCapture: Conditions no longer ideal, canceling auto-capture
+DocumentCapture.tsx:70 DocumentCapture: Starting detection interval
+useCamera.ts:200 Capturing image: 1280 x 720
+useCamera.ts:223 Image captured successfully
+useCamera.ts:167 Stopping camera...
+useCamera.ts:171 Track stopped: video ACER HD User Facing (04f2:b773)
+VerificationFlow.tsx:109 [VerificationFlow] Document captured, advancing to processing step
+useCamera.ts:167 Stopping camera...
+DocumentCapture.tsx:56 DocumentCapture: Cleaning up...
+useCamera.ts:167 Stopping camera...
+VerificationFlow.tsx:130 Starting advanced face comparison...
+useFaceDetection.ts:756 === Starting Advanced Face Comparison ===
+useFaceDetection.ts:764 Quality: Object
+useFaceDetection.ts:607 SSD detection success (conf=0.5): 0.9404045343399048
+useFaceDetection.ts:607 SSD detection success (conf=0.5): 0.9990096688270569
+useFaceDetection.ts:797 Detection scores: Object
+useFaceDetection.ts:811 Descriptors: Object
+useFaceDetection.ts:814 Best match: Object
+ensembleFaceVerification.ts:192 Pesos ajustados para qualidade 54.82682872183742 : Object
+ensembleFaceVerification.ts:123 Scores individuais: Object
+ensembleFaceVerification.ts:129 Score ponderado: 88.18413391844463
+ensembleFaceVerification.ts:130 Votos: 4 /4
+ensembleFaceVerification.ts:131 Variância: 674.0535838269773
+ensembleFaceVerification.ts:132 Threshold usado: 50
+useFaceDetection.ts:824 Ensemble result: Object
+useFaceDetection.ts:871 ULTRA PERMISSIVE mode (threshold 20%): Object
+useFaceDetection.ts:895 === Final Result (threshold 20%) === Object
+useVerificationStorage.ts:74 Failed to save verification: TypeError: Cannot read properties of null (reading 'from')
+    at useVerificationStorage.ts:38:10
+    at VerificationFlow.tsx:159:27
+(anonymous) @ useVerificationStorage.ts:74Understand this error
+AssinaturaClientPage.tsx:363 [AssinaturaClientPage] handleVerificationComplete called: Object
+AssinaturaClientPage.tsx:374 [AssinaturaClientPage] Advancing to step 2 (Contract)

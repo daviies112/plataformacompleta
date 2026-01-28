@@ -45,6 +45,13 @@ export const ResidenceProofStep = (props: ResidenceProofStepProps = {}) => {
   const startCamera = useCallback(async () => {
     try {
       setCameraError(null);
+      
+      // First set capturing to true so the video element is rendered
+      setIsCapturing(true);
+      
+      // Wait a tick for the video element to be mounted in the DOM
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: 'environment',
@@ -55,14 +62,30 @@ export const ResidenceProofStep = (props: ResidenceProofStepProps = {}) => {
       
       streamRef.current = stream;
       
+      // Now the video element should exist
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        await videoRef.current.play();
+        
+        // Wait for video to be ready before playing
+        videoRef.current.onloadedmetadata = () => {
+          if (videoRef.current) {
+            videoRef.current.play().catch(err => {
+              console.error('Error playing video:', err);
+            });
+          }
+        };
+      } else {
+        console.error('Video element not found after mounting');
+        // Try again after a longer delay
+        await new Promise(resolve => setTimeout(resolve, 200));
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          await videoRef.current.play();
+        }
       }
-      
-      setIsCapturing(true);
     } catch (error) {
       console.error('Error accessing camera:', error);
+      setIsCapturing(false);
       setCameraError('Não foi possível acessar a câmera. Verifique as permissões.');
       toast({
         title: 'Erro na câmera',
