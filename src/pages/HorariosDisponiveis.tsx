@@ -12,6 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Pencil, Trash2, Clock, Loader2, ArrowLeft, Video, Users, MapPin, Home, Calendar, Palette } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface Horario {
   id: string;
@@ -244,32 +245,41 @@ export default function HorariosDisponiveis() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-4">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/reuniao")} data-testid="button-voltar">
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">Horários Disponíveis</h1>
-            <p className="text-muted-foreground">Configure os horários disponíveis para agendamento de reuniões</p>
-          </div>
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Horários Disponíveis</h1>
+          <p className="text-muted-foreground">Configure os horários disponíveis para agendamento de reuniões</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" className="gap-2" onClick={() => navigate("/reuniao")} data-testid="button-nav-home">
-            <Home className="h-4 w-4" /> Home
-          </Button>
-          <Button variant="outline" className="gap-2" onClick={() => navigate("/reuniao")} data-testid="button-nav-calendario">
-            <Calendar className="h-4 w-4" /> Calendário
-          </Button>
-          <Button variant="outline" className="gap-2" onClick={() => navigate("/reuniao")} data-testid="button-nav-gravacoes">
-            <Video className="h-4 w-4" /> Gravações
-          </Button>
-          <Button variant="outline" className="gap-2" onClick={() => navigate("/reuniao")} data-testid="button-nav-design">
-            <Palette className="h-4 w-4" /> Design
-          </Button>
-          <Button onClick={openAddModal} className="gap-2 ml-2" data-testid="button-add-horario">
-            <Plus className="h-4 w-4" /> Adicionar Horário
-          </Button>
-        </div>
+      </div>
+
+      <Tabs value="horarios" className="w-full">
+        <TabsList className="grid w-full grid-cols-5 lg:w-auto">
+          <TabsTrigger value="home" className="gap-2" onClick={() => navigate("/reuniao")}>
+            <Home className="h-4 w-4" />
+            <span className="hidden sm:inline">Home</span>
+          </TabsTrigger>
+          <TabsTrigger value="calendario" className="gap-2" onClick={() => navigate("/reuniao?tab=calendario")}>
+            <Calendar className="h-4 w-4" />
+            <span className="hidden sm:inline">Calendário</span>
+          </TabsTrigger>
+          <TabsTrigger value="gravacoes" className="gap-2" onClick={() => navigate("/reuniao?tab=gravacoes")}>
+            <Video className="h-4 w-4" />
+            <span className="hidden sm:inline">Gravações</span>
+          </TabsTrigger>
+          <TabsTrigger value="design" className="gap-2" onClick={() => navigate("/reuniao?tab=design")}>
+            <Palette className="h-4 w-4" />
+            <span className="hidden sm:inline">Design</span>
+          </TabsTrigger>
+          <TabsTrigger value="horarios" className="gap-2">
+            <Clock className="h-4 w-4" />
+            <span className="hidden sm:inline">Horários</span>
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
+
+      <div className="flex justify-end">
+        <Button onClick={openAddModal} className="gap-2" data-testid="button-add-horario">
+          <Plus className="h-4 w-4" /> Adicionar Horário
+        </Button>
       </div>
 
       {horarios.length === 0 ? (
