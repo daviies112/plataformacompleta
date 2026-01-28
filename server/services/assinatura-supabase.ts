@@ -464,6 +464,7 @@ class AssinaturaSupabaseService {
           has_selfie: !!data.selfie_photo,
           has_doc: !!data.document_photo,
           has_residence_proof: !!data.residence_proof_photo,
+          residence_proof_photo_size: data.residence_proof_photo?.length || 0,
           has_signed_html: !!data.signed_contract_html
         });
       }

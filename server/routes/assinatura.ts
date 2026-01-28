@@ -1770,15 +1770,34 @@ router.post('/save-residence-proof', async (req: Request, res: Response) => {
       residence_proof_date: new Date().toISOString()
     };
     
-    const localContract = localContractsStore.get(contractId);
+    // Try to find contract in local store by token or ID
+    let localContract = localContractsStore.get(contractId);
+    if (!localContract) {
+      localContract = Array.from(localContractsStore.values()).find(c => c.access_token === contractId);
+    }
+    
     if (localContract) {
       const updatedContract = { ...localContract, ...updates };
-      localContractsStore.set(contractId, updatedContract);
+      localContractsStore.set(localContract.id, updatedContract);
       saveLocalContracts(localContractsStore);
+      console.log(`[Assinatura] Contrato local atualizado: ${localContract.id}`);
     }
     
     if (assinaturaSupabaseService.isConnected()) {
-      await assinaturaSupabaseService.updateContractByToken(contractId, updates);
+      console.log(`[Assinatura] Salvando comprovante no Supabase, foto presente: ${!!updates.residence_proof_photo}, tamanho: ${updates.residence_proof_photo?.length || 0} chars`);
+      
+      // Try by access_token first, then by ID
+      let result = await assinaturaSupabaseService.updateContractByToken(contractId, updates);
+      if (!result) {
+        console.log(`[Assinatura] Tentando atualizar por ID ao invés de token...`);
+        result = await assinaturaSupabaseService.updateContract(contractId, updates);
+      }
+      
+      if (result) {
+        console.log(`[Assinatura] ✅ Supabase atualizado com sucesso, residence_proof_photo salva`);
+      } else {
+        console.error(`[Assinatura] ❌ Falha ao atualizar Supabase - contrato não encontrado por token nem ID: ${contractId}`);
+      }
     }
     
     return res.json({ success: true, message: 'Comprovante salvo com sucesso' });
