@@ -147,6 +147,12 @@ export function ProcessDetailsModal({ check, open, onOpenChange }: ProcessDetail
       if (yearsSince < 2) score -= 50; // Histórico muito recente pode ser instável
     }
 
+    // 5. Histórico de Processos Recentes (Tendência)
+    const recentLawsuits = (processData?.Last30DaysLawsuits || 0) + (processData?.Last90DaysLawsuits || 0);
+    if (recentLawsuits > 0) {
+      score -= recentLawsuits * 20;
+    }
+
     // Bônus por consistência
     if (isCompleteConsultation && !hasDebt && defendantCount === 0) {
       score += 50;
