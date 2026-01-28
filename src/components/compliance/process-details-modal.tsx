@@ -196,38 +196,69 @@ export function ProcessDetailsModal({ check, open, onOpenChange }: ProcessDetail
   const universalScore = useMemo(() => {
     try {
       if (!payload || Object.keys(payload).length === 0) return 850;
-      let score = 850;
-
+      
+      // Score calculation for reseller evaluation
+      // Goal: Allow most people to pass while flagging serious risks
+      // A person with 6 lawsuits (5 as defendant), archived, no active debt = ~700-800
+      
+      let score = 900; // Start higher - most people should be around 700-850
+      
       const defendantCount = Number(processData?.TotalLawsuitsAsDefendant || 0);
       const totalLawsuitsCount = Number(processData?.TotalLawsuits || 0);
-      score -= defendantCount * 50;
-      score -= Math.max(0, totalLawsuitsCount - defendantCount) * 10;
-
+      const authorCount = Math.max(0, totalLawsuitsCount - defendantCount);
+      
+      // Lawsuit penalties - more lenient for reseller context
+      // First 3 as defendant: -15 each, after that: -25 each
+      const firstThreeDefendant = Math.min(defendantCount, 3);
+      const additionalDefendant = Math.max(0, defendantCount - 3);
+      score -= firstThreeDefendant * 15; // -45 for first 3
+      score -= additionalDefendant * 25; // -25 for each additional
+      
+      // Author lawsuits are less concerning (person defending their rights)
+      score -= authorCount * 5;
+      
+      // Active collections - this is serious
       if (collectionsPayload?.HasActiveCollections) {
-        score -= 300;
+        score -= 200; // Reduced from 300
       } else if (Number(collectionsPayload?.TotalOccurrences || 0) > 0) {
-        score -= 150;
+        score -= 80; // Reduced from 150 - past collections, now resolved
       }
-
+      
+      // CPF status - irregular is very serious
       if (basicDataPayload?.TaxIdStatus && basicDataPayload.TaxIdStatus !== 'Regular') {
-        score -= 400;
+        score -= 350; // Reduced slightly from 400
       }
-
-      if (processData?.FirstLawsuitDate) {
-        const firstDate = new Date(processData.FirstLawsuitDate);
-        if (!isNaN(firstDate.getTime())) {
-          const yearsSince = (new Date().getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24 * 365);
-          if (yearsSince < 2) score -= 50;
-        }
+      
+      // Recent litigation is more concerning than old cases
+      const last30 = Number(processData?.Last30DaysLawsuits || 0);
+      const last90 = Number(processData?.Last90DaysLawsuits || 0);
+      const last180 = Number(processData?.Last180DaysLawsuits || 0);
+      const last365 = Number(processData?.Last365DaysLawsuits || 0);
+      
+      // Penalize recent activity more heavily
+      score -= last30 * 40;  // Very recent - concerning
+      score -= (last90 - last30) * 25;  // Somewhat recent
+      score -= (last180 - last90) * 15;  // Less recent
+      score -= (last365 - last180) * 10;  // Within a year
+      
+      // Bonus for no recent activity (last 365 days clean)
+      if (last365 === 0 && totalLawsuitsCount > 0) {
+        score += 40; // Old issues, no recent problems
       }
-
-      const recentLawsuits = Number(processData?.Last30DaysLawsuits || 0) + Number(processData?.Last90DaysLawsuits || 0);
-      if (recentLawsuits > 0) {
-        score -= recentLawsuits * 20;
-      }
-
+      
+      // Bonus for clean record
       if (isCompleteConsultation && !hasDebt && defendantCount === 0) {
-        score += 50;
+        score += 60;
+      }
+      
+      // Bonus for regular CPF
+      if (basicDataPayload?.TaxIdStatus === 'Regular') {
+        score += 30;
+      }
+      
+      // Bonus for no active debt
+      if (!collectionsPayload?.HasActiveCollections && Number(collectionsPayload?.TotalOccurrences || 0) === 0) {
+        score += 20;
       }
 
       return Math.min(Math.max(score, 0), 1000);
