@@ -91,75 +91,108 @@ interface ProcessDetailsModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export function ProcessDetailsModal({ check, open, onOpenChange }: ProcessDetailsModalProps) {
-  const [isDownloading, setIsDownloading] = useState(false);
-  
-  if (!check) return null;
+  // Defensive parsing and memoization
+  const payload = useMemo(() => {
+    if (!check?.payload) return null;
+    try {
+      // Handle payload whether it's already an object or a stringified JSON
+      const parsed = typeof check.payload === 'string' ? JSON.parse(check.payload) : check.payload;
+      return parsed;
+    } catch (e) {
+      console.error("[ProcessDetailsModal] Error parsing payload:", e);
+      return null;
+    }
+  }, [check?.payload]);
 
-  const payload = check.payload as any;
-  const result = payload?.Result?.[0];
-  const processData = result?.Processes;
-  const lawsuits = processData?.Lawsuits || [];
-  const totalLawsuits = processData?.TotalLawsuits || 0;
-  const storedRiskScore = typeof check.riskScore === 'string' ? parseFloat(check.riskScore) : check.riskScore;
-  const calculatedRiskScore = calculateUnifiedRisk(payload);
-  const riskScore = calculatedRiskScore || storedRiskScore;
-  const riskInteger = riskScore !== null && riskScore !== undefined ? Math.round(riskScore) : null;
-  
+  const result = useMemo(() => payload?.Result?.[0] || {}, [payload]);
+  const processData = useMemo(() => result?.Processes || {}, [result]);
+  const lawsuits = useMemo(() => processData?.Lawsuits || [], [processData]);
+  const totalLawsuits = useMemo(() => processData?.TotalLawsuits || 0, [processData]);
+
+  const storedRiskScore = useMemo(() => {
+    if (!check) return 0;
+    const score = check.riskScore;
+    if (typeof score === 'string') return parseFloat(score);
+    return score || 0;
+  }, [check]);
+
+  const calculatedRiskScore = useMemo(() => {
+    if (!payload || Object.keys(payload).length === 0) return null;
+    try {
+      return calculateUnifiedRisk(payload);
+    } catch (e) {
+      console.error("[ProcessDetailsModal] Error calculating unified risk:", e);
+      return null;
+    }
+  }, [payload]);
+
+  const riskScore = (calculatedRiskScore !== null && calculatedRiskScore !== undefined) ? calculatedRiskScore : storedRiskScore;
+  const riskInteger = (riskScore !== null && riskScore !== undefined) ? Math.round(Number(riskScore)) : null;
+
   const queryId = payload?.QueryId;
   const elapsedMs = payload?.ElapsedMilliseconds;
   const queryDate = payload?.QueryDate;
   const matchKeys = result?.MatchKeys;
   const statusInfo = payload?.Status;
   
-  const basicDataPayload = payload?._basic_data?.Result?.[0]?.BasicData;
-  const collectionsPayload = payload?._collections?.Result?.[0]?.Collections;
+  const basicDataPayload = useMemo(() => payload?._basic_data?.Result?.[0]?.BasicData || {}, [payload]);
+  const collectionsPayload = useMemo(() => payload?._collections?.Result?.[0]?.Collections || {}, [payload]);
   const metadata = payload?._metadata;
   const isCompleteConsultation = payload?._datacorp_complete === true;
-  const hasDebt = collectionsPayload?.HasActiveCollections || (collectionsPayload?.TotalOccurrences && collectionsPayload.TotalOccurrences > 0);
-  
+  const hasDebt = useMemo(() => !!(collectionsPayload?.HasActiveCollections || (collectionsPayload?.TotalOccurrences && collectionsPayload.TotalOccurrences > 0)), [collectionsPayload]);
+
   // Lógica de Metodologia para o Score (0-1000)
   const universalScore = useMemo(() => {
-    let score = 850; // Base "Boa"
+    try {
+      if (!payload || Object.keys(payload).length === 0) return 850;
+      let score = 850; // Base "Boa"
 
-    // 1. Processos Judiciais (Impacto Alto se Réu)
-    const defendantCount = processData?.TotalLawsuitsAsDefendant || 0;
-    const totalLawsuits = processData?.TotalLawsuits || 0;
-    score -= defendantCount * 50;
-    score -= (totalLawsuits - defendantCount) * 10;
+      // 1. Processos Judiciais (Impacto Alto se Réu)
+      const defendantCount = processData?.TotalLawsuitsAsDefendant || 0;
+      const totalLawsuitsCount = processData?.TotalLawsuits || 0;
+      score -= defendantCount * 50;
+      score -= (totalLawsuitsCount - defendantCount) * 10;
 
-    // 2. Restrições Financeiras (Impacto Crítico)
-    if (collectionsPayload?.HasActiveCollections) {
-      score -= 300;
-    } else if (collectionsPayload?.TotalOccurrences > 0) {
-      score -= 150;
+      // 2. Restrições Financeiras (Impacto Crítico)
+      if (collectionsPayload?.HasActiveCollections) {
+        score -= 300;
+      } else if (collectionsPayload?.TotalOccurrences > 0) {
+        score -= 150;
+      }
+
+      // 3. Status CPF (Impacto Bloqueante)
+      if (basicDataPayload?.TaxIdStatus && basicDataPayload.TaxIdStatus !== 'Regular') {
+        score -= 400;
+      }
+
+      // 4. Idade do Histórico
+      if (processData?.FirstLawsuitDate) {
+        const firstDate = new Date(processData.FirstLawsuitDate);
+        if (!isNaN(firstDate.getTime())) {
+          const yearsSince = (new Date().getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24 * 365);
+          if (yearsSince < 2) score -= 50;
+        }
+      }
+
+      // 5. Histórico de Processos Recentes (Tendência)
+      const recentLawsuits = (processData?.Last30DaysLawsuits || 0) + (processData?.Last90DaysLawsuits || 0);
+      if (recentLawsuits > 0) {
+        score -= recentLawsuits * 20;
+      }
+
+      // Bônus por consistência
+      if (isCompleteConsultation && !hasDebt && defendantCount === 0) {
+        score += 50;
+      }
+
+      return Math.min(Math.max(score, 0), 1000);
+    } catch (e) {
+      console.error("[ProcessDetailsModal] Error calculating universal score:", e);
+      return 500;
     }
+  }, [processData, collectionsPayload, basicDataPayload, isCompleteConsultation, hasDebt, payload]);
 
-    // 3. Status CPF (Impacto Bloqueante)
-    if (basicDataPayload?.TaxIdStatus && basicDataPayload.TaxIdStatus !== 'Regular') {
-      score -= 400;
-    }
-
-    // 4. Idade do Histórico
-    if (processData?.FirstLawsuitDate) {
-      const firstDate = new Date(processData.FirstLawsuitDate);
-      const yearsSince = (new Date().getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24 * 365);
-      if (yearsSince < 2) score -= 50; // Histórico muito recente pode ser instável
-    }
-
-    // 5. Histórico de Processos Recentes (Tendência)
-    const recentLawsuits = (processData?.Last30DaysLawsuits || 0) + (processData?.Last90DaysLawsuits || 0);
-    if (recentLawsuits > 0) {
-      score -= recentLawsuits * 20;
-    }
-
-    // Bônus por consistência
-    if (isCompleteConsultation && !hasDebt && defendantCount === 0) {
-      score += 50;
-    }
-
-    return Math.min(Math.max(score, 0), 1000);
-  }, [processData, collectionsPayload, basicDataPayload, isCompleteConsultation, hasDebt]);
+  if (!check) return null;
 
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return 'N/A';
