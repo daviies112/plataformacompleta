@@ -1198,78 +1198,74 @@ router.get('/recipient/:recipientId', async (req: Request, res: Response) => {
 router.get('/resellers-analytics', async (req: Request, res: Response) => {
   if (!requireAdmin(req, res)) return;
   
-  console.log('[Split] GET /resellers-analytics - Fetching real reseller data');
+  console.log('[Split] GET /resellers-analytics - Fetching reseller data from tenant Supabase ONLY');
   
   try {
-    const supabaseOwner = getMasterSupabaseClient();
-    
-    if (!supabaseOwner) {
-      console.error('[Split] Supabase Owner not configured');
-      return res.status(500).json({
-        success: false,
-        error: 'Supabase Owner não configurado.',
-      });
-    }
-    
-    const resellersResult = await supabaseOwner
-      .from('revendedoras')
-      .select('*');
-    
-    if (resellersResult.error) {
-      console.error('[Split] Error fetching revendedoras:', resellersResult.error);
-      return res.status(500).json({
-        success: false,
-        error: 'Erro ao buscar revendedoras',
-      });
-    }
-    
-    // Buscar vendas do Supabase do tenant (onde as vendas realmente estão)
-    let salesResult: { data: any[] | null; error: any } = { data: [], error: null };
-    
-    // Tentar carregar credenciais do tenant do arquivo de configuração
     const fs = await import('fs');
     const path = await import('path');
     const configPath = path.join(process.cwd(), 'data', 'supabase-config.json');
     
-    if (fs.existsSync(configPath)) {
-      try {
-        const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-        if (config.supabaseUrl && (config.supabaseServiceKey || config.supabaseAnonKey)) {
-          const { createClient } = await import('@supabase/supabase-js');
-          const tenantSupabase = createClient(
-            config.supabaseUrl, 
-            config.supabaseServiceKey || config.supabaseAnonKey,
-            { auth: { autoRefreshToken: false, persistSession: false } }
-          );
-          
-          console.log('[Split] Fetching sales from tenant Supabase:', config.supabaseUrl);
-          
-          // Buscar sales_with_split do Supabase do tenant
-          salesResult = await tenantSupabase
-            .from('sales_with_split')
-            .select('id, reseller_id, product_id, total_amount, reseller_amount, company_amount, paid, paid_at, status, created_at');
-          
-          if (salesResult.error) {
-            console.log('[Split] Error fetching sales_with_split from tenant:', salesResult.error);
-            salesResult = { data: [], error: null };
-          } else {
-            console.log('[Split] Found', salesResult.data?.length || 0, 'sales in tenant Supabase');
-          }
-        }
-      } catch (e) {
-        console.error('[Split] Error loading tenant config:', e);
+    if (!fs.existsSync(configPath)) {
+      console.log('[Split] No tenant config file - returning empty data');
+      return res.json({
+        success: true,
+        resellers: [],
+        sales: [],
+        warning: 'Supabase não configurado. Configure em /configuracoes para visualizar dados.'
+      });
+    }
+    
+    const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+    const supabaseUrl = config.supabaseUrl || config.url;
+    const supabaseKey = config.supabaseServiceKey || config.serviceKey || config.supabaseAnonKey;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      console.log('[Split] Invalid tenant config - missing URL or key');
+      return res.json({
+        success: true,
+        resellers: [],
+        sales: [],
+        warning: 'Configuração Supabase incompleta. Verifique as credenciais.'
+      });
+    }
+    
+    const tenantSupabase = createClient(supabaseUrl, supabaseKey, {
+      auth: { autoRefreshToken: false, persistSession: false }
+    });
+    
+    console.log('[Split] Using tenant Supabase:', supabaseUrl);
+    
+    let resellersResult: { data: any[] | null; error: any } = { data: [], error: null };
+    let salesResult: { data: any[] | null; error: any } = { data: [], error: null };
+    
+    resellersResult = await tenantSupabase
+      .from('resellers')
+      .select('*');
+    
+    if (resellersResult.error) {
+      if (resellersResult.error.code === '42P01') {
+        console.log('[Split] resellers table does not exist in tenant Supabase');
+      } else {
+        console.log('[Split] Error fetching resellers from tenant:', resellersResult.error);
       }
+      resellersResult = { data: [], error: null };
     } else {
-      console.log('[Split] No tenant config file found, trying Owner Supabase for sales...');
-      // Fallback para Owner Supabase
-      salesResult = await supabaseOwner
-        .from('vendas_revendedora')
-        .select('id, reseller_id, revendedora_id, total_amount, valor_total, reseller_amount, valor_revendedora, company_amount, valor_empresa, paid, pago, paid_at, data_pagamento, created_at');
-      
-      if (salesResult.error) {
-        console.log('[Split] vendas_revendedora not found in Owner, no sales available');
-        salesResult = { data: [], error: null };
+      console.log('[Split] Found', resellersResult.data?.length || 0, 'resellers in tenant Supabase');
+    }
+    
+    salesResult = await tenantSupabase
+      .from('sales_with_split')
+      .select('id, reseller_id, product_id, total_amount, reseller_amount, company_amount, paid, paid_at, status, created_at');
+    
+    if (salesResult.error) {
+      if (salesResult.error.code === '42P01') {
+        console.log('[Split] sales_with_split table does not exist in tenant Supabase');
+      } else {
+        console.log('[Split] Error fetching sales_with_split from tenant:', salesResult.error);
       }
+      salesResult = { data: [], error: null };
+    } else {
+      console.log('[Split] Found', salesResult.data?.length || 0, 'sales in tenant Supabase');
     }
     
     const normalizedResellers = (resellersResult.data || []).map((r: any) => ({
@@ -1303,12 +1299,13 @@ router.get('/resellers-analytics', async (req: Request, res: Response) => {
       })
       .filter(Boolean);
     
-    console.log(`[Split] Loaded ${normalizedResellers.length} resellers and ${normalizedSales.length} sales`);
+    console.log(`[Split] Loaded ${normalizedResellers.length} resellers and ${normalizedSales.length} sales from tenant Supabase`);
     
     res.json({
       success: true,
       resellers: normalizedResellers,
       sales: normalizedSales,
+      source: 'tenant_supabase'
     });
   } catch (error: any) {
     console.error('[Split] Error in resellers-analytics:', error);
@@ -1527,24 +1524,26 @@ router.get('/product-requests', async (req: Request, res: Response) => {
     
     console.log('[Split] Found', requests?.length || 0, 'product requests');
     
-    // Get reseller info from Owner Supabase
-    const supabaseOwner = getMasterSupabaseClient();
     const resellerIds = [...new Set((requests || []).map(r => r.reseller_id))];
     let resellersMap: Record<string, any> = {};
     
-    if (supabaseOwner && resellerIds.length > 0) {
-      const { data: resellers } = await supabaseOwner
-        .from('revendedoras')
-        .select('id, nome, email')
+    if (resellerIds.length > 0) {
+      const { data: resellers, error: resellersError } = await tenantClient
+        .from('resellers')
+        .select('id, nome, email, telefone')
         .in('id', resellerIds);
       
-      resellersMap = (resellers || []).reduce((acc, r) => {
-        acc[r.id] = r;
-        return acc;
-      }, {} as Record<string, any>);
+      if (resellersError) {
+        console.log('[Split] Error fetching resellers from tenant:', resellersError.message);
+      } else {
+        resellersMap = (resellers || []).reduce((acc, r) => {
+          acc[r.id] = r;
+          return acc;
+        }, {} as Record<string, any>);
+        console.log('[Split] Found', Object.keys(resellersMap).length, 'resellers for enrichment');
+      }
     }
     
-    // Combine data
     const enrichedData = (requests || []).map(request => ({
       ...request,
       reseller: resellersMap[request.reseller_id] || null

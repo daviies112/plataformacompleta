@@ -11,6 +11,7 @@ import { resetAllPollerStates } from '../lib/stateReset';
 import { invalidateClienteCache } from '../lib/clienteSupabase';
 import { clearSupabaseClientCache as clearFormularioSupabaseCache } from '../formularios/utils/supabaseClient';
 import { syncAdminCredentialsToOwner } from '../lib/masterSyncService';
+import { invalidateLeadsCache } from './leadsPipelineRoutes';
 
 const router = express.Router();
 
@@ -96,6 +97,9 @@ router.put('/:integrationType', authenticateToken, async (req, res) => {
         clearSupabaseClientCache(clientId);
         invalidateClienteCache();
         clearFormularioSupabaseCache();
+        // 🔐 CRITICAL: Invalidar cache de leads do Kanban para forçar refetch do novo Supabase
+        invalidateLeadsCache(tenantId);
+        console.log(`🗑️ [CACHE] Cache de leads invalidado para tenant: ${tenantId}`);
         // 🔄 IMPORTANTE: Resetar estados dos pollers para sincronizar do zero
         // Isso garante que em uma nova instalação, todos os dados sejam sincronizados
         resetAllPollerStates();

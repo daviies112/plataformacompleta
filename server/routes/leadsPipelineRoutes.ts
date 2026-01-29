@@ -786,45 +786,16 @@ router.get('/:tenantId/stage/:stage', async (req, res) => {
 
     let stageLeads: any[] = [];
 
-    // Use the new aggregator and filter by stage
+    // 🔐 MULTI-TENANT STRICT: Use aggregator ONLY - no fallbacks to local DB
+    // This ensures tenant isolation: each tenant only sees their own Supabase data
     const journeys = await aggregateLeadJourneys(tenantId);
     
-    if (journeys.length > 0) {
-      stageLeads = journeys
-        .filter(journey => journey.pipelineStatus === stage)
-        .map(journey => transformJourneyToLead(journey));
-    } else {
-      // Fallback to legacy method
-      if (db) {
-        try {
-          const result = await db
-            .select()
-            .from(leads)
-            .where(and(
-              eq(leads.tenantId, tenantId),
-              eq(leads.pipelineStatus, stage)
-            ))
-            .orderBy(sql`${leads.updatedAt} DESC`);
-          
-          if (result.length > 0) {
-            stageLeads = result.map(row => transformRowToCamelCase(row as Record<string, any>));
-          }
-        } catch (localError: any) {
-          if (localError.message?.includes('does not exist') || localError.cause?.code === '42P01') {
-            console.log('ℹ️ [LeadsPipeline] Tabela leads local não existe');
-          }
-        }
-      }
-      
-      // Fallback to legacy Supabase fetch
-      if (stageLeads.length === 0) {
-        const supabaseLeads = await fetchLeadsFromSupabase(tenantId);
-        stageLeads = supabaseLeads.filter(lead => {
-          const leadStage = lead.calculatedStage || lead.pipelineStatus || 'contato-inicial';
-          return leadStage === stage;
-        });
-      }
-    }
+    // Filter by stage - if Supabase is empty, return empty array (no fallback)
+    stageLeads = journeys
+      .filter(journey => journey.pipelineStatus === stage)
+      .map(journey => transformJourneyToLead(journey));
+    
+    console.log(`[LeadsPipeline] Stage ${stage}: ${stageLeads.length} leads for tenant ${tenantId}`);
 
     res.json({
       success: true,
@@ -1389,6 +1360,78 @@ router.post('/supabase/dados-cliente', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to create client',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// 🔧 DEBUG: Endpoint to manually clear leads cache for a tenant
+// Used when Supabase credentials change and cache needs to be refreshed
+router.delete('/:tenantId/cache', async (req, res) => {
+  try {
+    const { tenantId } = req.params;
+    
+    if (!tenantId) {
+      return res.status(400).json({
+        success: false,
+        error: 'tenantId is required'
+      });
+    }
+    
+    // Validate tenantId format
+    if (!/^[a-zA-Z0-9_-]+$/.test(tenantId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid tenantId format'
+      });
+    }
+    
+    // Get cache status before invalidation
+    const cacheState = getCachedLeads(tenantId);
+    const hadCache = !!cacheState.data;
+    const cacheSize = cacheState.data?.length || 0;
+    
+    // Invalidate the cache
+    invalidateLeadsCache(tenantId);
+    
+    console.log(`🗑️ [LeadsPipeline] Cache cleared for tenant: ${tenantId} (had ${cacheSize} leads)`);
+    
+    res.json({
+      success: true,
+      message: `Cache cleared for tenant ${tenantId}`,
+      hadCache,
+      previousCacheSize: cacheSize
+    });
+  } catch (error) {
+    console.error('Error clearing cache:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to clear cache',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// 🔧 DEBUG: Endpoint to clear all leads cache (admin only)
+router.delete('/cache/all', async (req, res) => {
+  try {
+    const cacheSize = leadsCache.size;
+    
+    // Clear all cache
+    invalidateLeadsCache();
+    
+    console.log(`🗑️ [LeadsPipeline] All cache cleared (${cacheSize} tenants)`);
+    
+    res.json({
+      success: true,
+      message: 'All cache cleared',
+      previousCacheSize: cacheSize
+    });
+  } catch (error) {
+    console.error('Error clearing all cache:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to clear all cache',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
   }

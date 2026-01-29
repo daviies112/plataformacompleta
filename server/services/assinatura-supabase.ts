@@ -2,7 +2,6 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import * as fs from 'fs';
 import * as path from 'path';
 
-const CONFIG_FILE = path.join(process.cwd(), 'data', 'supabase-config.json');
 const GLOBAL_CONFIG_FILE = path.join(process.cwd(), 'data', 'assinatura_global_config.json');
 
 interface SupabaseConfig {
@@ -162,47 +161,80 @@ interface AssinaturaGlobalConfig {
 class AssinaturaSupabaseService {
   private supabase: SupabaseClient | null = null;
   private initialized = false;
+  private initPromise: Promise<void> | null = null;
   
   constructor() {
-    this.initialize();
+    // Inicialização será feita de forma lazy na primeira chamada
+    console.log('[AssinaturaSupabase] Serviço criado - inicialização lazy');
   }
   
-  private loadConfig(): SupabaseConfig | null {
+  /**
+   * Inicializa o cliente Supabase usando as credenciais do multi-tenant (banco de dados)
+   * Usa a mesma lógica do clienteSupabase.ts para garantir consistência
+   */
+  private async initializeAsync(): Promise<void> {
+    if (this.initialized) return;
+    
     try {
-      if (fs.existsSync(CONFIG_FILE)) {
-        const data = fs.readFileSync(CONFIG_FILE, 'utf-8');
-        const config = JSON.parse(data);
-        const url = config.url || config.supabaseUrl;
-        const anon_key = config.anon_key || config.supabaseAnonKey;
-        if (url && anon_key) {
-          console.log('[AssinaturaSupabase] Config carregada do arquivo');
-          return { url, anon_key };
-        }
+      // Importar getClienteSupabase para usar mesma lógica de credenciais
+      const { getClienteSupabase, isClienteSupabaseConfigured } = await import('../lib/clienteSupabase.js');
+      
+      const configured = await isClienteSupabaseConfigured();
+      if (configured) {
+        this.supabase = await getClienteSupabase();
+        this.initialized = true;
+        console.log('[AssinaturaSupabase] ✅ Conectado ao Supabase CLIENTE (multi-tenant)');
+        return;
       }
-    } catch (error) {
-      console.error('[AssinaturaSupabase] Erro ao carregar config:', error);
+    } catch (error: any) {
+      console.warn(`[AssinaturaSupabase] ⚠️ Erro ao conectar via clienteSupabase: ${error.message}`);
     }
     
+    // Fallback para env vars
     const url = process.env.REACT_APP_SUPABASE_URL || process.env.SUPABASE_URL;
     const key = process.env.REACT_APP_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
     
     if (url && key) {
-      console.log('[AssinaturaSupabase] Config carregada das env vars');
-      return { url, anon_key: key };
+      this.supabase = createClient(url, key);
+      this.initialized = true;
+      console.log('[AssinaturaSupabase] ✅ Conectado ao Supabase via env vars (fallback)');
+      return;
     }
     
-    return null;
+    console.warn('[AssinaturaSupabase] ⚠️ Supabase não configurado - usando fallback local');
   }
   
-  private initialize(): void {
-    const config = this.loadConfig();
-    if (config) {
-      this.supabase = createClient(config.url, config.anon_key);
-      this.initialized = true;
-      console.log('[AssinaturaSupabase] Conectado ao Supabase');
-    } else {
-      console.warn('[AssinaturaSupabase] Supabase não configurado - usando fallback local');
+  /**
+   * Garante que o serviço está inicializado antes de usar
+   */
+  private async ensureInitialized(): Promise<void> {
+    if (this.initialized) return;
+    
+    if (!this.initPromise) {
+      this.initPromise = this.initializeAsync();
     }
+    
+    await this.initPromise;
+  }
+  
+  /**
+   * Reinicializa o serviço (útil quando credenciais mudam)
+   */
+  async reinitialize(): Promise<void> {
+    console.log('[AssinaturaSupabase] 🔄 Reinicializando serviço...');
+    this.supabase = null;
+    this.initialized = false;
+    this.initPromise = null;
+    
+    // Invalidar cache do clienteSupabase também
+    try {
+      const { invalidateClienteCache } = await import('../lib/clienteSupabase.js');
+      invalidateClienteCache();
+    } catch (error) {
+      // Ignorar se não conseguir invalidar
+    }
+    
+    await this.ensureInitialized();
   }
   
   isConnected(): boolean {
@@ -210,6 +242,14 @@ class AssinaturaSupabaseService {
   }
   
   getSupabaseClient(): SupabaseClient | null {
+    return this.supabase;
+  }
+  
+  /**
+   * Retorna o cliente Supabase de forma assíncrona, garantindo inicialização
+   */
+  async getSupabaseClientAsync(): Promise<SupabaseClient | null> {
+    await this.ensureInitialized();
     return this.supabase;
   }
   
@@ -238,6 +278,9 @@ class AssinaturaSupabaseService {
   }
   
   async getGlobalConfig(tenantId: string = 'default'): Promise<AssinaturaGlobalConfig | null> {
+    // Garantir inicialização antes de usar
+    await this.ensureInitialized();
+    
     // Tenta buscar do Supabase primeiro
     if (this.supabase) {
       try {
@@ -269,6 +312,9 @@ class AssinaturaSupabaseService {
   }
   
   async saveGlobalConfig(config: AssinaturaGlobalConfig, tenantId: string = 'default'): Promise<AssinaturaGlobalConfig | null> {
+    // Garantir inicialização antes de usar
+    await this.ensureInitialized();
+    
     const updatedConfig = {
       ...config,
       tenant_id: tenantId,
@@ -377,6 +423,9 @@ class AssinaturaSupabaseService {
   }
   
   async getAllContracts(tenantId: string = 'default'): Promise<AssinaturaContract[]> {
+    // Garantir inicialização antes de usar
+    await this.ensureInitialized();
+    
     if (!this.supabase) return [];
     
     try {
@@ -401,6 +450,9 @@ class AssinaturaSupabaseService {
   }
   
   async getContractById(id: string): Promise<AssinaturaContract | null> {
+    // Garantir inicialização antes de usar
+    await this.ensureInitialized();
+    
     if (!this.supabase) return null;
     
     try {
@@ -436,6 +488,9 @@ class AssinaturaSupabaseService {
   }
   
   async getContractByToken(token: string): Promise<AssinaturaContract | null> {
+    // Garantir inicialização antes de usar
+    await this.ensureInitialized();
+    
     if (!this.supabase) return null;
     
     try {
@@ -477,6 +532,9 @@ class AssinaturaSupabaseService {
   }
   
   async createContract(contract: AssinaturaContract, tenantId: string = 'default'): Promise<AssinaturaContract | null> {
+    // Garantir inicialização antes de usar
+    await this.ensureInitialized();
+    
     if (!this.supabase) return null;
     
     try {
@@ -586,6 +644,9 @@ class AssinaturaSupabaseService {
   }
   
   async updateContractByToken(token: string, updates: Partial<AssinaturaContract>): Promise<AssinaturaContract | null> {
+    // Garantir inicialização antes de usar
+    await this.ensureInitialized();
+    
     if (!this.supabase) return null;
     
     try {
@@ -630,6 +691,9 @@ class AssinaturaSupabaseService {
   }
   
   async updateContract(id: string, updates: Partial<AssinaturaContract>): Promise<AssinaturaContract | null> {
+    // Garantir inicialização antes de usar
+    await this.ensureInitialized();
+    
     if (!this.supabase) return null;
     
     try {
@@ -677,6 +741,9 @@ class AssinaturaSupabaseService {
     signed_contract_html?: string;
     status?: string;
   }): Promise<AssinaturaContract | null> {
+    // Garantir inicialização antes de usar
+    await this.ensureInitialized();
+    
     if (!this.supabase) return null;
     
     try {
@@ -816,6 +883,9 @@ class AssinaturaSupabaseService {
   }
   
   async deleteContract(id: string): Promise<boolean> {
+    // Garantir inicialização antes de usar
+    await this.ensureInitialized();
+    
     if (!this.supabase) return false;
     
     try {
@@ -838,6 +908,9 @@ class AssinaturaSupabaseService {
   }
   
   async deleteContractByToken(token: string): Promise<boolean> {
+    // Garantir inicialização antes de usar
+    await this.ensureInitialized();
+    
     if (!this.supabase) return false;
     
     try {
