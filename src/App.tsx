@@ -9,6 +9,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { NotificationProvider } from "./contexts/NotificationContext";
 import { queryClient } from "./lib/queryClient";
 import { InstallPWAButton } from "./components/InstallPWAButton";
+import { MonitoringProvider } from "./components/MonitoringProvider";
 import { Loader2 } from "lucide-react";
 
 const LoadingFallback = () => (
@@ -148,16 +149,18 @@ const App = () => (
       disableTransitionOnChange
     >
       <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter
-          future={{
-            v7_startTransition: true,
-            v7_relativeSplatPath: true,
-          }}
-        >
-          <AppRoutes />
-        </BrowserRouter>
+        <MonitoringProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter
+            future={{
+              v7_startTransition: true,
+              v7_relativeSplatPath: true,
+            }}
+          >
+            <AppRoutes />
+          </BrowserRouter>
+        </MonitoringProvider>
       </TooltipProvider>
     </ThemeProvider>
   </QueryClientProvider>

@@ -33,6 +33,7 @@ import pagarmePublicRoutes from "./routes/pagarmePublic";
 import publicStoreRoutes from "./routes/publicStore";
 import walletRoutes from "./routes/wallet";
 import splitRoutes from "./routes/split";
+import monitoringRoutes from "./routes/monitoring";
 
 // Configure multer for logo uploads
 const logoStorage = multer.diskStorage({
@@ -66,6 +67,10 @@ const logoUpload = multer({
 export async function registerRoutes(app: Express) {
   // Create HTTP server
   const httpServer = createServer(app);
+
+  // 🔍 MONITORING ROUTES - Must be registered first (no auth required)
+  // Health check and monitoring logs for frontend monitoring system
+  app.use("/api", monitoringRoutes);
 
   app.use("/auth", authRoutes);
   app.use("/api/biometric", biometricRoutes);
