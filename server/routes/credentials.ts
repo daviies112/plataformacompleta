@@ -6,7 +6,7 @@ import { clearSupabaseClientCache, testDynamicSupabaseConnection } from '../lib/
 import { db } from '../db';
 import { pluggyConfig, supabaseConfig, n8nConfig, evolutionApiConfig } from '../../shared/db-schema.js';
 import { eq } from 'drizzle-orm';
-import { getSupabaseCredentials, getPluggyCredentials, getN8nCredentials, getEvolutionApiCredentials } from '../lib/credentialsDb';
+import { getSupabaseCredentials, getSupabaseCredentialsStrict, getPluggyCredentials, getN8nCredentials, getEvolutionApiCredentials } from '../lib/credentialsDb';
 import { resetAllPollerStates } from '../lib/stateReset';
 import { invalidateClienteCache } from '../lib/clienteSupabase';
 import { clearSupabaseClientCache as clearFormularioSupabaseCache } from '../formularios/utils/supabaseClient';
@@ -178,10 +178,13 @@ router.get('/:integrationType', authenticateToken, async (req, res) => {
     }
 
     // Se não encontrou na memória, busca do banco de dados COM tenantId
+    // 🔐 ADMIN PLATFORM: Usar versão STRICT sem fallbacks para garantir isolamento
     let dbCredentials = null;
     
     if (integrationType === 'supabase') {
-      const supabaseCreds = await getSupabaseCredentials(tenantId);
+      // 🔐 CRITICAL: Usar getSupabaseCredentialsStrict para isolamento de tenant
+      // Isso garante que admin novo veja credenciais ZERADAS (não de outro tenant)
+      const supabaseCreds = await getSupabaseCredentialsStrict(tenantId);
       if (supabaseCreds) {
         dbCredentials = {
           url: supabaseCreds.url,
@@ -283,8 +286,9 @@ router.get('/', authenticateToken, async (req, res) => {
 
     console.log(`🔐 [CREDENTIALS] Listando status de credenciais para tenant ${tenantId}`);
 
-    // Verifica também no banco de dados para credenciais persistidas COM tenantId
-    const supabaseCreds = await getSupabaseCredentials(tenantId);
+    // 🔐 ADMIN PLATFORM: Usar versão STRICT para Supabase (sem fallbacks)
+    // Isso garante que admin novo veja status "não configurado" (não de outro tenant)
+    const supabaseCreds = await getSupabaseCredentialsStrict(tenantId);
     const pluggyCreds = await getPluggyCredentials(tenantId);
     const n8nCreds = await getN8nCredentials(tenantId);
 

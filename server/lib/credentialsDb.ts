@@ -105,47 +105,96 @@ export async function getPluggyCredentials(tenantId: string): Promise<PluggyCred
   }
 }
 
+// Helper function to decrypt Supabase config
+function decryptSupabaseConfig(config: typeof supabaseConfig.$inferSelect): SupabaseCredentials | null {
+  try {
+    let url: string;
+    let anonKey: string;
+    
+    try {
+      url = decrypt(config.supabaseUrl);
+      anonKey = decrypt(config.supabaseAnonKey);
+      console.log(`✅ [SUPABASE] Credenciais descriptografadas com sucesso (tenant: ${config.tenantId})`);
+    } catch (decryptError: any) {
+      // Fallback: dados podem estar em texto plano (formato legado)
+      if (config.supabaseUrl.startsWith('http')) {
+        console.log('⚠️ [SUPABASE] Usando credenciais em texto plano (formato legado)');
+        url = config.supabaseUrl;
+        anonKey = config.supabaseAnonKey;
+      } else {
+        throw decryptError;
+      }
+    }
+    
+    console.log(`✅ [SUPABASE] URL: ${url.substring(0, 30)}...`);
+    
+    return {
+      url,
+      anonKey,
+      bucket: config.supabaseBucket || 'receipts'
+    };
+  } catch (decryptError) {
+    console.error('❌ [SUPABASE] Erro ao descriptografar credenciais:', decryptError);
+    return null;
+  }
+}
+
+/**
+ * Get Supabase credentials STRICTLY for a specific tenant - NO FALLBACKS
+ * 🔐 ADMIN PLATFORM: Ensures complete tenant isolation
+ * 
+ * This function is used by the admin platform to guarantee that:
+ * - Each admin sees ONLY their own credentials
+ * - New admins start with EMPTY/ZERO credentials
+ * - No data leakage between tenants
+ * 
+ * @param tenantId - The tenant ID to get credentials for
+ * @returns Credentials if configured for this tenant, null otherwise
+ */
+export async function getSupabaseCredentialsStrict(tenantId: string): Promise<SupabaseCredentials | null> {
+  if (!tenantId) {
+    console.error('❌ [SUPABASE-STRICT] tenantId é obrigatório');
+    return null;
+  }
+
+  try {
+    console.log(`🔍 [SUPABASE-STRICT] Buscando credenciais APENAS para tenant ${tenantId}...`);
+    const configs = await db.select()
+      .from(supabaseConfig)
+      .where(eq(supabaseConfig.tenantId, tenantId))
+      .limit(1)
+      .execute();
+    
+    if (configs.length > 0) {
+      const result = decryptSupabaseConfig(configs[0]);
+      if (result) {
+        console.log(`✅ [SUPABASE-STRICT] Credenciais encontradas para tenant: ${tenantId}`);
+        return result;
+      }
+    }
+    
+    // NO FALLBACKS - Return null if not found for this specific tenant
+    console.log(`ℹ️ [SUPABASE-STRICT] Nenhuma credencial configurada para tenant ${tenantId}`);
+    console.log(`💡 [SUPABASE-STRICT] Admin deve configurar suas próprias credenciais em /configuracoes`);
+    return null;
+  } catch (error) {
+    console.warn(`⚠️ [SUPABASE-STRICT] Erro ao buscar credenciais para tenant ${tenantId}:`, error);
+    return null;
+  }
+}
+
 /**
  * Get Supabase credentials from database
  * 🔐 MULTI-TENANT: First tries database with tenant_id, then falls back to tenant 'system', then env vars
- * This allows the system to work with just Secrets configured
+ * 
+ * ⚠️ WARNING: This function has fallbacks and should ONLY be used by:
+ * - Background jobs (pollers, sync services)
+ * - System-level code that needs a Supabase client
+ * 
+ * For admin platform routes, use getSupabaseCredentialsStrict() instead to ensure tenant isolation.
  */
 export async function getSupabaseCredentials(tenantId: string): Promise<SupabaseCredentials | null> {
-  // Helper function to decrypt config
-  const decryptConfig = (config: typeof supabaseConfig.$inferSelect): SupabaseCredentials | null => {
-    try {
-      let url: string;
-      let anonKey: string;
-      
-      try {
-        url = decrypt(config.supabaseUrl);
-        anonKey = decrypt(config.supabaseAnonKey);
-        console.log(`✅ [SUPABASE] Credenciais descriptografadas com sucesso (tenant: ${config.tenantId})`);
-      } catch (decryptError: any) {
-        // Fallback: dados podem estar em texto plano (formato legado)
-        if (config.supabaseUrl.startsWith('http')) {
-          console.log('⚠️ [SUPABASE] Usando credenciais em texto plano (formato legado)');
-          url = config.supabaseUrl;
-          anonKey = config.supabaseAnonKey;
-        } else {
-          throw decryptError;
-        }
-      }
-      
-      console.log(`✅ [SUPABASE] URL: ${url.substring(0, 30)}...`);
-      
-      return {
-        url,
-        anonKey,
-        bucket: config.supabaseBucket || 'receipts'
-      };
-    } catch (decryptError) {
-      console.error('❌ [SUPABASE] Erro ao descriptografar credenciais:', decryptError);
-      return null;
-    }
-  };
-
-  // 1. First try with provided tenantId
+  // 1. First try with provided tenantId (strict)
   try {
     console.log(`🔍 [SUPABASE] Buscando credenciais do banco de dados (supabase_config)...`);
     const configs = await db.select()
@@ -155,7 +204,7 @@ export async function getSupabaseCredentials(tenantId: string): Promise<Supabase
       .execute();
     
     if (configs.length > 0) {
-      const result = decryptConfig(configs[0]);
+      const result = decryptSupabaseConfig(configs[0]);
       if (result) {
         console.log(`✅ [SUPABASE] Usando credenciais do tenant: ${tenantId}`);
         return result;
@@ -166,9 +215,10 @@ export async function getSupabaseCredentials(tenantId: string): Promise<Supabase
   }
   
   // 2. Fallback to 'system' tenant (used when credentials come from Secrets at startup)
+  // ⚠️ WARNING: This fallback is for background jobs ONLY - not for admin platform
   if (tenantId !== 'system') {
     try {
-      console.log('🔄 [SUPABASE] Tentando fallback para tenant system...');
+      console.log('🔄 [SUPABASE] Tentando fallback para tenant system (background jobs)...');
       const systemConfigs = await db.select()
         .from(supabaseConfig)
         .where(eq(supabaseConfig.tenantId, 'system'))
@@ -176,9 +226,9 @@ export async function getSupabaseCredentials(tenantId: string): Promise<Supabase
         .execute();
       
       if (systemConfigs.length > 0) {
-        const result = decryptConfig(systemConfigs[0]);
+        const result = decryptSupabaseConfig(systemConfigs[0]);
         if (result) {
-          console.log('✅ [SUPABASE] Usando credenciais do tenant system (fallback)');
+          console.log('✅ [SUPABASE] Usando credenciais do tenant system (fallback para background jobs)');
           return result;
         }
       }
@@ -187,10 +237,10 @@ export async function getSupabaseCredentials(tenantId: string): Promise<Supabase
     }
   }
   
-  // 3. Fallback: environment variables (Secrets)
+  // 3. Fallback: environment variables (Secrets) - for background jobs only
   const envCredentials = await getSupabaseCredentialsFromEnv();
   if (envCredentials) {
-    console.log('✅ [SUPABASE] Usando credenciais dos Secrets (fallback)');
+    console.log('✅ [SUPABASE] Usando credenciais dos Secrets (fallback para background jobs)');
     return envCredentials;
   }
   

@@ -1891,66 +1891,38 @@ export function setupConfigRoutes(app: Express) {
       
       console.log(`🔍 [SUPABASE] Buscando credenciais para tenant: ${tenantId}`);
       
-      // Try database first
+      // 🔐 ADMIN PLATFORM: Use STRICT version - NO FALLBACKS
+      // This ensures each admin sees ONLY their own credentials
+      // New admins will see EMPTY/ZERO credentials (not from another tenant)
       try {
-        const { getSupabaseCredentials } = await import('../lib/credentialsDb.js');
-        const credentials = await getSupabaseCredentials(tenantId);
+        const { getSupabaseCredentialsStrict } = await import('../lib/credentialsDb.js');
+        const credentials = await getSupabaseCredentialsStrict(tenantId);
         
         if (credentials) {
-          console.log("✅ Supabase credentials loaded from database");
-          // Also check file config for databaseUrl (stored separately)
-          const fileConfig = getEffectiveSupabaseConfig();
+          console.log(`✅ [SUPABASE-STRICT] Credenciais encontradas para tenant: ${tenantId}`);
           return res.json({
             success: true,
             credentials: {
               url: credentials.url,
               anonKey: credentials.anonKey,
               bucket: credentials.bucket || 'receipts',
-              databaseUrl: fileConfig?.databaseUrl || null,
             },
             source: 'database'
           });
         }
       } catch (dbError) {
-        console.warn("⚠️ Database unavailable for Supabase credentials, trying file fallback:", dbError instanceof Error ? dbError.message : 'Unknown error');
+        console.warn("⚠️ Database unavailable for Supabase credentials:", dbError instanceof Error ? dbError.message : 'Unknown error');
       }
       
-      // Fallback to file-based config
-      const fileConfig = getEffectiveSupabaseConfig();
-      if (fileConfig) {
-        console.log("✅ Supabase credentials loaded from file-based config");
-        return res.json({
-          success: true,
-          credentials: {
-            url: fileConfig.url,
-            anonKey: fileConfig.anonKey,
-            bucket: 'receipts',
-            databaseUrl: fileConfig.databaseUrl || null,
-          },
-          source: 'file'
-        });
-      }
+      // 🔐 NO FALLBACKS - Return empty credentials for new admins
+      // This is correct behavior: new admins should configure their own credentials
+      console.log(`ℹ️ [SUPABASE-STRICT] Nenhuma credencial configurada para tenant ${tenantId}`);
+      console.log(`💡 [SUPABASE-STRICT] Admin deve configurar suas próprias credenciais`);
       
-      // Fallback para Secrets (compatibilidade durante migração)
-      const urlFromEnv = process.env.REACT_APP_SUPABASE_URL || process.env.SUPABASE_URL;
-      const keyFromEnv = process.env.REACT_APP_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
-      
-      if (urlFromEnv && keyFromEnv) {
-        console.log("⚠️ Usando credenciais do Supabase dos environment variables (fallback)");
-        return res.json({
-          success: true,
-          credentials: {
-            url: urlFromEnv,
-            anonKey: keyFromEnv,
-            bucket: 'receipts',
-          },
-          source: 'environment'
-        });
-      }
-      
-      return res.status(404).json({
+      return res.json({
         success: false,
-        error: "Credenciais não encontradas. Configure através da interface de administração ou environment variables."
+        credentials: null,
+        message: "Credenciais não configuradas. Configure seu Supabase Database para começar."
       });
     } catch (error) {
       console.error("Erro ao buscar credenciais do Supabase:", error);
