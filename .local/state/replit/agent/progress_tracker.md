@@ -28,10 +28,24 @@
     - Application running with 85 database tables
     - All background jobs and queues initialized
     - Project import verified and completed
-[x] 204. Import migration completed - January 29, 2026:
-    - drizzle-kit package installed
-    - Workflow restarted successfully
-    - Application running with 85 database tables
-    - All background jobs, queues, and polling services initialized
-    - Vite development server running on port 5000
-    - Project import completed successfully
+[x] 204. Verificação de correções do documento - January 29, 2026:
+    - NotFound.tsx: overlays têm pointer-events-none (linhas 11, 14, 15) ✅
+    - Index.tsx: overlays têm pointer-events-none (linhas 144, 147-151) ✅
+    - Isolamento Multi-Tenant implementado:
+      * getSupabaseCredentialsStrict() em server/lib/credentialsDb.ts ✅
+      * getClientSupabaseClientStrict() em server/lib/multiTenantSupabase.ts ✅
+      * Validação de 'default-tenant' em leadsPipelineRoutes.ts (rejeita valor inválido) ✅
+      * getSupabaseCredentialsStrict usada em config.ts, credentials.ts, formularios-complete.ts ✅
+    - Tabela revendedoras com comissao_padrao referenciada em SQL e rotas ✅
+    - .replit configurado corretamente:
+      * modules = nodejs-20, web, bash ✅
+      * workflow "Start application" com npm run dev ✅
+      * outputType = webview, waitForPort = 5000 ✅
+      * deployment autoscale configurado ✅
+    - drizzle-kit instalado e funcionando ✅
+[x] 205. Aplicação rodando com sucesso - January 29, 2026:
+    - 85 tabelas do banco de dados
+    - Todos os background jobs inicializados
+    - Filas de processamento ativas (emails, analytics, notifications, data-processing)
+    - Pollers funcionando (FormPoller, CPFPoller, ContractSync)
+    - Vite development server inicializado
