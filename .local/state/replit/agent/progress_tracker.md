@@ -56,3 +56,25 @@
     - All background jobs, queues, and polling services running
     - Vite development server initialized
     - Project import completed
+[x] 207. Sistema de Monitoramento Implementado - January 29, 2026:
+    - Hook useAppMonitoring.ts criado:
+      * Heartbeat a cada 30 segundos para /api/health
+      * Monitoramento de online/offline e visibilidade da aba
+      * Captura de erros globais (window.onerror, unhandledrejection)
+      * Detecção de long tasks via PerformanceObserver
+      * Persistência de logs em localStorage (últimos 100)
+      * Estados: healthy, degraded, disconnected
+      * Auto-recuperação após 5 falhas
+    - MonitoringProvider.tsx criado:
+      * Banner visual quando conexão está instável/perdida
+      * Botão de recarga manual
+      * Context API para acesso ao estado
+    - Endpoints backend criados:
+      * GET /api/health - Health check (sem auth, rate limited)
+      * POST /api/monitoring/logs - Recebe logs do frontend
+      * GET /api/monitoring/logs - Consulta logs (dev only)
+      * GET /api/monitoring/stats - Estatísticas (dev only)
+    - Segurança:
+      * Endpoints GET/DELETE protegidos (development only)
+      * Rate limiting em todos os endpoints
+    - Integração no App.tsx concluída
