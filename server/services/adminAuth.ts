@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { supabaseOwner, SUPABASE_CONFIGURED } from '../config/supabaseOwner';
+import { supabaseOwner, SUPABASE_CONFIGURED, SUPABASE_OWNER_URL, SUPABASE_OWNER_KEY } from '../config/supabaseOwner';
 
 export interface AdminUser {
   id: string;
@@ -84,37 +84,88 @@ class AdminAuthService {
   }
 
   async directLogin(email: string, password: string): Promise<LoginResult> {
-    if (!supabaseOwner) {
+    // Primeiro tenta via Supabase client
+    if (supabaseOwner) {
+      try {
+        console.log('[AdminAuth] Tentando login direto na tabela admin_users');
+        
+        const { data, error } = await supabaseOwner
+          .from('admin_users')
+          .select('*')
+          .eq('email', email)
+          .eq('is_active', true)
+          .single();
+
+        if (!error && data) {
+          const isValidPassword = await bcrypt.compare(password, data.password_hash);
+          if (!isValidPassword) {
+            console.log('[AdminAuth] Senha inválida');
+            return { success: false, error: 'Credenciais inválidas' };
+          }
+
+          await this.updateLastLogin(data.id);
+          return this.generateLoginResponse(data);
+        }
+        
+        console.log('[AdminAuth] Supabase client falhou, tentando REST API:', error?.message);
+      } catch (error) {
+        console.log('[AdminAuth] Erro no client, tentando REST API:', error);
+      }
+    }
+
+    // Fallback para REST API direta (bypassa schema cache)
+    return this.restApiLogin(email, password);
+  }
+
+  private async restApiLogin(email: string, password: string): Promise<LoginResult> {
+    if (!SUPABASE_OWNER_URL || !SUPABASE_OWNER_KEY) {
+      console.log('[AdminAuth] REST API: Credenciais não configuradas');
       return this.fallbackLogin(email, password);
     }
 
     try {
-      console.log('[AdminAuth] Tentando login direto na tabela admin_users');
+      console.log('[AdminAuth] Tentando login via REST API direto');
       
-      const { data, error } = await supabaseOwner
-        .from('admin_users')
-        .select('*')
-        .eq('email', email)
-        .eq('is_active', true)
-        .single();
+      const restUrl = `${SUPABASE_OWNER_URL}/rest/v1/admin_users?email=eq.${encodeURIComponent(email)}&is_active=eq.true&select=*`;
+      
+      const response = await fetch(restUrl, {
+        method: 'GET',
+        headers: {
+          'apikey': SUPABASE_OWNER_KEY,
+          'Authorization': `Bearer ${SUPABASE_OWNER_KEY}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation'
+        }
+      });
 
-      if (error || !data) {
-        console.log('[AdminAuth] Usuário não encontrado na tabela:', error?.message);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.log('[AdminAuth] REST API erro:', response.status, errorText);
         return this.fallbackLogin(email, password);
       }
 
-      const isValidPassword = await bcrypt.compare(password, data.password_hash);
+      const data = await response.json();
+      
+      if (!data || data.length === 0) {
+        console.log('[AdminAuth] REST API: Usuário não encontrado');
+        return this.fallbackLogin(email, password);
+      }
+
+      const userData = data[0];
+      
+      const isValidPassword = await bcrypt.compare(password, userData.password_hash);
       if (!isValidPassword) {
         console.log('[AdminAuth] Senha inválida');
         return { success: false, error: 'Credenciais inválidas' };
       }
 
-      await this.updateLastLogin(data.id);
+      await this.updateLastLogin(userData.id);
+      console.log('[AdminAuth] ✅ Login via REST API bem-sucedido');
 
-      return this.generateLoginResponse(data);
+      return this.generateLoginResponse(userData);
 
     } catch (error) {
-      console.error('[AdminAuth] Erro no login direto:', error);
+      console.error('[AdminAuth] Erro no REST API login:', error);
       return this.fallbackLogin(email, password);
     }
   }

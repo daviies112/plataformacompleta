@@ -65,3 +65,5 @@ export function createClientSupabase(supabaseUrl: string | null, supabaseKey: st
 }
 
 export const SUPABASE_CONFIGURED = !!(supabaseOwnerUrl && supabaseOwnerKey);
+export const SUPABASE_OWNER_URL = supabaseOwnerUrl;
+export const SUPABASE_OWNER_KEY = supabaseOwnerKey;
