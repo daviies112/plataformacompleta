@@ -46,36 +46,32 @@ class AdminAuthService {
     try {
       console.log(`[AdminAuth] Verificando login para: ${email}`);
       
-      const { data, error } = await supabaseOwner!.rpc('verificar_login_admin', {
-        p_email: email,
-        p_senha: password
+      // Tenta primeiro a função RPC get_admin_by_email (mais confiável)
+      const { data: rpcData, error: rpcError } = await supabaseOwner!.rpc('get_admin_by_email', {
+        p_email: email
       });
 
-      if (error) {
-        console.error('[AdminAuth] Erro ao chamar função RPC:', error);
-        if (error.code === 'PGRST202') {
-          console.log('[AdminAuth] Função verificar_login_admin não existe, tentando query direta');
-          return this.directLogin(email, password);
+      if (!rpcError && rpcData && rpcData.length > 0) {
+        console.log('[AdminAuth] ✅ Usuário encontrado via RPC get_admin_by_email');
+        const userData = rpcData[0];
+        
+        const isValidPassword = await bcrypt.compare(password, userData.password_hash);
+        if (!isValidPassword) {
+          console.log('[AdminAuth] Senha inválida');
+          return { success: false, error: 'Credenciais inválidas' };
         }
-        return { success: false, error: 'Erro ao verificar credenciais' };
+
+        await this.updateLastLogin(userData.id);
+        return this.generateLoginResponse(userData);
       }
 
-      if (!data || data.length === 0) {
-        console.log('[AdminAuth] Usuário não encontrado ou inativo');
-        return { success: false, error: 'Credenciais inválidas' };
+      if (rpcError) {
+        console.log('[AdminAuth] RPC get_admin_by_email falhou:', rpcError.message);
       }
 
-      const userData = data[0];
-      
-      const isValidPassword = await bcrypt.compare(password, userData.password_hash);
-      if (!isValidPassword) {
-        console.log('[AdminAuth] Senha inválida');
-        return { success: false, error: 'Credenciais inválidas' };
-      }
-
-      await this.updateLastLogin(userData.id);
-
-      return this.generateLoginResponse(userData);
+      // Fallback para query direta
+      console.log('[AdminAuth] Tentando query direta...');
+      return this.directLogin(email, password);
 
     } catch (error) {
       console.error('[AdminAuth] Erro no login:', error);
@@ -174,16 +170,12 @@ class AdminAuthService {
     if (!supabaseOwner) return;
 
     try {
-      await supabaseOwner.rpc('atualizar_ultimo_login', { p_user_id: userId });
+      // Tenta a nova função update_admin_last_login
+      await supabaseOwner.rpc('update_admin_last_login', { p_user_id: userId });
+      console.log('[AdminAuth] Último login atualizado via RPC');
     } catch (error) {
-      try {
-        await supabaseOwner
-          .from('admin_users')
-          .update({ last_login: new Date().toISOString(), updated_at: new Date().toISOString() })
-          .eq('id', userId);
-      } catch (e) {
-        console.warn('[AdminAuth] Não foi possível atualizar último login:', e);
-      }
+      // Fallback silencioso - não crítico
+      console.log('[AdminAuth] Não foi possível atualizar último login (não crítico)');
     }
   }
 
