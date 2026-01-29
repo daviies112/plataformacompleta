@@ -75,6 +75,18 @@ const DesktopApp = () => {
       <Route path="/" element={<RootRedirect />} />
       {/* Rotas públicas de formulário removidas - tratadas via lazy loading no PlatformRouter */}
       
+      {/* Dashboard - Rota principal após login */}
+      <Route 
+        path="/dashboard" 
+        element={
+          <ProtectedRoute>
+            <DesktopLayout>
+              <FormularioPage />
+            </DesktopLayout>
+          </ProtectedRoute>
+        } 
+      />
+      
       {/* Protected routes with Desktop Layout */}
       {/* Formulário Page - Plataforma completa com header completo */}
       <Route 
