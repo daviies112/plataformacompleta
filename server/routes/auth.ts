@@ -242,4 +242,56 @@ router.delete('/admin/:id', requireSuperAdmin, async (req: AuthenticatedRequest,
   }
 });
 
+router.get('/admin/diagnose', async (req, res) => {
+  try {
+    const { supabaseOwner, SUPABASE_CONFIGURED } = await import('../config/supabaseOwner');
+    
+    const diagnosis: any = {
+      supabase_owner_configured: SUPABASE_CONFIGURED,
+      admin_users_table_exists: false,
+      rpc_function_exists: false,
+      sample_admin: null,
+      error: null
+    };
+
+    if (!SUPABASE_CONFIGURED || !supabaseOwner) {
+      diagnosis.error = 'Supabase Owner não configurado';
+      return res.json(diagnosis);
+    }
+
+    const { data: tableCheck, error: tableError } = await supabaseOwner
+      .from('admin_users')
+      .select('id')
+      .limit(1);
+    
+    if (!tableError) {
+      diagnosis.admin_users_table_exists = true;
+      
+      const { data: admins } = await supabaseOwner
+        .from('admin_users')
+        .select('id, email, name, role, is_active, created_at')
+        .limit(5);
+      
+      diagnosis.sample_admin = admins || [];
+    } else {
+      diagnosis.table_error = tableError.message;
+    }
+
+    const { data: rpcCheck, error: rpcError } = await supabaseOwner.rpc('verificar_login_admin', {
+      p_email: 'test@test.com',
+      p_senha: 'test'
+    });
+    
+    if (!rpcError || rpcError.code !== 'PGRST202') {
+      diagnosis.rpc_function_exists = true;
+    } else {
+      diagnosis.rpc_error = rpcError.message;
+    }
+
+    res.json(diagnosis);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export { router as authRoutes };
