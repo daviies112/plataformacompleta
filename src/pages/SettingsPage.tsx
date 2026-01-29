@@ -249,6 +249,45 @@ const SettingsPage = () => {
     retry: false,
   });
 
+  const clearAllTenantCache = () => {
+    console.log('🧹 [Cache] Limpando todo o cache do tenant anterior...');
+    
+    queryClient.clear();
+    
+    const tenantSpecificKeys = [
+      'leads_cache',
+      'forms_cache', 
+      'contracts_cache',
+      'clients_cache',
+      'reunioes_cache',
+      'gravacoes_cache',
+      'dashboard_cache',
+      'calendar_cache',
+      'notifications_cache',
+      'products_cache',
+      'orders_cache',
+      'resellers_cache',
+      'compliance_cache',
+      'workspace_data',
+      'notion_data',
+    ];
+    
+    tenantSpecificKeys.forEach(key => {
+      localStorage.removeItem(key);
+    });
+    
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith('tenant_') || key.startsWith('cache_') || key.startsWith('data_')) {
+        localStorage.removeItem(key);
+      }
+    });
+    
+    window.dispatchEvent(new CustomEvent('tenant-credentials-changed'));
+    window.dispatchEvent(new CustomEvent('supabase-config-changed'));
+    
+    console.log('✅ [Cache] Cache do tenant limpo com sucesso!');
+  };
+
   const saveSupabaseMutation = useMutation({
     mutationFn: async (credentials: any) => {
       const response = await fetch('/api/config/supabase', {
@@ -268,7 +307,6 @@ const SettingsPage = () => {
         throw new Error(error.error || 'Erro ao salvar configuração');
       }
       
-      // ✅ CORREÇÃO CRÍTICA: Salvar no localStorage para que o frontend use as credenciais
       localStorage.setItem('supabase_url', credentials.url);
       localStorage.setItem('supabase_anon_key', credentials.anon_key);
       console.log('✅ Credenciais do Supabase salvas no localStorage');
@@ -276,12 +314,13 @@ const SettingsPage = () => {
       return response.json();
     },
     onSuccess: () => {
+      clearAllTenantCache();
+      
       refetchCredentials();
-      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/dashboard-data'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/dashboard/calendar-events'] });
+      
       toast({
         title: "Integração configurada",
-        description: "Credenciais do Supabase salvas com sucesso!",
+        description: "Credenciais do Supabase salvas! Cache limpo automaticamente.",
       });
     },
     onError: (error: any) => {
@@ -612,9 +651,8 @@ const SettingsPage = () => {
       return response.json();
     },
     onSuccess: () => {
-      toast({ title: "Supabase Master configurado", description: "Credenciais salvas com sucesso!" });
-      queryClient.invalidateQueries({ queryKey: ['/api/config/supabase-master'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/config/supabase-master/credentials'] });
+      clearAllTenantCache();
+      toast({ title: "Supabase Master configurado", description: "Credenciais salvas! Cache limpo automaticamente." });
     },
     onError: (error: any) => {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
