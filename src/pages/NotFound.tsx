@@ -8,11 +8,11 @@ const NotFound = () => {
   return (
     <div className="min-h-screen bg-luxury relative flex items-center justify-center">
       {/* Luxury Background Elements */}
-      <div className="fixed inset-0 bg-gradient-to-br from-background via-background/98 to-muted/3" />
+      <div className="fixed inset-0 bg-gradient-to-br from-background via-background/98 to-muted/3 pointer-events-none" />
       
       {/* Premium Ambient Lights */}
-      <div className="fixed top-0 left-1/3 w-96 h-96 bg-primary/4 rounded-full blur-3xl animate-float" />
-      <div className="fixed bottom-0 right-1/3 w-80 h-80 bg-secondary/3 rounded-full blur-3xl animate-float" style={{ animationDelay: '3s' }} />
+      <div className="fixed top-0 left-1/3 w-96 h-96 bg-primary/4 rounded-full blur-3xl animate-float pointer-events-none" />
+      <div className="fixed bottom-0 right-1/3 w-80 h-80 bg-secondary/3 rounded-full blur-3xl animate-float pointer-events-none" style={{ animationDelay: '3s' }} />
       
       <div className="relative z-10 text-center space-y-6 md:space-y-8 animate-fade-in max-w-md mx-auto px-4 md:px-6">
         
