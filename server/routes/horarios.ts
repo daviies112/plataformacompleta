@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { getClientSupabaseClient } from '../lib/multiTenantSupabase';
+import { getClientSupabaseClientStrict } from '../lib/multiTenantSupabase';
 import { requireTenant } from '../middleware/requireTenant';
 
 const router = Router();
@@ -13,12 +13,12 @@ function calcularPeriodo(horario: string): string {
 
 router.get('/horarios', async (req: Request, res: Response) => {
   try {
-    const tenantId = (req as any).tenantId || req.headers['x-tenant-id'] || 'system';
+    const tenantId = (req as any).tenantId || req.headers['x-tenant-id'] as string;
     if (!tenantId) {
-      return res.status(401).json({ error: 'Não autenticado' });
+      return res.status(401).json({ error: 'Tenant não identificado' });
     }
 
-    const supabase = await getClientSupabaseClient(tenantId);
+    const supabase = await getClientSupabaseClientStrict(tenantId);
     if (!supabase) {
       return res.status(500).json({ error: 'Supabase não configurado' });
     }
@@ -44,12 +44,12 @@ router.get('/horarios', async (req: Request, res: Response) => {
 
 router.post('/horarios', async (req: Request, res: Response) => {
   try {
-    const tenantId = (req as any).tenantId || req.headers['x-tenant-id'] || 'system';
+    const tenantId = (req as any).tenantId || req.headers['x-tenant-id'] as string;
     if (!tenantId) {
-      return res.status(401).json({ error: 'Não autenticado' });
+      return res.status(401).json({ error: 'Tenant não identificado' });
     }
 
-    const supabase = await getClientSupabaseClient(tenantId);
+    const supabase = await getClientSupabaseClientStrict(tenantId);
     if (!supabase) {
       return res.status(500).json({ error: 'Supabase não configurado' });
     }
@@ -158,12 +158,12 @@ router.post('/horarios', async (req: Request, res: Response) => {
 
 router.put('/horarios/:id', async (req: Request, res: Response) => {
   try {
-    const tenantId = (req as any).tenantId || req.headers['x-tenant-id'] || 'system';
+    const tenantId = (req as any).tenantId || req.headers['x-tenant-id'] as string;
     if (!tenantId) {
-      return res.status(401).json({ error: 'Não autenticado' });
+      return res.status(401).json({ error: 'Tenant não identificado' });
     }
 
-    const supabase = await getClientSupabaseClient(tenantId);
+    const supabase = await getClientSupabaseClientStrict(tenantId);
     if (!supabase) {
       return res.status(500).json({ error: 'Supabase não configurado' });
     }
@@ -265,12 +265,12 @@ router.put('/horarios/:id', async (req: Request, res: Response) => {
 
 router.delete('/horarios/:id', async (req: Request, res: Response) => {
   try {
-    const tenantId = (req as any).tenantId || req.headers['x-tenant-id'] || 'system';
+    const tenantId = (req as any).tenantId || req.headers['x-tenant-id'] as string;
     if (!tenantId) {
-      return res.status(401).json({ error: 'Não autenticado' });
+      return res.status(401).json({ error: 'Tenant não identificado' });
     }
 
-    const supabase = await getClientSupabaseClient(tenantId);
+    const supabase = await getClientSupabaseClientStrict(tenantId);
     if (!supabase) {
       return res.status(500).json({ error: 'Supabase não configurado' });
     }
@@ -297,12 +297,12 @@ router.delete('/horarios/:id', async (req: Request, res: Response) => {
 
 router.patch('/horarios/:id/toggle', async (req: Request, res: Response) => {
   try {
-    const tenantId = (req as any).tenantId || req.headers['x-tenant-id'] || 'system';
+    const tenantId = (req as any).tenantId || req.headers['x-tenant-id'] as string;
     if (!tenantId) {
-      return res.status(401).json({ error: 'Não autenticado' });
+      return res.status(401).json({ error: 'Tenant não identificado' });
     }
 
-    const supabase = await getClientSupabaseClient(tenantId);
+    const supabase = await getClientSupabaseClientStrict(tenantId);
     if (!supabase) {
       return res.status(500).json({ error: 'Supabase não configurado' });
     }

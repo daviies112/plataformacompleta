@@ -14,7 +14,7 @@ import {
   listarGravacoesSala,
   obterUrlPresignadaAsset
 } from '../services/meetings/hms100ms';
-import { getClientSupabaseClient } from '../lib/multiTenantSupabase';
+import { getClientSupabaseClient, getClientSupabaseClientStrict } from '../lib/multiTenantSupabase';
 import { nanoid } from 'nanoid';
 import { z } from 'zod';
 import { cache } from '../lib/cache';
@@ -952,18 +952,20 @@ async function get100msCredentials(tenantId: string) {
 }
 
 // GET /api/reunioes - List local meetings with Supabase sync fallback
+// STRICT MODE: Only sync from Supabase if tenant has their own credentials configured
 meetingsRouter.get('/reunioes', authenticateToken, requireTenantId, async (req: AuthRequest, res: Response) => {
   try {
     const tenantId = req.user!.tenantId;
     
-    // 1. Get local meetings
+    // 1. Get local meetings (always from PostgreSQL with tenantId filter)
     let localMeetings = await db.select().from(reunioes)
       .where(eq(reunioes.tenantId, tenantId))
       .orderBy(desc(reunioes.dataInicio));
 
-    // 2. Attempt to sync from Supabase if local list is empty or for refresh
+    // 2. Attempt to sync from Supabase ONLY if tenant has their own credentials (strict mode)
+    // Using getClientSupabaseClientStrict to avoid fallback to incorrect credentials
     try {
-      const supabase = await getClientSupabaseClient(tenantId);
+      const supabase = await getClientSupabaseClientStrict(tenantId);
       if (supabase) {
         const { data: supabaseMeetings, error } = await supabase
           .from('reunioes')
@@ -1022,9 +1024,10 @@ meetingsRouter.get('/reunioes/room-design', authenticateToken, requireTenantId, 
       .where(eq(hms100msConfig.tenantId, tenantId))
       .limit(1);
     
-    // 2. Attempt to sync from Supabase
+    // 2. Attempt to sync from Supabase ONLY if tenant has their own credentials (strict mode)
+    // Using getClientSupabaseClientStrict to avoid fallback to incorrect credentials
     try {
-      const supabase = await getClientSupabaseClient(tenantId);
+      const supabase = await getClientSupabaseClientStrict(tenantId);
       if (supabase) {
         // Tabela correta para configurações de design é hms_100ms_config no Supabase
         const { data: supabaseConfig, error } = await supabase

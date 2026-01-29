@@ -10,7 +10,7 @@
  * The journey shows accumulated progression through the pipeline stages.
  */
 
-import { getClientSupabaseClient } from './multiTenantSupabase';
+import { getClientSupabaseClientStrict } from './multiTenantSupabase';
 import { getClienteSupabase, isClienteSupabaseConfigured } from './clienteSupabase';
 import { normalizePhone } from '../formularios/utils/phoneNormalizer.js';
 import { isSupabaseMasterConfigured, getSupabaseMasterForTenant, type DatacorpCheck } from './supabaseMaster';
@@ -577,7 +577,7 @@ async function fetchDadosCliente(tenantId: string): Promise<Map<string, any>> {
     return new Map();
   }
   
-  let supabase = await getClientSupabaseClient(tenantId);
+  let supabase = await getClientSupabaseClientStrict(tenantId);
   
   // 🔐 SECURITY FIX: Removed fallback to getClienteSupabase
   // Each tenant MUST have their own Supabase credentials configured.
@@ -632,7 +632,7 @@ async function fetchN8nChatHistories(tenantId: string): Promise<Map<string, Chat
     return new Map();
   }
   
-  let supabase = await getClientSupabaseClient(tenantId);
+  let supabase = await getClientSupabaseClientStrict(tenantId);
   
   // 🔐 SECURITY FIX: Removed fallback to getClienteSupabase
   // Each tenant MUST have their own Supabase credentials configured.
@@ -765,7 +765,7 @@ async function fetchFormSubmissions(tenantId: string): Promise<Map<string, any>>
     return new Map();
   }
   
-  let supabase = await getClientSupabaseClient(tenantId);
+  let supabase = await getClientSupabaseClientStrict(tenantId);
   
   // 🔐 SECURITY FIX: Removed fallback to getClienteSupabase
   // Each tenant MUST have their own Supabase credentials configured.
@@ -851,7 +851,7 @@ async function fetchCpfComplianceResults(tenantId: string): Promise<Map<string, 
     return new Map();
   }
   
-  let supabase = await getClientSupabaseClient(tenantId);
+  let supabase = await getClientSupabaseClientStrict(tenantId);
   
   // 🔐 SECURITY FIX: Removed fallback to getClienteSupabase
   // Each tenant MUST have their own Supabase credentials configured.
@@ -1000,7 +1000,7 @@ async function fetchCpfFromMaster(tenantId: string): Promise<Map<string, any>> {
     
     if (submissionIds.length > 0) {
       try {
-        const clientSupabase = await getClientSupabaseClient(tenantId);
+        const clientSupabase = await getClientSupabaseClientStrict(tenantId);
         if (clientSupabase) {
           const { data: submissions, error: subError } = await clientSupabase
             .from('form_submissions')
@@ -1218,7 +1218,7 @@ async function fetchCpfFromMaster(tenantId: string): Promise<Map<string, any>> {
  * Fetches data from reuniao table (singular) and reunioes (plural), merging results
  */
 async function fetchReunioes(tenantId: string): Promise<Map<string, any>> {
-  const supabase = await getClientSupabaseClient(tenantId);
+  const supabase = await getClientSupabaseClientStrict(tenantId);
   if (!supabase) return new Map();
   
   // Query BOTH tables and merge results (in case data is in different tables)
@@ -1333,7 +1333,7 @@ async function fetchDashboardCompleto(tenantId: string): Promise<Map<string, any
     return new Map();
   }
   
-  const supabase = await getClientSupabaseClient(tenantId);
+  const supabase = await getClientSupabaseClientStrict(tenantId);
   if (!supabase) return new Map();
   
   const tablesToTry = ['clientes_completos', 'dashboard_completo_v5_base'];
@@ -1410,7 +1410,7 @@ async function fetchFormularioEnvios(tenantId: string): Promise<Map<string, any>
     return new Map();
   }
   
-  const supabase = await getClientSupabaseClient(tenantId);
+  const supabase = await getClientSupabaseClientStrict(tenantId);
   if (!supabase) return new Map();
   
   try {
@@ -1468,7 +1468,7 @@ async function fetchAssinaturaContracts(tenantId: string): Promise<Map<string, A
     return new Map();
   }
   
-  const supabase = await getClientSupabaseClient(tenantId);
+  const supabase = await getClientSupabaseClientStrict(tenantId);
   if (!supabase) return new Map();
   
   try {
@@ -1556,7 +1556,7 @@ async function fetchAssinaturaContracts(tenantId: string): Promise<Map<string, A
  * @returns Array of LeadJourney objects with accumulated data from all stages
  */
 export async function aggregateLeadJourneys(tenantId: string): Promise<LeadJourney[]> {
-  const supabase = await getClientSupabaseClient(tenantId);
+  const supabase = await getClientSupabaseClientStrict(tenantId);
   
   if (!supabase) {
     console.log(`⚠️ [LeadJourneyAggregator] Supabase não configurado para tenant: ${tenantId}`);

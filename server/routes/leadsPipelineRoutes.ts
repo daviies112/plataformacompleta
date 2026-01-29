@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { db } from '../db';
 import { leads, dadosCliente } from '../../shared/db-schema';
 import { eq, and, sql } from 'drizzle-orm';
-import { getGlobalSupabaseClient } from '../lib/supabaseAutoConnect';
+import { getClientSupabaseClientStrict } from '../lib/multiTenantSupabase';
 import { aggregateLeadJourneys, LeadJourney } from '../lib/leadJourneyAggregator';
 import { normalizePhone } from '../formularios/utils/phoneNormalizer.js';
 
@@ -396,16 +396,17 @@ function transformJourneyToLead(journey: LeadJourney): Record<string, any> {
  */
 async function fetchLeadsFromSupabase(tenantId: string): Promise<any[]> {
   try {
-    const supabase = getGlobalSupabaseClient();
-    
-    if (!supabase) {
-      console.log('⚠️ [LeadsPipeline] Supabase não configurado - não é possível buscar leads');
-      return [];
-    }
-    
     // 🔐 SECURITY FIX: Validate tenantId to prevent data leakage - reject 'default-tenant'
     if (!tenantId || tenantId.trim() === '' || tenantId === 'default-tenant') {
       console.error('❌ [LeadsPipeline] tenantId inválido para buscar leads - "default-tenant" não é permitido');
+      return [];
+    }
+    
+    // 🔐 MULTI-TENANT STRICT: Use tenant-specific Supabase client (no fallbacks)
+    const supabase = await getClientSupabaseClientStrict(tenantId);
+    
+    if (!supabase) {
+      console.log(`ℹ️ [LeadsPipeline] Supabase não configurado para tenant ${tenantId} - retornando leads vazios`);
       return [];
     }
     
@@ -889,15 +890,6 @@ router.patch('/:leadId', async (req, res) => {
 
     // If in Supabase-only mode, update directly in Supabase
     if (useSupabaseOnly || existingLeads.length === 0) {
-      const supabase = getGlobalSupabaseClient();
-      
-      if (!supabase) {
-        return res.status(503).json({
-          success: false,
-          error: 'Nenhum banco de dados configurado. Configure Supabase via /configuracoes'
-        });
-      }
-      
       const data = validation.data;
       
       // Require tenantId for multi-tenant isolation in Supabase-only mode
@@ -909,11 +901,29 @@ router.patch('/:leadId', async (req, res) => {
         });
       }
       
+      // 🔐 SECURITY FIX: Reject invalid tenantId values
+      if (tenantId === 'default-tenant' || tenantId.trim() === '') {
+        return res.status(400).json({
+          success: false,
+          error: 'tenantId inválido - "default-tenant" não é permitido'
+        });
+      }
+      
       // Validate tenantId format to prevent injection
       if (!/^[a-zA-Z0-9-_]+$/.test(tenantId)) {
         return res.status(400).json({
           success: false,
           error: 'Formato inválido de tenantId'
+        });
+      }
+      
+      // 🔐 MULTI-TENANT STRICT: Use tenant-specific Supabase client (no fallbacks)
+      const supabase = await getClientSupabaseClientStrict(tenantId);
+      
+      if (!supabase) {
+        return res.status(503).json({
+          success: false,
+          error: `Supabase não configurado para tenant ${tenantId}. Configure via /configuracoes`
         });
       }
       
@@ -1167,13 +1177,22 @@ router.patch('/supabase/:leadId', async (req, res) => {
         error: 'Formato inválido de tenantId'
       });
     }
+    
+    // 🔐 SECURITY FIX: Reject invalid tenantId values
+    if (tenantId === 'default-tenant' || tenantId.trim() === '') {
+      return res.status(400).json({
+        success: false,
+        error: 'tenantId inválido - "default-tenant" não é permitido'
+      });
+    }
 
-    const supabase = getGlobalSupabaseClient();
+    // 🔐 MULTI-TENANT STRICT: Use tenant-specific Supabase client (no fallbacks)
+    const supabase = await getClientSupabaseClientStrict(tenantId);
     
     if (!supabase) {
       return res.status(503).json({
         success: false,
-        error: 'Supabase não configurado. Configure em /configuracoes'
+        error: `Supabase não configurado para tenant ${tenantId}. Configure em /configuracoes`
       });
     }
     
@@ -1307,12 +1326,21 @@ router.post('/supabase/dados-cliente', async (req, res) => {
       });
     }
     
-    const supabase = getGlobalSupabaseClient();
+    // 🔐 SECURITY FIX: Reject invalid tenantId values
+    if (tenantId === 'default-tenant' || tenantId.trim() === '') {
+      return res.status(400).json({
+        success: false,
+        error: 'tenantId inválido - "default-tenant" não é permitido'
+      });
+    }
+    
+    // 🔐 MULTI-TENANT STRICT: Use tenant-specific Supabase client (no fallbacks)
+    const supabase = await getClientSupabaseClientStrict(tenantId);
     
     if (!supabase) {
       return res.status(503).json({
         success: false,
-        error: 'Supabase não configurado. Configure em /configuracoes'
+        error: `Supabase não configurado para tenant ${tenantId}. Configure em /configuracoes`
       });
     }
     
