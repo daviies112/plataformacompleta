@@ -34,7 +34,7 @@ app.use((req, res, next) => {
   // In production, restrict to same-origin
   const isReplit = process.env.REPL_ID || process.env.REPLIT_DEV_DOMAIN;
   if (isReplit) {
-    res.setHeader('Content-Security-Policy', "frame-ancestors 'self' *.replit.com *.replit.dev *.repl.co");
+    res.setHeader('Content-Security-Policy', "frame-ancestors 'self' *.replit.com *.replit.dev *.repl.co *.picard.replit.dev replit.com replit.dev");
   }
   next();
 });

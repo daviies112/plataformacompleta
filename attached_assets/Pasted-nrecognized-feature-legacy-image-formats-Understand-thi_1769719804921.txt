@@ -1,0 +1,21 @@
+nrecognized feature: 'legacy-image-formats'.Understand this warning
+workspace_iframe.html?initialPath=%2F&id=%3Ar7j%3A:32 Unrecognized feature: 'navigation-override'.Understand this warning
+workspace_iframe.html?initialPath=%2F&id=%3Ar7j%3A:32 Unrecognized feature: 'oversized-images'.Understand this warning
+workspace_iframe.html?initialPath=%2F&id=%3Ar7j%3A:32 Unrecognized feature: 'publickey-credentials'.Understand this warning
+workspace_iframe.html?initialPath=%2F&id=%3Ar7j%3A:32 Unrecognized feature: 'speaker-selection'.Understand this warning
+workspace_iframe.html?initialPath=%2F&id=%3Ar7j%3A:32 Unrecognized feature: 'unoptimized-images'.Understand this warning
+workspace_iframe.html?initialPath=%2F&id=%3Ar7j%3A:32 Unrecognized feature: 'unsized-media'.Understand this warning
+workspace_iframe.html?initialPath=%2F&id=%3Ar7j%3A:32 Allow attribute will take precedence over 'allowfullscreen'.Understand this warning
+workspace_iframe.html?initialPath=%2F&id=%3Ar7j%3A:32 Allow attribute will take precedence over 'allowpaymentrequest'.Understand this warning
+Framing 'https://1b28601e-5eea-4940-8fa3-6e4eb01bf580-00-1718cugpvmddj.picard.replit.dev/' violates the following Content Security Policy directive: "frame-ancestors 'self' *.replit.com *.replit.dev *.repl.co". The request has been blocked.
+Understand this error
+stallwart.build.js:1 stallwart: failed ping 1
+stallwart.build.js:1 stallwart: failed ping 2
+stallwart.build.js:1 stallwart: failed ping 3
+stallwart.build.js:1 stallwart: failed ping 4
+stallwart.build.js:1 stallwart: failed ping 5
+/public/sounds/Achievement_Bell_Replit.wav:1  Failed to load resource: net::ERR_CACHE_OPERATION_NOT_SUPPORTEDUnderstand this error
+t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://1b28601e-5eea-4940-8fa3-6e4eb01bf580-00-1718cugpvmddj.picard.replit.dev&size=32:1  Failed to load resource: the server responded with a status of 404 ()Understand this error
+t1.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://1b28601e-5eea-4940-8fa3-6e4eb01bf580-00-1718cugpvmddj.picard.replit.dev/&size=32:1  Failed to load resource: the server responded with a status of 404 ()Understand this error
+analytics.google.com/g/collect?v=2&tid=G-MPJY3F1YEL&gtm=45je61r1v9135634466za20g&_p=1769718340638&_gaz=1&gcd=13l3l3l3l2l1&npa=0&dma=0&ul=pt-br&sr=1536x864&cid=1063597267.1749675979&ecid=2064914769&ir=1&uaa=x86&uab=64&uafvl=Not(A%253ABrand%3B8.0.0.0%7CChromium%3B144.0.7559.97%7CGoogle%2520Chrome%3B144.0.7559.97&uamb=0&uam=&uap=Windows&uapv=19.0.0&uaw=0&are=1&frm=0&pscdl=noapi&_eu=EBAIAGQ&_s=27&tag_exp=103116026~103200004~104527906~104528501~104684208~104684211~115495939~115938466~115938468~116185181~116185182~116988315~117041587&dl=https%3A%2F%2Freplit.com%2F~&dr=https%3A%2F%2Fcheckout.stripe.com%2F&dp=%2F%40h8d7vkc%2Fplataformacompleta&dt=replEnvironmentDesktop&sid=1769717700&sct=282&seg=1&_tu=wAQ&en=Workspace&_ee=1&ep.event_category=All&ep.value=0&_et=1095&tfd=1388590:1  Failed to load resource: net::ERR_CONNECTION_CLOSEDUnderstand this error
+Framing 'https://1b28601e-5eea-4940-8fa3-6e4eb01bf580-00-1718cugpvmddj.picard.replit.dev/' violates the following Content Security Policy directive: "frame-ancestors 'self' *.replit.com *.replit.dev *.repl.co". The request has been blocked.

@@ -77,7 +77,7 @@ export async function setupVite(app: Express, server: Server) {
         // Allow iframe embedding for Replit preview
         const isReplit = process.env.REPL_ID || process.env.REPLIT_DEV_DOMAIN;
         if (isReplit) {
-          headers["Content-Security-Policy"] = "frame-ancestors 'self' *.replit.com *.replit.dev *.repl.co";
+          headers["Content-Security-Policy"] = "frame-ancestors 'self' *.replit.com *.replit.dev *.repl.co *.picard.replit.dev replit.com replit.dev";
         }
         
         res.status(200).set(headers).end(transformedTemplate);
