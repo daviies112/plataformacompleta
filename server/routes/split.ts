@@ -14,9 +14,51 @@ import {
   DEVELOPER_FEE_PERCENTAGE,
   TOTAL_PLATFORM_FEE_PERCENTAGE,
 } from '../services/commission';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { getSupabaseCredentials } from '../lib/credentialsDb';
 
 const router = Router();
+
+async function getTenantSupabaseClient(tenantId?: string): Promise<{ client: SupabaseClient | null; url: string | null; source: string }> {
+  if (tenantId) {
+    try {
+      const credentials = await getSupabaseCredentials(tenantId);
+      if (credentials?.url && credentials?.anonKey) {
+        console.log(`[Split] Using DB credentials for tenant: ${tenantId}`);
+        const client = createClient(credentials.url, credentials.anonKey, {
+          auth: { autoRefreshToken: false, persistSession: false }
+        });
+        return { client, url: credentials.url, source: 'database' };
+      }
+    } catch (error) {
+      console.warn('[Split] Error getting DB credentials:', error);
+    }
+  }
+  
+  try {
+    const fs = await import('fs');
+    const path = await import('path');
+    const configPath = path.join(process.cwd(), 'data', 'supabase-config.json');
+    
+    if (fs.existsSync(configPath)) {
+      const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+      const supabaseUrl = config.supabaseUrl || config.url;
+      const supabaseKey = config.supabaseServiceKey || config.serviceKey || config.supabaseAnonKey;
+      
+      if (supabaseUrl && supabaseKey) {
+        console.log('[Split] Using file credentials (fallback)');
+        const client = createClient(supabaseUrl, supabaseKey, {
+          auth: { autoRefreshToken: false, persistSession: false }
+        });
+        return { client, url: supabaseUrl, source: 'file' };
+      }
+    }
+  } catch (error) {
+    console.warn('[Split] Error reading config file:', error);
+  }
+  
+  return { client: null, url: null, source: 'none' };
+}
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -1198,15 +1240,14 @@ router.get('/recipient/:recipientId', async (req: Request, res: Response) => {
 router.get('/resellers-analytics', async (req: Request, res: Response) => {
   if (!requireAdmin(req, res)) return;
   
-  console.log('[Split] GET /resellers-analytics - Fetching reseller data from tenant Supabase ONLY');
+  console.log('[Split] GET /resellers-analytics - Fetching reseller data from tenant Supabase');
   
   try {
-    const fs = await import('fs');
-    const path = await import('path');
-    const configPath = path.join(process.cwd(), 'data', 'supabase-config.json');
+    const tenantId = (req as any).user?.tenantId || 'dev-teste_empresa_com';
+    const { client: tenantSupabase, url: supabaseUrl, source } = await getTenantSupabaseClient(tenantId);
     
-    if (!fs.existsSync(configPath)) {
-      console.log('[Split] No tenant config file - returning empty data');
+    if (!tenantSupabase) {
+      console.log('[Split] No Supabase credentials found');
       return res.json({
         success: true,
         resellers: [],
@@ -1215,25 +1256,7 @@ router.get('/resellers-analytics', async (req: Request, res: Response) => {
       });
     }
     
-    const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-    const supabaseUrl = config.supabaseUrl || config.url;
-    const supabaseKey = config.supabaseServiceKey || config.serviceKey || config.supabaseAnonKey;
-    
-    if (!supabaseUrl || !supabaseKey) {
-      console.log('[Split] Invalid tenant config - missing URL or key');
-      return res.json({
-        success: true,
-        resellers: [],
-        sales: [],
-        warning: 'Configuração Supabase incompleta. Verifique as credenciais.'
-      });
-    }
-    
-    const tenantSupabase = createClient(supabaseUrl, supabaseKey, {
-      auth: { autoRefreshToken: false, persistSession: false }
-    });
-    
-    console.log('[Split] Using tenant Supabase:', supabaseUrl);
+    console.log(`[Split] Using tenant Supabase (${source}):`, supabaseUrl);
     
     let resellersResult: { data: any[] | null; error: any } = { data: [], error: null };
     let salesResult: { data: any[] | null; error: any } = { data: [], error: null };
@@ -1326,12 +1349,11 @@ router.get('/commission-config', async (req: Request, res: Response) => {
   console.log('[Split] GET /commission-config - Loading commission configuration');
   
   try {
-    const fs = await import('fs');
-    const path = await import('path');
-    const configPath = path.join(process.cwd(), 'data', 'supabase-config.json');
+    const tenantId = (req as any).user?.tenantId || 'dev-teste_empresa_com';
+    const { client: tenantSupabase, source } = await getTenantSupabaseClient(tenantId);
     
-    if (!fs.existsSync(configPath)) {
-      console.log('[Split] No tenant config file, using defaults');
+    if (!tenantSupabase) {
+      console.log('[Split] No Supabase credentials, using defaults');
       return res.json({
         success: true,
         config: {
@@ -1342,24 +1364,7 @@ router.get('/commission-config', async (req: Request, res: Response) => {
       });
     }
     
-    const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-    if (!config.supabaseUrl || !(config.supabaseServiceKey || config.supabaseAnonKey)) {
-      console.log('[Split] Invalid tenant config, using defaults');
-      return res.json({
-        success: true,
-        config: {
-          id: 'default',
-          use_dynamic_tiers: true,
-          sales_tiers: getDefaultTiers(),
-        }
-      });
-    }
-    
-    const tenantSupabase = createClient(
-      config.supabaseUrl,
-      config.supabaseServiceKey || config.supabaseAnonKey,
-      { auth: { autoRefreshToken: false, persistSession: false } }
-    );
+    console.log(`[Split] Loading commission config (${source})`);
     
     const { data, error } = await tenantSupabase
       .from('commission_config')
@@ -1415,30 +1420,17 @@ router.post('/commission-config', async (req: Request, res: Response) => {
       });
     }
     
-    const fs = await import('fs');
-    const path = await import('path');
-    const configPath = path.join(process.cwd(), 'data', 'supabase-config.json');
+    const tenantId = (req as any).user?.tenantId || 'dev-teste_empresa_com';
+    const { client: tenantSupabase, source } = await getTenantSupabaseClient(tenantId);
     
-    if (!fs.existsSync(configPath)) {
+    if (!tenantSupabase) {
       return res.status(500).json({
         success: false,
         error: 'Configuração do Supabase não encontrada',
       });
     }
     
-    const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-    if (!config.supabaseUrl || !(config.supabaseServiceKey || config.supabaseAnonKey)) {
-      return res.status(500).json({
-        success: false,
-        error: 'Credenciais do Supabase inválidas',
-      });
-    }
-    
-    const tenantSupabase = createClient(
-      config.supabaseUrl,
-      config.supabaseServiceKey || config.supabaseAnonKey,
-      { auth: { autoRefreshToken: false, persistSession: false } }
-    );
+    console.log(`[Split] Saving commission config (${source})`);
     
     const { data, error } = await tenantSupabase
       .from('commission_config')
@@ -1488,25 +1480,15 @@ router.get('/product-requests', async (req: Request, res: Response) => {
   console.log('[Split] GET /product-requests - Loading product requests for admin');
   
   try {
-    const fs = await import('fs');
-    const path = await import('path');
-    const configPath = path.join(process.cwd(), 'data', 'supabase-config.json');
+    const tenantId = (req as any).user?.tenantId || 'dev-teste_empresa_com';
+    const { client: tenantClient, source } = await getTenantSupabaseClient(tenantId);
     
-    if (!fs.existsSync(configPath)) {
-      console.log('[Split] No tenant config file');
+    if (!tenantClient) {
+      console.log('[Split] No Supabase credentials');
       return res.json({ success: true, data: [] });
     }
     
-    const configData = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-    const supabaseUrl = configData.supabaseUrl || configData.url;
-    const supabaseKey = configData.supabaseServiceKey || configData.serviceKey || configData.supabaseAnonKey;
-    
-    if (!supabaseUrl || !supabaseKey) {
-      console.log('[Split] Invalid tenant config - missing URL or key');
-      return res.json({ success: true, data: [] });
-    }
-    
-    const tenantClient = createClient(supabaseUrl, supabaseKey);
+    console.log(`[Split] Loading product requests (${source})`);
     
     // Fetch all product requests
     const { data: requests, error } = await tenantClient
@@ -1571,23 +1553,14 @@ router.patch('/product-requests/:id', async (req: Request, res: Response) => {
   }
   
   try {
-    const fs = await import('fs');
-    const path = await import('path');
-    const configPath = path.join(process.cwd(), 'data', 'supabase-config.json');
+    const tenantId = (req as any).user?.tenantId || 'dev-teste_empresa_com';
+    const { client: tenantClient, source } = await getTenantSupabaseClient(tenantId);
     
-    if (!fs.existsSync(configPath)) {
+    if (!tenantClient) {
       return res.status(400).json({ success: false, error: 'Configuração não encontrada' });
     }
     
-    const configData = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
-    const supabaseUrl = configData.supabaseUrl || configData.url;
-    const supabaseKey = configData.supabaseServiceKey || configData.serviceKey || configData.supabaseAnonKey;
-    
-    if (!supabaseUrl || !supabaseKey) {
-      return res.status(400).json({ success: false, error: 'Configuração inválida' });
-    }
-    
-    const tenantClient = createClient(supabaseUrl, supabaseKey);
+    console.log(`[Split] Updating product request (${source})`);
     
     const { data, error } = await tenantClient
       .from('product_requests')
