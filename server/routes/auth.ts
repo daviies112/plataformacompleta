@@ -1,7 +1,39 @@
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
+import jwt from 'jsonwebtoken';
 import { adminAuthService } from '../services/adminAuth';
 
 const router = express.Router();
+
+interface AuthenticatedRequest extends Request {
+  user?: {
+    userId: string;
+    email: string;
+    role: string;
+    tenantId: string;
+  };
+}
+
+const requireSuperAdmin = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  const token = req.headers.authorization?.replace('Bearer ', '');
+  
+  if (!token) {
+    return res.status(401).json({ success: false, error: 'Authentication required' });
+  }
+
+  try {
+    const jwtSecret = process.env.JWT_SECRET || 'demo-secret-key-for-development-only';
+    const decoded = jwt.verify(token, jwtSecret) as any;
+    
+    if (decoded.role !== 'superadmin' && decoded.role !== 'admin') {
+      return res.status(403).json({ success: false, error: 'Insufficient permissions' });
+    }
+    
+    req.user = decoded;
+    next();
+  } catch (error) {
+    return res.status(401).json({ success: false, error: 'Invalid token' });
+  }
+};
 
 router.post('/login', async (req, res) => {
   try {
@@ -91,7 +123,7 @@ router.get('/validate', async (req, res) => {
   }
 });
 
-router.post('/admin/create', async (req, res) => {
+router.post('/admin/create', requireSuperAdmin, async (req: AuthenticatedRequest, res) => {
   try {
     const { email, password, name, companyName, companyEmail, planType, role } = req.body;
 
@@ -134,7 +166,7 @@ router.post('/admin/create', async (req, res) => {
   }
 });
 
-router.get('/admin/list', async (req, res) => {
+router.get('/admin/list', requireSuperAdmin, async (req: AuthenticatedRequest, res) => {
   try {
     const admins = await adminAuthService.listAdmins();
     
@@ -155,7 +187,7 @@ router.get('/admin/list', async (req, res) => {
   }
 });
 
-router.put('/admin/:id', async (req, res) => {
+router.put('/admin/:id', requireSuperAdmin, async (req: AuthenticatedRequest, res) => {
   try {
     const { id } = req.params;
     const updates = req.body;
@@ -183,7 +215,7 @@ router.put('/admin/:id', async (req, res) => {
   }
 });
 
-router.delete('/admin/:id', async (req, res) => {
+router.delete('/admin/:id', requireSuperAdmin, async (req: AuthenticatedRequest, res) => {
   try {
     const { id } = req.params;
 

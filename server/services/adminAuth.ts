@@ -152,9 +152,13 @@ class AdminAuthService {
       {
         userId: user.id,
         email: user.email,
+        name: user.name,
         clientId: user.id,
         tenantId: user.tenant_id,
-        role: user.role
+        role: user.role,
+        companyName: user.company_name || user.name,
+        companyEmail: user.company_email || user.email,
+        planType: user.plan_type
       },
       this.jwtSecret,
       { expiresIn: '24h' }
@@ -210,9 +214,13 @@ class AdminAuthService {
       {
         userId: user.id,
         email: user.email,
+        name: user.name,
         clientId: user.id,
         tenantId: user.tenant_id,
-        role: user.role
+        role: user.role,
+        companyName: user.company_name || user.name,
+        companyEmail: user.company_email || user.email,
+        planType: user.plan_type
       },
       this.jwtSecret,
       { expiresIn: '24h' }
