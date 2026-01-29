@@ -249,10 +249,18 @@ const SettingsPage = () => {
     retry: false,
   });
 
-  const clearAllTenantCache = () => {
+  const clearAllTenantCache = async () => {
     console.log('🧹 [Cache] Limpando todo o cache do tenant anterior...');
     
     queryClient.clear();
+    
+    try {
+      const { queryClient: formsQueryClient } = await import('@/features/formularios-platform/lib/queryClient');
+      formsQueryClient.clear();
+      console.log('✅ [Cache] QueryClient de formulários limpo');
+    } catch (error) {
+      console.warn('⚠️ [Cache] Não foi possível limpar queryClient de formulários:', error);
+    }
     
     const tenantSpecificKeys = [
       'leads_cache',
@@ -270,6 +278,11 @@ const SettingsPage = () => {
       'compliance_cache',
       'workspace_data',
       'notion_data',
+      'supabase_config',
+      'supabase_url',
+      'supabase_anon_key',
+      'formularios_cache',
+      'forms_submissions_cache',
     ];
     
     tenantSpecificKeys.forEach(key => {
@@ -277,13 +290,14 @@ const SettingsPage = () => {
     });
     
     Object.keys(localStorage).forEach(key => {
-      if (key.startsWith('tenant_') || key.startsWith('cache_') || key.startsWith('data_')) {
+      if (key.startsWith('tenant_') || key.startsWith('cache_') || key.startsWith('data_') || key.startsWith('form_')) {
         localStorage.removeItem(key);
       }
     });
     
     window.dispatchEvent(new CustomEvent('tenant-credentials-changed'));
     window.dispatchEvent(new CustomEvent('supabase-config-changed'));
+    window.dispatchEvent(new CustomEvent('forms-cache-cleared'));
     
     console.log('✅ [Cache] Cache do tenant limpo com sucesso!');
   };
@@ -313,8 +327,8 @@ const SettingsPage = () => {
       
       return response.json();
     },
-    onSuccess: () => {
-      clearAllTenantCache();
+    onSuccess: async () => {
+      await clearAllTenantCache();
       
       refetchCredentials();
       
@@ -650,8 +664,8 @@ const SettingsPage = () => {
       if (!response.ok) throw new Error((await response.json()).error);
       return response.json();
     },
-    onSuccess: () => {
-      clearAllTenantCache();
+    onSuccess: async () => {
+      await clearAllTenantCache();
       toast({ title: "Supabase Master configurado", description: "Credenciais salvas! Cache limpo automaticamente." });
     },
     onError: (error: any) => {
