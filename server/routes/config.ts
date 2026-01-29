@@ -2075,6 +2075,16 @@ export function setupConfigRoutes(app: Express) {
         console.warn("⚠️ Could not clear multi-tenant Supabase cache:", multiTenantCacheError);
       }
       
+      // 🔐 CRITICAL: Clear formularios module Supabase client cache
+      // This cache is used by /api/forms endpoint and was causing stale data after credential change
+      try {
+        const { clearSupabaseClientCache: clearFormulariosCache } = await import('../formularios/utils/supabaseClient.js');
+        clearFormulariosCache();
+        console.log(`✅ Formularios Supabase cache cleared`);
+      } catch (formulariosError) {
+        console.warn("⚠️ Could not clear formularios Supabase cache:", formulariosError);
+      }
+      
       // Invalidate LeadsCache for this tenant (cached leads data from old credentials)
       try {
         const { invalidateLeadsCache } = await import('./leadsPipelineRoutes.js');

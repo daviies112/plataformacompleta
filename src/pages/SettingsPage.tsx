@@ -328,14 +328,19 @@ const SettingsPage = () => {
         throw new Error(error.error || 'Erro ao salvar configuração');
       }
       
-      localStorage.setItem('supabase_url', credentials.url);
-      localStorage.setItem('supabase_anon_key', credentials.anon_key);
-      console.log('✅ Credenciais do Supabase salvas no localStorage');
-      
-      return response.json();
+      // Note: credenciais serão salvas no onSuccess APÓS limpar cache antigo
+      return { ...(await response.json()), newCredentials: credentials };
     },
-    onSuccess: async () => {
+    onSuccess: async (data: any) => {
+      // IMPORTANTE: Limpa cache ANTES de salvar novas credenciais
       await clearAllTenantCache();
+      
+      // Salva novas credenciais DEPOIS de limpar cache antigo
+      if (data?.newCredentials) {
+        localStorage.setItem('supabase_url', data.newCredentials.url);
+        localStorage.setItem('supabase_anon_key', data.newCredentials.anon_key);
+        console.log('✅ Credenciais do Supabase salvas no localStorage (após limpar cache)');
+      }
       
       refetchCredentials();
       
