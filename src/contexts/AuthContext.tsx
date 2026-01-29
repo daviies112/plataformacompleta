@@ -6,6 +6,8 @@ interface User {
   email: string;
   name: string;
   role: 'admin' | 'viewer';
+  tenantId?: string;
+  clientId?: string;
 }
 
 interface Client {
@@ -72,19 +74,27 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         
         if (data.authenticated && data.user) {
           // Sessão válida - usar dados da sessão
+          // Extrair tenantId da sessão
+          const tenantId = data.user.tenant_id || data.user.tenantId || `dev-${data.user.email.replace('@', '_').replace(/\./g, '_')}`;
+          const clientId = data.user.id || '1';
+          
           const userData: User = {
             id: data.user.id || '1',
             email: data.user.email,
             name: data.user.nome || data.user.name,
-            role: 'admin' as const
+            role: 'admin' as const,
+            tenantId: tenantId,
+            clientId: clientId
           };
           
           const clientData: Client = {
-            id: '1',
-            name: 'Sua Empresa',
+            id: clientId,
+            name: data.user.company_name || 'Sua Empresa',
             email: data.user.email,
-            plan_type: 'pro' as const
+            plan_type: (data.user.plan_type as any) || 'pro'
           };
+          
+          console.log('[AuthContext] Session tenantId:', tenantId, 'clientId:', clientId);
           
           setUser(userData);
           setClient(clientData);
@@ -157,19 +167,27 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       
       if (response.ok && data.success) {
         // Login bem-sucedido - usar dados do usuário retornados
+        // Extrair tenantId da resposta (pode vir como tenant_id ou tenantId)
+        const tenantId = data.user?.tenant_id || data.user?.tenantId || `dev-${email.replace('@', '_').replace(/\./g, '_')}`;
+        const clientId = data.user?.id || data.client?.id || '1';
+        
         const userData: User = {
           id: data.user?.id || '1',
           email: data.user?.email || email,
           name: data.user?.nome || data.user?.name || 'Usuário',
-          role: 'admin' as const
+          role: 'admin' as const,
+          tenantId: tenantId,
+          clientId: clientId
         };
         
         const clientData: Client = {
-          id: '1',
-          name: 'Sua Empresa',
-          email: email,
-          plan_type: 'pro' as const
+          id: clientId,
+          name: data.client?.name || data.user?.company_name || 'Sua Empresa',
+          email: data.client?.email || email,
+          plan_type: (data.client?.plan_type as any) || 'pro'
         };
+        
+        console.log('[AuthContext] Login tenantId:', tenantId, 'clientId:', clientId);
         
         setUser(userData);
         setClient(clientData);

@@ -640,41 +640,33 @@ router.put('/global-config', async (req: Request, res: Response) => {
 
 router.get('/contracts', async (req: Request, res: Response) => {
   try {
-    const allContracts: any[] = [];
-    const seenTokens = new Set<string>();
-    
+    // REGRA: Supabase é a fonte de verdade quando configurado
+    // Dados locais só são usados quando NÃO há Supabase configurado
     if (assinaturaSupabaseService.isConnected()) {
       const supabaseContracts = await assinaturaSupabaseService.getAllContracts();
-      console.log(`[Assinatura] Supabase retornou ${supabaseContracts.length} contratos`);
+      console.log(`[Assinatura] Supabase conectado - retornando APENAS ${supabaseContracts.length} contratos do Supabase`);
       
-      for (const contract of supabaseContracts) {
-        if (contract.access_token) {
-          seenTokens.add(contract.access_token);
-        }
-        allContracts.push(contract);
-      }
+      // Ordenar por data de criação (mais recente primeiro)
+      supabaseContracts.sort((a, b) => {
+        const dateA = new Date(a.created_at || 0).getTime();
+        const dateB = new Date(b.created_at || 0).getTime();
+        return dateB - dateA;
+      });
+      
+      return res.json(supabaseContracts);
     }
     
+    // Fallback: usar dados locais APENAS quando Supabase não está configurado
     const localContracts = Array.from(localContractsStore.values());
-    console.log(`[Assinatura] Local storage tem ${localContracts.length} contratos`);
+    console.log(`[Assinatura] Supabase NÃO conectado - usando ${localContracts.length} contratos locais`);
     
-    for (const localContract of localContracts) {
-      if (localContract.access_token && !seenTokens.has(localContract.access_token)) {
-        allContracts.push(localContract);
-        seenTokens.add(localContract.access_token);
-      } else if (!localContract.access_token) {
-        allContracts.push(localContract);
-      }
-    }
-    
-    allContracts.sort((a, b) => {
+    localContracts.sort((a, b) => {
       const dateA = new Date(a.created_at || 0).getTime();
       const dateB = new Date(b.created_at || 0).getTime();
       return dateB - dateA;
     });
     
-    console.log(`[Assinatura] Retornando ${allContracts.length} contratos (Supabase + Local merged)`);
-    res.json(allContracts);
+    res.json(localContracts);
   } catch (error) {
     console.error('[Assinatura] Erro ao buscar contratos:', error);
     res.status(500).json({ error: 'Falha ao buscar contratos' });

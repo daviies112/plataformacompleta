@@ -73,6 +73,35 @@ const upload = multer({
 });
 
 /**
+ * Helper function to check if a tenant has Supabase configured
+ * 🔐 MULTI-TENANT: Verifica se o tenant tem credenciais Supabase configuradas
+ * 
+ * Esta função é usada para determinar se devemos usar APENAS Supabase (sem fallback)
+ * ou se devemos usar PostgreSQL local.
+ * 
+ * REGRA: 
+ * - Se retorna true → usar APENAS Supabase, mesmo que vazio
+ * - Se retorna false → usar PostgreSQL local
+ * 
+ * @param tenantId - ID do tenant para verificar
+ * @returns true se Supabase está configurado, false caso contrário
+ */
+async function hasSupabaseConfigured(tenantId: string): Promise<boolean> {
+  if (!tenantId) {
+    return false;
+  }
+  
+  try {
+    const { getSupabaseCredentialsStrict } = await import('../lib/credentialsDb.js');
+    const credentials = await getSupabaseCredentialsStrict(tenantId);
+    return credentials !== null;
+  } catch (error) {
+    console.error(`❌ [SUPABASE] Erro ao verificar credenciais do tenant ${tenantId}:`, error);
+    return false;
+  }
+}
+
+/**
  * Helper function to get Supabase client with proper credentials
  * 🔐 MULTI-TENANT: Usa tenantId para buscar credenciais isoladas
  * 🔐 SECURITY FIX: Usa getSupabaseCredentialsStrict() para prevenir vazamento cross-tenant
@@ -323,10 +352,22 @@ export function registerFormulariosCompleteRoutes(app: Express) {
       if (!tenantId) {
         return res.status(401).json({ error: 'Sessão inválida - faça login novamente' });
       }
-      const supabase = await getSupabaseClient(tenantId);
       
-      if (supabase) {
-        console.log('🔍 [GET /api/forms] Buscando do Supabase com contador de respostas...');
+      // 🔐 REGRA: Verificar PRIMEIRO se tenant tem Supabase configurado
+      // - Se configurado → usar APENAS Supabase (mesmo que vazio, retornar array vazio)
+      // - Se NÃO configurado → usar PostgreSQL local
+      const isSupabaseConfigured = await hasSupabaseConfigured(tenantId);
+      
+      if (isSupabaseConfigured) {
+        const supabase = await getSupabaseClient(tenantId);
+        
+        if (!supabase) {
+          // Supabase configurado mas erro ao criar cliente
+          console.error('❌ [GET /api/forms] Supabase configurado mas erro ao criar cliente');
+          return res.status(500).json({ error: 'Erro ao conectar com Supabase' });
+        }
+        
+        console.log('🔍 [GET /api/forms] Buscando do Supabase com contador de respostas (APENAS Supabase)...');
         
         const { data, error } = await supabase
           .from('forms')
@@ -351,7 +392,7 @@ export function registerFormulariosCompleteRoutes(app: Express) {
         // CORREÇÃO: Enrich forms with submission counts from form_submissions table
         const enrichedForms = await enrichFormsWithSubmissionCount(supabase, formattedData);
         
-        console.log(`✅ [SUPABASE] Retornando ${enrichedForms.length} formulário(s) com contador de respostas`);
+        console.log(`✅ [SUPABASE] Retornando ${enrichedForms.length} formulário(s) com contador de respostas (SEM fallback local)`);
         return res.json({
           success: true,
           forms: enrichedForms,
@@ -359,7 +400,8 @@ export function registerFormulariosCompleteRoutes(app: Express) {
         });
       }
       
-      console.log('🔍 [GET /api/forms] Buscando do PostgreSQL local com contador de respostas...');
+      // 🔐 Supabase NÃO configurado → usar PostgreSQL local
+      console.log('🔍 [GET /api/forms] Supabase NÃO configurado - buscando do PostgreSQL local...');
       // 🔐 ISOLAMENTO MULTI-TENANT: Filtrar forms por tenantId para prevenir vazamento
       const localForms = await db
         .select()
@@ -1679,10 +1721,21 @@ export function registerFormulariosCompleteRoutes(app: Express) {
       if (!tenantId) {
         return res.status(401).json({ error: 'Sessão inválida - faça login novamente' });
       }
-      const supabase = await getSupabaseClient(tenantId);
       
-      if (supabase) {
-        console.log('🔍 [GET /api/submissions] Buscando do Supabase...');
+      // 🔐 REGRA: Verificar PRIMEIRO se tenant tem Supabase configurado
+      // - Se configurado → usar APENAS Supabase (mesmo que vazio, retornar array vazio)
+      // - Se NÃO configurado → usar PostgreSQL local
+      const isSupabaseConfigured = await hasSupabaseConfigured(tenantId);
+      
+      if (isSupabaseConfigured) {
+        const supabase = await getSupabaseClient(tenantId);
+        
+        if (!supabase) {
+          console.error('❌ [GET /api/submissions] Supabase configurado mas erro ao criar cliente');
+          return res.status(500).json({ error: 'Erro ao conectar com Supabase' });
+        }
+        
+        console.log('🔍 [GET /api/submissions] Buscando do Supabase (APENAS Supabase)...');
         
         const { data, error } = await supabase
           .from('form_submissions')
@@ -1691,7 +1744,7 @@ export function registerFormulariosCompleteRoutes(app: Express) {
         
         if (error) throw error;
         
-        console.log(`📊 [SUPABASE] ${data?.length || 0} submission(s) encontrada(s)`);
+        console.log(`📊 [SUPABASE] ${data?.length || 0} submission(s) encontrada(s) (SEM fallback local)`);
         
         const formattedData = (data || []).map((submission: any) => {
           const camelSubmission = convertKeysToCamelCase(submission);
@@ -1701,6 +1754,8 @@ export function registerFormulariosCompleteRoutes(app: Express) {
         return res.json(formattedData);
       }
       
+      // 🔐 Supabase NÃO configurado → usar PostgreSQL local
+      console.log('🔍 [GET /api/submissions] Supabase NÃO configurado - buscando do PostgreSQL local...');
       const submissions = await storage.getAllSubmissions();
       res.json(submissions);
     } catch (error: any) {
@@ -1715,10 +1770,21 @@ export function registerFormulariosCompleteRoutes(app: Express) {
       if (!tenantId) {
         return res.status(401).json({ error: 'Sessão inválida - faça login novamente' });
       }
-      const supabase = await getSupabaseClient(tenantId);
       
-      if (supabase) {
-        console.log('🔍 [GET /api/forms/:id/submissions] Buscando do Supabase...');
+      // 🔐 REGRA: Verificar PRIMEIRO se tenant tem Supabase configurado
+      // - Se configurado → usar APENAS Supabase (mesmo que vazio, retornar array vazio)
+      // - Se NÃO configurado → usar PostgreSQL local
+      const isSupabaseConfigured = await hasSupabaseConfigured(tenantId);
+      
+      if (isSupabaseConfigured) {
+        const supabase = await getSupabaseClient(tenantId);
+        
+        if (!supabase) {
+          console.error('❌ [GET /api/forms/:id/submissions] Supabase configurado mas erro ao criar cliente');
+          return res.status(500).json({ error: 'Erro ao conectar com Supabase' });
+        }
+        
+        console.log('🔍 [GET /api/forms/:id/submissions] Buscando do Supabase (APENAS Supabase)...');
         
         const { data, error } = await supabase
           .from('form_submissions')
@@ -1728,7 +1794,7 @@ export function registerFormulariosCompleteRoutes(app: Express) {
         
         if (error) throw error;
         
-        console.log(`📊 [SUPABASE] ${data?.length || 0} submission(s) encontrada(s)`);
+        console.log(`📊 [SUPABASE] ${data?.length || 0} submission(s) encontrada(s) (SEM fallback local)`);
         
         const formattedData = (data || []).map((submission: any) => {
           const camelSubmission = convertKeysToCamelCase(submission);
@@ -1742,6 +1808,8 @@ export function registerFormulariosCompleteRoutes(app: Express) {
         });
       }
       
+      // 🔐 Supabase NÃO configurado → usar PostgreSQL local
+      console.log('🔍 [GET /api/forms/:id/submissions] Supabase NÃO configurado - buscando do PostgreSQL local...');
       const submissions = await storage.getFormSubmissions(req.params.id);
       res.json({
         success: true,

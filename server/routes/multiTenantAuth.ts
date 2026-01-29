@@ -172,8 +172,11 @@ router.get('/check-session', (req: Request, res: Response) => {
     res.json({ 
       authenticated: true,
       user: {
+        id: req.session.userId,
         nome: req.session.userName,
-        email: req.session.userEmail
+        email: req.session.userEmail,
+        tenant_id: req.session.tenantId,
+        role: req.session.userRole || 'admin'
       }
     });
   } else {

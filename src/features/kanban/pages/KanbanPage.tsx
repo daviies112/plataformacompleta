@@ -62,9 +62,28 @@ const COLUMNS = PIPELINE_STAGES.map(stage => ({
 
 function getTenantId(): string {
   if (typeof window !== 'undefined') {
+    // Primeiro, tentar obter do user_data (padrão usado pelo AuthContext)
+    try {
+      const userData = localStorage.getItem('user_data');
+      if (userData) {
+        const parsedUser = JSON.parse(userData);
+        if (parsedUser?.tenantId) {
+          console.log('[KanbanPage] Using tenantId from user_data:', parsedUser.tenantId);
+          return parsedUser.tenantId;
+        }
+      }
+    } catch (e) {
+      console.warn('[KanbanPage] Error parsing user_data:', e);
+    }
+    
+    // Fallback: tentar obter de localStorage.tenantId (legado)
     const storedTenantId = localStorage.getItem('tenantId');
-    if (storedTenantId) return storedTenantId;
+    if (storedTenantId) {
+      console.log('[KanbanPage] Using tenantId from localStorage:', storedTenantId);
+      return storedTenantId;
+    }
   }
+  console.log('[KanbanPage] Using default tenantId');
   return import.meta.env.VITE_DEFAULT_TENANT_ID || 'default-tenant';
 }
 

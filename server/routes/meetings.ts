@@ -951,63 +951,65 @@ async function get100msCredentials(tenantId: string) {
   }
 }
 
-// GET /api/reunioes - List local meetings with Supabase sync fallback
-// STRICT MODE: Only sync from Supabase if tenant has their own credentials configured
+// GET /api/reunioes - List meetings
+// REGRA: Supabase configurado = APENAS Supabase (mesmo que vazio)
+//        Supabase NÃO configurado = PostgreSQL local
 meetingsRouter.get('/reunioes', authenticateToken, requireTenantId, async (req: AuthRequest, res: Response) => {
   try {
     const tenantId = req.user!.tenantId;
     
-    // 1. Get local meetings (always from PostgreSQL with tenantId filter)
-    let localMeetings = await db.select().from(reunioes)
+    // 1. Check if tenant has Supabase configured (strict mode - no fallbacks)
+    const supabase = await getClientSupabaseClientStrict(tenantId);
+    
+    if (supabase) {
+      // SUPABASE CONFIGURED: Use ONLY Supabase data (even if empty, NO fallback to PostgreSQL)
+      console.log(`[Reuniões] Tenant ${tenantId} has Supabase configured - using ONLY Supabase data`);
+      
+      const { data: supabaseMeetings, error } = await supabase
+        .from('reunioes')
+        .select('*')
+        .eq('tenant_id', tenantId)
+        .order('data_inicio', { ascending: false });
+
+      if (error) {
+        console.error(`[Reuniões] Erro ao buscar do Supabase:`, error);
+        return res.status(500).json({ error: 'Erro ao listar reuniões do Supabase', message: error.message });
+      }
+
+      // Transform Supabase format to local format for frontend compatibility
+      const meetings = (supabaseMeetings || []).map(sMeeting => ({
+        id: sMeeting.id,
+        tenantId: sMeeting.tenant_id,
+        titulo: sMeeting.titulo,
+        nome: sMeeting.nome,
+        email: sMeeting.email,
+        dataInicio: sMeeting.data_inicio,
+        dataFim: sMeeting.data_fim,
+        duracao: sMeeting.duracao,
+        descricao: sMeeting.descricao,
+        status: sMeeting.status,
+        tipo: sMeeting.tipo || 'online',
+        roomId100ms: sMeeting.room_id_100ms,
+        roomCode100ms: sMeeting.room_code_100ms,
+        linkReuniao: sMeeting.link_reuniao,
+        compareceu: sMeeting.compareceu ?? false,
+        metadata: sMeeting.metadata,
+        createdAt: sMeeting.created_at,
+        updatedAt: sMeeting.updated_at,
+      }));
+
+      console.log(`[Reuniões] Retornando ${meetings.length} reuniões do Supabase para tenant ${tenantId}`);
+      return res.json(meetings);
+    }
+
+    // SUPABASE NOT CONFIGURED: Use PostgreSQL local with tenantId filter
+    console.log(`[Reuniões] Tenant ${tenantId} does not have Supabase configured - using PostgreSQL local`);
+    
+    const localMeetings = await db.select().from(reunioes)
       .where(eq(reunioes.tenantId, tenantId))
       .orderBy(desc(reunioes.dataInicio));
 
-    // 2. Attempt to sync from Supabase ONLY if tenant has their own credentials (strict mode)
-    // Using getClientSupabaseClientStrict to avoid fallback to incorrect credentials
-    try {
-      const supabase = await getClientSupabaseClientStrict(tenantId);
-      if (supabase) {
-        const { data: supabaseMeetings, error } = await supabase
-          .from('reunioes')
-          .select('*')
-          .eq('tenant_id', tenantId);
-
-        if (!error && supabaseMeetings && supabaseMeetings.length > 0) {
-          console.log(`[Supabase Sync] Encontradas ${supabaseMeetings.length} reuniões no Supabase para tenant ${tenantId}`);
-          
-          // Basic sync: insert missing meetings into local DB
-          for (const sMeeting of supabaseMeetings) {
-            const exists = localMeetings.some(m => m.id === sMeeting.id);
-            if (!exists) {
-              await db.insert(reunioes).values({
-                id: sMeeting.id,
-                tenantId: tenantId,
-                titulo: sMeeting.titulo,
-                nome: sMeeting.nome,
-                email: sMeeting.email,
-                dataInicio: sMeeting.data_inicio ? new Date(sMeeting.data_inicio) : new Date(),
-                dataFim: sMeeting.data_fim ? new Date(sMeeting.data_fim) : null,
-                duracao: sMeeting.duracao,
-                status: sMeeting.status,
-                tipo: sMeeting.tipo || 'online',
-                roomId100ms: sMeeting.room_id_100ms,
-                linkReuniao: sMeeting.link_reuniao,
-                compareceu: sMeeting.compareceu ?? false, // Preserve attendance from Supabase or default to false
-                createdAt: sMeeting.created_at ? new Date(sMeeting.created_at) : new Date(),
-              }).onConflictDoNothing();
-            }
-          }
-          
-          // Re-fetch local meetings after sync
-          localMeetings = await db.select().from(reunioes)
-            .where(eq(reunioes.tenantId, tenantId))
-            .orderBy(desc(reunioes.dataInicio));
-        }
-      }
-    } catch (syncErr) {
-      console.warn(`[Supabase Sync] Falha na sincronização de entrada:`, syncErr);
-    }
-
+    console.log(`[Reuniões] Retornando ${localMeetings.length} reuniões do PostgreSQL para tenant ${tenantId}`);
     res.json(localMeetings);
   } catch (error: any) {
     console.error('Erro ao listar reuniões:', error);
