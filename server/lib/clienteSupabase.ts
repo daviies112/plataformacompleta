@@ -4,6 +4,7 @@ import { db } from '../db';
 import { supabaseConfig } from '../../shared/db-schema';
 import { decrypt } from './credentialsManager';
 import { getSupabaseFileConfig } from './supabaseFileConfig';
+import { getClientSupabaseClient } from './multiTenantSupabase';
 
 let clienteSupabaseClient: SupabaseClient | null = null;
 let cachedCredentials: { url: string; anonKey: string; timestamp: number } | null = null;
@@ -269,15 +270,28 @@ export interface CPFComplianceResult {
   check_id?: string;
 }
 
-export async function saveComplianceToClienteSupabase(result: CPFComplianceResult): Promise<{ success: boolean; error?: string }> {
+export async function saveComplianceToClienteSupabase(result: CPFComplianceResult, tenantId?: string): Promise<{ success: boolean; error?: string }> {
   try {
-    const isConfigured = await isClienteSupabaseConfigured();
-    if (!isConfigured) {
-      log('⚠️ [ClienteSupabase] Supabase do Cliente não configurado - salvamento de compliance ignorado');
-      return { success: false, error: 'Supabase do Cliente não configurado' };
+    let supabase: SupabaseClient | null = null;
+    
+    // MULTI-TENANT: Se tenantId for fornecido, usar o Supabase específico do tenant
+    if (tenantId) {
+      supabase = await getClientSupabaseClient(tenantId);
+      if (!supabase) {
+        log(`⚠️ [ClienteSupabase] Supabase do tenant ${tenantId.substring(0, 16)}... não configurado - salvamento ignorado`);
+        return { success: false, error: `Supabase do tenant ${tenantId.substring(0, 16)}... não configurado` };
+      }
+      log(`🔐 [ClienteSupabase] Usando Supabase do tenant: ${tenantId.substring(0, 16)}...`);
+    } else {
+      // Fallback para comportamento legado (qualquer tenant configurado)
+      const isConfigured = await isClienteSupabaseConfigured();
+      if (!isConfigured) {
+        log('⚠️ [ClienteSupabase] Supabase do Cliente não configurado - salvamento de compliance ignorado');
+        return { success: false, error: 'Supabase do Cliente não configurado' };
+      }
+      supabase = await getClienteSupabase();
+      log('⚠️ [ClienteSupabase] Usando Supabase legado (sem tenantId) - pode salvar no tenant errado!');
     }
-
-    const supabase = await getClienteSupabase();
     
     // INSERT simples para manter histórico completo de cada consulta
     // Cada consulta gera um novo registro, permitindo ver todo o histórico

@@ -1742,7 +1742,7 @@ export async function checkCompliance(
         check_id: newHistoryCheck.id,
       };
       
-      saveComplianceToClienteSupabase(clienteComplianceDataAuto).catch(err => {
+      saveComplianceToClienteSupabase(clienteComplianceDataAuto, tenantId).catch(err => {
         log(`⚠️ Erro ao salvar no Supabase do Cliente (não crítico): ${err.message}`);
       });
       
@@ -1860,7 +1860,7 @@ export async function checkCompliance(
       check_id: newCheckId,
     };
     
-    saveComplianceToClienteSupabase(clienteComplianceDataManual).catch(err => {
+    saveComplianceToClienteSupabase(clienteComplianceDataManual, tenantId).catch(err => {
       log(`⚠️ Erro ao salvar no Supabase do Cliente (não crítico): ${err.message}`);
     });
     
@@ -2035,7 +2035,7 @@ export async function checkCompliance(
   };
   
   // Salvar no Supabase do Cliente (não bloqueia o fluxo principal)
-  saveComplianceToClienteSupabase(clienteComplianceData).catch(err => {
+  saveComplianceToClienteSupabase(clienteComplianceData, tenantId).catch(err => {
     log(`⚠️ Erro ao salvar no Supabase do Cliente (não crítico): ${err.message}`);
   });
   

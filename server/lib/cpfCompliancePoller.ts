@@ -1003,7 +1003,9 @@ export async function syncMasterToCliente(): Promise<{
           check_id: check.id
         };
 
-        const result = await saveComplianceToClienteSupabase(clienteData);
+        // MULTI-TENANT: Passar tenantId para salvar no Supabase correto do tenant
+        const tenantId = check.tenant_id;
+        const result = await saveComplianceToClienteSupabase(clienteData, tenantId);
         
         if (result.success) {
           synced++;
