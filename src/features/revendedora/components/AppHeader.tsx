@@ -19,12 +19,14 @@ import {
   Trophy,
   Settings,
   Banknote,
+  LogOut,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { NotificationBell } from '@/components/NotificationBell';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
+import { clearResellerToken } from '@/features/revendedora/lib/resellerAuth';
 
 interface AppHeaderProps {
   type?: 'admin' | 'reseller' | 'company';
@@ -113,44 +115,73 @@ export function AppHeader({
           })}
         </nav>
 
-        <Sheet>
-          <SheetTrigger asChild className="lg:hidden">
-            <Button variant="outline" size="sm">
-              <Menu className="h-4 w-4" />
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="right" className="w-[280px]">
-            <SheetHeader>
-              <SheetTitle className="text-left">Menu</SheetTitle>
-            </SheetHeader>
-            <div className="flex flex-col gap-2 mt-6">
-              {items.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <NavLink
-                    key={item.url}
-                    to={item.url}
-                    className={cn(
-                      'flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors',
-                      isActive(item.url)
-                        ? 'bg-primary/10 text-primary'
-                        : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                    )}
-                  >
-                    <Icon className="h-4 w-4" />
-                    {item.title}
-                  </NavLink>
-                );
-              })}
-            </div>
-          </SheetContent>
-        </Sheet>
+        {(type === 'admin' || role === 'admin') && (
+          <Sheet>
+            <SheetTrigger asChild className="lg:hidden">
+              <Button variant="outline" size="sm">
+                <Menu className="h-4 w-4" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-[280px]">
+              <SheetHeader>
+                <SheetTitle className="text-left">Menu</SheetTitle>
+              </SheetHeader>
+              <div className="flex flex-col gap-2 mt-6">
+                {items.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <NavLink
+                      key={item.url}
+                      to={item.url}
+                      className={cn(
+                        'flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors',
+                        isActive(item.url)
+                          ? 'bg-primary/10 text-primary'
+                          : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                      )}
+                    >
+                      <Icon className="h-4 w-4" />
+                      {item.title}
+                    </NavLink>
+                  );
+                })}
+              </div>
+            </SheetContent>
+          </Sheet>
+        )}
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 ml-auto">
           <NotificationBell />
-          <Button variant="ghost" size="sm" onClick={() => navigate(type === 'admin' || role === 'admin' ? (basePath === '/vendas' ? '/vendas' : '/produto') : '/revendedora')}>
-            <Home className="h-4 w-4" />
-          </Button>
+          {type === 'reseller' && (
+            <>
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={() => navigate('/revendedora/reseller/settings')}
+                title="Configurações"
+                data-testid="button-settings"
+              >
+                <Settings className="h-4 w-4" />
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={() => {
+                  clearResellerToken();
+                  navigate('/revendedora/login', { replace: true });
+                }}
+                title="Sair"
+                data-testid="button-logout"
+              >
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </>
+          )}
+          {(type === 'admin' || role === 'admin') && (
+            <Button variant="ghost" size="sm" onClick={() => navigate(basePath === '/vendas' ? '/vendas' : '/produto')}>
+              <Home className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </div>
     </header>

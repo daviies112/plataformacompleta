@@ -1,6 +1,7 @@
 import { ReactNode, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppHeader } from '@/features/revendedora/components/AppHeader';
+import { ResellerBottomNav } from '@/features/revendedora/components/ResellerBottomNav';
 import { useCompany } from '@/features/revendedora/contexts/CompanyContext';
 import { ChatWidget } from '@/features/revendedora/components/chat/ChatWidget';
 import { SupabaseProvider } from '@/features/revendedora/contexts/SupabaseContext';
@@ -51,9 +52,10 @@ function ResellerLayoutContent({ children }: ResellerLayoutProps) {
         companyName={branding.company_name || "Sistema de Revendedores"}
         companyLogo={branding.logo_url}
       />
-      <main className="flex-1">
+      <main className="flex-1 pb-20 lg:pb-0">
         {children}
       </main>
+      <ResellerBottomNav />
       <ChatWidget />
     </div>
   );
