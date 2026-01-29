@@ -2,6 +2,7 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { getSupabaseCredentials } from './credentialsManager.js';
 import { getSupabaseCredentialsFromEnv, getSupabaseCredentialsStrict } from './credentialsDb.js';
 import { DashboardCompleteV5 } from '../../shared/db-schema.js';
+import { getCachedSupabaseClient, getCachedSupabaseCredentials } from './publicCache.js';
 
 /**
  * Cache de clientes Supabase por clientId
@@ -11,105 +12,31 @@ const supabaseClients = new Map<string, SupabaseClient>();
 
 /**
  * Obtém cliente Supabase dinâmico para um cliente específico (multi-tenant)
- * 
- * 🔐 MULTI-TENANT STRICT MODE: NO fallback to env variables
- * 
- * Prioridade de credenciais:
- * 1. Credenciais específicas do tenant (credentialsDb - criptografadas)
- * 2. null - REJEITA se não encontrar credenciais
- * 
- * SEGURANÇA: Cada tenant DEVE ter suas próprias credenciais configuradas.
- * NÃO há fallback para credenciais globais para garantir isolamento completo.
+ * 🚀 PERFORMANCE: Now uses in-memory cache to avoid DB queries on every request
  * 
  * @param tenantId - ID único do tenant (obrigatório)
  * @returns Cliente Supabase ou null se não configurado para o tenant
  */
 export async function getClientSupabaseClient(tenantId: string): Promise<SupabaseClient | null> {
-  if (!tenantId) {
-    console.error('❌ [MULTI-TENANT] tenantId é obrigatório');
-    return null;
-  }
-
-  // Importar a função do credentialsDb (não credentialsManager)
-  const { getSupabaseCredentials } = await import('./credentialsDb.js');
+  if (!tenantId) return null;
   
-  // Buscar credenciais específicas do tenant
-  const tenantCredentials = await getSupabaseCredentials(tenantId);
-  
-  if (!tenantCredentials) {
-    console.error(`❌ [MULTI-TENANT] Credenciais não encontradas para tenant ${tenantId}`);
-    console.error(`❌ [MULTI-TENANT] Configure as credenciais do Supabase para este tenant`);
-    return null;
-  }
-
-  const cacheKey = `${tenantId}-${tenantCredentials.url}`;
-  
-  if (supabaseClients.has(cacheKey)) {
-    console.log(`✅ [MULTI-TENANT] Usando cliente em cache (tenant: ${tenantId})`);
-    return supabaseClients.get(cacheKey)!;
-  }
-
-  try {
-    console.log(`🔄 [MULTI-TENANT] Criando cliente Supabase para tenant ${tenantId}...`);
-    const client = createClient(tenantCredentials.url, tenantCredentials.anonKey);
-    supabaseClients.set(cacheKey, client);
-    console.log(`✅ [MULTI-TENANT] Cliente criado para tenant ${tenantId}`);
-    return client;
-  } catch (error) {
-    console.error(`❌ [MULTI-TENANT] Erro ao criar cliente para tenant ${tenantId}:`, error);
-    return null;
-  }
+  // 🚀 PERFORMANCE: Use cached client from publicCache
+  return getCachedSupabaseClient(tenantId);
 }
 
 /**
  * Obtém cliente Supabase dinâmico para um tenant específico - MODO STRICT
- * 
- * 🔐 STRICT MODE: ZERO FALLBACKS - Retorna null se não há credenciais para o tenant
- * 
- * Esta função usa getSupabaseCredentialsStrict que NÃO faz fallback para:
- * - Tenant 'system'
- * - Environment variables
- * - Qualquer outra fonte
- * 
- * Use esta função em rotas que DEVEM mostrar dados vazios quando o tenant
- * não tem credenciais configuradas (ex: admin platform, dashboards).
- * 
- * Para background jobs que podem usar fallbacks, use getClientSupabaseClient().
+ * 🚀 PERFORMANCE: Uses in-memory cache via publicCache
+ * 🔐 STRICT MODE: Returns null if no credentials configured for tenant
  * 
  * @param tenantId - ID único do tenant (obrigatório)
  * @returns Cliente Supabase ou null se credenciais não configuradas para este tenant
  */
 export async function getClientSupabaseClientStrict(tenantId: string): Promise<SupabaseClient | null> {
-  if (!tenantId) {
-    console.error('❌ [MULTI-TENANT-STRICT] tenantId é obrigatório');
-    return null;
-  }
-
-  const tenantCredentials = await getSupabaseCredentialsStrict(tenantId);
+  if (!tenantId) return null;
   
-  if (!tenantCredentials) {
-    console.log(`ℹ️ [MULTI-TENANT-STRICT] Nenhuma credencial configurada para tenant ${tenantId}`);
-    console.log(`💡 [MULTI-TENANT-STRICT] Admin deve configurar suas credenciais em /configuracoes`);
-    return null;
-  }
-
-  const cacheKey = `${tenantId}-strict-${tenantCredentials.url}`;
-  
-  if (supabaseClients.has(cacheKey)) {
-    console.log(`✅ [MULTI-TENANT-STRICT] Usando cliente em cache (tenant: ${tenantId})`);
-    return supabaseClients.get(cacheKey)!;
-  }
-
-  try {
-    console.log(`🔄 [MULTI-TENANT-STRICT] Criando cliente Supabase para tenant ${tenantId}...`);
-    const client = createClient(tenantCredentials.url, tenantCredentials.anonKey);
-    supabaseClients.set(cacheKey, client);
-    console.log(`✅ [MULTI-TENANT-STRICT] Cliente criado para tenant ${tenantId}`);
-    return client;
-  } catch (error) {
-    console.error(`❌ [MULTI-TENANT-STRICT] Erro ao criar cliente para tenant ${tenantId}:`, error);
-    return null;
-  }
+  // 🚀 PERFORMANCE: Use cached client (getCachedSupabaseClient already uses strict mode)
+  return getCachedSupabaseClient(tenantId);
 }
 
 /**

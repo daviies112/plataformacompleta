@@ -18,6 +18,7 @@ import { getClientSupabaseClient, getClientSupabaseClientStrict } from '../lib/m
 import { nanoid } from 'nanoid';
 import { z } from 'zod';
 import { cache } from '../lib/cache';
+import { getCachedMeeting, setCachedMeeting } from '../lib/publicCache';
 
 // Helper function to sync recording to Supabase
 async function syncRecordingToSupabase(tenantId: string, recording: any) {
@@ -74,36 +75,39 @@ export const meetingsRouter = Router();
 export const publicRoomDesignRouter = Router();
 
 // PUBLIC endpoint - Get room design config by meeting ID (no auth required)
-// Adjusted path to work with /api/public prefix from routes.ts
-// PRIORITY: 1) Meeting metadata config, 2) Tenant config, 3) null
+// 🚀 PERFORMANCE: Uses in-memory caching to avoid DB queries on repeated requests
 publicRoomDesignRouter.get('/reunioes/:id/room-design-public', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    console.log(`[RoomDesign] Buscando config para ID: ${id}`);
-
-    // First try to find by meeting ID (UUID)
-    let meeting;
-    const [meetingById] = await db.select().from(reunioes)
-      .where(eq(reunioes.id, id))
-      .limit(1);
     
-    meeting = meetingById;
-
-    // If not found, try to find by roomId100ms
+    // 🚀 PERFORMANCE: Check meeting cache first
+    let meeting = getCachedMeeting(id);
+    
     if (!meeting) {
-      console.log(`[RoomDesign] Não encontrado por UUID, tentando por roomId100ms...`);
-      const [meetingByRoomId] = await db.select().from(reunioes)
-        .where(eq(reunioes.roomId100ms, id))
+      // Try to find by meeting ID (UUID)
+      const [meetingById] = await db.select().from(reunioes)
+        .where(eq(reunioes.id, id))
         .limit(1);
-      meeting = meetingByRoomId;
+      
+      meeting = meetingById;
+
+      // If not found, try to find by roomId100ms
+      if (!meeting) {
+        const [meetingByRoomId] = await db.select().from(reunioes)
+          .where(eq(reunioes.roomId100ms, id))
+          .limit(1);
+        meeting = meetingByRoomId;
+      }
+      
+      // Cache the meeting for future requests
+      if (meeting) {
+        setCachedMeeting(id, meeting);
+      }
     }
 
     if (!meeting) {
-      console.log(`[RoomDesign] Reunião não encontrada para ID: ${id}`);
       return res.status(404).json({ error: 'Reunião não encontrada', roomDesignConfig: null });
     }
-
-    console.log(`[RoomDesign] Reunião encontrada: ${meeting.id}, tenantId: ${meeting.tenantId}`);
 
     // PRIORITY 1: Check if meeting has custom roomDesignConfig in metadata
     const meetingMetadata = meeting.metadata as any;

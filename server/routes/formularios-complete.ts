@@ -19,6 +19,17 @@ import { enrichFormsWithSubmissionCount } from "../formularios/utils/formEnrichm
 import { generateFormSlug, generateUniqueFormSlug, generateCompanySlug } from '../formularios/utils/slugGenerator';
 import { authenticateToken } from '../middleware/auth';
 import { getEvolutionApiCredentials, EvolutionApiCredentials } from '../lib/credentialsDb';
+// 🚀 PERFORMANCE: Import optimized cache for public routes
+import { 
+  getCachedSupabaseClient, 
+  getCachedSupabaseCredentials, 
+  hasCachedSupabaseConfig,
+  getCachedForm,
+  setCachedForm,
+  getCachedFormTenantMapping,
+  setCachedFormTenantMapping,
+  invalidateFormCache
+} from '../lib/publicCache';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -75,64 +86,29 @@ const upload = multer({
 /**
  * Helper function to check if a tenant has Supabase configured
  * 🔐 MULTI-TENANT: Verifica se o tenant tem credenciais Supabase configuradas
- * 
- * Esta função é usada para determinar se devemos usar APENAS Supabase (sem fallback)
- * ou se devemos usar PostgreSQL local.
- * 
- * REGRA: 
- * - Se retorna true → usar APENAS Supabase, mesmo que vazio
- * - Se retorna false → usar PostgreSQL local
+ * 🚀 PERFORMANCE: Uses in-memory cache to avoid DB query on every request
  * 
  * @param tenantId - ID do tenant para verificar
  * @returns true se Supabase está configurado, false caso contrário
  */
 async function hasSupabaseConfigured(tenantId: string): Promise<boolean> {
-  if (!tenantId) {
-    return false;
-  }
-  
-  try {
-    const { getSupabaseCredentialsStrict } = await import('../lib/credentialsDb.js');
-    const credentials = await getSupabaseCredentialsStrict(tenantId);
-    return credentials !== null;
-  } catch (error) {
-    console.error(`❌ [SUPABASE] Erro ao verificar credenciais do tenant ${tenantId}:`, error);
-    return false;
-  }
+  if (!tenantId) return false;
+  // 🚀 PERFORMANCE: Use cached check instead of DB query
+  return hasCachedSupabaseConfig(tenantId);
 }
 
 /**
  * Helper function to get Supabase client with proper credentials
  * 🔐 MULTI-TENANT: Usa tenantId para buscar credenciais isoladas
- * 🔐 SECURITY FIX: Usa getSupabaseCredentialsStrict() para prevenir vazamento cross-tenant
+ * 🚀 PERFORMANCE: Uses in-memory cache to avoid DB query and client creation on every request
  * 
  * @param tenantId - ID do tenant (userId) para buscar credenciais específicas
  * @returns Cliente Supabase ou null se não configurado
  */
 async function getSupabaseClient(tenantId?: string) {
-  // 🔐 SEGURANÇA: EXIGIR tenantId para prevenir vazamento de credenciais
-  if (!tenantId) {
-    console.warn('[SECURITY] getSupabaseClient chamado sem tenantId - retornando null');
-    return null;
-  }
-  
-  // 🔐 SECURITY FIX: Usar getSupabaseCredentialsStrict - NÃO tem fallbacks para system/env
-  // Isso previne vazamento cross-tenant onde um tenant usaria credenciais de outro
-  try {
-    const { getSupabaseCredentialsStrict } = await import('../lib/credentialsDb.js');
-    const credentials = await getSupabaseCredentialsStrict(tenantId);
-    
-    if (credentials) {
-      console.log(`✅ [SUPABASE] Usando credenciais do tenant ${tenantId}`);
-      return await getDynamicSupabaseClient(credentials.url, credentials.anonKey);
-    }
-    
-    console.log(`⚠️ [SUPABASE] Nenhuma credencial encontrada para tenant ${tenantId}`);
-    return null;
-  } catch (error) {
-    console.error(`❌ [SUPABASE] Erro ao buscar credenciais do tenant ${tenantId}:`, error);
-    return null;
-  }
+  if (!tenantId) return null;
+  // 🚀 PERFORMANCE: Use cached Supabase client
+  return getCachedSupabaseClient(tenantId);
 }
 
 /**
@@ -195,50 +171,55 @@ async function assertPublicFormAccess(formId: string): Promise<boolean> {
 
 async function resolvePublicFormTenant(identifier: string, isUUID: boolean = true, companySlug?: string): Promise<string | null> {
   try {
+    // 🚀 PERFORMANCE: Check in-memory cache first
+    const cachedMapping = getCachedFormTenantMapping(identifier);
+    if (cachedMapping) {
+      if (!cachedMapping.isPublic) {
+        return null;
+      }
+      return cachedMapping.tenantId;
+    }
+    
     // Query global mapping table (works for both local + Supabase forms)
-    // Buscar por formId se for UUID, ou por slug + companySlug se não for
     let mappingRecord;
     
     if (isUUID) {
-      // Busca por UUID - única e segura
       mappingRecord = await db
         .select({ tenantId: formTenantMapping.tenantId, isPublic: formTenantMapping.isPublic, formId: formTenantMapping.formId })
         .from(formTenantMapping)
         .where(eq(formTenantMapping.formId, identifier))
         .limit(1);
     } else if (companySlug) {
-      // 🔐 SEGURO: Busca por slug + companySlug (combinação única por tenant)
       mappingRecord = await db
         .select({ tenantId: formTenantMapping.tenantId, isPublic: formTenantMapping.isPublic, formId: formTenantMapping.formId })
         .from(formTenantMapping)
         .where(and(eq(formTenantMapping.slug, identifier), eq(formTenantMapping.companySlug, companySlug)))
         .limit(1);
     } else {
-      // 🔐 SEGURANÇA: Busca apenas por slug - verificar colisões
       const allMatches = await db
         .select({ tenantId: formTenantMapping.tenantId, isPublic: formTenantMapping.isPublic, formId: formTenantMapping.formId, companySlug: formTenantMapping.companySlug })
         .from(formTenantMapping)
         .where(eq(formTenantMapping.slug, identifier));
       
-      // Se houver mais de um resultado, há colisão de slugs entre tenants
       if (allMatches.length > 1) {
-        console.warn(`[SECURITY] Multiple tenants have slug "${identifier}" - refusing to resolve to prevent cross-tenant exposure`);
         return null;
       }
-      
       mappingRecord = allMatches;
     }
     
     if (mappingRecord.length > 0) {
       const mapping = mappingRecord[0];
       
-      // Only resolve tenant for public forms
+      // 🚀 PERFORMANCE: Cache the mapping result
+      setCachedFormTenantMapping(identifier, {
+        tenantId: mapping.tenantId,
+        isPublic: mapping.isPublic === true,
+        formId: mapping.formId
+      });
+      
       if (!mapping.isPublic) {
-        console.warn(`[SECURITY] Form ${identifier} is not public - access denied`);
         return null;
       }
-      
-      console.log(`✅ [SECURITY] Resolved tenant ${mapping.tenantId} for public form ${identifier} (from cache)`);
       return mapping.tenantId;
     }
     
@@ -431,14 +412,17 @@ export function registerFormulariosCompleteRoutes(app: Express) {
       const formIdOrSlug = req.params.id;
       const isUUID = isValidUUID(formIdOrSlug);
       
-      console.log(`🔍 [PUBLIC] Buscando formulário: ${formIdOrSlug} (${isUUID ? 'UUID' : 'SLUG'})`);
+      // 🚀 PERFORMANCE: Check form cache first
+      const cachedForm = getCachedForm(formIdOrSlug);
+      if (cachedForm) {
+        res.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
+        return res.json(cachedForm);
+      }
       
-      // 🔐 PREVIEW MODE: Check if authenticated user is the form owner
-      // This allows form owners to preview their forms before making them public
+      // 🔐 PREVIEW MODE: Check if authenticated user is the form owner (skip for public requests)
       const sessionTenantId = (req.session as any)?.tenantId || (req.session as any)?.userId;
       
       if (sessionTenantId) {
-        console.log(`🔍 [PREVIEW] Checking if authenticated user ${sessionTenantId} owns form ${formIdOrSlug}...`);
         
         // Try to find the form in the authenticated user's Supabase (owner preview mode)
         const ownerSupabase = await getSupabaseClient(sessionTenantId);
@@ -569,9 +553,9 @@ export function registerFormulariosCompleteRoutes(app: Express) {
             });
           }
           
-          console.log(`✅ [PUBLIC FALLBACK] Formulário encontrado no banco local:`, localForm.title);
-          // Reconstruir welcomeConfig para dados locais também
           const reconstructedForm = reconstructFormDataFromSupabase(localForm);
+          // 🚀 PERFORMANCE: Cache the form for future requests
+          setCachedForm(formIdOrSlug, reconstructedForm);
           res.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
           return res.json(reconstructedForm);
         }
@@ -590,9 +574,9 @@ export function registerFormulariosCompleteRoutes(app: Express) {
                 error: 'Form not found or not public'
               });
             }
-            console.log(`✅ [PUBLIC FALLBACK] Formulário encontrado via storage:`, storageForm.title);
-            // Reconstruir welcomeConfig para dados do storage também
             const reconstructedForm = reconstructFormDataFromSupabase(storageForm);
+            // 🚀 PERFORMANCE: Cache the form for future requests
+            setCachedForm(formIdOrSlug, reconstructedForm);
             res.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
             return res.json(reconstructedForm);
           }
@@ -629,10 +613,11 @@ export function registerFormulariosCompleteRoutes(app: Express) {
           throw error;
         }
         
-        console.log(`✅ [PUBLIC] Formulário encontrado:`, data.title);
         const camelForm = convertKeysToCamelCase(data);
         const parsedForm = parseJsonbFields(camelForm, ['questions', 'designConfig', 'scoreTiers', 'tags']);
         const reconstructedForm = reconstructFormDataFromSupabase(parsedForm);
+        // 🚀 PERFORMANCE: Cache the form for future requests
+        setCachedForm(formIdOrSlug, reconstructedForm);
         res.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
         return res.json(reconstructedForm);
       }
