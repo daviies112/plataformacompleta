@@ -241,6 +241,18 @@ class AssinaturaSupabaseService {
     return this.initialized && this.supabase !== null;
   }
   
+  /**
+   * Clear the cached Supabase client (useful when credentials change)
+   * This is a simpler version of reinitialize() that doesn't automatically reconnect
+   */
+  clearClient(): void {
+    console.log('[AssinaturaSupabase] 🗑️ Clearing cached client...');
+    this.supabase = null;
+    this.initialized = false;
+    this.initPromise = null;
+    console.log('[AssinaturaSupabase] ✅ Client cache cleared');
+  }
+  
   getSupabaseClient(): SupabaseClient | null {
     return this.supabase;
   }

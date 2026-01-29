@@ -17,6 +17,11 @@ function getAdminId(req: Request): string {
   return 'system';
 }
 
+function getTenantId(req: Request): string {
+  const session = (req as any).session;
+  return session?.tenantId || session?.userId || 'system';
+}
+
 // HTML escape helper to prevent XSS
 function escapeHtml(text: string): string {
   if (!text) return '';
@@ -35,7 +40,8 @@ function escapeHtml(text: string): string {
 router.get('/contratos-pendentes', async (req: Request, res: Response) => {
   try {
     const adminId = getAdminId(req);
-    const contratos = await envioService.getContratosPendentesEnvio(adminId);
+    const tenantId = getTenantId(req);
+    const contratos = await envioService.getContratosPendentesEnvio(adminId, tenantId);
     res.json(contratos);
   } catch (error: any) {
     console.error('[Envio] Erro ao buscar contratos:', error);

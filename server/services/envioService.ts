@@ -1,7 +1,8 @@
 import { supabaseOwner } from '../config/supabaseOwner';
 import { totalExpressService } from './totalExpressService';
 import { assinaturaSupabaseService } from './assinatura-supabase';
-// Usando supabaseOwner para envios/transportadoras e assinaturaSupabase para contracts
+import { getClientSupabaseClientStrict } from '../lib/multiTenantSupabase';
+// Usando supabaseOwner para envios/transportadoras e multi-tenant client para contracts
 
 export interface Transportadora {
   id: string;
@@ -589,8 +590,8 @@ class EnvioService {
 
   // ==================== CONTRATOS PENDENTES ====================
 
-  async getContratosPendentesEnvio(adminId: string): Promise<ContratoPendenteEnvio[]> {
-    console.log('[EnvioService] Buscando contratos pendentes para adminId:', adminId);
+  async getContratosPendentesEnvio(adminId: string, tenantId?: string): Promise<ContratoPendenteEnvio[]> {
+    console.log('[EnvioService] Buscando contratos pendentes para adminId:', adminId, 'tenantId:', tenantId);
     const client = this.getClient();
     
     if (!client) {
@@ -598,10 +599,14 @@ class EnvioService {
       return [];
     }
     
-    // Obter cliente do Supabase do CLIENTE (onde estão os contracts)
-    const clienteSupabase = assinaturaSupabaseService.getSupabaseClient();
+    // Use tenant-specific Supabase client (strict mode - no fallback)
+    // This ensures each tenant sees only their own contracts
+    const effectiveTenantId = tenantId || adminId;
+    const clienteSupabase = await getClientSupabaseClientStrict(effectiveTenantId);
+    
     if (!clienteSupabase) {
-      console.error('[EnvioService] Cliente Supabase do CLIENTE não disponível!');
+      console.log('[EnvioService] Tenant', effectiveTenantId, 'não tem credenciais Supabase configuradas');
+      console.log('[EnvioService] Admin deve configurar credenciais em /configuracoes para ver contratos');
       return [];
     }
     
@@ -625,8 +630,8 @@ class EnvioService {
       console.error('[EnvioService] Erro ao buscar contract_ids dos envios:', err);
     }
 
-    // Buscar contratos do Supabase do CLIENTE (onde está a tabela contracts)
-    console.log('[EnvioService] Buscando contratos do Supabase CLIENTE');
+    // Buscar contratos do Supabase do tenant (onde está a tabela contracts)
+    console.log('[EnvioService] Buscando contratos do Supabase para tenant:', effectiveTenantId);
     
     const { data: allContracts, error: contractsError } = await clienteSupabase
       .from('contracts')

@@ -2066,6 +2066,33 @@ export function setupConfigRoutes(app: Express) {
         console.warn("⚠️ Could not clear Supabase cache:", cacheError);
       }
       
+      // Clear multi-tenant Supabase client cache for this tenant
+      try {
+        const { clearClientSupabaseCache } = await import('../lib/multiTenantSupabase.js');
+        clearClientSupabaseCache(tenantId);
+        console.log(`✅ Multi-tenant Supabase cache cleared for tenant ${tenantId}`);
+      } catch (multiTenantCacheError) {
+        console.warn("⚠️ Could not clear multi-tenant Supabase cache:", multiTenantCacheError);
+      }
+      
+      // Invalidate LeadsCache for this tenant (cached leads data from old credentials)
+      try {
+        const { invalidateLeadsCache } = await import('./leadsPipelineRoutes.js');
+        invalidateLeadsCache(tenantId);
+        console.log(`✅ LeadsCache invalidated for tenant ${tenantId}`);
+      } catch (leadsCacheError) {
+        console.warn("⚠️ Could not invalidate LeadsCache:", leadsCacheError);
+      }
+      
+      // Reinitialize assinaturaSupabaseService to use new credentials
+      try {
+        const { assinaturaSupabaseService } = await import('../services/assinatura-supabase.js');
+        await assinaturaSupabaseService.reinitialize();
+        console.log("✅ AssinaturaSupabaseService reinitialized with new credentials");
+      } catch (assinaturaError) {
+        console.warn("⚠️ Could not reinitialize assinaturaSupabaseService:", assinaturaError);
+      }
+      
       const storageMethod = savedToDatabase ? 'database' : 'file';
       const needsRestart = !!databaseUrl;
       return res.json({
