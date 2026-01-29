@@ -299,7 +299,14 @@ const SettingsPage = () => {
     window.dispatchEvent(new CustomEvent('supabase-config-changed'));
     window.dispatchEvent(new CustomEvent('forms-cache-cleared'));
     
+    sessionStorage.clear();
+    
     console.log('✅ [Cache] Cache do tenant limpo com sucesso!');
+    console.log('⚠️ [Cache] Recarregando página para garantir dados frescos...');
+    
+    setTimeout(() => {
+      window.location.reload();
+    }, 500);
   };
 
   const saveSupabaseMutation = useMutation({
