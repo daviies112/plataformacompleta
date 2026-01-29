@@ -111,15 +111,15 @@ export function ChatWidget() {
       {!isOpen && (
         <Button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-50 hover:scale-105 transition-transform"
+          className="fixed bottom-20 right-4 h-10 w-10 rounded-full shadow-lg z-40 hover:scale-105 transition-transform lg:bottom-6 lg:right-6 lg:h-14 lg:w-14"
           size="icon"
         >
-          <MessageCircle className="h-6 w-6" />
+          <MessageCircle className="h-5 w-5 lg:h-6 lg:w-6" />
         </Button>
       )}
 
       {isOpen && (
-        <div className="fixed bottom-6 right-6 w-[360px] h-[500px] bg-background border rounded-lg shadow-2xl z-50 flex flex-col overflow-hidden">
+        <div className="fixed bottom-20 right-4 w-[320px] h-[400px] bg-background border rounded-lg shadow-2xl z-40 flex flex-col overflow-hidden lg:bottom-6 lg:right-6 lg:w-[360px] lg:h-[500px]">
           <div className="flex items-center justify-between p-3 border-b bg-primary text-primary-foreground">
             <div className="flex items-center gap-2">
               <Phone className="h-5 w-5" />

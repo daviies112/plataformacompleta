@@ -5,6 +5,7 @@ import {
   Wallet,
   Store,
   Trophy,
+  UsersRound,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -15,10 +16,11 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { path: "/revendedora/reseller/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+  { path: "/revendedora/reseller/dashboard", icon: LayoutDashboard, label: "Home" },
   { path: "/revendedora/reseller/sales", icon: TrendingUp, label: "Vendas" },
   { path: "/revendedora/reseller/financial", icon: Wallet, label: "Financeiro" },
   { path: "/revendedora/reseller/store", icon: Store, label: "Loja" },
+  { path: "/revendedora/reseller/team", icon: UsersRound, label: "Equipe" },
   { path: "/revendedora/reseller/gamification", icon: Trophy, label: "Ranking" },
 ];
 
