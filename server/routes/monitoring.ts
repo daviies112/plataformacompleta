@@ -99,6 +99,10 @@ router.post('/monitoring/logs', logsLimiter, (req, res) => {
 });
 
 router.get('/monitoring/logs', logsLimiter, (req, res) => {
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(403).json({ error: 'Monitoring logs only available in development' });
+  }
+  
   const limit = Math.min(parseInt(req.query.limit as string) || 100, 500);
   const type = req.query.type as string;
   const since = parseInt(req.query.since as string) || 0;
@@ -123,6 +127,10 @@ router.get('/monitoring/logs', logsLimiter, (req, res) => {
 });
 
 router.delete('/monitoring/logs', logsLimiter, (_req, res) => {
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(403).json({ error: 'Monitoring logs only available in development' });
+  }
+  
   const count = monitoringLogs.length;
   monitoringLogs.length = 0;
   
@@ -133,6 +141,10 @@ router.delete('/monitoring/logs', logsLimiter, (_req, res) => {
 });
 
 router.get('/monitoring/stats', logsLimiter, (_req, res) => {
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(403).json({ error: 'Monitoring stats only available in development' });
+  }
+  
   const stats = {
     totalLogs: monitoringLogs.length,
     byType: {} as Record<string, number>,

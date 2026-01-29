@@ -82,7 +82,7 @@ function StatusBanner({
         size="sm"
         variant="outline"
         onClick={onReload}
-        className="h-7 px-3 text-xs bg-white/20 border-white/30 hover:bg-white/30"
+        className="h-7 px-3 text-xs bg-white/20 border-white/30"
         data-testid="button-reload"
       >
         <RefreshCw className="w-3 h-3 mr-1" />

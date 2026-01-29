@@ -159,14 +159,8 @@ export function useAppMonitoring() {
         },
       });
       
-      if (state.consecutiveFailures + 1 >= AUTO_RECOVERY_THRESHOLD) {
-        addLog({
-          type: 'info',
-          message: 'Auto-recovery threshold reached, consider page reload',
-        });
-      }
     }
-  }, [addLog, state.consecutiveFailures]);
+  }, [addLog]);
 
   const triggerRecovery = useCallback(() => {
     addLog({
