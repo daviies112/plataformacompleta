@@ -1,0 +1,374 @@
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import { supabaseOwner, SUPABASE_CONFIGURED } from '../config/supabaseOwner';
+
+export interface AdminUser {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  company_name: string | null;
+  company_email: string | null;
+  plan_type: string;
+  tenant_id: string;
+}
+
+export interface LoginResult {
+  success: boolean;
+  user?: AdminUser;
+  token?: string;
+  client?: {
+    id: string;
+    name: string;
+    email: string;
+    plan_type: string;
+  };
+  error?: string;
+}
+
+class AdminAuthService {
+  private jwtSecret: string;
+
+  constructor() {
+    this.jwtSecret = process.env.JWT_SECRET || 'demo-secret-key-for-development-only';
+  }
+
+  isConfigured(): boolean {
+    return SUPABASE_CONFIGURED && supabaseOwner !== null;
+  }
+
+  async verifyLogin(email: string, password: string): Promise<LoginResult> {
+    if (!this.isConfigured()) {
+      console.log('[AdminAuth] Supabase Owner não configurado, usando fallback');
+      return this.fallbackLogin(email, password);
+    }
+
+    try {
+      console.log(`[AdminAuth] Verificando login para: ${email}`);
+      
+      const { data, error } = await supabaseOwner!.rpc('verificar_login_admin', {
+        p_email: email,
+        p_senha: password
+      });
+
+      if (error) {
+        console.error('[AdminAuth] Erro ao chamar função RPC:', error);
+        if (error.code === 'PGRST202') {
+          console.log('[AdminAuth] Função verificar_login_admin não existe, tentando query direta');
+          return this.directLogin(email, password);
+        }
+        return { success: false, error: 'Erro ao verificar credenciais' };
+      }
+
+      if (!data || data.length === 0) {
+        console.log('[AdminAuth] Usuário não encontrado ou inativo');
+        return { success: false, error: 'Credenciais inválidas' };
+      }
+
+      const userData = data[0];
+      
+      const isValidPassword = await bcrypt.compare(password, userData.password_hash);
+      if (!isValidPassword) {
+        console.log('[AdminAuth] Senha inválida');
+        return { success: false, error: 'Credenciais inválidas' };
+      }
+
+      await this.updateLastLogin(userData.id);
+
+      return this.generateLoginResponse(userData);
+
+    } catch (error) {
+      console.error('[AdminAuth] Erro no login:', error);
+      return this.fallbackLogin(email, password);
+    }
+  }
+
+  async directLogin(email: string, password: string): Promise<LoginResult> {
+    if (!supabaseOwner) {
+      return this.fallbackLogin(email, password);
+    }
+
+    try {
+      console.log('[AdminAuth] Tentando login direto na tabela admin_users');
+      
+      const { data, error } = await supabaseOwner
+        .from('admin_users')
+        .select('*')
+        .eq('email', email)
+        .eq('is_active', true)
+        .single();
+
+      if (error || !data) {
+        console.log('[AdminAuth] Usuário não encontrado na tabela:', error?.message);
+        return this.fallbackLogin(email, password);
+      }
+
+      const isValidPassword = await bcrypt.compare(password, data.password_hash);
+      if (!isValidPassword) {
+        console.log('[AdminAuth] Senha inválida');
+        return { success: false, error: 'Credenciais inválidas' };
+      }
+
+      await this.updateLastLogin(data.id);
+
+      return this.generateLoginResponse(data);
+
+    } catch (error) {
+      console.error('[AdminAuth] Erro no login direto:', error);
+      return this.fallbackLogin(email, password);
+    }
+  }
+
+  private async updateLastLogin(userId: string): Promise<void> {
+    if (!supabaseOwner) return;
+
+    try {
+      await supabaseOwner.rpc('atualizar_ultimo_login', { p_user_id: userId });
+    } catch (error) {
+      try {
+        await supabaseOwner
+          .from('admin_users')
+          .update({ last_login: new Date().toISOString(), updated_at: new Date().toISOString() })
+          .eq('id', userId);
+      } catch (e) {
+        console.warn('[AdminAuth] Não foi possível atualizar último login:', e);
+      }
+    }
+  }
+
+  private generateLoginResponse(userData: any): LoginResult {
+    const user: AdminUser = {
+      id: userData.id,
+      email: userData.email,
+      name: userData.name,
+      role: userData.role || 'admin',
+      company_name: userData.company_name,
+      company_email: userData.company_email,
+      plan_type: userData.plan_type || 'pro',
+      tenant_id: userData.tenant_id || `dev-${userData.email.replace('@', '_').replace(/\./g, '_')}`
+    };
+
+    const token = jwt.sign(
+      {
+        userId: user.id,
+        email: user.email,
+        clientId: user.id,
+        tenantId: user.tenant_id,
+        role: user.role
+      },
+      this.jwtSecret,
+      { expiresIn: '24h' }
+    );
+
+    console.log(`[AdminAuth] ✅ Login bem-sucedido para: ${user.email} (tenant: ${user.tenant_id})`);
+
+    return {
+      success: true,
+      user,
+      token,
+      client: {
+        id: user.id,
+        name: user.company_name || user.name,
+        email: user.company_email || user.email,
+        plan_type: user.plan_type
+      }
+    };
+  }
+
+  private async fallbackLogin(email: string, password: string): Promise<LoginResult> {
+    console.log('[AdminAuth] Usando fallback de desenvolvimento');
+    
+    const fallbackEmail = process.env.CLIENT_LOGIN_EMAIL || 'admin@empresa.com';
+    const fallbackPasswordHash = process.env.CLIENT_LOGIN_PASSWORD_HASH || 
+      '$2b$10$sxI6Ai8icfl0P3tKdF67wOsCmweeQvr314iAs/wIb3DDvowy60qP.';
+    const fallbackName = process.env.CLIENT_USER_NAME || 'Administrador';
+    const fallbackCompany = process.env.CLIENT_COMPANY_NAME || 'Sua Empresa';
+
+    if (email !== fallbackEmail) {
+      return { success: false, error: 'Credenciais inválidas' };
+    }
+
+    const isValidPassword = await bcrypt.compare(password, fallbackPasswordHash);
+    if (!isValidPassword) {
+      return { success: false, error: 'Credenciais inválidas' };
+    }
+
+    const tenantId = `dev-${email.replace('@', '_').replace(/\./g, '_')}`;
+
+    const user: AdminUser = {
+      id: '1',
+      email: fallbackEmail,
+      name: fallbackName,
+      role: 'admin',
+      company_name: fallbackCompany,
+      company_email: fallbackEmail,
+      plan_type: 'pro',
+      tenant_id: tenantId
+    };
+
+    const token = jwt.sign(
+      {
+        userId: user.id,
+        email: user.email,
+        clientId: user.id,
+        tenantId: user.tenant_id,
+        role: user.role
+      },
+      this.jwtSecret,
+      { expiresIn: '24h' }
+    );
+
+    console.log(`[AdminAuth] ✅ Login de desenvolvimento para: ${user.email}`);
+
+    return {
+      success: true,
+      user,
+      token,
+      client: {
+        id: user.id,
+        name: user.company_name || user.name,
+        email: user.company_email || user.email,
+        plan_type: user.plan_type
+      }
+    };
+  }
+
+  async createAdmin(
+    email: string,
+    password: string,
+    name: string,
+    companyName?: string,
+    companyEmail?: string,
+    planType: string = 'pro',
+    role: string = 'admin'
+  ): Promise<{ success: boolean; userId?: string; error?: string }> {
+    if (!this.isConfigured()) {
+      return { success: false, error: 'Supabase Owner não configurado' };
+    }
+
+    try {
+      const passwordHash = await bcrypt.hash(password, 10);
+      const tenantId = `dev-${email.replace('@', '_').replace(/\./g, '_')}`;
+
+      const { data: existingUser } = await supabaseOwner!
+        .from('admin_users')
+        .select('id')
+        .eq('email', email)
+        .single();
+
+      if (existingUser) {
+        return { success: false, error: 'Email já cadastrado' };
+      }
+
+      const { data, error } = await supabaseOwner!
+        .from('admin_users')
+        .insert({
+          email,
+          password_hash: passwordHash,
+          name,
+          company_name: companyName || null,
+          company_email: companyEmail || null,
+          plan_type: planType,
+          role,
+          tenant_id: tenantId,
+          is_active: true
+        })
+        .select('id')
+        .single();
+
+      if (error) {
+        console.error('[AdminAuth] Erro ao criar admin:', error);
+        return { success: false, error: error.message };
+      }
+
+      console.log(`[AdminAuth] ✅ Administrador criado: ${email} (ID: ${data.id})`);
+
+      return { success: true, userId: data.id };
+
+    } catch (error: any) {
+      console.error('[AdminAuth] Erro ao criar admin:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async listAdmins(): Promise<AdminUser[]> {
+    if (!this.isConfigured()) {
+      return [];
+    }
+
+    try {
+      const { data, error } = await supabaseOwner!
+        .from('admin_users')
+        .select('id, email, name, role, company_name, company_email, plan_type, tenant_id, is_active, last_login, created_at')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('[AdminAuth] Erro ao listar admins:', error);
+        return [];
+      }
+
+      return data || [];
+
+    } catch (error) {
+      console.error('[AdminAuth] Erro ao listar admins:', error);
+      return [];
+    }
+  }
+
+  async updateAdmin(userId: string, updates: Partial<AdminUser & { password?: string }>): Promise<{ success: boolean; error?: string }> {
+    if (!this.isConfigured()) {
+      return { success: false, error: 'Supabase Owner não configurado' };
+    }
+
+    try {
+      const updateData: any = { ...updates, updated_at: new Date().toISOString() };
+      
+      if (updates.password) {
+        updateData.password_hash = await bcrypt.hash(updates.password, 10);
+        delete updateData.password;
+      }
+
+      const { error } = await supabaseOwner!
+        .from('admin_users')
+        .update(updateData)
+        .eq('id', userId);
+
+      if (error) {
+        console.error('[AdminAuth] Erro ao atualizar admin:', error);
+        return { success: false, error: error.message };
+      }
+
+      return { success: true };
+
+    } catch (error: any) {
+      console.error('[AdminAuth] Erro ao atualizar admin:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async deleteAdmin(userId: string): Promise<{ success: boolean; error?: string }> {
+    if (!this.isConfigured()) {
+      return { success: false, error: 'Supabase Owner não configurado' };
+    }
+
+    try {
+      const { error } = await supabaseOwner!
+        .from('admin_users')
+        .update({ is_active: false, updated_at: new Date().toISOString() })
+        .eq('id', userId);
+
+      if (error) {
+        console.error('[AdminAuth] Erro ao desativar admin:', error);
+        return { success: false, error: error.message };
+      }
+
+      return { success: true };
+
+    } catch (error: any) {
+      console.error('[AdminAuth] Erro ao desativar admin:', error);
+      return { success: false, error: error.message };
+    }
+  }
+}
+
+export const adminAuthService = new AdminAuthService();

@@ -1,37 +1,8 @@
 import express from 'express';
-import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
+import { adminAuthService } from '../services/adminAuth';
 
 const router = express.Router();
 
-// Client configuration - easily changeable for different clients
-const currentClientConfig = {
-  user: {
-    id: '1',
-    email: process.env.CLIENT_LOGIN_EMAIL || 'admin@empresa.com',
-    password: process.env.CLIENT_LOGIN_PASSWORD_HASH || '$2b$10$sxI6Ai8icfl0P3tKdF67wOsCmweeQvr314iAs/wIb3DDvowy60qP.', // 123456
-    name: process.env.CLIENT_USER_NAME || 'Administrador',
-    role: 'admin' as const
-  },
-  client: {
-    id: '1',
-    name: process.env.CLIENT_COMPANY_NAME || 'Sua Empresa',
-    email: process.env.CLIENT_COMPANY_EMAIL || 'contato@empresa.com',
-    plan_type: (process.env.CLIENT_PLAN_TYPE as 'starter' | 'pro' | 'enterprise') || 'pro'
-  }
-};
-
-// Demo users for development - now using environment variables
-const demoUsers = [currentClientConfig];
-
-// Tenant ID mapping - must match the tenant_id in Supabase tables
-const TENANT_ID_MAPPING: Record<string, string> = {
-  '1': 'tenant_a',
-  '2': 'tenant_b',
-  '3': 'tenant_c'
-};
-
-// Login endpoint
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -43,60 +14,32 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // Find user
-    const userConfig = demoUsers.find(u => u.user.email === email);
-    if (!userConfig) {
+    const result = await adminAuthService.verifyLogin(email, password);
+
+    if (!result.success) {
       return res.status(401).json({
         success: false,
-        error: 'Invalid credentials'
+        error: result.error || 'Invalid credentials'
       });
     }
 
-    // Verify password
-    const isValidPassword = await bcrypt.compare(password, userConfig.user.password);
-    if (!isValidPassword) {
-      return res.status(401).json({
-        success: false,
-        error: 'Invalid credentials'
-      });
-    }
-
-    // Generate JWT token with more secure secret handling
-    const jwtSecret = process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' 
-      ? (() => { throw new Error('JWT_SECRET is required in production'); })()
-      : 'demo-secret-key-for-development-only');
-    
-    const tenantId = TENANT_ID_MAPPING[userConfig.client.id] || `tenant_${userConfig.client.id}`;
-    
-    const token = jwt.sign(
-      { 
-        userId: userConfig.user.id,
-        email: userConfig.user.email,
-        clientId: userConfig.client.id,
-        tenantId: tenantId
-      },
-      jwtSecret,
-      { expiresIn: '24h' }
-    );
-
-    // Demo credentials configuration
     const credentials = {
       whatsapp: true,
       evolution_api: true,
-      supabase_configured: true,
+      supabase_configured: adminAuthService.isConfigured(),
       n8n_configured: true
     };
 
     res.json({
       success: true,
-      token,
+      token: result.token,
       user: {
-        id: userConfig.user.id,
-        email: userConfig.user.email,
-        name: userConfig.user.name,
-        role: userConfig.user.role
+        id: result.user!.id,
+        email: result.user!.email,
+        name: result.user!.name,
+        role: result.user!.role
       },
-      client: userConfig.client,
+      client: result.client,
       credentials
     });
 
@@ -109,8 +52,7 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// Token validation endpoint
-router.get('/validate', (req, res) => {
+router.get('/validate', async (req, res) => {
   const token = req.headers.authorization?.replace('Bearer ', '');
   
   if (!token) {
@@ -121,34 +63,149 @@ router.get('/validate', (req, res) => {
   }
 
   try {
-    const jwtSecret = process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' 
-      ? (() => { throw new Error('JWT_SECRET is required in production'); })()
-      : 'demo-secret-key-for-development-only');
+    const jwt = await import('jsonwebtoken');
+    const jwtSecret = process.env.JWT_SECRET || 'demo-secret-key-for-development-only';
     
     const decoded = jwt.verify(token, jwtSecret) as any;
-    const userConfig = demoUsers.find(u => u.user.id === decoded.userId);
     
-    if (!userConfig) {
-      return res.status(401).json({
-        success: false,
-        error: 'Invalid token'
-      });
-    }
-
     res.json({
       success: true,
       user: {
-        id: userConfig.user.id,
-        email: userConfig.user.email,
-        name: userConfig.user.name,
-        role: userConfig.user.role
+        id: decoded.userId,
+        email: decoded.email,
+        name: decoded.name || 'Usuário',
+        role: decoded.role || 'admin'
       },
-      client: userConfig.client
+      client: {
+        id: decoded.clientId || decoded.userId,
+        name: decoded.companyName || 'Empresa',
+        email: decoded.email,
+        plan_type: decoded.planType || 'pro'
+      }
     });
   } catch (error) {
     res.status(401).json({
       success: false,
       error: 'Invalid token'
+    });
+  }
+});
+
+router.post('/admin/create', async (req, res) => {
+  try {
+    const { email, password, name, companyName, companyEmail, planType, role } = req.body;
+
+    if (!email || !password || !name) {
+      return res.status(400).json({
+        success: false,
+        error: 'Email, password and name are required'
+      });
+    }
+
+    const result = await adminAuthService.createAdmin(
+      email,
+      password,
+      name,
+      companyName,
+      companyEmail,
+      planType,
+      role
+    );
+
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        error: result.error
+      });
+    }
+
+    res.json({
+      success: true,
+      userId: result.userId,
+      message: `Administrador ${email} criado com sucesso`
+    });
+
+  } catch (error) {
+    console.error('Create admin error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error'
+    });
+  }
+});
+
+router.get('/admin/list', async (req, res) => {
+  try {
+    const admins = await adminAuthService.listAdmins();
+    
+    res.json({
+      success: true,
+      admins: admins.map(admin => ({
+        ...admin,
+        password_hash: undefined
+      }))
+    });
+
+  } catch (error) {
+    console.error('List admins error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error'
+    });
+  }
+});
+
+router.put('/admin/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+
+    const result = await adminAuthService.updateAdmin(id, updates);
+
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        error: result.error
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Administrador atualizado com sucesso'
+    });
+
+  } catch (error) {
+    console.error('Update admin error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error'
+    });
+  }
+});
+
+router.delete('/admin/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const result = await adminAuthService.deleteAdmin(id);
+
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        error: result.error
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Administrador desativado com sucesso'
+    });
+
+  } catch (error) {
+    console.error('Delete admin error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error'
     });
   }
 });
