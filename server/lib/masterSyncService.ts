@@ -114,6 +114,82 @@ export function createTenantClient(credentials: AdminCredentials): SupabaseClien
   return createClient(credentials.supabase_url, credentials.supabase_service_key || credentials.supabase_anon_key);
 }
 
+/**
+ * Sincroniza as credenciais do admin para a tabela admin_supabase_credentials no Supabase Owner
+ * Isso permite que as revendedoras herdem as credenciais do admin
+ */
+export async function syncAdminCredentialsToOwner(
+  adminId: string,
+  credentials: {
+    supabase_url: string;
+    supabase_anon_key: string;
+    supabase_service_role_key?: string;
+    project_name?: string;
+  }
+): Promise<boolean> {
+  // Tentar sincronizar no Master primeiro, depois no Owner
+  const master = getMasterClient();
+  const client = master || (SUPABASE_CONFIGURED ? supabaseOwner : null);
+  
+  if (!client) {
+    console.warn('[MasterSync] Nenhum Supabase Owner/Master disponível para sincronizar credenciais');
+    return false;
+  }
+  
+  try {
+    // Verificar se já existe registro para este admin
+    const { data: existing } = await client
+      .from('admin_supabase_credentials')
+      .select('id')
+      .eq('admin_id', adminId)
+      .maybeSingle();
+    
+    if (existing) {
+      // Atualizar registro existente
+      const { error } = await client
+        .from('admin_supabase_credentials')
+        .update({
+          supabase_url: credentials.supabase_url,
+          supabase_anon_key: credentials.supabase_anon_key,
+          supabase_service_role_key: credentials.supabase_service_role_key || null,
+          project_name: credentials.project_name || null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('admin_id', adminId);
+      
+      if (error) {
+        console.error('[MasterSync] Erro ao atualizar credenciais no Owner:', error);
+        return false;
+      }
+      console.log(`✅ [MasterSync] Credenciais do admin ${adminId} atualizadas no Supabase Owner`);
+    } else {
+      // Inserir novo registro
+      const { error } = await client
+        .from('admin_supabase_credentials')
+        .insert({
+          admin_id: adminId,
+          supabase_url: credentials.supabase_url,
+          supabase_anon_key: credentials.supabase_anon_key,
+          supabase_service_role_key: credentials.supabase_service_role_key || null,
+          project_name: credentials.project_name || null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+      
+      if (error) {
+        console.error('[MasterSync] Erro ao inserir credenciais no Owner:', error);
+        return false;
+      }
+      console.log(`✅ [MasterSync] Credenciais do admin ${adminId} criadas no Supabase Owner`);
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('[MasterSync] Erro ao sincronizar credenciais:', error);
+    return false;
+  }
+}
+
 export async function createRevendedoraFromContract(data: RevendedoraData): Promise<string | null> {
   const master = getMasterClient();
   if (!master) {

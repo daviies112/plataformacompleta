@@ -10,6 +10,7 @@ import { getSupabaseCredentials, getSupabaseCredentialsStrict, getPluggyCredenti
 import { resetAllPollerStates } from '../lib/stateReset';
 import { invalidateClienteCache } from '../lib/clienteSupabase';
 import { clearSupabaseClientCache as clearFormularioSupabaseCache } from '../formularios/utils/supabaseClient';
+import { syncAdminCredentialsToOwner } from '../lib/masterSyncService';
 
 const router = express.Router();
 
@@ -100,6 +101,23 @@ router.put('/:integrationType', authenticateToken, async (req, res) => {
         resetAllPollerStates();
         console.log(`✅ Configuração do Supabase salva no banco (tenant: ${tenantId})`);
         console.log(`🔄 Estados de polling resetados - sincronização completa será executada`);
+        
+        // 🔄 SINCRONIZAR para Supabase Owner (para revendedoras herdarem)
+        // Usa o userId do admin como admin_id na tabela admin_supabase_credentials
+        const adminId = req.user!.userId;
+        if (adminId) {
+          const synced = await syncAdminCredentialsToOwner(adminId, {
+            supabase_url: credentials.url,
+            supabase_anon_key: credentials.anon_key,
+            supabase_service_role_key: credentials.service_role_key || undefined,
+            project_name: credentials.project_name || tenantId
+          });
+          if (synced) {
+            console.log(`🔄 [SYNC] Credenciais sincronizadas para Supabase Owner (admin: ${adminId})`);
+          } else {
+            console.warn(`⚠️ [SYNC] Falha ao sincronizar credenciais para Supabase Owner (admin: ${adminId})`);
+          }
+        }
       } else if (integrationType === 'n8n') {
         // 🔐 Deletar configuração anterior APENAS deste tenant
         await db.delete(n8nConfig)
