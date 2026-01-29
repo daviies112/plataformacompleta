@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from 'next-themes';
-import { Settings, User, Shield, Plug, Database, Calendar, MessageSquare, Zap, Video, CreditCard, Webhook, Activity, Search, Bell, ChevronDown, Sun, Moon, Code, Server, Cloud, BarChart3, Copy, Eye, EyeOff, RefreshCw, Trash2, Check, Link2, Truck } from 'lucide-react';
+import { Settings, User, Shield, Plug, Database, Calendar, MessageSquare, Zap, Video, CreditCard, Webhook, Activity, Search, Bell, ChevronDown, Sun, Moon, Code, Server, Cloud, BarChart3, Copy, Eye, EyeOff, RefreshCw, Trash2, Check, Link2, Truck, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -70,7 +70,7 @@ const CollapsibleSection = ({
 );
 
 const SettingsPage = () => {
-  const { user, client, updateClient, updateUser, isAuthenticated, isLoading } = useAuth();
+  const { user, client, updateClient, updateUser, isAuthenticated, isLoading, logout } = useAuth();
   const { toast } = useToast();
   const { theme, resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -1521,6 +1521,21 @@ const SettingsPage = () => {
               >
                 Salvar Alterações
               </PremiumButton>
+              
+              <div className="pt-4 border-t border-border mt-4">
+                <PremiumButton 
+                  onClick={() => {
+                    logout();
+                    navigate('/login');
+                  }}
+                  data-testid="button-logout"
+                  variant="destructive"
+                  className="w-full"
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Sair da Plataforma
+                </PremiumButton>
+              </div>
             </div>
           </CollapsibleSection>
 
