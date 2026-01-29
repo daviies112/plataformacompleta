@@ -2,7 +2,6 @@ import { useParams as useReactRouterParams, useLocation as useReactRouterLocatio
 import { Router, Route } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "../components/ui/tooltip";
-import { SupabaseConfigProvider } from "../contexts/SupabaseConfigContext";
 import { queryClient } from "../lib/queryClient";
 import { useMemo, lazy, Suspense } from "react";
 import { Loader2 } from "lucide-react";
@@ -101,23 +100,21 @@ const FormularioPublicoWrapper = () => {
   
   return (
     <QueryClientProvider client={queryClient}>
-      <SupabaseConfigProvider>
-        <TooltipProvider>
-          <Suspense fallback={<FormLoader />}>
-            <Router hook={customHook as any}>
-              <Route path="/f/:token">
-                <FormularioPublico />
-              </Route>
-              <Route path="/:companySlug/form/:id">
-                <FormularioPublico />
-              </Route>
-              <Route path="/form/:id">
-                <FormularioPublico />
-              </Route>
-            </Router>
-          </Suspense>
-        </TooltipProvider>
-      </SupabaseConfigProvider>
+      <TooltipProvider>
+        <Suspense fallback={<FormLoader />}>
+          <Router hook={customHook as any}>
+            <Route path="/f/:token">
+              <FormularioPublico />
+            </Route>
+            <Route path="/:companySlug/form/:id">
+              <FormularioPublico />
+            </Route>
+            <Route path="/form/:id">
+              <FormularioPublico />
+            </Route>
+          </Router>
+        </Suspense>
+      </TooltipProvider>
     </QueryClientProvider>
   );
 };
