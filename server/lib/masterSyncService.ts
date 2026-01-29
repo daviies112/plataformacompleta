@@ -144,6 +144,9 @@ export async function syncAdminCredentialsToOwner(
       .eq('admin_id', adminId)
       .maybeSingle();
     
+    // supabase_service_role_key é NOT NULL na tabela - usar anon_key como fallback se não fornecido
+    const serviceRoleKey = credentials.supabase_service_role_key || credentials.supabase_anon_key;
+    
     if (existing) {
       // Atualizar registro existente
       const { error } = await client
@@ -151,9 +154,8 @@ export async function syncAdminCredentialsToOwner(
         .update({
           supabase_url: credentials.supabase_url,
           supabase_anon_key: credentials.supabase_anon_key,
-          supabase_service_role_key: credentials.supabase_service_role_key || null,
-          project_name: credentials.project_name || null,
-          updated_at: new Date().toISOString()
+          supabase_service_role_key: serviceRoleKey,
+          project_name: credentials.project_name || null
         })
         .eq('admin_id', adminId);
       
@@ -163,17 +165,15 @@ export async function syncAdminCredentialsToOwner(
       }
       console.log(`✅ [MasterSync] Credenciais do admin ${adminId} atualizadas no Supabase Owner`);
     } else {
-      // Inserir novo registro
+      // Inserir novo registro (created_at tem default no banco)
       const { error } = await client
         .from('admin_supabase_credentials')
         .insert({
           admin_id: adminId,
           supabase_url: credentials.supabase_url,
           supabase_anon_key: credentials.supabase_anon_key,
-          supabase_service_role_key: credentials.supabase_service_role_key || null,
-          project_name: credentials.project_name || null,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          supabase_service_role_key: serviceRoleKey,
+          project_name: credentials.project_name || null
         });
       
       if (error) {
