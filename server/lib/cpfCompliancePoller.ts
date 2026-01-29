@@ -4,9 +4,11 @@ import { eq, and, isNull, isNotNull } from 'drizzle-orm';
 import { getSupabaseMaster, getSupabaseMasterForTenant, isSupabaseMasterConfigured, type DatacorpCheck } from './supabaseMaster';
 import { tenantIdToUUID } from './cryptoCompliance';
 import { getClienteSupabase, isClienteSupabaseConfigured } from './clienteSupabase';
+import { getClientSupabaseClient } from './multiTenantSupabase';
 import { normalizeCPF, decryptCPF } from './crypto';
 import { isBigdatacorpConfigured } from './bigdatacorpClient';
 import { checkCompliance } from './datacorpCompliance';
+import { decrypt } from './credentialsManager';
 import fs from 'fs';
 import path from 'path';
 
@@ -1168,14 +1170,43 @@ async function getFormTenantId(formId: string): Promise<string | null> {
 }
 
 /**
+ * Tabelas de submissions suportadas (em ordem de prioridade)
+ * Diferentes tenants podem ter esquemas diferentes
+ */
+const SUBMISSIONS_TABLES = ['form_submissions', 'form_submissions_compliance_tracking'];
+
+/**
+ * Busca submissions aprovadas de uma tabela específica do tenant
+ */
+async function fetchApprovedSubmissionsFromTenant(
+  supabase: any,
+  tableName: string,
+  limit: number = 50
+): Promise<{ data: any[] | null; error: any }> {
+  try {
+    const { data, error } = await supabase
+      .from(tableName)
+      .select('id, contact_cpf, contact_name, contact_phone, form_id, created_at, passed')
+      .eq('passed', true)
+      .not('contact_cpf', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+    
+    return { data, error };
+  } catch (err: any) {
+    return { data: null, error: err };
+  }
+}
+
+/**
  * Checks approved form submissions that don't have a CPF compliance check yet.
  * This is for Supabase-only mode where leads come directly from Supabase.
  * 
- * FLOW:
- * 1. Check if BigDataCorp is configured
- * 2. Fetch approved submissions from Supabase (passed=true, contact_cpf exists)
- * 3. For each submission, derive tenant_id from the form that owns it
- * 4. Check if CPF compliance already exists
+ * FLOW (MULTI-TENANT):
+ * 1. Get all tenants that have BOTH BigDataCorp AND Supabase configured
+ * 2. For each tenant, use their specific Supabase client
+ * 3. Try to fetch submissions from available tables (form_submissions or form_submissions_compliance_tracking)
+ * 4. For each approved submission with CPF, check if compliance already exists
  * 5. If not, trigger checkCompliance() with the correct tenant_id
  * 6. Update state file for idempotency
  */
@@ -1192,205 +1223,166 @@ export async function checkApprovedSubmissionsWithoutCPF(): Promise<{
       .from(bigdatacorpConfig)
       .where(isNotNull(bigdatacorpConfig.tenantId));
     
-    // Criar Set de tenants com BigDataCorp para verificação rápida
-    const tenantsWithBigdataSet = new Set(tenantsWithBigdata.map(t => t.tenantId));
+    const tenantsWithBigdataSet = new Set(tenantsWithBigdata.map(t => t.tenantId).filter(Boolean));
     
-    // 2. Fallback: verificar variáveis de ambiente se não há tenants no banco
-    const envBigdataConfigured = await isBigdatacorpConfigured();
-    if (tenantsWithBigdata.length === 0 && !envBigdataConfigured) {
-      console.log('⚠️ [CPFAutoCheck] BigDataCorp não configurado (nem banco nem env) - pulando verificação automática');
-      return { success: true, processedCount: 0, errors: 0 };
-    }
+    // 2. Buscar tenants com Supabase configurado
+    const tenantsWithSupabase = await db.select({
+      tenantId: supabaseConfig.tenantId,
+      supabaseUrl: supabaseConfig.supabaseUrl,
+      supabaseAnonKey: supabaseConfig.supabaseAnonKey
+    })
+      .from(supabaseConfig)
+      .where(isNotNull(supabaseConfig.tenantId));
     
-    if (tenantsWithBigdata.length > 0) {
-      console.log(`✅ [CPFAutoCheck] Encontrados ${tenantsWithBigdata.length} tenant(s) com BigDataCorp configurado`);
-    }
-
-    // 3. Check if Cliente Supabase is configured (banco ou env)
-    const clienteConfigured = await isClienteSupabaseConfigured();
-    if (!clienteConfigured) {
-      console.log('⚠️ [CPFAutoCheck] Supabase do Cliente não configurado - pulando verificação');
-      return { success: true, processedCount: 0, errors: 0 };
-    }
-
-    const supabase = await getClienteSupabase();
-    
-    // Fallback tenantId só usado se não conseguir derivar do formulário
-    const fallbackTenantId = tenantsWithBigdata.length > 0 ? tenantsWithBigdata[0].tenantId : (process.env.DEFAULT_TENANT_ID || 'system');
-
-    // 4. Fetch approved submissions with CPF that haven't been processed yet
-    // Suporta múltiplos critérios de aprovação: passed=true (campo principal)
-    let submissions: any[] = [];
-    let fetchError: any = null;
-    
-    // Estratégia 1: Tentar com passed=true (campo padrão do sistema)
-    const { data: passedSubmissions, error: passedError } = await supabase
-      .from('form_submissions')
-      .select('id, contact_cpf, contact_name, contact_phone, form_id, created_at, passed')
-      .eq('passed', true)
-      .not('contact_cpf', 'is', null)
-      .order('created_at', { ascending: false })
-      .limit(50);
-    
-    if (!passedError && passedSubmissions && passedSubmissions.length > 0) {
-      submissions = passedSubmissions;
-      console.log(`📊 [CPFAutoCheck] Encontradas ${submissions.length} submissions com passed=true`);
-    } else {
-      if (passedError) {
-        console.log(`⚠️ [CPFAutoCheck] Erro na query passed=true: ${passedError.message}`);
-      }
-      
-      // Estratégia 2: Buscar TODAS submissions com CPF (para debug)
-      const { data: allSubmissions, error: allError } = await supabase
-        .from('form_submissions')
-        .select('id, contact_cpf, contact_name, passed')
-        .not('contact_cpf', 'is', null)
-        .order('created_at', { ascending: false })
-        .limit(10);
-      
-      if (allSubmissions && allSubmissions.length > 0) {
-        // Verificar se alguma está aprovada
-        const approvedOnes = allSubmissions.filter((s: any) => s.passed === true);
-        if (approvedOnes.length > 0) {
-          submissions = approvedOnes;
-          console.log(`📊 [CPFAutoCheck] Encontradas ${submissions.length} submissions aprovadas via fallback`);
-        } else {
-          console.log(`⚠️ [CPFAutoCheck] ${allSubmissions.length} submissions com CPF existem, mas nenhuma aprovada (passed=true). Exemplo:`, {
-            id: allSubmissions[0].id,
-            passed: allSubmissions[0].passed,
-            contact_cpf: allSubmissions[0].contact_cpf ? '***' + allSubmissions[0].contact_cpf.slice(-3) : null
-          });
-        }
-      } else {
-        if (allError) {
-          console.log(`⚠️ [CPFAutoCheck] Erro ao buscar submissions: ${allError.message}`);
-          fetchError = allError;
-        } else {
-          console.log(`ℹ️ [CPFAutoCheck] Nenhuma submission com contact_cpf encontrada na tabela form_submissions`);
-        }
-      }
-    }
-
-    if (fetchError) {
-      console.error('❌ [CPFAutoCheck] Erro ao buscar submissions:', fetchError.message);
-      return { success: false, processedCount: 0, errors: 1 };
-    }
-
-    if (submissions.length === 0) {
-      console.log('ℹ️ [CPFAutoCheck] Nenhuma submission aprovada com CPF encontrada para processar');
-      return { success: true, processedCount: 0, errors: 0 };
-    }
-
-    // Filter out already processed submissions (idempotency)
-    const pendingSubmissions = submissions.filter(
-      s => !cpfAutoCheckState.processedSubmissionIds.includes(s.id)
+    // 3. Filtrar apenas tenants que têm AMBOS configurados (BigDataCorp + Supabase)
+    const eligibleTenants = tenantsWithSupabase.filter(t => 
+      t.tenantId && tenantsWithBigdataSet.has(t.tenantId)
     );
-
-    if (pendingSubmissions.length === 0) {
-      console.log('ℹ️ [CPFAutoCheck] Todas as submissions já foram processadas');
+    
+    if (eligibleTenants.length === 0) {
+      console.log('⚠️ [CPFAutoCheck] Nenhum tenant com BigDataCorp E Supabase configurados - pulando verificação');
       return { success: true, processedCount: 0, errors: 0 };
     }
-
-    console.log(`📊 [CPFAutoCheck] Encontradas ${pendingSubmissions.length} submissions aprovadas para verificar`);
-
-    let processedCount = 0;
-    let errors = 0;
     
-    // Cache de form_id -> tenant_id para evitar buscas repetidas
-    const formTenantCache: Record<string, string | null> = {};
+    console.log(`✅ [CPFAutoCheck] Encontrados ${eligibleTenants.length} tenant(s) elegíveis (com BigDataCorp + Supabase)`);
 
-    // 5. For each pending submission, check if CPF compliance exists
-    for (const submission of pendingSubmissions) {
+    let totalProcessedCount = 0;
+    let totalErrors = 0;
+
+    // 4. Processar cada tenant individualmente
+    for (const tenantConfig of eligibleTenants) {
+      const tenantId = tenantConfig.tenantId!;
+      
       try {
-        const cpf = submission.contact_cpf;
-        if (!cpf) continue;
-
-        const normalizedCPF = normalizeCPF(cpf);
+        console.log(`🏢 [CPFAutoCheck] Processando tenant: ${tenantId}`);
         
-        // IMPORTANTE: Derivar tenant_id do formulário, não usar fallback global
-        let submissionTenantId = fallbackTenantId;
-        if (submission.form_id) {
-          if (formTenantCache[submission.form_id] === undefined) {
-            formTenantCache[submission.form_id] = await getFormTenantId(submission.form_id);
-          }
-          if (formTenantCache[submission.form_id]) {
-            submissionTenantId = formTenantCache[submission.form_id]!;
-          }
-        }
+        // Obter cliente Supabase específico do tenant
+        const supabase = await getClientSupabaseClient(tenantId);
         
-        // Verificar se o tenant tem BigDataCorp configurado
-        const tenantHasBigdata = tenantsWithBigdataSet.has(submissionTenantId) || envBigdataConfigured;
-        if (!tenantHasBigdata) {
-          console.log(`⚠️ [CPFAutoCheck] Tenant ${submissionTenantId} não tem BigDataCorp configurado - pulando submission ${submission.id}`);
-          cpfAutoCheckState.processedSubmissionIds.push(submission.id);
+        if (!supabase) {
+          console.log(`⚠️ [CPFAutoCheck] Não foi possível obter cliente Supabase para tenant ${tenantId}`);
           continue;
         }
-
-        // Check if CPF compliance result already exists
-        const { data: existingResult, error: checkError } = await supabase
-          .from('cpf_compliance_results')
-          .select('id')
-          .eq('cpf', normalizedCPF)
-          .limit(1);
-
-        if (checkError) {
-          // If table doesn't exist, log and skip
-          if (checkError.code === '42P01') {
-            console.log('⚠️ [CPFAutoCheck] Tabela cpf_compliance_results não existe - crie a tabela primeiro');
+        
+        // 5. Tentar buscar submissions de cada tabela possível
+        let submissions: any[] = [];
+        let usedTable: string | null = null;
+        
+        for (const tableName of SUBMISSIONS_TABLES) {
+          const { data, error } = await fetchApprovedSubmissionsFromTenant(supabase, tableName);
+          
+          if (!error && data && data.length > 0) {
+            submissions = data;
+            usedTable = tableName;
+            console.log(`📊 [CPFAutoCheck] Tenant ${tenantId}: ${submissions.length} submissions em '${tableName}'`);
             break;
+          } else if (error) {
+            // Se o erro é "tabela não existe", tentar a próxima
+            if (error.code === 'PGRST205' || error.code === '42P01' || 
+                error.message?.includes('schema cache') || error.message?.includes('does not exist')) {
+              console.log(`ℹ️ [CPFAutoCheck] Tenant ${tenantId}: Tabela '${tableName}' não existe, tentando próxima...`);
+              continue;
+            }
+            // Outro tipo de erro, logar e continuar
+            console.log(`⚠️ [CPFAutoCheck] Tenant ${tenantId}: Erro em '${tableName}': ${error.message}`);
           }
-          console.error(`❌ [CPFAutoCheck] Erro ao verificar CPF existente:`, checkError.message);
-          errors++;
-          continue;
         }
-
-        // If CPF compliance already exists, mark as processed and skip
-        if (existingResult && existingResult.length > 0) {
-          console.log(`ℹ️ [CPFAutoCheck] CPF ${normalizedCPF.substring(0, 3)}... já possui consulta - pulando`);
-          cpfAutoCheckState.processedSubmissionIds.push(submission.id);
-          continue;
-        }
-
-        // 6. Trigger CPF compliance check with the CORRECT tenant_id derived from the form
-        console.log(`🔍 [CPFAutoCheck] Disparando consulta CPF para submission ${submission.id} (tenant: ${submissionTenantId})...`);
-
-        const result = await checkCompliance(cpf, {
-          tenantId: submissionTenantId,
-          submissionId: submission.id,
-          personName: submission.contact_name || undefined,
-          personPhone: submission.contact_phone || undefined,
-        });
-
-        console.log(`✅ [CPFAutoCheck] Consulta CPF concluída para submission ${submission.id} - Status: ${result.status}`);
-
-        // Mark submission as processed
-        cpfAutoCheckState.processedSubmissionIds.push(submission.id);
-        cpfAutoCheckState.totalProcessed++;
-        processedCount++;
-
-        // Small delay to avoid rate limiting
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-      } catch (err: any) {
-        console.error(`❌ [CPFAutoCheck] Erro ao processar submission ${submission.id}:`, err.message);
-        errors++;
-        cpfAutoCheckState.totalErrors++;
         
-        // Mark as processed to avoid infinite retry loops
-        cpfAutoCheckState.processedSubmissionIds.push(submission.id);
+        if (submissions.length === 0) {
+          console.log(`ℹ️ [CPFAutoCheck] Tenant ${tenantId}: Nenhuma submission aprovada com CPF encontrada`);
+          continue;
+        }
+        
+        // 6. Filtrar submissions já processadas (idempotência)
+        const pendingSubmissions = submissions.filter(
+          s => !cpfAutoCheckState.processedSubmissionIds.includes(s.id)
+        );
+        
+        if (pendingSubmissions.length === 0) {
+          console.log(`ℹ️ [CPFAutoCheck] Tenant ${tenantId}: Todas as submissions já foram processadas`);
+          continue;
+        }
+        
+        console.log(`📋 [CPFAutoCheck] Tenant ${tenantId}: ${pendingSubmissions.length} submissions pendentes`);
+        
+        // 7. Processar cada submission
+        for (const submission of pendingSubmissions) {
+          try {
+            const cpf = submission.contact_cpf;
+            if (!cpf) continue;
+            
+            const normalizedCPF = normalizeCPF(cpf);
+            
+            // Verificar se já existe consulta CPF para este CPF
+            const { data: existingResult, error: checkError } = await supabase
+              .from('cpf_compliance_results')
+              .select('id')
+              .eq('cpf', normalizedCPF)
+              .limit(1);
+            
+            if (checkError) {
+              // Se tabela não existe, continuar para próxima submission
+              if (checkError.code === 'PGRST205' || checkError.code === '42P01' ||
+                  checkError.message?.includes('schema cache')) {
+                console.log(`⚠️ [CPFAutoCheck] Tenant ${tenantId}: Tabela cpf_compliance_results não existe`);
+                break;
+              }
+              console.error(`❌ [CPFAutoCheck] Erro ao verificar CPF existente:`, checkError.message);
+              totalErrors++;
+              continue;
+            }
+            
+            // Se já existe consulta, marcar como processado e pular
+            if (existingResult && existingResult.length > 0) {
+              console.log(`ℹ️ [CPFAutoCheck] CPF ${normalizedCPF.substring(0, 3)}... já possui consulta - pulando`);
+              cpfAutoCheckState.processedSubmissionIds.push(submission.id);
+              continue;
+            }
+            
+            // 8. Disparar consulta CPF com o tenantId correto
+            console.log(`🔍 [CPFAutoCheck] Disparando consulta CPF para submission ${submission.id} (tenant: ${tenantId})...`);
+            
+            const result = await checkCompliance(cpf, {
+              tenantId: tenantId,
+              submissionId: submission.id,
+              personName: submission.contact_name || undefined,
+              personPhone: submission.contact_phone || undefined,
+            });
+            
+            console.log(`✅ [CPFAutoCheck] Consulta CPF concluída: ${submission.id} - Status: ${result.status}`);
+            
+            // Marcar como processado
+            cpfAutoCheckState.processedSubmissionIds.push(submission.id);
+            cpfAutoCheckState.totalProcessed++;
+            totalProcessedCount++;
+            
+            // Delay para evitar rate limiting
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+          } catch (err: any) {
+            console.error(`❌ [CPFAutoCheck] Erro ao processar submission ${submission.id}:`, err.message);
+            totalErrors++;
+            cpfAutoCheckState.totalErrors++;
+            cpfAutoCheckState.processedSubmissionIds.push(submission.id);
+          }
+        }
+        
+      } catch (tenantError: any) {
+        console.error(`❌ [CPFAutoCheck] Erro ao processar tenant ${tenantId}:`, tenantError.message);
+        totalErrors++;
       }
     }
 
-    // Update state
+    // Atualizar estado
     cpfAutoCheckState.lastRun = new Date().toISOString();
     saveCPFAutoCheckState();
 
-    console.log(`✅ [CPFAutoCheck] Verificação concluída: ${processedCount} consultas realizadas, ${errors} erros`);
+    console.log(`✅ [CPFAutoCheck] Verificação concluída: ${totalProcessedCount} consultas realizadas, ${totalErrors} erros`);
 
     return {
       success: true,
-      processedCount,
-      errors
+      processedCount: totalProcessedCount,
+      errors: totalErrors
     };
 
   } catch (error: any) {
