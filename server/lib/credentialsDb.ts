@@ -244,25 +244,13 @@ export async function getSupabaseCredentials(tenantId: string): Promise<Supabase
     return envCredentials;
   }
   
-  // 4. Final fallback: file-based config (data/supabase-config.json)
-  // This is set when user configures Supabase via /configuracoes UI
-  try {
-    const { getEffectiveSupabaseConfig } = await import('./supabaseFileConfig.js');
-    const fileConfig = getEffectiveSupabaseConfig();
-    if (fileConfig?.url && fileConfig?.anonKey) {
-      console.log('✅ [SUPABASE] Usando credenciais do arquivo de config (fallback final)');
-      return {
-        url: fileConfig.url,
-        anonKey: fileConfig.anonKey,
-        bucket: 'receipts'
-      };
-    }
-  } catch (error) {
-    console.warn('⚠️ [SUPABASE] Erro ao verificar arquivo de config:', error);
-  }
+  // 🔐 SECURITY FIX: Removed file-based fallback (data/supabase-config.json)
+  // This fallback caused multi-tenant data leakage by sharing credentials between tenants.
+  // Each tenant MUST configure their own Supabase credentials.
+  // For user-facing endpoints, use getSupabaseCredentialsStrict() instead.
   
-  console.error(`❌ [SUPABASE] Credenciais não encontradas para tenant ${tenantId}`);
-  console.error('❌ [SUPABASE] Nem no banco (tenant específico), nem em system, nem nos Secrets, nem no arquivo de config');
+  console.log(`ℹ️ [SUPABASE] Credenciais não encontradas para tenant ${tenantId}`);
+  console.log('💡 [SUPABASE] Tenant deve configurar suas próprias credenciais em /configuracoes');
   return null;
 }
 

@@ -1835,25 +1835,31 @@ export function setupConfigRoutes(app: Express) {
         });
       }
       
-      // Fallback para Database (permite formulários públicos acessarem Supabase)
-      // SEGURANÇA: anonKey é credencial pública, não há risco em expor
-      try {
-        const { getSupabaseCredentials } = await import('../lib/credentialsDb.js');
-        
-        // Buscar primeiro tenant configurado (assumindo single-tenant ou shared credentials)
-        const credentials = await getSupabaseCredentials('dev-daviemericko_gmail_com');
-        
-        if (credentials) {
-          const responseTime = Date.now() - startTime;
-          console.log(`[AUDIT] ✅ Supabase config fornecido do banco de dados - ${responseTime}ms`);
+      // 🔐 MULTI-TENANT SECURITY: Try to get tenantId from session or header - NO HARDCODED FALLBACKS
+      const tenantId = (req.session as any)?.tenantId || 
+                       (req.session as any)?.userId || 
+                       req.headers['x-tenant-id'] as string;
+      
+      if (tenantId) {
+        // Fallback para Database usando tenantId da sessão
+        try {
+          const { getSupabaseCredentials } = await import('../lib/credentialsDb.js');
+          const credentials = await getSupabaseCredentials(tenantId);
           
-          return res.json({
-            url: credentials.url,
-            anonKey: credentials.anonKey,
-          });
+          if (credentials) {
+            const responseTime = Date.now() - startTime;
+            console.log(`[AUDIT] ✅ Supabase config fornecido do banco de dados (tenant: ${tenantId}) - ${responseTime}ms`);
+            
+            return res.json({
+              url: credentials.url,
+              anonKey: credentials.anonKey,
+            });
+          }
+        } catch (dbError) {
+          console.error(`[AUDIT] ⚠️ Erro ao buscar do DB para tenant ${tenantId}:`, dbError);
         }
-      } catch (dbError) {
-        console.error(`[AUDIT] ⚠️ Erro ao buscar do DB:`, dbError);
+      } else {
+        console.log(`[AUDIT] ⚠️ Nenhum tenantId disponível na sessão ou header - retornando vazio`);
       }
       
       // Não configurado - retornar objeto vazio (frontend deve lidar gracefully)

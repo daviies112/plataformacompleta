@@ -75,6 +75,7 @@ const upload = multer({
 /**
  * Helper function to get Supabase client with proper credentials
  * 🔐 MULTI-TENANT: Usa tenantId para buscar credenciais isoladas
+ * 🔐 SECURITY FIX: Usa getSupabaseCredentialsStrict() para prevenir vazamento cross-tenant
  * 
  * @param tenantId - ID do tenant (userId) para buscar credenciais específicas
  * @returns Cliente Supabase ou null se não configurado
@@ -86,10 +87,11 @@ async function getSupabaseClient(tenantId?: string) {
     return null;
   }
   
-  // 🔐 Buscar credenciais tenant-specific do banco
+  // 🔐 SECURITY FIX: Usar getSupabaseCredentialsStrict - NÃO tem fallbacks para system/env
+  // Isso previne vazamento cross-tenant onde um tenant usaria credenciais de outro
   try {
-    const { getSupabaseCredentials: getTenantCredentials } = await import('../lib/credentialsDb.js');
-    const credentials = await getTenantCredentials(tenantId);
+    const { getSupabaseCredentialsStrict } = await import('../lib/credentialsDb.js');
+    const credentials = await getSupabaseCredentialsStrict(tenantId);
     
     if (credentials) {
       console.log(`✅ [SUPABASE] Usando credenciais do tenant ${tenantId}`);
@@ -2281,40 +2283,53 @@ export function registerFormulariosCompleteRoutes(app: Express) {
       
       // First, try to get from Supabase using multi-tenant credentials
       try {
-        const { getSupabaseCredentials } = await import('../lib/credentialsDb.js');
+        // 🔐 SECURITY FIX: Usar getSupabaseCredentialsStrict - previne vazamento cross-tenant
+        const { getSupabaseCredentialsStrict } = await import('../lib/credentialsDb.js');
         const { createClient } = await import('@supabase/supabase-js');
         
-        // Try to get any tenant with configured Supabase credentials
-        const tenantId = req.headers['x-tenant-id'] as string || 'dev-daviemericko_gmail_com';
-        const credentials = await getSupabaseCredentials(tenantId);
+        // 🔐 MULTI-TENANT SECURITY: Require tenantId from header or session - NO FALLBACKS
+        const tenantId = req.headers['x-tenant-id'] as string || 
+                         (req.session as any)?.tenantId || 
+                         (req.session as any)?.userId;
         
-        if (credentials?.url && credentials?.anonKey) {
-          console.log('[GET /api/company-slug] Fetching from Supabase (tenant: ' + tenantId + ')...');
-          const supabase = createClient(credentials.url, credentials.anonKey);
+        if (!tenantId) {
+          // 🔐 SECURITY: No tenantId available - use local database only (no cross-tenant access)
+          console.log('[GET /api/company-slug] No tenantId available - using local database only');
+          const localSettings = await storage.getAppSettings();
+          companyName = localSettings?.companyName || null;
+          companySlug = localSettings?.companySlug || 'empresa';
+        } else {
+          // 🔐 SECURITY FIX: Usar strict - se tenant não tem credenciais, não usar de outro tenant
+          const credentials = await getSupabaseCredentialsStrict(tenantId);
           
-          const { data: supabaseSettings, error } = await supabase
-            .from('company_settings')
-            .select('company_name, company_slug')
-            .limit(1)
-            .single();
-          
-          if (!error && supabaseSettings) {
-            companyName = supabaseSettings.company_name;
-            companySlug = supabaseSettings.company_slug || 'empresa';
-            console.log('[GET /api/company-slug] Found in Supabase:', { companyName, companySlug });
+          if (credentials?.url && credentials?.anonKey) {
+            console.log('[GET /api/company-slug] Fetching from Supabase (tenant: ' + tenantId + ')...');
+            const supabase = createClient(credentials.url, credentials.anonKey);
+            
+            const { data: supabaseSettings, error } = await supabase
+              .from('company_settings')
+              .select('company_name, company_slug')
+              .limit(1)
+              .single();
+            
+            if (!error && supabaseSettings) {
+              companyName = supabaseSettings.company_name;
+              companySlug = supabaseSettings.company_slug || 'empresa';
+              console.log('[GET /api/company-slug] Found in Supabase:', { companyName, companySlug });
+            } else {
+              console.log('[GET /api/company-slug] Not found in Supabase company_settings:', error?.message);
+              // Fallback to local database
+              const localSettings = await storage.getAppSettings();
+              companyName = localSettings?.companyName || null;
+              companySlug = localSettings?.companySlug || 'empresa';
+            }
           } else {
-            console.log('[GET /api/company-slug] Not found in Supabase company_settings:', error?.message);
-            // Fallback to local database
+            // No Supabase configured for this tenant, use local database
+            console.log('[GET /api/company-slug] No Supabase credentials for tenant, using local database');
             const localSettings = await storage.getAppSettings();
             companyName = localSettings?.companyName || null;
             companySlug = localSettings?.companySlug || 'empresa';
           }
-        } else {
-          // No Supabase configured, use local database
-          console.log('[GET /api/company-slug] No Supabase credentials, using local database');
-          const localSettings = await storage.getAppSettings();
-          companyName = localSettings?.companyName || null;
-          companySlug = localSettings?.companySlug || 'empresa';
         }
       } catch (err: any) {
         console.warn('[GET /api/company-slug] Database error:', err.message);

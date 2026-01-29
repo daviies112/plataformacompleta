@@ -96,38 +96,16 @@ export async function getSupabaseMasterCredentials(tenantId?: string): Promise<S
       }
     }
     
-    // Priority 2: Try to get ANY available config from database (for default-tenant or when specific tenant has no config)
-    try {
-      const anyConfig = await db.select().from(supabaseMasterConfig).limit(1);
-      if (anyConfig[0]) {
-        let decryptedUrl = decrypt(anyConfig[0].supabaseMasterUrl);
-        const decryptedKey = decrypt(anyConfig[0].supabaseMasterServiceRoleKey);
-        
-        // Clean URL and ensure it has https:// prefix
-        decryptedUrl = decryptedUrl.trim().replace(/\/+$/, '');
-        if (!decryptedUrl.startsWith('http://') && !decryptedUrl.startsWith('https://')) {
-          decryptedUrl = `https://${decryptedUrl}`;
-        }
-        const cleanUrl = decryptedUrl;
-        const cleanKey = decryptedKey.trim();
-
-        log(`✅ Supabase Master: Usando credenciais de ${anyConfig[0].tenantId} (fallback para ${tenantId || 'sem tenant'})`);
-        return {
-          url: cleanUrl,
-          serviceRoleKey: cleanKey,
-          source: 'database'
-        };
-      }
-    } catch (e) {
-      // Silent fail - try environment variables next
-    }
+    // 🔐 SECURITY FIX: Remove "any config" fallback that caused multi-tenant data leakage
+    // Background jobs that need fallbacks should use getSupabaseMasterCredentialsWithFallback()
     
-    // Priority 3: Environment variables (fallback)
+    // Priority 2: Environment variables (fallback for background jobs ONLY)
+    // This should only be used by system-level processes, not user-facing endpoints
     const urlFromEnv = process.env.SUPABASE_MASTER_URL;
     const keyFromEnv = process.env.SUPABASE_MASTER_SERVICE_ROLE_KEY;
     
     if (urlFromEnv && keyFromEnv) {
-      log('✅ Supabase Master: Credenciais carregadas de variáveis de ambiente');
+      log('✅ Supabase Master: Credenciais carregadas de variáveis de ambiente (use com cautela - background jobs only)');
       return {
         url: urlFromEnv,
         serviceRoleKey: keyFromEnv,
@@ -138,19 +116,61 @@ export async function getSupabaseMasterCredentials(tenantId?: string): Promise<S
     return null;
   } catch (error) {
     console.error('Erro ao buscar credenciais do Supabase Master:', error);
+    return null;
+  }
+}
+
+/**
+ * Get Supabase Master credentials STRICTLY for a specific tenant - NO FALLBACKS
+ * 🔐 MULTI-TENANT SECURITY: For user-facing endpoints only
+ * 
+ * This function ensures complete tenant isolation:
+ * - Returns credentials ONLY if explicitly configured for this tenant
+ * - NO fallback to other tenants or environment variables
+ * - New tenants start with no credentials (must configure their own)
+ * 
+ * @param tenantId - The tenant ID to get credentials for (required)
+ * @returns Credentials if configured for this tenant, null otherwise
+ */
+export async function getSupabaseMasterCredentialsStrict(tenantId: string): Promise<SupabaseMasterCredentials | null> {
+  if (!tenantId) {
+    log('❌ [SUPABASE-MASTER-STRICT] tenantId é obrigatório');
+    return null;
+  }
+
+  try {
+    log(`🔍 [SUPABASE-MASTER-STRICT] Buscando credenciais APENAS para tenant ${tenantId}...`);
+    const configFromDb = await db.select().from(supabaseMasterConfig)
+      .where(eq(supabaseMasterConfig.tenantId, tenantId))
+      .limit(1);
     
-    // Fallback to environment variables on error
-    const urlFromEnv = process.env.SUPABASE_MASTER_URL;
-    const keyFromEnv = process.env.SUPABASE_MASTER_SERVICE_ROLE_KEY;
-    
-    if (urlFromEnv && keyFromEnv) {
+    if (configFromDb[0]) {
+      let decryptedUrl = decrypt(configFromDb[0].supabaseMasterUrl);
+      const decryptedKey = decrypt(configFromDb[0].supabaseMasterServiceRoleKey);
+      
+      decryptedUrl = decryptedUrl.trim().replace(/\/+$/, '');
+      if (!decryptedUrl.startsWith('http://') && !decryptedUrl.startsWith('https://')) {
+        decryptedUrl = `https://${decryptedUrl}`;
+      }
+
+      const validation = validateServiceRoleKey(decryptedKey.trim());
+      if (!validation.isValid) {
+        log(`⚠️ [SUPABASE-MASTER-STRICT] Chave não é service_role para tenant ${tenantId}: ${validation.error}`);
+      }
+
+      log(`✅ [SUPABASE-MASTER-STRICT] Credenciais encontradas para tenant: ${tenantId}`);
       return {
-        url: urlFromEnv,
-        serviceRoleKey: keyFromEnv,
-        source: 'environment'
+        url: decryptedUrl,
+        serviceRoleKey: decryptedKey.trim(),
+        source: 'database'
       };
     }
     
+    // NO FALLBACKS - Return null if not found for this specific tenant
+    log(`ℹ️ [SUPABASE-MASTER-STRICT] Nenhuma credencial configurada para tenant ${tenantId}`);
+    return null;
+  } catch (error) {
+    console.error(`❌ [SUPABASE-MASTER-STRICT] Erro ao buscar credenciais para tenant ${tenantId}:`, error);
     return null;
   }
 }

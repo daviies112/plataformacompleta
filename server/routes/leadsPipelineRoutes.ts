@@ -173,7 +173,8 @@ function transformSubmissionToLead(submission: any): Record<string, any> {
   
   return {
     id: submission.id,
-    tenantId: submission.tenant_id || 'default-tenant',
+    // 🔐 SECURITY FIX: Never use 'default-tenant' as fallback - require valid tenant_id
+    tenantId: submission.tenant_id || '',
     telefone: submission.contact_phone,
     telefoneNormalizado: submission.contact_phone ? normalizePhone(submission.contact_phone) : '',
     nome: submission.contact_name || 'Sem nome',
@@ -216,7 +217,8 @@ function transformDadosClienteToLead(cliente: any): Record<string, any> {
   
   return {
     id: cliente.id,
-    tenantId: cliente.tenant_id || 'default-tenant',
+    // 🔐 SECURITY FIX: Never use 'default-tenant' as fallback - require valid tenant_id
+    tenantId: cliente.tenant_id || '',
     telefone: cliente.telefone,
     telefoneNormalizado: cliente.telefone ? normalizePhone(cliente.telefone) : '',
     nome: cliente.nome || 'Sem nome',
@@ -401,9 +403,9 @@ async function fetchLeadsFromSupabase(tenantId: string): Promise<any[]> {
       return [];
     }
     
-    // Validate tenantId to prevent data leakage
-    if (!tenantId || tenantId.trim() === '') {
-      console.error('❌ [LeadsPipeline] tenantId é obrigatório para buscar leads');
+    // 🔐 SECURITY FIX: Validate tenantId to prevent data leakage - reject 'default-tenant'
+    if (!tenantId || tenantId.trim() === '' || tenantId === 'default-tenant') {
+      console.error('❌ [LeadsPipeline] tenantId inválido para buscar leads - "default-tenant" não é permitido');
       return [];
     }
     
@@ -419,10 +421,8 @@ async function fetchLeadsFromSupabase(tenantId: string): Promise<any[]> {
       .order('updated_at', { ascending: false })
       .limit(500);
     
-    // Apply tenant filter if not default-tenant (which sees all data in dev mode)
-    if (tenantId !== 'default-tenant') {
-      submissionsQuery = submissionsQuery.eq('tenant_id', tenantId);
-    }
+    // 🔐 SECURITY FIX: ALWAYS apply tenant filter - no bypass for 'default-tenant'
+    submissionsQuery = submissionsQuery.eq('tenant_id', tenantId);
     
     const { data: submissions, error: submissionsError } = await submissionsQuery;
     
@@ -446,10 +446,8 @@ async function fetchLeadsFromSupabase(tenantId: string): Promise<any[]> {
       .order('created_at', { ascending: false })
       .limit(500);
     
-    // Apply tenant filter if not default-tenant
-    if (tenantId !== 'default-tenant') {
-      clientesQuery = clientesQuery.eq('tenant_id', tenantId);
-    }
+    // 🔐 SECURITY FIX: ALWAYS apply tenant filter - no bypass for 'default-tenant'
+    clientesQuery = clientesQuery.eq('tenant_id', tenantId);
     
     const { data: clientes, error: clientesError } = await clientesQuery;
     

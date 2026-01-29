@@ -571,22 +571,22 @@ function createTimeline(journey: Partial<LeadJourney> & { formularioEnvio?: any 
  * Fetches data from dados_cliente table
  */
 async function fetchDadosCliente(tenantId: string): Promise<Map<string, any>> {
-  let supabase = await getClientSupabaseClient(tenantId);
-  
-  // Fallback: Use getClienteSupabase when getClientSupabaseClient returns null
-  if (!supabase) {
-    try {
-      const isConfigured = await isClienteSupabaseConfigured();
-      if (isConfigured) {
-        supabase = await getClienteSupabase();
-        console.log('ℹ️ [LeadJourneyAggregator] Usando getClienteSupabase como fallback para dados_cliente');
-      }
-    } catch (fallbackError: any) {
-      console.log(`⚠️ [LeadJourneyAggregator] Fallback getClienteSupabase falhou: ${fallbackError.message}`);
-    }
+  // 🔐 SECURITY FIX: Require valid tenantId - no 'default-tenant' bypass
+  if (!tenantId || tenantId === 'default-tenant') {
+    console.log('⚠️ [LeadJourneyAggregator] tenantId inválido para fetchDadosCliente - retornando vazio');
+    return new Map();
   }
   
-  if (!supabase) return new Map();
+  let supabase = await getClientSupabaseClient(tenantId);
+  
+  // 🔐 SECURITY FIX: Removed fallback to getClienteSupabase
+  // Each tenant MUST have their own Supabase credentials configured.
+  // Fallbacks could expose data from another tenant.
+  
+  if (!supabase) {
+    console.log(`ℹ️ [LeadJourneyAggregator] Supabase não configurado para tenant ${tenantId} - retornando dados vazios`);
+    return new Map();
+  }
   
   try {
     let query = supabase
@@ -595,9 +595,8 @@ async function fetchDadosCliente(tenantId: string): Promise<Map<string, any>> {
       .order('created_at', { ascending: false })
       .limit(500);
     
-    if (tenantId !== 'default-tenant') {
-      query = query.eq('tenant_id', tenantId);
-    }
+    // 🔐 SECURITY FIX: ALWAYS filter by tenant_id - no bypass
+    query = query.eq('tenant_id', tenantId);
     
     const { data, error } = await query;
     
@@ -627,22 +626,21 @@ async function fetchDadosCliente(tenantId: string): Promise<Map<string, any>> {
  * Returns a map keyed by normalized phone number (extracted from session_id)
  */
 async function fetchN8nChatHistories(tenantId: string): Promise<Map<string, ChatHistoryData>> {
-  let supabase = await getClientSupabaseClient(tenantId);
-  
-  // Fallback: Use getClienteSupabase when getClientSupabaseClient returns null
-  if (!supabase) {
-    try {
-      const isConfigured = await isClienteSupabaseConfigured();
-      if (isConfigured) {
-        supabase = await getClienteSupabase();
-        console.log('ℹ️ [LeadJourneyAggregator] Usando getClienteSupabase como fallback para n8n_chat_histories');
-      }
-    } catch (fallbackError: any) {
-      console.log(`⚠️ [LeadJourneyAggregator] Fallback getClienteSupabase falhou: ${fallbackError.message}`);
-    }
+  // 🔐 SECURITY FIX: Require valid tenantId - no 'default-tenant' bypass
+  if (!tenantId || tenantId === 'default-tenant') {
+    console.log('⚠️ [LeadJourneyAggregator] tenantId inválido para fetchN8nChatHistories - retornando vazio');
+    return new Map();
   }
   
-  if (!supabase) return new Map();
+  let supabase = await getClientSupabaseClient(tenantId);
+  
+  // 🔐 SECURITY FIX: Removed fallback to getClienteSupabase
+  // Each tenant MUST have their own Supabase credentials configured.
+  
+  if (!supabase) {
+    console.log(`ℹ️ [LeadJourneyAggregator] Supabase não configurado para tenant ${tenantId} - retornando chat vazio`);
+    return new Map();
+  }
   
   try {
     const { data, error } = await supabase
@@ -761,22 +759,21 @@ function extractNameFromMessage(content: string): string | undefined {
  * - name:davi emerick (name-based, lowercase)
  */
 async function fetchFormSubmissions(tenantId: string): Promise<Map<string, any>> {
-  let supabase = await getClientSupabaseClient(tenantId);
-  
-  // Fallback: Use getClienteSupabase when getClientSupabaseClient returns null
-  if (!supabase) {
-    try {
-      const isConfigured = await isClienteSupabaseConfigured();
-      if (isConfigured) {
-        supabase = await getClienteSupabase();
-        console.log('ℹ️ [LeadJourneyAggregator] Usando getClienteSupabase como fallback para form_submissions');
-      }
-    } catch (fallbackError: any) {
-      console.log(`⚠️ [LeadJourneyAggregator] Fallback getClienteSupabase falhou: ${fallbackError.message}`);
-    }
+  // 🔐 SECURITY FIX: Require valid tenantId - no 'default-tenant' bypass
+  if (!tenantId || tenantId === 'default-tenant') {
+    console.log('⚠️ [LeadJourneyAggregator] tenantId inválido para fetchFormSubmissions - retornando vazio');
+    return new Map();
   }
   
-  if (!supabase) return new Map();
+  let supabase = await getClientSupabaseClient(tenantId);
+  
+  // 🔐 SECURITY FIX: Removed fallback to getClienteSupabase
+  // Each tenant MUST have their own Supabase credentials configured.
+  
+  if (!supabase) {
+    console.log(`ℹ️ [LeadJourneyAggregator] Supabase não configurado para tenant ${tenantId} - retornando forms vazios`);
+    return new Map();
+  }
   
   try {
     let query = supabase
@@ -785,17 +782,13 @@ async function fetchFormSubmissions(tenantId: string): Promise<Map<string, any>>
       .order('updated_at', { ascending: false })
       .limit(500);
     
-    // FIX: Include submissions with matching tenant_id OR null tenant_id
-    // Only include null-tenant submissions for 'system' tenant to prevent cross-tenant exposure
-    // Legacy submissions without tenant_id are assumed to belong to 'system' tenant
-    if (tenantId !== 'default-tenant') {
-      if (tenantId === 'system') {
-        // System tenant gets null-tenant submissions (legacy data)
-        query = query.or(`tenant_id.eq.${tenantId},tenant_id.is.null`);
-      } else {
-        // Other tenants only get their own data
-        query = query.eq('tenant_id', tenantId);
-      }
+    // 🔐 SECURITY FIX: ALWAYS filter by tenant_id - no bypass
+    if (tenantId === 'system') {
+      // System tenant gets null-tenant submissions (legacy data)
+      query = query.or(`tenant_id.eq.${tenantId},tenant_id.is.null`);
+    } else {
+      // Other tenants only get their own data
+      query = query.eq('tenant_id', tenantId);
     }
     
     const { data, error } = await query;
@@ -852,22 +845,21 @@ async function fetchFormSubmissions(tenantId: string): Promise<Map<string, any>>
  * Note: tenant_id filtering applied for multi-tenant isolation
  */
 async function fetchCpfComplianceResults(tenantId: string): Promise<Map<string, any>> {
-  let supabase = await getClientSupabaseClient(tenantId);
-  
-  // Fallback: Use getClienteSupabase when getClientSupabaseClient returns null
-  if (!supabase) {
-    try {
-      const isConfigured = await isClienteSupabaseConfigured();
-      if (isConfigured) {
-        supabase = await getClienteSupabase();
-        console.log('ℹ️ [LeadJourneyAggregator] Usando getClienteSupabase como fallback para cpf_compliance');
-      }
-    } catch (fallbackError: any) {
-      console.log(`⚠️ [LeadJourneyAggregator] Fallback getClienteSupabase falhou: ${fallbackError.message}`);
-    }
+  // 🔐 SECURITY FIX: Require valid tenantId - no 'default-tenant' bypass
+  if (!tenantId || tenantId === 'default-tenant') {
+    console.log('⚠️ [LeadJourneyAggregator] tenantId inválido para fetchCpfComplianceResults - retornando vazio');
+    return new Map();
   }
   
-  if (!supabase) return new Map();
+  let supabase = await getClientSupabaseClient(tenantId);
+  
+  // 🔐 SECURITY FIX: Removed fallback to getClienteSupabase
+  // Each tenant MUST have their own Supabase credentials configured.
+  
+  if (!supabase) {
+    console.log(`ℹ️ [LeadJourneyAggregator] Supabase não configurado para tenant ${tenantId} - retornando CPF vazio`);
+    return new Map();
+  }
   
   try {
     let query = supabase
@@ -876,10 +868,8 @@ async function fetchCpfComplianceResults(tenantId: string): Promise<Map<string, 
       .order('data_consulta', { ascending: false })
       .limit(500);
     
-    // Apply tenant filter for multi-tenant isolation
-    if (tenantId !== 'default-tenant') {
-      query = query.eq('tenant_id', tenantId);
-    }
+    // 🔐 SECURITY FIX: ALWAYS filter by tenant_id - no bypass
+    query = query.eq('tenant_id', tenantId);
     
     const { data, error } = await query;
     
@@ -893,10 +883,8 @@ async function fetchCpfComplianceResults(tenantId: string): Promise<Map<string, 
           .order('data_consulta', { ascending: false })
           .limit(500);
         
-        // Apply tenant filter for alternative table too
-        if (tenantId !== 'default-tenant') {
-          altQuery = altQuery.eq('tenant_id', tenantId);
-        }
+        // 🔐 SECURITY FIX: ALWAYS filter by tenant_id - no bypass
+        altQuery = altQuery.eq('tenant_id', tenantId);
         
         const { data: altData, error: altError } = await altQuery;
         
@@ -1339,6 +1327,12 @@ async function fetchReunioes(tenantId: string): Promise<Map<string, any>> {
  * This table contains chat history, message counts, and other engagement data
  */
 async function fetchDashboardCompleto(tenantId: string): Promise<Map<string, any>> {
+  // 🔐 SECURITY FIX: Require valid tenantId - no 'default-tenant' bypass
+  if (!tenantId || tenantId === 'default-tenant') {
+    console.log('⚠️ [LeadJourneyAggregator] tenantId inválido para fetchDashboardCompleto - retornando vazio');
+    return new Map();
+  }
+  
   const supabase = await getClientSupabaseClient(tenantId);
   if (!supabase) return new Map();
   
@@ -1354,9 +1348,8 @@ async function fetchDashboardCompleto(tenantId: string): Promise<Map<string, any
         .order('ultimo_contato', { ascending: false })
         .limit(500);
       
-      if (tenantId !== 'default-tenant') {
-        query = query.eq('tenant_id', tenantId);
-      }
+      // 🔐 SECURITY FIX: ALWAYS filter by tenant_id - no bypass
+      query = query.eq('tenant_id', tenantId);
       
       const { data, error } = await query;
       
@@ -1411,6 +1404,12 @@ async function fetchDashboardCompleto(tenantId: string): Promise<Map<string, any
  * FIX: Include records where tenant_id matches OR is null
  */
 async function fetchFormularioEnvios(tenantId: string): Promise<Map<string, any>> {
+  // 🔐 SECURITY FIX: Require valid tenantId - no 'default-tenant' bypass
+  if (!tenantId || tenantId === 'default-tenant') {
+    console.log('⚠️ [LeadJourneyAggregator] tenantId inválido para fetchFormularioEnvios - retornando vazio');
+    return new Map();
+  }
+  
   const supabase = await getClientSupabaseClient(tenantId);
   if (!supabase) return new Map();
   
@@ -1421,16 +1420,13 @@ async function fetchFormularioEnvios(tenantId: string): Promise<Map<string, any>
       .order('created_at', { ascending: false })
       .limit(500);
     
-    // FIX: Include records with matching tenant_id OR null tenant_id
-    // Only include null-tenant records for 'system' tenant to prevent cross-tenant exposure
-    if (tenantId !== 'default-tenant') {
-      if (tenantId === 'system') {
-        // System tenant gets null-tenant records (legacy data)
-        query = query.or(`tenant_id.eq.${tenantId},tenant_id.is.null`);
-      } else {
-        // Other tenants only get their own data
-        query = query.eq('tenant_id', tenantId);
-      }
+    // 🔐 SECURITY FIX: ALWAYS filter by tenant_id - no bypass
+    if (tenantId === 'system') {
+      // System tenant gets null-tenant records (legacy data)
+      query = query.or(`tenant_id.eq.${tenantId},tenant_id.is.null`);
+    } else {
+      // Other tenants only get their own data
+      query = query.eq('tenant_id', tenantId);
     }
     
     const { data, error } = await query;
@@ -1466,6 +1462,12 @@ async function fetchFormularioEnvios(tenantId: string): Promise<Map<string, any>
  * Used for Assinatura Pendente and Revendedora stages
  */
 async function fetchAssinaturaContracts(tenantId: string): Promise<Map<string, AssinaturaData>> {
+  // 🔐 SECURITY FIX: Require valid tenantId - no 'default-tenant' bypass
+  if (!tenantId || tenantId === 'default-tenant') {
+    console.log('⚠️ [LeadJourneyAggregator] tenantId inválido para fetchAssinaturaContracts - retornando vazio');
+    return new Map();
+  }
+  
   const supabase = await getClientSupabaseClient(tenantId);
   if (!supabase) return new Map();
   
@@ -1477,9 +1479,8 @@ async function fetchAssinaturaContracts(tenantId: string): Promise<Map<string, A
       .order('created_at', { ascending: false })
       .limit(500);
     
-    if (tenantId !== 'default-tenant') {
-      query = query.eq('tenant_id', tenantId);
-    }
+    // 🔐 SECURITY FIX: ALWAYS filter by tenant_id - no bypass
+    query = query.eq('tenant_id', tenantId);
     
     let { data, error } = await query;
     
@@ -1492,9 +1493,8 @@ async function fetchAssinaturaContracts(tenantId: string): Promise<Map<string, A
         .order('created_at', { ascending: false })
         .limit(500);
       
-      if (tenantId !== 'default-tenant') {
-        fallbackQuery = fallbackQuery.eq('tenant_id', tenantId);
-      }
+      // 🔐 SECURITY FIX: ALWAYS filter by tenant_id - no bypass
+      fallbackQuery = fallbackQuery.eq('tenant_id', tenantId);
       
       const fallbackResult = await fallbackQuery;
       data = fallbackResult.data;
