@@ -40,7 +40,12 @@ ExecutiveAI Pro utilizes a modern web stack with a multi-tenant, API-driven arch
 - **Public Checkout System:** Allows unauthenticated customers to make purchases from public storefronts with server-side price validation.
 - **Wallet / Credit System:** A pre-paid credit system for services like CPF consultation and shipping, with atomic balance updates and webhook idempotency.
 - **Pagar.me Split Payment:** Implements dynamic payment splitting between the platform and resellers based on monthly sales volume tiers, requiring both company and reseller Pagar.me recipient IDs.
-- **Performance Optimizations:** Aggressive code splitting and dynamic imports for improved loading times, especially for public routes.
+- **Performance Optimizations:** 
+  - Public routes use `isPublicRoute()` function to skip Supabase credential fetching
+  - Lazy loading with instant skeleton fallbacks for form, meeting, and signature pages
+  - Pure CSS skeletons (no heavy icon imports) for sub-50ms initial render
+  - Component preloading with `requestIdleCallback` for smooth transitions
+  - API timeouts with graceful fallbacks (1.5-2s max wait)
 - **Dynamic Branding System:** `CompanyContext` provides centralized branding synchronization from Supabase `companies` table to the reseller dashboard, applying CSS variables dynamically for real-time theming.
 - **Platform Analytics:** Comprehensive analytics dashboard for admins showing platform-wide sales metrics, top resellers, commission distribution, monthly trends, and resellers at risk.
 - **Commission Configuration System:** Dynamic commission tiers configurable via an admin page, persisted to the `commission_config` table, and automatically used for payment split calculations.
