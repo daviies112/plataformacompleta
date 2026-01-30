@@ -2455,13 +2455,34 @@ router.post('/public/contracts/from-meeting', async (req: Request, res: Response
     let createdContract = null;
     let supabaseContractId: string | null = null;
     
+    // Dados para o Supabase (sem colunas extras que não existem na tabela)
+    // A tabela contracts NÃO tem: form_submission_id, meeting_id, tenant_id
+    const supabaseContractData = {
+      client_name: contractData.client_name,
+      client_cpf: contractData.client_cpf,
+      client_email: contractData.client_email,
+      client_phone: contractData.client_phone,
+      address_street: contractData.address_street,
+      address_number: contractData.address_number,
+      address_complement: contractData.address_complement,
+      address_city: contractData.address_city,
+      address_state: contractData.address_state,
+      address_zipcode: contractData.address_zipcode,
+      status: contractData.status,
+      protocol_number: contractData.protocol_number,
+      access_token: contractData.access_token,
+      signature_url: contractData.signature_url,
+      contract_html: contractData.contract_html,
+      created_at: contractData.created_at
+    };
+    
     if (formSubmission.tenant_id) {
       try {
         const tenantSupabase = await getClientSupabaseClient(formSubmission.tenant_id);
         if (tenantSupabase) {
           const { data, error: insertError } = await tenantSupabase
             .from('contracts')
-            .insert(contractData)
+            .insert(supabaseContractData)
             .select()
             .single();
           
@@ -2481,7 +2502,7 @@ router.post('/public/contracts/from-meeting', async (req: Request, res: Response
     // 6. Fallback: usar assinaturaSupabaseService
     if (!createdContract && assinaturaSupabaseService.isConnected()) {
       console.log('[Assinatura] Tentando fallback via assinaturaSupabaseService...');
-      const supabaseContract = await assinaturaSupabaseService.createContract(contractData);
+      const supabaseContract = await assinaturaSupabaseService.createContract(supabaseContractData);
       
       if (supabaseContract) {
         createdContract = supabaseContract;
