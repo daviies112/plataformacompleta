@@ -515,6 +515,12 @@ interface LocalContract {
   parabens_font_family?: string | null;
   parabens_form_title?: string | null;
   parabens_button_text?: string | null;
+  address_street?: string | null;
+  address_number?: string | null;
+  address_complement?: string | null;
+  address_city?: string | null;
+  address_state?: string | null;
+  address_zipcode?: string | null;
   address?: {
     street?: string;
     number?: string;
