@@ -172,7 +172,7 @@ export const ResellerWelcomeStep = (props: ResellerWelcomeStepProps = {}) => {
                   value={formData.street}
                   onChange={handleInputChange}
                   placeholder="Nome da rua"
-                  className="w-full"
+                  className="w-full text-gray-900"
                 />
               </div>
               <div>
@@ -183,7 +183,7 @@ export const ResellerWelcomeStep = (props: ResellerWelcomeStepProps = {}) => {
                   value={formData.number}
                   onChange={handleInputChange}
                   placeholder="Número"
-                  className="w-full"
+                  className="w-full text-gray-900"
                 />
               </div>
             </div>
@@ -196,7 +196,7 @@ export const ResellerWelcomeStep = (props: ResellerWelcomeStepProps = {}) => {
                 value={formData.complement}
                 onChange={handleInputChange}
                 placeholder="Apto, bloco, etc (opcional)"
-                className="w-full"
+                className="w-full text-gray-900"
               />
             </div>
 
@@ -209,7 +209,7 @@ export const ResellerWelcomeStep = (props: ResellerWelcomeStepProps = {}) => {
                   value={formData.neighborhood}
                   onChange={handleInputChange}
                   placeholder="Seu bairro"
-                  className="w-full"
+                  className="w-full text-gray-900"
                 />
               </div>
               <div>
@@ -220,7 +220,7 @@ export const ResellerWelcomeStep = (props: ResellerWelcomeStepProps = {}) => {
                   value={formData.city}
                   onChange={handleInputChange}
                   placeholder="Nome da cidade"
-                  className="w-full"
+                  className="w-full text-gray-900"
                 />
               </div>
             </div>
@@ -231,7 +231,7 @@ export const ResellerWelcomeStep = (props: ResellerWelcomeStepProps = {}) => {
                 name="state"
                 value={formData.state}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-900"
               >
                 <option value="">Selecione</option>
                 {brazilianStates.map(state => (
@@ -248,7 +248,7 @@ export const ResellerWelcomeStep = (props: ResellerWelcomeStepProps = {}) => {
                 value={formData.zipcode}
                 onChange={handleInputChange}
                 placeholder="00000-000"
-                className="w-full"
+                className="w-full text-gray-900"
               />
             </div>
 
