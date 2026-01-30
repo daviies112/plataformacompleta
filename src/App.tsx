@@ -28,10 +28,12 @@ const FormLoader = () => (
 // Static imports for main components to avoid Suspense issues in development
 import PlatformRouter from './platforms/PlatformRouter';
 
+// ✅ OTIMIZAÇÃO: FormularioPublicoWrapper agora é importação síncrona (muito leve)
+import FormularioPublicoWrapper from './features/formularios-platform/pages/FormularioPublicoWrapper';
+
 // Lazy loaded routes
 const AssinaturaClientPage = lazy(() => import('./pages/AssinaturaClientPage'));
 const ReuniaoPublica = lazy(() => import('./pages/ReuniaoPublica'));
-const FormularioPublicoWrapper = lazy(() => import('./features/formularios-platform/pages/FormularioPublicoWrapper'));
 const PublicStore = lazy(() => import('./features/revendedora/pages/public/PublicStore'));
 const PublicCheckout = lazy(() => import('./features/revendedora/pages/public/PublicCheckout'));
 const LoginPage = lazy(() => import('./pages/Index'));
@@ -53,11 +55,8 @@ const PublicRoutes = () => {
       path.startsWith('/form/') || 
       path.startsWith('/formulario/') ||
       /^\/[^/]+\/form\//.test(path)) {
-    return (
-      <Suspense fallback={<FormLoader />}>
-        <FormularioPublicoWrapper />
-      </Suspense>
-    );
+    // ✅ OTIMIZAÇÃO: FormularioPublicoWrapper é síncrono, não precisa Suspense
+    return <FormularioPublicoWrapper />;
   }
   
   if (path.startsWith('/reuniao/') || path.startsWith('/reuniao-publica/')) {

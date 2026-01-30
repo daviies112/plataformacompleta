@@ -1,87 +1,29 @@
 import { useParams as useReactRouterParams, useLocation as useReactRouterLocation } from "react-router-dom";
 import { Router, Route } from "wouter";
-import { QueryClientProvider } from "@tanstack/react-query";
-import { TooltipProvider } from "../components/ui/tooltip";
-import { queryClient } from "../lib/queryClient";
-import { useMemo, lazy, Suspense } from "react";
-import { Loader2 } from "lucide-react";
-
-const FormularioPublico = lazy(() => import("./FormularioPublico"));
-
-const FormLoader = () => (
-  <div className="min-h-screen flex flex-col items-center justify-center bg-background">
-    <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" />
-    <p className="text-muted-foreground text-sm">Carregando formulário...</p>
-  </div>
-);
+import { useMemo } from "react";
+import FormularioPublico from "./FormularioPublico";
 
 /**
- * Extrai parâmetros diretamente da URL pathname
- * Usado quando o componente é renderizado fora do contexto de Route do React Router
- */
-function extractParamsFromPath(pathname: string): { token?: string; id?: string; companySlug?: string } {
-  // Remover query string do pathname (não deveria ter, mas por segurança)
-  const cleanPath = pathname.split('?')[0];
-  
-  // /f/:token
-  const tokenMatch = cleanPath.match(/^\/f\/([^/]+)/);
-  if (tokenMatch) {
-    return { token: decodeURIComponent(tokenMatch[1]) };
-  }
-  
-  // /formulario/:companySlug/form/:id
-  const formularioMatch = cleanPath.match(/^\/formulario\/([^/]+)\/form\/([^/]+)/);
-  if (formularioMatch) {
-    return { 
-      companySlug: decodeURIComponent(formularioMatch[1]), 
-      id: decodeURIComponent(formularioMatch[2]) 
-    };
-  }
-  
-  // /:companySlug/form/:id (sem prefixo /formulario)
-  const slugFormMatch = cleanPath.match(/^\/([^/]+)\/form\/([^/]+)/);
-  if (slugFormMatch) {
-    return { 
-      companySlug: decodeURIComponent(slugFormMatch[1]), 
-      id: decodeURIComponent(slugFormMatch[2]) 
-    };
-  }
-  
-  // /form/:id
-  const formMatch = cleanPath.match(/^\/form\/([^/]+)/);
-  if (formMatch) {
-    return { id: decodeURIComponent(formMatch[1]) };
-  }
-  
-  return {};
-}
-
-/**
- * Wrapper para FormularioPublico que permite usá-lo com React Router
+ * Wrapper otimizado para FormularioPublico
  * 
- * FormularioPublico usa Wouter internamente, mas este wrapper permite
- * que ele seja chamado de rotas do React Router nas apps Desktop/Mobile.
+ * OTIMIZAÇÕES (removidos de App.tsx):
+ * ✅ Removido: QueryClientProvider (já em App.tsx)
+ * ✅ Removido: TooltipProvider (já em App.tsx)  
+ * ✅ Removido: Suspense + fallback (já em App.tsx com fallback otimizado)
+ * ✅ Simplificado: Lógica de extração de parâmetros manual
+ * ✅ Mantido: Router/Wouter (necessário - FormularioPublico usa useParams() do wouter)
  * 
- * Suporta múltiplos formatos de URL:
- * - /f/:token (com token de lead)
- * - /form/:id (acesso público direto)
- * - /formulario/:companySlug/form/:id (acesso público com slug da empresa)
- * - /:companySlug/form/:id (acesso público com slug da empresa)
+ * Resultado: Renderização instantânea, providers não bloqueiam,
+ * apenas o Router está presente para passar parâmetros ao FormularioPublico
  */
 const FormularioPublicoWrapper = () => {
   const reactRouterParams = useReactRouterParams<{ token?: string; id?: string; companySlug?: string }>();
   const location = useReactRouterLocation();
   
-  // Usar parâmetros do React Router se disponíveis, senão extrair da URL
-  const params = useMemo(() => {
-    if (reactRouterParams.token || reactRouterParams.id || reactRouterParams.companySlug) {
-      return reactRouterParams;
-    }
-    // Fallback: extrair parâmetros diretamente da URL
-    return extractParamsFromPath(location.pathname);
-  }, [reactRouterParams, location.pathname]);
+  // Usa parâmetros do React Router se disponíveis
+  const params = reactRouterParams;
   
-  // Determine qual rota usar baseado nos parâmetros disponíveis
+  // Determina qual rota Wouter usar baseado nos parâmetros disponíveis
   const wooterPath = useMemo(() => {
     if (params.token) {
       return `/f/${params.token}`;
@@ -93,29 +35,23 @@ const FormularioPublicoWrapper = () => {
     return '/';
   }, [params.token, params.id, params.companySlug]);
   
-  // Create a custom hook that always returns the current path
+  // Hook customizado para Wouter que sempre retorna o caminho correto
   const customHook = useMemo(() => {
     return () => [wooterPath, () => {}] as const;
   }, [wooterPath]);
   
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Suspense fallback={<FormLoader />}>
-          <Router hook={customHook as any}>
-            <Route path="/f/:token">
-              <FormularioPublico />
-            </Route>
-            <Route path="/:companySlug/form/:id">
-              <FormularioPublico />
-            </Route>
-            <Route path="/form/:id">
-              <FormularioPublico />
-            </Route>
-          </Router>
-        </Suspense>
-      </TooltipProvider>
-    </QueryClientProvider>
+    <Router hook={customHook as any}>
+      <Route path="/f/:token">
+        <FormularioPublico />
+      </Route>
+      <Route path="/:companySlug/form/:id">
+        <FormularioPublico />
+      </Route>
+      <Route path="/form/:id">
+        <FormularioPublico />
+      </Route>
+    </Router>
   );
 };
 

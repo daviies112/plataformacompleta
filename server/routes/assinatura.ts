@@ -804,7 +804,7 @@ router.get('/contracts/:token/full', async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Contrato não encontrado' });
     }
 
-    // Get participant data (simplified version)
+    // Get participant data with timeout (optimized for fast load)
     let participantData: any = null;
     try {
       const contractPhone = contract.client_phone;
@@ -812,44 +812,65 @@ router.get('/contracts/:token/full', async (req: Request, res: Response) => {
       
       if (contractPhone || contractCpf) {
         const { getClienteSupabase, isClienteSupabaseConfigured } = await import('../lib/clienteSupabase.js');
-        if (await isClienteSupabaseConfigured()) {
-          const supabaseClient = await getClienteSupabase();
-          if (supabaseClient) {
-            let query = supabaseClient.from('form_submissions').select('*');
-            const phoneNormalizado = contractPhone ? contractPhone.replace(/\D/g, '') : null;
-            const cpfNormalizado = contractCpf ? contractCpf.replace(/\D/g, '') : null;
+        
+        // Use Promise.race with a timeout to prevent slow queries from blocking the response
+        const participantLookup = new Promise(async (resolve) => {
+          try {
+            if (await isClienteSupabaseConfigured()) {
+              const supabaseClient = await getClienteSupabase();
+              if (supabaseClient) {
+                let query = supabaseClient.from('form_submissions').select('*');
+                const phoneNormalizado = contractPhone ? contractPhone.replace(/\D/g, '') : null;
+                const cpfNormalizado = contractCpf ? contractCpf.replace(/\D/g, '') : null;
 
-            if (phoneNormalizado) {
-              query = query.ilike('contact_phone', `%${phoneNormalizado.slice(-9)}%`);
-            } else if (cpfNormalizado) {
-              query = query.eq('contact_cpf', cpfNormalizado);
-            }
-
-            const { data: submissions } = await query.limit(1);
-            if (submissions && submissions.length > 0) {
-              const submission = submissions[0];
-              participantData = {
-                found: true,
-                formSubmissionId: submission.id,
-                participantData: {
-                  nome: submission.contact_name || contract.client_name,
-                  email: submission.contact_email || contract.client_email,
-                  telefone: submission.contact_phone || contract.client_phone,
-                  cpf: submission.contact_cpf || contract.client_cpf,
-                  endereco: {
-                    cep: submission.address_cep || submission.addressCep,
-                    rua: submission.address_street || submission.addressStreet,
-                    numero: submission.address_number || submission.addressNumber,
-                    complemento: submission.address_complement || submission.addressComplement,
-                    bairro: submission.address_neighborhood || submission.addressNeighborhood,
-                    cidade: submission.address_city || submission.addressCity,
-                    estado: submission.address_state || submission.addressState
-                  }
+                if (phoneNormalizado) {
+                  query = query.ilike('contact_phone', `%${phoneNormalizado.slice(-9)}%`);
+                } else if (cpfNormalizado) {
+                  query = query.eq('contact_cpf', cpfNormalizado);
                 }
-              };
+
+                const { data: submissions } = await query.limit(1);
+                if (submissions && submissions.length > 0) {
+                  const submission = submissions[0];
+                  resolve({
+                    found: true,
+                    formSubmissionId: submission.id,
+                    participantData: {
+                      nome: submission.contact_name || contract.client_name,
+                      email: submission.contact_email || contract.client_email,
+                      telefone: submission.contact_phone || contract.client_phone,
+                      cpf: submission.contact_cpf || contract.client_cpf,
+                      endereco: {
+                        cep: submission.address_cep || submission.addressCep,
+                        rua: submission.address_street || submission.addressStreet,
+                        numero: submission.address_number || submission.addressNumber,
+                        complemento: submission.address_complement || submission.addressComplement,
+                        bairro: submission.address_neighborhood || submission.addressNeighborhood,
+                        cidade: submission.address_city || submission.addressCity,
+                        estado: submission.address_state || submission.addressState
+                      }
+                    }
+                  });
+                } else {
+                  resolve(null);
+                }
+              } else {
+                resolve(null);
+              }
+            } else {
+              resolve(null);
             }
+          } catch (err) {
+            console.warn('[Assinatura/Full] Participant data lookup error:', err);
+            resolve(null);
           }
-        }
+        });
+        
+        // Wait max 1.5 seconds for participant data - if timeout, continue without it
+        participantData = await Promise.race([
+          participantLookup,
+          new Promise(resolve => setTimeout(() => resolve(null), 1500))
+        ]);
       }
     } catch (err) {
       console.warn('[Assinatura/Full] Participant data lookup failed:', err);

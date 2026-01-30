@@ -200,10 +200,11 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
     return cleaned;
   };
   
+  // ✅ OTIMIZAÇÃO: isLoading começa false para mostrar skeleton instantaneamente
   // Estado principal
   const [form, setForm] = useState<Form | null>(null);
   const [sessao, setSessao] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false); // Muda para false para renderizar skeleton rápido
   const [error, setError] = useState<string | null>(null);
   
   // Estado do wizard
@@ -693,25 +694,64 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
   const totalSteps = 1 + 1 + 1 + questionPages.length + 1; // welcome + personal + address + pages de perguntas + completion
   const progress = currentStep === 0 ? 0 : Math.min(100, Math.round(((currentStep) / (totalSteps - 1)) * 100));
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(to bottom right, #ffffff, #f8fafc)' }}>
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" style={{ color: '#3b82f6' }} />
-          <p style={{ color: '#64748b' }}>Carregando formulário...</p>
+  // ✅ OTIMIZAÇÃO: Mostrar skeleton ultra-leve quando carregando
+  if (!form) {
+    // Se há erro, mostra mensagem de erro
+    if (error) {
+      return (
+        <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(to bottom right, #ffffff, #f8fafc)' }}>
+          <Card className="p-8 text-center max-w-md" style={{ backgroundColor: '#ffffff', borderColor: '#e2e8f0' }}>
+            <AlertCircle className="h-12 w-12 mx-auto mb-4" style={{ color: '#ef4444' }} />
+            <h2 className="text-2xl font-bold mb-2" style={{ color: '#1e293b' }}>Erro ao carregar formulário</h2>
+            <p style={{ color: '#64748b' }}>{error}</p>
+          </Card>
         </div>
-      </div>
-    );
-  }
-
-  if (error || !form) {
+      );
+    }
+    
+    // Senão, mostrar skeleton super-leve (sem Loader2, sem imports pesados)
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(to bottom right, #ffffff, #f8fafc)' }}>
-        <Card className="p-8 text-center max-w-md" style={{ backgroundColor: '#ffffff', borderColor: '#e2e8f0' }}>
-          <AlertCircle className="h-12 w-12 mx-auto mb-4" style={{ color: '#ef4444' }} />
-          <h2 className="text-2xl font-bold mb-2" style={{ color: '#1e293b' }}>Erro ao carregar formulário</h2>
-          <p style={{ color: '#64748b' }}>{error || 'Formulário não encontrado.'}</p>
-        </Card>
+      <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'linear-gradient(to bottom right, #ffffff, #f8fafc)' }}>
+        <div className="w-full max-w-2xl">
+          {/* Skeleton skeleton card */}
+          <div style={{ backgroundColor: '#ffffff', borderRadius: '8px', border: '1px solid #e2e8f0', padding: '32px' }}>
+            {/* Skeleton loading animation - pure CSS, ultra-leve */}
+            <div style={{
+              height: '40px',
+              backgroundColor: '#f1f5f9',
+              borderRadius: '6px',
+              marginBottom: '24px',
+              animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+            }} />
+            <div style={{
+              height: '24px',
+              backgroundColor: '#f1f5f9',
+              borderRadius: '6px',
+              marginBottom: '32px',
+              width: '80%',
+              animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+            }} />
+            <div style={{
+              height: '40px',
+              backgroundColor: '#f1f5f9',
+              borderRadius: '6px',
+              marginBottom: '16px',
+              animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+            }} />
+            <div style={{
+              height: '40px',
+              backgroundColor: '#f1f5f9',
+              borderRadius: '6px',
+              animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+            }} />
+          </div>
+          <style>{`
+            @keyframes pulse {
+              0%, 100% { opacity: 1; }
+              50% { opacity: 0.5; }
+            }
+          `}</style>
+        </div>
       </div>
     );
   }

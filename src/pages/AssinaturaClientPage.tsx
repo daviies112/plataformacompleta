@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense, memo, useMemo } from 'react';
+import { useState, useEffect, lazy, Suspense, memo, useMemo, useCallback } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -27,12 +27,38 @@ const ResidenceProofStep = lazy(() => import('@/components/assinatura/steps/Resi
 const AppPromotionStep = lazy(() => import('@/components/assinatura/steps/AppPromotionStep').then(m => ({ default: m.AppPromotionStep })));
 const SuccessStep = lazy(() => import('@/components/assinatura/steps/SuccessStep').then(m => ({ default: m.SuccessStep })));
 
+// Minimal loading skeleton that renders instantly (<50ms)
+const LightweightLoadingSkeleton = () => (
+  <div className="fixed inset-0 bg-background flex items-center justify-center" style={{ willChange: 'contents' }}>
+    <div className="w-full max-w-md px-4">
+      <div className="animate-pulse space-y-4">
+        <div className="h-32 bg-muted rounded-lg" />
+        <div className="h-4 bg-muted rounded w-3/4" />
+        <div className="h-4 bg-muted rounded w-1/2" />
+      </div>
+    </div>
+  </div>
+);
+
 // Step loader component for Suspense fallback
 const StepLoader = () => (
   <div className="flex items-center justify-center min-h-[200px]">
     <Loader2 className="w-8 h-8 animate-spin text-primary" />
   </div>
 );
+
+// Helper to preload components with requestIdleCallback
+const preloadComponent = (componentPromise: Promise<any>) => {
+  if (typeof requestIdleCallback !== 'undefined') {
+    requestIdleCallback(() => {
+      componentPromise.catch(() => {});
+    });
+  } else {
+    setTimeout(() => {
+      componentPromise.catch(() => {});
+    }, 100);
+  }
+};
 
 interface ContractData {
   id: string;
@@ -250,22 +276,48 @@ const AssinaturaClientContent = () => {
   const { currentStep, setCurrentStep, setGovbrData, setContractData } = useContract();
   const [selfiePhoto, setSelfiePhoto] = useState<string | null>(null);
   const [documentPhoto, setDocumentPhoto] = useState<string | null>(null);
+  const [isPreloading, setIsPreloading] = useState(false);
+
+  // Preload VerificationFlow component while waiting for contract data
+  useEffect(() => {
+    if (isPreloading || currentStep >= 1) return;
+    setIsPreloading(true);
+    preloadComponent(
+      import('@/components/assinatura/verification/VerificationFlow')
+    );
+  }, [isPreloading, currentStep]);
 
   const { data: fullData, isLoading, error } = useQuery<{ contract: ContractData; participantData: ParticipantData | null } | null>({
     queryKey: ['/api/assinatura/public/contracts', token, 'full'],
     enabled: !!token,
     staleTime: 5 * 60 * 1000,
+    networkMode: 'always',
+    retry: 1,
     queryFn: async () => {
-      const res = await fetch(`/api/assinatura/public/contracts/${token}/full`, {
-        credentials: 'include'
-      });
-      if (res.status === 404 || res.status === 401) {
-        return null;
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      
+      try {
+        const res = await fetch(`/api/assinatura/public/contracts/${token}/full`, {
+          credentials: 'include',
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+        
+        if (res.status === 404 || res.status === 401) {
+          return null;
+        }
+        if (!res.ok) {
+          throw new Error(`Failed to fetch contract data: ${res.status}`);
+        }
+        return await res.json();
+      } catch (err: any) {
+        clearTimeout(timeoutId);
+        if (err.name === 'AbortError') {
+          console.warn('[AssinaturaClient] Contract fetch timeout - showing error');
+        }
+        throw err;
       }
-      if (!res.ok) {
-        throw new Error(`Failed to fetch contract data: ${res.status}`);
-      }
-      return await res.json();
     }
   });
 
@@ -290,7 +342,7 @@ const AssinaturaClientContent = () => {
   const { setResidenceProofPhoto, setResidenceProofValidated } = useContract();
 
   useEffect(() => {
-    if (contract && currentStep === 0) {
+    if (contract) {
       setGovbrData({
         cpf: contract.client_cpf,
         nome: contract.client_name,
@@ -311,7 +363,7 @@ const AssinaturaClientContent = () => {
       }
       
       // Determine starting step based on contract progress
-      // Steps: 0=Progress, 1=Verification, 2=Contract, 3=Address, 4=ResidenceProof, 5=AppDownload, 6=Success
+      // Steps: 1=Verification, 2=Contract, 3=Address, 4=ResidenceProof, 5=AppDownload, 6=Success
       let startingStep = 1; // Default: start at verification
       
       if (contract.signed_at) {
@@ -333,23 +385,24 @@ const AssinaturaClientContent = () => {
       
       setCurrentStep(startingStep);
     }
-  }, [contract, currentStep, setGovbrData, setContractData, setCurrentStep, setResidenceProofValidated, setResidenceProofPhoto]);
+  }, [contract, setGovbrData, setContractData, setCurrentStep, setResidenceProofValidated]);
 
   // Preload next step during current step for faster transitions
   useEffect(() => {
     // Preload next step components for faster transitions
-    // Steps: 0=Progress, 1=Verification, 2=Contract, 3=Address/ResellerWelcome, 4=ResidenceProof, 5=AppPromotion, 6=Success
-    if (currentStep === 0 || currentStep === 1) {
-      import('@/components/assinatura/verification/VerificationFlow');
-      import('@/components/assinatura/steps/ContractStep');
-    } else if (currentStep === 2) {
-      import('@/components/assinatura/steps/ResellerWelcomeStep');
-    } else if (currentStep === 3) {
-      import('@/components/assinatura/steps/ResidenceProofStep');
-    } else if (currentStep === 4) {
-      import('@/components/assinatura/steps/AppPromotionStep');
-    } else if (currentStep === 5) {
-      import('@/components/assinatura/steps/SuccessStep');
+    // Steps: 1=Verification, 2=Contract, 3=Address/ResellerWelcome, 4=ResidenceProof, 5=AppPromotion, 6=Success
+    if (currentStep === 1 || currentStep === 2) {
+      preloadComponent(import('@/components/assinatura/steps/ContractStep'));
+      preloadComponent(import('@/components/assinatura/steps/ResellerWelcomeStep'));
+    } else if (currentStep === 2 || currentStep === 3) {
+      preloadComponent(import('@/components/assinatura/steps/ResellerWelcomeStep'));
+      preloadComponent(import('@/components/assinatura/steps/ResidenceProofStep'));
+    } else if (currentStep === 3 || currentStep === 4) {
+      preloadComponent(import('@/components/assinatura/steps/ResidenceProofStep'));
+      preloadComponent(import('@/components/assinatura/steps/AppPromotionStep'));
+    } else if (currentStep === 4 || currentStep === 5) {
+      preloadComponent(import('@/components/assinatura/steps/AppPromotionStep'));
+      preloadComponent(import('@/components/assinatura/steps/SuccessStep'));
     }
   }, [currentStep]);
 
@@ -395,16 +448,7 @@ const AssinaturaClientContent = () => {
   const progressTextColor = contract?.progress_text_color || '#ffffff';
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Card className="w-full max-w-md">
-          <CardContent className="pt-6 text-center">
-            <Loader2 className="w-12 h-12 mx-auto animate-spin text-muted-foreground" />
-            <p className="mt-4 text-muted-foreground">Carregando contrato...</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
+    return <LightweightLoadingSkeleton />;
   }
 
   if (error || !contract) {
@@ -443,22 +487,6 @@ const AssinaturaClientContent = () => {
                 Protocolo: {contract.protocol_number}
               </p>
             )}
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  if (currentStep === 0) {
-    // Step 0 is transitional - show loading while contract data is being loaded and step advances to 1
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background" data-testid="step-initial-container">
-        <Card className="w-full max-w-md">
-          <CardContent className="pt-6 text-center">
-            <Loader2 className="w-12 h-12 mx-auto animate-spin text-muted-foreground" data-testid="status-initial-loading" />
-            <p className="mt-4 text-muted-foreground" data-testid="text-initial-loading">
-              Preparando verificação...
-            </p>
           </CardContent>
         </Card>
       </div>
@@ -605,15 +633,18 @@ const AssinaturaClientContent = () => {
         <CardContent className="pt-6 text-center">
           <Loader2 className="w-12 h-12 mx-auto animate-spin text-muted-foreground" data-testid="status-step-loading" />
           <p className="mt-4 text-muted-foreground" data-testid="text-step-loading">
-            Carregando etapa {currentStep}...
+            Carregando...
           </p>
           <Button 
             variant="outline" 
             className="mt-4"
-            onClick={() => setCurrentStep(1)}
+            onClick={() => {
+              console.log('[AssinaturaClientPage] User clicked restart - resetting to step 1');
+              setCurrentStep(1);
+            }}
             data-testid="button-restart-verification"
           >
-            Reiniciar verificação
+            Reiniciar
           </Button>
         </CardContent>
       </Card>
