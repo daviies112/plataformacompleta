@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } fro
 import { useParams, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import { api, getAuthToken } from "@/lib/api";
 import { DEFAULT_ROOM_DESIGN_CONFIG, type RoomDesignConfig } from "@/types/reuniao";
@@ -273,6 +274,10 @@ export default function ReuniaoPublica() {
   }
 
   if (step === "ended") {
+    const fsid = searchParams.get('fsid');
+    const redirectUrl = roomConfig.endScreen.redirectUrl || 
+      (fsid ? `/assinatura/from-meeting?meetingId=${meetingId}&fsid=${fsid}` : null);
+
     return (
       <div 
         className="flex items-center justify-center h-screen"
@@ -294,6 +299,17 @@ export default function ReuniaoPublica() {
             >
               {roomConfig.endScreen.message}
             </p>
+            
+            {redirectUrl && (
+              <Button 
+                onClick={() => window.location.href = redirectUrl}
+                style={{ backgroundColor: roomConfig.colors.primaryButton }}
+                className="mt-4 w-full"
+                data-testid="button-continue-signature"
+              >
+                Continuar para Assinatura
+              </Button>
+            )}
           </CardContent>
         </Card>
       </div>

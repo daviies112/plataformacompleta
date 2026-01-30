@@ -33,6 +33,7 @@ import FormularioPublicoWrapper from './features/formularios-platform/pages/Form
 
 // Lazy loaded routes
 const AssinaturaClientPage = lazy(() => import('./pages/AssinaturaClientPage'));
+const AssinaturaFromMeeting = lazy(() => import('./pages/AssinaturaFromMeeting'));
 const ReuniaoPublica = lazy(() => import('./pages/ReuniaoPublica'));
 const PublicStore = lazy(() => import('./features/revendedora/pages/public/PublicStore'));
 const PublicCheckout = lazy(() => import('./features/revendedora/pages/public/PublicCheckout'));
@@ -46,6 +47,7 @@ const isPublicRoutePath = (path: string): boolean => {
     path === '/login' ||
     path === '/reseller-login' ||
     path.startsWith('/assinar/') ||
+    path.startsWith('/assinatura/') ||
     path.startsWith('/f/') ||
     path.startsWith('/form/') ||
     path.startsWith('/formulario/') ||
@@ -65,6 +67,14 @@ const PublicRoutes = () => {
     return (
       <Suspense fallback={<LoadingFallback />}>
         <AssinaturaClientPage />
+      </Suspense>
+    );
+  }
+  
+  if (path.startsWith('/assinatura/')) {
+    return (
+      <Suspense fallback={<LoadingFallback />}>
+        <AssinaturaFromMeeting />
       </Suspense>
     );
   }
@@ -128,6 +138,7 @@ const isPublicRoute = (path: string): boolean => {
     path === '/login' ||
     path === '/reseller-login' ||
     path.startsWith('/assinar/') ||
+    path.startsWith('/assinatura/') ||
     path.startsWith('/f/') ||
     path.startsWith('/form/') ||
     path.startsWith('/formulario/') ||

@@ -2257,4 +2257,277 @@ Responda APENAS em JSON válido com esta estrutura:
   }
 });
 
+// Endpoint público para criar contrato a partir de uma reunião/form_submission
+router.post('/public/contracts/from-meeting', async (req: Request, res: Response) => {
+  try {
+    const { meetingId, formSubmissionId, fsid } = req.body;
+    
+    // Aceitar formSubmissionId ou fsid como parâmetro
+    const submissionId = formSubmissionId || fsid;
+    
+    console.log(`[Assinatura] POST /public/contracts/from-meeting - meetingId: ${meetingId}, submissionId: ${submissionId}`);
+    
+    if (!submissionId) {
+      return res.status(400).json({ 
+        error: 'Campo obrigatório ausente', 
+        details: 'formSubmissionId ou fsid é obrigatório' 
+      });
+    }
+    
+    // Log se supabaseOwner não está configurado (mas não falhar - continuar com fallbacks)
+    const useSupabaseOwner = SUPABASE_CONFIGURED && supabaseOwner;
+    if (!useSupabaseOwner) {
+      console.log('[Assinatura] supabaseOwner não configurado - usando fallbacks locais');
+    }
+    
+    // 1. Buscar dados do form_submission
+    console.log(`[Assinatura] Buscando form_submission: ${submissionId}`);
+    let formSubmission: any = null;
+    
+    if (useSupabaseOwner) {
+      const { data, error: fsError } = await supabaseOwner
+        .from('form_submissions')
+        .select('id, tenant_id, contact_name, contact_cpf, contact_email, contact_phone, address_street, address_number, address_complement, address_city, address_state, address_cep')
+        .eq('id', submissionId)
+        .single();
+      
+      if (!fsError && data) {
+        formSubmission = data;
+      } else if (fsError) {
+        console.log('[Assinatura] Erro ao buscar form_submission via supabaseOwner:', fsError.message);
+      }
+    }
+    
+    // Fallback: buscar via clienteSupabase se disponível
+    if (!formSubmission) {
+      try {
+        const { getClienteSupabase, isClienteSupabaseConfigured } = await import('../lib/clienteSupabase.js');
+        if (await isClienteSupabaseConfigured()) {
+          const supabaseClient = await getClienteSupabase();
+          if (supabaseClient) {
+            const { data, error: fsError } = await supabaseClient
+              .from('form_submissions')
+              .select('id, tenant_id, contact_name, contact_cpf, contact_email, contact_phone, address_street, address_number, address_complement, address_city, address_state, address_cep')
+              .eq('id', submissionId)
+              .single();
+            
+            if (!fsError && data) {
+              formSubmission = data;
+              console.log('[Assinatura] form_submission encontrado via clienteSupabase');
+            }
+          }
+        }
+      } catch (err) {
+        console.log('[Assinatura] Fallback clienteSupabase falhou:', err);
+      }
+    }
+    
+    // Fallback: buscar do PostgreSQL local via pool
+    if (!formSubmission) {
+      try {
+        const { pool } = await import('../db.js');
+        const result = await pool.query(
+          `SELECT id, tenant_id, contact_name, contact_cpf, contact_email, contact_phone, 
+                  address_street, address_number, address_complement, address_city, address_state, address_cep
+           FROM form_submissions WHERE id = $1`,
+          [submissionId]
+        );
+        if (result.rows.length > 0) {
+          const row = result.rows[0];
+          formSubmission = {
+            id: row.id,
+            tenant_id: row.tenant_id,
+            contact_name: row.contact_name,
+            contact_cpf: row.contact_cpf,
+            contact_email: row.contact_email,
+            contact_phone: row.contact_phone,
+            address_street: row.address_street,
+            address_number: row.address_number,
+            address_complement: row.address_complement,
+            address_city: row.address_city,
+            address_state: row.address_state,
+            address_cep: row.address_cep
+          };
+          console.log('[Assinatura] form_submission encontrado via PostgreSQL local');
+        }
+      } catch (err) {
+        console.log('[Assinatura] Fallback para PostgreSQL local falhou:', err);
+      }
+    }
+    
+    if (!formSubmission) {
+      console.error('[Assinatura] form_submission não encontrado em nenhuma fonte');
+      return res.status(404).json({ 
+        error: 'form_submission não encontrado',
+        details: 'Registro não existe'
+      });
+    }
+    
+    console.log(`[Assinatura] form_submission encontrado:`, {
+      id: formSubmission.id,
+      tenant_id: formSubmission.tenant_id,
+      contact_name: formSubmission.contact_name,
+      contact_email: formSubmission.contact_email
+    });
+    
+    // 2. Verificar se já existe contrato para este formSubmissionId
+    let existingContract: any = null;
+    
+    if (useSupabaseOwner) {
+      // Buscar por form_submission_id apenas (mais confiável)
+      const { data: existing } = await supabaseOwner
+        .from('contracts')
+        .select('id, access_token, client_name, status, protocol_number, created_at, signature_url')
+        .eq('form_submission_id', submissionId)
+        .maybeSingle();
+      existingContract = existing;
+      
+      // Se não encontrou e temos meetingId, buscar por meeting_id
+      if (!existingContract && meetingId) {
+        const { data: existingByMeeting } = await supabaseOwner
+          .from('contracts')
+          .select('id, access_token, client_name, status, protocol_number, created_at, signature_url')
+          .eq('meeting_id', meetingId)
+          .maybeSingle();
+        existingContract = existingByMeeting;
+      }
+    }
+    
+    // Também verificar no store local
+    if (!existingContract) {
+      for (const [id, contract] of localContractsStore.entries()) {
+        if ((contract as any).form_submission_id === submissionId) {
+          existingContract = contract;
+          break;
+        }
+        if (meetingId && (contract as any).meeting_id === meetingId) {
+          existingContract = contract;
+          break;
+        }
+      }
+    }
+    
+    if (existingContract) {
+      console.log(`[Assinatura] Contrato já existe para este form_submission: ${existingContract.id}`);
+      return res.status(200).json({
+        success: true,
+        message: 'Contrato já existe para este formulário',
+        contract: existingContract,
+        duplicate: true
+      });
+    }
+    
+    // 3. Gerar protocol_number e access_token
+    const protocolNumber = `CONT-${Date.now()}-${nanoid(9).toUpperCase()}`;
+    const accessToken = crypto.randomUUID();
+    
+    // Gerar URL de assinatura
+    const domain = process.env.REPLIT_DOMAINS?.split(',')[0] || process.env.REPLIT_DEV_DOMAIN || 'localhost:5000';
+    const protocolScheme = domain.includes('localhost') ? 'http' : 'https';
+    const signatureUrl = `${protocolScheme}://${domain}/assinar/${accessToken}`;
+    
+    // 4. Preparar dados do contrato
+    const contractData = {
+      client_name: formSubmission.contact_name || 'Cliente',
+      client_cpf: formSubmission.contact_cpf || null,
+      client_email: formSubmission.contact_email || null,
+      client_phone: formSubmission.contact_phone || null,
+      address_street: formSubmission.address_street || null,
+      address_number: formSubmission.address_number || null,
+      address_complement: formSubmission.address_complement || null,
+      address_city: formSubmission.address_city || null,
+      address_state: formSubmission.address_state || null,
+      address_zipcode: formSubmission.address_cep || null,
+      status: 'pending',
+      protocol_number: protocolNumber,
+      access_token: accessToken,
+      signature_url: signatureUrl,
+      contract_html: '<p>Contrato pendente de preenchimento</p>',
+      form_submission_id: submissionId,
+      meeting_id: meetingId || null,
+      tenant_id: formSubmission.tenant_id || null,
+      created_at: new Date().toISOString()
+    };
+    
+    console.log(`[Assinatura] Criando contrato para: ${contractData.client_name}, protocol: ${protocolNumber}`);
+    
+    // 5. Tentar criar no Supabase do tenant específico se disponível
+    let createdContract = null;
+    let supabaseContractId: string | null = null;
+    
+    if (formSubmission.tenant_id) {
+      try {
+        const tenantSupabase = await getClientSupabaseClient(formSubmission.tenant_id);
+        if (tenantSupabase) {
+          const { data, error: insertError } = await tenantSupabase
+            .from('contracts')
+            .insert(contractData)
+            .select()
+            .single();
+          
+          if (insertError) {
+            console.error(`[Assinatura] Erro ao criar contrato no tenant ${formSubmission.tenant_id}:`, insertError);
+          } else if (data) {
+            createdContract = data;
+            supabaseContractId = data.id;
+            console.log(`[Assinatura] ✅ Contrato criado no Supabase do tenant: ${data.id}`);
+          }
+        }
+      } catch (err) {
+        console.error('[Assinatura] Erro ao criar contrato via tenant:', err);
+      }
+    }
+    
+    // 6. Fallback: usar assinaturaSupabaseService
+    if (!createdContract && assinaturaSupabaseService.isConnected()) {
+      console.log('[Assinatura] Tentando fallback via assinaturaSupabaseService...');
+      const supabaseContract = await assinaturaSupabaseService.createContract(contractData);
+      
+      if (supabaseContract) {
+        createdContract = supabaseContract;
+        supabaseContractId = supabaseContract.id || null;
+        console.log(`[Assinatura] ✅ Contrato criado via fallback: ${supabaseContractId}`);
+      }
+    }
+    
+    // 7. Salvar localmente também
+    const localId = supabaseContractId || nanoid();
+    const localContract: LocalContract = {
+      id: localId,
+      ...contractData
+    };
+    localContractsStore.set(localId, localContract);
+    saveLocalContracts(localContractsStore);
+    
+    // 8. Retornar resultado
+    const responseContract = createdContract || localContract;
+    
+    console.log(`[Assinatura] ✅ Contrato criado com sucesso:`, {
+      id: responseContract.id || localId,
+      protocol_number: protocolNumber,
+      access_token: accessToken
+    });
+    
+    return res.status(201).json({
+      success: true,
+      message: 'Contrato criado com sucesso',
+      contract: {
+        ...responseContract,
+        id: responseContract.id || localId,
+        access_token: accessToken,
+        protocol_number: protocolNumber,
+        signature_url: signatureUrl
+      },
+      duplicate: false
+    });
+    
+  } catch (error: any) {
+    console.error('[Assinatura] Erro ao criar contrato from-meeting:', error);
+    return res.status(500).json({ 
+      error: 'Erro interno ao criar contrato',
+      details: error.message 
+    });
+  }
+});
+
 export default router;
