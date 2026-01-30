@@ -1258,9 +1258,17 @@ router.post('/contracts', async (req: Request, res: Response) => {
         });
         
         try {
+          // Mapeamento manual de colunas para o insert do Supabase
+          const insertData: any = {
+            ...contractData
+          };
+          
+          // Remover campos que podem não existir ou causar conflito no insert inicial
+          // Mas manter os essenciais de endereço que acabamos de adicionar
+          
           const { data, error } = await tenantSupabase
             .from('contracts')
-            .insert(contractData)
+            .insert(insertData)
             .select()
             .single();
           

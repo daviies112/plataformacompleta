@@ -80,6 +80,13 @@ export const contracts = pgTable("contracts", {
   selfie_photo: text("selfie_photo"),
   document_photo: text("document_photo"),
   signed_contract_html: text("signed_contract_html"),
+  address_street: text("address_street"),
+  address_number: text("address_number"),
+  address_complement: text("address_complement"),
+  address_neighborhood: text("address_neighborhood"),
+  address_city: text("address_city"),
+  address_state: text("address_state"),
+  address_zipcode: text("address_zipcode"),
 });
 
 export const signatureLogs = pgTable("signature_logs", {
