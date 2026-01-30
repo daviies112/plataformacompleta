@@ -27,9 +27,31 @@ export default function Reuniao() {
   const params = useParams();
   const navigate = useNavigate();
   const meetingId = params.id;
-  const { meeting, loading, error, getToken100ms } = useReuniao(meetingId);
+  const { meeting: privateMeeting, loading: privateLoading, error: privateError, getToken100ms } = useReuniao(meetingId);
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
+
+  // Fallback to public endpoint if private fails (for unauthenticated access)
+  const { data: publicMeeting, isLoading: publicLoading } = useQuery({
+    queryKey: ["/api/public/reunioes", meetingId, "public"],
+    queryFn: async () => {
+      if (!meetingId) return null;
+      try {
+        const response = await api.get(`/api/public/reunioes/${meetingId}/public`);
+        return response.data;
+      } catch (error) {
+        console.error("[Reuniao] Erro ao buscar reunião pública:", error);
+        return null;
+      }
+    },
+    enabled: !!meetingId && !!privateError, // Only fetch public if private fails
+    retry: false,
+  });
+
+  // Use private meeting if available, otherwise fallback to public
+  const meeting = privateMeeting || publicMeeting;
+  const loading = privateLoading || (privateError && publicLoading);
+  const error = privateError && !publicMeeting;
 
   const [step, setStep] = useState<MeetingStep>("lobby");
   const [token100ms, setToken100ms] = useState<string | null>(null);
