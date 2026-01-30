@@ -1,0 +1,240 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 1
+            }
+          ]
+        }
+      },
+      "id": "881f8f71-a661-4f99-8c0f-b4916e202e5d",
+      "name": "Monitoramento Contínuo2",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        3584,
+        3536
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "contracts",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "status",
+              "condition": "eq",
+              "keyValue": "pending"
+            },
+            {
+              "keyName": "whatsapp_enviado",
+              "condition": "eq",
+              "keyValue": "={{ false }}"
+            },
+            {
+              "keyName": "created_at",
+              "condition": "lt",
+              "keyValue": "={{ $now.minus({ hours: 2 }).toISO() }}"
+            }
+          ]
+        }
+      },
+      "id": "c91f3a39-d039-466a-b567-424fbe77f52d",
+      "name": "Buscar Pendentes2",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        3792,
+        3536
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "huldkk2UMf07U3qF",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "msg",
+              "name": "dados_envio",
+              "value": "={{ { id: $json.id, tel: $json.client_phone.replace(/\\D/g, ''), url: $json.signature_url, nome: $json.client_name } }}",
+              "type": "object"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ca1db05f-f7e3-476f-9856-3118861b3973",
+      "name": "Isolar Dados2",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        4224,
+        3536
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "contracts",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $('Isolar Dados2').item.json.dados_envio.id }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "whatsapp_enviado",
+              "fieldValue": "={{ true }}"
+            }
+          ]
+        }
+      },
+      "id": "63b46bdd-515f-42b8-897f-143472d10f96",
+      "name": "Confirmar no Banco2",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        4432,
+        3536
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "huldkk2UMf07U3qF",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "teste",
+        "remoteJid": "={{ $node[\"Isolar Dados2\"].json.dados_envio.tel.includes('@') ? $node[\"Isolar Dados2\"].json.dados_envio.tel : '55' + $node[\"Isolar Dados2\"].json.dados_envio.tel + '@s.whatsapp.net' }}",
+        "messageText": "=Olá {{ $node[\"Isolar Dados2\"].json.dados_envio.nome }}! Segue seu contrato para assinatura: {{ $node[\"Isolar Dados2\"].json.dados_envio.url }}",
+        "options_message": {
+          "delay": 1500
+        }
+      },
+      "id": "60474ac9-3817-4c72-87f2-e3ebbc308800",
+      "name": "Enviar WhatsApp5",
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        4640,
+        3536
+      ],
+      "credentials": {
+        "evolutionApi": {
+          "id": "A8lJVGUjAAR1ZRfV",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Este código é 100% dinâmico e funciona para qualquer ID de cliente\nreturn $input.all().filter(item => {\n  // Verifica se o campo é falso, nulo ou inexistente\n  const enviado = item.json.whatsapp_enviado;\n  \n  // Só deixa passar se for estritamente false, null ou undefined\n  return enviado === false || enviado === null || enviado === undefined;\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4000,
+        3536
+      ],
+      "id": "5e3ff40e-375e-47b6-a55c-6f413d96fc20",
+      "name": "Code in JavaScript3"
+    }
+  ],
+  "connections": {
+    "Monitoramento Contínuo2": {
+      "main": [
+        [
+          {
+            "node": "Buscar Pendentes2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Pendentes2": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Isolar Dados2": {
+      "main": [
+        [
+          {
+            "node": "Confirmar no Banco2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Confirmar no Banco2": {
+      "main": [
+        [
+          {
+            "node": "Enviar WhatsApp5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript3": {
+      "main": [
+        [
+          {
+            "node": "Isolar Dados2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {
+    "Monitoramento Contínuo2": [
+      {
+        "timestamp": "2026-01-30T18:26:32.004-05:00",
+        "Readable date": "January 30th 2026, 6:26:32 pm",
+        "Readable time": "6:26:32 pm",
+        "Day of week": "Friday",
+        "Year": "2026",
+        "Month": "January",
+        "Day of month": "30",
+        "Hour": "18",
+        "Minute": "26",
+        "Second": "32",
+        "Timezone": "America/New_York (UTC-05:00)"
+      }
+    ]
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "041fc3787017e7278f042d7c91fc560a5875bc5f4b072032b9b3ee5905f18f43"
+  }
+}
