@@ -1145,7 +1145,6 @@ router.post('/contracts', async (req: Request, res: Response) => {
     localContractsStore.set(id, localContract);
     saveLocalContracts(localContractsStore);
 
-    // Preparar dados de endereço para salvar (usando colunas que existem na tabela contracts do Supabase)
     const addressData = finalAddress ? {
       address_street: finalAddress.street || null,
       address_number: finalAddress.number || null,
