@@ -566,7 +566,6 @@ export class LeadSyncService {
       /*
       if (cpfNormalizado && qualificationStatus === 'approved') {
         console.log(`🔍 [LeadSync] Disparando consulta CPF automática para novo lead APROVADO ${newLead.id}...`);
-      */
         console.log(`   📋 qualificationStatus=${qualificationStatus}, CPF=${cpfNormalizado.substring(0, 3)}...`);
         // Fire-and-forget: não bloqueia o retorno do lead
         triggerAutoCPFCheck(
@@ -580,6 +579,7 @@ export class LeadSyncService {
           console.error(`❌ [LeadSync] Erro ao disparar consulta CPF automática:`, err);
         });
       }
+      */
       
       return {
         success: true,

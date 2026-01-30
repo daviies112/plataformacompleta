@@ -84,3 +84,8 @@
    - All background jobs, queues, and polling services running
    - Vite development server initialized
    - Project import completed successfully
+[x] 209. Fix duplicate CPF consultation - January 30, 2026:
+   - Investigated and identified double trigger in LeadSyncService
+   - Disabled automatic `triggerAutoCPFCheck` to prevent duplicate API calls
+   - Preserved all existing data and logic
+   - System now uses single consultation via frontend or poller
