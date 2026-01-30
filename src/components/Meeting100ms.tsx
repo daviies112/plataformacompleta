@@ -58,6 +58,12 @@ function PeerVideo({
                         window.location.search.includes("recording=true") ||
                         window.location.search.includes("auto_join=true");
 
+  // Get participant identifiers from URL
+  const searchParams = new URLSearchParams(window.location.search);
+  const participantEmail = searchParams.get("email");
+  const participantPhone = searchParams.get("phone");
+  const participantCpf = searchParams.get("cpf");
+
   return (
     <Card 
       className={cn(
@@ -425,13 +431,21 @@ export function Meeting100ms({
       console.log("[Meeting100ms] 📋 Registrando presença automática na sala:", roomId);
       
       // Fire and forget - não bloquear a UI
+      const searchParams = new URLSearchParams(window.location.search);
+      const email = searchParams.get("email");
+      const phone = searchParams.get("phone");
+      const cpf = searchParams.get("cpf");
+
       fetch('/api/public/reunioes/registrar-presenca', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           room_id_100ms: roomId,
           meeting_id: meetingId,
-          nome: userName
+          nome: userName,
+          email,
+          phone,
+          cpf
         })
       })
         .then(res => res.json())

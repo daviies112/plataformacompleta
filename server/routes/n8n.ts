@@ -432,7 +432,7 @@ n8nRouter.post('/reunioes', authenticateN8NByTenantKey, async (req: Request, res
         if (error instanceof z.ZodError) {
             return res.status(400).json({ 
                 error: 'Dados inválidos', 
-                details: error.errors 
+                details: error.issues 
             });
         }
         res.status(500).json({ 

@@ -94,7 +94,19 @@ export default function PublicMeetingRoom() {
         console.log("[PublicMeetingRoom] Buscando participant-data com roomId:", actualRoomId);
         
         try {
-          const participantResponse = await fetch(`/api/public/reunioes/${actualRoomId}/participant-data`, {
+          // Identify participant by URL params if available, otherwise by name
+          const emailParam = searchParams.get("email");
+          const phoneParam = searchParams.get("phone");
+          const cpfParam = searchParams.get("cpf");
+          const sessionIdParam = searchParams.get("session_id") || searchParams.get("form_id");
+          
+          let queryParams = new URLSearchParams();
+          if (emailParam) queryParams.set("email", emailParam);
+          if (phoneParam) queryParams.set("phone", phoneParam);
+          if (cpfParam) queryParams.set("cpf", cpfParam);
+          if (sessionIdParam) queryParams.set("session_id", sessionIdParam);
+
+          const participantResponse = await fetch(`/api/public/reunioes/${actualRoomId}/participant-data?${queryParams.toString()}`, {
             credentials: 'include',
           });
           console.log("[PublicMeetingRoom] Resposta participant-data:", participantResponse.status);
