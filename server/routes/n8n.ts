@@ -7,6 +7,11 @@ import { criarSala, gerarTokenParticipante, desativarSala } from '../services/me
 import { getClientSupabaseClient } from '../lib/multiTenantSupabase';
 import { z } from 'zod';
 import crypto from 'crypto';
+import { nanoid } from 'nanoid';
+
+function generateParticipantId(): string {
+    return `pid_${nanoid(10)}`;
+}
 import { authenticateToken } from '../middleware/auth';
 
 const n8nRouter = Router();
@@ -296,30 +301,48 @@ n8nRouter.post('/reunioes', authenticateN8NByTenantKey, async (req: Request, res
 
         // Try to find form submission by phone or email for automatic contract pre-fill
         let formSubmissionId: string | null = null;
+        let participantId: string | null = null;
         
         if (telefone) {
             const normalizedPhone = telefone.replace(/\D/g, '');
             console.log(`[N8N] Buscando form_submission por telefone: ${normalizedPhone}`);
-            const [sub] = await db.select({ id: formSubmissions.id }).from(formSubmissions)
+            const [sub] = await db.select({ 
+                id: formSubmissions.id, 
+                participantId: formSubmissions.participantId 
+            }).from(formSubmissions)
                 .where(sql`REPLACE(REPLACE(REPLACE(REPLACE(${formSubmissions.contactPhone}, '-', ''), ' ', ''), '(', ''), ')', '') LIKE '%' || ${normalizedPhone} || '%'`)
                 .orderBy(desc(formSubmissions.createdAt))
                 .limit(1);
             if (sub) {
                 formSubmissionId = sub.id;
-                console.log(`[N8N] Form submission encontrado por telefone: ${formSubmissionId}`);
+                participantId = sub.participantId;
+                console.log(`[N8N] Form submission encontrado por telefone: ${formSubmissionId}, participantId: ${participantId}`);
             }
         }
         
         if (!formSubmissionId && email) {
             console.log(`[N8N] Buscando form_submission por email: ${email}`);
-            const [sub] = await db.select({ id: formSubmissions.id }).from(formSubmissions)
+            const [sub] = await db.select({ 
+                id: formSubmissions.id, 
+                participantId: formSubmissions.participantId 
+            }).from(formSubmissions)
                 .where(sql`LOWER(${formSubmissions.contactEmail}) = LOWER(${email})`)
                 .orderBy(desc(formSubmissions.createdAt))
                 .limit(1);
             if (sub) {
                 formSubmissionId = sub.id;
-                console.log(`[N8N] Form submission encontrado por email: ${formSubmissionId}`);
+                participantId = sub.participantId;
+                console.log(`[N8N] Form submission encontrado por email: ${formSubmissionId}, participantId: ${participantId}`);
             }
+        }
+        
+        // Generate participant_id if form_submission found but has no participant_id yet
+        if (formSubmissionId && !participantId) {
+            participantId = generateParticipantId();
+            console.log(`[N8N] Gerando novo participant_id: ${participantId}`);
+            await db.update(formSubmissions)
+                .set({ participantId })
+                .where(eq(formSubmissions.id, formSubmissionId));
         }
 
         const metadata: any = {
@@ -331,6 +354,11 @@ n8nRouter.post('/reunioes', authenticateN8NByTenantKey, async (req: Request, res
         if (formSubmissionId) {
             metadata.formSubmissionId = formSubmissionId;
             console.log(`[N8N] formSubmissionId armazenado no metadata: ${formSubmissionId}`);
+        }
+        
+        // Store participantId in metadata for backward compatibility
+        if (participantId) {
+            metadata.participantId = participantId;
         }
         
         if (finalDesignConfig) {
@@ -352,12 +380,18 @@ n8nRouter.post('/reunioes', authenticateN8NByTenantKey, async (req: Request, res
             roomId100ms: sala.id,
             linkReuniao: '',
             metadata: metadata,
-            compareceu: false, // Default: not attended until someone joins
+            compareceu: false,
+            participantId: participantId, // Store participant_id in the meeting
         }).returning();
 
         const baseUrl = process.env.REPLIT_DOMAINS?.split(',')[0] || req.get('host') || 'localhost:5000';
-        const linkReuniao = `https://${baseUrl}/reuniao/${newMeeting.id}`;
-        const linkPublico = `https://${baseUrl}/reuniao-publica/${newMeeting.id}`;
+        // Include participant_id in URL for unique identification
+        const linkReuniao = participantId 
+            ? `https://${baseUrl}/reuniao/${newMeeting.id}?pid=${participantId}`
+            : `https://${baseUrl}/reuniao/${newMeeting.id}`;
+        const linkPublico = participantId
+            ? `https://${baseUrl}/reuniao-publica/${newMeeting.id}?pid=${participantId}`
+            : `https://${baseUrl}/reuniao-publica/${newMeeting.id}`;
 
         await db.update(reunioes).set({ linkReuniao }).where(eq(reunioes.id, newMeeting.id));
 
@@ -381,7 +415,8 @@ n8nRouter.post('/reunioes', authenticateN8NByTenantKey, async (req: Request, res
                         room_id_100ms: sala.id,
                         link_reuniao: linkReuniao,
                         metadata: metadata,
-                        compareceu: false // Default: not attended until someone joins
+                        compareceu: false,
+                        participant_id: participantId // Unique participant identifier
                     }, { onConflict: 'id' });
                     console.log(`[N8N Sync] Reunião ${newMeeting.id} sincronizada com Supabase`);
                 }
@@ -421,7 +456,9 @@ n8nRouter.post('/reunioes', authenticateN8NByTenantKey, async (req: Request, res
                 hostToken: hostToken,
                 tenantId: tenantId,
                 hasCustomDesign: !!finalDesignConfig,
-                createdAt: newMeeting.createdAt
+                createdAt: newMeeting.createdAt,
+                participantId: participantId, // Unique participant identifier
+                formSubmissionId: formSubmissionId // Form submission reference
             }
         });
 
