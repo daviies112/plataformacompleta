@@ -1007,6 +1007,8 @@ export function Meeting100ms({
                           let participantData: any = {};
                           let meetingTenantId: string | null = null;
                           
+                          let formSubmissionId: string | undefined = undefined;
+                          
                           try {
                             const participantResponse = await fetch(`/api/public/reunioes/${currentMeetingId}/participant-data`, {
                               credentials: 'include',
@@ -1020,42 +1022,34 @@ export function Meeting100ms({
                               if (result.tenantId) {
                                 meetingTenantId = result.tenantId;
                               }
-                              console.log("[Meeting100ms] Dados do participante:", participantData, "tenantId:", meetingTenantId);
+                              // Capturar formSubmissionId se disponível
+                              if (result.formSubmissionId) {
+                                formSubmissionId = result.formSubmissionId;
+                              }
+                              console.log("[Meeting100ms] Dados do participante:", participantData, "tenantId:", meetingTenantId, "formSubmissionId:", formSubmissionId);
                             }
                           } catch (e) {
                             console.log("[Meeting100ms] Nenhum dado de formulário encontrado, usando nome da reunião");
                           }
                           
-                          // Criar contrato com dados pré-preenchidos e status inicial "sem preencher"
-                          // CRÍTICO: Incluir meeting_id para que o backend busque o tenant_id da reunião
-                          const endereco = participantData.endereco || {};
-                          const response = await fetch('/api/assinatura/public/contracts', {
+                          // Criar contrato usando o endpoint que busca dados do formulário automaticamente
+                          // O endpoint from-meeting busca os dados do form_submission e preenche nome, CPF, email, telefone e endereço
+                          const response = await fetch('/api/assinatura/public/contracts/from-meeting', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
-                              client_name: participantData.nome || userName || 'Novo Revendedor',
-                              client_cpf: participantData.cpf || '',
-                              client_email: participantData.email || '',
-                              client_phone: participantData.telefone || '',
-                              status: 'sem preencher',
-                              // CRÍTICO: Passar meeting_id para o backend buscar tenant_id da reunião
-                              meeting_id: currentMeetingId,
-                              // Dados de endereço do form_submissions
-                              client_address: endereco.rua ? {
-                                street: endereco.rua,
-                                number: endereco.numero,
-                                complement: endereco.complemento,
-                                neighborhood: endereco.bairro,
-                                city: endereco.cidade,
-                                state: endereco.estado,
-                                zipcode: endereco.cep
-                              } : undefined,
+                              meetingId: currentMeetingId,
+                              formSubmissionId: formSubmissionId || undefined,
                             }),
                           });
-                          
-                          if (!response.ok) throw new Error('Erro ao criar contrato');
-                          
-                          const contract = await response.json();
+
+                          if (!response.ok) {
+                            const errorData = await response.json().catch(() => ({}));
+                            throw new Error(errorData.error || 'Erro ao criar contrato');
+                          }
+
+                          const result = await response.json();
+                          const contract = result.contract;
                           const signatureUrl = `/assinar/${contract.access_token}`;
                           
                           if (isMobile) {
