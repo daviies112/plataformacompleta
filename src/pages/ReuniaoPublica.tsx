@@ -274,7 +274,8 @@ export default function ReuniaoPublica() {
   }
 
   if (step === "ended") {
-    const fsid = searchParams.get('fsid');
+    // Pegar fsid da URL ou dos metadados da reunião
+    const fsid = searchParams.get('fsid') || meeting?.metadata?.formSubmissionId;
     const redirectUrl = roomConfig.endScreen.redirectUrl || 
       (fsid ? `/assinatura/from-meeting?meetingId=${meetingId}&fsid=${fsid}` : null);
 
