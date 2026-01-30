@@ -36,6 +36,7 @@ interface Meeting100msProps {
   authToken: string;
   onLeave: () => void;
   config: RoomDesignConfig;
+  meetingId?: string;
 }
 
 function PeerVideo({
@@ -149,6 +150,7 @@ export function Meeting100ms({
   authToken,
   onLeave,
   config,
+  meetingId,
 }: Meeting100msProps) {
   const hmsActions = useHMSActions();
   const isConnected = useHMSStore(selectIsConnectedToRoom);
@@ -428,6 +430,7 @@ export function Meeting100ms({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           room_id_100ms: roomId,
+          meeting_id: meetingId,
           nome: userName
         })
       })
@@ -443,7 +446,7 @@ export function Meeting100ms({
           console.error("[Meeting100ms] ❌ Erro ao registrar presença:", err);
         });
     }
-  }, [isConnected, roomId, userName]);
+  }, [isConnected, roomId, userName, meetingId]);
 
   useEffect(() => {
     return () => {

@@ -2565,30 +2565,45 @@ meetingsRouter.get('/gravacoes', authenticateToken, requireTenantId, async (req:
 // This endpoint is called by the frontend when a user joins a meeting
 publicRoomDesignRouter.post('/reunioes/registrar-presenca', async (req: Request, res: Response) => {
   try {
-    const { room_id, room_id_100ms, usuario_id, nome } = req.body;
+    const { room_id, room_id_100ms, meeting_id, usuario_id, nome } = req.body;
     
     // Accept either room_id or room_id_100ms
     const roomId = room_id_100ms || room_id;
     
-    if (!roomId) {
+    if (!roomId && !meeting_id) {
       return res.status(400).json({ 
-        error: 'room_id ou room_id_100ms é obrigatório',
-        message: 'Informe o ID da sala para registrar a presença'
+        error: 'room_id, room_id_100ms ou meeting_id é obrigatório',
+        message: 'Informe o ID da sala ou da reunião para registrar a presença'
       });
     }
 
-    console.log(`[Presença] Registrando presença na sala ${roomId} para usuário: ${nome || usuario_id || 'anônimo'}`);
+    console.log(`[Presença] Registrando presença - sala: ${roomId || 'N/A'}, meeting_id: ${meeting_id || 'N/A'}, usuário: ${nome || usuario_id || 'anônimo'}`);
 
-    // Find the meeting by 100ms room ID
-    const [meeting] = await db.select().from(reunioes)
-      .where(eq(reunioes.roomId100ms, roomId))
-      .limit(1);
+    // Find the meeting by 100ms room ID or by meeting UUID
+    let meeting = null;
+    
+    // First try by roomId100ms (if provided)
+    if (roomId) {
+      const [foundByRoom] = await db.select().from(reunioes)
+        .where(eq(reunioes.roomId100ms, roomId))
+        .limit(1);
+      meeting = foundByRoom;
+    }
+    
+    // If not found and we have meeting_id, try by UUID
+    if (!meeting && meeting_id) {
+      console.log(`[Presença] Buscando por meeting_id: ${meeting_id}`);
+      const [foundById] = await db.select().from(reunioes)
+        .where(eq(reunioes.id, meeting_id))
+        .limit(1);
+      meeting = foundById;
+    }
 
     if (!meeting) {
-      console.warn(`[Presença] Reunião não encontrada para roomId: ${roomId}`);
+      console.warn(`[Presença] Reunião não encontrada - roomId: ${roomId}, meeting_id: ${meeting_id}`);
       return res.status(404).json({ 
         error: 'Reunião não encontrada',
-        message: 'Nenhuma reunião encontrada com este room_id'
+        message: 'Nenhuma reunião encontrada com este room_id ou meeting_id'
       });
     }
 

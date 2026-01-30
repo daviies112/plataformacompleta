@@ -534,6 +534,7 @@ function MeetingWrapper({
         userName={participantName}
         config={roomDesignConfig}
         onLeave={onLeave}
+        meetingId={reuniao.id}
       />
     </Suspense>
   );
