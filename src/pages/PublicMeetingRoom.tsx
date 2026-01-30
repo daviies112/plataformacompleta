@@ -86,27 +86,32 @@ export default function PublicMeetingRoom() {
     if (!isRecordingBot && !contractToken) {
       setIsCreatingContract(true);
       try {
-        // Primeiro buscar dados do participante da submissão do formulário
-        // IMPORTANTE: Usar roomId100ms da reunião para garantir que encontramos os dados corretos
+        // Buscar dados do participante usando participant_id (pid) da URL
         let participantDataFromForm: any = {};
-        const actualRoomId = data?.reuniao?.roomId100ms || roomId;
+        const meetingId = data?.reuniao?.id || roomId;
+        const pidFromUrl = searchParams.get("pid");
         
-        console.log("[PublicMeetingRoom] Buscando participant-data com roomId:", actualRoomId);
+        console.log("[PublicMeetingRoom] Buscando participant-data com meetingId:", meetingId, "pid:", pidFromUrl);
         
         try {
-          // Identify participant by URL params if available, otherwise by name
-          const emailParam = searchParams.get("email");
-          const phoneParam = searchParams.get("phone");
-          const cpfParam = searchParams.get("cpf");
-          const sessionIdParam = searchParams.get("session_id") || searchParams.get("form_id");
-          
+          // Prioridade: usar participant_id (pid) da URL para identificação única
           let queryParams = new URLSearchParams();
-          if (emailParam) queryParams.set("email", emailParam);
-          if (phoneParam) queryParams.set("phone", phoneParam);
-          if (cpfParam) queryParams.set("cpf", cpfParam);
-          if (sessionIdParam) queryParams.set("session_id", sessionIdParam);
+          if (pidFromUrl) {
+            queryParams.set("pid", pidFromUrl);
+          } else {
+            // Fallback para parâmetros legados
+            const emailParam = searchParams.get("email");
+            const phoneParam = searchParams.get("phone");
+            const cpfParam = searchParams.get("cpf");
+            const sessionIdParam = searchParams.get("session_id") || searchParams.get("form_id");
+            
+            if (emailParam) queryParams.set("email", emailParam);
+            if (phoneParam) queryParams.set("phone", phoneParam);
+            if (cpfParam) queryParams.set("cpf", cpfParam);
+            if (sessionIdParam) queryParams.set("session_id", sessionIdParam);
+          }
 
-          const participantResponse = await fetch(`/api/public/reunioes/${actualRoomId}/participant-data?${queryParams.toString()}`, {
+          const participantResponse = await fetch(`/api/public/reunioes/${meetingId}/participant-data?${queryParams.toString()}`, {
             credentials: 'include',
           });
           console.log("[PublicMeetingRoom] Resposta participant-data:", participantResponse.status);
@@ -115,17 +120,17 @@ export default function PublicMeetingRoom() {
             const result = await participantResponse.json();
             console.log("[PublicMeetingRoom] Resultado participant-data:", JSON.stringify(result, null, 2));
             
-            if (result.found && result.participantData) {
-              // Usar dados do form_submission
-              participantDataFromForm = result.participantData;
+            if (result.found && result.data) {
+              // Usar dados do form_submission (nova estrutura com 'data')
+              participantDataFromForm = result.data;
               console.log("[PublicMeetingRoom] Dados do form_submission encontrados:", participantDataFromForm);
               console.log("[PublicMeetingRoom] Endereço no participantData:", participantDataFromForm.endereco);
-            } else if (result.meetingData) {
+            } else if (result.meetingInfo) {
               // Fallback para dados da reunião quando não há form_submission
               participantDataFromForm = {
-                nome: result.meetingData.nome,
-                email: result.meetingData.email,
-                telefone: result.meetingData.telefone?.replace(/@s\.whatsapp\.net/g, '') || '',
+                nome: result.meetingInfo.nome,
+                email: result.meetingInfo.email,
+                telefone: result.meetingInfo.telefone?.replace(/@s\.whatsapp\.net/g, '') || '',
               };
               console.log("[PublicMeetingRoom] Usando dados da reunião como fallback:", participantDataFromForm);
             }
@@ -138,7 +143,12 @@ export default function PublicMeetingRoom() {
         // Campos retornados em português: nome, email, telefone, cpf, endereco
         const endereco = participantDataFromForm.endereco;
         console.log("[PublicMeetingRoom] Endereço final para contrato:", endereco);
-        console.log("[PublicMeetingRoom] Enviando client_address:", endereco ? { street: endereco.rua, number: endereco.numero, city: endereco.cidade, zipcode: endereco.cep } : 'UNDEFINED - PROBLEMA!');
+        console.log("[PublicMeetingRoom] Enviando client_address:", endereco ? { 
+          street: endereco.logradouro || endereco.rua, 
+          number: endereco.numero, 
+          city: endereco.cidade, 
+          zipcode: endereco.cep 
+        } : 'UNDEFINED - PROBLEMA!');
         const response = await fetch('/api/assinatura/public/contracts', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -148,7 +158,7 @@ export default function PublicMeetingRoom() {
             client_email: participantDataFromForm.email || '',
             client_phone: participantDataFromForm.telefone || '',
             client_address: endereco ? {
-              street: endereco.rua || '',
+              street: endereco.logradouro || endereco.rua || '',
               number: endereco.numero || '',
               complement: endereco.complemento || '',
               neighborhood: endereco.bairro || '',
