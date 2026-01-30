@@ -1917,46 +1917,15 @@ publicRoomDesignRouter.get('/reunioes/:id/participant-data', async (req: Request
     
     console.log(`[ParticipantData] Buscando dados para reunião ${id}, phone=${phone}, email=${email}`);
 
-    // 1. Get the meeting - try Supabase first, then local DB
+    // 1. Get the meeting from LOCAL DB first (reunioes is in local PostgreSQL)
+    // Then use tenant_id to get correct Supabase client for form_submissions
     let meeting: any = null;
     let supabaseClient: any = null;
-    
-    // Try to get Supabase client
-    try {
-      const { getClienteSupabase, isClienteSupabaseConfigured } = await import('../lib/clienteSupabase.js');
-      if (await isClienteSupabaseConfigured()) {
-        supabaseClient = await getClienteSupabase();
-        console.log('[ParticipantData] Supabase do cliente configurado, buscando dados externos');
-      }
-    } catch (e) {
-      console.log('[ParticipantData] Supabase do cliente não disponível, usando banco local');
-    }
     
     // Check if id is a valid UUID format
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
     
-    // Try Supabase first for meeting
-    if (supabaseClient) {
-      if (isUUID) {
-        const { data: supabaseMeeting } = await supabaseClient
-          .from('reunioes')
-          .select('*')
-          .eq('id', id)
-          .single();
-        if (supabaseMeeting) meeting = supabaseMeeting;
-      }
-      
-      if (!meeting) {
-        const { data: supabaseMeeting } = await supabaseClient
-          .from('reunioes')
-          .select('*')
-          .eq('room_id_100ms', id)
-          .single();
-        if (supabaseMeeting) meeting = supabaseMeeting;
-      }
-    }
-    
-    // Fallback to local DB
+    // CRITICAL: Search meeting in LOCAL DB first (reunioes table is in local PostgreSQL)
     if (!meeting) {
       if (isUUID) {
         const [m] = await db.select().from(reunioes)
@@ -1987,6 +1956,19 @@ publicRoomDesignRouter.get('/reunioes/:id/participant-data', async (req: Request
     // Get tenantId from meeting for security filtering (used in all queries)
     const meetingTenantId = meeting.tenant_id || meeting.tenantId;
     console.log(`[ParticipantData] Reunião encontrada: ${meetingId}, telefone: ${meetingPhone}, email: ${meetingEmail}, tenantId: ${meetingTenantId || 'não definido'}`);
+
+    // CRITICAL: Get Supabase client for the specific tenant (form_submissions is in tenant's Supabase)
+    if (meetingTenantId) {
+      try {
+        const { getClientSupabaseClient } = await import('../lib/multiTenantSupabase.js');
+        supabaseClient = await getClientSupabaseClient(meetingTenantId);
+        if (supabaseClient) {
+          console.log(`[ParticipantData] ✅ Supabase do tenant ${meetingTenantId} conectado`);
+        }
+      } catch (e) {
+        console.log(`[ParticipantData] ⚠️ Erro ao conectar Supabase do tenant: ${e}`);
+      }
+    }
 
     // 2. Try to find form submission - Supabase first, then local
     // SECURITY: All queries are scoped by tenantId to prevent cross-tenant data leakage
@@ -2343,6 +2325,7 @@ publicRoomDesignRouter.get('/reunioes/:id/participant-data', async (req: Request
           source: 'lead',
           leadId: lead.id,
           submissionId: addressSubmission?.id,
+          tenantId: meetingTenantId, // CRITICAL: Include tenantId for frontend
           participantData: {
             nome: leadName,
             email: leadEmail,
@@ -2419,6 +2402,7 @@ publicRoomDesignRouter.get('/reunioes/:id/participant-data', async (req: Request
           found: true,
           source: 'form_submission_fallback',
           submissionId: lastChanceSubmission.id,
+          tenantId: meetingTenantId, // CRITICAL: Include tenantId for frontend
           participantData: {
             nome: lastChanceSubmission.contact_name || lastChanceSubmission.name || meetingName,
             email: lastChanceSubmission.contact_email || meetingEmail,
@@ -2439,6 +2423,7 @@ publicRoomDesignRouter.get('/reunioes/:id/participant-data', async (req: Request
       return res.json({ 
         found: false,
         message: 'Nenhum formulário ou lead encontrado para este participante',
+        tenantId: meetingTenantId, // CRITICAL: Include tenantId even when no submission found
         meetingData: {
           nome: meetingName,
           email: meetingEmail,
@@ -2470,6 +2455,7 @@ publicRoomDesignRouter.get('/reunioes/:id/participant-data', async (req: Request
     res.json({
       found: true,
       formSubmissionId: submission.id,
+      tenantId: meetingTenantId, // CRITICAL: Include tenantId for frontend
       participantData: {
         nome: contactName,
         email: contactEmail,
