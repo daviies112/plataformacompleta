@@ -1004,33 +1004,42 @@ export function Meeting100ms({
                           const currentMeetingId = pathParts[pathParts.length - 1] || '';
                           console.log("[Meeting100ms] Meeting ID extraído da URL:", currentMeetingId);
                           
-                          let participantData: any = {};
-                          let meetingTenantId: string | null = null;
-                          
                           let formSubmissionId: string | undefined = undefined;
                           
+                          // PRIMEIRO: Buscar dados da reunião para obter o formSubmissionId dos metadados
                           try {
-                            const participantResponse = await fetch(`/api/public/reunioes/${currentMeetingId}/participant-data`, {
-                              credentials: 'include',
-                            });
-                            if (participantResponse.ok) {
-                              const result = await participantResponse.json();
-                              if (result.found && result.participantData) {
-                                participantData = result.participantData;
+                            const meetingResponse = await fetch(`/api/public/reunioes/${currentMeetingId}/public`);
+                            if (meetingResponse.ok) {
+                              const meetingData = await meetingResponse.json();
+                              // O formSubmissionId está em metadata.formSubmissionId
+                              if (meetingData?.metadata?.formSubmissionId) {
+                                formSubmissionId = meetingData.metadata.formSubmissionId;
+                                console.log("[Meeting100ms] formSubmissionId extraído dos metadados da reunião:", formSubmissionId);
                               }
-                              // Capturar tenant_id da reunião se disponível na resposta
-                              if (result.tenantId) {
-                                meetingTenantId = result.tenantId;
-                              }
-                              // Capturar formSubmissionId se disponível
-                              if (result.formSubmissionId) {
-                                formSubmissionId = result.formSubmissionId;
-                              }
-                              console.log("[Meeting100ms] Dados do participante:", participantData, "tenantId:", meetingTenantId, "formSubmissionId:", formSubmissionId);
                             }
                           } catch (e) {
-                            console.log("[Meeting100ms] Nenhum dado de formulário encontrado, usando nome da reunião");
+                            console.log("[Meeting100ms] Erro ao buscar metadados da reunião:", e);
                           }
+                          
+                          // Se ainda não tem formSubmissionId, tentar via participant-data (fallback)
+                          if (!formSubmissionId) {
+                            try {
+                              const participantResponse = await fetch(`/api/public/reunioes/${currentMeetingId}/participant-data`, {
+                                credentials: 'include',
+                              });
+                              if (participantResponse.ok) {
+                                const result = await participantResponse.json();
+                                if (result.formSubmissionId) {
+                                  formSubmissionId = result.formSubmissionId;
+                                  console.log("[Meeting100ms] formSubmissionId via participant-data:", formSubmissionId);
+                                }
+                              }
+                            } catch (e) {
+                              console.log("[Meeting100ms] Fallback participant-data também falhou");
+                            }
+                          }
+                          
+                          console.log("[Meeting100ms] formSubmissionId final:", formSubmissionId);
                           
                           // Criar contrato usando o endpoint que busca dados do formulário automaticamente
                           // O endpoint from-meeting busca os dados do form_submission e preenche nome, CPF, email, telefone e endereço
