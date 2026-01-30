@@ -984,12 +984,17 @@ export function Meeting100ms({
                         }
                         
                         try {
-                          // Buscar dados do participante da submissão do formulário
-                          const currentRoomId = roomId || window.location.pathname.split('/').pop();
+                          // Buscar dados do participante e o tenant_id da reunião
+                          // CRÍTICO: Usamos o meeting_id da URL para associar o contrato ao tenant correto
+                          const pathParts = window.location.pathname.split('/').filter(Boolean);
+                          const currentMeetingId = pathParts[pathParts.length - 1] || '';
+                          console.log("[Meeting100ms] Meeting ID extraído da URL:", currentMeetingId);
+                          
                           let participantData: any = {};
+                          let meetingTenantId: string | null = null;
                           
                           try {
-                            const participantResponse = await fetch(`/api/public/reunioes/${currentRoomId}/participant-data`, {
+                            const participantResponse = await fetch(`/api/public/reunioes/${currentMeetingId}/participant-data`, {
                               credentials: 'include',
                             });
                             if (participantResponse.ok) {
@@ -997,14 +1002,18 @@ export function Meeting100ms({
                               if (result.found && result.participantData) {
                                 participantData = result.participantData;
                               }
-                              console.log("[Meeting100ms] Dados do participante encontrados:", participantData);
+                              // Capturar tenant_id da reunião se disponível na resposta
+                              if (result.tenantId) {
+                                meetingTenantId = result.tenantId;
+                              }
+                              console.log("[Meeting100ms] Dados do participante:", participantData, "tenantId:", meetingTenantId);
                             }
                           } catch (e) {
                             console.log("[Meeting100ms] Nenhum dado de formulário encontrado, usando nome da reunião");
                           }
                           
                           // Criar contrato com dados pré-preenchidos e status inicial "sem preencher"
-                          // Incluir dados de endereço do form_submissions
+                          // CRÍTICO: Incluir meeting_id para que o backend busque o tenant_id da reunião
                           const endereco = participantData.endereco || {};
                           const response = await fetch('/api/assinatura/public/contracts', {
                             method: 'POST',
@@ -1015,6 +1024,8 @@ export function Meeting100ms({
                               client_email: participantData.email || '',
                               client_phone: participantData.telefone || '',
                               status: 'sem preencher',
+                              // CRÍTICO: Passar meeting_id para o backend buscar tenant_id da reunião
+                              meeting_id: currentMeetingId,
                               // Dados de endereço do form_submissions
                               client_address: endereco.rua ? {
                                 street: endereco.rua,

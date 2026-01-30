@@ -968,12 +968,15 @@ router.post('/contracts', async (req: Request, res: Response) => {
       contract_html,
       protocol_number,
       status,
+      meeting_id, // CRÍTICO: ID da reunião para buscar tenant_id
       ...customizations
     } = req.body;
 
     if (!client_name) {
       return res.status(400).json({ error: 'Campo obrigatório ausente: client_name' });
     }
+    
+    console.log(`[Assinatura] Recebido meeting_id: ${meeting_id || 'não informado'}`);
 
     const id = nanoid();
     // Usar UUID para access_token (compatível com Supabase que espera UUID)
@@ -1146,9 +1149,42 @@ router.post('/contracts', async (req: Request, res: Response) => {
       address_zipcode: finalAddress.zipcode || null,
     } : {};
 
-    // MULTI-TENANT: Buscar tenantId e usar cliente Supabase correto
-    const tenantId = await findTenantIdFromSubmission(client_email, client_cpf, client_phone);
-    console.log(`[Assinatura] TenantId encontrado: ${tenantId || 'nenhum'}`);
+    // MULTI-TENANT: Buscar tenantId - primeiro da reunião, depois de form_submissions
+    let tenantId: string | null = null;
+    
+    // CRÍTICO: Se meeting_id foi fornecido, buscar tenant_id diretamente da reunião
+    if (meeting_id) {
+      console.log(`[Assinatura] Buscando tenant_id da reunião: ${meeting_id}`);
+      try {
+        const { getClienteSupabase, isClienteSupabaseConfigured } = await import('../lib/clienteSupabase.js');
+        if (await isClienteSupabaseConfigured()) {
+          const supabaseClient = await getClienteSupabase();
+          if (supabaseClient) {
+            const { data: reuniao, error } = await supabaseClient
+              .from('reunioes')
+              .select('tenant_id')
+              .eq('id', meeting_id)
+              .single();
+            
+            if (!error && reuniao?.tenant_id) {
+              tenantId = reuniao.tenant_id;
+              console.log(`[Assinatura] ✅ Tenant encontrado via reunião: ${tenantId}`);
+            } else {
+              console.log(`[Assinatura] ⚠️ Reunião não encontrada ou sem tenant_id`, error);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('[Assinatura] Erro ao buscar tenant da reunião:', err);
+      }
+    }
+    
+    // Fallback: tentar encontrar tenant via form_submissions (email/cpf/phone)
+    if (!tenantId) {
+      tenantId = await findTenantIdFromSubmission(client_email, client_cpf, client_phone);
+    }
+    
+    console.log(`[Assinatura] TenantId final: ${tenantId || 'nenhum'}`);
     
     let supabaseContractSaved = false;
     let supabaseContractId: string | null = null;
