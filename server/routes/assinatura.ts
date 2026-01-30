@@ -7,6 +7,7 @@ import { assinaturaSupabaseService, AssinaturaContract, AssinaturaGlobalConfig }
 import { supabaseOwner, SUPABASE_CONFIGURED } from '../config/supabaseOwner';
 import { assinaturaLogger } from '../lib/logger';
 import { validateDocument, quickValidate } from '../lib/document-validator';
+import { getClientSupabaseClient } from '../lib/multiTenantSupabase';
 
 const router = Router();
 
@@ -14,30 +15,86 @@ function normalizeCPF(cpf: string): string {
   return cpf.replace(/\D/g, '');
 }
 
-async function findTenantIdFromSubmission(email: string | null, cpf: string | null): Promise<string | null> {
-  if (!email && !cpf) return null;
+async function findTenantIdFromSubmission(email: string | null, cpf: string | null, phone: string | null = null): Promise<string | null> {
+  if (!email && !cpf && !phone) return null;
   
   try {
-    const { getClienteSupabase, isClienteSupabaseConfigured } = await import('../lib/clienteSupabase.js');
-    if (!await isClienteSupabaseConfigured()) return null;
-    
-    const supabaseClient = await getClienteSupabase();
-    if (!supabaseClient) return null;
-    
-    const cpfNormalizado = cpf ? cpf.replace(/\D/g, '') : null;
-    
-    let query = supabaseClient.from('form_submissions').select('tenant_id');
-    if (email) {
-      query = query.eq('contact_email', email);
-    } else if (cpfNormalizado) {
-      query = query.eq('contact_cpf', cpfNormalizado);
+    // Usar supabaseOwner para consultar form_submissions (tem acesso a todos os tenants)
+    if (!SUPABASE_CONFIGURED || !supabaseOwner) {
+      console.log('[NEXUS] supabaseOwner não configurado, tentando fallback...');
+      const { getClienteSupabase, isClienteSupabaseConfigured } = await import('../lib/clienteSupabase.js');
+      if (!await isClienteSupabaseConfigured()) return null;
+      
+      const supabaseClient = await getClienteSupabase();
+      if (!supabaseClient) return null;
+      
+      const cpfNormalizado = cpf ? cpf.replace(/\D/g, '') : null;
+      
+      let query = supabaseClient.from('form_submissions').select('tenant_id');
+      if (email) {
+        query = query.eq('contact_email', email);
+      } else if (cpfNormalizado) {
+        query = query.eq('contact_cpf', cpfNormalizado);
+      }
+      
+      const { data, error } = await query.limit(1).maybeSingle();
+      if (error || !data) return null;
+      
+      console.log(`[NEXUS] Tenant encontrado via form_submission (fallback): ${data.tenant_id}`);
+      return data.tenant_id;
     }
     
-    const { data, error } = await query.limit(1).maybeSingle();
-    if (error || !data) return null;
+    const cpfNormalizado = cpf ? cpf.replace(/\D/g, '') : null;
+    const phoneDigits = phone ? phone.replace(/\D/g, '') : null;
     
-    console.log(`[NEXUS] Tenant encontrado via form_submission: ${data.tenant_id}`);
-    return data.tenant_id;
+    // Tentar por email primeiro
+    if (email) {
+      const { data, error } = await supabaseOwner
+        .from('form_submissions')
+        .select('tenant_id')
+        .eq('contact_email', email)
+        .limit(1)
+        .maybeSingle();
+      
+      if (!error && data?.tenant_id) {
+        console.log(`[NEXUS] Tenant encontrado via email: ${data.tenant_id}`);
+        return data.tenant_id;
+      }
+    }
+    
+    // Tentar por CPF
+    if (cpfNormalizado) {
+      const { data, error } = await supabaseOwner
+        .from('form_submissions')
+        .select('tenant_id')
+        .eq('contact_cpf', cpfNormalizado)
+        .limit(1)
+        .maybeSingle();
+      
+      if (!error && data?.tenant_id) {
+        console.log(`[NEXUS] Tenant encontrado via CPF: ${data.tenant_id}`);
+        return data.tenant_id;
+      }
+    }
+    
+    // Tentar por telefone (últimos 9 dígitos)
+    if (phoneDigits && phoneDigits.length >= 9) {
+      const lastDigits = phoneDigits.slice(-9);
+      const { data, error } = await supabaseOwner
+        .from('form_submissions')
+        .select('tenant_id')
+        .ilike('contact_phone', `%${lastDigits}%`)
+        .limit(1)
+        .maybeSingle();
+      
+      if (!error && data?.tenant_id) {
+        console.log(`[NEXUS] Tenant encontrado via telefone: ${data.tenant_id}`);
+        return data.tenant_id;
+      }
+    }
+    
+    console.log(`[NEXUS] Nenhum tenant encontrado para email=${email}, cpf=${cpf ? 'presente' : 'ausente'}, phone=${phone ? 'presente' : 'ausente'}`);
+    return null;
   } catch (error) {
     console.error('[NEXUS] Erro ao buscar tenant via submission:', error);
     return null;
@@ -51,8 +108,8 @@ async function createEnvioFromContract(contract: any): Promise<void> {
     // Encontrar tenant_id do contrato
     let adminId = contract.tenant_id || null;
     
-    if (!adminId && (contract.client_email || contract.client_cpf)) {
-      adminId = await findTenantIdFromSubmission(contract.client_email, contract.client_cpf);
+    if (!adminId && (contract.client_email || contract.client_cpf || contract.client_phone)) {
+      adminId = await findTenantIdFromSubmission(contract.client_email, contract.client_cpf, contract.client_phone);
     }
     
     if (!adminId) {
@@ -203,7 +260,7 @@ async function createRevendedoraFromContract(contract: any): Promise<void> {
     if (!adminId) {
       // Fallback: tentar via form_submission
       console.log('[NEXUS] Tentando encontrar tenant via form_submission...');
-      adminId = await findTenantIdFromSubmission(client_email, client_cpf);
+      adminId = await findTenantIdFromSubmission(client_email, client_cpf, client_phone);
     }
     
     if (!adminId) {
@@ -1068,7 +1125,106 @@ router.post('/contracts', async (req: Request, res: Response) => {
       address_zipcode: finalAddress.zipcode || null,
     } : {};
 
-    if (assinaturaSupabaseService.isConnected()) {
+    // MULTI-TENANT: Buscar tenantId e usar cliente Supabase correto
+    const tenantId = await findTenantIdFromSubmission(client_email, client_cpf, client_phone);
+    console.log(`[Assinatura] TenantId encontrado: ${tenantId || 'nenhum'}`);
+    
+    let supabaseContractSaved = false;
+    let supabaseContractId: string | null = null;
+    
+    if (tenantId) {
+      // Usar cliente Supabase específico do tenant
+      const tenantSupabase = await getClientSupabaseClient(tenantId);
+      
+      if (tenantSupabase) {
+        console.log(`[Assinatura] Usando cliente Supabase do tenant: ${tenantId}`);
+        
+        // Preparar dados do contrato para o Supabase
+        const contractData: any = {
+          client_name: client_name || '',
+          client_cpf: client_cpf || '',
+          client_email: client_email || '',
+          contract_html: contract_html || '<p>Contrato pendente de configuração</p>',
+          client_phone: client_phone || null,
+          status: status || 'sem preencher',
+          access_token,
+          protocol_number: protocolNum,
+          signature_url,
+          ...addressData,
+          logo_url: customizations.logo_url ?? localContract.logo_url ?? null,
+          logo_size: customizations.logo_size ?? localContract.logo_size ?? null,
+          logo_position: customizations.logo_position ?? localContract.logo_position ?? null,
+          primary_color: customizations.primary_color ?? localContract.primary_color ?? null,
+          text_color: customizations.text_color ?? localContract.text_color ?? null,
+          font_family: customizations.font_family ?? localContract.font_family ?? null,
+          font_size: customizations.font_size ?? localContract.font_size ?? null,
+          company_name: customizations.company_name ?? localContract.company_name ?? null,
+          footer_text: customizations.footer_text ?? localContract.footer_text ?? null,
+          verification_primary_color: customizations.verification_primary_color ?? null,
+          verification_text_color: customizations.verification_text_color ?? null,
+          verification_welcome_text: customizations.verification_welcome_text ?? null,
+          verification_instructions: customizations.verification_instructions ?? null,
+          verification_footer_text: customizations.verification_footer_text ?? null,
+          verification_security_text: customizations.verification_security_text ?? null,
+          verification_header_company_name: customizations.verification_header_company_name ?? null,
+          verification_header_background_color: customizations.verification_header_background_color ?? null,
+          progress_title: customizations.progress_title ?? null,
+          progress_subtitle: customizations.progress_subtitle ?? null,
+          progress_step1_title: customizations.progress_step1_title ?? null,
+          progress_step1_description: customizations.progress_step1_description ?? null,
+          progress_step2_title: customizations.progress_step2_title ?? null,
+          progress_step2_description: customizations.progress_step2_description ?? null,
+          progress_step3_title: customizations.progress_step3_title ?? null,
+          progress_step3_description: customizations.progress_step3_description ?? null,
+          progress_card_color: customizations.progress_card_color ?? null,
+          progress_button_color: customizations.progress_button_color ?? null,
+          progress_text_color: customizations.progress_text_color ?? null,
+          progress_font_family: customizations.progress_font_family ?? null,
+          progress_button_text: customizations.progress_button_text ?? null,
+          parabens_title: customizations.parabens_title ?? null,
+          parabens_subtitle: customizations.parabens_subtitle ?? null,
+          parabens_description: customizations.parabens_description ?? null,
+          parabens_button_text: customizations.parabens_button_text ?? null,
+          parabens_button_color: customizations.parabens_button_color ?? null,
+          parabens_card_color: customizations.parabens_card_color ?? null,
+          parabens_background_color: customizations.parabens_background_color ?? null,
+          app_store_url: customizations.app_store_url ?? null,
+          google_play_url: customizations.google_play_url ?? null,
+          whatsapp_enviado: false
+        };
+        
+        console.log('[Assinatura] Criando contrato no Supabase do tenant:', {
+          client_name: contractData.client_name,
+          access_token: contractData.access_token,
+          protocol_number: contractData.protocol_number,
+          tenantId
+        });
+        
+        try {
+          const { data, error } = await tenantSupabase
+            .from('contracts')
+            .insert(contractData)
+            .select()
+            .single();
+          
+          if (error) {
+            console.error(`[Assinatura] ❌ Erro ao criar contrato no Supabase do tenant ${tenantId}:`, error);
+          } else if (data) {
+            supabaseContractSaved = true;
+            supabaseContractId = data.id;
+            console.log(`[Assinatura] ✅ Contrato salvo no Supabase do tenant ${tenantId} com ID: ${data.id}`);
+          }
+        } catch (err) {
+          console.error(`[Assinatura] ❌ Exceção ao criar contrato no Supabase:`, err);
+        }
+      } else {
+        console.log(`[Assinatura] ⚠️ Cliente Supabase não disponível para tenant ${tenantId}`);
+      }
+    }
+    
+    // Fallback: tentar usar o serviço singleton se não conseguiu salvar via multi-tenant
+    if (!supabaseContractSaved && assinaturaSupabaseService.isConnected()) {
+      console.log(`[Assinatura] Tentando fallback via assinaturaSupabaseService...`);
       const supabaseContract = await assinaturaSupabaseService.createContract({
         client_name,
         client_cpf: client_cpf || null,
@@ -1079,19 +1235,24 @@ router.post('/contracts', async (req: Request, res: Response) => {
         protocol_number: protocolNum,
         status: status || 'sem preencher',
         access_token,
-        signature_url, // URL completa para envio via WhatsApp/N8N
+        signature_url,
         ...customizations
       });
       
       if (supabaseContract) {
-        console.log(`[Assinatura] Contrato também salvo no Supabase com ID: ${supabaseContract.id}`);
-        return res.status(201).json({
-          ...localContract,
-          supabase_id: supabaseContract.id
-        });
+        supabaseContractSaved = true;
+        supabaseContractId = supabaseContract.id || null;
+        console.log(`[Assinatura] ✅ Contrato salvo via fallback com ID: ${supabaseContractId}`);
       } else {
-        console.log(`[Assinatura] Falha ao salvar no Supabase, usando apenas local`);
+        console.log(`[Assinatura] ⚠️ Fallback também falhou ao salvar no Supabase`);
       }
+    }
+    
+    if (supabaseContractSaved && supabaseContractId) {
+      return res.status(201).json({
+        ...localContract,
+        supabase_id: supabaseContractId
+      });
     }
 
     res.status(201).json(localContract);
