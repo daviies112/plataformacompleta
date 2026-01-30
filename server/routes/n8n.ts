@@ -321,17 +321,24 @@ n8nRouter.post('/reunioes', authenticateN8NByTenantKey, async (req: Request, res
         let formSubmissionId: string | null = passedFormSubmissionId || null;
         let participantId: string | null = null;
         
-        // Se o N8N passou o form_submission_id, buscar o participantId
+        // Se o N8N passou o form_submission_id, buscar o participantId (se existir no banco local)
         if (formSubmissionId) {
             console.log(`[N8N] Usando form_submission_id passado pelo N8N: ${formSubmissionId}`);
-            const [sub] = await db.select({ 
-                participantId: formSubmissions.participantId 
-            }).from(formSubmissions)
-                .where(eq(formSubmissions.id, formSubmissionId))
-                .limit(1);
-            if (sub) {
-                participantId = sub.participantId;
-                console.log(`[N8N] Form submission encontrado, participantId: ${participantId}`);
+            try {
+                const [sub] = await db.select({ 
+                    participantId: formSubmissions.participantId 
+                }).from(formSubmissions)
+                    .where(eq(formSubmissions.id, formSubmissionId))
+                    .limit(1);
+                if (sub) {
+                    participantId = sub.participantId;
+                    console.log(`[N8N] Form submission encontrado, participantId: ${participantId}`);
+                } else {
+                    console.log(`[N8N] Form submission não encontrado no banco local, mas ID será usado para rastreamento`);
+                }
+            } catch (err) {
+                console.log(`[N8N] Erro ao buscar form_submission (provavelmente não existe no banco local): ${(err as Error).message}`);
+                // Continua com o form_submission_id passado mesmo que não exista no banco local
             }
         }
         
