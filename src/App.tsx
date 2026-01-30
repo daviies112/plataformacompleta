@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -38,6 +38,24 @@ const PublicStore = lazy(() => import('./features/revendedora/pages/public/Publi
 const PublicCheckout = lazy(() => import('./features/revendedora/pages/public/PublicCheckout'));
 const LoginPage = lazy(() => import('./pages/Index'));
 const ResellerLogin = lazy(() => import('./platforms/reseller/pages/Login'));
+
+// ✅ OTIMIZAÇÃO: Função que verifica se é rota pública ANTES de montar providers
+const isPublicRoutePath = (path: string): boolean => {
+  return (
+    path === '/' ||
+    path === '/login' ||
+    path === '/reseller-login' ||
+    path.startsWith('/assinar/') ||
+    path.startsWith('/f/') ||
+    path.startsWith('/form/') ||
+    path.startsWith('/formulario/') ||
+    path.startsWith('/reuniao/') ||
+    path.startsWith('/reuniao-publica/') ||
+    path.startsWith('/loja/') ||
+    path.startsWith('/checkout/') ||
+    /^\/[^/]+\/form\//.test(path)
+  );
+};
 
 const PublicRoutes = () => {
   const location = useLocation();
@@ -138,31 +156,68 @@ const AppRoutes = () => {
   );
 };
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <ThemeProvider 
-      attribute="class" 
-      defaultTheme="dark" 
-      enableSystem={false} 
-      storageKey="nexus-theme" 
-      disableTransitionOnChange
-    >
-      <TooltipProvider>
-        <MonitoringProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter
-            future={{
-              v7_startTransition: true,
-              v7_relativeSplatPath: true,
-            }}
-          >
-            <AppRoutes />
-          </BrowserRouter>
-        </MonitoringProvider>
-      </TooltipProvider>
-    </ThemeProvider>
-  </QueryClientProvider>
-);
+// ✅ OTIMIZAÇÃO: Componente App com renderização condicional de MonitoringProvider
+// Rotas públicas NÃO carregam MonitoringProvider para renderizar mais rápido
+const App = () => {
+  // Verifica se é rota pública ANTES de montar qualquer provider pesado
+  const currentPath = typeof window !== 'undefined' ? window.location.pathname : '/';
+  const isPublic = isPublicRoutePath(currentPath);
+  
+  // Para rotas públicas, usa estrutura minimalista sem MonitoringProvider
+  if (isPublic) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider 
+          attribute="class" 
+          defaultTheme="dark" 
+          enableSystem={false} 
+          storageKey="nexus-theme" 
+          disableTransitionOnChange
+        >
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter
+              future={{
+                v7_startTransition: true,
+                v7_relativeSplatPath: true,
+              }}
+            >
+              <AppRoutes />
+            </BrowserRouter>
+          </TooltipProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    );
+  }
+  
+  // Para rotas privadas, usa estrutura completa com MonitoringProvider
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider 
+        attribute="class" 
+        defaultTheme="dark" 
+        enableSystem={false} 
+        storageKey="nexus-theme" 
+        disableTransitionOnChange
+      >
+        <TooltipProvider>
+          <MonitoringProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter
+              future={{
+                v7_startTransition: true,
+                v7_relativeSplatPath: true,
+              }}
+            >
+              <AppRoutes />
+            </BrowserRouter>
+          </MonitoringProvider>
+        </TooltipProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
