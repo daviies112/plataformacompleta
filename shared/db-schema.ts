@@ -791,6 +791,10 @@ export const formSubmissions = pgTable("form_submissions", {
   totalScore: integer("total_score").notNull(),
   passed: boolean("passed").notNull(),
   
+  // ID único curto para identificar participante em reuniões compartilhadas
+  // Formato: pid_xxxxxxxxxx (10 caracteres únicos)
+  participantId: text("participant_id"),
+  
   // Dados de contato
   contactName: text("contact_name"),
   contactEmail: text("contact_email"),
@@ -815,6 +819,7 @@ export const formSubmissions = pgTable("form_submissions", {
   tenantIdx: index("idx_submissions_tenant").on(table.tenantId),
   cpfIdx: index("idx_submissions_cpf").on(table.contactCpf),
   phoneIdx: index("idx_submissions_phone").on(table.contactPhone),
+  participantIdIdx: uniqueIndex("idx_submissions_participant_id").on(table.participantId),
 }));
 
 // Form Templates Table - Reusable form templates
@@ -1747,6 +1752,8 @@ export const reunioes = pgTable("reunioes", {
   gravacaoUrl: text("gravacao_url"),
   metadata: jsonb("metadata").default({}),
   compareceu: boolean("compareceu").default(false),
+  // Referência ao participante específico (form_submission.participant_id)
+  participantId: text("participant_id"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at"),
 }, (table) => ({
@@ -1756,6 +1763,7 @@ export const reunioes = pgTable("reunioes", {
   statusIdx: index("idx_reunioes_status").on(table.status),
   roomIdIdx: index("idx_reunioes_room_id").on(table.roomId100ms),
   compareceuIdx: index("idx_reunioes_compareceu").on(table.compareceu),
+  participantIdIdx: index("idx_reunioes_participant_id").on(table.participantId),
 }));
 
 // Transcricoes Table - Meeting transcriptions
