@@ -381,17 +381,19 @@ publicRoomDesignRouter.post('/reunioes/:meetingId/token-public', async (req: Req
   try {
     // Clean meetingId - remove any query string that might be URL-encoded
     const meetingId = req.params.meetingId?.split('?')[0]?.split('%3F')[0];
-    const { participantName, role = 'guest' } = req.body;
+    // Accept both participantName and userName for compatibility
+    const { participantName, userName, role = 'guest' } = req.body;
+    const name = participantName || userName;
 
     if (!meetingId) {
       return res.status(400).json({ error: 'ID da reunião é obrigatório' });
     }
 
-    if (!participantName) {
+    if (!name) {
       return res.status(400).json({ error: 'Nome do participante é obrigatório' });
     }
 
-    console.log(`[TokenPublic] Gerando token para reunião ${meetingId}, participante: ${participantName}, role: ${role}`);
+    console.log(`[TokenPublic] Gerando token para reunião ${meetingId}, participante: ${name}, role: ${role}`);
 
     const [meeting] = await db.select().from(reunioes)
       .where(eq(reunioes.id, meetingId))
@@ -430,7 +432,7 @@ publicRoomDesignRouter.post('/reunioes/:meetingId/token-public', async (req: Req
       appSecret
     );
 
-    console.log(`[TokenPublic] Token gerado com sucesso para ${participantName} (${participantId})`);
+    console.log(`[TokenPublic] Token gerado com sucesso para ${name} (${participantId})`);
 
     // Mark meeting as attended
     if (!meeting.compareceu) {
