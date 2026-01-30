@@ -270,6 +270,73 @@ publicRoomDesignRouter.get('/reunioes/:meetingId/participant-data', async (req: 
   }
 });
 
+// Public route to get full meeting data (alias for /info with more data)
+publicRoomDesignRouter.get('/reunioes/:meetingId/public', async (req: Request, res: Response) => {
+  try {
+    const { meetingId } = req.params;
+    
+    const [meeting] = await db.select().from(reunioes)
+      .where(eq(reunioes.id, meetingId))
+      .limit(1);
+
+    if (!meeting) {
+      return res.status(404).json({ error: 'Reunião não encontrada' });
+    }
+
+    res.json({
+      id: meeting.id,
+      tenantId: meeting.tenantId,
+      titulo: meeting.titulo,
+      nome: meeting.nome,
+      email: meeting.email,
+      telefone: meeting.telefone,
+      dataInicio: meeting.dataInicio,
+      dataFim: meeting.dataFim,
+      duracao: meeting.duracao,
+      status: meeting.status,
+      participantId: meeting.participantId,
+      roomId100ms: meeting.roomId100ms,
+      metadata: meeting.metadata
+    });
+
+  } catch (error: any) {
+    console.error('[MeetingPublic] Erro:', error);
+    res.status(500).json({ error: 'Erro ao buscar informações da reunião' });
+  }
+});
+
+// Public route to get room design config (alias)
+publicRoomDesignRouter.get('/reunioes/:meetingId/room-design-public', async (req: Request, res: Response) => {
+  try {
+    const { meetingId } = req.params;
+    
+    const [meeting] = await db.select().from(reunioes)
+      .where(eq(reunioes.id, meetingId))
+      .limit(1);
+
+    if (!meeting) {
+      return res.status(404).json({ error: 'Reunião não encontrada' });
+    }
+
+    const metadata = meeting.metadata as any;
+    const designConfig = metadata?.roomDesignConfig || null;
+
+    res.json({
+      designConfig,
+      meetingInfo: {
+        id: meeting.id,
+        titulo: meeting.titulo,
+        status: meeting.status,
+        tenantId: meeting.tenantId
+      }
+    });
+
+  } catch (error: any) {
+    console.error('[RoomDesignPublic] Erro:', error);
+    res.status(500).json({ error: 'Erro ao buscar configuração da sala' });
+  }
+});
+
 // Public route to get meeting info (limited data)
 publicRoomDesignRouter.get('/reunioes/:meetingId/info', async (req: Request, res: Response) => {
   try {
