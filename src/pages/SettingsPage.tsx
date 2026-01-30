@@ -252,14 +252,15 @@ const SettingsPage = () => {
   const clearAllTenantCache = async () => {
     console.log('🧹 [Cache] Limpando todo o cache do tenant anterior...');
     
-    queryClient.clear();
+    // Invalidate all queries instead of clearing (more gentle)
+    queryClient.invalidateQueries();
     
     try {
       const { queryClient: formsQueryClient } = await import('@/features/formularios-platform/lib/queryClient');
-      formsQueryClient.clear();
-      console.log('✅ [Cache] QueryClient de formulários limpo');
+      formsQueryClient.invalidateQueries();
+      console.log('✅ [Cache] QueryClient de formulários invalidado');
     } catch (error) {
-      console.warn('⚠️ [Cache] Não foi possível limpar queryClient de formulários:', error);
+      console.warn('⚠️ [Cache] Não foi possível invalidar queryClient de formulários:', error);
     }
     
     const tenantSpecificKeys = [
@@ -299,14 +300,10 @@ const SettingsPage = () => {
     window.dispatchEvent(new CustomEvent('supabase-config-changed'));
     window.dispatchEvent(new CustomEvent('forms-cache-cleared'));
     
-    sessionStorage.clear();
+    // REMOVIDO: sessionStorage.clear() e window.location.reload()
+    // Isso causava tela branca infinita após salvar credenciais
     
     console.log('✅ [Cache] Cache do tenant limpo com sucesso!');
-    console.log('⚠️ [Cache] Recarregando página para garantir dados frescos...');
-    
-    setTimeout(() => {
-      window.location.reload();
-    }, 500);
   };
 
   const saveSupabaseMutation = useMutation({
