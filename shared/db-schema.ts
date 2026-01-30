@@ -1291,6 +1291,19 @@ export const resellers = pgTable("resellers", {
   nomeIdx: index("idx_resellers_nome").on(table.nome),
 }));
 
+// Reseller Supabase Configs - Store Supabase credentials for each reseller
+export const resellerSupabaseConfigs = pgTable("reseller_supabase_configs", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  resellerEmail: text("reseller_email").notNull().unique(),
+  supabaseUrl: text("supabase_url"),
+  supabaseAnonKey: text("supabase_anon_key"),
+  supabaseServiceKey: text("supabase_service_key"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+}, (table) => ({
+  emailIdx: index("idx_reseller_supabase_email").on(table.resellerEmail),
+}));
+
 // Categories Table - Product categories
 export const categories = pgTable("categories", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
