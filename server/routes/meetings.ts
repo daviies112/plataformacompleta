@@ -376,6 +376,81 @@ publicRoomDesignRouter.get('/reunioes/:meetingId/info', async (req: Request, res
   }
 });
 
+// Public route to generate 100ms token for guests (no auth required)
+publicRoomDesignRouter.post('/reunioes/:meetingId/token-public', async (req: Request, res: Response) => {
+  try {
+    // Clean meetingId - remove any query string that might be URL-encoded
+    const meetingId = req.params.meetingId?.split('?')[0]?.split('%3F')[0];
+    const { participantName, role = 'guest' } = req.body;
+
+    if (!meetingId) {
+      return res.status(400).json({ error: 'ID da reunião é obrigatório' });
+    }
+
+    if (!participantName) {
+      return res.status(400).json({ error: 'Nome do participante é obrigatório' });
+    }
+
+    console.log(`[TokenPublic] Gerando token para reunião ${meetingId}, participante: ${participantName}, role: ${role}`);
+
+    const [meeting] = await db.select().from(reunioes)
+      .where(eq(reunioes.id, meetingId))
+      .limit(1);
+
+    if (!meeting) {
+      console.error(`[TokenPublic] Reunião ${meetingId} não encontrada`);
+      return res.status(404).json({ error: 'Reunião não encontrada' });
+    }
+
+    if (!meeting.roomId100ms) {
+      console.error(`[TokenPublic] Reunião ${meetingId} sem sala 100ms configurada`);
+      return res.status(400).json({ error: 'Reunião sem sala 100ms configurada' });
+    }
+
+    const [config] = await db.select().from(hms100msConfig)
+      .where(eq(hms100msConfig.tenantId, meeting.tenantId))
+      .limit(1);
+
+    if (!config || !config.appAccessKey || !config.appSecret) {
+      console.error(`[TokenPublic] Credenciais 100ms não configuradas para tenant ${meeting.tenantId}`);
+      return res.status(400).json({ error: 'Credenciais 100ms não configuradas' });
+    }
+
+    const appAccessKey = decrypt(config.appAccessKey);
+    const appSecret = decrypt(config.appSecret);
+
+    // Generate unique participant ID
+    const participantId = `pub_${nanoid(10)}`;
+
+    const token = gerarTokenParticipante(
+      meeting.roomId100ms,
+      participantId,
+      role === 'host' ? 'host' : 'guest',
+      appAccessKey,
+      appSecret
+    );
+
+    console.log(`[TokenPublic] Token gerado com sucesso para ${participantName} (${participantId})`);
+
+    // Mark meeting as attended
+    if (!meeting.compareceu) {
+      await db.update(reunioes)
+        .set({ compareceu: true, updatedAt: new Date() })
+        .where(eq(reunioes.id, meetingId));
+    }
+
+    res.json({ 
+      token,
+      participantId,
+      roomId: meeting.roomId100ms
+    });
+
+  } catch (error: any) {
+    console.error('[TokenPublic] Erro ao gerar token:', error);
+    res.status(500).json({ error: 'Erro ao gerar token de participante' });
+  }
+});
+
 // Get room design config (public)
 publicRoomDesignRouter.get('/room-design/:meetingId', async (req: Request, res: Response) => {
   try {
