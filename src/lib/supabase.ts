@@ -6,6 +6,28 @@ let supabasePromise: Promise<any> | null = null;
 export let supabase: any = null;
 
 /**
+ * Check if current path is a public route that doesn't need Supabase
+ * Returns true for routes that should skip Supabase initialization
+ */
+function isPublicRoute(): boolean {
+  if (typeof window === 'undefined') return false;
+  
+  const path = window.location.pathname;
+  return (
+    path.startsWith('/reuniao/') ||
+    path.startsWith('/reuniao-publica/') ||
+    path.startsWith('/assinar/') ||
+    path.startsWith('/f/') ||
+    path.startsWith('/form/') ||
+    path.startsWith('/formulario/') ||
+    path.startsWith('/loja/') ||
+    path.startsWith('/checkout/') ||
+    /^\/[^/]+\/form\//.test(path) ||
+    /^\/[^/]+\/[a-z0-9-]+$/.test(path) // company/roomId pattern
+  );
+}
+
+/**
  * Fetch with minimal retry - optimized for fast fallback
  * Only retries once on 5xx errors, returns null immediately otherwise
  */
@@ -42,6 +64,7 @@ async function fetchWithRetry<T>(
  * Optimized for fast return - no blocking retries for public routes
  * 
  * IMPORTANT: Returns null IMMEDIATELY for:
+ * - Public routes (no API call made at all)
  * - 401 (not authenticated) - normal for public routes
  * - 4xx errors - client errors, no retry needed
  * - Empty credentials - Supabase not configured
@@ -49,6 +72,11 @@ async function fetchWithRetry<T>(
  * Only retries once on 5xx (server errors)
  */
 async function fetchSupabaseConfig() {
+  // Skip API call entirely for public routes - they don't need Supabase
+  if (isPublicRoute()) {
+    return null;
+  }
+  
   try {
     return await fetchWithRetry(async () => {
       const controller = new AbortController();

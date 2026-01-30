@@ -2,6 +2,29 @@ import { StateStorage } from 'zustand/middleware';
 import { apiRequest } from './queryClient';
 import { getSupabaseClient } from './supabase';
 
+/**
+ * Check if current path is a public route that doesn't need Supabase storage
+ */
+function isPublicRoute(): boolean {
+  if (typeof window === 'undefined') return false;
+  
+  const path = window.location.pathname;
+  return (
+    path.startsWith('/reuniao/') ||
+    path.startsWith('/reuniao-publica/') ||
+    path.startsWith('/assinar/') ||
+    path.startsWith('/f/') ||
+    path.startsWith('/form/') ||
+    path.startsWith('/formulario/') ||
+    path.startsWith('/loja/') ||
+    path.startsWith('/checkout/') ||
+    path === '/' ||
+    path === '/login' ||
+    path === '/reseller-login' ||
+    /^\/[^/]+\/form\//.test(path)
+  );
+}
+
 // Debounce helper
 function debounce<T extends (...args: any[]) => any>(
   func: T,
@@ -255,6 +278,11 @@ const debouncedSyncToSupabase = debounce(syncToSupabaseInBackground, 1000);
 // Custom storage adapter que usa Supabase via API
 export const supabaseStorage: StateStorage = {
   getItem: async (name: string): Promise<string | null> => {
+    // Skip Supabase entirely for public routes - return null immediately
+    if (isPublicRoute()) {
+      return null;
+    }
+    
     try {
       // Helper para fazer parsing seguro de campos JSON do Supabase
       const parseJsonField = (field: any, fallback: any = []) => {
@@ -461,6 +489,11 @@ export const supabaseStorage: StateStorage = {
   },
 
   setItem: async (name: string, value: string): Promise<void> => {
+    // Skip Supabase entirely for public routes
+    if (isPublicRoute()) {
+      return;
+    }
+    
     // PASSO 1: Salvar IMEDIATAMENTE no localStorage (cache local)
     localStorage.setItem(name, value);
     console.log('💾 Workspace salvo localmente (cache)');
