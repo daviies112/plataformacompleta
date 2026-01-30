@@ -64,13 +64,13 @@ async function syncRecordingToSupabase(tenantId: string, recording: any) {
 // PUBLIC ROUTES - Participant Data by participant_id
 // ===========================================
 
-// Get participant data by participant_id (for contract pre-fill)
+// Get participant data by participant_id or form_submission_id (for contract pre-fill)
 publicRoomDesignRouter.get('/reunioes/:meetingId/participant-data', async (req: Request, res: Response) => {
   try {
     const { meetingId } = req.params;
-    const { pid } = req.query;
+    const { pid, fsid } = req.query;
 
-    console.log(`[ParticipantData] Buscando dados para meeting ${meetingId}, pid=${pid || 'nenhum'}`);
+    console.log(`[ParticipantData] Buscando dados para meeting ${meetingId}, pid=${pid || 'nenhum'}, fsid=${fsid || 'nenhum'}`);
 
     // First, get the meeting to find tenantId
     const [meeting] = await db.select().from(reunioes)
@@ -83,8 +83,23 @@ publicRoomDesignRouter.get('/reunioes/:meetingId/participant-data', async (req: 
 
     let formSubmission = null;
 
-    // Method 1: Use participant_id from URL query parameter (preferred)
-    if (pid && typeof pid === 'string') {
+    // Method 0 (PRIORITY): Use fsid (form_submission_id) directly from URL - MOST RELIABLE
+    // This is the best method because each form_submission has a unique ID
+    // Works even when multiple participants share the same meeting URL
+    if (fsid && typeof fsid === 'string') {
+      console.log(`[ParticipantData] Buscando form_submission por fsid (ID direto): ${fsid}`);
+      const [sub] = await db.select().from(formSubmissions)
+        .where(eq(formSubmissions.id, fsid))
+        .limit(1);
+      
+      if (sub) {
+        formSubmission = sub;
+        console.log(`[ParticipantData] ✅ Encontrado por fsid: ${sub.id} - ${sub.contactName}`);
+      }
+    }
+
+    // Method 1: Use participant_id from URL query parameter
+    if (!formSubmission && pid && typeof pid === 'string') {
       console.log(`[ParticipantData] Buscando form_submission por participant_id: ${pid}`);
       const [sub] = await db.select().from(formSubmissions)
         .where(eq(formSubmissions.participantId, pid))

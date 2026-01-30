@@ -86,17 +86,21 @@ export default function PublicMeetingRoom() {
     if (!isRecordingBot && !contractToken) {
       setIsCreatingContract(true);
       try {
-        // Buscar dados do participante usando participant_id (pid) da URL
+        // Buscar dados do participante usando fsid (form_submission_id) ou pid da URL
         let participantDataFromForm: any = {};
         const meetingId = data?.reuniao?.id || roomId;
-        const pidFromUrl = searchParams.get("pid");
+        const fsidFromUrl = searchParams.get("fsid"); // PRIORITY: form_submission_id - único por pessoa
+        const pidFromUrl = searchParams.get("pid");   // FALLBACK: participant_id
         
-        console.log("[PublicMeetingRoom] Buscando participant-data com meetingId:", meetingId, "pid:", pidFromUrl);
+        console.log("[PublicMeetingRoom] Buscando participant-data com meetingId:", meetingId, "fsid:", fsidFromUrl, "pid:", pidFromUrl);
         
         try {
-          // Prioridade: usar participant_id (pid) da URL para identificação única
+          // Prioridade: usar fsid (form_submission_id) para identificação única - funciona mesmo com múltiplos participantes na mesma URL
           let queryParams = new URLSearchParams();
-          if (pidFromUrl) {
+          if (fsidFromUrl) {
+            // MELHOR: form_submission_id é único por pessoa, não depende de quando a reunião foi criada
+            queryParams.set("fsid", fsidFromUrl);
+          } else if (pidFromUrl) {
             queryParams.set("pid", pidFromUrl);
           } else {
             // Fallback para parâmetros legados

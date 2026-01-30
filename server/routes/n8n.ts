@@ -385,13 +385,18 @@ n8nRouter.post('/reunioes', authenticateN8NByTenantKey, async (req: Request, res
         }).returning();
 
         const baseUrl = process.env.REPLIT_DOMAINS?.split(',')[0] || req.get('host') || 'localhost:5000';
-        // Include participant_id in URL for unique identification
-        const linkReuniao = participantId 
-            ? `https://${baseUrl}/reuniao/${newMeeting.id}?pid=${participantId}`
-            : `https://${baseUrl}/reuniao/${newMeeting.id}`;
-        const linkPublico = participantId
-            ? `https://${baseUrl}/reuniao-publica/${newMeeting.id}?pid=${participantId}`
-            : `https://${baseUrl}/reuniao-publica/${newMeeting.id}`;
+        // PRIORITY: Use fsid (form_submission_id) for unique identification - works when multiple participants share same meeting
+        // fsid is more reliable than pid because it's generated when the form is submitted, not when the meeting is created
+        const linkReuniao = formSubmissionId 
+            ? `https://${baseUrl}/reuniao/${newMeeting.id}?fsid=${formSubmissionId}`
+            : participantId 
+              ? `https://${baseUrl}/reuniao/${newMeeting.id}?pid=${participantId}`
+              : `https://${baseUrl}/reuniao/${newMeeting.id}`;
+        const linkPublico = formSubmissionId
+            ? `https://${baseUrl}/reuniao-publica/${newMeeting.id}?fsid=${formSubmissionId}`
+            : participantId
+              ? `https://${baseUrl}/reuniao-publica/${newMeeting.id}?pid=${participantId}`
+              : `https://${baseUrl}/reuniao-publica/${newMeeting.id}`;
 
         await db.update(reunioes).set({ linkReuniao }).where(eq(reunioes.id, newMeeting.id));
 
