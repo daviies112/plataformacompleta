@@ -79,14 +79,21 @@ export const contracts = pgTable("contracts", {
   google_play_url: text("google_play_url"),
   selfie_photo: text("selfie_photo"),
   document_photo: text("document_photo"),
+  document_back_photo: text("document_back_photo"),
   signed_contract_html: text("signed_contract_html"),
   address_street: text("address_street"),
   address_number: text("address_number"),
   address_complement: text("address_complement"),
-  address_neighborhood: text("address_neighborhood"),
   address_city: text("address_city"),
   address_state: text("address_state"),
   address_zipcode: text("address_zipcode"),
+  signature_url: text("signature_url"),
+  secondary_color: varchar("secondary_color", { length: 7 }),
+  whatsapp_enviado: boolean("whatsapp_enviado").default(false),
+  whatsapp_enviado_at: timestamp("whatsapp_enviado_at", { withTimezone: true }),
+  follow_up_count: integer("follow_up_count").default(0),
+  virou_revendedora: boolean("virou_revendedora").default(false),
+  data_virou_revendedora: timestamp("data_virou_revendedora", { withTimezone: true }),
 });
 
 export const signatureLogs = pgTable("signature_logs", {

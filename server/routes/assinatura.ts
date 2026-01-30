@@ -1140,12 +1140,10 @@ router.post('/contracts', async (req: Request, res: Response) => {
     saveLocalContracts(localContractsStore);
 
     // Preparar dados de endereço para salvar (usando colunas que existem na tabela contracts do Supabase)
-    // CRITICAL: Incluir bairro (neighborhood) para salvar corretamente na tabela contracts
     const addressData = finalAddress ? {
       address_street: finalAddress.street || null,
       address_number: finalAddress.number || null,
       address_complement: finalAddress.complement || null,
-      address_neighborhood: finalAddress.neighborhood || null,
       address_city: finalAddress.city || null,
       address_state: finalAddress.state || null,
       address_zipcode: finalAddress.zipcode || null,
@@ -1394,7 +1392,6 @@ router.post('/contracts/:id/finalize', async (req: Request, res: Response) => {
       address_street: address.street,
       address_number: address.number,
       address_complement: address.complement,
-      address_neighborhood: address.neighborhood,
       address_city: address.city,
       address_state: address.state,
       address_zipcode: address.zipcode,
