@@ -468,11 +468,9 @@ export class LeadSyncService {
 
       console.log(`✅ [LeadSync] Lead ${updatedLead.id} atualizado com sucesso! (pipeline: ${pipelineStatus})`);
       
-      // ✅ EXTENSÃO (2024-12): Dispara consulta CPF automática quando formulário é APROVADO
-      // Condições para disparar:
-      // 1. CPF normalizado existe na submission
-      // 2. qualificationStatus é 'approved' (formulário aprovado no Kanban)
-      // 3. CPF ainda não foi consultado (cpfStatus não definido E cpfCheckedAt não definido)
+      // ✅ EXTENSÃO (2024-12): A consulta automática foi desativada para evitar duplicidade.
+      // A consulta agora é disparada apenas pelo frontend ou pelo sistema de poller.
+      /*
       const cpfJaConsultado = lead.cpfStatus || lead.cpfCheckedAt;
       const deveConsultarCPF = cpfNormalizado && qualificationStatus === 'approved' && !cpfJaConsultado;
       
@@ -493,6 +491,7 @@ export class LeadSyncService {
       } else if (cpfNormalizado && qualificationStatus === 'approved' && cpfJaConsultado) {
         console.log(`⏭️ [LeadSync] CPF já foi consultado anteriormente para lead ${updatedLead.id} (cpfStatus=${lead.cpfStatus}) - pulando consulta duplicada`);
       }
+      */
       
       return {
         success: true,
@@ -563,13 +562,11 @@ export class LeadSyncService {
 
       console.log(`✅ [LeadSync] Novo lead ${newLead.id} criado com sucesso! (pipeline: ${pipelineStatus})`);
       
-      // ✅ EXTENSÃO (2024-12): Dispara consulta CPF automática quando formulário é APROVADO
-      // Para novos leads, não precisa verificar cpfStatus pois acabou de ser criado
-      // Condições para disparar:
-      // 1. CPF normalizado existe na submission
-      // 2. qualificationStatus é 'approved' (formulário aprovado no Kanban)
+      // ✅ EXTENSÃO (2024-12): A consulta automática foi desativada para evitar duplicidade.
+      /*
       if (cpfNormalizado && qualificationStatus === 'approved') {
         console.log(`🔍 [LeadSync] Disparando consulta CPF automática para novo lead APROVADO ${newLead.id}...`);
+      */
         console.log(`   📋 qualificationStatus=${qualificationStatus}, CPF=${cpfNormalizado.substring(0, 3)}...`);
         // Fire-and-forget: não bloqueia o retorno do lead
         triggerAutoCPFCheck(
