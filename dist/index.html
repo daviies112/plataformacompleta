@@ -20,6 +20,7 @@
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#1a202c">
     
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Nexus AI">
@@ -28,29 +29,67 @@
     <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192x192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512x512.png">
     
-    <script type="module" crossorigin src="/assets/main-CZKNcpUu.js"></script>
+    <!-- Preload critical resources for faster initial load -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+    
+    <!-- Mobile performance optimization - neutral styling for theme compatibility -->
+    <style>
+      /* Critical CSS for initial load - prevents layout shift */
+      #root { min-height: 100vh; }
+      .loading-spinner {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        background: var(--background, #0a0a0a);
+      }
+      .loading-spinner::after {
+        content: '';
+        width: 40px;
+        height: 40px;
+        border: 3px solid var(--muted, #333);
+        border-top-color: var(--primary, #888);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+      /* Light mode fallback */
+      @media (prefers-color-scheme: light) {
+        .loading-spinner {
+          background: var(--background, #fafafa);
+        }
+        .loading-spinner::after {
+          border-color: var(--muted, #e5e5e5);
+          border-top-color: var(--primary, #666);
+        }
+      }
+    </style>
+    <script type="module" crossorigin src="/assets/main-DR96BQUR.js"></script>
     <link rel="modulepreload" crossorigin href="/assets/ui-vendor-BQCqNqg0.js">
     <link rel="modulepreload" crossorigin href="/assets/barcode-CSs31hT8.js">
     <link rel="modulepreload" crossorigin href="/assets/date-utils-DmQsh9uh.js">
-    <link rel="modulepreload" crossorigin href="/assets/react-core-BGJ3ktju.js">
-    <link rel="modulepreload" crossorigin href="/assets/pdf-generator-ZprzTUCq.js">
-    <link rel="modulepreload" crossorigin href="/assets/charts-zbL6EWkY.js">
-    <link rel="modulepreload" crossorigin href="/assets/query-YWhamEZC.js">
-    <link rel="modulepreload" crossorigin href="/assets/supabase-16QePPDj.js">
-    <link rel="modulepreload" crossorigin href="/assets/router-Bj24nDXY.js">
-    <link rel="modulepreload" crossorigin href="/assets/validation-CxpSliTW.js">
+    <link rel="modulepreload" crossorigin href="/assets/react-core-CfCHFxSI.js">
+    <link rel="modulepreload" crossorigin href="/assets/pdf-generator-B1k5crW2.js">
+    <link rel="modulepreload" crossorigin href="/assets/charts-DahXU-9K.js">
+    <link rel="modulepreload" crossorigin href="/assets/query-DKG5W8aV.js">
+    <link rel="modulepreload" crossorigin href="/assets/router-Bkygsdae.js">
     <link rel="modulepreload" crossorigin href="/assets/http-B9ygI19o.js">
+    <link rel="modulepreload" crossorigin href="/assets/supabase-BWEQ55NN.js">
     <link rel="modulepreload" crossorigin href="/assets/spreadsheet-DREyypUJ.js">
     <link rel="modulepreload" crossorigin href="/assets/label-designer-h5d5DNkb.js">
-    <link rel="modulepreload" crossorigin href="/assets/monitoring-i65mNJ92.js">
-    <link rel="stylesheet" crossorigin href="/assets/main-DL63EO9X.css">
+    <link rel="modulepreload" crossorigin href="/assets/validation-DKR-4eo_.js">
+    <link rel="modulepreload" crossorigin href="/assets/monitoring-CqYoKPGm.js">
+    <link rel="stylesheet" crossorigin href="/assets/main-BPghaJ0h.css">
   </head>
 
   <body>
-    <div id="root"></div>
+    <div id="root"><div class="loading-spinner"></div></div>
     
-    <!-- QZ Tray for thermal printer integration -->
-    <script src="https://cdn.jsdelivr.net/npm/qz-tray@2.2/qz-tray.min.js"></script>
+    <!-- QZ Tray for thermal printer integration - load async to not block -->
+    <script async src="https://cdn.jsdelivr.net/npm/qz-tray@2.2/qz-tray.min.js"></script>
     
   </body>
 </html>
