@@ -468,30 +468,35 @@ export class LeadSyncService {
 
       console.log(`✅ [LeadSync] Lead ${updatedLead.id} atualizado com sucesso! (pipeline: ${pipelineStatus})`);
       
-      // ✅ EXTENSÃO (2024-12): A consulta automática foi desativada para evitar duplicidade.
-      // A consulta agora é disparada apenas pelo frontend ou pelo sistema de poller.
-      /*
+      // ✅ EXTENSÃO (2024-12): Dispara consulta CPF automática quando formulário é APROVADO
+      // Condições para disparar:
+      // 1. CPF normalizado existe na submission
+      // 2. qualificationStatus é 'approved' (formulário aprovado no Kanban)
+      // 3. CPF ainda não foi consultado (cpfStatus não definido E cpfCheckedAt não definido)
       const cpfJaConsultado = lead.cpfStatus || lead.cpfCheckedAt;
       const deveConsultarCPF = cpfNormalizado && qualificationStatus === 'approved' && !cpfJaConsultado;
       
       if (deveConsultarCPF) {
         console.log(`🔍 [LeadSync] Disparando consulta CPF automática para lead APROVADO ${updatedLead.id}...`);
         console.log(`   📋 qualificationStatus=${qualificationStatus}, cpfStatus=${lead.cpfStatus || 'N/A'}, cpfCheckedAt=${lead.cpfCheckedAt || 'N/A'}`);
-        // Fire-and-forget: não bloqueia o retorno do lead
-        triggerAutoCPFCheck(
-          cpfNormalizado,
-          updatedLead.id,
-          submissionData.id,
-          tenantId,
-          submissionData.contactName || lead.nome || null,
-          telefoneNormalizado
-        ).catch(err => {
-          console.error(`❌ [LeadSync] Erro ao disparar consulta CPF automática:`, err);
-        });
+        
+        // 🛡️ Prevenir duplicidade: Adicionar pequeno delay para permitir que o frontend ou outros processos terminem
+        // Isso evita race conditions quando múltiplos gatilhos ocorrem simultaneamente
+        setTimeout(() => {
+          triggerAutoCPFCheck(
+            cpfNormalizado,
+            updatedLead.id,
+            submissionData.id,
+            tenantId,
+            submissionData.contactName || lead.nome || null,
+            telefoneNormalizado
+          ).catch(err => {
+            console.error(`❌ [LeadSync] Erro ao disparar consulta CPF automática:`, err);
+          });
+        }, 1500); 
       } else if (cpfNormalizado && qualificationStatus === 'approved' && cpfJaConsultado) {
         console.log(`⏭️ [LeadSync] CPF já foi consultado anteriormente para lead ${updatedLead.id} (cpfStatus=${lead.cpfStatus}) - pulando consulta duplicada`);
       }
-      */
       
       return {
         success: true,
@@ -562,24 +567,29 @@ export class LeadSyncService {
 
       console.log(`✅ [LeadSync] Novo lead ${newLead.id} criado com sucesso! (pipeline: ${pipelineStatus})`);
       
-      // ✅ EXTENSÃO (2024-12): A consulta automática foi desativada para evitar duplicidade.
-      /*
+      // ✅ EXTENSÃO (2024-12): Dispara consulta CPF automática quando formulário é APROVADO
+      // Para novos leads, não precisa verificar cpfStatus pois acabou de ser criado
+      // Condições para disparar:
+      // 1. CPF normalizado existe na submission
+      // 2. qualificationStatus é 'approved' (formulário aprovado no Kanban)
       if (cpfNormalizado && qualificationStatus === 'approved') {
         console.log(`🔍 [LeadSync] Disparando consulta CPF automática para novo lead APROVADO ${newLead.id}...`);
         console.log(`   📋 qualificationStatus=${qualificationStatus}, CPF=${cpfNormalizado.substring(0, 3)}...`);
-        // Fire-and-forget: não bloqueia o retorno do lead
-        triggerAutoCPFCheck(
-          cpfNormalizado,
-          newLead.id,
-          submissionData.id,
-          tenantId,
-          submissionData.contactName || null,
-          telefoneNormalizado
-        ).catch(err => {
-          console.error(`❌ [LeadSync] Erro ao disparar consulta CPF automática:`, err);
-        });
+        
+        // 🛡️ Prevenir duplicidade com pequeno delay
+        setTimeout(() => {
+          triggerAutoCPFCheck(
+            cpfNormalizado,
+            newLead.id,
+            submissionData.id,
+            tenantId,
+            submissionData.contactName || null,
+            telefoneNormalizado
+          ).catch(err => {
+            console.error(`❌ [LeadSync] Erro ao disparar consulta CPF automática:`, err);
+          });
+        }, 1500);
       }
-      */
       
       return {
         success: true,

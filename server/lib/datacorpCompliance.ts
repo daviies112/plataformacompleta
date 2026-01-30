@@ -487,6 +487,22 @@ async function getCachedCheckFromSupabase(
     const originalTenantId = globalCheck.tenant_id.substring(0, 8);
     log(`💰 ECONOMIA GLOBAL! CPF consultado originalmente por tenant ${originalTenantId}... | Hash: ${cpfHash.substring(0, 8)}... | Economia: R$ 0,05-0,07`);
     
+    // VERIFICAÇÃO DE DUPLICIDADE (Race Condition Protection): 
+    // Não criar se já existir uma entrada idêntica para o mesmo tenant nos últimos 15 segundos
+    const { data: recentCheck } = await supabase
+      .from('datacorp_checks')
+      .select('id')
+      .eq('cpf_hash', cpfHash)
+      .eq('tenant_id', tenantUUID)
+      .gt('consulted_at', new Date(Date.now() - 15000).toISOString())
+      .limit(1)
+      .maybeSingle();
+
+    if (recentCheck) {
+      log(`⚠️ Bloqueando criação de registro duplicado (race condition prevenida) | Check ID: ${recentCheck.id}`);
+      return recentCheck as any;
+    }
+
     // Criar entrada para o tenant atual (auditoria + aparece no dashboard dele)
     const { data: newTenantCheck, error: createError } = await supabase
       .from('datacorp_checks')
