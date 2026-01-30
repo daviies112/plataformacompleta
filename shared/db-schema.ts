@@ -1754,6 +1754,9 @@ export const reunioes = pgTable("reunioes", {
   compareceu: boolean("compareceu").default(false),
   // Referência ao participante específico (form_submission.participant_id)
   participantId: text("participant_id"),
+  // Campos para identificação única de participantes múltiplos
+  formSubmissionId: text("form_submission_id"),
+  tipoReuniao: text("tipo_reuniao"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at"),
 }, (table) => ({
@@ -1764,6 +1767,7 @@ export const reunioes = pgTable("reunioes", {
   roomIdIdx: index("idx_reunioes_room_id").on(table.roomId100ms),
   compareceuIdx: index("idx_reunioes_compareceu").on(table.compareceu),
   participantIdIdx: index("idx_reunioes_participant_id").on(table.participantId),
+  formSubmissionIdIdx: index("idx_reunioes_form_submission_id").on(table.formSubmissionId),
 }));
 
 // Transcricoes Table - Meeting transcriptions

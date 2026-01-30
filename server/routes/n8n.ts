@@ -212,15 +212,33 @@ const createMeetingSchema = z.object({
     }),
     dataInicio: z.string().optional(),
     duracao: z.number().min(15).max(480).optional().default(60),
-    roomDesignConfig: z.any().optional()
+    roomDesignConfig: z.any().optional(),
+    // Campos adicionados para suporte a múltiplos participantes
+    form_submission_id: z.string().optional(),
+    tipo_reuniao: z.string().optional(),
+    participantes: z.array(z.object({
+        nome: z.string().optional(),
+        email: z.string().optional(),
+        telefone: z.string().optional(),
+        cpf: z.string().optional(),
+        form_submission_id: z.string().optional(),
+        adicionado_em: z.string().optional()
+    })).optional()
 });
 
 n8nRouter.post('/reunioes', authenticateN8NByTenantKey, async (req: Request, res: Response) => {
     try {
         console.log('[N8N] Recebendo requisição para criar reunião');
+        console.log('[N8N] Body recebido:', JSON.stringify(req.body, null, 2));
         
         const data = createMeetingSchema.parse(req.body);
-        const { titulo, nome, email, telefone, dataInicio, duracao, roomDesignConfig: customDesignConfig } = data;
+        const { 
+            titulo, nome, email, telefone, dataInicio, duracao, 
+            roomDesignConfig: customDesignConfig,
+            form_submission_id: passedFormSubmissionId,
+            tipo_reuniao,
+            participantes: passedParticipantes
+        } = data;
 
         let config = (req as any).tenantConfig;
         let tenantId: string;
@@ -299,11 +317,26 @@ n8nRouter.post('/reunioes', authenticateN8NByTenantKey, async (req: Request, res
 
         let finalDesignConfig = customDesignConfig || config.roomDesignConfig || null;
 
-        // Try to find form submission by phone or email for automatic contract pre-fill
-        let formSubmissionId: string | null = null;
+        // PRIORIDADE: Usar form_submission_id passado pelo N8N (mais confiável)
+        let formSubmissionId: string | null = passedFormSubmissionId || null;
         let participantId: string | null = null;
         
-        if (telefone) {
+        // Se o N8N passou o form_submission_id, buscar o participantId
+        if (formSubmissionId) {
+            console.log(`[N8N] Usando form_submission_id passado pelo N8N: ${formSubmissionId}`);
+            const [sub] = await db.select({ 
+                participantId: formSubmissions.participantId 
+            }).from(formSubmissions)
+                .where(eq(formSubmissions.id, formSubmissionId))
+                .limit(1);
+            if (sub) {
+                participantId = sub.participantId;
+                console.log(`[N8N] Form submission encontrado, participantId: ${participantId}`);
+            }
+        }
+        
+        // Fallback: buscar por telefone se não foi passado form_submission_id
+        if (!formSubmissionId && telefone) {
             const normalizedPhone = telefone.replace(/\D/g, '');
             console.log(`[N8N] Buscando form_submission por telefone: ${normalizedPhone}`);
             const [sub] = await db.select({ 
@@ -320,6 +353,7 @@ n8nRouter.post('/reunioes', authenticateN8NByTenantKey, async (req: Request, res
             }
         }
         
+        // Fallback: buscar por email se não encontrou por telefone
         if (!formSubmissionId && email) {
             console.log(`[N8N] Buscando form_submission por email: ${email}`);
             const [sub] = await db.select({ 
@@ -364,6 +398,22 @@ n8nRouter.post('/reunioes', authenticateN8NByTenantKey, async (req: Request, res
         if (finalDesignConfig) {
             metadata.roomDesignConfig = finalDesignConfig;
         }
+        
+        // Montar array de participantes para salvar no Supabase
+        const participantesParaSalvar: any[] = passedParticipantes ? [...passedParticipantes] : [];
+        
+        // Se não veio participantes mas temos dados do participante principal, criar array
+        if (participantesParaSalvar.length === 0 && (nome || email || telefone)) {
+            participantesParaSalvar.push({
+                nome: nome || 'Participante',
+                email: email || '',
+                telefone: telefone || '',
+                form_submission_id: formSubmissionId || undefined,
+                adicionado_em: new Date().toISOString()
+            });
+        }
+        
+        console.log(`[N8N] Participantes para salvar: ${JSON.stringify(participantesParaSalvar)}`);
 
         const participantName = nome || 'Participante';
 
@@ -381,7 +431,10 @@ n8nRouter.post('/reunioes', authenticateN8NByTenantKey, async (req: Request, res
             linkReuniao: '',
             metadata: metadata,
             compareceu: false,
-            participantId: participantId, // Store participant_id in the meeting
+            participantId: participantId,
+            formSubmissionId: formSubmissionId || null,
+            tipoReuniao: tipo_reuniao || null,
+            participantes: participantesParaSalvar.length > 0 ? participantesParaSalvar : [],
         }).returning();
 
         const baseUrl = process.env.REPLIT_DOMAINS?.split(',')[0] || req.get('host') || 'localhost:5000';
@@ -421,9 +474,13 @@ n8nRouter.post('/reunioes', authenticateN8NByTenantKey, async (req: Request, res
                         link_reuniao: linkReuniao,
                         metadata: metadata,
                         compareceu: false,
-                        participant_id: participantId // Unique participant identifier
+                        participant_id: participantId,
+                        tipo_reuniao: tipo_reuniao || null,
+                        participantes: participantesParaSalvar.length > 0 ? participantesParaSalvar : null,
+                        form_submission_id: formSubmissionId
                     }, { onConflict: 'id' });
                     console.log(`[N8N Sync] Reunião ${newMeeting.id} sincronizada com Supabase`);
+                    console.log(`[N8N Sync] Participantes salvos: ${participantesParaSalvar.length}`);
                 }
             } catch (err) {
                 console.error('[N8N Sync] Erro ao sincronizar com Supabase:', err);
