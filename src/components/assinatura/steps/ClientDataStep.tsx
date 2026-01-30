@@ -39,20 +39,21 @@ export const ClientDataStep = ({ clientData, onContinue }: ClientDataStepProps) 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.name.trim()) {
+    if (!(formData.name || '').trim()) {
       newErrors.name = 'Nome é obrigatório';
     }
 
-    const cpfClean = formData.cpf.replace(/\D/g, '');
+    // CRITICAL: Handle null/undefined cpf to prevent "Cannot read properties of null (reading 'replace')"
+    const cpfClean = (formData.cpf || '').replace(/\D/g, '');
     if (!cpfClean) {
       newErrors.cpf = 'CPF é obrigatório';
     } else if (!validateCPF(cpfClean)) {
       newErrors.cpf = 'CPF inválido';
     }
 
-    if (!formData.email.trim()) {
+    if (!(formData.email || '').trim()) {
       newErrors.email = 'Email é obrigatório';
-    } else if (!validateEmail(formData.email)) {
+    } else if (!validateEmail(formData.email || '')) {
       newErrors.email = 'Email inválido';
     }
 
