@@ -171,25 +171,12 @@ publicRoomDesignRouter.get('/reunioes/:meetingId/participant-data', async (req: 
       }
     }
 
-    if (!formSubmission) {
-      console.log(`[ParticipantData] Nenhum form_submission encontrado`);
-      return res.json({
-        found: false,
-        participantId: pid || meeting.participantId || null,
-        meetingInfo: {
-          nome: meeting.nome,
-          email: meeting.email,
-          telefone: meeting.telefone
-        }
-      });
-    }
-
-    // Return participant data
-    res.json({
-      found: true,
-      participantId: formSubmission.participantId || pid || meeting.participantId,
-      formSubmissionId: formSubmission.id,
-      data: {
+    // Prepare response data
+    let responseData: any = null;
+    
+    // If we have formSubmission from local DB, check if it has complete data
+    if (formSubmission) {
+      responseData = {
         nome: formSubmission.contactName,
         email: formSubmission.contactEmail,
         telefone: formSubmission.contactPhone,
@@ -205,7 +192,76 @@ publicRoomDesignRouter.get('/reunioes/:meetingId/participant-data', async (req: 
           cidade: formSubmission.addressCity,
           estado: formSubmission.addressState
         }
+      };
+    }
+    
+    // If local data is incomplete, try to fetch from Supabase tenant
+    const hasCompleteData = responseData?.nome && responseData?.cpf;
+    if (!hasCompleteData && (fsid || formSubmission?.id)) {
+      const submissionId = fsid || formSubmission?.id;
+      console.log(`[ParticipantData] Dados locais incompletos, buscando no Supabase do tenant: ${meeting.tenantId}`);
+      
+      try {
+        const supabase = await getClientSupabaseClient(meeting.tenantId);
+        if (supabase) {
+          const { data: supabaseSubmission, error } = await supabase
+            .from('form_submissions')
+            .select('*')
+            .eq('id', submissionId)
+            .single();
+          
+          if (supabaseSubmission && !error) {
+            console.log(`[ParticipantData] ✅ Dados encontrados no Supabase: ${supabaseSubmission.contact_name}`);
+            responseData = {
+              nome: supabaseSubmission.contact_name,
+              email: supabaseSubmission.contact_email,
+              telefone: supabaseSubmission.contact_phone,
+              cpf: supabaseSubmission.contact_cpf,
+              instagram: supabaseSubmission.instagram_handle,
+              dataNascimento: supabaseSubmission.birth_date,
+              endereco: {
+                cep: supabaseSubmission.address_cep,
+                logradouro: supabaseSubmission.address_street,
+                numero: supabaseSubmission.address_number,
+                complemento: supabaseSubmission.address_complement,
+                bairro: supabaseSubmission.address_neighborhood,
+                cidade: supabaseSubmission.address_city,
+                estado: supabaseSubmission.address_state
+              }
+            };
+            
+            // Also include the form_submission_id for contract pre-fill
+            if (!formSubmission) {
+              formSubmission = { id: submissionId } as any;
+            }
+          } else if (error) {
+            console.log(`[ParticipantData] Erro ao buscar no Supabase: ${error.message}`);
+          }
+        }
+      } catch (err) {
+        console.log(`[ParticipantData] Erro ao conectar ao Supabase: ${(err as Error).message}`);
       }
+    }
+    
+    if (!responseData || (!responseData.nome && !responseData.email)) {
+      console.log(`[ParticipantData] Nenhum form_submission encontrado`);
+      return res.json({
+        found: false,
+        participantId: pid || meeting.participantId || null,
+        meetingInfo: {
+          nome: meeting.nome,
+          email: meeting.email,
+          telefone: meeting.telefone
+        }
+      });
+    }
+
+    // Return participant data
+    res.json({
+      found: true,
+      participantId: formSubmission?.participantId || pid || meeting.participantId,
+      formSubmissionId: formSubmission?.id || fsid,
+      data: responseData
     });
 
   } catch (error: any) {
