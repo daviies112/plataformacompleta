@@ -78,9 +78,9 @@ ExecutiveAI Pro utilizes a modern web stack with a multi-tenant, API-driven arch
 ### Conceito
 Score de 0-1000 para avaliar risco de candidatas a revendedoras. **Quanto maior o score, mais confiável a pessoa.**
 
-### Estatísticas Base (CNJ 2023)
-- Média brasileira: 0,15 processos/pessoa/ano
-- Pessoa com 5+ processos como ré está 30x+ acima da média = ALTO RISCO
+### Race Condition & Duplicate Protection
+- **Proteção de 15 segundos**: O sistema impede consultas duplicadas para o mesmo CPF dentro de uma janela de 15 segundos (`datacorpCompliance.ts`).
+- **Delayed Triggers**: O `LeadSyncService` utiliza um atraso de 1.5s antes de disparar consultas automáticas para garantir que estados de "em processamento" sejam propagados.
 
 ### Escala de Score
 | Score | Classificação | Ação Recomendada |
@@ -118,6 +118,8 @@ Score de 0-1000 para avaliar risco de candidatas a revendedoras. **Quanto maior 
 
 **`docs/EXPORT_MASTER_GUIDE.md`** - Guia definitivo para exportação:
 - Correções críticas que NUNCA podem ser perdidas (PIX, BigDataCorp)
+- **Endereço no Supabase**: Colunas obrigatórias: `address_street`, `address_number`, `address_complement`, `address_city`, `address_state`, `address_zipcode`.
+- **Atenção**: O campo `address_neighborhood` NÃO existe no banco e não deve ser usado.
 - Checklist completo de exportação/importação
 - Todos os arquivos essenciais documentados
 - Troubleshooting de problemas comuns
