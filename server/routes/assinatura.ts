@@ -1152,30 +1152,28 @@ router.post('/contracts', async (req: Request, res: Response) => {
     // MULTI-TENANT: Buscar tenantId - primeiro da reunião, depois de form_submissions
     let tenantId: string | null = null;
     
-    // CRÍTICO: Se meeting_id foi fornecido, buscar tenant_id diretamente da reunião
+    // CRÍTICO: Se meeting_id foi fornecido, buscar tenant_id do banco LOCAL (reunioes está no PostgreSQL local)
     if (meeting_id) {
-      console.log(`[Assinatura] Buscando tenant_id da reunião: ${meeting_id}`);
+      console.log(`[Assinatura] Buscando tenant_id da reunião no banco LOCAL: ${meeting_id}`);
       try {
-        const { getClienteSupabase, isClienteSupabaseConfigured } = await import('../lib/clienteSupabase.js');
-        if (await isClienteSupabaseConfigured()) {
-          const supabaseClient = await getClienteSupabase();
-          if (supabaseClient) {
-            const { data: reuniao, error } = await supabaseClient
-              .from('reunioes')
-              .select('tenant_id')
-              .eq('id', meeting_id)
-              .single();
-            
-            if (!error && reuniao?.tenant_id) {
-              tenantId = reuniao.tenant_id;
-              console.log(`[Assinatura] ✅ Tenant encontrado via reunião: ${tenantId}`);
-            } else {
-              console.log(`[Assinatura] ⚠️ Reunião não encontrada ou sem tenant_id`, error);
-            }
+        const { pool } = await import('../db.js');
+        if (pool) {
+          const result = await pool.query(
+            'SELECT tenant_id FROM reunioes WHERE id = $1',
+            [meeting_id]
+          );
+          
+          if (result.rows.length > 0 && result.rows[0].tenant_id) {
+            tenantId = result.rows[0].tenant_id;
+            console.log(`[Assinatura] ✅ Tenant encontrado via reunião (banco local): ${tenantId}`);
+          } else {
+            console.log(`[Assinatura] ⚠️ Reunião não encontrada no banco local: ${meeting_id}`);
           }
+        } else {
+          console.log(`[Assinatura] ⚠️ Pool do banco local não disponível`);
         }
       } catch (err) {
-        console.error('[Assinatura] Erro ao buscar tenant da reunião:', err);
+        console.error('[Assinatura] Erro ao buscar tenant da reunião no banco local:', err);
       }
     }
     
