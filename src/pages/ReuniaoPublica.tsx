@@ -29,13 +29,19 @@ export default function ReuniaoPublica() {
   const [searchParams] = useSearchParams();
   
   // Extrair o ID da reunião corretamente, suportando /reuniao/:id ou /reuniao/:tenantId/:id
+  // Clean the ID to remove any query string that might be included
   const meetingId = useMemo(() => {
+    let rawId = '';
     // Se temos params.id, usamos ele (rota /reuniao/:id ou /reuniao-publica/:id)
-    if (params.id) return params.id;
-    
-    // Se a URL for /reuniao/:tenantId/:id, o id virá no final do path
-    const pathParts = window.location.pathname.split('/');
-    return pathParts[pathParts.length - 1];
+    if (params.id) {
+      rawId = params.id;
+    } else {
+      // Se a URL for /reuniao/:tenantId/:id, o id virá no final do path
+      const pathParts = window.location.pathname.split('/');
+      rawId = pathParts[pathParts.length - 1];
+    }
+    // Clean query string from the ID (handles both ? and %3F encoding)
+    return rawId.split('?')[0].split('%3F')[0];
   }, [params.id]);
   
   const isRecordingBot = searchParams.get("recording_bot") === "true" || 
@@ -67,7 +73,8 @@ export default function ReuniaoPublica() {
     refetchOnMount: false,
   });
 
-  const meeting = meetingData?.meeting;
+  // meetingData IS the meeting object directly (endpoint returns meeting fields directly, not wrapped)
+  const meeting = meetingData;
 
   const { data: designData } = useQuery({
     queryKey: ["/api/public/reunioes", meetingId, "room-design-public"],

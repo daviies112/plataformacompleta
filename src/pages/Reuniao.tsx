@@ -26,32 +26,31 @@ type MeetingStep = "lobby" | "meeting" | "ended";
 export default function Reuniao() {
   const params = useParams();
   const navigate = useNavigate();
-  const meetingId = params.id;
+  // Clean meeting ID - remove any query string that might be included
+  const meetingId = params.id?.split('?')[0];
   const { meeting: privateMeeting, loading: privateLoading, error: privateError, getToken100ms } = useReuniao(meetingId);
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
 
-  // Fallback to public endpoint if private fails (for unauthenticated access)
-  const { data: publicMeeting, isLoading: publicLoading } = useQuery({
+  // ALWAYS fetch from public endpoint first (this is a public page)
+  const { data: publicMeeting, isLoading: publicLoading, error: publicError } = useQuery({
     queryKey: ["/api/public/reunioes", meetingId, "public"],
     queryFn: async () => {
       if (!meetingId) return null;
-      try {
-        const response = await api.get(`/api/public/reunioes/${meetingId}/public`);
-        return response.data;
-      } catch (error) {
-        console.error("[Reuniao] Erro ao buscar reunião pública:", error);
-        return null;
-      }
+      console.log("[Reuniao] Buscando reunião via endpoint público:", meetingId);
+      const response = await api.get(`/api/public/reunioes/${meetingId}/public`);
+      console.log("[Reuniao] Resposta endpoint público:", response.data);
+      return response.data;
     },
-    enabled: !!meetingId && !!privateError, // Only fetch public if private fails
-    retry: false,
+    enabled: !!meetingId,
+    retry: 2,
+    staleTime: 30000,
   });
 
-  // Use private meeting if available, otherwise fallback to public
-  const meeting = privateMeeting || publicMeeting;
-  const loading = privateLoading || (privateError && publicLoading);
-  const error = privateError && !publicMeeting;
+  // Use public meeting as primary, private as fallback
+  const meeting = publicMeeting || privateMeeting;
+  const loading = publicLoading || (!publicMeeting && privateLoading);
+  const error = publicError && privateError;
 
   const [step, setStep] = useState<MeetingStep>("lobby");
   const [token100ms, setToken100ms] = useState<string | null>(null);

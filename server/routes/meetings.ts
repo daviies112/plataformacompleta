@@ -273,7 +273,12 @@ publicRoomDesignRouter.get('/reunioes/:meetingId/participant-data', async (req: 
 // Public route to get full meeting data (alias for /info with more data)
 publicRoomDesignRouter.get('/reunioes/:meetingId/public', async (req: Request, res: Response) => {
   try {
-    const { meetingId } = req.params;
+    // Clean meetingId - remove any query string that might be URL-encoded in the path
+    const meetingId = req.params.meetingId?.split('?')[0]?.split('%3F')[0];
+    
+    if (!meetingId) {
+      return res.status(400).json({ error: 'ID da reunião é obrigatório' });
+    }
     
     const [meeting] = await db.select().from(reunioes)
       .where(eq(reunioes.id, meetingId))
@@ -308,7 +313,12 @@ publicRoomDesignRouter.get('/reunioes/:meetingId/public', async (req: Request, r
 // Public route to get room design config (alias)
 publicRoomDesignRouter.get('/reunioes/:meetingId/room-design-public', async (req: Request, res: Response) => {
   try {
-    const { meetingId } = req.params;
+    // Clean meetingId - remove any query string that might be URL-encoded in the path
+    const meetingId = req.params.meetingId?.split('?')[0]?.split('%3F')[0];
+    
+    if (!meetingId) {
+      return res.status(400).json({ error: 'ID da reunião é obrigatório' });
+    }
     
     const [meeting] = await db.select().from(reunioes)
       .where(eq(reunioes.id, meetingId))
