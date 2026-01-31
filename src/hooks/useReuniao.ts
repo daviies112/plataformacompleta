@@ -103,7 +103,7 @@ export function useReuniao(id?: string) {
   const createInstantMutation = useMutation({
     mutationFn: async (data?: { titulo?: string; duracao?: number }) => {
       const response = await reunioesApi.createInstant(data);
-      return response.data;
+      return response.data?.data || response.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/reunioes"] });

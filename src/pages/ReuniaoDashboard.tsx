@@ -83,15 +83,17 @@ export default function ReuniaoDashboard() {
       const now = new Date();
       const timeStr = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
       
-      const response = await api.post('/api/reunioes/instant', {
+      const response = await api.post('/api/reunioes/instantanea', {
         titulo: "Reuniao Instantanea - " + timeStr
       });
       
-      if (response.data && response.data.id) {
+      const meetingData = response.data?.data || response.data;
+      
+      if (meetingData && meetingData.id) {
         setCreatedMeeting({
-          id: response.data.id,
-          linkReuniao: response.data.linkReuniao || response.data.link_reuniao,
-          titulo: response.data.titulo
+          id: meetingData.id,
+          linkReuniao: meetingData.linkReuniao || meetingData.link_reuniao,
+          titulo: meetingData.titulo
         });
         setShowMeetingModal(true);
         toast({
