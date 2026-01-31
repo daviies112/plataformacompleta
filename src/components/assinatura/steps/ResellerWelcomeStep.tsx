@@ -43,7 +43,6 @@ export const ResellerWelcomeStep = (props: ResellerWelcomeStepProps = {}) => {
   const [formData, setFormData] = useState({
     street: props.initialAddress?.street || '',
     number: props.initialAddress?.number || '',
-    neighborhood: props.initialAddress?.neighborhood || '',
     city: props.initialAddress?.city || '',
     state: props.initialAddress?.state || '',
     zipcode: props.initialAddress?.zipcode || '',
@@ -57,7 +56,6 @@ export const ResellerWelcomeStep = (props: ResellerWelcomeStepProps = {}) => {
         ...prev,
         street: props.initialAddress?.street || prev.street,
         number: props.initialAddress?.number || prev.number,
-        neighborhood: props.initialAddress?.neighborhood || prev.neighborhood,
         city: props.initialAddress?.city || prev.city,
         state: props.initialAddress?.state || prev.state,
         zipcode: props.initialAddress?.zipcode || prev.zipcode,
@@ -86,7 +84,7 @@ export const ResellerWelcomeStep = (props: ResellerWelcomeStepProps = {}) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.street || !formData.number || !formData.neighborhood || !formData.city || !formData.state || !formData.zipcode) {
+    if (!formData.street || !formData.number || !formData.city || !formData.state || !formData.zipcode) {
       toast({
         title: 'Campos obrigatórios',
         description: 'Por favor, preencha todos os campos obrigatórios.',
@@ -100,7 +98,6 @@ export const ResellerWelcomeStep = (props: ResellerWelcomeStepProps = {}) => {
       setAddressData({
         street: formData.street,
         number: formData.number,
-        neighborhood: formData.neighborhood,
         city: formData.city,
         state: formData.state,
         zipcode: formData.zipcode,
@@ -200,29 +197,16 @@ export const ResellerWelcomeStep = (props: ResellerWelcomeStepProps = {}) => {
               />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Bairro *</label>
-                <Input
-                  type="text"
-                  name="neighborhood"
-                  value={formData.neighborhood}
-                  onChange={handleInputChange}
-                  placeholder="Seu bairro"
-                  className="w-full text-gray-900"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Cidade *</label>
-                <Input
-                  type="text"
-                  name="city"
-                  value={formData.city}
-                  onChange={handleInputChange}
-                  placeholder="Nome da cidade"
-                  className="w-full text-gray-900"
-                />
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Cidade *</label>
+              <Input
+                type="text"
+                name="city"
+                value={formData.city}
+                onChange={handleInputChange}
+                placeholder="Nome da cidade"
+                className="w-full text-gray-900"
+              />
             </div>
 
             <div>

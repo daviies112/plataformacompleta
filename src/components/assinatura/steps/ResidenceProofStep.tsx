@@ -209,6 +209,16 @@ export const ResidenceProofStep = (props: ResidenceProofStepProps = {}) => {
     };
   }, [stopCamera]);
 
+  useEffect(() => {
+    if (isSaved) {
+      console.log('[ResidenceProof] Comprovante salvo - avançando automaticamente para próxima etapa');
+      const timer = setTimeout(() => {
+        setCurrentStep(5);
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [isSaved, setCurrentStep]);
+
   if (isSaving) {
     return (
       <div 
@@ -250,17 +260,12 @@ export const ResidenceProofStep = (props: ResidenceProofStepProps = {}) => {
           <h2 className="text-xl font-bold mb-2" style={{ color: textColor }}>
             Comprovante Salvo!
           </h2>
-          <p className="text-sm opacity-80 mb-6" style={{ color: textColor }}>
+          <p className="text-sm opacity-80 mb-4" style={{ color: textColor }}>
             Foto do comprovante de residência registrada com sucesso.
           </p>
-          <Button
-            onClick={() => setCurrentStep(5)}
-            className="w-full py-3 text-white font-semibold rounded-lg"
-            style={{ backgroundColor: buttonColor }}
-            data-testid="button-continue-residence"
-          >
-            Continuar para Assinatura
-          </Button>
+          <p className="text-xs opacity-60" style={{ color: textColor }}>
+            Avançando automaticamente...
+          </p>
         </div>
       </div>
     );
