@@ -156,6 +156,28 @@ export function MeetingLobby({
     >
       <Card className="w-full max-w-2xl p-6" style={{ backgroundColor: config?.colors?.controlsBackground || "#18181b" }}>
         <div className="text-center mb-6">
+          {config?.branding?.showLogoInLobby && companyLogo && (
+            <div className="flex justify-center mb-4">
+              <img
+                src={companyLogo}
+                alt={companyName || "Logo"}
+                loading="lazy"
+                className="object-contain"
+                style={{ 
+                  maxHeight: config?.branding?.logoSize || 60,
+                  maxWidth: "200px"
+                }}
+              />
+            </div>
+          )}
+          {config?.branding?.showCompanyName && companyName && (
+            <p 
+              className="text-lg font-semibold mb-3"
+              style={{ color: config?.colors?.controlsText || "#ffffff" }}
+            >
+              {companyName}
+            </p>
+          )}
           <h1 className="text-2xl font-bold mb-2" style={{ color: config?.colors?.controlsText || "#ffffff" }}>
             {lobbyConfig.title}
           </h1>

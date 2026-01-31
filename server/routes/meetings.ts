@@ -329,9 +329,21 @@ publicRoomDesignRouter.get('/reunioes/:meetingId/room-design-public', async (req
     }
 
     const metadata = meeting.metadata as any;
-    const designConfig = metadata?.roomDesignConfig || null;
+    let designConfig = metadata?.roomDesignConfig || null;
+
+    // Fallback: buscar config do tenant se não houver na metadata da reunião
+    if (!designConfig && meeting.tenantId) {
+      const [config] = await db.select().from(hms100msConfig)
+        .where(eq(hms100msConfig.tenantId, meeting.tenantId))
+        .limit(1);
+      
+      if (config?.roomDesignConfig) {
+        designConfig = config.roomDesignConfig;
+      }
+    }
 
     res.json({
+      roomDesignConfig: designConfig,
       designConfig,
       meetingInfo: {
         id: meeting.id,

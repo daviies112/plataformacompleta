@@ -229,6 +229,8 @@ export default function ReuniaoPublica() {
           participantName={userName}
           onParticipantNameChange={setUserName}
           config={roomConfig}
+          companyName={roomConfig.branding?.companyName}
+          companyLogo={roomConfig.branding?.logo}
         />
       </Suspense>
     );

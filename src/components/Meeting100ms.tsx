@@ -845,16 +845,31 @@ export function Meeting100ms({
             style={headerStyle}
           >
             <div className="flex items-center gap-3">
-              <div 
-                className="w-7 h-7 rounded-lg flex items-center justify-center shadow-lg"
-                style={{ backgroundColor: config?.colors?.primaryButton || "#3b82f6" }}
-              >
-                <Video className="h-4 w-4 text-white" />
-              </div>
+              {config?.branding?.showLogoInMeeting && config?.branding?.logo ? (
+                <img
+                  src={config.branding.logo}
+                  alt={config?.branding?.companyName || "Logo"}
+                  loading="lazy"
+                  className="object-contain"
+                  style={{ 
+                    maxHeight: Math.min(config?.branding?.logoSize || 32, 40),
+                    maxWidth: "120px"
+                  }}
+                />
+              ) : (
+                <div 
+                  className="w-7 h-7 rounded-lg flex items-center justify-center shadow-lg"
+                  style={{ backgroundColor: config?.colors?.primaryButton || "#3b82f6" }}
+                >
+                  <Video className="h-4 w-4 text-white" />
+                </div>
+              )}
               <div className="flex flex-col">
-                <span className="font-bold text-white text-xs leading-none">
-                  {config?.branding?.companyName || "MeetFlow"}
-                </span>
+                {config?.branding?.showCompanyName && config?.branding?.companyName && (
+                  <span className="font-bold text-white text-xs leading-none">
+                    {config.branding.companyName}
+                  </span>
+                )}
                 {isRecordingOn && (
                   <div className="flex items-center gap-1 mt-0.5 animate-pulse">
                     <Circle className="h-1.5 w-1.5 fill-red-500 text-red-500" />
