@@ -155,15 +155,15 @@ export async function extractColorsFromImage(
           // Skip transparent pixels
           if (a < 128) continue;
           
-          // Skip very light colors
+          // Skip very light colors (relaxed from 240 to 250)
           const brightness = getBrightness(r, g, b);
-          if (brightness > 240) continue;
+          if (brightness > 250) continue;
           
-          // Skip very dark colors
-          if (brightness < 20) continue;
+          // Skip very dark colors (relaxed from 20 to 10)
+          if (brightness < 10) continue;
           
-          // Skip grayscale colors
-          if (isGrayscale(r, g, b)) continue;
+          // Skip grayscale colors (but allow dark blues, dark reds, etc)
+          if (isGrayscale(r, g, b) && brightness > 30 && brightness < 220) continue;
           
           // Round colors to reduce variations
           const roundedR = Math.round(r / 10) * 10;

@@ -318,23 +318,39 @@ export default function RoomDesignSettings() {
 
         setExtractingColors(true);
         try {
-          const colors = await extractColorsFromImage(logoUrl, 5);
-          setConfig((prev) => ({
-            ...prev,
-            branding: {
-              ...prev.branding,
-              logo: logoUrl,
-              extractedColors: colors,
-              logoSize: prev.branding.logoSize || 60,
-            },
-          }));
-          toast({
-            title: "Cores extraídas!",
-            description: `${colors.length} cores encontradas na logo. Veja as sugestões de paleta.`,
-            duration: 5000,
-          });
+          // Garantir URL absoluta para extração de cores
+          const absoluteUrl = logoUrl.startsWith('http') 
+            ? logoUrl 
+            : `${window.location.origin}${logoUrl}`;
+          
+          console.log('[ColorExtract] Starting extraction from:', absoluteUrl);
+          const colors = await extractColorsFromImage(absoluteUrl, 5);
+          console.log('[ColorExtract] Colors extracted:', colors);
+          
+          if (colors && colors.length > 0) {
+            setConfig((prev) => ({
+              ...prev,
+              branding: {
+                ...prev.branding,
+                logo: logoUrl,
+                extractedColors: colors,
+                logoSize: prev.branding.logoSize || 60,
+              },
+            }));
+            toast({
+              title: "Cores extraídas!",
+              description: `${colors.length} cores encontradas na logo. Veja as sugestões de paleta.`,
+              duration: 5000,
+            });
+          } else {
+            console.warn('[ColorExtract] No colors extracted');
+            toast({
+              title: "Aviso",
+              description: "Logo carregada, mas não foram encontradas cores significativas",
+            });
+          }
         } catch (colorError) {
-          console.error("Error extracting colors:", colorError);
+          console.error("[ColorExtract] Error extracting colors:", colorError);
           toast({
             title: "Aviso",
             description: "Logo carregada, mas não foi possível extrair cores automaticamente",
@@ -918,10 +934,27 @@ export default function RoomDesignSettings() {
                   {previewMode === "lobby" && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-white space-y-6">
                       {config.branding.logo && config.branding.showLogoInLobby !== false && (
-                        <div className="flex items-center gap-2">
-                          <img src={config.branding.logo} alt="Logo" className="h-8 w-auto" />
+                        <div 
+                          className="flex items-center gap-2 w-full"
+                          style={{
+                            justifyContent: config.branding.logoPosition === "left" 
+                              ? "flex-start" 
+                              : config.branding.logoPosition === "right" 
+                              ? "flex-end" 
+                              : "center"
+                          }}
+                        >
+                          <img 
+                            src={config.branding.logo} 
+                            alt="Logo" 
+                            className="object-contain"
+                            style={{ 
+                              height: `${Math.min((config.branding.logoSize || 60) * 0.5, 40)}px`,
+                              maxWidth: "120px"
+                            }}
+                          />
                           {config.branding.showCompanyName && (
-                            <span className="font-bold">{config.branding.companyName}</span>
+                            <span className="font-bold text-sm">{config.branding.companyName}</span>
                           )}
                         </div>
                       )}
@@ -945,8 +978,25 @@ export default function RoomDesignSettings() {
                     <div className="absolute inset-0 flex flex-col text-white">
                       <header className="p-4 flex items-center justify-between">
                         {config.branding.logo && config.branding.showLogoInMeeting !== false && (
-                          <div className="flex items-center gap-2">
-                            <img src={config.branding.logo} alt="Logo" className="h-6 w-auto" />
+                          <div 
+                            className="flex items-center gap-2"
+                            style={{
+                              justifyContent: config.branding.logoPosition === "left" 
+                                ? "flex-start" 
+                                : config.branding.logoPosition === "right" 
+                                ? "flex-end" 
+                                : "center"
+                            }}
+                          >
+                            <img 
+                              src={config.branding.logo} 
+                              alt="Logo" 
+                              className="object-contain"
+                              style={{ 
+                                height: `${Math.min((config.branding.logoSize || 60) * 0.4, 32)}px`,
+                                maxWidth: "100px"
+                              }}
+                            />
                             {config.branding.showCompanyName && (
                               <span className="text-sm font-bold">{config.branding.companyName}</span>
                             )}
