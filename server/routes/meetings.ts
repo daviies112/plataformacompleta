@@ -549,6 +549,95 @@ meetingsRouter.get('/', authenticateToken, async (req: Request, res: Response) =
   }
 });
 
+// Get room design config for current tenant
+meetingsRouter.get('/room-design', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+    if (!user?.tenantId) {
+      return res.status(400).json({ error: 'Tenant não identificado' });
+    }
+
+    const [config] = await db.select().from(hms100msConfig)
+      .where(eq(hms100msConfig.tenantId, user.tenantId))
+      .limit(1);
+
+    if (!config) {
+      return res.json({ roomDesignConfig: null });
+    }
+
+    res.json({ 
+      roomDesignConfig: config.roomDesignConfig,
+      tenantId: config.tenantId
+    });
+
+  } catch (error: any) {
+    console.error('[RoomDesign] Erro ao buscar:', error);
+    res.status(500).json({ error: 'Erro ao buscar configuração de design' });
+  }
+});
+
+// Save room design config for current tenant
+meetingsRouter.patch('/room-design', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+    if (!user?.tenantId) {
+      return res.status(400).json({ error: 'Tenant não identificado' });
+    }
+
+    const { roomDesignConfig } = req.body;
+    if (!roomDesignConfig) {
+      return res.status(400).json({ error: 'roomDesignConfig é obrigatório' });
+    }
+
+    // Verificar se já existe config para este tenant
+    const [existingConfig] = await db.select().from(hms100msConfig)
+      .where(eq(hms100msConfig.tenantId, user.tenantId))
+      .limit(1);
+
+    let configId = existingConfig?.id;
+
+    if (existingConfig) {
+      // Atualizar
+      await db.update(hms100msConfig)
+        .set({ 
+          roomDesignConfig: roomDesignConfig,
+          updatedAt: new Date()
+        })
+        .where(eq(hms100msConfig.tenantId, user.tenantId));
+    } else {
+      // Inserir novo (note: appAccessKey e appSecret são required, então apenas atualiza roomDesignConfig se já existe)
+      // Se não existe config, significa que 100ms não está configurado, apenas retorna erro
+      return res.status(400).json({ 
+        error: 'Configuração 100ms não encontrada. Configure primeiro as credenciais 100ms.' 
+      });
+    }
+
+    // Tentar sincronizar com Supabase do cliente (opcional)
+    try {
+      const supabase = await getClientSupabaseClient(user.tenantId);
+      if (supabase) {
+        await supabase
+          .from('hms_100ms_config')
+          .upsert({
+            id: configId,
+            tenant_id: user.tenantId,
+            room_design_config: roomDesignConfig,
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'tenant_id' });
+        console.log(`[RoomDesign] Sincronizado com Supabase para tenant ${user.tenantId}`);
+      }
+    } catch (sbErr) {
+      console.warn('[RoomDesign] Erro ao sincronizar com Supabase:', sbErr);
+      // Não falhar - Supabase é opcional
+    }
+
+    res.json({ success: true, message: 'Configurações salvas com sucesso' });
+  } catch (error: any) {
+    console.error('[RoomDesign] Erro ao salvar:', error);
+    res.status(500).json({ error: 'Erro ao salvar configurações' });
+  }
+});
+
 // Get single meeting
 meetingsRouter.get('/:id', authenticateToken, async (req: Request, res: Response) => {
   try {
