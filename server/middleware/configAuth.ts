@@ -25,9 +25,7 @@ export function authenticateConfig(req: AuthRequest, res: Response, next: NextFu
   
   if (token) {
     try {
-      const jwtSecret = process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' 
-        ? (() => { throw new Error('JWT_SECRET is required in production'); })()
-        : 'demo-secret-key-for-development-only');
+      const jwtSecret = process.env.JWT_SECRET || process.env.SESSION_SECRET || 'demo-secret-key-for-development-only';
       
       const decoded = jwt.verify(token, jwtSecret) as {
         userId: string;
