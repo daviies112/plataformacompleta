@@ -12,11 +12,36 @@ export async function apiRequest(endpoint: string, options: RequestInit = {}) {
     },
   });
 
-  if (!response.ok && response.status !== 400) {
-    throw new Error(`API request failed: ${response.statusText}`);
+  // Verificar se a resposta é JSON antes de parsear
+  const contentType = response.headers.get('content-type');
+  const isJson = contentType && contentType.includes('application/json');
+  
+  if (!response.ok) {
+    // Tentar extrair mensagem de erro amigável
+    if (isJson) {
+      try {
+        const data = await response.json();
+        if (data && data.error) {
+          throw new Error(data.error);
+        }
+        if (data && data.message) {
+          throw new Error(data.message);
+        }
+      } catch (parseError) {
+        if (parseError instanceof SyntaxError) {
+          throw new Error(`Falha na requisição: ${response.statusText}`);
+        }
+        throw parseError;
+      }
+    }
+    throw new Error(`Falha na requisição: ${response.statusText}`);
   }
 
-  return response.json();
+  // Retornar dados JSON ou objeto vazio para respostas sem corpo
+  if (isJson) {
+    return await response.json();
+  }
+  return {};
 }
 
 export { USER_ID_WHATSAPP };

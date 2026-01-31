@@ -279,11 +279,17 @@ export const configManager = {
       }
     } catch (error) {
       console.error('Connection test error:', error);
+      
+      // A mensagem de erro já vem formatada pelo apiRequest
+      const friendlyMessage = error instanceof Error 
+        ? error.message 
+        : 'Erro ao testar conexão';
+      
       return {
         success: false,
         connected: false,
         state: 'error',
-        message: 'Erro ao testar conexão'
+        message: friendlyMessage
       };
     }
   },
