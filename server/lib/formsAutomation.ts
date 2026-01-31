@@ -2,7 +2,7 @@ import { getClienteSupabase, getSubmissionById, fetchApprovedSubmissions, type F
 import { getSupabaseMaster, isSupabaseMasterConfigured } from './supabaseMaster';
 import { checkCompliance } from './datacorpCompliance';
 import { validateCPF, normalizeCPF } from './crypto';
-import { log } from '../vite';
+import { log } from '../production';
 
 export interface ProcessResult {
   success: boolean;

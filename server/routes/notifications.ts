@@ -2,7 +2,7 @@ import type { Express, Request, Response } from 'express';
 import NotificationService from '../services/NotificationService';
 import IntegrationListeners from '../services/IntegrationListeners';
 import UnifiedNotificationService from '../services/UnifiedNotificationService';
-import { log } from '../vite';
+import { log } from '../production';
 import { db } from '../db';
 import { notificationSettings } from '../../shared/db-schema.js';
 import { eq, and } from 'drizzle-orm';

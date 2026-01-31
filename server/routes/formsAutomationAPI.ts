@@ -14,7 +14,7 @@ import {
 } from '../lib/formsAutomationWorker';
 import { isClienteSupabaseConfigured } from '../lib/clienteSupabase';
 import { isSupabaseMasterConfigured } from '../lib/supabaseMaster';
-import { log } from '../vite';
+import { log } from '../production';
 
 const router = Router();
 

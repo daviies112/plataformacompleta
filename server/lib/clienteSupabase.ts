@@ -1,5 +1,5 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { log } from '../vite';
+import { log } from '../production';
 import { db } from '../db';
 import { supabaseConfig } from '../../shared/db-schema';
 import { decrypt } from './credentialsManager';

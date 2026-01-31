@@ -3,7 +3,7 @@ import NotificationService from './NotificationService';
 import { db } from '../db';
 import { pluggyConnections } from '../../shared/db-schema.js';
 import { eq, and } from 'drizzle-orm';
-import { log } from '../vite';
+import { log } from '../production';
 
 class IntegrationListeners {
   private supabaseClient: any = null;

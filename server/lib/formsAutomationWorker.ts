@@ -1,4 +1,4 @@
-import { log } from '../vite';
+import { log } from '../production';
 import { processAllPendingSubmissions } from './formsAutomation';
 import { isClienteSupabaseConfigured } from './clienteSupabase';
 

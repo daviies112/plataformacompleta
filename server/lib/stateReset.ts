@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { log } from '../vite';
+import { log } from '../production';
 
 const DATA_DIR = path.join(process.cwd(), 'data');
 

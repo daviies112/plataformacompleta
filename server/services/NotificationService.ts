@@ -7,7 +7,7 @@ import {
   notificationHistory 
 } from '../../shared/db-schema.js';
 import { eq, and } from 'drizzle-orm';
-import { log } from '../vite';
+import { log } from '../production';
 
 interface NotificationPayload {
   type: 'SUPABASE_NEW_DATA' | 'PLUGGY_UPDATE' | 'SYSTEM_ALERT';

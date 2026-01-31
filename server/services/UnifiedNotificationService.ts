@@ -1,6 +1,6 @@
 import NotificationService from './NotificationService';
 import { sendNotificationEmail, sendBillingEmail } from '../lib/email';
-import { log } from '../vite';
+import { log } from '../production';
 import { db } from '../db';
 import { notificationSettings } from '../../shared/db-schema.js';
 import { eq } from 'drizzle-orm';

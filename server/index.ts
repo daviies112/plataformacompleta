@@ -3,7 +3,7 @@ console.log('[STARTUP] Loading server modules...');
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
+import { serveStatic, log } from "./production";
 import { initializeSentry, setupSentryMiddleware, setupSentryErrorHandler } from "./lib/sentry";
 import { apiLimiter, authLimiter } from "./middleware/rateLimiter";
 import { setupConfigRoutes } from "./routes/config";
@@ -215,10 +215,14 @@ app.use((req, res, next) => {
     // Setup Vite ONLY after server is listening
     if (app.get("env") === "development") {
       log('Setting up Vite development server...');
-      setupVite(app, server).then(() => {
-        log('✅ Vite development server initialized');
+      import("./vite").then(({ setupVite }) => {
+        setupVite(app, server).then(() => {
+          log('✅ Vite development server initialized');
+        }).catch(err => {
+          console.error('❌ Failed to setup Vite:', err);
+        });
       }).catch(err => {
-        console.error('❌ Failed to setup Vite:', err);
+        console.error('❌ Failed to load Vite module:', err);
       });
     } else {
       serveStatic(app);
