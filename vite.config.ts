@@ -33,6 +33,35 @@ export default defineConfig(({ mode }) => ({
   },
   optimizeDeps: {
     exclude: ['whatsapp'],
+    // ✅ OTIMIZAÇÃO CRÍTICA: Pré-otimiza dependências usadas em rotas públicas
+    // Isso evita compilação on-demand que causa delay de 15s
+    include: [
+      'react',
+      'react-dom',
+      'react-dom/client',
+      'react-router-dom',
+      '@tanstack/react-query',
+      'next-themes',
+      'sonner',
+      'lucide-react',
+      '@radix-ui/react-tooltip',
+      '@radix-ui/react-toast',
+      '@radix-ui/react-dialog',
+      '@radix-ui/react-slot',
+      'class-variance-authority',
+      'clsx',
+      'tailwind-merge',
+      'zod',
+      'react-hook-form',
+      '@hookform/resolvers/zod',
+      'date-fns',
+      'date-fns/locale/pt-BR',
+      '@supabase/supabase-js',
+      'zustand',
+      'axios',
+    ],
+    // Força pré-bundling na inicialização
+    force: true,
   },
   server: {
     host: "0.0.0.0",

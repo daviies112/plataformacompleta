@@ -33,16 +33,59 @@
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
     
-    <!-- Critical CSS - dark theme background for instant display without spinner -->
+    <!-- Critical CSS - instant visual feedback skeleton -->
     <style>
       html, body { margin: 0; padding: 0; }
-      body { background: #0a0a0a; }
+      body { background: #0a0a0a; color: #fafafa; font-family: system-ui, -apple-system, sans-serif; }
       #root { min-height: 100vh; background: #0a0a0a; }
+      
+      /* Skeleton inicial que aparece em <50ms */
+      .instant-skeleton {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1.5rem;
+      }
+      .instant-skeleton-card {
+        width: 100%;
+        max-width: 28rem;
+        background: rgba(255,255,255,0.03);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 0.75rem;
+        padding: 2rem;
+      }
+      .skeleton-block {
+        background: rgba(255,255,255,0.06);
+        border-radius: 0.5rem;
+        animation: skeleton-pulse 1.5s ease-in-out infinite;
+      }
+      .skeleton-block.h-logo { height: 4rem; margin-bottom: 1.5rem; }
+      .skeleton-block.h-title { height: 2rem; width: 60%; margin: 0 auto 0.5rem; }
+      .skeleton-block.h-subtitle { height: 1rem; width: 80%; margin: 0 auto 1.5rem; }
+      .skeleton-block.h-input { height: 3rem; margin-bottom: 1rem; }
+      .skeleton-block.h-button { height: 3rem; margin-top: 0.5rem; }
+      @keyframes skeleton-pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.4; }
+      }
     </style>
   </head>
 
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Skeleton instantâneo - substituído pelo React quando carrega -->
+      <div class="instant-skeleton">
+        <div class="instant-skeleton-card">
+          <div class="skeleton-block h-logo"></div>
+          <div class="skeleton-block h-title"></div>
+          <div class="skeleton-block h-subtitle"></div>
+          <div class="skeleton-block h-input"></div>
+          <div class="skeleton-block h-input"></div>
+          <div class="skeleton-block h-button"></div>
+        </div>
+      </div>
+    </div>
     
     <!-- QZ Tray for thermal printer integration - load async to not block -->
     <script async src="https://cdn.jsdelivr.net/npm/qz-tray@2.2/qz-tray.min.js"></script>

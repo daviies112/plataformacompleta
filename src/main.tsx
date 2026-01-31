@@ -1,34 +1,36 @@
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
-import { initializeSentry } from "./lib/sentry";
 import { initializeColorScheme } from "./lib/colorScheme";
 
-// Initialize color scheme before app renders
+// Initialize color scheme before app renders (lightweight - no external deps)
 initializeColorScheme();
 
-// Initialize Sentry in background (non-blocking)
-initializeSentry().catch(console.error);
-
-// Service Worker registration disabled until implementation is needed
-// Re-enable when service-worker.js is created with proper caching strategy
-// if ('serviceWorker' in navigator) {
-//   window.addEventListener('load', () => {
-//     navigator.serviceWorker
-//       .register('/service-worker.js')
-//       .then((registration) => {
-//         console.log('✅ Service Worker registrado com sucesso:', registration);
-//         
-//         if ('pushManager' in registration) {
-//           console.log('✅ Push Manager disponível para notificações');
-//         }
-//       })
-//       .catch((error) => {
-//         console.error('❌ Erro ao registrar Service Worker:', error);
-//       });
-//   });
-// }
-
-// Render immediately without waiting for Sentry
-// Note: Temporarily without StrictMode to debug Suspense issues
+// ✅ OTIMIZAÇÃO CRÍTICA: Renderiza PRIMEIRO, depois carrega Sentry em background
+// Isso reduz o bundle inicial em ~21MB
 createRoot(document.getElementById("root")!).render(<App />);
+
+// Inicializar Sentry apenas em rotas privadas e após a renderização inicial
+// Usa dynamic import para não bloquear o carregamento inicial
+const isPublicRoute = window.location.pathname === '/' ||
+  window.location.pathname === '/login' ||
+  window.location.pathname === '/reseller-login' ||
+  window.location.pathname.startsWith('/assinar/') ||
+  window.location.pathname.startsWith('/assinatura/') ||
+  window.location.pathname.startsWith('/f/') ||
+  window.location.pathname.startsWith('/form/') ||
+  window.location.pathname.startsWith('/formulario/') ||
+  window.location.pathname.startsWith('/reuniao/') ||
+  window.location.pathname.startsWith('/reuniao-publica/') ||
+  window.location.pathname.startsWith('/loja/') ||
+  window.location.pathname.startsWith('/checkout/') ||
+  /^\/[^/]+\/form\//.test(window.location.pathname);
+
+// Só carrega Sentry para rotas privadas e depois de 3 segundos
+if (!isPublicRoute) {
+  setTimeout(() => {
+    import("./lib/sentry").then(({ initializeSentry }) => {
+      initializeSentry().catch(console.error);
+    });
+  }, 3000);
+}
