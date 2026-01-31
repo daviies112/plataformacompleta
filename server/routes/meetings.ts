@@ -664,6 +664,162 @@ meetingsRouter.post('/', authenticateToken, async (req: Request, res: Response) 
   }
 });
 
+// Create an instant meeting (like Google Meet - quick start)
+meetingsRouter.post('/instantanea', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+    if (!user?.tenantId) {
+      return res.status(400).json({ success: false, error: 'Tenant não identificado' });
+    }
+
+    const body = req.body || {};
+    const { titulo, descricao, nome, email, telefone, duracao = 60 } = body;
+
+    // Get tenant 100ms config
+    const [config] = await db.select().from(hms100msConfig)
+      .where(eq(hms100msConfig.tenantId, user.tenantId))
+      .limit(1);
+
+    if (!config || !config.appAccessKey || !config.appSecret) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Credenciais 100ms não configuradas',
+        message: 'Configure as credenciais do 100ms em Configurações antes de criar reuniões'
+      });
+    }
+
+    const appAccessKey = decrypt(config.appAccessKey);
+    const appSecret = decrypt(config.appSecret);
+
+    if (!appAccessKey || !appSecret) {
+      return res.status(400).json({ success: false, error: 'Credenciais do 100ms inválidas ou corrompidas' });
+    }
+
+    // Generate meeting title if not provided
+    const now = new Date();
+    const meetingTitle = titulo || `Reunião Instantânea - ${now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+    
+    console.log(`[Meetings] Criando reunião instantânea para tenant ${user.tenantId}...`);
+    
+    // Create 100ms room
+    const sala = await criarSala(
+      meetingTitle,
+      config.templateId || '',
+      appAccessKey,
+      appSecret
+    );
+    console.log(`[Meetings] Sala instantânea criada no 100ms: ${sala.id}`);
+
+    const startDate = now;
+    const endDate = new Date(now.getTime() + duracao * 60 * 1000);
+
+    // Build metadata with roomDesignConfig from tenant
+    const metadata: any = {
+      source: 'dashboard',
+      createdVia: 'instant-meeting',
+      instant: true
+    };
+
+    if (config.roomDesignConfig) {
+      metadata.roomDesignConfig = config.roomDesignConfig;
+      console.log(`[Meetings] roomDesignConfig aplicado do tenant para reunião instantânea`);
+    }
+
+    // Create meeting record
+    const [newMeeting] = await db.insert(reunioes).values({
+      tenantId: user.tenantId,
+      usuarioId: user.id,
+      titulo: meetingTitle,
+      descricao: descricao || 'Reunião criada instantaneamente',
+      nome: nome || user.name || 'Host',
+      email: email || user.email || '',
+      telefone: telefone || '',
+      dataInicio: startDate,
+      dataFim: endDate,
+      duracao: duracao,
+      status: 'em_andamento', // Start immediately
+      roomId100ms: sala.id,
+      linkReuniao: '',
+      metadata: metadata,
+      compareceu: false,
+      participantes: [],
+    }).returning();
+
+    // Generate meeting links
+    const baseUrl = process.env.REPLIT_DOMAINS?.split(',')[0] || req.get('host') || 'localhost:5000';
+    const linkReuniao = `https://${baseUrl}/reuniao/${newMeeting.id}`;
+    const linkPublico = `https://${baseUrl}/reuniao-publica/${newMeeting.id}`;
+
+    await db.update(reunioes)
+      .set({ linkReuniao, linkPublico })
+      .where(eq(reunioes.id, newMeeting.id));
+
+    // Sync to Supabase asynchronously
+    const supabase = await getClientSupabaseClient(user.tenantId);
+    if (supabase) {
+      supabase.from('reunioes').upsert({
+        id: newMeeting.id,
+        tenant_id: user.tenantId,
+        usuario_id: user.id,
+        titulo: meetingTitle,
+        descricao: descricao || 'Reunião criada instantaneamente',
+        nome: nome || user.name || 'Host',
+        email: email || user.email || '',
+        telefone: telefone || '',
+        data_inicio: startDate.toISOString(),
+        data_fim: endDate.toISOString(),
+        duracao: duracao,
+        status: 'em_andamento',
+        room_id_100ms: sala.id,
+        link_reuniao: linkReuniao,
+        link_publico: linkPublico,
+        metadata: metadata,
+        compareceu: false,
+        participantes: [],
+      }, { onConflict: 'id' }).then(() => {
+        console.log(`[Meetings] Reunião instantânea sincronizada com Supabase`);
+      }).catch((err: any) => {
+        console.error(`[Meetings] Erro ao sincronizar reunião instantânea com Supabase:`, err);
+      });
+    }
+
+    // Generate host token
+    let hostToken = null;
+    try {
+      hostToken = gerarTokenParticipante(
+        sala.id,
+        user.name || 'Host',
+        'host',
+        appAccessKey,
+        appSecret
+      );
+    } catch (tokenErr) {
+      console.warn('[Meetings] Erro ao gerar token do host:', tokenErr);
+    }
+
+    console.log(`[Meetings] Reunião instantânea criada com sucesso: ${newMeeting.id}`);
+
+    res.status(201).json({
+      success: true,
+      data: {
+        ...newMeeting,
+        linkReuniao,
+        linkPublico,
+        hostToken,
+        roomId100ms: sala.id
+      }
+    });
+
+  } catch (error: any) {
+    console.error('[Meetings] Erro ao criar reunião instantânea:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Erro ao criar reunião instantânea',
+      message: error.message 
+    });
+  }
+});
+
 // Start a meeting
 meetingsRouter.post('/:id/start', authenticateToken, async (req: Request, res: Response) => {
   try {
