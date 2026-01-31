@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Slider } from "@/components/ui/slider";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import {
   Loader2,
@@ -21,12 +23,21 @@ import {
   Image,
   Upload,
   X,
+  Sparkles,
+  Shuffle,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { api } from "@/lib/api";
 import { RoomDesignConfig, DEFAULT_ROOM_DESIGN_CONFIG } from "@/types/reuniao";
 import { MeetingHeader } from "@/components/MeetingHeader";
 import { getSupabaseClient } from "@/lib/supabase";
+import { extractColorsFromImage, generateColorVariations, hslToHex } from "@/lib/colorExtractor";
+
+const LOGO_ALIGN_OPTIONS = [
+  { value: "left", label: "Esquerda" },
+  { value: "center", label: "Centro" },
+  { value: "right", label: "Direita" },
+];
 
 const COLOR_PRESETS = [
   {
@@ -105,6 +116,16 @@ export default function RoomDesignSettings() {
   const [previewMode, setPreviewMode] = useState<"lobby" | "meeting" | "end">("meeting");
   const [devicePreview, setDevicePreview] = useState<"desktop" | "mobile">("desktop");
   const [isUploading, setIsUploading] = useState(false);
+  const [extractingColors, setExtractingColors] = useState(false);
+  const [colorVariations, setColorVariations] = useState<Array<{
+    primary: string;
+    secondary: string;
+    background: string;
+    text: string;
+    name: string;
+    button: string;
+    buttonText: string;
+  }>>([]);
 
   const { data: designData, isLoading, refetch } = useQuery({
     queryKey: ["/api/reunioes/room-design"],
@@ -182,6 +203,16 @@ export default function RoomDesignSettings() {
     }
   }, [designData]);
 
+  // Regenerate color variations when extractedColors changes
+  useEffect(() => {
+    if (config.branding.logo && config.branding.extractedColors && config.branding.extractedColors.length > 0) {
+      const variations = generateColorVariations(config.branding.extractedColors);
+      setColorVariations(variations);
+    } else {
+      setColorVariations([]);
+    }
+  }, [config.branding.extractedColors, config.branding.logo]);
+
   // Supabase Realtime Subscription para Design
   useEffect(() => {
     let channel: any;
@@ -255,6 +286,15 @@ export default function RoomDesignSettings() {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    if (!file.type.startsWith("image/")) {
+      toast({
+        variant: "destructive",
+        title: "Erro",
+        description: "Por favor, selecione uma imagem válida",
+      });
+      return;
+    }
+
     setIsUploading(true);
     try {
       const formData = new FormData();
@@ -265,8 +305,43 @@ export default function RoomDesignSettings() {
       });
 
       if (response.data.url) {
-        updateConfig("branding.logo", response.data.url);
-        toast({ title: "Logo enviado!", description: "O logo foi carregado com sucesso." });
+        const logoUrl = response.data.url;
+        setConfig((prev) => ({
+          ...prev,
+          branding: {
+            ...prev.branding,
+            logo: logoUrl,
+            logoSize: prev.branding.logoSize || 60,
+          },
+        }));
+        toast({ title: "Logo enviado!", description: "Extraindo cores da logo..." });
+
+        setExtractingColors(true);
+        try {
+          const colors = await extractColorsFromImage(logoUrl, 5);
+          setConfig((prev) => ({
+            ...prev,
+            branding: {
+              ...prev.branding,
+              logo: logoUrl,
+              extractedColors: colors,
+              logoSize: prev.branding.logoSize || 60,
+            },
+          }));
+          toast({
+            title: "Cores extraídas!",
+            description: `${colors.length} cores encontradas na logo. Veja as sugestões de paleta.`,
+            duration: 5000,
+          });
+        } catch (colorError) {
+          console.error("Error extracting colors:", colorError);
+          toast({
+            title: "Aviso",
+            description: "Logo carregada, mas não foi possível extrair cores automaticamente",
+          });
+        } finally {
+          setExtractingColors(false);
+        }
       }
     } catch (error: any) {
       toast({
@@ -283,7 +358,53 @@ export default function RoomDesignSettings() {
   };
 
   const handleRemoveLogo = () => {
-    updateConfig("branding.logo", null);
+    setConfig((prev) => ({
+      ...prev,
+      branding: {
+        ...prev.branding,
+        logo: null,
+        extractedColors: undefined,
+      },
+    }));
+    setColorVariations([]);
+  };
+
+  const applyColorVariation = (variation: typeof colorVariations[0]) => {
+    // Converter HSL para HEX para compatibilidade com inputs de cor
+    const toHex = (color: string): string => {
+      if (color.startsWith('hsl')) {
+        return hslToHex(color);
+      }
+      return color;
+    };
+    
+    const hexPrimary = toHex(variation.primary);
+    const hexSecondary = toHex(variation.secondary);
+    const hexBackground = toHex(variation.background);
+    const hexText = toHex(variation.text);
+    const hexButton = variation.button ? toHex(variation.button) : hexPrimary;
+    const hexButtonText = variation.buttonText ? toHex(variation.buttonText) : hexText;
+    
+    setConfig((prev) => ({
+      ...prev,
+      colors: {
+        ...prev.colors,
+        background: hexBackground,
+        primaryButton: hexPrimary,
+        controlsBackground: hexSecondary,
+        controlsText: hexText,
+        avatarBackground: hexPrimary,
+        avatarText: hexButtonText,
+        dangerButton: prev.colors.dangerButton || "#ef4444",
+        participantNameBackground: `rgba(0, 0, 0, 0.6)`,
+        participantNameText: hexText,
+      },
+    }));
+    toast({
+      title: "Paleta aplicada!",
+      description: `${variation.name} aplicada com sucesso`,
+      duration: 2000,
+    });
   };
 
   if (isLoading) {
@@ -340,11 +461,13 @@ export default function RoomDesignSettings() {
                       onChange={handleFileUpload}
                       className="hidden"
                       id="logo-upload"
+                      data-testid="input-logo-upload"
                     />
                     {!config.branding.logo ? (
                       <div
                         onClick={() => fileInputRef.current?.click()}
                         className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center cursor-pointer hover:border-primary/50 hover:bg-muted/50 transition-colors"
+                        data-testid="button-upload-logo"
                       >
                         {isUploading ? (
                           <div className="flex flex-col items-center gap-2">
@@ -360,18 +483,146 @@ export default function RoomDesignSettings() {
                         )}
                       </div>
                     ) : (
-                      <div className="relative p-4 bg-muted rounded-lg">
-                        <div className="flex items-center justify-center">
-                          <img src={config.branding.logo} alt="Logo" className="max-h-20 object-contain" />
+                      <div className="space-y-4">
+                        <div className="relative p-4 bg-muted rounded-lg">
+                          <div
+                            className="flex items-center"
+                            style={{
+                              justifyContent:
+                                config.branding.logoPosition === "center"
+                                  ? "center"
+                                  : config.branding.logoPosition === "right"
+                                  ? "flex-end"
+                                  : "flex-start",
+                            }}
+                          >
+                            <img
+                              src={config.branding.logo}
+                              alt="Logo"
+                              className="object-contain"
+                              style={{ height: `${config.branding.logoSize || 60}px`, maxWidth: "200px" }}
+                              data-testid="img-logo-preview"
+                            />
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="absolute top-2 right-2"
+                            onClick={handleRemoveLogo}
+                            data-testid="button-remove-logo"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="absolute top-2 right-2"
-                          onClick={handleRemoveLogo}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
+
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-center">
+                            <Label>Tamanho da Logo</Label>
+                            <span className="text-sm text-muted-foreground">{config.branding.logoSize || 60}px</span>
+                          </div>
+                          <Slider
+                            value={[config.branding.logoSize || 60]}
+                            onValueChange={(values) => updateConfig("branding.logoSize", values[0])}
+                            min={32}
+                            max={200}
+                            step={4}
+                            className="w-full"
+                            data-testid="slider-logo-size"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label>Posição da Logo</Label>
+                          <Select
+                            value={config.branding.logoPosition || "left"}
+                            onValueChange={(value: "left" | "center" | "right") => updateConfig("branding.logoPosition", value)}
+                          >
+                            <SelectTrigger data-testid="select-logo-position">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {LOGO_ALIGN_OPTIONS.map((option) => (
+                                <SelectItem key={option.value} value={option.value}>
+                                  {option.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {extractingColors && (
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <Sparkles className="h-4 w-4 animate-pulse" />
+                            Extraindo cores da logo...
+                          </div>
+                        )}
+
+                        {config.branding.extractedColors && config.branding.extractedColors.length > 0 && (
+                          <div className="space-y-3 p-4 bg-secondary/20 rounded-lg border border-border">
+                            <div className="flex items-center gap-2">
+                              <Sparkles className="h-4 w-4 text-primary" />
+                              <Label className="text-sm font-semibold">Cores Extraídas da Logo</Label>
+                            </div>
+                            <div className="flex gap-2 flex-wrap">
+                              {config.branding.extractedColors.map((color, index) => (
+                                <div
+                                  key={index}
+                                  className="w-10 h-10 rounded-md border-2 border-border shadow-sm cursor-pointer hover:scale-110 transition-transform"
+                                  style={{ backgroundColor: color }}
+                                  title={color}
+                                  data-testid={`color-extracted-${index}`}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {colorVariations.length > 0 && (
+                          <div className="space-y-3 p-4 bg-primary/5 rounded-lg border border-primary/20">
+                            <div className="flex items-center gap-2">
+                              <Shuffle className="h-4 w-4 text-primary" />
+                              <Label className="text-sm font-semibold">Sugestões de Paleta</Label>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              Clique para aplicar uma paleta de cores baseada na sua logo
+                            </p>
+                            <div className="grid grid-cols-2 gap-2">
+                              {colorVariations.slice(0, 6).map((variation, index) => (
+                                <Button
+                                  key={index}
+                                  variant="outline"
+                                  onClick={() => applyColorVariation(variation)}
+                                  className="h-auto flex-col items-start p-3 hover:border-primary"
+                                  data-testid={`button-palette-${index}`}
+                                >
+                                  <span className="text-xs font-medium mb-2">{variation.name}</span>
+                                  <div className="flex gap-1 w-full">
+                                    <div
+                                      className="w-6 h-6 rounded-sm border"
+                                      style={{ backgroundColor: variation.primary }}
+                                      title="Primária"
+                                    />
+                                    <div
+                                      className="w-6 h-6 rounded-sm border"
+                                      style={{ backgroundColor: variation.secondary }}
+                                      title="Secundária"
+                                    />
+                                    <div
+                                      className="w-6 h-6 rounded-sm border"
+                                      style={{ backgroundColor: variation.background }}
+                                      title="Fundo"
+                                    />
+                                    <div
+                                      className="w-6 h-6 rounded-sm border"
+                                      style={{ backgroundColor: variation.text }}
+                                      title="Texto"
+                                    />
+                                  </div>
+                                </Button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -382,6 +633,7 @@ export default function RoomDesignSettings() {
                       value={config.branding.companyName || ""}
                       onChange={(e) => updateConfig("branding.companyName", e.target.value)}
                       placeholder="Nome da sua empresa"
+                      data-testid="input-company-name"
                     />
                   </div>
 
@@ -393,6 +645,7 @@ export default function RoomDesignSettings() {
                     <Switch
                       checked={config.branding.showCompanyName || false}
                       onCheckedChange={(checked) => updateConfig("branding.showCompanyName", checked)}
+                      data-testid="switch-show-company-name"
                     />
                   </div>
 
@@ -404,6 +657,7 @@ export default function RoomDesignSettings() {
                     <Switch
                       checked={config.branding.showLogoInLobby !== false}
                       onCheckedChange={(checked) => updateConfig("branding.showLogoInLobby", checked)}
+                      data-testid="switch-show-logo-lobby"
                     />
                   </div>
 
@@ -415,6 +669,7 @@ export default function RoomDesignSettings() {
                     <Switch
                       checked={config.branding.showLogoInMeeting !== false}
                       onCheckedChange={(checked) => updateConfig("branding.showLogoInMeeting", checked)}
+                      data-testid="switch-show-logo-meeting"
                     />
                   </div>
                 </CardContent>

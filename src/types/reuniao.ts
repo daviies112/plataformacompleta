@@ -27,6 +27,7 @@ export interface RoomDesignConfig {
     showCompanyName?: boolean;
     showLogoInLobby?: boolean;
     showLogoInMeeting?: boolean;
+    extractedColors?: string[];
   };
   colors: {
     background: string;

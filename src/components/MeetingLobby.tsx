@@ -157,7 +157,16 @@ export function MeetingLobby({
       <Card className="w-full max-w-2xl p-6" style={{ backgroundColor: config?.colors?.controlsBackground || "#18181b" }}>
         <div className="text-center mb-6">
           {config?.branding?.showLogoInLobby && companyLogo && (
-            <div className="flex justify-center mb-4">
+            <div 
+              className="flex mb-4"
+              style={{
+                justifyContent: config?.branding?.logoPosition === "left" 
+                  ? "flex-start" 
+                  : config?.branding?.logoPosition === "right" 
+                  ? "flex-end" 
+                  : "center"
+              }}
+            >
               <img
                 src={companyLogo}
                 alt={companyName || "Logo"}

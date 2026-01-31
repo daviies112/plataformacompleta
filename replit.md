@@ -36,6 +36,12 @@ ExecutiveAI Pro utilizes a modern web stack with a multi-tenant, API-driven arch
 - **NEXUS Reseller Platform:** An authenticated portal for resellers, providing dashboards, sales tracking, and financial summaries with strong data isolation.
 - **Digital Signature System:** Comprehensive platform featuring contract generation, biometric verification, document/residence proof validation, identity validation, multi-step client signing, and real-time previews. Includes a global appearance customization system.
 - **Video Conferencing:** Powered by 100ms, offering dynamic roles, public links, automatic participant check-in, and server-side recording. Includes customizable room branding (logo, company name, colors) configured via the Design page and automatically applied to public meeting lobby and in-meeting screens. Design settings are stored in `hms_100ms_config` table and fetched via public API routes.
+  - **Logo Upload with Color Extraction:** Upload de logo com extração automática de cores dominantes. Funcionalidades:
+    - Slider de tamanho da logo (32-200px)
+    - Select de posição da logo (Esquerda, Centro, Direita)
+    - Extração automática de 5 cores principais usando algoritmo de análise de pixels
+    - Geração de 6 variações de paleta de cores baseadas na logo
+    - Aplicação de paleta com conversão HSL → HEX para compatibilidade
   - **Meeting Creation Routes:** `POST /api/reunioes` for instant and scheduled meetings, `POST /:id/start` and `/:id/end` for lifecycle management. All routes apply tenant's `roomDesignConfig` from `hms_100ms_config` to metadata.
   - **N8N Integration:** `POST /api/n8n/reuniao` for external automation workflows (continues working unchanged).
 - **n8n Integration:** Enables tenants to generate API keys for custom automation workflows.
