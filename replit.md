@@ -56,7 +56,9 @@ ExecutiveAI Pro utilizes a modern web stack with a multi-tenant, API-driven arch
 - **Pagar.me Split Payment:** Implements dynamic payment splitting between the platform and resellers based on monthly sales volume tiers, requiring both company and reseller Pagar.me recipient IDs.
 - **Performance Optimizations:** 
   - Public routes use `isPublicRoute()` function to skip Supabase credential fetching
-  - Lazy loading with instant skeleton fallbacks for form, meeting, and signature pages
+  - **CRITICAL FIX (Jan 2026)**: Public routes now use STATIC imports (not lazy) to eliminate loading spinners
+  - AuthContext initializes `isLoading=false` for public routes, preventing blocking states
+  - MonitoringProvider only loads for authenticated/private routes
   - Pure CSS skeletons (no heavy icon imports) for sub-50ms initial render
   - Component preloading with `requestIdleCallback` for smooth transitions
   - API timeouts with graceful fallbacks (1.5-2s max wait)
