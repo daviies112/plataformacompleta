@@ -82,6 +82,43 @@ grep -n "closed: true" server/services/pagarme.ts
 - `server/routes/split.ts` - GET/PATCH `/api/split/product-requests`
 - `src/pages/solicitacoes.tsx` - Interface admin
 
+### 1.4 Fluxo de Assinatura Digital - Correções Janeiro 2026
+
+**PROBLEMA 1:** Campo "Bairro" no formulário de endereço não salvava (coluna não existe no Supabase).
+**SOLUÇÃO:** Campo removido do formulário. Campos obrigatórios agora são: Rua, Número, Cidade, Estado, CEP.
+
+**PROBLEMA 2:** Após captura do comprovante de endereço, usuário precisava clicar em botão para avançar.
+**SOLUÇÃO:** Progressão automática após 1.5 segundos quando comprovante é salvo com sucesso.
+
+**ARQUIVOS MODIFICADOS:**
+
+| Arquivo | Mudança |
+|---------|---------|
+| `src/components/assinatura/steps/ResellerWelcomeStep.tsx` | Campo "Bairro" removido do formulário e validação |
+| `src/components/assinatura/steps/ResidenceProofStep.tsx` | Progressão automática após salvar comprovante |
+| `src/contexts/ContractContext.tsx` | `AddressData.neighborhood` agora é opcional (?) |
+
+**VERIFICAÇÃO PÓS-EXPORTAÇÃO:**
+```bash
+# Verificar que neighborhood é opcional no tipo
+grep -n "neighborhood?" src/contexts/ContractContext.tsx
+# Deve retornar: neighborhood?: string;
+
+# Verificar que progressão automática está presente
+grep -n "Avançando automaticamente" src/components/assinatura/steps/ResidenceProofStep.tsx
+# Deve retornar a mensagem de avanço automático
+
+# Verificar que Bairro não é mais obrigatório no formulário
+grep -c "Bairro" src/components/assinatura/steps/ResellerWelcomeStep.tsx
+# Deve retornar 1 (apenas no interface, não no formulário)
+```
+
+**COLUNAS DE ENDEREÇO NO SUPABASE (Tenant):**
+```
+address_street, address_number, address_complement, address_city, address_state, address_zipcode
+```
+> **ATENÇÃO:** A coluna `address_neighborhood` NÃO EXISTE no banco. Nunca tentar salvar esse campo!
+
 ---
 
 ## SEÇÃO 2: ARQUIVOS ESSENCIAIS

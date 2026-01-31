@@ -35,6 +35,12 @@ ExecutiveAI Pro utilizes a modern web stack with a multi-tenant, API-driven arch
 - **Shipping Platform:** Integration with multiple carriers for freight quotation and tracking.
 - **NEXUS Reseller Platform:** An authenticated portal for resellers, providing dashboards, sales tracking, and financial summaries with strong data isolation.
 - **Digital Signature System:** Comprehensive platform featuring contract generation, biometric verification, document/residence proof validation, identity validation, multi-step client signing, and real-time previews. Includes a global appearance customization system.
+  - **Fluxo de Assinatura Otimizado:**
+    - Campo "Bairro" (neighborhood) foi **REMOVIDO** do formulário de endereço (não existe no banco Supabase)
+    - Campos obrigatórios: Rua, Número, Cidade, Estado, CEP (Complemento é opcional)
+    - **Progressão automática**: Após captura do comprovante de endereço, avança automaticamente para assinatura (1.5s delay)
+    - Arquivos: `src/components/assinatura/steps/ResellerWelcomeStep.tsx`, `src/components/assinatura/steps/ResidenceProofStep.tsx`
+    - Tipo: `src/contexts/ContractContext.tsx` - `AddressData.neighborhood` é opcional (?)
 - **Video Conferencing:** Powered by 100ms, offering dynamic roles, public links, automatic participant check-in, and server-side recording. Includes customizable room branding (logo, company name, colors) configured via the Design page and automatically applied to public meeting lobby and in-meeting screens. Design settings are stored in `hms_100ms_config` table and fetched via public API routes.
   - **Logo Upload with Color Extraction:** Upload de logo com extração automática de cores dominantes. Funcionalidades:
     - Slider de tamanho da logo (32-200px)
@@ -128,6 +134,7 @@ Score de 0-1000 para avaliar risco de candidatas a revendedoras. **Quanto maior 
 - Correções críticas que NUNCA podem ser perdidas (PIX, BigDataCorp)
 - **Endereço no Supabase**: Colunas obrigatórias: `address_street`, `address_number`, `address_complement`, `address_city`, `address_state`, `address_zipcode`.
 - **Atenção**: O campo `address_neighborhood` NÃO existe no banco e não deve ser usado.
+- **Fluxo de Assinatura Digital**: Campo "Bairro" removido do formulário; progressão automática após foto do comprovante.
 - Checklist completo de exportação/importação
 - Todos os arquivos essenciais documentados
 - Troubleshooting de problemas comuns
