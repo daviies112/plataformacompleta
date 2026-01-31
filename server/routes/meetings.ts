@@ -328,11 +328,11 @@ publicRoomDesignRouter.get('/reunioes/:meetingId/room-design-public', async (req
       return res.status(404).json({ error: 'Reunião não encontrada' });
     }
 
-    const metadata = meeting.metadata as any;
-    let designConfig = metadata?.roomDesignConfig || null;
-
-    // Fallback: buscar config do tenant se não houver na metadata da reunião
-    if (!designConfig && meeting.tenantId) {
+    // SEMPRE buscar config atualizada do tenant (prioridade sobre metadata da reunião)
+    // Isso garante que mudanças nas cores da página Design sejam aplicadas a todas as reuniões
+    let designConfig = null;
+    
+    if (meeting.tenantId) {
       const [config] = await db.select().from(hms100msConfig)
         .where(eq(hms100msConfig.tenantId, meeting.tenantId))
         .limit(1);
@@ -340,6 +340,12 @@ publicRoomDesignRouter.get('/reunioes/:meetingId/room-design-public', async (req
       if (config?.roomDesignConfig) {
         designConfig = config.roomDesignConfig;
       }
+    }
+    
+    // Fallback: usar metadata da reunião se tenant não tiver configuração
+    if (!designConfig) {
+      const metadata = meeting.metadata as any;
+      designConfig = metadata?.roomDesignConfig || null;
     }
 
     res.json({
@@ -488,11 +494,10 @@ publicRoomDesignRouter.get('/room-design/:meetingId', async (req: Request, res: 
       return res.status(404).json({ error: 'Reunião não encontrada' });
     }
 
-    // Get design config from metadata or tenant config
-    const metadata = meeting.metadata as any;
-    let designConfig = metadata?.roomDesignConfig || null;
+    // SEMPRE buscar config atualizada do tenant (prioridade sobre metadata da reunião)
+    let designConfig = null;
     
-    if (!designConfig && meeting.tenantId) {
+    if (meeting.tenantId) {
       const [config] = await db.select().from(hms100msConfig)
         .where(eq(hms100msConfig.tenantId, meeting.tenantId))
         .limit(1);
@@ -500,6 +505,12 @@ publicRoomDesignRouter.get('/room-design/:meetingId', async (req: Request, res: 
       if (config?.roomDesignConfig) {
         designConfig = config.roomDesignConfig;
       }
+    }
+    
+    // Fallback: usar metadata da reunião
+    if (!designConfig) {
+      const metadata = meeting.metadata as any;
+      designConfig = metadata?.roomDesignConfig || null;
     }
 
     const result = {
