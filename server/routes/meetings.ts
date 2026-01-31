@@ -541,11 +541,303 @@ meetingsRouter.get('/', authenticateToken, async (req: Request, res: Response) =
       .orderBy(desc(reunioes.dataInicio))
       .limit(100);
 
-    res.json(meetings);
+    res.json({ success: true, data: meetings });
 
   } catch (error: any) {
     console.error('[Meetings] Erro ao listar:', error);
     res.status(500).json({ error: 'Erro ao listar reuniões' });
+  }
+});
+
+// Create a new meeting (instant or scheduled)
+meetingsRouter.post('/', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+    if (!user?.tenantId) {
+      return res.status(400).json({ error: 'Tenant não identificado' });
+    }
+
+    const { titulo, descricao, dataInicio, dataFim, duracao, nome, email, telefone, participantes } = req.body;
+
+    if (!titulo || !dataInicio || !dataFim) {
+      return res.status(400).json({ error: 'Título, data de início e data de fim são obrigatórios' });
+    }
+
+    const [config] = await db.select().from(hms100msConfig)
+      .where(eq(hms100msConfig.tenantId, user.tenantId))
+      .limit(1);
+
+    if (!config || !config.appAccessKey || !config.appSecret) {
+      return res.status(400).json({ error: 'Credenciais 100ms não configuradas para este tenant' });
+    }
+
+    const appAccessKey = decrypt(config.appAccessKey);
+    const appSecret = decrypt(config.appSecret);
+
+    if (!appAccessKey || !appSecret) {
+      return res.status(400).json({ error: 'Credenciais do 100ms inválidas ou corrompidas' });
+    }
+
+    console.log(`[Meetings] Criando sala no 100ms para tenant ${user.tenantId}...`);
+    const sala = await criarSala(
+      titulo,
+      config.templateId || '',
+      appAccessKey,
+      appSecret
+    );
+    console.log(`[Meetings] Sala criada no 100ms: ${sala.id}`);
+
+    const startDate = new Date(dataInicio);
+    const endDate = new Date(dataFim);
+    const calculatedDuration = duracao || Math.round((endDate.getTime() - startDate.getTime()) / 60000);
+
+    const metadata: any = {
+      source: 'dashboard',
+      createdVia: 'web-app'
+    };
+
+    if (config.roomDesignConfig) {
+      metadata.roomDesignConfig = config.roomDesignConfig;
+      console.log(`[Meetings] roomDesignConfig aplicado do tenant`);
+    }
+
+    const [newMeeting] = await db.insert(reunioes).values({
+      tenantId: user.tenantId,
+      usuarioId: user.id,
+      titulo,
+      descricao: descricao || '',
+      nome: nome || user.name || 'Host',
+      email: email || user.email || '',
+      telefone: telefone || '',
+      dataInicio: startDate,
+      dataFim: endDate,
+      duracao: calculatedDuration,
+      status: 'agendada',
+      roomId100ms: sala.id,
+      linkReuniao: '',
+      metadata: metadata,
+      compareceu: false,
+      participantes: participantes || [],
+    }).returning();
+
+    const baseUrl = process.env.REPLIT_DOMAINS?.split(',')[0] || req.get('host') || 'localhost:5000';
+    const linkReuniao = `https://${baseUrl}/reuniao/${newMeeting.id}`;
+    const linkPublico = `https://${baseUrl}/reuniao-publica/${newMeeting.id}`;
+
+    await db.update(reunioes)
+      .set({ linkReuniao, linkPublico })
+      .where(eq(reunioes.id, newMeeting.id));
+
+    const supabase = await getClientSupabaseClient(user.tenantId);
+    if (supabase) {
+      await supabase.from('reunioes').upsert({
+        id: newMeeting.id,
+        tenant_id: user.tenantId,
+        usuario_id: user.id,
+        titulo,
+        descricao: descricao || '',
+        nome: nome || user.name || 'Host',
+        email: email || user.email || '',
+        telefone: telefone || '',
+        data_inicio: startDate.toISOString(),
+        data_fim: endDate.toISOString(),
+        duracao: calculatedDuration,
+        status: 'agendada',
+        room_id_100ms: sala.id,
+        link_reuniao: linkReuniao,
+        link_publico: linkPublico,
+        metadata: metadata,
+        compareceu: false,
+        participantes: participantes || [],
+      }, { onConflict: 'id' });
+      console.log(`[Meetings] Reunião sincronizada com Supabase`);
+    }
+
+    res.json({
+      success: true,
+      data: { ...newMeeting, linkReuniao, linkPublico }
+    });
+
+  } catch (error: any) {
+    console.error('[Meetings] Erro ao criar reunião:', error);
+    res.status(500).json({ error: 'Erro ao criar reunião: ' + error.message });
+  }
+});
+
+// Start a meeting
+meetingsRouter.post('/:id/start', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const user = (req as any).user;
+
+    if (!user?.tenantId) {
+      return res.status(400).json({ error: 'Tenant não identificado' });
+    }
+
+    const [meeting] = await db.select().from(reunioes)
+      .where(and(
+        eq(reunioes.id, id),
+        eq(reunioes.tenantId, user.tenantId)
+      ))
+      .limit(1);
+
+    if (!meeting) {
+      return res.status(404).json({ error: 'Reunião não encontrada' });
+    }
+
+    await db.update(reunioes)
+      .set({ status: 'em_andamento', updatedAt: new Date() })
+      .where(eq(reunioes.id, id));
+
+    const supabase = await getClientSupabaseClient(user.tenantId);
+    if (supabase) {
+      await supabase.from('reunioes')
+        .update({ status: 'em_andamento' })
+        .eq('id', id);
+    }
+
+    res.json({ success: true, status: 'em_andamento' });
+
+  } catch (error: any) {
+    console.error('[Meetings] Erro ao iniciar reunião:', error);
+    res.status(500).json({ error: 'Erro ao iniciar reunião' });
+  }
+});
+
+// End a meeting
+meetingsRouter.post('/:id/end', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const user = (req as any).user;
+
+    if (!user?.tenantId) {
+      return res.status(400).json({ error: 'Tenant não identificado' });
+    }
+
+    const [meeting] = await db.select().from(reunioes)
+      .where(and(
+        eq(reunioes.id, id),
+        eq(reunioes.tenantId, user.tenantId)
+      ))
+      .limit(1);
+
+    if (!meeting) {
+      return res.status(404).json({ error: 'Reunião não encontrada' });
+    }
+
+    await db.update(reunioes)
+      .set({ status: 'concluida', updatedAt: new Date() })
+      .where(eq(reunioes.id, id));
+
+    const supabase = await getClientSupabaseClient(user.tenantId);
+    if (supabase) {
+      await supabase.from('reunioes')
+        .update({ status: 'concluida' })
+        .eq('id', id);
+    }
+
+    res.json({ success: true, status: 'concluida' });
+
+  } catch (error: any) {
+    console.error('[Meetings] Erro ao finalizar reunião:', error);
+    res.status(500).json({ error: 'Erro ao finalizar reunião' });
+  }
+});
+
+// Update a meeting
+meetingsRouter.patch('/:id', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const user = (req as any).user;
+
+    if (!user?.tenantId) {
+      return res.status(400).json({ error: 'Tenant não identificado' });
+    }
+
+    const [meeting] = await db.select().from(reunioes)
+      .where(and(
+        eq(reunioes.id, id),
+        eq(reunioes.tenantId, user.tenantId)
+      ))
+      .limit(1);
+
+    if (!meeting) {
+      return res.status(404).json({ error: 'Reunião não encontrada' });
+    }
+
+    const { titulo, descricao, dataInicio, dataFim, duracao, status, participantes } = req.body;
+
+    const updateData: any = { updatedAt: new Date() };
+    if (titulo !== undefined) updateData.titulo = titulo;
+    if (descricao !== undefined) updateData.descricao = descricao;
+    if (dataInicio !== undefined) updateData.dataInicio = new Date(dataInicio);
+    if (dataFim !== undefined) updateData.dataFim = new Date(dataFim);
+    if (duracao !== undefined) updateData.duracao = duracao;
+    if (status !== undefined) updateData.status = status;
+    if (participantes !== undefined) updateData.participantes = participantes;
+
+    const [updatedMeeting] = await db.update(reunioes)
+      .set(updateData)
+      .where(eq(reunioes.id, id))
+      .returning();
+
+    const supabase = await getClientSupabaseClient(user.tenantId);
+    if (supabase) {
+      const sbUpdate: any = {};
+      if (titulo !== undefined) sbUpdate.titulo = titulo;
+      if (descricao !== undefined) sbUpdate.descricao = descricao;
+      if (dataInicio !== undefined) sbUpdate.data_inicio = new Date(dataInicio).toISOString();
+      if (dataFim !== undefined) sbUpdate.data_fim = new Date(dataFim).toISOString();
+      if (duracao !== undefined) sbUpdate.duracao = duracao;
+      if (status !== undefined) sbUpdate.status = status;
+      if (participantes !== undefined) sbUpdate.participantes = participantes;
+
+      await supabase.from('reunioes')
+        .update(sbUpdate)
+        .eq('id', id);
+    }
+
+    res.json({ success: true, data: updatedMeeting });
+
+  } catch (error: any) {
+    console.error('[Meetings] Erro ao atualizar reunião:', error);
+    res.status(500).json({ error: 'Erro ao atualizar reunião' });
+  }
+});
+
+// Delete a meeting
+meetingsRouter.delete('/:id', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const user = (req as any).user;
+
+    if (!user?.tenantId) {
+      return res.status(400).json({ error: 'Tenant não identificado' });
+    }
+
+    const [meeting] = await db.select().from(reunioes)
+      .where(and(
+        eq(reunioes.id, id),
+        eq(reunioes.tenantId, user.tenantId)
+      ))
+      .limit(1);
+
+    if (!meeting) {
+      return res.status(404).json({ error: 'Reunião não encontrada' });
+    }
+
+    await db.delete(reunioes).where(eq(reunioes.id, id));
+
+    const supabase = await getClientSupabaseClient(user.tenantId);
+    if (supabase) {
+      await supabase.from('reunioes').delete().eq('id', id);
+    }
+
+    res.json({ success: true });
+
+  } catch (error: any) {
+    console.error('[Meetings] Erro ao deletar reunião:', error);
+    res.status(500).json({ error: 'Erro ao deletar reunião' });
   }
 });
 
@@ -659,7 +951,7 @@ meetingsRouter.get('/:id', authenticateToken, async (req: Request, res: Response
       return res.status(404).json({ error: 'Reunião não encontrada' });
     }
 
-    res.json(meeting);
+    res.json({ success: true, data: meeting });
 
   } catch (error: any) {
     console.error('[Meetings] Erro ao buscar:', error);

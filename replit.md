@@ -36,6 +36,8 @@ ExecutiveAI Pro utilizes a modern web stack with a multi-tenant, API-driven arch
 - **NEXUS Reseller Platform:** An authenticated portal for resellers, providing dashboards, sales tracking, and financial summaries with strong data isolation.
 - **Digital Signature System:** Comprehensive platform featuring contract generation, biometric verification, document/residence proof validation, identity validation, multi-step client signing, and real-time previews. Includes a global appearance customization system.
 - **Video Conferencing:** Powered by 100ms, offering dynamic roles, public links, automatic participant check-in, and server-side recording. Includes customizable room branding (logo, company name, colors) configured via the Design page and automatically applied to public meeting lobby and in-meeting screens. Design settings are stored in `hms_100ms_config` table and fetched via public API routes.
+  - **Meeting Creation Routes:** `POST /api/reunioes` for instant and scheduled meetings, `POST /:id/start` and `/:id/end` for lifecycle management. All routes apply tenant's `roomDesignConfig` from `hms_100ms_config` to metadata.
+  - **N8N Integration:** `POST /api/n8n/reuniao` for external automation workflows (continues working unchanged).
 - **n8n Integration:** Enables tenants to generate API keys for custom automation workflows.
 - **Public Checkout System:** Allows unauthenticated customers to make purchases from public storefronts with server-side price validation.
 - **Wallet / Credit System:** A pre-paid credit system for services like CPF consultation and shipping, with atomic balance updates and webhook idempotency.

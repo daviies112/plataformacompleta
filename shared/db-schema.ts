@@ -1747,6 +1747,7 @@ export const reunioes = pgTable("reunioes", {
   roomId100ms: text("room_id_100ms"),
   roomCode100ms: text("room_code_100ms"),
   linkReuniao: text("link_reuniao"),
+  linkPublico: text("link_publico"),
   status: text("status").default("agendada"),
   participantes: jsonb("participantes").default([]),
   gravacaoUrl: text("gravacao_url"),
