@@ -215,11 +215,12 @@ export const ResellerWelcomeStep = (props: ResellerWelcomeStepProps = {}) => {
                 name="state"
                 value={formData.state}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 text-gray-900"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-white text-gray-900 appearance-none"
+                style={{ backgroundColor: '#ffffff' }}
               >
-                <option value="">Selecione</option>
+                <option value="" className="bg-white text-gray-900">Selecione</option>
                 {brazilianStates.map(state => (
-                  <option key={state} value={state}>{state}</option>
+                  <option key={state} value={state} className="bg-white text-gray-900">{state}</option>
                 ))}
               </select>
             </div>
