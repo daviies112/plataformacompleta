@@ -851,6 +851,7 @@ export function Meeting100ms({
                   alt={config?.branding?.companyName || "Logo"}
                   loading="lazy"
                   className="object-contain"
+                  data-testid="img-company-logo-meeting"
                   style={{ 
                     maxHeight: Math.min(config?.branding?.logoSize || 32, 40),
                     maxWidth: "120px"
@@ -866,7 +867,7 @@ export function Meeting100ms({
               )}
               <div className="flex flex-col">
                 {config?.branding?.showCompanyName && config?.branding?.companyName && (
-                  <span className="font-bold text-white text-xs leading-none">
+                  <span className="font-bold text-white text-xs leading-none" data-testid="text-company-name-meeting">
                     {config.branding.companyName}
                   </span>
                 )}

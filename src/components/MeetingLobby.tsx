@@ -163,6 +163,7 @@ export function MeetingLobby({
                 alt={companyName || "Logo"}
                 loading="lazy"
                 className="object-contain"
+                data-testid="img-company-logo-lobby"
                 style={{ 
                   maxHeight: config?.branding?.logoSize || 60,
                   maxWidth: "200px"
@@ -173,15 +174,16 @@ export function MeetingLobby({
           {config?.branding?.showCompanyName && companyName && (
             <p 
               className="text-lg font-semibold mb-3"
+              data-testid="text-company-name-lobby"
               style={{ color: config?.colors?.controlsText || "#ffffff" }}
             >
               {companyName}
             </p>
           )}
-          <h1 className="text-2xl font-bold mb-2" style={{ color: config?.colors?.controlsText || "#ffffff" }}>
+          <h1 className="text-2xl font-bold mb-2" data-testid="text-lobby-title" style={{ color: config?.colors?.controlsText || "#ffffff" }}>
             {lobbyConfig.title}
           </h1>
-          <p className="text-sm font-medium opacity-70 mb-2" style={{ color: config?.colors?.controlsText || "#ffffff" }}>
+          <p className="text-sm font-medium opacity-70 mb-2" data-testid="text-meeting-title" style={{ color: config?.colors?.controlsText || "#ffffff" }}>
             {meetingTitle}
           </p>
           {lobbyConfig.subtitle && (
@@ -293,6 +295,7 @@ export function MeetingLobby({
           size="lg"
           className="w-full h-12 text-base font-bold"
           disabled={!participantName.trim() || !stream}
+          data-testid="button-join-meeting"
           style={{
             backgroundColor: config?.colors?.primaryButton || "#3b82f6",
             color: "#ffffff",
