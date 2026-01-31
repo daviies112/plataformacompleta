@@ -911,6 +911,141 @@ meetingsRouter.post('/:id/end', authenticateToken, async (req: Request, res: Res
   }
 });
 
+// =========================================================
+// IMPORTANTE: Rotas específicas DEVEM vir ANTES de rotas com :id
+// =========================================================
+
+// Get room design config for current tenant
+meetingsRouter.get('/room-design', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+    if (!user?.tenantId) {
+      return res.status(400).json({ error: 'Tenant não identificado' });
+    }
+
+    const [config] = await db.select().from(hms100msConfig)
+      .where(eq(hms100msConfig.tenantId, user.tenantId))
+      .limit(1);
+
+    if (!config) {
+      return res.json({ roomDesignConfig: null });
+    }
+
+    res.json({ 
+      roomDesignConfig: config.roomDesignConfig,
+      tenantId: config.tenantId
+    });
+
+  } catch (error: any) {
+    console.error('[RoomDesign] Erro ao buscar:', error);
+    res.status(500).json({ error: 'Erro ao buscar configuração de design' });
+  }
+});
+
+// Save room design config for current tenant
+meetingsRouter.patch('/room-design', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const user = (req as any).user;
+    if (!user?.tenantId) {
+      return res.status(400).json({ error: 'Tenant não identificado' });
+    }
+
+    const { roomDesignConfig } = req.body;
+    if (!roomDesignConfig) {
+      return res.status(400).json({ error: 'roomDesignConfig é obrigatório' });
+    }
+
+    // Verificar se já existe config para este tenant
+    const [existingConfig] = await db.select().from(hms100msConfig)
+      .where(eq(hms100msConfig.tenantId, user.tenantId))
+      .limit(1);
+
+    if (!existingConfig) {
+      return res.status(400).json({ 
+        error: 'Configuração 100ms não encontrada. Configure primeiro as credenciais 100ms.' 
+      });
+    }
+
+    // Atualizar DB local
+    await db.update(hms100msConfig)
+      .set({ 
+        roomDesignConfig: roomDesignConfig,
+        updatedAt: new Date()
+      })
+      .where(eq(hms100msConfig.tenantId, user.tenantId));
+
+    console.log(`[RoomDesign] Salvo no DB local para tenant ${user.tenantId}`);
+
+    // Tentar sincronizar com Supabase do cliente
+    let supabaseSyncSuccess = false;
+    try {
+      const supabase = await getClientSupabaseClient(user.tenantId);
+      if (supabase) {
+        // Primeiro verificar se existe registro no Supabase
+        const { data: existingData, error: selectError } = await supabase
+          .from('hms_100ms_config')
+          .select('id')
+          .eq('tenant_id', user.tenantId)
+          .maybeSingle();
+        
+        if (selectError) {
+          console.warn('[RoomDesign] Erro ao verificar Supabase:', selectError.message);
+        } else if (existingData) {
+          // Update existente
+          const { error: updateError } = await supabase
+            .from('hms_100ms_config')
+            .update({
+              room_design_config: roomDesignConfig,
+              updated_at: new Date().toISOString()
+            })
+            .eq('tenant_id', user.tenantId);
+          
+          if (updateError) {
+            console.warn('[RoomDesign] Erro Supabase update:', updateError.message);
+          } else {
+            console.log(`[RoomDesign] Atualizado no Supabase para tenant ${user.tenantId}`);
+            supabaseSyncSuccess = true;
+          }
+        } else {
+          // Inserir novo no Supabase
+          const { error: insertError } = await supabase
+            .from('hms_100ms_config')
+            .insert({
+              tenant_id: user.tenantId,
+              room_design_config: roomDesignConfig,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            });
+          
+          if (insertError) {
+            console.warn('[RoomDesign] Erro Supabase insert:', insertError.message);
+          } else {
+            console.log(`[RoomDesign] Inserido no Supabase para tenant ${user.tenantId}`);
+            supabaseSyncSuccess = true;
+          }
+        }
+      }
+    } catch (sbErr: any) {
+      console.warn('[RoomDesign] Erro ao sincronizar com Supabase:', sbErr?.message || sbErr);
+    }
+
+    res.json({ 
+      success: true, 
+      message: supabaseSyncSuccess 
+        ? 'Configurações salvas e sincronizadas com Supabase!' 
+        : 'Configurações salvas no banco local (Supabase indisponível)',
+      supabaseSynced: supabaseSyncSuccess
+    });
+  } catch (error: any) {
+    console.error('[RoomDesign] Erro ao salvar:', error);
+    res.status(500).json({ error: 'Erro ao salvar configurações' });
+  }
+});
+
+// =========================================================
+// Rotas com parâmetro :id
+// =========================================================
+
 // Update a meeting
 meetingsRouter.patch('/:id', authenticateToken, async (req: Request, res: Response) => {
   try {
@@ -1005,95 +1140,6 @@ meetingsRouter.delete('/:id', authenticateToken, async (req: Request, res: Respo
   } catch (error: any) {
     console.error('[Meetings] Erro ao deletar reunião:', error);
     res.status(500).json({ error: 'Erro ao deletar reunião' });
-  }
-});
-
-// Get room design config for current tenant
-meetingsRouter.get('/room-design', authenticateToken, async (req: Request, res: Response) => {
-  try {
-    const user = (req as any).user;
-    if (!user?.tenantId) {
-      return res.status(400).json({ error: 'Tenant não identificado' });
-    }
-
-    const [config] = await db.select().from(hms100msConfig)
-      .where(eq(hms100msConfig.tenantId, user.tenantId))
-      .limit(1);
-
-    if (!config) {
-      return res.json({ roomDesignConfig: null });
-    }
-
-    res.json({ 
-      roomDesignConfig: config.roomDesignConfig,
-      tenantId: config.tenantId
-    });
-
-  } catch (error: any) {
-    console.error('[RoomDesign] Erro ao buscar:', error);
-    res.status(500).json({ error: 'Erro ao buscar configuração de design' });
-  }
-});
-
-// Save room design config for current tenant
-meetingsRouter.patch('/room-design', authenticateToken, async (req: Request, res: Response) => {
-  try {
-    const user = (req as any).user;
-    if (!user?.tenantId) {
-      return res.status(400).json({ error: 'Tenant não identificado' });
-    }
-
-    const { roomDesignConfig } = req.body;
-    if (!roomDesignConfig) {
-      return res.status(400).json({ error: 'roomDesignConfig é obrigatório' });
-    }
-
-    // Verificar se já existe config para este tenant
-    const [existingConfig] = await db.select().from(hms100msConfig)
-      .where(eq(hms100msConfig.tenantId, user.tenantId))
-      .limit(1);
-
-    let configId = existingConfig?.id;
-
-    if (existingConfig) {
-      // Atualizar
-      await db.update(hms100msConfig)
-        .set({ 
-          roomDesignConfig: roomDesignConfig,
-          updatedAt: new Date()
-        })
-        .where(eq(hms100msConfig.tenantId, user.tenantId));
-    } else {
-      // Inserir novo (note: appAccessKey e appSecret são required, então apenas atualiza roomDesignConfig se já existe)
-      // Se não existe config, significa que 100ms não está configurado, apenas retorna erro
-      return res.status(400).json({ 
-        error: 'Configuração 100ms não encontrada. Configure primeiro as credenciais 100ms.' 
-      });
-    }
-
-    // Tentar sincronizar com Supabase do cliente (opcional)
-    try {
-      const supabase = await getClientSupabaseClient(user.tenantId);
-      if (supabase) {
-        await supabase
-          .from('hms_100ms_config')
-          .upsert({
-            id: configId,
-            tenant_id: user.tenantId,
-            room_design_config: roomDesignConfig,
-            updated_at: new Date().toISOString()
-          }, { onConflict: 'tenant_id' });
-        console.log(`[RoomDesign] Sincronizado com Supabase para tenant ${user.tenantId}`);
-      }
-    } catch (sbErr) {
-      console.warn('[RoomDesign] Erro ao sincronizar com Supabase:', sbErr);
-      // Não falhar - Supabase é opcional
-    }
-
-    res.json({ success: true, message: 'Configurações salvas com sucesso' });
-  } catch (error: any) {
-    console.error('[RoomDesign] Erro ao salvar:', error);
-    res.status(500).json({ error: 'Erro ao salvar configurações' });
   }
 });
 
