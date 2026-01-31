@@ -33,44 +33,16 @@
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
     
-    <!-- Mobile performance optimization - neutral styling for theme compatibility -->
+    <!-- Critical CSS - dark theme background for instant display without spinner -->
     <style>
-      /* Critical CSS for initial load - prevents layout shift */
-      #root { min-height: 100vh; }
-      .loading-spinner {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        min-height: 100vh;
-        background: var(--background, #0a0a0a);
-      }
-      .loading-spinner::after {
-        content: '';
-        width: 40px;
-        height: 40px;
-        border: 3px solid var(--muted, #333);
-        border-top-color: var(--primary, #888);
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-      }
-      @keyframes spin {
-        to { transform: rotate(360deg); }
-      }
-      /* Light mode fallback */
-      @media (prefers-color-scheme: light) {
-        .loading-spinner {
-          background: var(--background, #fafafa);
-        }
-        .loading-spinner::after {
-          border-color: var(--muted, #e5e5e5);
-          border-top-color: var(--primary, #666);
-        }
-      }
+      html, body { margin: 0; padding: 0; }
+      body { background: #0a0a0a; }
+      #root { min-height: 100vh; background: #0a0a0a; }
     </style>
   </head>
 
   <body>
-    <div id="root"><div class="loading-spinner"></div></div>
+    <div id="root"></div>
     
     <!-- QZ Tray for thermal printer integration - load async to not block -->
     <script async src="https://cdn.jsdelivr.net/npm/qz-tray@2.2/qz-tray.min.js"></script>
