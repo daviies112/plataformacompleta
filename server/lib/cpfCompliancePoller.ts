@@ -1293,13 +1293,19 @@ export async function checkApprovedSubmissionsWithoutCPF(): Promise<{
           continue;
         }
         
+        // Log detalhado para debug - mostrar IDs das submissions encontradas
+        console.log(`📋 [CPFAutoCheck] Tenant ${tenantId}: IDs encontrados: ${submissions.map(s => s.id.substring(0, 8)).join(', ')}`);
+        
         // 6. Filtrar submissions já processadas (idempotência)
         const pendingSubmissions = submissions.filter(
           s => !cpfAutoCheckState.processedSubmissionIds.includes(s.id)
         );
         
         if (pendingSubmissions.length === 0) {
-          console.log(`ℹ️ [CPFAutoCheck] Tenant ${tenantId}: Todas as submissions já foram processadas`);
+          // Log detalhado: mostrar o primeiro ID que foi encontrado e já processado
+          const firstProcessed = submissions[0];
+          console.log(`ℹ️ [CPFAutoCheck] Tenant ${tenantId}: Todas as ${submissions.length} submissions já foram processadas`);
+          console.log(`ℹ️ [CPFAutoCheck] Exemplo: ID ${firstProcessed.id.substring(0, 8)}... já está na lista de ${cpfAutoCheckState.processedSubmissionIds.length} processados`);
           continue;
         }
         

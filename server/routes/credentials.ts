@@ -699,10 +699,24 @@ async function testConnection(type: string, credentials: any, clientId: string):
             error: `Evolution API retornou status ${fetchResponse.status}: ${errorText}` 
           };
         }
-      } catch (error) {
+      } catch (error: any) {
+        // Melhorar mensagem de erro para problemas de conectividade
+        let errorMessage = error.message || 'Erro desconhecido';
+        
+        // Detectar erros de timeout/conexão
+        if (error.code === 'UND_ERR_CONNECT_TIMEOUT' || errorMessage.includes('Connect Timeout')) {
+          errorMessage = `Tempo limite de conexão esgotado. O servidor Evolution API (${credentials.apiUrl || credentials.api_url}) não respondeu. Verifique se o servidor está online e acessível.`;
+        } else if (error.code === 'ECONNREFUSED' || errorMessage.includes('ECONNREFUSED')) {
+          errorMessage = `Conexão recusada. O servidor Evolution API não está aceitando conexões. Verifique se o serviço está em execução.`;
+        } else if (error.code === 'ENOTFOUND' || errorMessage.includes('ENOTFOUND')) {
+          errorMessage = `Servidor não encontrado. O endereço "${credentials.apiUrl || credentials.api_url}" não pode ser resolvido. Verifique a URL.`;
+        } else if (errorMessage.includes('fetch failed')) {
+          errorMessage = `Falha na requisição. O servidor Evolution API não está acessível. Verifique se o servidor está online e se o endereço está correto.`;
+        }
+        
         return { 
           success: false, 
-          error: `Erro na conexão Evolution API: ${error.message}` 
+          error: errorMessage
         };
       }
 
