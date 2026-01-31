@@ -64,40 +64,24 @@ const PlatformRouter = () => {
     return false;
   }, [location.pathname]);
 
-  // Se for uma rota pública de formulário, renderizar com lazy loading
+  // Se for uma rota pública de formulário, renderizar diretamente
   if (isPublicFormRoute) {
-    return (
-      <Suspense fallback={<FormLoader />}>
-        <FormularioPublicoWrapper />
-      </Suspense>
-    );
+    return <FormularioPublicoWrapper />;
   }
 
   // Se for uma rota pública de loja, renderizar diretamente SEM autenticação
   if (location.pathname.startsWith('/loja/')) {
-    return (
-      <Suspense fallback={<LoadingFallback />}>
-        <PublicStore />
-      </Suspense>
-    );
+    return <PublicStore />;
   }
 
   // Se for uma rota pública de checkout, renderizar diretamente SEM autenticação
   if (location.pathname.startsWith('/checkout/')) {
-    return (
-      <Suspense fallback={<LoadingFallback />}>
-        <PublicCheckout />
-      </Suspense>
-    );
+    return <PublicCheckout />;
   }
 
   // Se for uma rota publica de reuniao, renderizar diretamente
   if (location.pathname.startsWith('/reuniao/') || location.pathname.startsWith('/reuniao-publica/')) {
-    return (
-      <Suspense fallback={<LoadingFallback />}>
-        <ReuniaoPublica />
-      </Suspense>
-    );
+    return <ReuniaoPublica />;
   }
 
   // ===== NEXUS: Plataforma Revendedora =====

@@ -2,8 +2,7 @@ import { useLocation as useReactRouterLocation } from "react-router-dom";
 import { Router, Route, Switch } from "wouter";
 import { useMemo, lazy, Suspense } from "react";
 
-// Lazy load o FormularioPublico para não bloquear o skeleton
-const FormularioPublico = lazy(() => import("./FormularioPublico"));
+import FormularioPublico from "./FormularioPublico";
 
 // Skeleton ultra-leve inline - aparece IMEDIATAMENTE sem depender de imports
 const FormSkeleton = () => (
@@ -83,9 +82,8 @@ const FormularioPublicoWrapper = () => {
   }, [location.pathname]);
   
   return (
-    <Suspense fallback={<FormSkeleton />}>
-      <Router hook={customHook as any}>
-        <Switch>
+    <Router hook={customHook as any}>
+      <Switch>
           <Route path="/f/:token">
             <FormularioPublico />
           </Route>
@@ -103,7 +101,6 @@ const FormularioPublicoWrapper = () => {
           </Route>
         </Switch>
       </Router>
-    </Suspense>
   );
 };
 

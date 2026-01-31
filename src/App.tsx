@@ -152,8 +152,10 @@ const isPublicRoute = (path: string): boolean => {
 
 const AppRoutes = () => {
   const location = useLocation();
+  const path = location.pathname;
   
-  if (isPublicRoute(location.pathname)) {
+  // ⚡ OTIMIZAÇÃO CRÍTICA: Se for rota pública, renderiza IMEDIATAMENTE sem AuthProvider/NotificationProvider
+  if (isPublicRoute(path)) {
     return <PublicRoutes />;
   }
   
