@@ -1,0 +1,880 @@
+🚀 Correção do Delay de 15 Segundos - Arquivos para Replit
+Instruções
+Copie os 3 arquivos abaixo para o Replit, substituindo os arquivos existentes:
+
+src/hooks/useAppMonitoring.ts
+src/App.tsx
+src/contexts/AuthContext.tsx
+Arquivo 1: src/hooks/useAppMonitoring.ts
+import { useState, useEffect, useCallback, useRef } from 'react';
+export type HealthStatus = 'healthy' | 'degraded' | 'disconnected';
+export interface MonitoringLog {
+  timestamp: number;
+  type: 'error' | 'warning' | 'info' | 'heartbeat' | 'recovery';
+  message: string;
+  details?: Record<string, unknown>;
+}
+export interface MonitoringState {
+  status: HealthStatus;
+  lastHeartbeat: number | null;
+  consecutiveFailures: number;
+  isOnline: boolean;
+  isVisible: boolean;
+  logs: MonitoringLog[];
+}
+const STORAGE_KEY = 'app_monitoring_logs';
+const MAX_LOGS = 100;
+const HEARTBEAT_INTERVAL = 30000;
+const DEGRADED_THRESHOLD = 2;
+const DISCONNECTED_THRESHOLD = 4;
+const AUTO_RECOVERY_THRESHOLD = 5;
+function loadLogsFromStorage(): MonitoringLog[] {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      return Array.isArray(parsed) ? parsed.slice(-MAX_LOGS) : [];
+    }
+  } catch (e) {
+    console.warn('[Monitoring] Failed to load logs from storage:', e);
+  }
+  return [];
+}
+function saveLogsToStorage(logs: MonitoringLog[]): void {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(logs.slice(-MAX_LOGS)));
+  } catch (e) {
+    console.warn('[Monitoring] Failed to save logs to storage:', e);
+  }
+}
+export function useAppMonitoring() {
+  const [state, setState] = useState<MonitoringState>({
+    status: 'healthy',
+    lastHeartbeat: null,
+    consecutiveFailures: 0,
+    isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true,
+    isVisible: typeof document !== 'undefined' ? !document.hidden : true,
+    logs: loadLogsFromStorage(),
+  });
+  const heartbeatIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const performanceObserverRef = useRef<PerformanceObserver | null>(null);
+  const addLog = useCallback((log: Omit<MonitoringLog, 'timestamp'>) => {
+    setState(prev => {
+      const newLog: MonitoringLog = { ...log, timestamp: Date.now() };
+      const newLogs = [...prev.logs, newLog].slice(-MAX_LOGS);
+      saveLogsToStorage(newLogs);
+      return { ...prev, logs: newLogs };
+    });
+  }, []);
+  const sendLogsToServer = useCallback(async (logs: MonitoringLog[]) => {
+    if (logs.length === 0) return;
+    
+    try {
+      await fetch('/api/monitoring/logs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ logs }),
+        credentials: 'include',
+      });
+    } catch (e) {
+      console.warn('[Monitoring] Failed to send logs to server:', e);
+    }
+  }, []);
+  const performHeartbeat = useCallback(async () => {
+    const startTime = Date.now();
+    
+    try {
+      const controller = new AbortController();
+      // ✅ CORREÇÃO: Reduzido timeout de 10s para 3s
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
+      
+      const response = await fetch('/api/health', {
+        method: 'GET',
+        signal: controller.signal,
+        cache: 'no-store',
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (response.ok) {
+        const latency = Date.now() - startTime;
+        
+        setState(prev => {
+          const wasUnhealthy = prev.status !== 'healthy';
+          const newStatus: HealthStatus = 'healthy';
+          
+          if (wasUnhealthy) {
+            addLog({
+              type: 'recovery',
+              message: 'Connection restored',
+              details: { latency, previousStatus: prev.status },
+            });
+          }
+          
+          return {
+            ...prev,
+            status: newStatus,
+            lastHeartbeat: Date.now(),
+            consecutiveFailures: 0,
+          };
+        });
+        
+        addLog({
+          type: 'heartbeat',
+          message: 'Heartbeat successful',
+          details: { latency },
+        });
+      } else {
+        throw new Error(`HTTP ${response.status}`);
+      }
+    } catch (error: any) {
+      const latency = Date.now() - startTime;
+      
+      setState(prev => {
+        const newFailures = prev.consecutiveFailures + 1;
+        let newStatus: HealthStatus = prev.status;
+        
+        if (newFailures >= DISCONNECTED_THRESHOLD) {
+          newStatus = 'disconnected';
+        } else if (newFailures >= DEGRADED_THRESHOLD) {
+          newStatus = 'degraded';
+        }
+        
+        return {
+          ...prev,
+          status: newStatus,
+          consecutiveFailures: newFailures,
+        };
+      });
+      
+      addLog({
+        type: 'warning',
+        message: 'Heartbeat failed',
+        details: { 
+          error: error.message || 'Unknown error',
+          latency,
+          aborted: error.name === 'AbortError',
+        },
+      });
+      
+    }
+  }, [addLog]);
+  const triggerRecovery = useCallback(() => {
+    addLog({
+      type: 'recovery',
+      message: 'Manual recovery triggered',
+    });
+    
+    sendLogsToServer(state.logs).finally(() => {
+      window.location.reload();
+    });
+  }, [addLog, sendLogsToServer, state.logs]);
+  const clearLogs = useCallback(() => {
+    localStorage.removeItem(STORAGE_KEY);
+    setState(prev => ({ ...prev, logs: [] }));
+  }, []);
+  useEffect(() => {
+    const handleOnline = () => {
+      setState(prev => ({ ...prev, isOnline: true }));
+      addLog({ type: 'info', message: 'Browser went online' });
+      performHeartbeat();
+    };
+    
+    const handleOffline = () => {
+      setState(prev => ({ ...prev, isOnline: false, status: 'disconnected' }));
+      addLog({ type: 'warning', message: 'Browser went offline' });
+    };
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [addLog, performHeartbeat]);
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      const isVisible = !document.hidden;
+      setState(prev => ({ ...prev, isVisible }));
+      
+      if (isVisible) {
+        addLog({ type: 'info', message: 'Tab became visible' });
+        performHeartbeat();
+      } else {
+        addLog({ type: 'info', message: 'Tab became hidden' });
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [addLog, performHeartbeat]);
+  useEffect(() => {
+    const handleError = (event: ErrorEvent) => {
+      addLog({
+        type: 'error',
+        message: event.message || 'Unknown error',
+        details: {
+          filename: event.filename,
+          lineno: event.lineno,
+          colno: event.colno,
+        },
+      });
+    };
+    
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      addLog({
+        type: 'error',
+        message: 'Unhandled promise rejection',
+        details: {
+          reason: String(event.reason),
+        },
+      });
+    };
+    
+    window.addEventListener('error', handleError);
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+    
+    return () => {
+      window.removeEventListener('error', handleError);
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+    };
+  }, [addLog]);
+  useEffect(() => {
+    if (typeof PerformanceObserver !== 'undefined') {
+      try {
+        performanceObserverRef.current = new PerformanceObserver((list) => {
+          for (const entry of list.getEntries()) {
+            if (entry.duration > 100) {
+              addLog({
+                type: 'warning',
+                message: 'Long task detected',
+                details: {
+                  duration: Math.round(entry.duration),
+                  startTime: Math.round(entry.startTime),
+                },
+              });
+            }
+          }
+        });
+        
+        performanceObserverRef.current.observe({ entryTypes: ['longtask'] });
+      } catch (e) {
+        console.warn('[Monitoring] PerformanceObserver not supported:', e);
+      }
+    }
+    
+    return () => {
+      if (performanceObserverRef.current) {
+        performanceObserverRef.current.disconnect();
+      }
+    };
+  }, [addLog]);
+  useEffect(() => {
+    // ✅ CORREÇÃO: Heartbeat inicial NÃO-BLOQUEANTE
+    // Usa requestIdleCallback ou setTimeout para não bloquear renderização
+    const scheduleHeartbeat = () => {
+      if ('requestIdleCallback' in window) {
+        (window as any).requestIdleCallback(() => performHeartbeat());
+      } else {
+        setTimeout(performHeartbeat, 100);
+      }
+    };
+    
+    scheduleHeartbeat();
+    
+    heartbeatIntervalRef.current = setInterval(() => {
+      if (state.isVisible && state.isOnline) {
+        performHeartbeat();
+      }
+    }, HEARTBEAT_INTERVAL);
+    
+    return () => {
+      if (heartbeatIntervalRef.current) {
+        clearInterval(heartbeatIntervalRef.current);
+      }
+    };
+  }, [performHeartbeat, state.isVisible, state.isOnline]);
+  useEffect(() => {
+    addLog({
+      type: 'info',
+      message: 'Monitoring initialized',
+      details: {
+        userAgent: navigator.userAgent,
+        url: window.location.href,
+      },
+    });
+  }, []);
+  return {
+    ...state,
+    triggerRecovery,
+    clearLogs,
+    addLog,
+    performHeartbeat,
+    sendLogsToServer,
+  };
+}
+Arquivo 2: src/App.tsx
+import { lazy, Suspense } from "react";
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { ThemeProvider } from "next-themes";
+import { AuthProvider } from "./contexts/AuthContext";
+import { NotificationProvider } from "./contexts/NotificationContext";
+import { queryClient } from "./lib/queryClient";
+import { InstallPWAButton } from "./components/InstallPWAButton";
+import { MonitoringProvider } from "./components/MonitoringProvider";
+import { Loader2 } from "lucide-react";
+const LoadingFallback = () => (
+  <div className="min-h-screen flex items-center justify-center bg-background">
+    <Loader2 className="w-8 h-8 animate-spin text-primary" />
+  </div>
+);
+const FormLoader = () => (
+  <div className="min-h-screen flex flex-col items-center justify-center bg-background">
+    <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" />
+    <p className="text-muted-foreground text-sm">Carregando formulário...</p>
+  </div>
+);
+// Static imports for main components to avoid Suspense issues in development
+import PlatformRouter from './platforms/PlatformRouter';
+// ✅ OTIMIZAÇÃO: FormularioPublicoWrapper agora é importação síncrona (muito leve)
+import FormularioPublicoWrapper from './features/formularios-platform/pages/FormularioPublicoWrapper';
+// Lazy loaded routes
+const AssinaturaClientPage = lazy(() => import('./pages/AssinaturaClientPage'));
+const AssinaturaFromMeeting = lazy(() => import('./pages/AssinaturaFromMeeting'));
+const ReuniaoPublica = lazy(() => import('./pages/ReuniaoPublica'));
+const PublicStore = lazy(() => import('./features/revendedora/pages/public/PublicStore'));
+const PublicCheckout = lazy(() => import('./features/revendedora/pages/public/PublicCheckout'));
+const LoginPage = lazy(() => import('./pages/Index'));
+const ResellerLogin = lazy(() => import('./platforms/reseller/pages/Login'));
+const PublicRoutes = () => {
+  const location = useLocation();
+  const path = location.pathname;
+  
+  if (path.startsWith('/assinar/')) {
+    return (
+      <Suspense fallback={<LoadingFallback />}>
+        <AssinaturaClientPage />
+      </Suspense>
+    );
+  }
+  
+  if (path.startsWith('/assinatura/')) {
+    return (
+      <Suspense fallback={<LoadingFallback />}>
+        <AssinaturaFromMeeting />
+      </Suspense>
+    );
+  }
+  
+  if (path.startsWith('/f/') || 
+      path.startsWith('/form/') || 
+      path.startsWith('/formulario/') ||
+      /^\/[^/]+\/form\//.test(path)) {
+    // ✅ OTIMIZAÇÃO: FormularioPublicoWrapper é síncrono, não precisa Suspense
+    return <FormularioPublicoWrapper />;
+  }
+  
+  if (path.startsWith('/reuniao/') || path.startsWith('/reuniao-publica/')) {
+    return (
+      <Suspense fallback={<LoadingFallback />}>
+        <ReuniaoPublica />
+      </Suspense>
+    );
+  }
+  
+  if (path.startsWith('/loja/')) {
+    return (
+      <Suspense fallback={<LoadingFallback />}>
+        <PublicStore />
+      </Suspense>
+    );
+  }
+  
+  if (path.startsWith('/checkout/')) {
+    return (
+      <Suspense fallback={<LoadingFallback />}>
+        <PublicCheckout />
+      </Suspense>
+    );
+  }
+  
+  if (path === '/login' || path === '/') {
+    return (
+      <AuthProvider>
+        <Suspense fallback={<LoadingFallback />}>
+          <LoginPage />
+        </Suspense>
+      </AuthProvider>
+    );
+  }
+  
+  if (path === '/reseller-login') {
+    return (
+      <Suspense fallback={<LoadingFallback />}>
+        <ResellerLogin />
+      </Suspense>
+    );
+  }
+  
+  return null;
+};
+const isPublicRoute = (path: string): boolean => {
+  return (
+    path === '/' ||
+    path === '/login' ||
+    path === '/reseller-login' ||
+    path.startsWith('/assinar/') ||
+    path.startsWith('/assinatura/') ||
+    path.startsWith('/f/') ||
+    path.startsWith('/form/') ||
+    path.startsWith('/formulario/') ||
+    path.startsWith('/reuniao/') ||
+    path.startsWith('/reuniao-publica/') ||
+    path.startsWith('/loja/') ||
+    path.startsWith('/checkout/') ||
+    /^\/[^/]+\/form\//.test(path)
+  );
+};
+const AppRoutes = () => {
+  const location = useLocation();
+  
+  // ✅ CORREÇÃO: Rotas públicas NÃO carregam MonitoringProvider
+  if (isPublicRoute(location.pathname)) {
+    return <PublicRoutes />;
+  }
+  
+  // ✅ CORREÇÃO: MonitoringProvider APENAS para rotas privadas
+  return (
+    <AuthProvider>
+      <NotificationProvider>
+        <MonitoringProvider>
+          <PlatformRouter />
+          <InstallPWAButton />
+        </MonitoringProvider>
+      </NotificationProvider>
+    </AuthProvider>
+  );
+};
+// ✅ CORREÇÃO: App simplificado - MonitoringProvider movido para AppRoutes
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <ThemeProvider 
+      attribute="class" 
+      defaultTheme="dark" 
+      enableSystem={false} 
+      storageKey="nexus-theme" 
+      disableTransitionOnChange
+    >
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter
+          future={{
+            v7_startTransition: true,
+            v7_relativeSplatPath: true,
+          }}
+        >
+          <AppRoutes />
+        </BrowserRouter>
+      </TooltipProvider>
+    </ThemeProvider>
+  </QueryClientProvider>
+);
+export default App;
+Arquivo 3: src/contexts/AuthContext.tsx
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { apiRequest } from '@/lib/queryClient';
+interface User {
+  id: string;
+  email: string;
+  name: string;
+  role: 'admin' | 'viewer';
+  tenantId?: string;
+  clientId?: string;
+}
+interface Client {
+  id: string;
+  name: string;
+  email: string;
+  plan_type: 'starter' | 'pro' | 'enterprise';
+}
+interface ClientCredentials {
+  whatsapp: boolean;
+  evolution_api: boolean;
+  supabase_configured: boolean;
+  n8n_configured: boolean;
+  google_calendar?: boolean;
+  google_meet?: boolean;
+}
+interface AuthContextType {
+  user: User | null;
+  client: Client | null;
+  credentials: ClientCredentials | null;
+  isAuthenticated: boolean;
+  login: (email: string, password: string) => Promise<boolean>;
+  logout: () => Promise<void>;
+  isLoading: boolean;
+  updateCredentials: (type: string, credentials: any) => Promise<boolean>;
+  refreshCredentialFlags: () => Promise<void>;
+  updateClient: (clientData: Partial<Client>) => void;
+  updateUser: (userData: Partial<User>) => void;
+}
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
+interface AuthProviderProps {
+  children: ReactNode;
+}
+// ✅ CORREÇÃO: Função para detectar rotas públicas
+const isPublicPath = (path: string): boolean => {
+  return (
+    path.startsWith('/f/') ||
+    path.startsWith('/form/') ||
+    path.startsWith('/formulario/') ||
+    path.startsWith('/assinar/') ||
+    path.startsWith('/assinatura/') ||
+    path.startsWith('/reuniao/') ||
+    path.startsWith('/reuniao-publica/') ||
+    path.startsWith('/loja/') ||
+    path.startsWith('/checkout/') ||
+    /^\/[^/]+\/form\//.test(path)
+  );
+};
+export const AuthProvider = ({ children }: AuthProviderProps) => {
+  const [user, setUser] = useState<User | null>(null);
+  const [client, setClient] = useState<Client | null>(null);
+  const [credentials, setCredentials] = useState<ClientCredentials | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const isAuthenticated = !!user && !!client;
+  // Verificar sessão ao carregar
+  useEffect(() => {
+    const checkSession = async () => {
+      // ✅ CORREÇÃO: Fast-path para rotas públicas - pula verificação de sessão
+      const path = window.location.pathname;
+      if (isPublicPath(path)) {
+        console.log('[AuthContext] Public route detected, skipping session check');
+        setIsLoading(false);
+        return;
+      }
+      
+      try {
+        console.log('[AuthContext] Checking session...');
+        // Verificar se há sessão ativa no servidor
+        const response = await fetch('/api/auth/check-session');
+        const data = await response.json();
+        console.log('[AuthContext] Session check response:', data);
+        
+        if (data.authenticated && data.user) {
+          // Sessão válida - usar dados da sessão
+          // Extrair tenantId da sessão
+          const tenantId = data.user.tenant_id || data.user.tenantId || `dev-${data.user.email.replace('@', '_').replace(/\./g, '_')}`;
+          const clientId = data.user.id || '1';
+          
+          const userData: User = {
+            id: data.user.id || '1',
+            email: data.user.email,
+            name: data.user.nome || data.user.name,
+            role: 'admin' as const,
+            tenantId: tenantId,
+            clientId: clientId
+          };
+          
+          const clientData: Client = {
+            id: clientId,
+            name: data.user.company_name || 'Sua Empresa',
+            email: data.user.email,
+            plan_type: (data.user.plan_type as any) || 'pro'
+          };
+          
+          console.log('[AuthContext] Session tenantId:', tenantId, 'clientId:', clientId);
+          
+          setUser(userData);
+          setClient(clientData);
+          
+          // Salvar no localStorage para uso posterior
+          localStorage.setItem('user_data', JSON.stringify(userData));
+          localStorage.setItem('client_data', JSON.stringify(clientData));
+          
+          // Tentar carregar credenciais salvas
+          const savedCredentials = localStorage.getItem('client_credentials');
+          if (savedCredentials) {
+            setCredentials(JSON.parse(savedCredentials));
+          } else {
+            setCredentials({
+              whatsapp: true,
+              evolution_api: true,
+              supabase_configured: true,
+              n8n_configured: true
+            });
+          }
+        } else {
+          // Sem sessão - limpar localStorage
+          localStorage.removeItem('user_data');
+          localStorage.removeItem('client_data');
+          localStorage.removeItem('auth_token');
+          setUser(null);
+          setClient(null);
+          setCredentials(null);
+        }
+      } catch (error) {
+        console.error('[AuthContext] Erro ao verificar sessão:', error);
+        // Em caso de erro, limpar dados
+        localStorage.removeItem('user_data');
+        localStorage.removeItem('client_data');
+        localStorage.removeItem('auth_token');
+        setUser(null);
+        setClient(null);
+        setCredentials(null);
+      } finally {
+        console.log('[AuthContext] Setting isLoading to false');
+        setIsLoading(false);
+      }
+    };
+    
+    // ✅ CORREÇÃO: Timeout reduzido de 5s para 3s
+    const timeout = setTimeout(() => {
+      console.log('[AuthContext] Timeout: forcing isLoading to false');
+      setIsLoading(false);
+    }, 3000);
+    
+    checkSession().finally(() => clearTimeout(timeout));
+    
+    return () => clearTimeout(timeout);
+  }, []);
+  const login = async (email: string, password: string): Promise<boolean> => {
+    setIsLoading(true);
+    
+    try {
+      // Fazer login via API
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, senha: password }),
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
+        // Login bem-sucedido - usar dados do usuário retornados
+        // Extrair tenantId da resposta (pode vir como tenant_id ou tenantId)
+        const tenantId = data.user?.tenant_id || data.user?.tenantId || `dev-${email.replace('@', '_').replace(/\./g, '_')}`;
+        const clientId = data.user?.id || data.client?.id || '1';
+        
+        const userData: User = {
+          id: data.user?.id || '1',
+          email: data.user?.email || email,
+          name: data.user?.nome || data.user?.name || 'Usuário',
+          role: 'admin' as const,
+          tenantId: tenantId,
+          clientId: clientId
+        };
+        
+        const clientData: Client = {
+          id: clientId,
+          name: data.client?.name || data.user?.company_name || 'Sua Empresa',
+          email: data.client?.email || email,
+          plan_type: (data.client?.plan_type as any) || 'pro'
+        };
+        
+        console.log('[AuthContext] Login tenantId:', tenantId, 'clientId:', clientId);
+        
+        setUser(userData);
+        setClient(clientData);
+        
+        // Save JWT token for authenticated API requests (critical for host role in meetings)
+        if (data.token) {
+          localStorage.setItem('authToken', data.token);
+          console.log('[AuthContext] Token JWT salvo para requisições autenticadas');
+        }
+        
+        // Salvar no localStorage
+        localStorage.setItem('user_data', JSON.stringify(userData));
+        localStorage.setItem('client_data', JSON.stringify(clientData));
+        
+        // Configurar credenciais padrão
+        const defaultCredentials = {
+          whatsapp: true,
+          evolution_api: true,
+          supabase_configured: true,
+          n8n_configured: true
+        };
+        setCredentials(defaultCredentials);
+        localStorage.setItem('client_credentials', JSON.stringify(defaultCredentials));
+        
+        // Recarregar credenciais e workspace do Supabase após login bem-sucedido
+        // Usando import dinâmico para evitar carregar módulos pesados antes do login
+        console.log('🔄 Login bem-sucedido - recarregando credenciais do Supabase...');
+        try {
+          const { reloadSupabaseCredentials } = await import('@/lib/supabase');
+          await reloadSupabaseCredentials();
+          
+          console.log('🔄 Recarregando workspace do Supabase...');
+          const { useNotionStore } = await import('@/stores/notionStore');
+          const reloadWorkspace = useNotionStore.getState().reloadFromSupabase;
+          await reloadWorkspace();
+        } catch (e) {
+          console.warn('⚠️ Supabase/workspace reload opcional falhou:', e);
+        }
+        
+        setIsLoading(false);
+        return true;
+      } else {
+        setIsLoading(false);
+        return false;
+      }
+    } catch (error) {
+      console.error('Erro no login:', error);
+      setIsLoading(false);
+      return false;
+    }
+  };
+  const updateCredentials = async (type: string, newCredentials: any): Promise<boolean> => {
+    try {
+      // Try API request first (for production backend)
+      try {
+        await apiRequest('PUT', `/api/credentials/${type}`, newCredentials);
+        
+        // Refresh credential flags after successful update
+        await refreshCredentialFlags();
+        
+        return true;
+      } catch (apiError) {
+        console.log('API unavailable, using local storage for credentials');
+      }
+      
+      // Fallback to local storage for demo/development
+      if (!user || !client) {
+        console.error('User or client not logged in');
+        return false;
+      }
+      
+      // Save credentials locally per client
+      const clientCredentialsKey = `credentials_${client.id}`;
+      const existingCredentials = JSON.parse(localStorage.getItem(clientCredentialsKey) || '{}');
+      
+      // Update specific credential type
+      existingCredentials[type] = newCredentials;
+      localStorage.setItem(clientCredentialsKey, JSON.stringify(existingCredentials));
+      
+      // Update credential flags
+      const updatedFlags = { ...credentials };
+      if (type === 'supabase') {
+        updatedFlags.supabase_configured = true;
+        // Update Supabase environment variables for immediate use
+        if (newCredentials.url && newCredentials.anon_key) {
+          (window as any).VITE_SUPABASE_URL = newCredentials.url;
+          (window as any).VITE_SUPABASE_ANON_KEY = newCredentials.anon_key;
+        }
+      } else if (type === 'google_calendar') {
+        updatedFlags.google_calendar = true;
+        updatedFlags.google_meet = true;
+      } else if (type === 'whatsapp') {
+        updatedFlags.whatsapp = true;
+      } else if (type === 'evolution_api') {
+        updatedFlags.evolution_api = true;
+      } else if (type === 'n8n') {
+        updatedFlags.n8n_configured = true;
+      }
+      
+      setCredentials(updatedFlags);
+      localStorage.setItem('client_credentials', JSON.stringify(updatedFlags));
+      
+      return true;
+    } catch (error) {
+      console.error('Erro ao atualizar credenciais:', error);
+      return false;
+    }
+  };
+  const refreshCredentialFlags = async () => {
+    try {
+      const response = await apiRequest('GET', '/api/credentials');
+      const credentialFlags = await response.json();
+      setCredentials(credentialFlags);
+      localStorage.setItem('client_credentials', JSON.stringify(credentialFlags));
+    } catch (error) {
+      console.error('Erro ao buscar flags de credenciais:', error);
+    }
+  };
+  const updateUser = (userData: Partial<User>) => {
+    if (user) {
+      const updatedUser = { ...user, ...userData };
+      setUser(updatedUser);
+      localStorage.setItem('user_data', JSON.stringify(updatedUser));
+    }
+  };
+  const updateClient = (clientData: Partial<Client>) => {
+    if (client) {
+      const updatedClient = { ...client, ...clientData };
+      setClient(updatedClient);
+      localStorage.setItem('client_data', JSON.stringify(updatedClient));
+    }
+  };
+  const logout = async () => {
+    try {
+      // 1. Chamar backend para destruir sessão
+      await fetch('/api/auth/logout', { method: 'POST' });
+      
+      // 2. Limpar estado local SOMENTE após sucesso do backend
+      setUser(null);
+      setClient(null);
+      setCredentials(null);
+      localStorage.clear();
+      
+      // 3. Redirecionar para login
+      window.location.href = '/login';
+    } catch (error) {
+      console.error('Erro ao fazer logout:', error);
+      // Mesmo com erro, limpar estado local
+      setUser(null);
+      setClient(null);
+      setCredentials(null);
+      localStorage.clear();
+      window.location.href = '/login';
+    }
+  };
+  const value: AuthContextType = {
+    user,
+    client,
+    credentials,
+    isAuthenticated,
+    login,
+    logout,
+    isLoading,
+    updateCredentials,
+    refreshCredentialFlags,
+    updateClient,
+    updateUser,
+  };
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
+✅ Resumo das Correções
+Arquivo	Mudanças
+useAppMonitoring.ts
+Timeout 10s → 3s, heartbeat não-bloqueante
+App.tsx
+MonitoringProvider movido para rotas privadas, estrutura simplificada
+AuthContext.tsx
+Fast-path para rotas públicas, timeout 5s → 3s
+🧪 Como Testar
+Faça deploy no Replit
+Abra uma URL pública (ex: /f/codigo-formulario)
+✅ Deve carregar em menos de 2 segundos

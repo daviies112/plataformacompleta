@@ -54,6 +54,25 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
+// ✅ OTIMIZAÇÃO: Função rápida para identificar rotas públicas no AuthContext
+const isPublicRoute = (path: string): boolean => {
+  return (
+    path === '/' ||
+    path === '/login' ||
+    path === '/reseller-login' ||
+    path.startsWith('/assinar/') ||
+    path.startsWith('/assinatura/') ||
+    path.startsWith('/f/') ||
+    path.startsWith('/form/') ||
+    path.startsWith('/formulario/') ||
+    path.startsWith('/reuniao/') ||
+    path.startsWith('/reuniao-publica/') ||
+    path.startsWith('/loja/') ||
+    path.startsWith('/checkout/') ||
+    /^\/[^/]+\/form\//.test(path)
+  );
+};
+
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [client, setClient] = useState<Client | null>(null);
@@ -64,6 +83,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   // Verificar sessão ao carregar
   useEffect(() => {
+    // ✅ CORREÇÃO: Fast-path para rotas públicas
+    const currentPath = window.location.pathname;
+    if (isPublicRoute(currentPath)) {
+      console.log('[AuthContext] Public route detected, skipping session check');
+      setIsLoading(false);
+      return;
+    }
+
     const checkSession = async () => {
       try {
         console.log('[AuthContext] Checking session...');
@@ -139,11 +166,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       }
     };
     
-    // Add timeout fallback to ensure isLoading is set to false
+    // ✅ CORREÇÃO: Reduzido timeout de 5s para 2s para falha mais rápida
     const timeout = setTimeout(() => {
       console.log('[AuthContext] Timeout: forcing isLoading to false');
       setIsLoading(false);
-    }, 5000);
+    }, 2000);
     
     checkSession().finally(() => clearTimeout(timeout));
     
@@ -269,7 +296,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       localStorage.setItem(clientCredentialsKey, JSON.stringify(existingCredentials));
       
       // Update credential flags
-      const updatedFlags = { ...credentials };
+      const updatedFlags = { ...credentials } as ClientCredentials;
       if (type === 'supabase') {
         updatedFlags.supabase_configured = true;
         // Update Supabase environment variables for immediate use

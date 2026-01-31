@@ -88,7 +88,8 @@ export function useAppMonitoring() {
     
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      // ✅ CORREÇÃO: Reduzido timeout de 10s para 3s
+      const timeoutId = setTimeout(() => controller.abort(), 3000);
       
       const response = await fetch('/api/health', {
         method: 'GET',
@@ -283,7 +284,16 @@ export function useAppMonitoring() {
   }, [addLog]);
 
   useEffect(() => {
-    performHeartbeat();
+    // ✅ CORREÇÃO: Heartbeat inicial NÃO-BLOQUEANTE
+    const scheduleHeartbeat = () => {
+      if ('requestIdleCallback' in window) {
+        (window as any).requestIdleCallback(() => performHeartbeat());
+      } else {
+        setTimeout(performHeartbeat, 100);
+      }
+    };
+    
+    scheduleHeartbeat();
     
     heartbeatIntervalRef.current = setInterval(() => {
       if (state.isVisible && state.isOnline) {
