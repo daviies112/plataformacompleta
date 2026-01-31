@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "bash start.sh",
-    "build": "vite build",
-    "start": "npm run build && NODE_ENV=production PORT=5000 tsx server/index.ts",
+    "build": "vite build && node scripts/build-server.js",
+    "start": "NODE_ENV=production PORT=5000 node dist/index.mjs",
     "db:push": "drizzle-kit push",
     "export:clean": "bash scripts/export-clean.sh",
     "setup:import": "bash scripts/setup-after-import.sh"
@@ -75,6 +75,7 @@
     "drizzle-orm": "^0.44.7",
     "drizzle-zod": "^0.8.3",
     "embla-carousel-react": "^8.6.0",
+    "esbuild": "^0.27.2",
     "express": "^5.2.1",
     "express-rate-limit": "^8.1.0",
     "express-session": "^1.18.2",
