@@ -77,7 +77,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null);
   const [client, setClient] = useState<Client | null>(null);
   const [credentials, setCredentials] = useState<ClientCredentials | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  
+  // ✅ CORREÇÃO CRÍTICA: Para rotas públicas, isLoading inicia como FALSE
+  // Isso evita o flash de loading spinner em páginas públicas
+  const initialPath = typeof window !== 'undefined' ? window.location.pathname : '/';
+  const [isLoading, setIsLoading] = useState(!isPublicRoute(initialPath));
 
   const isAuthenticated = !!user && !!client;
 

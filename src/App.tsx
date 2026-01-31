@@ -1,137 +1,28 @@
-import { lazy, Suspense, useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, useLocation } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "./contexts/AuthContext";
 import { NotificationProvider } from "./contexts/NotificationContext";
 import { queryClient } from "./lib/queryClient";
 import { InstallPWAButton } from "./components/InstallPWAButton";
 import { MonitoringProvider } from "./components/MonitoringProvider";
-import { Loader2 } from "lucide-react";
 
-const LoadingFallback = () => (
-  <div className="min-h-screen flex items-center justify-center bg-background">
-    <Loader2 className="w-8 h-8 animate-spin text-primary" />
-  </div>
-);
-
-const FormLoader = () => (
-  <div className="min-h-screen flex flex-col items-center justify-center bg-background">
-    <Loader2 className="w-10 h-10 animate-spin text-primary mb-4" />
-    <p className="text-muted-foreground text-sm">Carregando formulário...</p>
-  </div>
-);
-
-// Static imports for main components to avoid Suspense issues in development
+// ✅ OTIMIZAÇÃO CRÍTICA: Todos os imports são ESTÁTICOS para rotas públicas
+// Isso elimina qualquer delay de lazy loading/Suspense
 import PlatformRouter from './platforms/PlatformRouter';
-
-// ✅ OTIMIZAÇÃO: FormularioPublicoWrapper agora é importação síncrona (muito leve)
 import FormularioPublicoWrapper from './features/formularios-platform/pages/FormularioPublicoWrapper';
+import AssinaturaClientPage from './pages/AssinaturaClientPage';
+import AssinaturaFromMeeting from './pages/AssinaturaFromMeeting';
+import ReuniaoPublica from './pages/ReuniaoPublica';
+import PublicStore from './features/revendedora/pages/public/PublicStore';
+import PublicCheckout from './features/revendedora/pages/public/PublicCheckout';
+import LoginPage from './pages/Index';
+import ResellerLogin from './platforms/reseller/pages/Login';
 
-// Lazy loaded routes
-const AssinaturaClientPage = lazy(() => import('./pages/AssinaturaClientPage'));
-const AssinaturaFromMeeting = lazy(() => import('./pages/AssinaturaFromMeeting'));
-const ReuniaoPublica = lazy(() => import('./pages/ReuniaoPublica'));
-const PublicStore = lazy(() => import('./features/revendedora/pages/public/PublicStore'));
-const PublicCheckout = lazy(() => import('./features/revendedora/pages/public/PublicCheckout'));
-const LoginPage = lazy(() => import('./pages/Index'));
-const ResellerLogin = lazy(() => import('./platforms/reseller/pages/Login'));
-
-// ✅ OTIMIZAÇÃO: Função que verifica se é rota pública ANTES de montar providers
-const isPublicRoutePath = (path: string): boolean => {
-  return (
-    path === '/' ||
-    path === '/login' ||
-    path === '/reseller-login' ||
-    path.startsWith('/assinar/') ||
-    path.startsWith('/assinatura/') ||
-    path.startsWith('/f/') ||
-    path.startsWith('/form/') ||
-    path.startsWith('/formulario/') ||
-    path.startsWith('/reuniao/') ||
-    path.startsWith('/reuniao-publica/') ||
-    path.startsWith('/loja/') ||
-    path.startsWith('/checkout/') ||
-    /^\/[^/]+\/form\//.test(path)
-  );
-};
-
-const PublicRoutes = () => {
-  const location = useLocation();
-  const path = location.pathname;
-  
-  if (path.startsWith('/assinar/')) {
-    return (
-      <Suspense fallback={<LoadingFallback />}>
-        <AssinaturaClientPage />
-      </Suspense>
-    );
-  }
-  
-  if (path.startsWith('/assinatura/')) {
-    return (
-      <Suspense fallback={<LoadingFallback />}>
-        <AssinaturaFromMeeting />
-      </Suspense>
-    );
-  }
-  
-  if (path.startsWith('/f/') || 
-      path.startsWith('/form/') || 
-      path.startsWith('/formulario/') ||
-      /^\/[^/]+\/form\//.test(path)) {
-    // ✅ OTIMIZAÇÃO: FormularioPublicoWrapper é síncrono, não precisa Suspense
-    return <FormularioPublicoWrapper />;
-  }
-  
-  if (path.startsWith('/reuniao/') || path.startsWith('/reuniao-publica/')) {
-    return (
-      <Suspense fallback={<LoadingFallback />}>
-        <ReuniaoPublica />
-      </Suspense>
-    );
-  }
-  
-  if (path.startsWith('/loja/')) {
-    return (
-      <Suspense fallback={<LoadingFallback />}>
-        <PublicStore />
-      </Suspense>
-    );
-  }
-  
-  if (path.startsWith('/checkout/')) {
-    return (
-      <Suspense fallback={<LoadingFallback />}>
-        <PublicCheckout />
-      </Suspense>
-    );
-  }
-  
-  if (path === '/login' || path === '/') {
-    return (
-      <AuthProvider>
-        <Suspense fallback={<LoadingFallback />}>
-          <LoginPage />
-        </Suspense>
-      </AuthProvider>
-    );
-  }
-  
-  if (path === '/reseller-login') {
-    return (
-      <Suspense fallback={<LoadingFallback />}>
-        <ResellerLogin />
-      </Suspense>
-    );
-  }
-  
-  return null;
-};
-
+// ✅ Função centralizada para verificar se é rota pública
 const isPublicRoute = (path: string): boolean => {
   return (
     path === '/' ||
@@ -150,15 +41,70 @@ const isPublicRoute = (path: string): boolean => {
   );
 };
 
+// ✅ OTIMIZAÇÃO: Componente de rotas públicas SEM Suspense, SEM AuthProvider, SEM loading
+const PublicRoutes = () => {
+  const location = useLocation();
+  const path = location.pathname;
+  
+  // Assinaturas
+  if (path.startsWith('/assinar/')) {
+    return <AssinaturaClientPage />;
+  }
+  
+  if (path.startsWith('/assinatura/')) {
+    return <AssinaturaFromMeeting />;
+  }
+  
+  // Formulários públicos
+  if (path.startsWith('/f/') || 
+      path.startsWith('/form/') || 
+      path.startsWith('/formulario/') ||
+      /^\/[^/]+\/form\//.test(path)) {
+    return <FormularioPublicoWrapper />;
+  }
+  
+  // Reuniões públicas
+  if (path.startsWith('/reuniao/') || path.startsWith('/reuniao-publica/')) {
+    return <ReuniaoPublica />;
+  }
+  
+  // Loja pública
+  if (path.startsWith('/loja/')) {
+    return <PublicStore />;
+  }
+  
+  // Checkout público
+  if (path.startsWith('/checkout/')) {
+    return <PublicCheckout />;
+  }
+  
+  // Login principal - SEM AuthProvider wrapper (usa o próprio AuthProvider interno se necessário)
+  if (path === '/login' || path === '/') {
+    return (
+      <AuthProvider>
+        <LoginPage />
+      </AuthProvider>
+    );
+  }
+  
+  // Login de revendedora
+  if (path === '/reseller-login') {
+    return <ResellerLogin />;
+  }
+  
+  return null;
+};
+
 const AppRoutes = () => {
   const location = useLocation();
   const path = location.pathname;
   
-  // ⚡ OTIMIZAÇÃO CRÍTICA: Se for rota pública, renderiza IMEDIATAMENTE sem AuthProvider/NotificationProvider
+  // ⚡ OTIMIZAÇÃO CRÍTICA: Se for rota pública, renderiza IMEDIATAMENTE
   if (isPublicRoute(path)) {
     return <PublicRoutes />;
   }
   
+  // Rotas privadas com AuthProvider e NotificationProvider
   return (
     <AuthProvider>
       <NotificationProvider>
@@ -170,11 +116,9 @@ const AppRoutes = () => {
 };
 
 // ✅ OTIMIZAÇÃO: Componente App com renderização condicional de MonitoringProvider
-// Rotas públicas NÃO carregam MonitoringProvider para renderizar mais rápido
 const App = () => {
-  // Verifica se é rota pública ANTES de montar qualquer provider pesado
   const currentPath = typeof window !== 'undefined' ? window.location.pathname : '/';
-  const isPublic = isPublicRoutePath(currentPath);
+  const isPublic = isPublicRoute(currentPath);
   
   // Para rotas públicas, usa estrutura minimalista sem MonitoringProvider
   if (isPublic) {
