@@ -182,7 +182,7 @@ export async function registerRoutes(app: Express) {
   registerWhatsAppCompleteRoutes(app);
   
   app.use("/api/formularios", requireTenant, formulariosRoutes);
-  app.use("/api", requireTenant, meetingsRouter);
+  app.use("/api/reunioes", requireTenant, meetingsRouter);
 
   // KANBAN PLATFORM ROUTES
   const { kanbanStorage } = await import("./storage/kanbanStorage");
