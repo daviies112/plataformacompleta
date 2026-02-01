@@ -7,6 +7,7 @@ interface DesignColors {
   text?: string;
   background?: string;
   secondary?: string;
+  progressBar?: string;
 }
 
 interface DesignConfig {
@@ -270,6 +271,8 @@ const PublicFormApp = () => {
   const buttonColor = colors?.button || primaryColor;
   const buttonTextColor = colors?.buttonText || '#ffffff';
   const textColor = colors?.text || '#1a1a1a';
+  const secondaryColor = colors?.secondary || '#f1f5f9';
+  const progressBarColor = colors?.progressBar || primaryColor;
   
   // Config de boas-vindas
   const welcomeConfig = form?.welcomeConfig;
@@ -339,8 +342,8 @@ const PublicFormApp = () => {
     return (
       <div style={styles.container}>
         <div style={styles.card}>
-          <div style={styles.progress}>
-            <div style={{ ...styles.progressBar, width: `${progressPercent}%`, backgroundColor: primaryColor }} />
+          <div style={{ ...styles.progress, backgroundColor: secondaryColor }}>
+            <div style={{ ...styles.progressBar, width: `${progressPercent}%`, backgroundColor: progressBarColor }} />
           </div>
           <p style={styles.stepLabel}>{progressPercent}% completo</p>
           
@@ -420,8 +423,8 @@ const PublicFormApp = () => {
     return (
       <div style={styles.container}>
         <div style={styles.card}>
-          <div style={styles.progress}>
-            <div style={{ ...styles.progressBar, width: `${progressPercent}%`, backgroundColor: primaryColor }} />
+          <div style={{ ...styles.progress, backgroundColor: secondaryColor }}>
+            <div style={{ ...styles.progressBar, width: `${progressPercent}%`, backgroundColor: progressBarColor }} />
           </div>
           <p style={styles.stepLabel}>{progressPercent}% completo</p>
           
@@ -542,8 +545,8 @@ const PublicFormApp = () => {
     return (
       <div style={styles.container}>
         <div style={styles.card}>
-          <div style={styles.progress}>
-            <div style={{ ...styles.progressBar, width: `${progressPercent}%`, backgroundColor: primaryColor }} />
+          <div style={{ ...styles.progress, backgroundColor: secondaryColor }}>
+            <div style={{ ...styles.progressBar, width: `${progressPercent}%`, backgroundColor: progressBarColor }} />
           </div>
           <p style={styles.stepLabel}>{progressPercent}% completo</p>
           
