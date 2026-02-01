@@ -57,11 +57,13 @@ ExecutiveAI Pro utilizes a modern web stack with a multi-tenant, API-driven arch
 - **Performance Optimizations:** 
   - Public routes use `isPublicRoute()` function to skip Supabase credential fetching
   - **CRITICAL FIX (Jan 2026)**: Public routes now use STATIC imports (not lazy) to eliminate loading spinners
+  - **CRITICAL FIX (Feb 2026)**: Removed slow fallback in `resolvePublicFormTenant` that iterated ALL Supabase tenants (15+ seconds delay → instant)
   - AuthContext initializes `isLoading=false` for public routes, preventing blocking states
   - MonitoringProvider only loads for authenticated/private routes
   - Pure CSS skeletons (no heavy icon imports) for sub-50ms initial render
   - Component preloading with `requestIdleCallback` for smooth transitions
   - API timeouts with graceful fallbacks (1.5-2s max wait)
+  - **FormMappingSync**: Sincroniza `is_public` do Supabase para o mapeamento local (roda a cada 5 min)
 - **Dynamic Branding System:** `CompanyContext` provides centralized branding synchronization from Supabase `companies` table to the reseller dashboard, applying CSS variables dynamically for real-time theming.
 - **Platform Analytics:** Comprehensive analytics dashboard for admins showing platform-wide sales metrics, top resellers, commission distribution, monthly trends, and resellers at risk.
 - **Commission Configuration System:** Dynamic commission tiers configurable via an admin page, persisted to the `commission_config` table, and automatically used for payment split calculations.
