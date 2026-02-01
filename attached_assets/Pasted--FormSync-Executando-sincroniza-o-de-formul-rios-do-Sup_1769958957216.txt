@@ -1,0 +1,195 @@
+ [FormSync] Executando sincronização de formulários do Supabase...
+🔍 [FormPoller] Iniciando polling de submissions...
+🔄 [CPFSync] Executando sincronização de CPF compliance...
+🔍 [CPFPoller] Iniciando polling de consultas CPF...
+📱 [CPFPoller] Buscando resultados com telefone do Supabase Cliente...
+✅ [SUPABASE] 1 configuração(ões) encontrada(s) no banco de dados
+🏢 [FormPoller] Encontrados 1 tenant(s) configurados
+
+🔄 [FormPoller] Processando tenant: dev-daviemericko_gmail_com
+🔍 Verificando novos clientes para cliente dev-daviemericko_gmail_com (tenant: dev-daviemericko_gmail_com)
+🔍 Iniciando detecção de novos clientes para dev-daviemericko_gmail_com/dev-daviemericko_gmail_com
+📋 [MasterSync] 1 admins com credenciais encontrados
+📱 [CPFPoller] Buscando resultados CPF e telefones via form_submissions...
+📊 [FormPoller] Tenant dev-daviemericko_gmail_com: 0 submissions não sincronizadas ou atualizadas
+ℹ️ [FormPoller] Tenant dev-daviemericko_gmail_com: Nenhuma submission nova
+
+✅ [FormPoller] Polling concluído: 0 submissions enfileiradas de 1 tenant(s)
+ℹ️ [FormSync] Nenhuma submission nova para processar
+❌ [MULTI-TENANT] Erro ao buscar dados para dev-daviemericko_gmail_com: {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.clientes_completos'",
+  message: "Could not find the table 'public.dashboard_completo_v5_base' in the schema cache"
+}
+❌ Não foi possível buscar dados do Supabase para cliente dev-daviemericko_gmail_com
+⚠️ Supabase não configurado para dev-daviemericko_gmail_com/dev-daviemericko_gmail_com - usando modo mock
+ℹ️ [CPFPoller] Todos os resultados já foram processados
+ℹ️ [CPFPoller] Nenhum resultado pendente no Supabase Cliente
+✅ [CPFPoller] Polling concluído: 0 consultas processadas
+ℹ️ [CPFSync] Nenhuma consulta CPF nova para processar
+🔍 [CPFAutoCheck] Verificando leads aprovados sem consulta CPF...
+⚠️ [CPFAutoCheck] Nenhum tenant com BigDataCorp E Supabase configurados - pulando verificação
+📋 [MasterSync] 1 admins com credenciais encontrados
+📋 [MasterSync] 1 admins com credenciais encontrados
+📋 [MasterSync] 1 admins com credenciais encontrados
+🔄 [FormSync] Executando sincronização de formulários do Supabase...
+🔍 [FormPoller] Iniciando polling de submissions...
+🔄 [FormMappingSync] Iniciando sincronização de formulários do Supabase...
+
+╔════════════════════════════════════════╗
+║  🔍 LIMIT MONITOR - FREE TIER         ║
+╚════════════════════════════════════════╝
+
+📊 [FormMappingSync] Encontrados 1 tenant(s) para sincronizar
+🔍 [FormMappingSync] Sincronizando tenant: dev-daviemericko_gmail_com
+🔍 [SUPABASE] Buscando credenciais do banco de dados (supabase_config)...
+✅ [SUPABASE] Credenciais descriptografadas com sucesso (tenant: dev-daviemericko_gmail_com)
+✅ [SUPABASE] URL: https://axrvyrpefpntacuibyds.s...
+✅ [SUPABASE] Usando credenciais do tenant: dev-daviemericko_gmail_com
+✅ [SUPABASE] Usando cliente cache (headers)
+✅ [SUPABASE] 1 configuração(ões) encontrada(s) no banco de dados
+🏢 [FormPoller] Encontrados 1 tenant(s) configurados
+
+🔄 [FormPoller] Processando tenant: dev-daviemericko_gmail_com
+📊 Service Status:
+
+  🟢 Redis (Monthly): 0.0% (0/500000)
+  🟢 Supabase Bandwidth: 0.0% (0.00MB/2048.00MB)
+
+────────────────────────────────────────
+
+🔍 Verificando novos clientes para cliente dev-daviemericko_gmail_com (tenant: dev-daviemericko_gmail_com)
+🔍 Iniciando detecção de novos clientes para dev-daviemericko_gmail_com/dev-daviemericko_gmail_com
+📋 [MasterSync] 1 admins com credenciais encontrados
+📋 [FormMappingSync] Encontrados 11 formulário(s) no tenant dev-daviemericko_gmail_com
+📊 [FormPoller] Tenant dev-daviemericko_gmail_com: 0 submissions não sincronizadas ou atualizadas
+ℹ️ [FormPoller] Tenant dev-daviemericko_gmail_com: Nenhuma submission nova
+
+✅ [FormPoller] Polling concluído: 0 submissions enfileiradas de 1 tenant(s)
+ℹ️ [FormSync] Nenhuma submission nova para processar
+❌ [MULTI-TENANT] Erro ao buscar dados para dev-daviemericko_gmail_com: {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.clientes_completos'",
+  message: "Could not find the table 'public.dashboard_completo_v5_base' in the schema cache"
+}
+❌ Não foi possível buscar dados do Supabase para cliente dev-daviemericko_gmail_com
+⚠️ Supabase não configurado para dev-daviemericko_gmail_com/dev-daviemericko_gmail_com - usando modo mock
+📋 [FormMappingSync] CompanySlug para tenant dev-daviemericko_gmail_com: elena
+✅ [FormMappingSync] Tenant dev-daviemericko_gmail_com sincronizado com sucesso
+✅ [FormMappingSync] Sincronização concluída: 11 formulário(s) sincronizado(s), 0 erro(s)
+📋 [MasterSync] 1 admins com credenciais encontrados
+Erro ao verificar login: {
+  code: 'PGRST202',
+  details: 'Searched for the function public.verificar_login with parameters p_email, p_senha or with a single unnamed json/jsonb parameter, but no matches were found in the schema cache.',
+  hint: 'Perhaps you meant to call the function public.update_admin_last_login',
+  message: 'Could not find the function public.verificar_login(p_email, p_senha) in the schema cache'
+}
+⚠️ [AUTH] Funcao verificar_login nao existe - usando modo desenvolvimento
+✅ [AUTH] Login de desenvolvimento para: daviemericko@gmail.com
+03:14:04 PM [express] POST /api/auth/login 200 in 177ms
+🔐 [CONFIG] Usando sessão para tenant: dev-daviemericko_gmail_com
+🔍 [SUPABASE] Buscando credenciais para tenant: dev-daviemericko_gmail_com
+🔍 [SUPABASE-STRICT] Buscando credenciais APENAS para tenant dev-daviemericko_gmail_com...
+03:14:04 PM [express] GET /api/auth/check-session 200 in 3ms
+03:14:04 PM [express] ⚠️  VAPID keys geradas para desenvolvimento. Configure as env vars para produção:
+03:14:04 PM [express] VAPID_PUBLIC_KEY=BCOgn_rVG6V2llyYXjpi6zvjWqK6cRhQShFSfzGiD7YeaPhj4XcMr4LBQAaoMryQNPg8EMV4Z8Fxdpzyu1gH07I
+03:14:04 PM [express] VAPID_PRIVATE_KEY=LgO-bIBg8gO-ZYB34BZP4c9qQhVuEnDGPhw9yuiF4MI
+03:14:04 PM [express] ℹ️  Firebase não configurado - usando Web Push API
+03:14:04 PM [express] GET /api/notifications/vapid-public-key 200 in 7ms
+✅ CF Cache rule matched: static for /service-worker.js
+✅ [SUPABASE] Credenciais descriptografadas com sucesso (tenant: dev-daviemericko_gmail_com)
+✅ [SUPABASE] URL: https://axrvyrpefpntacuibyds.s...
+✅ [SUPABASE-STRICT] Credenciais encontradas para tenant: dev-daviemericko_gmail_com
+✅ [SUPABASE-STRICT] Credenciais encontradas para tenant: dev-daviemericko_gmail_com
+03:14:04 PM [express] GET /api/config/supabase/credentials 304 in 28ms
+03:14:04 PM [express] GET /api/notifications/vapid-public-key 304 in 1ms
+03:14:04 PM [express] GET /api/wallet/balance 304 in 4ms
+03:14:04 PM [express] GET /api/notifications/history 304 in 11ms
+03:14:04 PM [express] GET /api/notifications/settings 304 in 20ms
+03:14:06 PM [express] GET /api/completion-pages 304 in 16ms
+🔍 [SUPABASE-STRICT] Buscando credenciais APENAS para tenant dev-daviemericko_gmail_com...
+✅ CF Cache rule matched: api for /api/forms
+✅ [SUPABASE] Credenciais descriptografadas com sucesso (tenant: dev-daviemericko_gmail_com)
+✅ [SUPABASE] URL: https://axrvyrpefpntacuibyds.s...
+✅ [SUPABASE-STRICT] Credenciais encontradas para tenant: dev-daviemericko_gmail_com
+[GET /api/company-slug] Fetching from Supabase (tenant: dev-daviemericko_gmail_com)...
+✅ [FORMS/ativo] Formulário ativo encontrado no PostgreSQL local: 2a81364b-84a9-4c67-aea2-697cf6311f92
+✅ [FORMS] Usando Supabase do tenant: dev-daviemericko_gmail_com
+🔍 [GET /api/forms] Buscando do Supabase com contador de respostas (APENAS Supabase)...
+[GET /api/company-slug] Found in Supabase: { companyName: 'Elena', companySlug: 'elena' }
+[GET /api/company-slug] Returning: { companyName: 'Elena', companySlug: 'elena' }
+03:14:07 PM [express] GET /api/company-slug 304 in 218ms
+03:14:07 PM [express] GET /api/formularios/ativo 304 in 220ms
+📊 [SUPABASE] 11 formulário(s) encontrado(s)
+📊 [ENRICHMENT] Using Supabase for submission counts...
+✅ [ENRICHMENT] Enriched 11 forms from Supabase
+✅ [SUPABASE] Retornando 11 formulário(s) com contador de respostas (SEM fallback local)
+📦 CF Cache-Control: max-age=300, s-maxage=600, stale-while-revalidate=300, public
+03:14:08 PM [express] GET /api/forms 304 in 418ms
+✅ CF Cache rule matched: static for /src/index.css
+🔄 [CPFSync] Executando sincronização de CPF compliance...
+🔍 [CPFPoller] Iniciando polling de consultas CPF...
+📱 [CPFPoller] Buscando resultados com telefone do Supabase Cliente...
+📋 [MasterSync] 1 admins com credenciais encontrados
+📱 [CPFPoller] Buscando resultados CPF e telefones via form_submissions...
+ℹ️ [CPFPoller] Todos os resultados já foram processados
+ℹ️ [CPFPoller] Nenhum resultado pendente no Supabase Cliente
+✅ [CPFPoller] Polling concluído: 0 consultas processadas
+ℹ️ [CPFSync] Nenhuma consulta CPF nova para processar
+🔍 [CPFAutoCheck] Verificando leads aprovados sem consulta CPF...
+⚠️ [CPFAutoCheck] Nenhum tenant com BigDataCorp E Supabase configurados - pulando verificação
+✅ CF Cache rule matched: static for /src/assets/nexus-logo-full.png
+✅ CF Cache rule matched: static for /src/components/notion/editor-premium.css
+✅ CF Cache rule matched: api for /api/forms/public/by-slug/elena/formulario-de-qualificacaof
+🔗 [SLUG] Buscando formulário: companySlug="elena", formSlug="formulario-de-qualificacaof"
+✅ CF Cache rule matched: static for /favicon.ico
+❌ [PUBLIC_CACHE] Form not found: elena/formulario-de-qualificacaof (390ms)
+⚠️ [SLUG] Ultra-fast lookup failed, trying standard lookup...
+✅ [SLUG] Mapeamento encontrado: formId="2a81364b-84a9-4c67-aea2-697cf6311f92", tenantId="dev-daviemericko_gmail_com"
+🌐 [SLUG] Buscando dados do PostgreSQL local PRIMEIRO...
+🌐 [SLUG] Não encontrado localmente, buscando no Supabase...
+✅ CF Cache rule matched: static for /icons/icon-192x192.png
+✅ CF Cache rule matched: static for /icons/icon-512x512.png
+✅ [SLUG] Formulário encontrado no Supabase: Formulário de Qualificaçãof
+📦 CF Cache-Control: max-age=300, s-maxage=600, stale-while-revalidate=300, public
+📦 CF Cache-Control: max-age=300, s-maxage=600, stale-while-revalidate=300, public
+03:14:26 PM [express] GET /api/forms/public/by-slug/elena/formulario-de-qualificacaof 304 in 735ms
+✅ CF Cache rule matched: static for /icons/icon-192x192.png
+✅ CF Cache rule matched: static for /service-worker.js
+03:14:34 PM [express] GET /api/wallet/balance 304 in 2ms
+📋 [MasterSync] 1 admins com credenciais encontrados
+✅ CF Cache rule matched: static for /src/index.css
+✅ CF Cache rule matched: static for /src/assets/nexus-logo-full.png
+✅ CF Cache rule matched: static for /src/components/notion/editor-premium.css
+✅ CF Cache rule matched: static for /favicon.ico
+✅ CF Cache rule matched: static for /icons/icon-192x192.png
+✅ CF Cache rule matched: static for /icons/icon-192x192.png
+✅ CF Cache rule matched: static for /icons/icon-512x512.png
+✅ CF Cache rule matched: static for /service-worker.js
+03:15:04 PM [express] GET /api/wallet/balance 304 in 12ms
+🔄 [FormSync] Executando sincronização de formulários do Supabase...
+🔍 [FormPoller] Iniciando polling de submissions...
+✅ [SUPABASE] 1 configuração(ões) encontrada(s) no banco de dados
+🏢 [FormPoller] Encontrados 1 tenant(s) configurados
+
+🔄 [FormPoller] Processando tenant: dev-daviemericko_gmail_com
+🔍 Verificando novos clientes para cliente dev-daviemericko_gmail_com (tenant: dev-daviemericko_gmail_com)
+🔍 Iniciando detecção de novos clientes para dev-daviemericko_gmail_com/dev-daviemericko_gmail_com
+📋 [MasterSync] 1 admins com credenciais encontrados
+📊 [FormPoller] Tenant dev-daviemericko_gmail_com: 0 submissions não sincronizadas ou atualizadas
+ℹ️ [FormPoller] Tenant dev-daviemericko_gmail_com: Nenhuma submission nova
+
+✅ [FormPoller] Polling concluído: 0 submissions enfileiradas de 1 tenant(s)
+ℹ️ [FormSync] Nenhuma submission nova para processar
+❌ [MULTI-TENANT] Erro ao buscar dados para dev-daviemericko_gmail_com: {
+  code: 'PGRST205',
+  details: null,
+  hint: "Perhaps you meant the table 'public.clientes_completos'",
+  message: "Could not find the table 'public.dashboard_completo_v5_base' in the schema cache"
+}
+❌ Não foi possível buscar dados do Supabase para cliente dev-daviemericko_gmail_com
+⚠️ Supabase não configurado para dev-daviemericko_gmail_com/dev-daviemericko_gmail_com - usando modo mock
+^A^A03:15:35 PM [express] GET /api/wallet/balance 304 in 18ms
+📋 [MasterSync] 1 admins com credenciais encontrados

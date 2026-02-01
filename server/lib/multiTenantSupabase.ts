@@ -114,7 +114,7 @@ export async function testAllTables(clientId: string): Promise<{
     'workspace_pages',
     'workspace_boards',
     'workspace_databases',
-    'dashboard_completo_v5_base'  // Mantém para compatibilidade
+    'clientes_completos'  // Tabela correta do dashboard
   ];
 
   for (const table of tablesToTest) {
@@ -161,9 +161,9 @@ export async function getClientDashboardData(
   
   try {
     const { data, error } = await client
-      .from('dashboard_completo_v5_base')
+      .from('clientes_completos')
       .select('*')
-      .order('ultimo_contato', { ascending: false });
+      .limit(100);
       
     if (error) {
       console.error(`❌ [MULTI-TENANT] Erro ao buscar dados para ${clientId}:`, error);
@@ -384,7 +384,7 @@ export async function fetchTenantSupabaseData(
     
     // Dashboard table
     const { data: dashboardClients, error: dashboardError } = await client
-      .from('dashboard_completo_v5_base')
+      .from('clientes_completos')
       .select('*', { count: 'exact' });
     
     // Count errors
