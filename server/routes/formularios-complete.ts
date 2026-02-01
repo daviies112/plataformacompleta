@@ -223,99 +223,10 @@ async function resolvePublicFormTenant(identifier: string, isUUID: boolean = tru
       return mapping.tenantId;
     }
     
-    // 🔄 FALLBACK: Se não encontrou no mapping local, buscar em todos os tenants do Supabase
-    // NOTA: Fallback só funciona com UUID, pois Supabase não tem acesso ao slug local
-    if (!isUUID) {
-      console.log(`⚠️ [FALLBACK] Slug ${identifier} não encontrado no mapping local - fallback não disponível para slugs`);
-      return null;
-    }
-    
-    console.log(`🔍 [FALLBACK] Form ${identifier} not in mapping cache - searching in all Supabase tenants...`);
-    
-    const tenants = await db.select({ tenantId: supabaseConfig.tenantId })
-      .from(supabaseConfig);
-    
-    console.log(`📊 [FALLBACK] Found ${tenants.length} configured tenant(s) to search`);
-    
-    for (const { tenantId } of tenants) {
-      try {
-        const supabase = await getSupabaseClient(tenantId);
-        if (!supabase) {
-          console.log(`⚠️ [FALLBACK] Skipping tenant ${tenantId} - no Supabase client available`);
-          continue;
-        }
-        
-        console.log(`🔍 [FALLBACK] Searching for form ${identifier} in tenant ${tenantId}...`);
-        
-        // Tentar buscar com is_public, se coluna não existir buscar apenas id
-        let { data, error } = await supabase.from('forms')
-          .select('id, is_public')
-          .eq('id', identifier)
-          .single();
-        
-        // Se coluna is_public não existir (erro 42703), buscar apenas id e assumir público
-        if (error && error.code === '42703') {
-          console.log(`⚠️ [FALLBACK] Coluna is_public não existe no tenant ${tenantId} - assumindo form como público se encontrado`);
-          const fallback = await supabase.from('forms')
-            .select('id')
-            .eq('id', identifier)
-            .single();
-          
-          if (fallback.error) {
-            if (fallback.error.code === 'PGRST116') {
-              console.log(`❌ [FALLBACK] Form ${identifier} not found in tenant ${tenantId}`);
-            } else {
-              console.error(`❌ [FALLBACK] Error searching in tenant ${tenantId}:`, fallback.error);
-            }
-            continue;
-          }
-          
-          // Form encontrado, assumir como público
-          data = { ...fallback.data, is_public: true };
-          error = null;
-        } else if (error) {
-          if (error.code === 'PGRST116') {
-            console.log(`❌ [FALLBACK] Form ${identifier} not found in tenant ${tenantId}`);
-          } else {
-            console.error(`❌ [FALLBACK] Error searching in tenant ${tenantId}:`, error);
-          }
-          continue;
-        }
-        
-        if (data && data.is_public) {
-          console.log(`✅ [FALLBACK] Found public form ${identifier} in tenant ${tenantId} - caching...`);
-          
-          // Cache no mapping local para próximas requisições
-          await db.insert(formTenantMapping)
-            .values({
-              formId: identifier,
-              tenantId,
-              isPublic: true,
-              createdAt: new Date(),
-              updatedAt: new Date()
-            })
-            .onConflictDoUpdate({
-              target: formTenantMapping.formId,
-              set: {
-                tenantId,
-                isPublic: true,
-                updatedAt: new Date()
-              }
-            });
-          
-          console.log(`💾 [FALLBACK] Form ${identifier} cached in mapping table for tenant ${tenantId}`);
-          return tenantId;
-        } else if (data && !data.is_public) {
-          console.warn(`[SECURITY] Form ${identifier} found in tenant ${tenantId} but is not public - access denied`);
-          return null;
-        }
-      } catch (tenantError) {
-        console.error(`❌ [FALLBACK] Error processing tenant ${tenantId}:`, tenantError);
-        continue;
-      }
-    }
-    
-    console.warn(`[SECURITY] Form ${identifier} not found in any tenant or is not public`);
+    // 🚀 PERFORMANCE: Se não encontrou no mapping, retorna null imediatamente
+    // O FormMappingSync job irá popular o mapping periodicamente
+    // REMOVIDO: Fallback lento que iterava TODOS os tenants do Supabase (causava 15+ segundos de delay)
+    console.log(`⚠️ [PUBLIC] Form ${identifier} not found in mapping - returning null (sync job will populate)`);
     return null;
   } catch (error) {
     console.error('[SECURITY] Error resolving public form tenant:', error);
