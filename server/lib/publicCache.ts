@@ -205,6 +205,38 @@ export function setCachedMeeting(roomIdOrMeetingId: string, meetingData: any): v
 }
 
 /**
+ * Get cached room design config
+ */
+export function getCachedRoomDesign(meetingId: string): any | null {
+  const cacheKey = `meeting:design:${meetingId}`;
+  return meetingCache.get<any>(cacheKey) || null;
+}
+
+/**
+ * Set cached room design config
+ */
+export function setCachedRoomDesign(meetingId: string, designData: any): void {
+  const cacheKey = `meeting:design:${meetingId}`;
+  meetingCache.set(cacheKey, designData);
+}
+
+/**
+ * Get cached full meeting (meeting + design combined)
+ */
+export function getCachedMeetingFull(meetingId: string): any | null {
+  const cacheKey = `meeting:full:${meetingId}`;
+  return meetingCache.get<any>(cacheKey) || null;
+}
+
+/**
+ * Set cached full meeting (meeting + design combined)
+ */
+export function setCachedMeetingFull(meetingId: string, fullData: any): void {
+  const cacheKey = `meeting:full:${meetingId}`;
+  meetingCache.set(cacheKey, fullData);
+}
+
+/**
  * Get cached global config (for assinatura)
  */
 export function getCachedGlobalConfig(configType: string): any | null {

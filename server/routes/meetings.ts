@@ -9,7 +9,7 @@ import { getClientSupabaseClient, getClientSupabaseClientStrict } from "../lib/m
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { cache } from "../lib/cache";
-import { getCachedMeeting, setCachedMeeting } from "../lib/publicCache";
+import { getCachedMeeting, setCachedMeeting, getCachedRoomDesign, setCachedRoomDesign, getCachedMeetingFull, setCachedMeetingFull } from "../lib/publicCache";
 
 export const meetingsRouter = Router();
 export const publicRoomDesignRouter = Router();
@@ -270,7 +270,7 @@ publicRoomDesignRouter.get('/reunioes/:meetingId/participant-data', async (req: 
   }
 });
 
-// Public route to get full meeting data (alias for /info with more data)
+// Public route to get full meeting data (alias for /info with more data) - WITH CACHE
 publicRoomDesignRouter.get('/reunioes/:meetingId/public', async (req: Request, res: Response) => {
   try {
     // Clean meetingId - remove any query string that might be URL-encoded in the path
@@ -278,6 +278,14 @@ publicRoomDesignRouter.get('/reunioes/:meetingId/public', async (req: Request, r
     
     if (!meetingId) {
       return res.status(400).json({ error: 'ID da reunião é obrigatório' });
+    }
+    
+    // Check cache first
+    const cached = getCachedMeeting(meetingId);
+    if (cached) {
+      res.setHeader('X-Cache', 'HIT');
+      res.setHeader('Cache-Control', 'public, max-age=60');
+      return res.json(cached);
     }
     
     const [meeting] = await db.select().from(reunioes)
@@ -288,7 +296,7 @@ publicRoomDesignRouter.get('/reunioes/:meetingId/public', async (req: Request, r
       return res.status(404).json({ error: 'Reunião não encontrada' });
     }
 
-    res.json({
+    const response = {
       id: meeting.id,
       tenantId: meeting.tenantId,
       titulo: meeting.titulo,
@@ -302,7 +310,14 @@ publicRoomDesignRouter.get('/reunioes/:meetingId/public', async (req: Request, r
       participantId: meeting.participantId,
       roomId100ms: meeting.roomId100ms,
       metadata: meeting.metadata
-    });
+    };
+    
+    // Cache the result
+    setCachedMeeting(meetingId, response);
+    
+    res.setHeader('X-Cache', 'MISS');
+    res.setHeader('Cache-Control', 'public, max-age=60');
+    res.json(response);
 
   } catch (error: any) {
     console.error('[MeetingPublic] Erro:', error);
@@ -310,7 +325,7 @@ publicRoomDesignRouter.get('/reunioes/:meetingId/public', async (req: Request, r
   }
 });
 
-// Public route to get room design config (alias)
+// Public route to get room design config (alias) - WITH CACHE
 publicRoomDesignRouter.get('/reunioes/:meetingId/room-design-public', async (req: Request, res: Response) => {
   try {
     // Clean meetingId - remove any query string that might be URL-encoded in the path
@@ -318,6 +333,14 @@ publicRoomDesignRouter.get('/reunioes/:meetingId/room-design-public', async (req
     
     if (!meetingId) {
       return res.status(400).json({ error: 'ID da reunião é obrigatório' });
+    }
+    
+    // Check cache first
+    const cached = getCachedRoomDesign(meetingId);
+    if (cached) {
+      res.setHeader('X-Cache', 'HIT');
+      res.setHeader('Cache-Control', 'public, max-age=60');
+      return res.json(cached);
     }
     
     const [meeting] = await db.select().from(reunioes)
@@ -348,7 +371,7 @@ publicRoomDesignRouter.get('/reunioes/:meetingId/room-design-public', async (req
       designConfig = metadata?.roomDesignConfig || null;
     }
 
-    res.json({
+    const response = {
       roomDesignConfig: designConfig,
       designConfig,
       meetingInfo: {
@@ -357,11 +380,94 @@ publicRoomDesignRouter.get('/reunioes/:meetingId/room-design-public', async (req
         status: meeting.status,
         tenantId: meeting.tenantId
       }
-    });
+    };
+    
+    // Cache the result
+    setCachedRoomDesign(meetingId, response);
+    
+    res.setHeader('X-Cache', 'MISS');
+    res.setHeader('Cache-Control', 'public, max-age=60');
+    res.json(response);
 
   } catch (error: any) {
     console.error('[RoomDesignPublic] Erro:', error);
     res.status(500).json({ error: 'Erro ao buscar configuração da sala' });
+  }
+});
+
+// NEW: Combined endpoint for ultra-fast loading (single request instead of 2)
+publicRoomDesignRouter.get('/reunioes/:meetingId/full-public', async (req: Request, res: Response) => {
+  try {
+    const meetingId = req.params.meetingId?.split('?')[0]?.split('%3F')[0];
+    
+    if (!meetingId) {
+      return res.status(400).json({ error: 'ID da reunião é obrigatório' });
+    }
+    
+    // Check cache first
+    const cached = getCachedMeetingFull(meetingId);
+    if (cached) {
+      res.setHeader('X-Cache', 'HIT');
+      res.setHeader('Cache-Control', 'public, max-age=60');
+      return res.json(cached);
+    }
+    
+    const [meeting] = await db.select().from(reunioes)
+      .where(eq(reunioes.id, meetingId))
+      .limit(1);
+
+    if (!meeting) {
+      return res.status(404).json({ error: 'Reunião não encontrada' });
+    }
+
+    // Get design config
+    let designConfig = null;
+    if (meeting.tenantId) {
+      const [config] = await db.select().from(hms100msConfig)
+        .where(eq(hms100msConfig.tenantId, meeting.tenantId))
+        .limit(1);
+      
+      if (config?.roomDesignConfig) {
+        designConfig = config.roomDesignConfig;
+      }
+    }
+    
+    // Fallback to metadata
+    if (!designConfig) {
+      const metadata = meeting.metadata as any;
+      designConfig = metadata?.roomDesignConfig || null;
+    }
+
+    const response = {
+      meeting: {
+        id: meeting.id,
+        tenantId: meeting.tenantId,
+        titulo: meeting.titulo,
+        nome: meeting.nome,
+        email: meeting.email,
+        telefone: meeting.telefone,
+        dataInicio: meeting.dataInicio,
+        dataFim: meeting.dataFim,
+        duracao: meeting.duracao,
+        status: meeting.status,
+        participantId: meeting.participantId,
+        roomId100ms: meeting.roomId100ms,
+        metadata: meeting.metadata
+      },
+      roomDesignConfig: designConfig,
+      designConfig
+    };
+    
+    // Cache the combined result
+    setCachedMeetingFull(meetingId, response);
+    
+    res.setHeader('X-Cache', 'MISS');
+    res.setHeader('Cache-Control', 'public, max-age=60');
+    res.json(response);
+
+  } catch (error: any) {
+    console.error('[MeetingFullPublic] Erro:', error);
+    res.status(500).json({ error: 'Erro ao buscar dados da reunião' });
   }
 });
 

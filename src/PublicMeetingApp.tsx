@@ -117,32 +117,26 @@ const PublicMeetingApp = () => {
 
     const fetchData = async () => {
       try {
-        const [meetingRes, designRes] = await Promise.all([
-          fetch(`/api/public/reunioes/${meetingId}/public`),
-          fetch(`/api/public/reunioes/${meetingId}/room-design-public`).catch(() => null)
-        ]);
+        // Use combined endpoint for single request (faster than 2 parallel requests)
+        const response = await fetch(`/api/public/reunioes/${meetingId}/full-public`);
 
-        if (!meetingRes.ok) {
+        if (!response.ok) {
           throw new Error('Reunião não encontrada');
         }
 
-        const meeting = await meetingRes.json();
-        setMeetingData(meeting);
+        const data = await response.json();
+        
+        // Set meeting data
+        setMeetingData(data.meeting);
 
-        if (designRes && designRes.ok) {
-          try {
-            const design = await designRes.json();
-            if (design.roomDesignConfig) {
-              setRoomDesign({
-                branding: { ...DEFAULT_CONFIG.branding, ...design.roomDesignConfig.branding },
-                colors: { ...DEFAULT_CONFIG.colors, ...design.roomDesignConfig.colors },
-                lobby: { ...DEFAULT_CONFIG.lobby, ...design.roomDesignConfig.lobby },
-                endScreen: { ...DEFAULT_CONFIG.endScreen, ...design.roomDesignConfig.endScreen },
-              });
-            }
-          } catch {
-            console.log('Design config not available, using defaults');
-          }
+        // Set design config if available
+        if (data.roomDesignConfig) {
+          setRoomDesign({
+            branding: { ...DEFAULT_CONFIG.branding, ...data.roomDesignConfig.branding },
+            colors: { ...DEFAULT_CONFIG.colors, ...data.roomDesignConfig.colors },
+            lobby: { ...DEFAULT_CONFIG.lobby, ...data.roomDesignConfig.lobby },
+            endScreen: { ...DEFAULT_CONFIG.endScreen, ...data.roomDesignConfig.endScreen },
+          });
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Erro ao carregar reunião');
@@ -186,10 +180,12 @@ const PublicMeetingApp = () => {
       }
     };
 
-    initMedia();
+    // Defer camera initialization to let UI render first (100ms delay)
+    const timeoutId = setTimeout(initMedia, 100);
 
     return () => {
       isMounted = false;
+      clearTimeout(timeoutId);
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop());
         streamRef.current = null;
