@@ -170,6 +170,16 @@ Score de 0-1000 para avaliar risco de candidatas a revendedoras. **Quanto maior 
 - 106 variáveis de ambiente
 - 11 integrações externas
 
+### Performance de Formulários Públicos
+
+**`docs/PUBLIC_FORM_PERFORMANCE_FIX.md`** - Documentação CRÍTICA:
+- Solução completa para carregamento instantâneo (15s → <1s)
+- Arquitetura de duas camadas (PublicFormApp vs App completo)
+- Sistema de cores dinâmicas do designConfig
+- Cache de 4 camadas para resposta ultra-rápida
+- Checklist de manutenção e troubleshooting
+- **NUNCA** importar bibliotecas pesadas no PublicFormApp.tsx
+
 ### Arquivos de Auditoria
 
 Pasta `data/audit/` contém JSONs com auditoria completa:
