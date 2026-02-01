@@ -248,6 +248,38 @@ export function Meeting100ms({
   const hasAttemptedJoin = useRef(false);
   const joinTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
+  // Estado para controlar se a reunião tem formulário associado (para mostrar/ocultar botão Assinar)
+  const [hasFormSubmission, setHasFormSubmission] = useState<boolean | null>(null);
+  
+  // Verificar se a reunião tem formSubmissionId ao carregar
+  useEffect(() => {
+    const checkFormSubmission = async () => {
+      try {
+        const pathParts = window.location.pathname.split('/').filter(Boolean);
+        const currentMeetingId = pathParts[pathParts.length - 1] || '';
+        if (!currentMeetingId) {
+          setHasFormSubmission(false);
+          return;
+        }
+        
+        const response = await fetch(`/api/public/reunioes/${currentMeetingId}/public`);
+        if (response.ok) {
+          const data = await response.json();
+          const hasForm = !!(data?.metadata?.formSubmissionId);
+          setHasFormSubmission(hasForm);
+          console.log("[Meeting100ms] hasFormSubmission:", hasForm);
+        } else {
+          setHasFormSubmission(false);
+        }
+      } catch (e) {
+        console.log("[Meeting100ms] Erro ao verificar formSubmission:", e);
+        setHasFormSubmission(false);
+      }
+    };
+    
+    checkFormSubmission();
+  }, []);
+  
   // Processar notificações do SDK para debug e tratamento de erros
   useEffect(() => {
     if (!notification) return;
@@ -992,16 +1024,19 @@ export function Meeting100ms({
                   </Button>
                 )}
 
-                <div 
-                  className="h-8 w-[1px] mx-1" 
-                  style={{ backgroundColor: `${config?.colors?.controlsText || "#ffffff"}1a` }}
-                />
+                {/* Botão Assinar só aparece quando há formulário associado à reunião */}
+                {hasFormSubmission && (
+                  <>
+                    <div 
+                      className="h-8 w-[1px] mx-1" 
+                      style={{ backgroundColor: `${config?.colors?.controlsText || "#ffffff"}1a` }}
+                    />
 
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button 
-                      onClick={async () => {
-                        console.log("[Meeting100ms] Click Assinar Contrato");
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button 
+                          onClick={async () => {
+                            console.log("[Meeting100ms] Click Assinar Contrato");
                         
                         // IMPORTANTE: Abrir a janela ANTES das chamadas async para evitar bloqueio de popup
                         // Em celulares, popups só funcionam se abertos diretamente pelo clique do usuário
@@ -1105,12 +1140,14 @@ export function Meeting100ms({
                     >
                       <FileSignature className="h-5 w-5" />
                       <span className="hidden sm:inline">Assinar</span>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Abrir página de assinatura de contrato</p>
-                  </TooltipContent>
-                </Tooltip>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Abrir página de assinatura de contrato</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </>
+                )}
 
                 <Button 
                   onClick={() => {
