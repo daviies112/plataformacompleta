@@ -14,9 +14,11 @@ import { MonitoringProvider } from "./components/MonitoringProvider";
 // ✅ OTIMIZAÇÃO: Imports ESTÁTICOS apenas para o roteador principal (muito leve)
 import PlatformRouter from './platforms/PlatformRouter';
 
-// ✅ OTIMIZAÇÃO CRÍTICA: Todas as páginas públicas usam LAZY loading
-// Isso permite que o shell mínimo carregue primeiro (<100ms)
-// e as páginas específicas carreguem depois
+// ✅ OTIMIZAÇÃO CRÍTICA: FormularioPublicoWrapper usa import ESTÁTICO
+// para eliminar delay de 15 segundos em rotas públicas
+import FormularioPublicoWrapper from './features/formularios-platform/pages/FormularioPublicoWrapper';
+
+// Outras páginas usam lazy loading (não são críticas para tempo de carga)
 const AssinaturaClientPage = lazy(() => import('./pages/AssinaturaClientPage'));
 const AssinaturaFromMeeting = lazy(() => import('./pages/AssinaturaFromMeeting'));
 const ReuniaoPublica = lazy(() => import('./pages/ReuniaoPublica'));
@@ -24,7 +26,6 @@ const PublicStore = lazy(() => import('./features/revendedora/pages/public/Publi
 const PublicCheckout = lazy(() => import('./features/revendedora/pages/public/PublicCheckout'));
 const LoginPage = lazy(() => import('./pages/Index'));
 const ResellerLogin = lazy(() => import('./platforms/reseller/pages/Login'));
-const FormularioPublicoWrapper = lazy(() => import('./features/formularios-platform/pages/FormularioPublicoWrapper'));
 
 // ✅ Skeleton minimalista que renderiza em <50ms (apenas CSS, sem JS pesado)
 const MinimalSkeleton = () => (
@@ -94,16 +95,12 @@ const PublicRoutes = () => {
     );
   }
   
-  // Formulários públicos
+  // Formulários públicos - SEM Suspense/lazy para carregamento instantâneo
   if (path.startsWith('/f/') || 
       path.startsWith('/form/') || 
       path.startsWith('/formulario/') ||
       /^\/[^/]+\/form\//.test(path)) {
-    return (
-      <Suspense fallback={<MinimalSkeleton />}>
-        <FormularioPublicoWrapper />
-      </Suspense>
-    );
+    return <FormularioPublicoWrapper />;
   }
   
   // Reuniões públicas

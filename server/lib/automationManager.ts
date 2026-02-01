@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { eq } from 'drizzle-orm';
 import { detectNewClients, processNewClients } from './clientMonitor';
 import { pollFormSubmissions } from './formSubmissionPoller.js';
 import { pollCPFCompliance, getCPFPollerState, checkApprovedSubmissionsWithoutCPF } from './cpfCompliancePoller.js';
@@ -554,18 +555,30 @@ async function syncFormsToMappingTable(): Promise<void> {
         
         // Sincronizar cada formulário
         // NOTA: isPublic defaults to true for backward compatibility
-        // Forms are accessible unless explicitly marked as not public (is_public = false)
+        // IMPORTANTE: NÃO sobrescrever isPublic=true para false se já estiver público localmente
         for (const form of forms) {
           try {
             const isPublicValue = form.is_public !== false; // Default to true unless explicitly false
             const formSlug = form.slug || null;
+            
+            // Verificar se o formulário já existe localmente
+            const existingMapping = await db.select()
+              .from(formTenantMapping)
+              .where(eq(formTenantMapping.formId, form.id))
+              .limit(1);
+            
+            // Se já existe e está público localmente, NÃO sobrescrever para false
+            // Isso evita que o sync resete formulários que foram marcados como públicos manualmente
+            const preservePublic = existingMapping.length > 0 && existingMapping[0].isPublic === true;
+            const finalIsPublic = preservePublic ? true : isPublicValue;
+            
             await db.insert(formTenantMapping)
               .values({
                 formId: form.id,
                 tenantId,
                 slug: formSlug,
                 companySlug: companySlug,
-                isPublic: isPublicValue,
+                isPublic: finalIsPublic,
                 createdAt: new Date(),
                 updatedAt: new Date()
               })
@@ -575,8 +588,8 @@ async function syncFormsToMappingTable(): Promise<void> {
                   tenantId,
                   slug: formSlug,
                   companySlug: companySlug,
-                  // CORRIGIDO: Sincronizar isPublic do Supabase para garantir consistência
-                  isPublic: isPublicValue,
+                  // PRESERVAR: Se já é público localmente, manter público
+                  isPublic: finalIsPublic,
                   updatedAt: new Date()
                 }
               });
