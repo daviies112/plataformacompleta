@@ -119,7 +119,13 @@ const PublicSignatureApp = () => {
     return (
       <div style={styles.container}>
         <div style={styles.card}>
-          <div style={styles.errorIcon}>⚠️</div>
+          <div style={styles.errorIcon}>
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" strokeWidth="2">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+              <line x1="12" y1="9" x2="12" y2="13"/>
+              <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+          </div>
           <h2 style={styles.errorTitle}>Erro</h2>
           <p style={styles.errorText}>{error}</p>
           <p style={styles.errorHint}>
@@ -164,7 +170,12 @@ const PublicSignatureApp = () => {
       <div style={styles.welcomeContent}>
         <div style={styles.welcomeCard}>
           <div style={{ ...styles.iconCircle, backgroundColor: primaryColor }}>
-            <span style={styles.icon}>✍️</span>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2">
+              <path d="M12 19l7-7 3 3-7 7-3-3z"/>
+              <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/>
+              <path d="M2 2l7.586 7.586"/>
+              <circle cx="11" cy="11" r="2"/>
+            </svg>
           </div>
           
           <h2 style={styles.welcomeTitle}>Assinatura Digital</h2>
@@ -188,18 +199,20 @@ const PublicSignatureApp = () => {
             onClick={handleStartSigning}
             onMouseOver={(e) => {
               (e.target as HTMLButtonElement).style.opacity = '0.9';
-              (e.target as HTMLButtonElement).style.transform = 'scale(1.02)';
             }}
             onMouseOut={(e) => {
               (e.target as HTMLButtonElement).style.opacity = '1';
-              (e.target as HTMLButtonElement).style.transform = 'scale(1)';
             }}
           >
-            Iniciar Assinatura →
+            Iniciar Assinatura
           </button>
           
           <p style={styles.securityText}>
-            🔒 {contractData?.verification_security_text || 'Processo 100% seguro e criptografado'}
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }}>
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+            {contractData?.verification_security_text || 'Processo 100% seguro e criptografado'}
           </p>
         </div>
         

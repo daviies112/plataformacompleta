@@ -1,5 +1,4 @@
 import { createRoot } from "react-dom/client";
-import "./index.css";
 
 const path = window.location.pathname;
 
@@ -30,6 +29,7 @@ if (isPublicFormRoute) {
     createRoot(document.getElementById("root")!).render(<PublicSignatureApp />);
   });
 } else {
+  import("./index.css");
   import("./App").then(({ default: App }) => {
     import("./lib/colorScheme").then(({ initializeColorScheme }) => {
       initializeColorScheme();

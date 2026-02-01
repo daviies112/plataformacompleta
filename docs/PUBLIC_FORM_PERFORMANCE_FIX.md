@@ -1,8 +1,13 @@
-# Correção de Performance - Formulários Públicos
+# Correção de Performance - Rotas Públicas (Formulários, Reuniões, Assinaturas)
 
 ## Problema Original
 
-Os formulários públicos acessados via URLs como `/formulario/:slug/form/:formSlug` demoravam **15+ segundos** para carregar. Visitantes externos viam uma tela em branco ou loading por muito tempo antes de ver o conteúdo do formulário.
+As rotas públicas (formulários, reuniões, assinaturas) acessadas via URLs como `/formulario/:slug/form/:formSlug`, `/reuniao/:id`, ou `/assinar/:token` demoravam **15+ segundos** para carregar. Visitantes externos viam uma tela em branco ou loading por muito tempo antes de ver o conteúdo.
+
+### Rotas Públicas Afetadas
+- **Formulários**: `/f/*`, `/form/*`, `/formulario/*`, `/:slug/form/*`
+- **Reuniões**: `/reuniao/*`, `/reuniao-publica/*`
+- **Assinaturas**: `/assinar/*`, `/assinatura/*`
 
 ### Causa Raiz
 
@@ -23,9 +28,17 @@ Criamos um sistema de **detecção precoce de rotas públicas** que carrega um c
 ```
 main.tsx
     │
-    ├── Rota Pública? (/f/*, /form/*, /formulario/*, /:slug/form/*)
+    ├── Rota de Formulário? (/f/*, /form/*, /formulario/*, /:slug/form/*)
     │       │
     │       └── PublicFormApp.tsx (ultra-leve, ~10 módulos)
+    │
+    ├── Rota de Reunião? (/reuniao/*, /reuniao-publica/*)
+    │       │
+    │       └── PublicMeetingApp.tsx (ultra-leve, ~10 módulos)
+    │
+    ├── Rota de Assinatura? (/assinar/*, /assinatura/*)
+    │       │
+    │       └── PublicSignatureApp.tsx (ultra-leve, ~10 módulos)
     │
     └── Outras Rotas
             │
@@ -39,43 +52,47 @@ main.tsx
 ### 1. `src/main.tsx` - Ponto de Entrada
 
 ```typescript
-import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import "./index.css";
 
-// Detecta rotas públicas ANTES de importar qualquer coisa pesada
-const isPublicFormRoute = () => {
-  const path = window.location.pathname;
-  // Rotas públicas de formulário
-  if (path.startsWith('/f/')) return true;
-  if (path.startsWith('/form/')) return true;
-  if (path.startsWith('/formulario/')) return true;
-  // Rota com slug da empresa: /:companySlug/form/:formSlug
-  const segments = path.split('/').filter(Boolean);
-  if (segments.length >= 3 && segments[1] === 'form') return true;
-  return false;
-};
+const path = window.location.pathname;
 
-const rootElement = document.getElementById("root")!;
-const root = createRoot(rootElement);
+// Detecta rotas públicas de FORMULÁRIO
+const isPublicFormRoute = 
+  path.startsWith('/f/') ||
+  path.startsWith('/form/') ||
+  path.startsWith('/formulario/') ||
+  /^\/[^/]+\/form\//.test(path);
 
-if (isPublicFormRoute()) {
-  // Carrega APENAS o componente ultra-leve
-  import('./PublicFormApp').then(({ default: PublicFormApp }) => {
-    root.render(
-      <StrictMode>
-        <PublicFormApp />
-      </StrictMode>
-    );
+// Detecta rotas públicas de REUNIÃO
+const isPublicMeetingRoute = 
+  path.startsWith('/reuniao/') ||
+  path.startsWith('/reuniao-publica/');
+
+// Detecta rotas públicas de ASSINATURA
+const isPublicSignatureRoute = 
+  path.startsWith('/assinar/') ||
+  path.startsWith('/assinatura/');
+
+if (isPublicFormRoute) {
+  import("./PublicFormApp").then(({ default: PublicFormApp }) => {
+    createRoot(document.getElementById("root")!).render(<PublicFormApp />);
+  });
+} else if (isPublicMeetingRoute) {
+  import("./PublicMeetingApp").then(({ default: PublicMeetingApp }) => {
+    createRoot(document.getElementById("root")!).render(<PublicMeetingApp />);
+  });
+} else if (isPublicSignatureRoute) {
+  import("./PublicSignatureApp").then(({ default: PublicSignatureApp }) => {
+    createRoot(document.getElementById("root")!).render(<PublicSignatureApp />);
   });
 } else {
   // Carrega o App completo para rotas autenticadas
-  import('./App').then(({ default: App }) => {
-    import('./index.css');
-    root.render(
-      <StrictMode>
-        <App />
-      </StrictMode>
-    );
+  import("./App").then(({ default: App }) => {
+    import("./lib/colorScheme").then(({ initializeColorScheme }) => {
+      initializeColorScheme();
+    });
+    createRoot(document.getElementById("root")!).render(<App />);
   });
 }
 ```
@@ -298,12 +315,25 @@ O PublicFormApp lê todas as cores do `designConfig` do formulário:
 
 ## Rotas Públicas Suportadas
 
+### Formulários
 | Padrão | Exemplo |
 |--------|---------|
 | `/f/:formSlug` | `/f/meu-formulario` |
 | `/form/:formSlug` | `/form/meu-formulario` |
 | `/formulario/:companySlug/form/:formSlug` | `/formulario/elena/form/qualificacao` |
 | `/:companySlug/form/:formSlug` | `/elena/form/qualificacao` |
+
+### Reuniões
+| Padrão | Exemplo |
+|--------|---------|
+| `/reuniao/:id` | `/reuniao/abc123` |
+| `/reuniao-publica/:id` | `/reuniao-publica/abc123` |
+
+### Assinaturas
+| Padrão | Exemplo |
+|--------|---------|
+| `/assinar/:token` | `/assinar/token-abc123` |
+| `/assinatura/:id` | `/assinatura/contract-id-456` |
 
 ---
 
@@ -369,9 +399,53 @@ O PublicFormApp lê todas as cores do `designConfig` do formulário:
 |---------|-----------|
 | `src/main.tsx` | Detecção de rota e import dinâmico |
 | `src/PublicFormApp.tsx` | Componente ultra-leve do formulário |
+| `src/PublicMeetingApp.tsx` | Componente ultra-leve da reunião |
+| `src/PublicSignatureApp.tsx` | Componente ultra-leve da assinatura |
 | `server/lib/publicCache.ts` | Cache de 4 camadas |
-| `server/routes/formularios-complete.ts` | Rotas de API |
+| `server/routes/formularios-complete.ts` | Rotas de API de formulários |
+| `server/routes/reunioes.ts` | Rotas de API de reuniões |
+| `server/routes/assinaturas.ts` | Rotas de API de assinaturas |
 | `data/form_mapping_cache.json` | Cache persistente |
+
+---
+
+## Componentes Ultra-Leves Adicionais
+
+### PublicMeetingApp.tsx (Reuniões)
+
+**Funcionalidades:**
+- Lobby ultra-leve com preview de câmera
+- Cores do `roomDesignConfig` (branding.logo, colors.primaryButton, etc.)
+- Campo para nome do participante
+- Controles de áudio/vídeo antes de entrar
+- Lazy-load do Meeting100ms apenas quando clicar "Participar"
+
+**Estados:**
+- `lobby`: Mostra o lobby leve
+- `joining`: Buscando token 100ms
+- `meeting`: Carrega Meeting100ms dinamicamente
+- `ended`: Tela de reunião encerrada
+
+**APIs Utilizadas:**
+- `GET /api/public/reunioes/:id/public` - Dados da reunião
+- `GET /api/public/reunioes/:id/room-design-public` - Cores e branding
+- `POST /api/public/reunioes/:id/token-public` - Token para entrar
+
+### PublicSignatureApp.tsx (Assinaturas)
+
+**Funcionalidades:**
+- Tela de boas-vindas ultra-leve
+- Cores do contrato (primary_color, verification_primary_color, etc.)
+- Logo e nome da empresa
+- Nome do cliente em destaque
+- Lazy-load do fluxo completo ao clicar "Iniciar Assinatura"
+
+**Estados:**
+- `welcome`: Tela de boas-vindas
+- `signing`: Carrega AssinaturaClientPage dinamicamente
+
+**APIs Utilizadas:**
+- `GET /api/assinatura/:token` - Dados do contrato
 
 ---
 
@@ -381,6 +455,9 @@ O PublicFormApp lê todas as cores do `designConfig` do formulário:
 - **Fev 2026**: Sistema de cores dinâmicas do designConfig
 - **Fev 2026**: Centralização do botão e cores dos inputs
 - **Fev 2026**: Cache de 4 camadas para resposta instantânea
+- **Fev 2026**: **PublicMeetingApp.tsx** - Componente ultra-leve para reuniões públicas
+- **Fev 2026**: **PublicSignatureApp.tsx** - Componente ultra-leve para assinaturas públicas
+- **Fev 2026**: Atualização do main.tsx para detectar todas as rotas públicas
 
 ---
 
