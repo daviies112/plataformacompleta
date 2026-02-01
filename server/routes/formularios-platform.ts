@@ -61,9 +61,17 @@ const upload = multer({
 /**
  * Helper function to get Supabase client with proper credentials
  */
-async function getSupabaseClient() {
+async function getSupabaseClient(tenantId?: string) {
+  if (tenantId) {
+    const { getSupabaseCredentialsStrict } = await import('../lib/credentialsDb.js');
+    const credentials = await getSupabaseCredentialsStrict(tenantId);
+    if (credentials) {
+      return await getDynamicSupabaseClient(credentials.url, credentials.anonKey);
+    }
+  }
+  
   const { getSupabaseCredentials } = await import('../lib/credentialsManager.js');
-  const clientId = '1'; // Cliente padrão
+  const clientId = '1';
   const credentials = getSupabaseCredentials(clientId);
   
   return credentials 
@@ -85,7 +93,10 @@ export function registerFormulariosPlatformRoutes(app: Express) {
   // Get all forms
   app.get("/api/formularios/forms", async (req, res) => {
     try {
-      const supabase = await getSupabaseClient();
+      const tenantId = (req.session as any)?.tenantId || (req.session as any)?.user?.tenantId;
+      console.log(`🔍 [GET /api/formularios/forms] Tenant: ${tenantId || 'não identificado'}`);
+      
+      const supabase = await getSupabaseClient(tenantId);
       
       if (supabase) {
         console.log('🔍 [GET /api/formularios/forms] Buscando do Supabase...');
