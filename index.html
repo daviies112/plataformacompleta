@@ -33,6 +33,14 @@
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
     
+    <!-- Preload critical modules for faster JavaScript hydration -->
+    <link rel="modulepreload" href="/node_modules/.vite/deps/react.js">
+    <link rel="modulepreload" href="/node_modules/.vite/deps/react-dom_client.js">
+    <link rel="modulepreload" href="/node_modules/.vite/deps/react_jsx-dev-runtime.js">
+    <link rel="modulepreload" href="/node_modules/.vite/deps/wouter.js">
+    <link rel="modulepreload" href="/node_modules/.vite/deps/react-hook-form.js">
+    <link rel="modulepreload" href="/node_modules/.vite/deps/zod.js">
+    
     <!-- Critical CSS - instant visual feedback skeleton (LIGHT by default for public routes) -->
     <style>
       html, body { margin: 0; padding: 0; }
@@ -103,9 +111,7 @@
       </div>
     </div>
     
-    <!-- QZ Tray for thermal printer integration - load async to not block -->
-    <script async src="https://cdn.jsdelivr.net/npm/qz-tray@2.2/qz-tray.min.js"></script>
-    
+    <!-- QZ Tray - loaded lazily only when needed (not on page load) -->
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
