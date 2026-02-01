@@ -269,7 +269,7 @@ const PublicMeetingApp = () => {
     const CSS_STYLE_ID = 'meeting-global-css';
     if (!document.getElementById(CSS_STYLE_ID)) {
       try {
-        await import('../index.css');
+        await import('./index.css');
         // Mark as loaded to prevent duplicate imports
         const marker = document.createElement('meta');
         marker.id = CSS_STYLE_ID;
