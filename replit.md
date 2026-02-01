@@ -72,6 +72,14 @@ ExecutiveAI Pro utilizes a modern web stack with a multi-tenant, API-driven arch
     - Layer 3: Local DB with 1 second timeout (prevents blocking on slow DB)
     - Layer 4: Direct Supabase fallback (reliable when local DB fails)
     - File: `server/lib/publicCache.ts` - `getPublicFormUltraFast()` function
+  - **MEETING OPTIMIZATION (Feb 2026)**: Cache + combined endpoint for public meeting routes:
+    - Endpoint combinado `/api/public/reunioes/:id/full-public` (1 request ao invés de 2)
+    - Cache de 2 min para meeting data e room design config
+    - Funções: `getCachedMeeting`, `setCachedMeetingFull`, `getCachedRoomDesign`
+    - Inicialização de câmera adiada 100ms para UI render primeiro
+  - **SIGNATURE OPTIMIZATION (Feb 2026)**: Preload e proteção de styles:
+    - Preload do `AssinaturaClientPage` via `requestIdleCallback`
+    - Proteção contra duplicação de estilos injetados (STYLE_ID)
   - AuthContext initializes `isLoading=false` for public routes, preventing blocking states
   - MonitoringProvider only loads for authenticated/private routes
   - Pure CSS skeletons (no heavy icon imports) for sub-50ms initial render

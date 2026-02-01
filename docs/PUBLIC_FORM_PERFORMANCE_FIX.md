@@ -458,6 +458,17 @@ O PublicFormApp lê todas as cores do `designConfig` do formulário:
 - **Fev 2026**: **PublicMeetingApp.tsx** - Componente ultra-leve para reuniões públicas
 - **Fev 2026**: **PublicSignatureApp.tsx** - Componente ultra-leve para assinaturas públicas
 - **Fev 2026**: Atualização do main.tsx para detectar todas as rotas públicas
+- **Fev 2026**: **Otimizações de Backend para Reuniões**:
+  - Cache nos endpoints `/public` e `/room-design-public` (server/routes/meetings.ts)
+  - Novo endpoint combinado `/full-public` - 1 request ao invés de 2
+  - Funções de cache: `getCachedMeeting`, `setCachedMeeting`, `getCachedRoomDesign`, `setCachedRoomDesign`, `getCachedMeetingFull`, `setCachedMeetingFull`
+  - TTL de 2 minutos para dados de reunião (meetingCache)
+- **Fev 2026**: **Otimizações de Frontend**:
+  - PublicFormApp: `useMemo` para valores derivados
+  - PublicMeetingApp: Inicialização de câmera adiada 100ms
+  - PublicSignatureApp: Preload do componente pesado via `requestIdleCallback`
+  - PublicSignatureApp: Proteção contra duplicação de estilos injetados
+  - main.tsx: CSS carregado apenas para rotas não-públicas
 
 ---
 
