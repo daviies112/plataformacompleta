@@ -1,5 +1,33 @@
 import { useState, useEffect, useCallback } from "react";
 
+interface DesignColors {
+  primary?: string;
+  button?: string;
+  buttonText?: string;
+  text?: string;
+  background?: string;
+  secondary?: string;
+}
+
+interface DesignConfig {
+  colors?: DesignColors;
+  spacing?: string;
+  typography?: {
+    fontFamily?: string;
+    titleSize?: string;
+    textSize?: string;
+  };
+}
+
+interface WelcomeConfig {
+  title?: string;
+  description?: string;
+  buttonText?: string;
+  logo?: string;
+  logoAlign?: string;
+  titleSize?: string;
+}
+
 interface FormData {
   id: string;
   title: string;
@@ -9,6 +37,8 @@ interface FormData {
   settings?: any;
   welcome_screen?: any;
   thank_you_screen?: any;
+  designConfig?: DesignConfig;
+  welcomeConfig?: WelcomeConfig;
 }
 
 interface PersonalData {
@@ -234,7 +264,15 @@ const PublicFormApp = () => {
   const progressStep = currentStep === 3 ? 3 + currentQuestionPage : currentStep;
   const progressPercent = Math.round(((progressStep + 1) / totalSteps) * 100);
 
-  const accentColor = form?.settings?.primaryColor || '#e91e63';
+  // Cores do designConfig do formulário
+  const colors = form?.designConfig?.colors;
+  const primaryColor = colors?.primary || '#e91e63';
+  const buttonColor = colors?.button || primaryColor;
+  const buttonTextColor = colors?.buttonText || '#ffffff';
+  const textColor = colors?.text || '#1a1a1a';
+  
+  // Config de boas-vindas
+  const welcomeConfig = form?.welcomeConfig;
 
   if (loading) {
     return (
@@ -264,8 +302,8 @@ const PublicFormApp = () => {
     return (
       <div style={styles.container}>
         <div style={styles.card}>
-          <div style={{ ...styles.successIcon, backgroundColor: accentColor }}>✓</div>
-          <h2 style={{ ...styles.successTitle, color: accentColor }}>
+          <div style={{ ...styles.successIcon, backgroundColor: buttonColor }}>✓</div>
+          <h2 style={{ ...styles.successTitle, color: primaryColor }}>
             {thankYou?.title || 'Obrigado!'}
           </h2>
           <p style={styles.successText}>
@@ -277,21 +315,20 @@ const PublicFormApp = () => {
   }
 
   if (currentStep === 0) {
-    const welcome = form?.welcome_screen;
     return (
       <div style={styles.container}>
         <div style={styles.card}>
-          <h1 style={{ ...styles.welcomeTitle, color: accentColor }}>
-            {welcome?.title || form?.title || 'Bem-vindo!'}
+          <h1 style={{ ...styles.welcomeTitle, color: primaryColor }}>
+            {welcomeConfig?.title || form?.title || 'Bem-vindo!'}
           </h1>
           <p style={styles.welcomeDesc}>
-            {welcome?.description || form?.description || 'Preencha o formulário abaixo.'}
+            {welcomeConfig?.description || form?.description || 'Preencha o formulário abaixo.'}
           </p>
           <button
-            style={{ ...styles.primaryButton, backgroundColor: accentColor }}
+            style={{ ...styles.primaryButton, backgroundColor: buttonColor, color: buttonTextColor }}
             onClick={handleNext}
           >
-            ✨ {welcome?.button_text || 'Começar'}
+            ✨ {welcomeConfig?.buttonText || 'Começar'}
           </button>
         </div>
       </div>
@@ -303,7 +340,7 @@ const PublicFormApp = () => {
       <div style={styles.container}>
         <div style={styles.card}>
           <div style={styles.progress}>
-            <div style={{ ...styles.progressBar, width: `${progressPercent}%`, backgroundColor: accentColor }} />
+            <div style={{ ...styles.progressBar, width: `${progressPercent}%`, backgroundColor: primaryColor }} />
           </div>
           <p style={styles.stepLabel}>{progressPercent}% completo</p>
           
@@ -370,7 +407,7 @@ const PublicFormApp = () => {
           
           <div style={styles.buttonRow}>
             <button style={styles.secondaryButton} onClick={handleBack}>Voltar</button>
-            <button style={{ ...styles.primaryButton, backgroundColor: accentColor }} onClick={handleNext}>
+            <button style={{ ...styles.primaryButton, backgroundColor: buttonColor, color: buttonTextColor }} onClick={handleNext}>
               Próxima →
             </button>
           </div>
@@ -384,7 +421,7 @@ const PublicFormApp = () => {
       <div style={styles.container}>
         <div style={styles.card}>
           <div style={styles.progress}>
-            <div style={{ ...styles.progressBar, width: `${progressPercent}%`, backgroundColor: accentColor }} />
+            <div style={{ ...styles.progressBar, width: `${progressPercent}%`, backgroundColor: primaryColor }} />
           </div>
           <p style={styles.stepLabel}>{progressPercent}% completo</p>
           
@@ -480,7 +517,7 @@ const PublicFormApp = () => {
           
           <div style={styles.buttonRow}>
             <button style={styles.secondaryButton} onClick={handleBack}>Voltar</button>
-            <button style={{ ...styles.primaryButton, backgroundColor: accentColor }} onClick={handleNext}>
+            <button style={{ ...styles.primaryButton, backgroundColor: buttonColor, color: buttonTextColor }} onClick={handleNext}>
               Próxima →
             </button>
           </div>
@@ -506,7 +543,7 @@ const PublicFormApp = () => {
       <div style={styles.container}>
         <div style={styles.card}>
           <div style={styles.progress}>
-            <div style={{ ...styles.progressBar, width: `${progressPercent}%`, backgroundColor: accentColor }} />
+            <div style={{ ...styles.progressBar, width: `${progressPercent}%`, backgroundColor: primaryColor }} />
           </div>
           <p style={styles.stepLabel}>{progressPercent}% completo</p>
           
@@ -526,7 +563,7 @@ const PublicFormApp = () => {
             
             {isLastQuestion ? (
               <button
-                style={{ ...styles.primaryButton, backgroundColor: accentColor, opacity: submitting ? 0.6 : 1 }}
+                style={{ ...styles.primaryButton, backgroundColor: buttonColor, color: buttonTextColor, opacity: submitting ? 0.6 : 1 }}
                 onClick={handleSubmit}
                 disabled={submitting}
               >
@@ -534,7 +571,7 @@ const PublicFormApp = () => {
               </button>
             ) : (
               <button
-                style={{ ...styles.primaryButton, backgroundColor: accentColor }}
+                style={{ ...styles.primaryButton, backgroundColor: buttonColor, color: buttonTextColor }}
                 onClick={handleNext}
               >
                 Próxima →
