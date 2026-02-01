@@ -1,0 +1,1193 @@
+# Metodologia Completa: Implementação de Botão de Gravação Manual - 100ms
+
+## 📋 ÍNDICE
+1. [Análise do Template Atual](#análise-do-template-atual)
+2. [Problema Identificado](#problema-identificado)
+3. [Arquitetura da Solução](#arquitetura-da-solução)
+4. [APIs e Endpoints do 100ms](#apis-e-endpoints-do-100ms)
+5. [Estrutura da Tabela gravacoes](#estrutura-da-tabela-gravacoes)
+6. [Fluxo Completo de Implementação](#fluxo-completo-de-implementação)
+7. [Código Backend (API Routes)](#código-backend-api-routes)
+8. [Código Frontend (Componente React)](#código-frontend-componente-react)
+9. [Webhooks do 100ms](#webhooks-do-100ms)
+10. [Variáveis de Ambiente](#variáveis-de-ambiente)
+11. [Testes e Validação](#testes-e-validação)
+
+---
+
+## 1. ANÁLISE DO TEMPLATE ATUAL
+
+### Template ID: `69388f23033903926e62efcd`
+
+#### Roles Configuradas:
+1. **__internal_recorder** (role_id: c886e123-a657-4822-a78f-34aeaf7e0762)
+   - Permissão: `browserRecording: false`
+   - Uso: Role interna do sistema de gravação
+
+2. **guest** (role_id: e2895802-fa8e-47f9-8856-c0bf7c72daea)
+   - Permissão: `browserRecording: true`
+   - Pode iniciar/parar gravações
+   - Pode fazer RTMP streaming
+
+3. **host** (role_id: 0d1ec5f7-3ca6-4fb5-a166-dea1066d2218)
+   - Permissão: `browserRecording: true`
+   - Pode iniciar/parar gravações
+   - Pode fazer RTMP streaming
+
+#### Configuração Atual no Template:
+```json
+"screens": {
+  "conferencing": {
+    "default": {
+      "elements": {
+        "on_stage_exp": {
+          "on_stage_role": "host",
+          "off_stage_roles": ["guest"],
+          "active_speaker_update_interval": 3
+        }
+      }
+    }
+  }
+}
+```
+
+**⚠️ PROBLEMA:** O template provavelmente está com `autoStart` ativado na dashboard, fazendo a gravação iniciar automaticamente.
+
+---
+
+## 2. PROBLEMA IDENTIFICADO
+
+### Comportamento Atual:
+- ✅ Reunião tem todos os botões normais
+- ❌ **NÃO tem** botão de gravar
+- ❌ Gravação inicia **automaticamente** quando alguém entra
+- ❌ Não há controle manual do usuário
+
+### Comportamento Desejado:
+- ✅ Botão "Gravar" visível na interface
+- ✅ Gravação **não inicia** automaticamente
+- ✅ Ao clicar: botão fica **vermelho** e inicia gravação
+- ✅ Ao clicar novamente: para gravação e **salva na tabela `gravacoes`**
+
+---
+
+## 3. ARQUITETURA DA SOLUÇÃO
+
+### Componentes:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    FRONTEND (React/Next.js)                  │
+│  ┌───────────────────────────────────────────────────────┐  │
+│  │  Componente RecordButton                              │  │
+│  │  - Estado: isRecording, recordingId                   │  │
+│  │  - Visual: Vermelho quando gravando                   │  │
+│  │  - Eventos: onClick → toggle recording                │  │
+│  └───────────────────────────────────────────────────────┘  │
+│                           ↓                                  │
+│  ┌───────────────────────────────────────────────────────┐  │
+│  │  100ms React SDK                                      │  │
+│  │  - selectRecordingState                               │  │
+│  │  - Monitora status da gravação                        │  │
+│  └───────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────┘
+                           ↓
+┌─────────────────────────────────────────────────────────────┐
+│                    BACKEND (API Routes)                      │
+│  ┌───────────────────────────────────────────────────────┐  │
+│  │  POST /api/recording/start                            │  │
+│  │  - Cria registro na tabela gravacoes                  │  │
+│  │  - Chama API 100ms para iniciar gravação             │  │
+│  └───────────────────────────────────────────────────────┘  │
+│  ┌───────────────────────────────────────────────────────┐  │
+│  │  POST /api/recording/stop                             │  │
+│  │  - Chama API 100ms para parar gravação               │  │
+│  │  - Atualiza registro com stopped_at                   │  │
+│  └───────────────────────────────────────────────────────┘  │
+│  ┌───────────────────────────────────────────────────────┐  │
+│  │  POST /api/webhooks/100ms                             │  │
+│  │  - Recebe eventos do 100ms                            │  │
+│  │  - Atualiza tabela gravacoes com URLs/metadados      │  │
+│  └───────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────┘
+                           ↓
+┌─────────────────────────────────────────────────────────────┐
+│                   100ms API & Services                       │
+│  - POST /v2/recordings/room/{room_id}/start                 │
+│  - POST /v2/recordings/room/{room_id}/stop                  │
+│  - Webhooks: beam.started.success                           │
+│  - Webhooks: beam.recording.success                         │
+│  - Webhooks: beam.failure                                   │
+└─────────────────────────────────────────────────────────────┘
+                           ↓
+┌─────────────────────────────────────────────────────────────┐
+│                   POSTGRESQL (Supabase)                      │
+│  ┌───────────────────────────────────────────────────────┐  │
+│  │  Tabela: gravacoes                                    │  │
+│  │  - Armazena metadados de gravações                    │  │
+│  │  - Relaciona com reunioes                             │  │
+│  └───────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 4. APIs E ENDPOINTS DO 100MS
+
+### 4.1 Iniciar Gravação
+
+**Endpoint:**
+```
+POST https://api.100ms.live/v2/recordings/room/{room_id}/start
+```
+
+**Headers:**
+```
+Authorization: Bearer {MANAGEMENT_TOKEN}
+Content-Type: application/json
+```
+
+**Body (Opcional):**
+```json
+{
+  "resolution": {
+    "width": 1280,
+    "height": 720
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "id": "recording_job_id",
+  "room_id": "room_id",
+  "session_id": "session_id",
+  "status": "starting",
+  "created_at": "2024-02-01T10:00:00Z"
+}
+```
+
+### 4.2 Parar Gravação
+
+**Endpoint:**
+```
+POST https://api.100ms.live/v2/recordings/room/{room_id}/stop
+```
+
+**Headers:**
+```
+Authorization: Bearer {MANAGEMENT_TOKEN}
+Content-Type: application/json
+```
+
+**Response:**
+```json
+{
+  "id": "recording_job_id",
+  "status": "stopping"
+}
+```
+
+### 4.3 Obter Management Token
+
+O Management Token é gerado usando JWT com suas credenciais:
+
+```javascript
+import jwt from 'jsonwebtoken';
+
+const token = jwt.sign(
+  {
+    access_key: process.env.HMS_ACCESS_KEY,
+    type: 'management',
+    version: 2,
+    iat: Math.floor(Date.now() / 1000),
+    nbf: Math.floor(Date.now() / 1000)
+  },
+  process.env.HMS_APP_SECRET,
+  {
+    algorithm: 'HS256',
+    expiresIn: '24h',
+    jwtid: uuid.v4()
+  }
+);
+```
+
+---
+
+## 5. ESTRUTURA DA TABELA GRAVACOES
+
+```sql
+create table public.gravacoes (
+  id uuid not null default gen_random_uuid(),
+  reuniao_id uuid not null,
+  tenant_id text not null,
+  room_id_100ms text null,
+  session_id_100ms text null,
+  recording_id_100ms text null,
+  asset_id text null,
+  status text null default 'recording'::text,
+  started_at timestamp with time zone null default CURRENT_TIMESTAMP,
+  stopped_at timestamp with time zone null,
+  duration integer null,
+  file_url text null,
+  file_size integer null,
+  thumbnail_url text null,
+  metadata jsonb null default '{}'::jsonb,
+  created_at timestamp with time zone null default CURRENT_TIMESTAMP,
+  updated_at timestamp with time zone null,
+  constraint gravacoes_pkey primary key (id),
+  constraint fk_gravacoes_reuniao foreign key (reuniao_id) references reunioes (id)
+);
+```
+
+### Estados Possíveis do Campo `status`:
+- `starting` - Gravação sendo iniciada
+- `recording` - Gravação em andamento
+- `stopping` - Gravação sendo parada
+- `completed` - Gravação finalizada e processada
+- `failed` - Gravação falhou
+
+---
+
+## 6. FLUXO COMPLETO DE IMPLEMENTAÇÃO
+
+### 6.1 Quando Usuário Clica em "Iniciar Gravação"
+
+```
+1. Frontend detecta clique no botão
+   ↓
+2. Chama POST /api/recording/start
+   ↓
+3. Backend:
+   a. Cria registro na tabela gravacoes (status: 'starting')
+   b. Gera Management Token
+   c. Chama 100ms API para iniciar gravação
+   d. Retorna gravacao_id para o frontend
+   ↓
+4. Frontend:
+   a. Armazena recordingId no estado
+   b. Muda botão para vermelho
+   c. Mostra "Gravando..."
+   ↓
+5. 100ms inicia gravação e envia webhook beam.started.success
+   ↓
+6. Webhook handler atualiza status para 'recording'
+```
+
+### 6.2 Quando Usuário Clica em "Parar Gravação"
+
+```
+1. Frontend detecta clique no botão
+   ↓
+2. Chama POST /api/recording/stop com recordingId
+   ↓
+3. Backend:
+   a. Busca gravação na tabela
+   b. Chama 100ms API para parar gravação
+   c. Atualiza stopped_at e status para 'stopping'
+   ↓
+4. Frontend:
+   a. Remove recordingId do estado
+   b. Volta botão para cor normal
+   c. Mostra "Gravação parada"
+   ↓
+5. 100ms finaliza gravação e envia webhook beam.recording.success
+   ↓
+6. Webhook handler:
+   a. Atualiza status para 'completed'
+   b. Salva file_url, duration, asset_id
+   c. Calcula e salva duration (stopped_at - started_at)
+```
+
+---
+
+## 7. CÓDIGO BACKEND (API ROUTES)
+
+### 7.1 `/api/recording/start.ts`
+
+```typescript
+import { NextApiRequest, NextApiResponse } from 'next';
+import { createClient } from '@supabase/supabase-js';
+import jwt from 'jsonwebtoken';
+import { v4 as uuidv4 } from 'uuid';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
+// Função para gerar Management Token
+function generateManagementToken() {
+  return jwt.sign(
+    {
+      access_key: process.env.HMS_ACCESS_KEY,
+      type: 'management',
+      version: 2,
+      iat: Math.floor(Date.now() / 1000),
+      nbf: Math.floor(Date.now() / 1000)
+    },
+    process.env.HMS_APP_SECRET!,
+    {
+      algorithm: 'HS256',
+      expiresIn: '24h',
+      jwtid: uuidv4()
+    }
+  );
+}
+
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  try {
+    const { reuniao_id, room_id_100ms, tenant_id, session_id_100ms } = req.body;
+
+    // Validações
+    if (!reuniao_id || !room_id_100ms || !tenant_id) {
+      return res.status(400).json({ 
+        error: 'Campos obrigatórios: reuniao_id, room_id_100ms, tenant_id' 
+      });
+    }
+
+    // 1. Criar registro na tabela gravacoes
+    const { data: gravacao, error: dbError } = await supabase
+      .from('gravacoes')
+      .insert({
+        reuniao_id,
+        tenant_id,
+        room_id_100ms,
+        session_id_100ms,
+        status: 'starting',
+        started_at: new Date().toISOString(),
+        metadata: {
+          initiated_by: 'user',
+          initiated_at: new Date().toISOString()
+        }
+      })
+      .select()
+      .single();
+
+    if (dbError) {
+      console.error('Erro ao criar gravação no banco:', dbError);
+      return res.status(500).json({ error: 'Erro ao criar registro de gravação' });
+    }
+
+    // 2. Gerar Management Token
+    const managementToken = generateManagementToken();
+
+    // 3. Chamar API do 100ms para iniciar gravação
+    const hmsResponse = await fetch(
+      `https://api.100ms.live/v2/recordings/room/${room_id_100ms}/start`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${managementToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          resolution: {
+            width: 1280,
+            height: 720
+          }
+        })
+      }
+    );
+
+    if (!hmsResponse.ok) {
+      const errorData = await hmsResponse.json();
+      console.error('Erro ao iniciar gravação no 100ms:', errorData);
+      
+      // Atualizar status para failed
+      await supabase
+        .from('gravacoes')
+        .update({ 
+          status: 'failed',
+          metadata: {
+            ...gravacao.metadata,
+            error: errorData
+          }
+        })
+        .eq('id', gravacao.id);
+
+      return res.status(500).json({ 
+        error: 'Erro ao iniciar gravação no 100ms',
+        details: errorData
+      });
+    }
+
+    const recordingData = await hmsResponse.json();
+
+    // 4. Atualizar com recording_id do 100ms
+    await supabase
+      .from('gravacoes')
+      .update({ 
+        recording_id_100ms: recordingData.id,
+        status: 'recording',
+        metadata: {
+          ...gravacao.metadata,
+          hms_response: recordingData
+        }
+      })
+      .eq('id', gravacao.id);
+
+    // 5. Retornar sucesso
+    return res.status(200).json({
+      success: true,
+      gravacao_id: gravacao.id,
+      recording_id_100ms: recordingData.id,
+      status: 'recording'
+    });
+
+  } catch (error) {
+    console.error('Erro ao iniciar gravação:', error);
+    return res.status(500).json({ 
+      error: 'Erro interno ao iniciar gravação',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+}
+```
+
+### 7.2 `/api/recording/stop.ts`
+
+```typescript
+import { NextApiRequest, NextApiResponse } from 'next';
+import { createClient } from '@supabase/supabase-js';
+import jwt from 'jsonwebtoken';
+import { v4 as uuidv4 } from 'uuid';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
+function generateManagementToken() {
+  return jwt.sign(
+    {
+      access_key: process.env.HMS_ACCESS_KEY,
+      type: 'management',
+      version: 2,
+      iat: Math.floor(Date.now() / 1000),
+      nbf: Math.floor(Date.now() / 1000)
+    },
+    process.env.HMS_APP_SECRET!,
+    {
+      algorithm: 'HS256',
+      expiresIn: '24h',
+      jwtid: uuidv4()
+    }
+  );
+}
+
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  try {
+    const { gravacao_id } = req.body;
+
+    if (!gravacao_id) {
+      return res.status(400).json({ error: 'gravacao_id é obrigatório' });
+    }
+
+    // 1. Buscar gravação no banco
+    const { data: gravacao, error: fetchError } = await supabase
+      .from('gravacoes')
+      .select('*')
+      .eq('id', gravacao_id)
+      .single();
+
+    if (fetchError || !gravacao) {
+      return res.status(404).json({ error: 'Gravação não encontrada' });
+    }
+
+    if (!gravacao.room_id_100ms) {
+      return res.status(400).json({ error: 'room_id_100ms não encontrado' });
+    }
+
+    // 2. Gerar Management Token
+    const managementToken = generateManagementToken();
+
+    // 3. Chamar API do 100ms para parar gravação
+    const hmsResponse = await fetch(
+      `https://api.100ms.live/v2/recordings/room/${gravacao.room_id_100ms}/stop`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${managementToken}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    if (!hmsResponse.ok) {
+      const errorData = await hmsResponse.json();
+      console.error('Erro ao parar gravação no 100ms:', errorData);
+      return res.status(500).json({ 
+        error: 'Erro ao parar gravação no 100ms',
+        details: errorData
+      });
+    }
+
+    const stopData = await hmsResponse.json();
+
+    // 4. Atualizar banco de dados
+    const stoppedAt = new Date().toISOString();
+    const { error: updateError } = await supabase
+      .from('gravacoes')
+      .update({ 
+        stopped_at: stoppedAt,
+        status: 'stopping',
+        metadata: {
+          ...gravacao.metadata,
+          stop_response: stopData,
+          stopped_by: 'user'
+        }
+      })
+      .eq('id', gravacao_id);
+
+    if (updateError) {
+      console.error('Erro ao atualizar gravação:', updateError);
+      return res.status(500).json({ error: 'Erro ao atualizar gravação' });
+    }
+
+    // 5. Retornar sucesso
+    return res.status(200).json({
+      success: true,
+      gravacao_id,
+      stopped_at: stoppedAt,
+      status: 'stopping',
+      message: 'Gravação sendo finalizada. Aguarde o processamento.'
+    });
+
+  } catch (error) {
+    console.error('Erro ao parar gravação:', error);
+    return res.status(500).json({ 
+      error: 'Erro interno ao parar gravação',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+}
+```
+
+### 7.3 `/api/webhooks/100ms.ts`
+
+```typescript
+import { NextApiRequest, NextApiResponse } from 'next';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  try {
+    const webhookData = req.body;
+    const eventType = webhookData.type;
+
+    console.log('Webhook recebido:', eventType, webhookData);
+
+    switch (eventType) {
+      case 'beam.started.success':
+        await handleBeamStarted(webhookData);
+        break;
+      
+      case 'beam.recording.success':
+        await handleBeamRecordingSuccess(webhookData);
+        break;
+      
+      case 'beam.failure':
+        await handleBeamFailure(webhookData);
+        break;
+      
+      default:
+        console.log('Evento não tratado:', eventType);
+    }
+
+    return res.status(200).json({ received: true });
+
+  } catch (error) {
+    console.error('Erro ao processar webhook:', error);
+    return res.status(500).json({ error: 'Erro ao processar webhook' });
+  }
+}
+
+async function handleBeamStarted(data: any) {
+  const { room_id, session_id, beam_id } = data.data;
+
+  await supabase
+    .from('gravacoes')
+    .update({
+      status: 'recording',
+      session_id_100ms: session_id,
+      metadata: supabase.raw(`metadata || '${JSON.stringify({ beam_started: data })}'::jsonb`)
+    })
+    .eq('room_id_100ms', room_id)
+    .eq('status', 'starting');
+}
+
+async function handleBeamRecordingSuccess(data: any) {
+  const { 
+    room_id, 
+    session_id, 
+    recording_path,
+    recording_presigned_url,
+    duration,
+    size 
+  } = data.data;
+
+  // Buscar gravação
+  const { data: gravacoes } = await supabase
+    .from('gravacoes')
+    .select('*')
+    .eq('room_id_100ms', room_id)
+    .eq('session_id_100ms', session_id)
+    .in('status', ['recording', 'stopping']);
+
+  if (gravacoes && gravacoes.length > 0) {
+    const gravacao = gravacoes[0];
+    
+    // Calcular duração se não fornecida
+    let calculatedDuration = duration;
+    if (!calculatedDuration && gravacao.started_at && gravacao.stopped_at) {
+      const start = new Date(gravacao.started_at).getTime();
+      const stop = new Date(gravacao.stopped_at).getTime();
+      calculatedDuration = Math.floor((stop - start) / 1000); // em segundos
+    }
+
+    await supabase
+      .from('gravacoes')
+      .update({
+        status: 'completed',
+        file_url: recording_presigned_url || recording_path,
+        duration: calculatedDuration,
+        file_size: size,
+        asset_id: data.data.asset_id,
+        updated_at: new Date().toISOString(),
+        metadata: supabase.raw(`metadata || '${JSON.stringify({ beam_success: data })}'::jsonb`)
+      })
+      .eq('id', gravacao.id);
+  }
+}
+
+async function handleBeamFailure(data: any) {
+  const { room_id, session_id, error_message } = data.data;
+
+  await supabase
+    .from('gravacoes')
+    .update({
+      status: 'failed',
+      metadata: supabase.raw(`metadata || '${JSON.stringify({ 
+        beam_failure: data,
+        error_message 
+      })}'::jsonb`)
+    })
+    .eq('room_id_100ms', room_id)
+    .eq('session_id_100ms', session_id)
+    .neq('status', 'completed');
+}
+```
+
+---
+
+## 8. CÓDIGO FRONTEND (COMPONENTE REACT)
+
+### 8.1 `RecordButton.tsx`
+
+```typescript
+import React, { useState, useEffect } from 'react';
+import { useHMSStore, selectRecordingState } from '@100mslive/react-sdk';
+import { Video, Square, Loader2 } from 'lucide-react';
+
+interface RecordButtonProps {
+  reuniaoId: string;
+  roomId100ms: string;
+  sessionId100ms?: string;
+  tenantId: string;
+}
+
+export const RecordButton: React.FC<RecordButtonProps> = ({
+  reuniaoId,
+  roomId100ms,
+  sessionId100ms,
+  tenantId
+}) => {
+  const [isRecording, setIsRecording] = useState(false);
+  const [gravacaoId, setGravacaoId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Monitorar estado de gravação do 100ms SDK
+  const recordingState = useHMSStore(selectRecordingState);
+
+  useEffect(() => {
+    // Sincronizar com o estado do SDK
+    if (recordingState?.browser?.running) {
+      setIsRecording(true);
+    } else if (isRecording && !recordingState?.browser?.running) {
+      // Gravação foi parada
+      setIsRecording(false);
+      setGravacaoId(null);
+    }
+  }, [recordingState]);
+
+  const handleStartRecording = async () => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch('/api/recording/start', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          reuniao_id: reuniaoId,
+          room_id_100ms: roomId100ms,
+          session_id_100ms: sessionId100ms,
+          tenant_id: tenantId
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro ao iniciar gravação');
+      }
+
+      setGravacaoId(data.gravacao_id);
+      setIsRecording(true);
+      
+    } catch (err) {
+      console.error('Erro ao iniciar gravação:', err);
+      setError(err instanceof Error ? err.message : 'Erro ao iniciar gravação');
+      setIsRecording(false);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleStopRecording = async () => {
+    if (!gravacaoId) {
+      setError('ID da gravação não encontrado');
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch('/api/recording/stop', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          gravacao_id: gravacaoId
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro ao parar gravação');
+      }
+
+      setIsRecording(false);
+      setGravacaoId(null);
+      
+    } catch (err) {
+      console.error('Erro ao parar gravação:', err);
+      setError(err instanceof Error ? err.message : 'Erro ao parar gravação');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleToggleRecording = () => {
+    if (isRecording) {
+      handleStopRecording();
+    } else {
+      handleStartRecording();
+    }
+  };
+
+  return (
+    <div className="flex flex-col items-center gap-2">
+      <button
+        onClick={handleToggleRecording}
+        disabled={isLoading}
+        className={`
+          relative flex items-center gap-2 px-4 py-2 rounded-lg
+          font-medium transition-all duration-200
+          ${isRecording 
+            ? 'bg-red-600 hover:bg-red-700 text-white' 
+            : 'bg-gray-700 hover:bg-gray-600 text-white'
+          }
+          ${isLoading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+          disabled:opacity-50 disabled:cursor-not-allowed
+        `}
+      >
+        {isLoading ? (
+          <>
+            <Loader2 className="w-5 h-5 animate-spin" />
+            <span>Processando...</span>
+          </>
+        ) : isRecording ? (
+          <>
+            <Square className="w-5 h-5 fill-current" />
+            <span>Parar Gravação</span>
+            <span className="absolute -top-1 -right-1 flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+            </span>
+          </>
+        ) : (
+          <>
+            <Video className="w-5 h-5" />
+            <span>Iniciar Gravação</span>
+          </>
+        )}
+      </button>
+
+      {error && (
+        <div className="text-red-500 text-sm max-w-xs text-center">
+          {error}
+        </div>
+      )}
+
+      {isRecording && !error && (
+        <div className="text-sm text-gray-400 flex items-center gap-2">
+          <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+          <span>Gravando...</span>
+        </div>
+      )}
+    </div>
+  );
+};
+```
+
+### 8.2 Integração no Componente da Reunião
+
+```typescript
+import { RecordButton } from './RecordButton';
+
+function RoomComponent() {
+  const room = useHMSStore(selectRoom);
+  
+  return (
+    <div className="room-container">
+      {/* Outros componentes da reunião */}
+      
+      <div className="controls-bar">
+        {/* Outros botões */}
+        
+        <RecordButton
+          reuniaoId={reuniao.id}
+          roomId100ms={room.id}
+          sessionId100ms={room.sessionId}
+          tenantId={tenant.id}
+        />
+      </div>
+    </div>
+  );
+}
+```
+
+---
+
+## 9. WEBHOOKS DO 100MS
+
+### 9.1 Eventos Importantes
+
+#### `beam.started.success`
+Enviado quando a gravação inicia com sucesso.
+
+```json
+{
+  "version": "2.0",
+  "id": "webhook-id",
+  "timestamp": "2024-02-01T10:00:00Z",
+  "type": "beam.started.success",
+  "data": {
+    "beam_id": "beam-id",
+    "job_id": "job-id",
+    "room_id": "room-id",
+    "session_id": "session-id",
+    "recording_enabled": true,
+    "started_at": "2024-02-01T10:00:00Z"
+  }
+}
+```
+
+#### `beam.recording.success`
+Enviado quando a gravação é finalizada e processada com sucesso.
+
+```json
+{
+  "version": "2.0",
+  "id": "webhook-id",
+  "timestamp": "2024-02-01T11:00:00Z",
+  "type": "beam.recording.success",
+  "data": {
+    "beam_id": "beam-id",
+    "room_id": "room-id",
+    "session_id": "session-id",
+    "recording_path": "s3://bucket/path/recording.mp4",
+    "recording_presigned_url": "https://presigned-url.com/recording.mp4",
+    "duration": 3600,
+    "size": 524288000,
+    "asset_id": "asset-id",
+    "stopped_at": "2024-02-01T11:00:00Z"
+  }
+}
+```
+
+#### `beam.failure`
+Enviado quando há falha na gravação.
+
+```json
+{
+  "version": "2.0",
+  "id": "webhook-id",
+  "timestamp": "2024-02-01T10:05:00Z",
+  "type": "beam.failure",
+  "data": {
+    "beam_id": "beam-id",
+    "room_id": "room-id",
+    "session_id": "session-id",
+    "error_type": "MAX_RETRIES_REACHED",
+    "error_message": "Failed to start recording"
+  }
+}
+```
+
+### 9.2 Configurar Webhooks na Dashboard
+
+1. Acesse: https://dashboard.100ms.live
+2. Vá em **Developer** → **Webhooks**
+3. Adicione sua URL: `https://seu-dominio.com/api/webhooks/100ms`
+4. Selecione os eventos:
+   - `beam.started.success`
+   - `beam.recording.success`
+   - `beam.failure`
+5. Salve a configuração
+
+---
+
+## 10. VARIÁVEIS DE AMBIENTE
+
+Adicione ao seu `.env` ou `.env.local`:
+
+```bash
+# 100ms Credentials
+HMS_ACCESS_KEY=your_access_key_here
+HMS_APP_SECRET=your_app_secret_here
+HMS_TEMPLATE_ID=69388f23033903926e62efcd
+
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+
+# Webhook URL (para testes locais, use ngrok)
+WEBHOOK_BASE_URL=https://seu-dominio.com
+```
+
+---
+
+## 11. TESTES E VALIDAÇÃO
+
+### 11.1 Checklist de Testes
+
+- [ ] **Botão aparece na interface**
+  - Verificar visibilidade
+  - Verificar posicionamento correto
+
+- [ ] **Iniciar gravação**
+  - [ ] Botão fica vermelho
+  - [ ] Indicador de "Gravando..." aparece
+  - [ ] Registro criado na tabela `gravacoes` com status `starting`
+  - [ ] API do 100ms é chamada com sucesso
+  - [ ] Status atualizado para `recording` após webhook
+
+- [ ] **Parar gravação**
+  - [ ] Botão volta ao estado normal
+  - [ ] Campo `stopped_at` é preenchido
+  - [ ] Status atualizado para `stopping`
+  - [ ] Após processamento, status vira `completed`
+
+- [ ] **Webhooks**
+  - [ ] `beam.started.success` atualiza status
+  - [ ] `beam.recording.success` salva URL e metadados
+  - [ ] `beam.failure` marca como falha
+
+- [ ] **Erros**
+  - [ ] Mensagens de erro aparecem corretamente
+  - [ ] Sistema se recupera de erros
+  - [ ] Gravações com falha são marcadas corretamente
+
+### 11.2 Testes Manuais
+
+```bash
+# 1. Testar início de gravação
+curl -X POST http://localhost:3000/api/recording/start \
+  -H "Content-Type: application/json" \
+  -d '{
+    "reuniao_id": "uuid-da-reuniao",
+    "room_id_100ms": "room-id",
+    "tenant_id": "tenant-id",
+    "session_id_100ms": "session-id"
+  }'
+
+# 2. Testar parada de gravação
+curl -X POST http://localhost:3000/api/recording/stop \
+  -H "Content-Type: application/json" \
+  -d '{
+    "gravacao_id": "uuid-da-gravacao"
+  }'
+
+# 3. Simular webhook
+curl -X POST http://localhost:3000/api/webhooks/100ms \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "beam.started.success",
+    "data": {
+      "room_id": "room-id",
+      "session_id": "session-id"
+    }
+  }'
+```
+
+### 11.3 Query para Verificar Gravações
+
+```sql
+-- Ver todas as gravações
+SELECT 
+  g.id,
+  g.status,
+  g.started_at,
+  g.stopped_at,
+  g.duration,
+  g.file_url,
+  r.titulo as reuniao_titulo
+FROM gravacoes g
+JOIN reunioes r ON r.id = g.reuniao_id
+ORDER BY g.created_at DESC;
+
+-- Ver gravações ativas
+SELECT * FROM gravacoes 
+WHERE status IN ('starting', 'recording')
+ORDER BY started_at DESC;
+
+-- Ver gravações completadas nas últimas 24h
+SELECT * FROM gravacoes 
+WHERE status = 'completed'
+AND stopped_at > NOW() - INTERVAL '24 hours'
+ORDER BY stopped_at DESC;
+```
+
+---
+
+## 12. TROUBLESHOOTING
+
+### Problema: Gravação não inicia
+
+**Verificar:**
+1. Management Token está sendo gerado corretamente
+2. Credenciais do 100ms (ACCESS_KEY e APP_SECRET) estão corretas
+3. room_id_100ms é válido
+4. Role tem permissão `browserRecording: true`
+
+**Logs importantes:**
+```javascript
+console.log('Management Token:', token.substring(0, 20) + '...');
+console.log('Room ID:', room_id_100ms);
+console.log('Response status:', response.status);
+console.log('Response body:', await response.json());
+```
+
+### Problema: Webhooks não chegam
+
+**Verificar:**
+1. URL do webhook está configurada na dashboard do 100ms
+2. URL é acessível publicamente (use ngrok para testes locais)
+3. Endpoint responde com status 200
+4. Eventos corretos estão selecionados
+
+**Testar com ngrok:**
+```bash
+ngrok http 3000
+# Use a URL gerada: https://xyz.ngrok.io/api/webhooks/100ms
+```
+
+### Problema: Botão não muda de cor
+
+**Verificar:**
+1. Estado `isRecording` está sendo atualizado
+2. Classes CSS estão corretas
+3. Não há erros no console do navegador
+
+---
+
+## 13. PRÓXIMOS PASSOS
+
+1. **Desabilitar Auto-Start no Template**
+   - Acessar dashboard do 100ms
+   - Ir em Templates → nexusintelligence
+   - Recordings → Desativar "Enable auto-start on room join"
+
+2. **Implementar Backend**
+   - Criar as 3 rotas de API
+   - Testar com Postman/cURL
+
+3. **Implementar Frontend**
+   - Criar componente RecordButton
+   - Integrar na página da reunião
+
+4. **Configurar Webhooks**
+   - Adicionar URL na dashboard
+   - Testar recebimento
+
+5. **Testes Completos**
+   - Testar fluxo completo
+   - Verificar banco de dados
+   - Validar URLs das gravações
+
+---
+
+## 14. RECURSOS ADICIONAIS
+
+### Documentação 100ms:
+- API Reference: https://www.100ms.live/docs/server-side/v2/api-reference/recordings/overview
+- Webhooks: https://www.100ms.live/docs/server-side/v2/how-to-guides/configure-webhooks/webhook
+- Recording Guide: https://www.100ms.live/docs/server-side/v2/how-to-guides/recordings/overview
+
+### Bibliotecas Necessárias:
+```bash
+npm install jsonwebtoken uuid
+npm install @types/jsonwebtoken @types/uuid --save-dev
+```
+
+---
+
+**Fim da Metodologia**
+
+Este documento contém todas as informações necessárias para implementar o sistema de gravação manual com botão vermelho conforme solicitado.

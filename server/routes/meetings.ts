@@ -594,6 +594,249 @@ publicRoomDesignRouter.post('/reunioes/:meetingId/token-public', async (req: Req
   }
 });
 
+// ============================================================
+// PUBLIC RECORDING ENDPOINTS (for Meeting100ms.tsx frontend)
+// These endpoints allow guests to control recording in public meetings
+// ============================================================
+
+// Start recording (public - for public meetings)
+// Security: This endpoint is for public meetings where participants have browser recording permission
+// The 100ms template already restricts browserRecording to specific roles (host, guest)
+publicRoomDesignRouter.post('/100ms/recording/start', async (req: Request, res: Response) => {
+  try {
+    const { roomId, meetingUrl, tenantSlug } = req.body;
+    
+    console.log('[Recording Public] Iniciando gravação:', { roomId, tenantSlug });
+    
+    if (!roomId) {
+      return res.status(400).json({ error: 'roomId é obrigatório' });
+    }
+    
+    // Find meeting by roomId (which is actually the meeting ID from URL)
+    let meeting = await db.select().from(reunioes)
+      .where(eq(reunioes.id, roomId))
+      .limit(1)
+      .then(rows => rows[0]);
+    
+    if (!meeting) {
+      console.log('[Recording Public] Reunião não encontrada, tentando por room_id_100ms:', roomId);
+      // Try finding by room_id_100ms
+      meeting = await db.select().from(reunioes)
+        .where(eq(reunioes.roomId100ms, roomId))
+        .limit(1)
+        .then(rows => rows[0]);
+      
+      if (!meeting) {
+        return res.status(404).json({ error: 'Reunião não encontrada' });
+      }
+    }
+    
+    const tenantId = meeting.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({ error: 'Tenant não identificado na reunião' });
+    }
+    
+    // Get 100ms config for this tenant
+    const [config] = await db.select().from(hms100msConfig)
+      .where(eq(hms100msConfig.tenantId, tenantId))
+      .limit(1);
+    
+    if (!config || !config.appAccessKey || !config.appSecret) {
+      return res.status(400).json({ error: 'Credenciais 100ms não configuradas para este tenant' });
+    }
+    
+    const appAccessKey = decrypt(config.appAccessKey);
+    const appSecret = decrypt(config.appSecret);
+    
+    const hmsRoomId = meeting.roomId100ms;
+    if (!hmsRoomId) {
+      return res.status(400).json({ error: 'Reunião sem sala 100ms configurada' });
+    }
+    
+    // Start recording via 100ms API
+    console.log('[Recording Public] Chamando API 100ms para iniciar gravação, room:', hmsRoomId);
+    const recordingResult = await iniciarGravacao(hmsRoomId, appAccessKey, appSecret);
+    
+    // Save recording to local database
+    const [newRecording] = await db.insert(gravacoes).values({
+      reuniaoId: meeting.id,
+      tenantId: tenantId,
+      roomId100ms: hmsRoomId,
+      status: 'recording',
+      startedAt: new Date(),
+      metadata: { ...recordingResult, meetingUrl }
+    }).returning();
+    
+    console.log('[Recording Public] Gravação criada:', newRecording.id);
+    
+    // Sync to Supabase
+    await syncRecordingToSupabase(tenantId, newRecording);
+    
+    res.json({ 
+      success: true, 
+      recordingId: newRecording.id,
+      status: 'recording'
+    });
+    
+  } catch (error: any) {
+    console.error('[Recording Public] Erro ao iniciar gravação:', error);
+    res.status(500).json({ error: error.message || 'Erro ao iniciar gravação' });
+  }
+});
+
+// Stop recording (public - for public meetings)
+publicRoomDesignRouter.post('/100ms/recording/stop', async (req: Request, res: Response) => {
+  try {
+    const { roomId, recordingId } = req.body;
+    
+    console.log('[Recording Public] Parando gravação:', { roomId, recordingId });
+    
+    if (!roomId) {
+      return res.status(400).json({ error: 'roomId é obrigatório' });
+    }
+    
+    // Find active recording for this room
+    let recording = recordingId 
+      ? await db.select().from(gravacoes)
+          .where(and(
+            eq(gravacoes.id, recordingId),
+            eq(gravacoes.status, 'recording')
+          ))
+          .limit(1)
+          .then(rows => rows[0])
+      : null;
+    
+    // If no recording found by ID, find by roomId
+    if (!recording) {
+      // First find meeting by ID or room_id_100ms
+      let meeting = await db.select().from(reunioes)
+        .where(eq(reunioes.id, roomId))
+        .limit(1)
+        .then(rows => rows[0]);
+      
+      if (!meeting) {
+        meeting = await db.select().from(reunioes)
+          .where(eq(reunioes.roomId100ms, roomId))
+          .limit(1)
+          .then(rows => rows[0]);
+      }
+      
+      if (meeting) {
+        recording = await db.select().from(gravacoes)
+          .where(and(
+            eq(gravacoes.reuniaoId, meeting.id),
+            eq(gravacoes.status, 'recording')
+          ))
+          .orderBy(desc(gravacoes.startedAt))
+          .limit(1)
+          .then(rows => rows[0]);
+      }
+    }
+    
+    if (!recording) {
+      return res.status(404).json({ error: 'Gravação ativa não encontrada' });
+    }
+    
+    const tenantId = recording.tenantId;
+    
+    // Get 100ms config
+    const [config] = await db.select().from(hms100msConfig)
+      .where(eq(hms100msConfig.tenantId, tenantId))
+      .limit(1);
+    
+    if (!config || !config.appAccessKey || !config.appSecret) {
+      return res.status(400).json({ error: 'Credenciais 100ms não configuradas' });
+    }
+    
+    const appAccessKey = decrypt(config.appAccessKey);
+    const appSecret = decrypt(config.appSecret);
+    
+    // Stop recording via 100ms API
+    if (recording.roomId100ms) {
+      console.log('[Recording Public] Chamando API 100ms para parar gravação, room:', recording.roomId100ms);
+      await pararGravacao(recording.roomId100ms, appAccessKey, appSecret);
+    }
+    
+    // Calculate duration
+    const startedAt = new Date(recording.startedAt);
+    const stoppedAt = new Date();
+    const durationSeconds = Math.floor((stoppedAt.getTime() - startedAt.getTime()) / 1000);
+    
+    // Update recording status
+    const [updatedRecording] = await db.update(gravacoes)
+      .set({ 
+        status: 'completed',
+        stoppedAt: stoppedAt,
+        duration: durationSeconds,
+        updatedAt: new Date()
+      })
+      .where(eq(gravacoes.id, recording.id))
+      .returning();
+    
+    console.log('[Recording Public] Gravação parada:', updatedRecording.id, 'duração:', durationSeconds, 'segundos');
+    
+    // Sync to Supabase
+    await syncRecordingToSupabase(tenantId, updatedRecording);
+    
+    res.json({ 
+      success: true, 
+      recording: updatedRecording 
+    });
+    
+  } catch (error: any) {
+    console.error('[Recording Public] Erro ao parar gravação:', error);
+    res.status(500).json({ error: error.message || 'Erro ao parar gravação' });
+  }
+});
+
+// List recordings for a room (public)
+publicRoomDesignRouter.get('/100ms/recording/:roomId', async (req: Request, res: Response) => {
+  try {
+    const { roomId } = req.params;
+    
+    // Find meeting
+    let meeting = await db.select().from(reunioes)
+      .where(eq(reunioes.id, roomId))
+      .limit(1)
+      .then(rows => rows[0]);
+    
+    if (!meeting) {
+      // Try by room_id_100ms
+      meeting = await db.select().from(reunioes)
+        .where(eq(reunioes.roomId100ms, roomId))
+        .limit(1)
+        .then(rows => rows[0]);
+    }
+    
+    if (!meeting) {
+      return res.json([]); // Return empty list if meeting not found
+    }
+    
+    // Get recordings for this meeting
+    const recordings = await db.select().from(gravacoes)
+      .where(eq(gravacoes.reuniaoId, meeting.id))
+      .orderBy(desc(gravacoes.startedAt));
+    
+    res.json(recordings.map(r => ({
+      id: r.id,
+      status: r.status,
+      recordingId100ms: r.recordingId100ms,
+      startedAt: r.startedAt,
+      stoppedAt: r.stoppedAt,
+      duration: r.duration,
+      fileUrl: r.fileUrl
+    })));
+    
+  } catch (error: any) {
+    console.error('[Recording Public] Erro ao listar gravações:', error);
+    res.status(500).json({ error: 'Erro ao listar gravações' });
+  }
+});
+
+// ============================================================
+// END PUBLIC RECORDING ENDPOINTS
+// ============================================================
+
 // Get room design config (public)
 publicRoomDesignRouter.get('/room-design/:meetingId', async (req: Request, res: Response) => {
   try {

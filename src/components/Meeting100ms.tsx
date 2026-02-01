@@ -204,7 +204,9 @@ export function Meeting100ms({
 
   const localPeer = useHMSStore((store) => store.localPeer);
   const isHost = localPeer?.roleName === 'host';
-  const canRecord = isHost;
+  // Permitir gravação para todos (host e guest têm browserRecording: true no template 100ms)
+  // O botão de gravação estará disponível para todos os participantes
+  const canRecord = true;
   const canShare = isHost || config.meeting?.enableScreenShare;
   
   // Usar cores da configuração para os controles
