@@ -265,6 +265,20 @@ const PublicMeetingApp = () => {
     setStep('joining');
     setTokenError(null);
 
+    // Load global CSS before entering meeting room (Meeting100ms uses shadcn components)
+    const CSS_STYLE_ID = 'meeting-global-css';
+    if (!document.getElementById(CSS_STYLE_ID)) {
+      try {
+        await import('../index.css');
+        // Mark as loaded to prevent duplicate imports
+        const marker = document.createElement('meta');
+        marker.id = CSS_STYLE_ID;
+        document.head.appendChild(marker);
+      } catch (cssError) {
+        console.log('[Meeting] CSS import skipped:', cssError);
+      }
+    }
+
     try {
       const response = await fetch(`/api/public/reunioes/${meetingId}/token-public`, {
         method: 'POST',
