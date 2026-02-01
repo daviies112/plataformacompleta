@@ -9,9 +9,25 @@ const isPublicFormRoute =
   path.startsWith('/formulario/') ||
   /^\/[^/]+\/form\//.test(path);
 
+const isPublicMeetingRoute = 
+  path.startsWith('/reuniao/') ||
+  path.startsWith('/reuniao-publica/');
+
+const isPublicSignatureRoute = 
+  path.startsWith('/assinar/') ||
+  path.startsWith('/assinatura/');
+
 if (isPublicFormRoute) {
   import("./PublicFormApp").then(({ default: PublicFormApp }) => {
     createRoot(document.getElementById("root")!).render(<PublicFormApp />);
+  });
+} else if (isPublicMeetingRoute) {
+  import("./PublicMeetingApp").then(({ default: PublicMeetingApp }) => {
+    createRoot(document.getElementById("root")!).render(<PublicMeetingApp />);
+  });
+} else if (isPublicSignatureRoute) {
+  import("./PublicSignatureApp").then(({ default: PublicSignatureApp }) => {
+    createRoot(document.getElementById("root")!).render(<PublicSignatureApp />);
   });
 } else {
   import("./App").then(({ default: App }) => {
@@ -25,10 +41,6 @@ if (isPublicFormRoute) {
       path !== '/' &&
       path !== '/login' &&
       path !== '/reseller-login' &&
-      !path.startsWith('/assinar/') &&
-      !path.startsWith('/assinatura/') &&
-      !path.startsWith('/reuniao/') &&
-      !path.startsWith('/reuniao-publica/') &&
       !path.startsWith('/loja/') &&
       !path.startsWith('/checkout/');
     
