@@ -14,6 +14,8 @@
 
 import NodeCache from 'node-cache';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import fs from 'fs';
+import path from 'path';
 
 // Cache instances with appropriate TTLs
 // Short TTL for credentials (5 min) - security consideration
@@ -282,3 +284,310 @@ export function clearAllCaches(): void {
   supabaseClientCache.clear();
   console.log('[PUBLIC_CACHE] All caches cleared');
 }
+
+// ==========================================
+// 🚀 ULTRA-FAST PUBLIC FORM LOADING
+// ==========================================
+
+// Persistent file cache for form mappings (survives server restarts)
+const FORM_MAPPING_CACHE_FILE = path.join(process.cwd(), 'data', 'form_mapping_cache.json');
+
+interface PersistentFormMapping {
+  formId: string;
+  tenantId: string;
+  companySlug: string;
+  slug: string;
+  isPublic: boolean;
+  formData?: any;
+  cachedAt: number;
+}
+
+// In-memory copy of persistent cache
+let persistentFormMappings: Map<string, PersistentFormMapping> = new Map();
+
+/**
+ * Load persistent form mappings from disk on startup
+ */
+export function loadPersistentFormMappings(): void {
+  try {
+    if (fs.existsSync(FORM_MAPPING_CACHE_FILE)) {
+      const data = JSON.parse(fs.readFileSync(FORM_MAPPING_CACHE_FILE, 'utf8'));
+      persistentFormMappings = new Map(Object.entries(data));
+      console.log(`[PUBLIC_CACHE] Loaded ${persistentFormMappings.size} persistent form mappings from disk`);
+    }
+  } catch (error) {
+    console.warn('[PUBLIC_CACHE] Could not load persistent form mappings:', error);
+  }
+}
+
+/**
+ * Save persistent form mappings to disk
+ */
+function savePersistentFormMappings(): void {
+  try {
+    const dir = path.dirname(FORM_MAPPING_CACHE_FILE);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    const data = Object.fromEntries(persistentFormMappings);
+    fs.writeFileSync(FORM_MAPPING_CACHE_FILE, JSON.stringify(data, null, 2));
+  } catch (error) {
+    console.warn('[PUBLIC_CACHE] Could not save persistent form mappings:', error);
+  }
+}
+
+/**
+ * Set persistent form mapping (saved to disk)
+ */
+export function setPersistentFormMapping(
+  companySlug: string,
+  formSlug: string,
+  mapping: PersistentFormMapping
+): void {
+  const key = `${companySlug}:${formSlug}`;
+  persistentFormMappings.set(key, { ...mapping, cachedAt: Date.now() });
+  // Also cache by formId
+  persistentFormMappings.set(mapping.formId, { ...mapping, cachedAt: Date.now() });
+  // Save async (non-blocking)
+  setImmediate(savePersistentFormMappings);
+}
+
+/**
+ * Get persistent form mapping (from disk cache)
+ */
+export function getPersistentFormMapping(
+  companySlug: string,
+  formSlug: string
+): PersistentFormMapping | null {
+  const key = `${companySlug}:${formSlug}`;
+  const mapping = persistentFormMappings.get(key);
+  if (!mapping) return null;
+  
+  // Check if cache is still valid (24 hours)
+  const maxAge = 24 * 60 * 60 * 1000;
+  if (Date.now() - mapping.cachedAt > maxAge) {
+    return null; // Expired
+  }
+  
+  return mapping;
+}
+
+/**
+ * Execute a promise with a timeout
+ */
+export function withTimeout<T>(promise: Promise<T>, timeoutMs: number, fallbackValue: T): Promise<T> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => {
+      console.warn(`[PUBLIC_CACHE] Query timed out after ${timeoutMs}ms, using fallback`);
+      resolve(fallbackValue);
+    }, timeoutMs);
+    
+    promise
+      .then((result) => {
+        clearTimeout(timer);
+        resolve(result);
+      })
+      .catch((error) => {
+        clearTimeout(timer);
+        console.warn('[PUBLIC_CACHE] Query failed, using fallback:', error.message);
+        resolve(fallbackValue);
+      });
+  });
+}
+
+/**
+ * Ultra-fast public form lookup with multiple fallback layers:
+ * 1. In-memory cache (instant)
+ * 2. Persistent disk cache (fast, survives restarts)
+ * 3. Local DB with 1s timeout (may fail in production)
+ * 4. Direct Supabase lookup (reliable but slower)
+ */
+export async function getPublicFormUltraFast(
+  companySlug: string,
+  formSlug: string
+): Promise<{ formData: any; source: string } | null> {
+  const startTime = Date.now();
+  const cacheKey = `${companySlug}:${formSlug}`;
+  
+  // Layer 1: In-memory cache (instant)
+  const memoryCached = getCachedForm(cacheKey);
+  if (memoryCached) {
+    console.log(`⚡ [PUBLIC_CACHE] Form found in memory cache (${Date.now() - startTime}ms)`);
+    return { formData: memoryCached, source: 'memory' };
+  }
+  
+  // Layer 2: Persistent disk cache (fast)
+  const persistentMapping = getPersistentFormMapping(companySlug, formSlug);
+  if (persistentMapping?.formData) {
+    console.log(`💾 [PUBLIC_CACHE] Form found in persistent cache (${Date.now() - startTime}ms)`);
+    // Warm up memory cache
+    setCachedForm(cacheKey, persistentMapping.formData);
+    return { formData: persistentMapping.formData, source: 'persistent' };
+  }
+  
+  // Layer 3: Local DB with 1 second timeout
+  try {
+    const localResult = await withTimeout(
+      fetchFormFromLocalDB(companySlug, formSlug),
+      1000, // 1 second timeout
+      null
+    );
+    
+    if (localResult) {
+      console.log(`🗄️ [PUBLIC_CACHE] Form found in local DB (${Date.now() - startTime}ms)`);
+      // Cache it for future requests
+      setCachedForm(cacheKey, localResult);
+      setPersistentFormMapping(companySlug, formSlug, {
+        formId: localResult.id,
+        tenantId: localResult.tenantId || '',
+        companySlug,
+        slug: formSlug,
+        isPublic: true,
+        formData: localResult,
+        cachedAt: Date.now()
+      });
+      return { formData: localResult, source: 'localDB' };
+    }
+  } catch (error) {
+    console.warn(`[PUBLIC_CACHE] Local DB lookup failed:`, error);
+  }
+  
+  // Layer 4: Direct Supabase lookup (reliable fallback)
+  try {
+    const supabaseResult = await fetchFormFromSupabaseDirect(companySlug, formSlug);
+    if (supabaseResult) {
+      console.log(`☁️ [PUBLIC_CACHE] Form found in Supabase (${Date.now() - startTime}ms)`);
+      // Cache it for future requests
+      setCachedForm(cacheKey, supabaseResult);
+      setPersistentFormMapping(companySlug, formSlug, {
+        formId: supabaseResult.id,
+        tenantId: supabaseResult.tenantId || '',
+        companySlug,
+        slug: formSlug,
+        isPublic: true,
+        formData: supabaseResult,
+        cachedAt: Date.now()
+      });
+      return { formData: supabaseResult, source: 'supabase' };
+    }
+  } catch (error) {
+    console.warn(`[PUBLIC_CACHE] Supabase lookup failed:`, error);
+  }
+  
+  console.log(`❌ [PUBLIC_CACHE] Form not found: ${companySlug}/${formSlug} (${Date.now() - startTime}ms)`);
+  return null;
+}
+
+/**
+ * Fetch form from local PostgreSQL database
+ */
+async function fetchFormFromLocalDB(companySlug: string, formSlug: string): Promise<any | null> {
+  const { db } = await import('../db');
+  const { formTenantMapping, forms } = await import('../../shared/db-schema');
+  const { eq, and } = await import('drizzle-orm');
+  
+  // Try mapping first
+  const mappingResult = await db
+    .select({
+      formId: formTenantMapping.formId,
+      tenantId: formTenantMapping.tenantId,
+      isPublic: formTenantMapping.isPublic
+    })
+    .from(formTenantMapping)
+    .where(
+      and(
+        eq(formTenantMapping.slug, formSlug),
+        eq(formTenantMapping.companySlug, companySlug)
+      )
+    )
+    .limit(1);
+  
+  if (mappingResult.length > 0 && mappingResult[0].isPublic) {
+    const formResult = await db
+      .select()
+      .from(forms)
+      .where(eq(forms.id, mappingResult[0].formId))
+      .limit(1);
+    
+    if (formResult.length > 0) {
+      return formResult[0];
+    }
+  }
+  
+  // Fallback: search by slug directly
+  const directResult = await db
+    .select()
+    .from(forms)
+    .where(eq(forms.slug, formSlug))
+    .limit(1);
+  
+  if (directResult.length > 0 && directResult[0].isPublic !== false) {
+    return directResult[0];
+  }
+  
+  return null;
+}
+
+/**
+ * Fetch form directly from Supabase (bypasses local DB entirely)
+ */
+async function fetchFormFromSupabaseDirect(companySlug: string, formSlug: string): Promise<any | null> {
+  // Get all configured Supabase tenants
+  const { db } = await import('../db');
+  const { supabaseConfig } = await import('../../shared/db-schema');
+  const { decrypt } = await import('./credentialsManager');
+  
+  // Try to get from cached Supabase config first
+  const configs = await withTimeout(
+    db.select().from(supabaseConfig).execute(),
+    500, // 500ms timeout
+    []
+  );
+  
+  for (const config of configs) {
+    try {
+      let url: string;
+      let anonKey: string;
+      
+      try {
+        url = decrypt(config.supabaseUrl);
+        anonKey = decrypt(config.supabaseAnonKey);
+      } catch {
+        if (config.supabaseUrl.startsWith('http')) {
+          url = config.supabaseUrl;
+          anonKey = config.supabaseAnonKey;
+        } else {
+          continue;
+        }
+      }
+      
+      const supabase = createClient(url, anonKey, {
+        auth: { autoRefreshToken: false, persistSession: false }
+      });
+      
+      // Search by slug
+      const { data, error } = await supabase
+        .from('forms')
+        .select('*')
+        .eq('slug', formSlug)
+        .eq('is_public', true)
+        .limit(1)
+        .maybeSingle();
+      
+      if (!error && data) {
+        // Convert from snake_case to camelCase
+        const { convertKeysToCamelCase, parseJsonbFields, reconstructFormDataFromSupabase } = await import('../formularios/utils/caseConverter');
+        const camelForm = convertKeysToCamelCase(data);
+        const parsedForm = parseJsonbFields(camelForm, ['questions', 'designConfig', 'scoreTiers', 'tags']);
+        return reconstructFormDataFromSupabase(parsedForm);
+      }
+    } catch (error) {
+      console.warn(`[PUBLIC_CACHE] Supabase tenant ${config.tenantId} failed:`, error);
+    }
+  }
+  
+  return null;
+}
+
+// Load persistent mappings on module load
+loadPersistentFormMappings();

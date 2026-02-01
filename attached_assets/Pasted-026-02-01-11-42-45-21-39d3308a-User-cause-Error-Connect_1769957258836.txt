@@ -1,0 +1,88 @@
+026-02-01 11:42:45.21
+39d3308a
+User
+cause: Error: Connection terminated due to connection timeout
+2026-02-01 11:42:45.21
+39d3308a
+User
+query: 'select "tenant_id" from "supabase_config" where "supabase_config"."tenant_id" is not null',
+2026-02-01 11:42:45.21
+39d3308a
+User
+at Connection2.emit (node:events:524:28)
+2026-02-01 11:42:45.21
+39d3308a
+User
+at async NodePgPreparedQuery.queryWithCache (file:///home/runner/workspace/dist/index.mjs:73884:20)
+2026-02-01 11:42:45.21
+39d3308a
+User
+at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2026-02-01 11:42:45.21
+39d3308a
+User
+at NodePgPreparedQuery.queryWithCache (file:///home/runner/workspace/dist/index.mjs:73886:19)
+2026-02-01 11:42:45.21
+39d3308a
+User
+}
+2026-02-01 11:42:45.21
+39d3308a
+User
+at Socket.emit (node:events:536:35)
+2026-02-01 11:42:45.21
+39d3308a
+User
+params:
+2026-02-01 11:42:45.21
+39d3308a
+User
+at Socket. (file:///home/runner/workspace/dist/index.mjs:63414:17)
+2026-02-01 11:42:45.21
+39d3308a
+User
+at async syncFormsToMappingTable (file:///home/runner/workspace/dist/index.mjs:1199741:21) {
+2026-02-01 11:42:45.21
+39d3308a
+User
+at async file:///home/runner/workspace/dist/index.mjs:74182:26
+2026-02-01 11:42:45.21
+39d3308a
+User
+❌ [FormMappingSync] Erro fatal na sincronização: DrizzleQueryError: Failed query: select "tenant_id" from "supabase_config" where "supabase_config"."tenant_id" is not null
+2026-02-01 11:42:45.21
+39d3308a
+User
+at Connection2. (file:///home/runner/workspace/dist/index.mjs:63959:79)
+2026-02-01 11:42:45.21
+39d3308a
+User
+at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2026-02-01 11:42:45.21
+39d3308a
+User
+}
+2026-02-01 11:42:45.21
+39d3308a
+User
+[cause]: Error: Connection terminated unexpectedly
+2026-02-01 11:42:45.21
+39d3308a
+User
+at async file:///home/runner/workspace/dist/index.mjs:74182:26
+2026-02-01 11:42:45.21
+39d3308a
+User
+at TCP. (node:net:343:12)
+2026-02-01 11:42:45.21
+39d3308a
+User
+at Object.onceWrapper (node:events:638:28)
+2026-02-01 11:42:45.21
+39d3308a
+User
+at file:///home/runner/workspace/dist/index.mjs:64424:15
+2026-02-01 11:42:45.21
+39d3308a
+User
+at async file:///home/runner/workspace/dist/index.mjs:74189:22

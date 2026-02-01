@@ -28,7 +28,8 @@ import {
   setCachedForm,
   getCachedFormTenantMapping,
   setCachedFormTenantMapping,
-  invalidateFormCache
+  invalidateFormCache,
+  getPublicFormUltraFast
 } from '../lib/publicCache';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -730,6 +731,18 @@ export function registerFormulariosCompleteRoutes(app: Express) {
       const { companySlug, formSlug } = req.params;
       console.log(`🔗 [SLUG] Buscando formulário: companySlug="${companySlug}", formSlug="${formSlug}"`);
       
+      // 🚀 ULTRA-FAST: Try ultra-fast lookup first (with timeouts and fallbacks)
+      const ultraFastResult = await getPublicFormUltraFast(companySlug, formSlug);
+      if (ultraFastResult) {
+        console.log(`✅ [SLUG] Formulário encontrado via ultra-fast (${ultraFastResult.source})`);
+        res.set('Cache-Control', 'max-age=300, s-maxage=600, stale-while-revalidate=300, public');
+        console.log(`📦 CF Cache-Control: max-age=300, s-maxage=600, stale-while-revalidate=300, public`);
+        return res.json(ultraFastResult.formData);
+      }
+      
+      // 🔗 FALLBACK: Standard lookup if ultra-fast fails
+      console.log(`⚠️ [SLUG] Ultra-fast lookup failed, trying standard lookup...`);
+      
       // 🔗 SLUG: Buscar no formTenantMapping primeiro (fonte única de verdade)
       const mappingResult = await db
         .select({
@@ -976,6 +989,12 @@ export function registerFormulariosCompleteRoutes(app: Express) {
         const camelForm = convertKeysToCamelCase(data);
         const parsedForm = parseJsonbFields(camelForm, ['questions', 'designConfig', 'scoreTiers', 'tags']);
         const reconstructedForm = reconstructFormDataFromSupabase(parsedForm);
+        
+        // 🚀 CACHE: Populate cache for ultra-fast subsequent requests
+        setCachedForm(`${companySlug}:${formSlug}`, reconstructedForm);
+        
+        res.set('Cache-Control', 'max-age=300, s-maxage=600, stale-while-revalidate=300, public');
+        console.log(`📦 CF Cache-Control: max-age=300, s-maxage=600, stale-while-revalidate=300, public`);
         return res.json(reconstructedForm);
       }
       

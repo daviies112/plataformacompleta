@@ -58,6 +58,12 @@ ExecutiveAI Pro utilizes a modern web stack with a multi-tenant, API-driven arch
   - Public routes use `isPublicRoute()` function to skip Supabase credential fetching
   - **CRITICAL FIX (Jan 2026)**: Public routes now use STATIC imports (not lazy) to eliminate loading spinners
   - **CRITICAL FIX (Feb 2026)**: Removed slow fallback in `resolvePublicFormTenant` that iterated ALL Supabase tenants (15+ seconds delay → instant)
+  - **CRITICAL FIX (Feb 2026)**: Ultra-fast public form loading system with multi-layer caching:
+    - Layer 1: In-memory cache (3ms response time)
+    - Layer 2: Persistent disk cache (`data/form_mapping_cache.json`, survives restarts)
+    - Layer 3: Local DB with 1 second timeout (prevents blocking on slow DB)
+    - Layer 4: Direct Supabase fallback (reliable when local DB fails)
+    - File: `server/lib/publicCache.ts` - `getPublicFormUltraFast()` function
   - AuthContext initializes `isLoading=false` for public routes, preventing blocking states
   - MonitoringProvider only loads for authenticated/private routes
   - Pure CSS skeletons (no heavy icon imports) for sub-50ms initial render
