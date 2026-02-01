@@ -1538,6 +1538,69 @@ meetingsRouter.get('/:id', authenticateToken, async (req: Request, res: Response
   }
 });
 
+// Generate token for authenticated user (POST method - used by frontend)
+// This endpoint gives the "host" role to authenticated users
+meetingsRouter.post('/:id/token', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { userName } = req.body;
+    const user = (req as any).user;
+    
+    if (!user?.tenantId) {
+      return res.status(400).json({ error: 'Tenant não identificado' });
+    }
+
+    const [meeting] = await db.select().from(reunioes)
+      .where(and(
+        eq(reunioes.id, id),
+        eq(reunioes.tenantId, user.tenantId)
+      ))
+      .limit(1);
+
+    if (!meeting) {
+      return res.status(404).json({ error: 'Reunião não encontrada' });
+    }
+
+    if (!meeting.roomId100ms) {
+      return res.status(400).json({ error: 'Reunião sem sala 100ms configurada' });
+    }
+
+    const [config] = await db.select().from(hms100msConfig)
+      .where(eq(hms100msConfig.tenantId, user.tenantId))
+      .limit(1);
+
+    if (!config || !config.appAccessKey || !config.appSecret) {
+      return res.status(400).json({ error: 'Credenciais 100ms não configuradas' });
+    }
+
+    const appAccessKey = decrypt(config.appAccessKey);
+    const appSecret = decrypt(config.appSecret);
+
+    // Use userName from request body or user.name or default to 'Host'
+    const participantName = userName || user.name || 'Host';
+
+    const hostToken = gerarTokenParticipante(
+      meeting.roomId100ms,
+      participantName,
+      'host',
+      appAccessKey,
+      appSecret
+    );
+
+    console.log(`[Meetings] Token de host gerado para ${participantName} na reunião ${id}`);
+
+    res.json({ 
+      token: hostToken,
+      role: 'host',
+      roomId: meeting.roomId100ms
+    });
+
+  } catch (error: any) {
+    console.error('[Meetings] Erro ao gerar token:', error);
+    res.status(500).json({ error: 'Erro ao gerar token de host' });
+  }
+});
+
 // Get host token for a meeting
 meetingsRouter.get('/:id/host-token', authenticateToken, async (req: Request, res: Response) => {
   try {
