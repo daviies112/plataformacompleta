@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 
 interface DesignColors {
   primary?: string;
@@ -273,7 +273,7 @@ const PublicFormApp = () => {
     secondaryColor,
     progressBarColor,
     welcomeConfig
-  } = React.useMemo(() => {
+  } = useMemo(() => {
     const questions = getQuestions();
     const totalSteps = 3 + questions.length;
     const progressStep = currentStep === 3 ? 3 + currentQuestionPage : currentStep;
