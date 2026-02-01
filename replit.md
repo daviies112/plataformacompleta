@@ -58,6 +58,12 @@ ExecutiveAI Pro utilizes a modern web stack with a multi-tenant, API-driven arch
   - Public routes use `isPublicRoute()` function to skip Supabase credential fetching
   - **CRITICAL FIX (Jan 2026)**: Public routes now use STATIC imports (not lazy) to eliminate loading spinners
   - **CRITICAL FIX (Feb 2026)**: Removed slow fallback in `resolvePublicFormTenant` that iterated ALL Supabase tenants (15+ seconds delay → instant)
+  - **CRITICAL FIX (Feb 2026)**: Ultra-leve PublicFormApp para rotas públicas de formulário:
+    - Arquivo: `src/PublicFormApp.tsx` - Componente standalone sem dependências pesadas
+    - Arquivo: `src/main.tsx` - Detecta rota pública ANTES de importar App completo
+    - Rotas `/f/*`, `/form/*`, `/formulario/*`, `/:slug/form/*` usam PublicFormApp
+    - NÃO carrega: TanStack Query, react-router-dom, next-themes, shadcn, lucide-react, etc.
+    - Reduz bundle de 80+ módulos para ~5 módulos essenciais (react, react-dom)
   - **CRITICAL FIX (Feb 2026)**: Ultra-fast public form loading system with multi-layer caching:
     - Layer 1: In-memory cache (3ms response time)
     - Layer 2: Persistent disk cache (`data/form_mapping_cache.json`, survives restarts)

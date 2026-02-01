@@ -1,36 +1,43 @@
 import { createRoot } from "react-dom/client";
-import App from "./App.tsx";
 import "./index.css";
-import { initializeColorScheme } from "./lib/colorScheme";
 
-// Initialize color scheme before app renders (lightweight - no external deps)
-initializeColorScheme();
+const path = window.location.pathname;
 
-// ✅ OTIMIZAÇÃO CRÍTICA: Renderiza PRIMEIRO, depois carrega Sentry em background
-// Isso reduz o bundle inicial em ~21MB
-createRoot(document.getElementById("root")!).render(<App />);
+const isPublicFormRoute = 
+  path.startsWith('/f/') ||
+  path.startsWith('/form/') ||
+  path.startsWith('/formulario/') ||
+  /^\/[^/]+\/form\//.test(path);
 
-// Inicializar Sentry apenas em rotas privadas e após a renderização inicial
-// Usa dynamic import para não bloquear o carregamento inicial
-const isPublicRoute = window.location.pathname === '/' ||
-  window.location.pathname === '/login' ||
-  window.location.pathname === '/reseller-login' ||
-  window.location.pathname.startsWith('/assinar/') ||
-  window.location.pathname.startsWith('/assinatura/') ||
-  window.location.pathname.startsWith('/f/') ||
-  window.location.pathname.startsWith('/form/') ||
-  window.location.pathname.startsWith('/formulario/') ||
-  window.location.pathname.startsWith('/reuniao/') ||
-  window.location.pathname.startsWith('/reuniao-publica/') ||
-  window.location.pathname.startsWith('/loja/') ||
-  window.location.pathname.startsWith('/checkout/') ||
-  /^\/[^/]+\/form\//.test(window.location.pathname);
-
-// Só carrega Sentry para rotas privadas e depois de 3 segundos
-if (!isPublicRoute) {
-  setTimeout(() => {
-    import("./lib/sentry").then(({ initializeSentry }) => {
-      initializeSentry().catch(console.error);
+if (isPublicFormRoute) {
+  import("./PublicFormApp").then(({ default: PublicFormApp }) => {
+    createRoot(document.getElementById("root")!).render(<PublicFormApp />);
+  });
+} else {
+  import("./App").then(({ default: App }) => {
+    import("./lib/colorScheme").then(({ initializeColorScheme }) => {
+      initializeColorScheme();
     });
-  }, 3000);
+    
+    createRoot(document.getElementById("root")!).render(<App />);
+    
+    const isPrivateRoute = 
+      path !== '/' &&
+      path !== '/login' &&
+      path !== '/reseller-login' &&
+      !path.startsWith('/assinar/') &&
+      !path.startsWith('/assinatura/') &&
+      !path.startsWith('/reuniao/') &&
+      !path.startsWith('/reuniao-publica/') &&
+      !path.startsWith('/loja/') &&
+      !path.startsWith('/checkout/');
+    
+    if (isPrivateRoute) {
+      setTimeout(() => {
+        import("./lib/sentry").then(({ initializeSentry }) => {
+          initializeSentry().catch(console.error);
+        });
+      }, 3000);
+    }
+  });
 }
