@@ -212,8 +212,14 @@ app.use((req, res, next) => {
   }, () => {
     log(`serving on port ${port}`);
     
-    // Setup Vite ONLY after server is listening
-    if (app.get("env") === "development") {
+    // Setup static files or Vite dev server based on NODE_ENV
+    const isProduction = process.env.NODE_ENV === 'production';
+    log(`Environment: ${isProduction ? 'production' : 'development'}`);
+    
+    if (isProduction) {
+      log('Serving static files from dist/');
+      serveStatic(app);
+    } else {
       log('Setting up Vite development server...');
       import("./vite").then(({ setupVite }) => {
         setupVite(app, server).then(() => {
@@ -224,8 +230,6 @@ app.use((req, res, next) => {
       }).catch(err => {
         console.error('❌ Failed to load Vite module:', err);
       });
-    } else {
-      serveStatic(app);
     }
     
     // Background tasks - Initialize queues and automation

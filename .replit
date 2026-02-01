@@ -42,3 +42,6 @@ build = ["npm", "run", "build"]
 
 [userenv.development]
 TOTAL_EXPRESS_TEST_MODE = "true"
+
+[userenv.production]
+NODE_ENV = "production"
