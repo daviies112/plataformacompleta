@@ -575,8 +575,8 @@ async function syncFormsToMappingTable(): Promise<void> {
                   tenantId,
                   slug: formSlug,
                   companySlug: companySlug,
-                  // IMPORTANTE: NÃO sobrescrever isPublic - preservar valor local
-                  // isPublic pode ser alterado manualmente pelo admin
+                  // CORRIGIDO: Sincronizar isPublic do Supabase para garantir consistência
+                  isPublic: isPublicValue,
                   updatedAt: new Date()
                 }
               });
