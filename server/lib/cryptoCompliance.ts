@@ -1,13 +1,27 @@
 import { createHash, createCipheriv, createDecipheriv, randomBytes } from "crypto";
 
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || "default-dev-key-change-in-production-32chars";
 const ALGORITHM = "aes-256-cbc";
 
-if (ENCRYPTION_KEY.length !== 32 && process.env.NODE_ENV === "production") {
-  throw new Error("ENCRYPTION_KEY must be exactly 32 characters for AES-256");
+function getEncryptionKey(): Buffer {
+  const base64Key = process.env.CREDENTIALS_ENCRYPTION_KEY_BASE64;
+  
+  if (base64Key) {
+    return Buffer.from(base64Key, 'base64').subarray(0, 32);
+  }
+  
+  const rawKey = process.env.ENCRYPTION_KEY;
+  if (rawKey) {
+    return Buffer.from(rawKey.padEnd(32, "0").substring(0, 32));
+  }
+  
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("CREDENTIALS_ENCRYPTION_KEY_BASE64 or ENCRYPTION_KEY must be set in production");
+  }
+  
+  return Buffer.from("default-dev-key-change-in-prod32");
 }
 
-const KEY_BUFFER = Buffer.from(ENCRYPTION_KEY.padEnd(32, "0").substring(0, 32));
+const KEY_BUFFER = getEncryptionKey();
 
 export function hashCPF(cpf: string): string {
   const normalized = cpf.replace(/\D/g, "");
