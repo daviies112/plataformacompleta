@@ -182,13 +182,29 @@ Score de 0-1000 para avaliar risco de candidatas a revendedoras. **Quanto maior 
 
 ### Performance de Formulários Públicos
 
-**`docs/PUBLIC_FORM_PERFORMANCE_FIX.md`** - Documentação CRÍTICA:
+**`CRITICAL_PERFORMANCE_FILES.md`** (RAIZ DO PROJETO) - Guia rápido:
+- Lista de todos os arquivos críticos de performance
+- Regras de imports permitidos/proibidos
+- Arquitetura de cache (4 camadas)
+- Como testar após modificações
+
+**`docs/PUBLIC_FORM_PERFORMANCE_FIX.md`** - Documentação COMPLETA:
 - Solução completa para carregamento instantâneo (15s → <1s)
 - Arquitetura de duas camadas (PublicFormApp vs App completo)
 - Sistema de cores dinâmicas do designConfig
 - Cache de 4 camadas para resposta ultra-rápida
 - Checklist de manutenção e troubleshooting
 - **NUNCA** importar bibliotecas pesadas no PublicFormApp.tsx
+
+### Arquivos com Comentários de Proteção
+
+Todos os arquivos críticos agora têm headers de aviso:
+- `src/main.tsx` - Detecção precoce de rotas públicas
+- `src/PublicFormApp.tsx` - Componente ultra-leve de formulários
+- `src/PublicMeetingApp.tsx` - Componente ultra-leve de reuniões
+- `src/PublicSignatureApp.tsx` - Componente ultra-leve de assinaturas
+- `server/lib/publicCache.ts` - Cache multi-camada
+- `server/routes/meetings.ts` - Endpoints públicos com cache
 
 ### Arquivos de Auditoria
 

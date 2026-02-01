@@ -1,3 +1,32 @@
+/**
+ * ╔═══════════════════════════════════════════════════════════════════════════╗
+ * ║  ⚠️  ULTRA-LIGHT PUBLIC MEETING COMPONENT - CRITICAL FOR PERFORMANCE  ⚠️ ║
+ * ╠═══════════════════════════════════════════════════════════════════════════╣
+ * ║  This component loads in <1 second vs 15+ seconds with full App.tsx       ║
+ * ║                                                                           ║
+ * ║  🔴 NEVER IMPORT:                                                          ║
+ * ║  - TanStack Query (@tanstack/react-query)                                  ║
+ * ║  - React Router (react-router-dom, wouter)                                 ║
+ * ║  - shadcn/ui components (@/components/ui/*)                               ║
+ * ║  - Lucide icons (lucide-react)                                            ║
+ * ║  - Framer Motion                                                          ║
+ * ║  - Any authentication/context providers                                   ║
+ * ║                                                                           ║
+ * ║  🟢 ALLOWED:                                                               ║
+ * ║  - React core (useState, useEffect, useCallback, useMemo, lazy, Suspense) ║
+ * ║  - Native fetch() for API calls                                           ║
+ * ║  - Inline CSS (no external CSS imports)                                   ║
+ * ║  - 100ms SDK (lazy loaded only when needed)                               ║
+ * ║                                                                           ║
+ * ║  🔧 OPTIMIZATIONS:                                                         ║
+ * ║  - Camera initialization delayed 100ms for UI to render first             ║
+ * ║  - Uses combined /full-public endpoint (1 request vs 2)                   ║
+ * ║  - Backend cache: 2 min TTL for meeting data                              ║
+ * ║                                                                           ║
+ * ║  📖 Full documentation: docs/PUBLIC_FORM_PERFORMANCE_FIX.md               ║
+ * ║  💰 Cost to discover this fix: $30+ in debugging time                     ║
+ * ╚═══════════════════════════════════════════════════════════════════════════╝
+ */
 import { useState, useEffect, useCallback, useRef, lazy, Suspense } from "react";
 
 interface RoomDesignConfig {

@@ -1,15 +1,32 @@
 /**
- * 🚀 HIGH-PERFORMANCE CACHE FOR PUBLIC ROUTES
- * 
- * This module provides in-memory caching specifically optimized for public routes
- * that don't require authentication. Goal: reduce load times from >15s to <3s.
- * 
- * Caches:
- * - Supabase credentials (by tenantId)
- * - Form data (by formId or slug)
- * - Form tenant mappings
- * - Meeting data (by meetingId or roomId)
- * - Contract global config
+ * ╔═══════════════════════════════════════════════════════════════════════════╗
+ * ║  🚀 HIGH-PERFORMANCE CACHE FOR PUBLIC ROUTES - CRITICAL FILE  🚀          ║
+ * ╠═══════════════════════════════════════════════════════════════════════════╣
+ * ║  This module provides multi-layer caching for public routes.              ║
+ * ║  Goal: reduce load times from >15 seconds to <1 second.                   ║
+ * ║                                                                           ║
+ * ║  CACHES:                                                                  ║
+ * ║  - Supabase credentials (by tenantId) - 5 min TTL                         ║
+ * ║  - Form data (by formId or slug) - 5 min TTL                              ║
+ * ║  - Form tenant mappings - 10 min TTL                                      ║
+ * ║  - Meeting data (by meetingId) - 2 min TTL                                ║
+ * ║  - Room design config - 2 min TTL                                         ║
+ * ║  - Contract global config - 5 min TTL                                     ║
+ * ║                                                                           ║
+ * ║  CACHE LAYERS:                                                            ║
+ * ║  1. In-memory (NodeCache) - 3ms response                                  ║
+ * ║  2. Disk cache (JSON files) - survives restarts                           ║
+ * ║  3. Local DB with timeout - prevents blocking                             ║
+ * ║  4. Supabase fallback - reliable when local DB fails                      ║
+ * ║                                                                           ║
+ * ║  🔴 NEVER:                                                                 ║
+ * ║  - Remove or bypass cache functions                                       ║
+ * ║  - Add blocking operations without timeouts                               ║
+ * ║  - Increase TTL excessively (causes stale data)                           ║
+ * ║                                                                           ║
+ * ║  📖 Documentation: docs/PUBLIC_FORM_PERFORMANCE_FIX.md                    ║
+ * ║  💰 Cost to discover this fix: $30+ in debugging time                     ║
+ * ╚═══════════════════════════════════════════════════════════════════════════╝
  */
 
 import NodeCache from 'node-cache';

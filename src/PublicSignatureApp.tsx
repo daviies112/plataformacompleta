@@ -1,3 +1,30 @@
+/**
+ * ╔═══════════════════════════════════════════════════════════════════════════╗
+ * ║  ⚠️  ULTRA-LIGHT PUBLIC SIGNATURE COMPONENT - CRITICAL FOR PERFORMANCE ⚠️║
+ * ╠═══════════════════════════════════════════════════════════════════════════╣
+ * ║  This component loads in <1 second vs 15+ seconds with full App.tsx       ║
+ * ║                                                                           ║
+ * ║  🔴 NEVER IMPORT:                                                          ║
+ * ║  - TanStack Query (@tanstack/react-query)                                  ║
+ * ║  - React Router (react-router-dom, wouter)                                 ║
+ * ║  - shadcn/ui components (@/components/ui/*)                               ║
+ * ║  - Lucide icons (lucide-react)                                            ║
+ * ║  - Framer Motion                                                          ║
+ * ║  - Any authentication/context providers                                   ║
+ * ║                                                                           ║
+ * ║  🟢 ALLOWED:                                                               ║
+ * ║  - React core (useState, useEffect, useCallback)                           ║
+ * ║  - Native fetch() for API calls                                           ║
+ * ║  - Inline CSS (no external CSS imports)                                   ║
+ * ║                                                                           ║
+ * ║  🔧 OPTIMIZATIONS:                                                         ║
+ * ║  - Heavy component preloaded via requestIdleCallback                      ║
+ * ║  - Style injection protected against duplicates (STYLE_ID)                ║
+ * ║                                                                           ║
+ * ║  📖 Full documentation: docs/PUBLIC_FORM_PERFORMANCE_FIX.md               ║
+ * ║  💰 Cost to discover this fix: $30+ in debugging time                     ║
+ * ╚═══════════════════════════════════════════════════════════════════════════╝
+ */
 import { useState, useEffect, useCallback } from "react";
 
 interface ContractData {

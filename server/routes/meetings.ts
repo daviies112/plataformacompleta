@@ -1,3 +1,20 @@
+/**
+ * ╔═══════════════════════════════════════════════════════════════════════════╗
+ * ║  MEETING ROUTES - INCLUDES PERFORMANCE-CRITICAL PUBLIC ENDPOINTS          ║
+ * ╠═══════════════════════════════════════════════════════════════════════════╣
+ * ║  PUBLIC ENDPOINTS WITH CACHING (do not remove cache!):                    ║
+ * ║  - GET /:meetingId/public - Meeting data with 2 min cache                 ║
+ * ║  - GET /:meetingId/room-design-public - Room design with 2 min cache      ║
+ * ║  - GET /:meetingId/full-public - Combined endpoint (1 request vs 2)       ║
+ * ║                                                                           ║
+ * ║  Cache functions from publicCache.ts:                                     ║
+ * ║  - getCachedMeeting / setCachedMeeting                                    ║
+ * ║  - getCachedRoomDesign / setCachedRoomDesign                              ║
+ * ║  - getCachedMeetingFull / setCachedMeetingFull                            ║
+ * ║                                                                           ║
+ * ║  📖 Documentation: docs/PUBLIC_FORM_PERFORMANCE_FIX.md                    ║
+ * ╚═══════════════════════════════════════════════════════════════════════════╝
+ */
 import { Router, Request, Response, NextFunction } from "express";
 import { authenticateToken } from "../middleware/auth";
 import { db } from "../db";
