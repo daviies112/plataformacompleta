@@ -270,6 +270,9 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
 
   useEffect(() => {
     const carregarFormulario = async () => {
+      const startTime = performance.now();
+      console.log('⏱️ [TIMING] Início do carregamento:', new Date().toISOString());
+      
       try {
         // Caso 1: URL com ID ou slug de formulário (/form/:id ou /empresa/form/:slug)
         if (formIdOrSlug) {
@@ -289,7 +292,9 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
             // Se for slug, usar endpoint de slug
             const companySlug = companySlugParam || 'empresa';
             console.log('📝 Carregando formulário por slug:', formIdOrSlug, 'empresa:', companySlug);
+            const fetchStart = performance.now();
             const formResponse = await fetch(`/api/forms/public/by-slug/${companySlug}/${formIdOrSlug}`);
+            console.log(`⏱️ [TIMING] Fetch API levou: ${(performance.now() - fetchStart).toFixed(0)}ms`);
             
             if (!formResponse.ok) {
               // Fallback: tentar buscar por ID caso o slug não funcione
@@ -304,6 +309,7 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
             } else {
               const formData = await formResponse.json();
               console.log('✅ Formulário carregado por slug:', formData.title);
+              console.log(`⏱️ [TIMING] Total desde início: ${(performance.now() - startTime).toFixed(0)}ms`);
               setForm(formData);
             }
           }
