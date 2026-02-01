@@ -320,19 +320,21 @@ const PublicFormApp = () => {
   if (currentStep === 0) {
     return (
       <div style={styles.container}>
-        <div style={styles.card}>
+        <div style={{ ...styles.card, textAlign: 'center' }}>
           <h1 style={{ ...styles.welcomeTitle, color: primaryColor }}>
             {welcomeConfig?.title || form?.title || 'Bem-vindo!'}
           </h1>
           <p style={styles.welcomeDesc}>
             {welcomeConfig?.description || form?.description || 'Preencha o formulário abaixo.'}
           </p>
-          <button
-            style={{ ...styles.primaryButton, backgroundColor: buttonColor, color: buttonTextColor }}
-            onClick={handleNext}
-          >
-            ✨ {welcomeConfig?.buttonText || 'Começar'}
-          </button>
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <button
+              style={{ ...styles.primaryButton, backgroundColor: buttonColor, color: buttonTextColor }}
+              onClick={handleNext}
+            >
+              ✨ {welcomeConfig?.buttonText || 'Começar'}
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -354,7 +356,7 @@ const PublicFormApp = () => {
             <label style={styles.label}>Nome completo *</label>
             <input
               type="text"
-              style={{ ...styles.input, ...(personalErrors.name ? styles.inputError : {}), backgroundColor: '#fffde7' }}
+              style={{ ...styles.input, ...(personalErrors.name ? styles.inputError : {}), backgroundColor: secondaryColor }}
               value={personalData.name}
               onChange={(e) => setPersonalData(prev => ({ ...prev, name: e.target.value }))}
               placeholder="João da Silva"
@@ -366,7 +368,7 @@ const PublicFormApp = () => {
             <label style={styles.label}>Email *</label>
             <input
               type="email"
-              style={{ ...styles.input, ...(personalErrors.email ? styles.inputError : {}), backgroundColor: '#fffde7' }}
+              style={{ ...styles.input, ...(personalErrors.email ? styles.inputError : {}), backgroundColor: secondaryColor }}
               value={personalData.email}
               onChange={(e) => setPersonalData(prev => ({ ...prev, email: e.target.value }))}
               placeholder="joao@email.com"
@@ -378,7 +380,7 @@ const PublicFormApp = () => {
             <label style={styles.label}>CPF *</label>
             <input
               type="text"
-              style={{ ...styles.input, ...(personalErrors.cpf ? styles.inputError : {}), backgroundColor: '#fffde7' }}
+              style={{ ...styles.input, ...(personalErrors.cpf ? styles.inputError : {}), backgroundColor: secondaryColor }}
               value={personalData.cpf}
               onChange={(e) => setPersonalData(prev => ({ ...prev, cpf: formatCPF(e.target.value) }))}
               placeholder="123.456.789-00"
@@ -390,7 +392,7 @@ const PublicFormApp = () => {
             <label style={styles.label}>Telefone</label>
             <input
               type="text"
-              style={{ ...styles.input, backgroundColor: '#fffde7' }}
+              style={{ ...styles.input, backgroundColor: secondaryColor }}
               value={personalData.phone}
               onChange={(e) => setPersonalData(prev => ({ ...prev, phone: formatPhone(e.target.value) }))}
               placeholder="(11) 99999-9999"
@@ -401,7 +403,7 @@ const PublicFormApp = () => {
             <label style={styles.label}>Instagram</label>
             <input
               type="text"
-              style={{ ...styles.input, backgroundColor: '#fffde7' }}
+              style={{ ...styles.input, backgroundColor: secondaryColor }}
               value={personalData.instagram}
               onChange={(e) => setPersonalData(prev => ({ ...prev, instagram: e.target.value }))}
               placeholder="@joaosilva"
@@ -436,7 +438,7 @@ const PublicFormApp = () => {
               <label style={styles.label}>CEP *</label>
               <input
                 type="text"
-                style={{ ...styles.input, ...(addressErrors.cep ? styles.inputError : {}), backgroundColor: '#fffde7' }}
+                style={{ ...styles.input, ...(addressErrors.cep ? styles.inputError : {}), backgroundColor: secondaryColor }}
                 value={addressData.cep}
                 onChange={(e) => {
                   const formatted = formatCEP(e.target.value);
@@ -451,7 +453,7 @@ const PublicFormApp = () => {
               <label style={styles.label}>Estado *</label>
               <input
                 type="text"
-                style={{ ...styles.input, ...(addressErrors.state ? styles.inputError : {}), backgroundColor: '#fffde7' }}
+                style={{ ...styles.input, ...(addressErrors.state ? styles.inputError : {}), backgroundColor: secondaryColor }}
                 value={addressData.state}
                 onChange={(e) => setAddressData(prev => ({ ...prev, state: e.target.value.toUpperCase().slice(0, 2) }))}
                 placeholder="SP"
@@ -464,7 +466,7 @@ const PublicFormApp = () => {
             <label style={styles.label}>Rua * {loadingCep && <span style={{ color: '#888' }}>(buscando...)</span>}</label>
             <input
               type="text"
-              style={{ ...styles.input, ...(addressErrors.street ? styles.inputError : {}), backgroundColor: '#fffde7' }}
+              style={{ ...styles.input, ...(addressErrors.street ? styles.inputError : {}), backgroundColor: secondaryColor }}
               value={addressData.street}
               onChange={(e) => setAddressData(prev => ({ ...prev, street: e.target.value }))}
               placeholder="Av. Paulista"
@@ -477,7 +479,7 @@ const PublicFormApp = () => {
               <label style={styles.label}>Número *</label>
               <input
                 type="text"
-                style={{ ...styles.input, ...(addressErrors.number ? styles.inputError : {}), backgroundColor: '#fffde7' }}
+                style={{ ...styles.input, ...(addressErrors.number ? styles.inputError : {}), backgroundColor: secondaryColor }}
                 value={addressData.number}
                 onChange={(e) => setAddressData(prev => ({ ...prev, number: e.target.value }))}
                 placeholder="1000"
@@ -487,7 +489,7 @@ const PublicFormApp = () => {
               <label style={styles.label}>Complemento</label>
               <input
                 type="text"
-                style={{ ...styles.input, backgroundColor: '#fffde7' }}
+                style={{ ...styles.input, backgroundColor: secondaryColor }}
                 value={addressData.complement}
                 onChange={(e) => setAddressData(prev => ({ ...prev, complement: e.target.value }))}
                 placeholder="Sala 501"
@@ -500,7 +502,7 @@ const PublicFormApp = () => {
               <label style={styles.label}>Bairro</label>
               <input
                 type="text"
-                style={{ ...styles.input, backgroundColor: '#fffde7' }}
+                style={{ ...styles.input, backgroundColor: secondaryColor }}
                 value={addressData.neighborhood}
                 onChange={(e) => setAddressData(prev => ({ ...prev, neighborhood: e.target.value }))}
                 placeholder="Bela Vista"
@@ -510,7 +512,7 @@ const PublicFormApp = () => {
               <label style={styles.label}>Cidade *</label>
               <input
                 type="text"
-                style={{ ...styles.input, ...(addressErrors.city ? styles.inputError : {}), backgroundColor: '#fffde7' }}
+                style={{ ...styles.input, ...(addressErrors.city ? styles.inputError : {}), backgroundColor: secondaryColor }}
                 value={addressData.city}
                 onChange={(e) => setAddressData(prev => ({ ...prev, city: e.target.value }))}
                 placeholder="São Paulo"
