@@ -5,11 +5,11 @@
     "dev-daviemericko_gmail_com-dev-daviemericko_gmail_com": {
       "clientId": "dev-daviemericko_gmail_com",
       "tenantId": "dev-daviemericko_gmail_com",
-      "lastRun": "2026-02-01T16:56:19.977Z",
-      "lastSuccess": "2026-02-01T16:56:19.977Z",
+      "lastRun": "2026-02-01T17:00:19.979Z",
+      "lastSuccess": "2026-02-01T17:00:19.979Z",
       "lastError": null,
       "consecutiveErrors": 0,
-      "totalExecutions": 1238,
+      "totalExecutions": 1240,
       "totalNewClientsDetected": 0,
       "totalEventsCreated": 0,
       "status": "running"
@@ -40,11 +40,11 @@
     }
   },
   "globalStats": {
-    "totalExecutions": 1817,
+    "totalExecutions": 1819,
     "totalNewClientsDetected": 1,
     "totalEventsCreated": 0,
     "totalErrors": 0,
-    "uptime": 0
+    "uptime": 240
   },
   "settings": {
     "detectionIntervalMinutes": 2,
