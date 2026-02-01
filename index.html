@@ -33,13 +33,18 @@
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
     
-    <!-- Critical CSS - instant visual feedback skeleton -->
+    <!-- Critical CSS - instant visual feedback skeleton (LIGHT by default for public routes) -->
     <style>
       html, body { margin: 0; padding: 0; }
-      body { background: #0a0a0a; color: #fafafa; font-family: system-ui, -apple-system, sans-serif; }
-      #root { min-height: 100vh; background: #0a0a0a; }
+      /* FUNDO CLARO por padrão - melhor UX para visitantes externos em rotas públicas */
+      body { background: #f5f5f5; color: #1a1a1a; font-family: system-ui, -apple-system, sans-serif; }
+      #root { min-height: 100vh; background: #f5f5f5; }
       
-      /* Skeleton inicial que aparece em <50ms */
+      /* Dark mode aplicado apenas quando classe .dark está presente (após React carregar) */
+      .dark body, body.dark-initial { background: #0a0a0a; color: #fafafa; }
+      .dark #root, #root.dark-initial { background: #0a0a0a; }
+      
+      /* Skeleton inicial que aparece em <50ms - CORES CLARAS */
       .instant-skeleton {
         min-height: 100vh;
         display: flex;
@@ -50,13 +55,14 @@
       .instant-skeleton-card {
         width: 100%;
         max-width: 28rem;
-        background: rgba(255,255,255,0.03);
-        border: 1px solid rgba(255,255,255,0.08);
+        background: #ffffff;
+        border: 1px solid #e5e5e5;
         border-radius: 0.75rem;
         padding: 2rem;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
       }
       .skeleton-block {
-        background: rgba(255,255,255,0.06);
+        background: #e5e5e5;
         border-radius: 0.5rem;
         animation: skeleton-pulse 1.5s ease-in-out infinite;
       }
@@ -67,7 +73,17 @@
       .skeleton-block.h-button { height: 3rem; margin-top: 0.5rem; }
       @keyframes skeleton-pulse {
         0%, 100% { opacity: 1; }
-        50% { opacity: 0.4; }
+        50% { opacity: 0.5; }
+      }
+      
+      /* Dark mode skeleton (apenas quando .dark está presente) */
+      .dark .instant-skeleton-card {
+        background: rgba(255,255,255,0.03);
+        border: 1px solid rgba(255,255,255,0.08);
+        box-shadow: none;
+      }
+      .dark .skeleton-block {
+        background: rgba(255,255,255,0.06);
       }
     </style>
   </head>
