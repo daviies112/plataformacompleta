@@ -42,7 +42,7 @@ const REQUIRED_TABLES = [
   { name: 'files', module: 'Faturamento', required: false },
   
   // DASHBOARD (1 tabela - legacy)
-  { name: 'dashboard_completo_v5_base', module: 'Dashboard', required: false },
+  { name: 'clientes_completos', module: 'Dashboard', required: false },
 ];
 
 interface ConnectionResult {

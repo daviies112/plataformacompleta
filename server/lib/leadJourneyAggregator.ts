@@ -1323,7 +1323,7 @@ async function fetchReunioes(tenantId: string): Promise<Map<string, any>> {
 }
 
 /**
- * Fetches data from dashboard tables (clientes_completos or dashboard_completo_v5_base)
+ * Fetches data from dashboard tables (clientes_completos)
  * This table contains chat history, message counts, and other engagement data
  */
 async function fetchDashboardCompleto(tenantId: string): Promise<Map<string, any>> {
@@ -1336,7 +1336,7 @@ async function fetchDashboardCompleto(tenantId: string): Promise<Map<string, any
   const supabase = await getClientSupabaseClientStrict(tenantId);
   if (!supabase) return new Map();
   
-  const tablesToTry = ['clientes_completos', 'dashboard_completo_v5_base'];
+  const tablesToTry = ['clientes_completos'];
   
   for (const tableName of tablesToTry) {
     try {
@@ -1345,7 +1345,6 @@ async function fetchDashboardCompleto(tenantId: string): Promise<Map<string, any
       let query = supabase
         .from(tableName)
         .select('*')
-        .order('ultimo_contato', { ascending: false })
         .limit(500);
       
       // 🔐 SECURITY FIX: ALWAYS filter by tenant_id - no bypass

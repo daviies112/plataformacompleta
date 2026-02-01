@@ -55,9 +55,8 @@ router.get('/', async (req, res) => {
       tenantId,
       async () => {
         const { data, error } = await dynamicSupabase
-          .from('dashboard_completo_v5_base')
-          .select('*')
-          .order('ultimo_contato', { ascending: false });
+          .from('clientes_completos')
+          .select('*');
 
         if (error) {
           throw new Error(`Erro ao buscar clientes: ${error.message}`);
@@ -73,9 +72,8 @@ router.get('/', async (req, res) => {
       console.error('Cache wrapper error, using fallback:', error);
       // Fallback to direct query if cache fails
       const { data, error: supabaseError } = await dynamicSupabase
-        .from('dashboard_completo_v5_base')
-        .select('*')
-        .order('ultimo_contato', { ascending: false });
+        .from('clientes_completos')
+        .select('*');
       
       if (supabaseError) throw supabaseError;
       
@@ -155,7 +153,7 @@ router.post('/', async (req, res) => {
     }
 
     const { data, error } = await dynamicSupabase
-      .from('dashboard_completo_v5_base')
+      .from('clientes_completos')
       .insert({
         tenant_id: tenantId,
         telefone: phone,
@@ -249,7 +247,7 @@ router.put('/:id', async (req, res) => {
     }
 
     const { data, error } = await dynamicSupabase
-      .from('dashboard_completo_v5_base')
+      .from('clientes_completos')
       .update(updateData)
       .eq('idx', parseInt(clientDbId))
       .eq('tenant_id', tenantId)
@@ -314,7 +312,7 @@ router.delete('/:id', async (req, res) => {
     }
 
     const { error } = await dynamicSupabase
-      .from('dashboard_completo_v5_base')
+      .from('clientes_completos')
       .delete()
       .eq('idx', parseInt(clientDbId))
       .eq('tenant_id', tenantId);

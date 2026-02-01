@@ -595,7 +595,7 @@ export async function warmupDashboardCache(
       tenantId,
       async () => {
         const { data, error } = await supabaseClient
-          .from('dashboard_completo_v5_base')
+          .from('clientes_completos')
           .select('*')
           .eq('tenant_id', tenantId)
           .limit(100);

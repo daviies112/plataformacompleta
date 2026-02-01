@@ -1,0 +1,122 @@
+ Nenhuma consulta CPF nova para processar
+🔍 [CPFAutoCheck] Verificando leads aprovados sem consulta CPF...
+⚠️ [CPFAutoCheck] Nenhum tenant com BigDataCorp E Supabase configurados - pulando verificação
+✅ CF Cache rule matched: static for /node_modules/.vite/deps/@radix-ui_react-radio-group.js
+✅ CF Cache rule matched: static for /node_modules/.vite/deps/@radix-ui_react-label.js
+📋 [FormMappingSync] CompanySlug para tenant dev-daviemericko_gmail_com: elena
+✅ [FormMappingSync] Tenant dev-daviemericko_gmail_com sincronizado com sucesso
+✅ [FormMappingSync] Sincronização concluída: 11 formulário(s) sincronizado(s), 0 erro(s)
+✅ CF Cache rule matched: static for /node_modules/.vite/deps/chunk-SX2H7FCM.js
+✅ CF Cache rule matched: static for /node_modules/.vite/deps/chunk-G4ADD7UW.js
+✅ CF Cache rule matched: static for /node_modules/.vite/deps/chunk-VCIELC4X.js
+✅ CF Cache rule matched: static for /node_modules/.vite/deps/vaul.js
+✅ CF Cache rule matched: static for /node_modules/.vite/deps/chunk-RB2EXKK4.js
+✅ CF Cache rule matched: static for /node_modules/.vite/deps/zustand.js
+✅ CF Cache rule matched: static for /node_modules/.vite/deps/zustand_middleware.js
+✅ CF Cache rule matched: static for /src/components/notion/editor-premium.css
+✅ CF Cache rule matched: static for /node_modules/.vite/deps/@radix-ui_react-alert-dialog.js
+✅ CF Cache rule matched: static for /node_modules/.vite/deps/chunk-GMZJDMCZ.js
+✅ CF Cache rule matched: static for /node_modules/.vite/deps/chunk-EOLSW7PA.js
+✅ CF Cache rule matched: static for /node_modules/.vite/deps/react-pluggy-connect.js
+✅ CF Cache rule matched: static for /node_modules/.vite/deps/@radix-ui_react-select.js
+✅ CF Cache rule matched: static for /node_modules/.vite/deps/recharts.js
+✅ CF Cache rule matched: static for /node_modules/.vite/deps/@simplewebauthn_browser.js
+✅ CF Cache rule matched: static for /node_modules/.vite/deps/@radix-ui_react-tabs.js
+✅ CF Cache rule matched: static for /node_modules/.vite/deps/@radix-ui_react-scroll-area.js
+✅ CF Cache rule matched: static for /node_modules/.vite/deps/@radix-ui_react-checkbox.js
+✅ CF Cache rule matched: static for /node_modules/.vite/deps/@radix-ui_react-separator.js
+✅ CF Cache rule matched: static for /node_modules/.vite/deps/@radix-ui_react-collapsible.js
+✅ CF Cache rule matched: static for /node_modules/.vite/deps/@radix-ui_react-switch.js
+✅ CF Cache rule matched: static for /node_modules/.vite/deps/@radix-ui_react-avatar.js
+✅ CF Cache rule matched: static for /node_modules/.vite/deps/axios.js
+✅ CF Cache rule matched: static for /node_modules/.vite/deps/@radix-ui_react-slider.js
+✅ CF Cache rule matched: static for /node_modules/.vite/deps/chunk-NEUY3VZ5.js
+✅ CF Cache rule matched: static for /node_modules/.vite/deps/chunk-G5WVRXTQ.js
+✅ CF Cache rule matched: static for /node_modules/.vite/deps/chunk-3MC66YHI.js
+✅ CF Cache rule matched: static for /node_modules/.vite/deps/dompurify.js
+✅ CF Cache rule matched: static for /node_modules/.vite/deps/@radix-ui_react-dropdown-menu.js
+✅ CF Cache rule matched: static for /node_modules/.vite/deps/react-day-picker.js
+✅ CF Cache rule matched: static for /node_modules/.vite/deps/xlsx.js
+✅ CF Cache rule matched: static for /node_modules/.vite/deps/fabric.js
+✅ CF Cache rule matched: static for /node_modules/.vite/deps/@radix-ui_react-popover.js
+✅ CF Cache rule matched: static for /node_modules/.vite/deps/chunk-6ZMM2PAV.js
+✅ CF Cache rule matched: static for /node_modules/.vite/deps/chunk-XBDCM2O2.js
+✅ CF Cache rule matched: static for /node_modules/.vite/deps/@dnd-kit_sortable.js
+✅ CF Cache rule matched: static for /node_modules/.vite/deps/@dnd-kit_core.js
+✅ CF Cache rule matched: static for /node_modules/.vite/deps/react-colorful.js
+✅ CF Cache rule matched: static for /node_modules/.vite/deps/@dnd-kit_utilities.js
+✅ CF Cache rule matched: static for /node_modules/.vite/deps/nanoid.js
+✅ CF Cache rule matched: static for /node_modules/.vite/deps/jsbarcode.js
+✅ CF Cache rule matched: static for /node_modules/.vite/deps/qrcode.js
+✅ CF Cache rule matched: static for /node_modules/.vite/deps/chunk-N4MKVYH6.js
+✅ CF Cache rule matched: static for /node_modules/.vite/deps/chunk-3IE2SBWT.js
+✅ CF Cache rule matched: api for /api/forms/public/by-slug/elena/formulario-de-qualificacaof
+🔗 [SLUG] Buscando formulário: companySlug="elena", formSlug="formulario-de-qualificacaof"
+✅ CF Cache rule matched: static for /favicon.ico
+❌ [PUBLIC_CACHE] Form not found: elena/formulario-de-qualificacaof (249ms)
+⚠️ [SLUG] Ultra-fast lookup failed, trying standard lookup...
+✅ [SLUG] Mapeamento encontrado: formId="2a81364b-84a9-4c67-aea2-697cf6311f92", tenantId="dev-daviemericko_gmail_com"
+🌐 [SLUG] Buscando dados do PostgreSQL local PRIMEIRO...
+🌐 [SLUG] Não encontrado localmente, buscando no Supabase...
+✅ CF Cache rule matched: static for /icons/icon-192x192.png
+✅ [SLUG] Formulário encontrado no Supabase: Formulário de Qualificaçãof
+📦 CF Cache-Control: max-age=300, s-maxage=600, stale-while-revalidate=300, public
+📦 CF Cache-Control: max-age=300, s-maxage=600, stale-while-revalidate=300, public
+03:49:57 PM [express] GET /api/forms/public/by-slug/elena/formulario-de-qualificacaof 304 in 462ms
+✅ CF Cache rule matched: static for /icons/icon-512x512.png
+✅ CF Cache rule matched: static for /icons/icon-192x192.png
+✅ CF Cache rule matched: static for /service-worker.js
+📋 [MasterSync] 1 admins com credenciais encontrados
+✅ CF Cache rule matched: static for /src/index.css
+✅ [FORMS/ativo] Formulário ativo encontrado no PostgreSQL local: 2a81364b-84a9-4c67-aea2-697cf6311f92
+✅ [FORMS] Usando Supabase do tenant: dev-daviemericko_gmail_com
+03:50:29 PM [express] GET /api/formularios/ativo 304 in 550ms
+✅ CF Cache rule matched: static for /src/assets/nexus-logo-full.png
+✅ CF Cache rule matched: static for /src/components/notion/editor-premium.css
+✅ CF Cache rule matched: static for /favicon.ico
+✅ CF Cache rule matched: static for /icons/icon-192x192.png
+✅ CF Cache rule matched: static for /icons/icon-192x192.png
+✅ CF Cache rule matched: static for /icons/icon-512x512.png
+✅ CF Cache rule matched: static for /service-worker.js
+📋 [MasterSync] 1 admins com credenciais encontrados
+03:50:54 PM [express] GET /api/wallet/balance 304 in 12ms
+📋 [MasterSync] 1 admins com credenciais encontrados
+03:51:24 PM [express] GET /api/wallet/balance 304 in 11ms
+🔄 [FormSync] Executando sincronização de formulários do Supabase...
+🔍 [FormPoller] Iniciando polling de submissions...
+✅ [SUPABASE] 1 configuração(ões) encontrada(s) no banco de dados
+🏢 [FormPoller] Encontrados 1 tenant(s) configurados
+
+🔄 [FormPoller] Processando tenant: dev-daviemericko_gmail_com
+🔍 Verificando novos clientes para cliente dev-daviemericko_gmail_com (tenant: dev-daviemericko_gmail_com)
+🔍 Iniciando detecção de novos clientes para dev-daviemericko_gmail_com/dev-daviemericko_gmail_com
+📊 [FormPoller] Tenant dev-daviemericko_gmail_com: 0 submissions não sincronizadas ou atualizadas
+ℹ️ [FormPoller] Tenant dev-daviemericko_gmail_com: Nenhuma submission nova
+
+✅ [FormPoller] Polling concluído: 0 submissions enfileiradas de 1 tenant(s)
+ℹ️ [FormSync] Nenhuma submission nova para processar
+✅ [MULTI-TENANT] 0 registros encontrados para dev-daviemericko_gmail_com
+✅ Cache atualizado para dev-daviemericko_gmail_com-dev-daviemericko_gmail_com: 0 clientes
+✅ Nenhum novo cliente detectado. Total: 0 clientes
+🔍 Verificação de novos clientes concluída: {
+  novos: 0,
+  fonte: 'comparison_complete',
+  processamento: { sucessos: 0, erros: 0 }
+}
+📋 [MasterSync] 1 admins com credenciais encontrados
+03:51:54 PM [express] GET /api/wallet/balance 304 in 2ms
+📋 [MasterSync] 1 admins com credenciais encontrados
+03:52:24 PM [express] GET /api/wallet/balance 304 in 14ms
+🔄 [CPFSync] Executando sincronização de CPF compliance...
+🔍 [CPFPoller] Iniciando polling de consultas CPF...
+📱 [CPFPoller] Buscando resultados com telefone do Supabase Cliente...
+📋 [MasterSync] 1 admins com credenciais encontrados
+📱 [CPFPoller] Buscando resultados CPF e telefones via form_submissions...
+ℹ️ [CPFPoller] Todos os resultados já foram processados
+ℹ️ [CPFPoller] Nenhum resultado pendente no Supabase Cliente
+✅ [CPFPoller] Polling concluído: 0 consultas processadas
+ℹ️ [CPFSync] Nenhuma consulta CPF nova para processar
+🔍 [CPFAutoCheck] Verificando leads aprovados sem consulta CPF...
+⚠️ [CPFAutoCheck] Nenhum tenant com BigDataCorp E Supabase configurados - pulando verificação
+03:52:55 PM [express] GET /api/wallet/balance 304 in 4ms
+^A

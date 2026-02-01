@@ -149,7 +149,7 @@ Quando você configurar os secrets, o sistema irá:
 - files
 
 ✅ **Dashboard (1 tabela):**
-- dashboard_completo_v5_base
+- clientes_completos
 
 **Total: 12 tabelas conectadas automaticamente!**
 

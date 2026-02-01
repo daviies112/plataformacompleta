@@ -8,7 +8,7 @@ export const SUPABASE_TABLES = {
   forms: ['forms', 'form_submissions'],
   produto: ['products', 'suppliers', 'resellers', 'categories', 'print_queue'],
   billing: ['files'],
-  dashboard: ['dashboard_completo_v5_base']
+  dashboard: ['clientes_completos']
 } as const;
 
 /**

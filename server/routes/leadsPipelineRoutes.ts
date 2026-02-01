@@ -361,7 +361,7 @@ function transformJourneyToLead(journey: LeadJourney): Record<string, any> {
     formularioUrl: journey.formularioEnvio?.formUrl || (journey.formularioEnvio as any)?.form_url,
     createdAt: journey.createdAt,
     updatedAt: journey.updatedAt,
-    // Dashboard fields from dashboard_completo_v5_base
+    // Dashboard fields from clientes_completos
     statusAtendimento: journey.statusAtendimento,
     setorAtual: journey.setorAtual,
     ativo: journey.ativo,

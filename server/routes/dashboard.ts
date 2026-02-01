@@ -68,7 +68,7 @@ router.get('/dashboard-data', authenticateToken, async (req, res) => {
       return fetchTenantSupabaseData(clientId, tenantId);
     });
     
-    // Busca dados legados do dashboard_completo_v5_base para compatibilidade
+    // Busca dados legados do clientes_completos para compatibilidade
     const legacyDashboardData = await cacheDashboardData(
       clientId,
       tenantId,
@@ -235,7 +235,7 @@ router.get('/client/:clientId', authenticateToken, async (req, res) => {
       tenantId,
       async () => {
         const { data, error } = await dynamicSupabase
-          .from('dashboard_completo_v5_base')
+          .from('clientes_completos')
           .select('*')
           .eq('telefone', paramClientId)
           .single();
@@ -341,7 +341,7 @@ router.put('/client/:clientId/status', authenticateToken, async (req, res) => {
     
     // Update client status in Supabase
     const { data, error } = await dynamicSupabase
-      .from('dashboard_completo_v5_base')
+      .from('clientes_completos')
       .update({
         status_atendimento: status,
         ultima_atividade: new Date().toISOString()
@@ -1053,7 +1053,7 @@ router.get('/test-integrations', async (req, res) => {
     if (supabaseClient) {
       // Test with a simple query
       const { error } = await supabaseClient
-        .from('dashboard_completo_v5_base')
+        .from('clientes_completos')
         .select('*', { count: 'exact', head: true });
       
       if (!error) {
