@@ -11,15 +11,65 @@ interface FormData {
   thank_you_screen?: any;
 }
 
+interface PersonalData {
+  name: string;
+  email: string;
+  cpf: string;
+  phone: string;
+  instagram: string;
+}
+
+interface AddressData {
+  cep: string;
+  street: string;
+  number: string;
+  complement: string;
+  neighborhood: string;
+  city: string;
+  state: string;
+}
+
+const formatCPF = (value: string) => {
+  const digits = value.replace(/\D/g, '').slice(0, 11);
+  if (digits.length <= 3) return digits;
+  if (digits.length <= 6) return `${digits.slice(0, 3)}.${digits.slice(3)}`;
+  if (digits.length <= 9) return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
+  return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
+};
+
+const formatPhone = (value: string) => {
+  const digits = value.replace(/\D/g, '').slice(0, 11);
+  if (digits.length <= 2) return `(${digits}`;
+  if (digits.length <= 7) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+};
+
+const formatCEP = (value: string) => {
+  const digits = value.replace(/\D/g, '').slice(0, 8);
+  if (digits.length <= 5) return digits;
+  return `${digits.slice(0, 5)}-${digits.slice(5)}`;
+};
+
 const PublicFormApp = () => {
   const [form, setForm] = useState<FormData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(0);
+  const [currentStep, setCurrentStep] = useState(0);
+  const [currentQuestionPage, setCurrentQuestionPage] = useState(0);
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [showWelcome, setShowWelcome] = useState(true);
+  
+  const [personalData, setPersonalData] = useState<PersonalData>({
+    name: '', email: '', cpf: '', phone: '', instagram: ''
+  });
+  const [personalErrors, setPersonalErrors] = useState<Partial<PersonalData>>({});
+  
+  const [addressData, setAddressData] = useState<AddressData>({
+    cep: '', street: '', number: '', complement: '', neighborhood: '', city: '', state: ''
+  });
+  const [addressErrors, setAddressErrors] = useState<Partial<AddressData>>({});
+  const [loadingCep, setLoadingCep] = useState(false);
 
   const path = window.location.pathname;
 
@@ -65,10 +115,6 @@ const PublicFormApp = () => {
         
         const data = await response.json();
         setForm(data);
-        
-        if (!data.welcome_screen?.enabled) {
-          setShowWelcome(false);
-        }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Erro ao carregar');
       } finally {
@@ -85,8 +131,74 @@ const PublicFormApp = () => {
     return data.filter((q: any) => q.text || q.questionType);
   }, [form]);
 
-  const handleAnswer = (questionId: string, value: any) => {
-    setAnswers(prev => ({ ...prev, [questionId]: value }));
+  const lookupCep = async (cep: string) => {
+    const cleanCep = cep.replace(/\D/g, '');
+    if (cleanCep.length !== 8) return;
+    
+    setLoadingCep(true);
+    try {
+      const response = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
+      const data = await response.json();
+      if (!data.erro) {
+        setAddressData(prev => ({
+          ...prev,
+          street: data.logradouro || '',
+          neighborhood: data.bairro || '',
+          city: data.localidade || '',
+          state: data.uf || '',
+        }));
+      }
+    } catch (err) {
+      console.error('Erro ao buscar CEP:', err);
+    } finally {
+      setLoadingCep(false);
+    }
+  };
+
+  const validatePersonalData = (): boolean => {
+    const errors: Partial<PersonalData> = {};
+    if (!personalData.name || personalData.name.length < 3) errors.name = 'Nome deve ter pelo menos 3 caracteres';
+    if (!personalData.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(personalData.email)) errors.email = 'Email inválido';
+    const cpfDigits = personalData.cpf.replace(/\D/g, '');
+    if (cpfDigits.length !== 11) errors.cpf = 'CPF deve ter 11 dígitos';
+    setPersonalErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const validateAddressData = (): boolean => {
+    const errors: Partial<AddressData> = {};
+    if (!addressData.cep || addressData.cep.replace(/\D/g, '').length < 8) errors.cep = 'CEP inválido';
+    if (!addressData.street || addressData.street.length < 3) errors.street = 'Rua é obrigatória';
+    if (!addressData.number) errors.number = 'Número é obrigatório';
+    if (!addressData.city || addressData.city.length < 2) errors.city = 'Cidade é obrigatória';
+    if (!addressData.state || addressData.state.length !== 2) errors.state = 'Estado inválido';
+    setAddressErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleNext = () => {
+    if (currentStep === 0) {
+      setCurrentStep(1);
+    } else if (currentStep === 1) {
+      if (validatePersonalData()) setCurrentStep(2);
+    } else if (currentStep === 2) {
+      if (validateAddressData()) setCurrentStep(3);
+    } else if (currentStep === 3) {
+      const questions = getQuestions();
+      if (currentQuestionPage < questions.length - 1) {
+        setCurrentQuestionPage(p => p + 1);
+      } else {
+        handleSubmit();
+      }
+    }
+  };
+
+  const handleBack = () => {
+    if (currentStep === 3 && currentQuestionPage > 0) {
+      setCurrentQuestionPage(p => p - 1);
+    } else if (currentStep > 0) {
+      setCurrentStep(s => s - 1);
+    }
   };
 
   const handleSubmit = async () => {
@@ -102,6 +214,8 @@ const PublicFormApp = () => {
           form_id: form.id,
           company_slug: params && 'companySlug' in params ? params.companySlug : undefined,
           responses: answers,
+          personal_data: personalData,
+          address_data: addressData,
         }),
       });
 
@@ -115,9 +229,12 @@ const PublicFormApp = () => {
   };
 
   const questions = getQuestions();
-  const currentQuestion = questions[currentPage];
-  const isLastPage = currentPage === questions.length - 1;
-  const canGoNext = currentQuestion && answers[currentQuestion.id];
+  const currentQuestion = questions[currentQuestionPage];
+  const totalSteps = 3 + questions.length;
+  const progressStep = currentStep === 3 ? 3 + currentQuestionPage : currentStep;
+  const progressPercent = Math.round(((progressStep + 1) / totalSteps) * 100);
+
+  const accentColor = form?.settings?.primaryColor || '#e91e63';
 
   if (loading) {
     return (
@@ -147,8 +264,8 @@ const PublicFormApp = () => {
     return (
       <div style={styles.container}>
         <div style={styles.card}>
-          <div style={styles.successIcon}>✓</div>
-          <h2 style={styles.successTitle}>
+          <div style={{ ...styles.successIcon, backgroundColor: accentColor }}>✓</div>
+          <h2 style={{ ...styles.successTitle, color: accentColor }}>
             {thankYou?.title || 'Obrigado!'}
           </h2>
           <p style={styles.successText}>
@@ -159,86 +276,277 @@ const PublicFormApp = () => {
     );
   }
 
-  if (showWelcome && form?.welcome_screen?.enabled) {
+  if (currentStep === 0) {
+    const welcome = form?.welcome_screen;
     return (
       <div style={styles.container}>
         <div style={styles.card}>
-          <h1 style={styles.welcomeTitle}>
-            {form.welcome_screen.title || form.title}
+          <h1 style={{ ...styles.welcomeTitle, color: accentColor }}>
+            {welcome?.title || form?.title || 'Bem-vindo!'}
           </h1>
           <p style={styles.welcomeDesc}>
-            {form.welcome_screen.description || form.description}
+            {welcome?.description || form?.description || 'Preencha o formulário abaixo.'}
           </p>
           <button
-            style={styles.primaryButton}
-            onClick={() => setShowWelcome(false)}
+            style={{ ...styles.primaryButton, backgroundColor: accentColor }}
+            onClick={handleNext}
           >
-            {form.welcome_screen.button_text || 'Começar'}
+            ✨ {welcome?.button_text || 'Começar'}
           </button>
         </div>
       </div>
     );
   }
 
-  if (!currentQuestion) {
+  if (currentStep === 1) {
     return (
       <div style={styles.container}>
         <div style={styles.card}>
-          <p>Formulário sem perguntas</p>
+          <div style={styles.progress}>
+            <div style={{ ...styles.progressBar, width: `${progressPercent}%`, backgroundColor: accentColor }} />
+          </div>
+          <p style={styles.stepLabel}>{progressPercent}% completo</p>
+          
+          <h2 style={styles.sectionTitle}>Dados Pessoais</h2>
+          <p style={styles.sectionDesc}>Por favor, preencha suas informações de contato</p>
+          
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Nome completo *</label>
+            <input
+              type="text"
+              style={{ ...styles.input, ...(personalErrors.name ? styles.inputError : {}), backgroundColor: '#fffde7' }}
+              value={personalData.name}
+              onChange={(e) => setPersonalData(prev => ({ ...prev, name: e.target.value }))}
+              placeholder="João da Silva"
+            />
+            {personalErrors.name && <span style={styles.errorMsg}>{personalErrors.name}</span>}
+          </div>
+          
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Email *</label>
+            <input
+              type="email"
+              style={{ ...styles.input, ...(personalErrors.email ? styles.inputError : {}), backgroundColor: '#fffde7' }}
+              value={personalData.email}
+              onChange={(e) => setPersonalData(prev => ({ ...prev, email: e.target.value }))}
+              placeholder="joao@email.com"
+            />
+            {personalErrors.email && <span style={styles.errorMsg}>{personalErrors.email}</span>}
+          </div>
+          
+          <div style={styles.formGroup}>
+            <label style={styles.label}>CPF *</label>
+            <input
+              type="text"
+              style={{ ...styles.input, ...(personalErrors.cpf ? styles.inputError : {}), backgroundColor: '#fffde7' }}
+              value={personalData.cpf}
+              onChange={(e) => setPersonalData(prev => ({ ...prev, cpf: formatCPF(e.target.value) }))}
+              placeholder="123.456.789-00"
+            />
+            {personalErrors.cpf && <span style={styles.errorMsg}>{personalErrors.cpf}</span>}
+          </div>
+          
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Telefone</label>
+            <input
+              type="text"
+              style={{ ...styles.input, backgroundColor: '#fffde7' }}
+              value={personalData.phone}
+              onChange={(e) => setPersonalData(prev => ({ ...prev, phone: formatPhone(e.target.value) }))}
+              placeholder="(11) 99999-9999"
+            />
+          </div>
+          
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Instagram</label>
+            <input
+              type="text"
+              style={{ ...styles.input, backgroundColor: '#fffde7' }}
+              value={personalData.instagram}
+              onChange={(e) => setPersonalData(prev => ({ ...prev, instagram: e.target.value }))}
+              placeholder="@joaosilva"
+            />
+          </div>
+          
+          <div style={styles.buttonRow}>
+            <button style={styles.secondaryButton} onClick={handleBack}>Voltar</button>
+            <button style={{ ...styles.primaryButton, backgroundColor: accentColor }} onClick={handleNext}>
+              Próxima →
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
-  return (
-    <div style={styles.container}>
-      <div style={styles.card}>
-        <div style={styles.progress}>
-          <div style={{ ...styles.progressBar, width: `${((currentPage + 1) / questions.length) * 100}%` }} />
-        </div>
-        
-        <p style={styles.counter}>{currentPage + 1} de {questions.length}</p>
-        
-        <h2 style={styles.questionTitle}>
-          {currentQuestion.text}
-          {currentQuestion.required && <span style={styles.required}>*</span>}
-        </h2>
-
-        <div style={styles.inputContainer}>
-          {renderInput(currentQuestion, answers[currentQuestion.id], (v) => handleAnswer(currentQuestion.id, v))}
-        </div>
-
-        <div style={styles.buttonRow}>
-          {currentPage > 0 && (
-            <button
-              style={styles.secondaryButton}
-              onClick={() => setCurrentPage(p => p - 1)}
-            >
-              Voltar
-            </button>
-          )}
+  if (currentStep === 2) {
+    return (
+      <div style={styles.container}>
+        <div style={styles.card}>
+          <div style={styles.progress}>
+            <div style={{ ...styles.progressBar, width: `${progressPercent}%`, backgroundColor: accentColor }} />
+          </div>
+          <p style={styles.stepLabel}>{progressPercent}% completo</p>
           
-          {isLastPage ? (
-            <button
-              style={{ ...styles.primaryButton, opacity: submitting || !canGoNext ? 0.6 : 1 }}
-              onClick={handleSubmit}
-              disabled={submitting || !canGoNext}
-            >
-              {submitting ? 'Enviando...' : 'Enviar'}
+          <h2 style={styles.sectionTitle}>Dados de Endereço</h2>
+          <p style={styles.sectionDesc}>Preencha seu endereço completo</p>
+          
+          <div style={styles.row}>
+            <div style={{ ...styles.formGroup, flex: 2 }}>
+              <label style={styles.label}>CEP *</label>
+              <input
+                type="text"
+                style={{ ...styles.input, ...(addressErrors.cep ? styles.inputError : {}), backgroundColor: '#fffde7' }}
+                value={addressData.cep}
+                onChange={(e) => {
+                  const formatted = formatCEP(e.target.value);
+                  setAddressData(prev => ({ ...prev, cep: formatted }));
+                  if (formatted.replace(/\D/g, '').length === 8) lookupCep(formatted);
+                }}
+                placeholder="01310-100"
+              />
+              {addressErrors.cep && <span style={styles.errorMsg}>{addressErrors.cep}</span>}
+            </div>
+            <div style={{ ...styles.formGroup, flex: 1 }}>
+              <label style={styles.label}>Estado *</label>
+              <input
+                type="text"
+                style={{ ...styles.input, ...(addressErrors.state ? styles.inputError : {}), backgroundColor: '#fffde7' }}
+                value={addressData.state}
+                onChange={(e) => setAddressData(prev => ({ ...prev, state: e.target.value.toUpperCase().slice(0, 2) }))}
+                placeholder="SP"
+                maxLength={2}
+              />
+            </div>
+          </div>
+          
+          <div style={styles.formGroup}>
+            <label style={styles.label}>Rua * {loadingCep && <span style={{ color: '#888' }}>(buscando...)</span>}</label>
+            <input
+              type="text"
+              style={{ ...styles.input, ...(addressErrors.street ? styles.inputError : {}), backgroundColor: '#fffde7' }}
+              value={addressData.street}
+              onChange={(e) => setAddressData(prev => ({ ...prev, street: e.target.value }))}
+              placeholder="Av. Paulista"
+            />
+            {addressErrors.street && <span style={styles.errorMsg}>{addressErrors.street}</span>}
+          </div>
+          
+          <div style={styles.row}>
+            <div style={{ ...styles.formGroup, flex: 1 }}>
+              <label style={styles.label}>Número *</label>
+              <input
+                type="text"
+                style={{ ...styles.input, ...(addressErrors.number ? styles.inputError : {}), backgroundColor: '#fffde7' }}
+                value={addressData.number}
+                onChange={(e) => setAddressData(prev => ({ ...prev, number: e.target.value }))}
+                placeholder="1000"
+              />
+            </div>
+            <div style={{ ...styles.formGroup, flex: 2 }}>
+              <label style={styles.label}>Complemento</label>
+              <input
+                type="text"
+                style={{ ...styles.input, backgroundColor: '#fffde7' }}
+                value={addressData.complement}
+                onChange={(e) => setAddressData(prev => ({ ...prev, complement: e.target.value }))}
+                placeholder="Sala 501"
+              />
+            </div>
+          </div>
+          
+          <div style={styles.row}>
+            <div style={{ ...styles.formGroup, flex: 1 }}>
+              <label style={styles.label}>Bairro</label>
+              <input
+                type="text"
+                style={{ ...styles.input, backgroundColor: '#fffde7' }}
+                value={addressData.neighborhood}
+                onChange={(e) => setAddressData(prev => ({ ...prev, neighborhood: e.target.value }))}
+                placeholder="Bela Vista"
+              />
+            </div>
+            <div style={{ ...styles.formGroup, flex: 1 }}>
+              <label style={styles.label}>Cidade *</label>
+              <input
+                type="text"
+                style={{ ...styles.input, ...(addressErrors.city ? styles.inputError : {}), backgroundColor: '#fffde7' }}
+                value={addressData.city}
+                onChange={(e) => setAddressData(prev => ({ ...prev, city: e.target.value }))}
+                placeholder="São Paulo"
+              />
+            </div>
+          </div>
+          
+          <div style={styles.buttonRow}>
+            <button style={styles.secondaryButton} onClick={handleBack}>Voltar</button>
+            <button style={{ ...styles.primaryButton, backgroundColor: accentColor }} onClick={handleNext}>
+              Próxima →
             </button>
-          ) : (
-            <button
-              style={{ ...styles.primaryButton, opacity: !canGoNext ? 0.6 : 1 }}
-              onClick={() => setCurrentPage(p => p + 1)}
-              disabled={!canGoNext}
-            >
-              Próxima
-            </button>
-          )}
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  }
+
+  if (currentStep === 3) {
+    if (!currentQuestion) {
+      return (
+        <div style={styles.container}>
+          <div style={styles.card}>
+            <p>Carregando perguntas...</p>
+          </div>
+        </div>
+      );
+    }
+
+    const isLastQuestion = currentQuestionPage === questions.length - 1;
+
+    return (
+      <div style={styles.container}>
+        <div style={styles.card}>
+          <div style={styles.progress}>
+            <div style={{ ...styles.progressBar, width: `${progressPercent}%`, backgroundColor: accentColor }} />
+          </div>
+          <p style={styles.stepLabel}>{progressPercent}% completo</p>
+          
+          <p style={styles.counter}>{currentQuestionPage + 1} de {questions.length}</p>
+          
+          <h2 style={styles.questionTitle}>
+            {currentQuestion.text}
+            {currentQuestion.required && <span style={styles.required}>*</span>}
+          </h2>
+
+          <div style={styles.inputContainer}>
+            {renderInput(currentQuestion, answers[currentQuestion.id], (v) => setAnswers(prev => ({ ...prev, [currentQuestion.id]: v })))}
+          </div>
+
+          <div style={styles.buttonRow}>
+            <button style={styles.secondaryButton} onClick={handleBack}>Voltar</button>
+            
+            {isLastQuestion ? (
+              <button
+                style={{ ...styles.primaryButton, backgroundColor: accentColor, opacity: submitting ? 0.6 : 1 }}
+                onClick={handleSubmit}
+                disabled={submitting}
+              >
+                {submitting ? 'Enviando...' : 'Enviar ✓'}
+              </button>
+            ) : (
+              <button
+                style={{ ...styles.primaryButton, backgroundColor: accentColor }}
+                onClick={handleNext}
+              >
+                Próxima →
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
 };
 
 const renderInput = (question: any, value: any, onChange: (v: any) => void) => {
@@ -324,7 +632,6 @@ const styles: Record<string, React.CSSProperties> = {
     height: 36,
     backgroundColor: '#f1f5f9',
     borderRadius: 8,
-    animation: 'pulse 1.5s ease-in-out infinite',
   },
   errorTitle: {
     fontSize: 24,
@@ -339,7 +646,6 @@ const styles: Record<string, React.CSSProperties> = {
     width: 64,
     height: 64,
     borderRadius: '50%',
-    backgroundColor: '#22c55e',
     color: 'white',
     fontSize: 32,
     display: 'flex',
@@ -350,7 +656,6 @@ const styles: Record<string, React.CSSProperties> = {
   successTitle: {
     fontSize: 28,
     fontWeight: 700,
-    color: '#22c55e',
     textAlign: 'center',
     marginBottom: 8,
   },
@@ -361,7 +666,6 @@ const styles: Record<string, React.CSSProperties> = {
   welcomeTitle: {
     fontSize: 28,
     fontWeight: 700,
-    color: '#e91e63',
     textAlign: 'center',
     marginBottom: 16,
   },
@@ -369,17 +673,21 @@ const styles: Record<string, React.CSSProperties> = {
     color: '#666',
     textAlign: 'center',
     marginBottom: 24,
+    fontSize: 16,
+    lineHeight: 1.5,
   },
   primaryButton: {
-    width: '100%',
-    padding: '14px 24px',
-    backgroundColor: '#3b82f6',
+    padding: '14px 28px',
     color: 'white',
     border: 'none',
     borderRadius: 8,
     fontSize: 16,
     fontWeight: 600,
     cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
   },
   secondaryButton: {
     padding: '14px 24px',
@@ -393,16 +701,63 @@ const styles: Record<string, React.CSSProperties> = {
     marginRight: 8,
   },
   progress: {
-    height: 4,
+    height: 6,
     backgroundColor: '#e5e7eb',
-    borderRadius: 2,
-    marginBottom: 16,
+    borderRadius: 3,
+    marginBottom: 8,
     overflow: 'hidden',
   },
   progressBar: {
     height: '100%',
-    backgroundColor: '#3b82f6',
     transition: 'width 0.3s ease',
+  },
+  stepLabel: {
+    fontSize: 13,
+    color: '#888',
+    marginBottom: 24,
+    textAlign: 'right',
+  },
+  sectionTitle: {
+    fontSize: 24,
+    fontWeight: 700,
+    color: '#1a1a1a',
+    marginBottom: 8,
+  },
+  sectionDesc: {
+    color: '#666',
+    marginBottom: 24,
+  },
+  formGroup: {
+    marginBottom: 16,
+  },
+  label: {
+    display: 'block',
+    fontSize: 14,
+    fontWeight: 600,
+    color: '#333',
+    marginBottom: 6,
+  },
+  input: {
+    width: '100%',
+    padding: 12,
+    fontSize: 16,
+    border: '2px solid #e5e7eb',
+    borderRadius: 8,
+    outline: 'none',
+    boxSizing: 'border-box' as const,
+  },
+  inputError: {
+    borderColor: '#dc2626',
+  },
+  errorMsg: {
+    color: '#dc2626',
+    fontSize: 12,
+    marginTop: 4,
+    display: 'block',
+  },
+  row: {
+    display: 'flex',
+    gap: 12,
   },
   counter: {
     fontSize: 14,
@@ -422,15 +777,6 @@ const styles: Record<string, React.CSSProperties> = {
   inputContainer: {
     marginBottom: 24,
   },
-  input: {
-    width: '100%',
-    padding: 12,
-    fontSize: 16,
-    border: '2px solid #e5e7eb',
-    borderRadius: 8,
-    outline: 'none',
-    boxSizing: 'border-box',
-  },
   textarea: {
     width: '100%',
     padding: 12,
@@ -438,12 +784,12 @@ const styles: Record<string, React.CSSProperties> = {
     border: '2px solid #e5e7eb',
     borderRadius: 8,
     outline: 'none',
-    resize: 'vertical',
-    boxSizing: 'border-box',
+    resize: 'vertical' as const,
+    boxSizing: 'border-box' as const,
   },
   optionsContainer: {
     display: 'flex',
-    flexDirection: 'column',
+    flexDirection: 'column' as const,
     gap: 8,
   },
   optionButton: {
@@ -452,7 +798,7 @@ const styles: Record<string, React.CSSProperties> = {
     border: '2px solid #e5e7eb',
     borderRadius: 8,
     fontSize: 16,
-    textAlign: 'left',
+    textAlign: 'left' as const,
     cursor: 'pointer',
     transition: 'all 0.2s',
   },
@@ -462,7 +808,8 @@ const styles: Record<string, React.CSSProperties> = {
   },
   buttonRow: {
     display: 'flex',
-    justifyContent: 'flex-end',
+    justifyContent: 'space-between',
+    marginTop: 24,
   },
 };
 
