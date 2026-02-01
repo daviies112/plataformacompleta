@@ -82,6 +82,22 @@ const PublicSignatureApp = () => {
     fetchContract();
   }, [extractToken]);
 
+  // Preload heavy component after initial data is loaded
+  useEffect(() => {
+    if (contractData && step === 'welcome') {
+      // Use requestIdleCallback for non-blocking preload
+      const preload = () => {
+        import('./pages/AssinaturaClientPage').catch(() => {});
+      };
+      
+      if ('requestIdleCallback' in window) {
+        (window as any).requestIdleCallback(preload, { timeout: 2000 });
+      } else {
+        setTimeout(preload, 500);
+      }
+    }
+  }, [contractData, step]);
+
   const handleStartSigning = async () => {
     setStep('signing');
     
@@ -409,16 +425,21 @@ const styles: Record<string, React.CSSProperties> = {
   },
 };
 
-const styleSheet = document.createElement('style');
-styleSheet.textContent = `
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
-  }
-  @keyframes spin {
-    to { transform: rotate(360deg); }
-  }
-`;
-document.head.appendChild(styleSheet);
+// Inject styles once - use IIFE to prevent duplicates
+const STYLE_ID = 'public-signature-animations';
+if (!document.getElementById(STYLE_ID)) {
+  const styleSheet = document.createElement('style');
+  styleSheet.id = STYLE_ID;
+  styleSheet.textContent = `
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  `;
+  document.head.appendChild(styleSheet);
+}
 
 export default PublicSignatureApp;

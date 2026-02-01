@@ -259,23 +259,42 @@ const PublicFormApp = () => {
     }
   };
 
-  const questions = getQuestions();
-  const currentQuestion = questions[currentQuestionPage];
-  const totalSteps = 3 + questions.length;
-  const progressStep = currentStep === 3 ? 3 + currentQuestionPage : currentStep;
-  const progressPercent = Math.round(((progressStep + 1) / totalSteps) * 100);
-
-  // Cores do designConfig do formulário
-  const colors = form?.designConfig?.colors;
-  const primaryColor = colors?.primary || '#e91e63';
-  const buttonColor = colors?.button || primaryColor;
-  const buttonTextColor = colors?.buttonText || '#ffffff';
-  const textColor = colors?.text || '#1a1a1a';
-  const secondaryColor = colors?.secondary || '#f1f5f9';
-  const progressBarColor = colors?.progressBar || primaryColor;
-  
-  // Config de boas-vindas
-  const welcomeConfig = form?.welcomeConfig;
+  // Memoize derived values to prevent recalculation on every render
+  const {
+    questions,
+    currentQuestion,
+    totalSteps,
+    progressPercent,
+    colors,
+    primaryColor,
+    buttonColor,
+    buttonTextColor,
+    textColor,
+    secondaryColor,
+    progressBarColor,
+    welcomeConfig
+  } = React.useMemo(() => {
+    const questions = getQuestions();
+    const totalSteps = 3 + questions.length;
+    const progressStep = currentStep === 3 ? 3 + currentQuestionPage : currentStep;
+    const colors = form?.designConfig?.colors;
+    const primaryColor = colors?.primary || '#e91e63';
+    
+    return {
+      questions,
+      currentQuestion: questions[currentQuestionPage],
+      totalSteps,
+      progressPercent: Math.round(((progressStep + 1) / totalSteps) * 100),
+      colors,
+      primaryColor,
+      buttonColor: colors?.button || primaryColor,
+      buttonTextColor: colors?.buttonText || '#ffffff',
+      textColor: colors?.text || '#1a1a1a',
+      secondaryColor: colors?.secondary || '#f1f5f9',
+      progressBarColor: colors?.progressBar || primaryColor,
+      welcomeConfig: form?.welcomeConfig
+    };
+  }, [form, currentStep, currentQuestionPage, getQuestions]);
 
   if (loading) {
     return (
