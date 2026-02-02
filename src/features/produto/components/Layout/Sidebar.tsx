@@ -46,6 +46,7 @@ export const Sidebar = ({ currentPage, onNavigate }: SidebarProps) => {
         { icon: Package, label: "Lista de Produtos", id: "produto-list" },
         { icon: FolderTree, label: "Categorias", id: "produto-category" },
         { icon: Printer, label: "Fila de Impressão", id: "produto-print-queue" },
+        { icon: SettingsIcon, label: "Configurações", id: "printer-config" },
       ],
     },
   ];
