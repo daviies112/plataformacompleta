@@ -308,10 +308,9 @@ export const SimplifiedSignatureWizard = ({
   isSaving = false,
 }: SimplifiedSignatureWizardProps) => {
   const { toast } = useToast();
-  const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
-  const [step1Tab, setStep1Tab] = useState<'conteudo' | 'design'>('conteudo');
-  const [step2Tab, setStep2Tab] = useState<'verificacao' | 'progresso' | 'parabens' | 'apps'>('verificacao');
-  const [step3Tab, setStep3Tab] = useState<'conteudo' | 'design'>('conteudo');
+  const [currentStep, setCurrentStep] = useState<1 | 2>(1);
+  const [step1Tab, setStep1Tab] = useState<'verificacao' | 'progresso' | 'parabens' | 'apps'>('verificacao');
+  const [step2Tab, setStep2Tab] = useState<'conteudo' | 'design'>('conteudo');
 
   const formatCPF = (value: string) => {
     const digits = value.replace(/\D/g, '').slice(0, 11);
@@ -373,42 +372,11 @@ export const SimplifiedSignatureWizard = ({
   };
 
   const validateStep1 = (): boolean => {
-    if (!clientName.trim()) {
-      toast({
-        title: 'Campo obrigatório',
-        description: 'Por favor, preencha o nome do cliente.',
-        variant: 'destructive',
-      });
-      return false;
-    }
-
-    const cpfNumbers = clientCpf.replace(/\D/g, '');
-    if (!validateCPF(cpfNumbers)) {
-      toast({
-        title: 'CPF inválido',
-        description: 'Por favor, insira um CPF válido.',
-        variant: 'destructive',
-      });
-      return false;
-    }
-
-    if (!clientEmail.trim() || !clientEmail.includes('@')) {
-      toast({
-        title: 'E-mail inválido',
-        description: 'Por favor, insira um e-mail válido.',
-        variant: 'destructive',
-      });
-      return false;
-    }
-
+    // Step 1 is Aparência - no required fields
     return true;
   };
 
   const validateStep2 = (): boolean => {
-    return true;
-  };
-
-  const validateStep3 = (): boolean => {
     if (!contractTitle.trim()) {
       toast({
         title: 'Campo obrigatório',
@@ -443,27 +411,24 @@ export const SimplifiedSignatureWizard = ({
   const goToNextStep = () => {
     if (currentStep === 1 && validateStep1()) {
       setCurrentStep(2);
-    } else if (currentStep === 2 && validateStep2()) {
-      setCurrentStep(3);
     }
   };
 
   const goToPreviousStep = () => {
     if (currentStep > 1) {
-      setCurrentStep((currentStep - 1) as 1 | 2 | 3);
+      setCurrentStep((currentStep - 1) as 1 | 2);
     }
   };
 
   const handleCreateContractClick = () => {
-    if (validateStep1() && validateStep2() && validateStep3()) {
+    if (validateStep2()) {
       onCreateContract();
     }
   };
 
   const steps = [
-    { number: 1, label: 'Cliente', icon: User },
-    { number: 2, label: 'Aparência', icon: Palette },
-    { number: 3, label: 'Contrato', icon: FileText },
+    { number: 1, label: 'Aparência', icon: Palette },
+    { number: 2, label: 'Contrato', icon: FileText },
   ];
 
   const renderStepNavigation = () => (
@@ -478,7 +443,7 @@ export const SimplifiedSignatureWizard = ({
             <button
               onClick={() => {
                 if (step.number < currentStep) {
-                  setCurrentStep(step.number as 1 | 2 | 3);
+                  setCurrentStep(step.number as 1 | 2);
                 } else if (step.number === currentStep + 1) {
                   goToNextStep();
                 }
@@ -510,242 +475,7 @@ export const SimplifiedSignatureWizard = ({
 
   const renderStep1 = () => (
     <div className="space-y-4" data-testid="step-1-content">
-      <Tabs value={step1Tab} onValueChange={(v) => setStep1Tab(v as 'conteudo' | 'design')}>
-        <TabsList className="grid w-full grid-cols-2 mb-4">
-          <TabsTrigger value="conteudo" data-testid="tab-step1-conteudo">Conteúdo</TabsTrigger>
-          <TabsTrigger value="design" data-testid="tab-step1-design">Design</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="conteudo" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <User className="w-5 h-5" />
-                Dados do Cliente
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="clientName">Nome Completo *</Label>
-                <Input
-                  id="clientName"
-                  value={clientName}
-                  onChange={(e) => onClientNameChange(e.target.value)}
-                  placeholder="Digite o nome completo"
-                  data-testid="input-client-name"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="clientCpf">CPF *</Label>
-                <Input
-                  id="clientCpf"
-                  value={clientCpf}
-                  onChange={(e) => handleCpfChange(e.target.value)}
-                  placeholder="000.000.000-00"
-                  data-testid="input-client-cpf"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="clientEmail">E-mail *</Label>
-                <Input
-                  id="clientEmail"
-                  type="email"
-                  value={clientEmail}
-                  onChange={(e) => onClientEmailChange(e.target.value)}
-                  placeholder="cliente@email.com"
-                  data-testid="input-client-email"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="clientPhone">Telefone</Label>
-                <Input
-                  id="clientPhone"
-                  value={clientPhone}
-                  onChange={(e) => handlePhoneChange(e.target.value)}
-                  placeholder="(00) 00000-0000"
-                  data-testid="input-client-phone"
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="design" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <ImageIcon className="w-5 h-5" />
-                Logo da Empresa
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Logo</Label>
-                {logoUrl ? (
-                  <div className="flex items-center gap-4">
-                    <img src={logoUrl} alt="Logo" className="h-16 object-contain" />
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => onLogoUrlChange('')}
-                      data-testid="button-remove-logo"
-                    >
-                      <X className="w-4 h-4 mr-1" />
-                      Remover
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="flex gap-4">
-                    <Input
-                      placeholder="URL da logo"
-                      value={logoUrl}
-                      onChange={(e) => onLogoUrlChange(e.target.value)}
-                      data-testid="input-logo-url"
-                    />
-                    {onLogoUpload && (
-                      <Button variant="outline" asChild>
-                        <label className="cursor-pointer">
-                          <Upload className="w-4 h-4 mr-2" />
-                          Upload
-                          <input
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={onLogoUpload}
-                            data-testid="input-logo-upload"
-                          />
-                        </label>
-                      </Button>
-                    )}
-                  </div>
-                )}
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Tamanho</Label>
-                  <Select value={logoSize} onValueChange={(v) => onLogoSizeChange(v as any)}>
-                    <SelectTrigger data-testid="select-logo-size">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="small">Pequeno</SelectItem>
-                      <SelectItem value="medium">Médio</SelectItem>
-                      <SelectItem value="large">Grande</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Posição</Label>
-                  <Select value={logoPosition} onValueChange={(v) => onLogoPositionChange(v as any)}>
-                    <SelectTrigger data-testid="select-logo-position">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="left">Esquerda</SelectItem>
-                      <SelectItem value="center">Centro</SelectItem>
-                      <SelectItem value="right">Direita</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Palette className="w-5 h-5" />
-                Cores e Tipografia
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Cor Principal</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      type="color"
-                      value={primaryColor}
-                      onChange={(e) => onPrimaryColorChange(e.target.value)}
-                      className="w-12 h-10 p-1 cursor-pointer"
-                      data-testid="input-primary-color"
-                    />
-                    <Input
-                      value={primaryColor}
-                      onChange={(e) => onPrimaryColorChange(e.target.value)}
-                      className="flex-1"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>Cor do Texto</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      type="color"
-                      value={textColor}
-                      onChange={(e) => onTextColorChange(e.target.value)}
-                      className="w-12 h-10 p-1 cursor-pointer"
-                      data-testid="input-text-color"
-                    />
-                    <Input
-                      value={textColor}
-                      onChange={(e) => onTextColorChange(e.target.value)}
-                      className="flex-1"
-                    />
-                  </div>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Fonte</Label>
-                  <Select value={fontFamily} onValueChange={onFontFamilyChange}>
-                    <SelectTrigger data-testid="select-font-family">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {fontOptions.map((font) => (
-                        <SelectItem key={font.value} value={font.value}>
-                          {font.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Tamanho da Fonte</Label>
-                  <Select value={fontSize} onValueChange={onFontSizeChange}>
-                    <SelectTrigger data-testid="select-font-size">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {fontSizeOptions.map((size) => (
-                        <SelectItem key={size.value} value={size.value}>
-                          {size.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Nome da Empresa</Label>
-                <Input
-                  value={companyName}
-                  onChange={(e) => onCompanyNameChange(e.target.value)}
-                  placeholder="Sua Empresa"
-                  data-testid="input-company-name"
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-    </div>
-  );
-
-  const renderStep2 = () => (
-    <div className="space-y-4" data-testid="step-2-content">
-      <Tabs value={step2Tab} onValueChange={(v) => setStep2Tab(v as any)}>
+      <Tabs value={step1Tab} onValueChange={(v) => setStep1Tab(v as any)}>
         <TabsList className="grid w-full grid-cols-4 mb-4">
           <TabsTrigger value="verificacao" data-testid="tab-verificacao">Verificação</TabsTrigger>
           <TabsTrigger value="progresso" data-testid="tab-progresso">Progresso</TabsTrigger>
@@ -1116,12 +846,12 @@ export const SimplifiedSignatureWizard = ({
     </div>
   );
 
-  const renderStep3 = () => (
-    <div className="space-y-4" data-testid="step-3-content">
-      <Tabs value={step3Tab} onValueChange={(v) => setStep3Tab(v as 'conteudo' | 'design')}>
+  const renderStep2 = () => (
+    <div className="space-y-4" data-testid="step-2-content">
+      <Tabs value={step2Tab} onValueChange={(v) => setStep2Tab(v as 'conteudo' | 'design')}>
         <TabsList className="grid w-full grid-cols-2 mb-4">
-          <TabsTrigger value="conteudo" data-testid="tab-step3-conteudo">Conteúdo</TabsTrigger>
-          <TabsTrigger value="design" data-testid="tab-step3-design">Design</TabsTrigger>
+          <TabsTrigger value="conteudo" data-testid="tab-step2-conteudo">Conteúdo</TabsTrigger>
+          <TabsTrigger value="design" data-testid="tab-step2-design">Design</TabsTrigger>
         </TabsList>
 
         <TabsContent value="conteudo" className="space-y-4">
@@ -1321,7 +1051,7 @@ export const SimplifiedSignatureWizard = ({
           </Button>
         )}
 
-        {currentStep < 3 ? (
+        {currentStep < 2 ? (
           <Button onClick={goToNextStep} data-testid="button-next">
             Próximo
             <ArrowRight className="w-4 h-4 ml-2" />
@@ -1357,7 +1087,6 @@ export const SimplifiedSignatureWizard = ({
       <div className="flex-1 overflow-y-auto px-1">
         {currentStep === 1 && renderStep1()}
         {currentStep === 2 && renderStep2()}
-        {currentStep === 3 && renderStep3()}
       </div>
 
       {renderNavigationButtons()}
