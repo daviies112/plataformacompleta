@@ -19,6 +19,7 @@
  * ║  - 100ms SDK (lazy loaded only when needed)                               ║
  * ║                                                                           ║
  * ║  🔧 OPTIMIZATIONS:                                                         ║
+ * ║  - 100ms SDK preloaded while user fills name (before join click)          ║
  * ║  - Camera initialization delayed 100ms for UI to render first             ║
  * ║  - Uses combined /full-public endpoint (1 request vs 2)                   ║
  * ║  - Backend cache: 2 min TTL for meeting data                              ║
@@ -102,6 +103,11 @@ const DEFAULT_CONFIG: RoomDesignConfig = {
 const Meeting100msWithProvider = lazy(() => 
   import("@/components/Meeting100ms").then(m => ({ default: m.Meeting100msWithProvider }))
 );
+
+// Preload function - triggers SDK loading early while user is in lobby
+const preloadMeeting100ms = () => {
+  import("@/components/Meeting100ms");
+};
 
 const PublicMeetingApp = () => {
   const [meetingData, setMeetingData] = useState<MeetingData | null>(null);
@@ -192,6 +198,15 @@ const PublicMeetingApp = () => {
 
     fetchData();
   }, [meetingId]);
+
+  // Preload 100ms SDK while user is in lobby (before they click join)
+  // This dramatically reduces perceived join time
+  useEffect(() => {
+    if (step === 'lobby' && meetingData && !loading) {
+      // Start preloading the 100ms SDK bundle in the background
+      preloadMeeting100ms();
+    }
+  }, [step, meetingData, loading]);
 
   useEffect(() => {
     if (step !== 'lobby' || !roomDesign.lobby.showCameraPreview) return;
@@ -544,8 +559,22 @@ const PublicMeetingApp = () => {
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         <div style={styles.card}>
           <div style={{ textAlign: 'center' }}>
-            <div style={{ ...styles.loadingSpinner, margin: '0 auto 16px' }} />
-            <p style={{ color: colors.controlsText }}>Conectando à reunião...</p>
+            <div style={{ 
+              width: '64px', 
+              height: '64px', 
+              borderRadius: '50%', 
+              backgroundColor: colors.primaryButton + '22',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 16px'
+            }}>
+              <div style={{ ...styles.loadingSpinner, width: '28px', height: '28px' }} />
+            </div>
+            <h2 style={{ ...styles.title, fontSize: '20px', marginBottom: '8px' }}>Conectando...</h2>
+            <p style={{ color: colors.controlsText, opacity: 0.7, fontSize: '14px' }}>
+              Preparando a sala de reunião
+            </p>
           </div>
         </div>
       </div>

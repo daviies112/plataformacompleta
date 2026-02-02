@@ -436,11 +436,16 @@ publicRoomDesignRouter.get('/reunioes/:meetingId/public', async (req: Request, r
       }
     }
     
+    // FIX: Search by BOTH id and roomId100ms to support URLs with either value
     const [meeting] = await db.select().from(reunioes)
-      .where(eq(reunioes.id, meetingId))
+      .where(or(
+        eq(reunioes.id, meetingId),
+        eq(reunioes.roomId100ms, meetingId)
+      ))
       .limit(1);
 
     if (!meeting) {
+      console.log(`[MeetingPublic] Reunião não encontrada para meetingId: ${meetingId}, fsid: ${fsid || 'none'}`);
       return res.status(404).json({ error: 'Reunião não encontrada' });
     }
 
@@ -453,8 +458,10 @@ publicRoomDesignRouter.get('/reunioes/:meetingId/public', async (req: Request, r
     };
     
     if (fsid && !originalMetadata.formSubmissionId) {
-      console.log(`[MeetingPublic] Usando fsid da URL como formSubmissionId: ${fsid}`);
+      console.log(`[MeetingPublic] ✅ Usando fsid da URL como formSubmissionId: ${fsid}`);
     }
+    
+    console.log(`[MeetingPublic] 📦 Resposta para meetingId=${meetingId}: formSubmissionId=${enhancedMetadata.formSubmissionId || 'null'}, fsid=${fsid || 'null'}`);
 
     const response = {
       id: meeting.id,

@@ -269,15 +269,19 @@ export function Meeting100ms({
         const fsid = searchParams.get("fsid");
         const queryString = fsid ? `?fsid=${fsid}` : '';
         
-        console.log("[Meeting100ms] Buscando meeting data - meetingId:", currentMeetingId, "fsid:", fsid);
+        console.log("[Meeting100ms] 🔍 Verificando formSubmission - meetingId:", currentMeetingId, "fsid:", fsid, "fullUrl:", window.location.href);
         
         const response = await fetch(`/api/public/reunioes/${currentMeetingId}/public${queryString}`);
+        console.log("[Meeting100ms] 📡 Resposta API:", response.status, response.ok);
+        
         if (response.ok) {
           const data = await response.json();
+          console.log("[Meeting100ms] 📦 Dados recebidos:", JSON.stringify({ id: data?.id, metadata: data?.metadata }, null, 2));
           const hasForm = !!(data?.metadata?.formSubmissionId);
           setHasFormSubmission(hasForm);
-          console.log("[Meeting100ms] hasFormSubmission:", hasForm, "formSubmissionId:", data?.metadata?.formSubmissionId);
+          console.log("[Meeting100ms] ✅ hasFormSubmission:", hasForm, "formSubmissionId:", data?.metadata?.formSubmissionId);
         } else {
+          console.log("[Meeting100ms] ❌ API retornou erro:", response.status);
           setHasFormSubmission(false);
         }
       } catch (e) {
@@ -1067,8 +1071,13 @@ export function Meeting100ms({
                           let formSubmissionId: string | undefined = undefined;
                           
                           // PRIMEIRO: Buscar dados da reunião para obter o formSubmissionId dos metadados
+                          // FIX: Include fsid from URL to ensure sign button works correctly
+                          const urlSearchParams = new URLSearchParams(window.location.search);
+                          const currentFsid = urlSearchParams.get("fsid");
+                          const fsidQueryString = currentFsid ? `?fsid=${currentFsid}` : '';
+                          
                           try {
-                            const meetingResponse = await fetch(`/api/public/reunioes/${currentMeetingId}/public`);
+                            const meetingResponse = await fetch(`/api/public/reunioes/${currentMeetingId}/public${fsidQueryString}`);
                             if (meetingResponse.ok) {
                               const meetingData = await meetingResponse.json();
                               // O formSubmissionId está em metadata.formSubmissionId
