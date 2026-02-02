@@ -486,6 +486,20 @@ const PersonalizarAssinaturaPage = () => {
                       progressInactiveStepBg={progressInactiveStepBg}
                       progressCheckIconColor={progressCheckIconColor}
                       progressInactiveCircleBg={progressInactiveCircleBg}
+                      stepLabelSelfie={stepLabelSelfie}
+                      stepLabelDocument={stepLabelDocument}
+                      stepLabelAnalysis={stepLabelAnalysis}
+                      stepLabelResult={stepLabelResult}
+                      progressIndicatorInactiveCircleColor={progressIndicatorInactiveCircleColor}
+                      progressIndicatorInactiveTextColor={progressIndicatorInactiveTextColor}
+                      selfieCaptureButtonText={selfieCaptureButtonText}
+                      selfieRetakeButtonText={selfieRetakeButtonText}
+                      selfieConfirmButtonText={selfieConfirmButtonText}
+                      detectionDefaultMessage={detectionDefaultMessage}
+                      detectionCenterMessage={detectionCenterMessage}
+                      detectionLightingMessage={detectionLightingMessage}
+                      detectionQualityMessage={detectionQualityMessage}
+                      detectionPerfectMessage={detectionPerfectMessage}
                     />
                   </CardContent>
                 </Card>

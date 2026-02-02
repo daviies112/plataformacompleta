@@ -65,6 +65,21 @@ interface SignaturePreviewProps {
   selfieButtonText?: string;
   selfieInstructionText?: string;
   
+  stepLabelSelfie?: string;
+  stepLabelDocument?: string;
+  stepLabelAnalysis?: string;
+  stepLabelResult?: string;
+  progressIndicatorInactiveCircleColor?: string;
+  progressIndicatorInactiveTextColor?: string;
+  selfieCaptureButtonText?: string;
+  selfieRetakeButtonText?: string;
+  selfieConfirmButtonText?: string;
+  detectionDefaultMessage?: string;
+  detectionCenterMessage?: string;
+  detectionLightingMessage?: string;
+  detectionQualityMessage?: string;
+  detectionPerfectMessage?: string;
+  
   contractTitle?: string;
   clauses?: ContractClause[];
   
@@ -138,6 +153,21 @@ export const SignaturePreview = ({
   resultStepDescription = 'Sua identidade foi verificada com sucesso',
   selfieButtonText = 'Iniciar Verificação',
   selfieInstructionText = 'Posicione seu rosto e aguarde a captura automática',
+  
+  stepLabelSelfie = 'Selfie',
+  stepLabelDocument = 'Documento',
+  stepLabelAnalysis = 'Análise',
+  stepLabelResult = 'Resultado',
+  progressIndicatorInactiveCircleColor = '#e5e5e5',
+  progressIndicatorInactiveTextColor = '#666666',
+  selfieCaptureButtonText = 'Capturar Agora',
+  selfieRetakeButtonText = 'Tirar Outra',
+  selfieConfirmButtonText = 'Confirmar',
+  detectionDefaultMessage = 'Posicione seu rosto na área indicada',
+  detectionCenterMessage = 'Centralize seu rosto',
+  detectionLightingMessage = 'Melhore a iluminação',
+  detectionQualityMessage = 'Aproxime seu rosto',
+  detectionPerfectMessage = 'Perfeito! Capturando...',
   
   contractTitle = 'Contrato de Prestação de Serviços',
   clauses = [
@@ -254,12 +284,70 @@ export const SignaturePreview = ({
       }
     };
     
+    const stepLabels = [
+      { label: stepLabelSelfie, icon: Camera },
+      { label: stepLabelDocument, icon: FileText },
+      { label: stepLabelAnalysis, icon: CheckCircle },
+      { label: stepLabelResult, icon: Award },
+    ];
+
+    const detectionMessages = [
+      { label: 'Padrão', message: detectionDefaultMessage },
+      { label: 'Centralizar', message: detectionCenterMessage },
+      { label: 'Iluminação', message: detectionLightingMessage },
+      { label: 'Qualidade', message: detectionQualityMessage },
+      { label: 'Perfeito', message: detectionPerfectMessage },
+    ];
+    
     return (
       <div 
-        className="min-h-[500px] flex flex-col items-center justify-center p-6"
+        className="min-h-[500px] flex flex-col items-center p-6"
         style={{ backgroundColor, fontFamily: vFontFamily }}
         data-testid="preview-verification-step"
       >
+        <div 
+          className="w-full max-w-md mb-6 p-4 rounded-xl border"
+          style={{ borderColor: `${vPrimaryColor}30`, backgroundColor: `${vPrimaryColor}05` }}
+          data-testid="step-navigation-preview"
+        >
+          <p className="text-xs font-semibold mb-3 text-center opacity-70" style={{ color: vTextColor }}>
+            Barra de Navegação
+          </p>
+          <div className="flex items-center justify-between gap-2">
+            {stepLabels.map((step, index) => {
+              const Icon = step.icon;
+              const isActive = index === 0;
+              return (
+                <div key={index} className="flex items-center" data-testid={`step-nav-${index}`}>
+                  <div className="flex flex-col items-center gap-1">
+                    <div 
+                      className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold"
+                      style={{ 
+                        backgroundColor: isActive ? vPrimaryColor : progressIndicatorInactiveCircleColor,
+                        color: isActive ? 'white' : progressIndicatorInactiveTextColor
+                      }}
+                    >
+                      <Icon className="w-4 h-4" />
+                    </div>
+                    <span 
+                      className="text-xs font-medium text-center max-w-[60px] truncate"
+                      style={{ color: isActive ? vPrimaryColor : progressIndicatorInactiveTextColor }}
+                    >
+                      {step.label}
+                    </span>
+                  </div>
+                  {index < stepLabels.length - 1 && (
+                    <div 
+                      className="h-0.5 flex-1 min-w-4 mx-1 -mt-4"
+                      style={{ backgroundColor: progressIndicatorInactiveCircleColor }}
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
         {vLogoUrl && (
           <div 
             className="w-full mb-6"
@@ -375,6 +463,70 @@ export const SignaturePreview = ({
           <Shield className="w-4 h-4 inline mr-1" />
           {securityText}
         </p>
+
+        <div 
+          className="w-full max-w-md mt-8 p-4 rounded-xl border"
+          style={{ borderColor: `${vPrimaryColor}30`, backgroundColor: `${vPrimaryColor}05` }}
+          data-testid="selfie-capture-preview"
+        >
+          <p className="text-xs font-semibold mb-3 text-center opacity-70" style={{ color: vTextColor }}>
+            Prévia da Captura de Selfie
+          </p>
+          <div className="flex flex-wrap justify-center gap-2">
+            <Button
+              size="sm"
+              style={{ backgroundColor: vPrimaryColor, color: 'white' }}
+              data-testid="preview-capture-button"
+            >
+              <Camera className="w-4 h-4 mr-1" />
+              {selfieCaptureButtonText}
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              style={{ borderColor: vPrimaryColor, color: vPrimaryColor }}
+              data-testid="preview-retake-button"
+            >
+              {selfieRetakeButtonText}
+            </Button>
+            <Button
+              size="sm"
+              style={{ backgroundColor: '#22c55e', color: 'white' }}
+              data-testid="preview-confirm-button"
+            >
+              <CheckCircle className="w-4 h-4 mr-1" />
+              {selfieConfirmButtonText}
+            </Button>
+          </div>
+        </div>
+
+        <div 
+          className="w-full max-w-md mt-4 p-4 rounded-xl border"
+          style={{ borderColor: `${vPrimaryColor}30`, backgroundColor: `${vPrimaryColor}05` }}
+          data-testid="detection-messages-preview"
+        >
+          <p className="text-xs font-semibold mb-3 text-center opacity-70" style={{ color: vTextColor }}>
+            Mensagens de Detecção Facial
+          </p>
+          <div className="space-y-2">
+            {detectionMessages.map((item, index) => (
+              <div 
+                key={index}
+                className="flex items-center gap-2 text-xs p-2 rounded-lg"
+                style={{ backgroundColor: `${vPrimaryColor}10` }}
+                data-testid={`detection-message-${index}`}
+              >
+                <span 
+                  className="font-semibold min-w-[70px]"
+                  style={{ color: vPrimaryColor }}
+                >
+                  {item.label}:
+                </span>
+                <span style={{ color: vTextColor }}>{item.message}</span>
+              </div>
+            ))}
+          </div>
+        </div>
         
         {vFooterText && (
           <p 
