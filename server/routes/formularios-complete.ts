@@ -1234,27 +1234,68 @@ export function registerFormulariosCompleteRoutes(app: Express) {
           const supabase = await getSupabaseClient(tenantId);
           
           if (supabase) {
+            // Build insert payload with correct column names
+            const insertPayload: any = {
+              form_id: formId,
+              contact_name: contactName || null,
+              contact_email: contactEmail || null,
+              contact_phone: contactPhone || null,
+              contact_cpf: contactCpf || null,
+              instagram_handle: contactInstagram || null,
+              answers: answers,
+              total_score: 0,
+              passed: true,
+              tenant_id: tenantId
+            };
+            
+            // Add address fields if provided
+            if (addressData) {
+              insertPayload.address_cep = addressData.cep || null;
+              insertPayload.address_street = addressData.street || addressData.logradouro || null;
+              insertPayload.address_number = addressData.number || addressData.numero || null;
+              insertPayload.address_complement = addressData.complement || addressData.complemento || null;
+              insertPayload.address_neighborhood = addressData.neighborhood || addressData.bairro || null;
+              insertPayload.address_city = addressData.city || addressData.cidade || null;
+              insertPayload.address_state = addressData.state || addressData.estado || null;
+            }
+            
+            console.log('📦 [Supabase] Payload para inserção:', JSON.stringify(insertPayload, null, 2));
+            
             const { data: insertedData, error: supabaseError } = await supabase
               .from('form_submissions')
-              .insert({
-                form_id: formId,
-                name: contactName || null,
-                email: contactEmail || null,
-                telefone: contactPhone || null,
-                cpf: contactCpf || null,
-                instagram: contactInstagram || null,
-                answers: answers,
-                address_data: addressData || null,
-                total_score: 0,
-                passed: true,
-                synced_to_local: false,
-                created_at: new Date().toISOString()
-              })
+              .insert(insertPayload)
               .select('id')
               .single();
             
             if (supabaseError) {
               console.error('⚠️ [Supabase] Erro ao salvar submission:', supabaseError.message);
+              
+              // Fallback: try with minimal essential fields only
+              if (supabaseError.message?.includes('column')) {
+                console.warn('⚠️ Tentando salvar com campos mínimos...');
+                const minimalPayload = {
+                  form_id: formId,
+                  answers: answers,
+                  total_score: 0,
+                  passed: true,
+                  tenant_id: tenantId,
+                  contact_name: contactName || null,
+                  contact_email: contactEmail || null,
+                  contact_phone: contactPhone || null
+                };
+                
+                const { data: retryData, error: retryError } = await supabase
+                  .from('form_submissions')
+                  .insert(minimalPayload)
+                  .select('id')
+                  .single();
+                  
+                if (!retryError && retryData) {
+                  supabaseSuccess = true;
+                  submissionId = retryData.id;
+                  console.log(`✅ [Supabase] Submission salva (modo mínimo): ${submissionId}`);
+                }
+              }
             } else {
               supabaseSuccess = true;
               submissionId = insertedData?.id;
@@ -1272,6 +1313,7 @@ export function registerFormulariosCompleteRoutes(app: Express) {
           .insert(formSubmissions)
           .values({
             formId,
+            // Keep legacy nested data in answers for backward compatibility
             answers: {
               ...answers,
               _contactData: {
@@ -1285,9 +1327,21 @@ export function registerFormulariosCompleteRoutes(app: Express) {
             },
             totalScore: 0,
             passed: true,
+            // Also store in dedicated columns for new features
             contactName: contactName || null,
             contactEmail: contactEmail || null,
-            contactPhone: contactPhone || null
+            contactPhone: contactPhone || null,
+            contactCpf: contactCpf || null,
+            instagramHandle: contactInstagram || null,
+            tenantId: tenantId || null,
+            // Address fields
+            addressCep: addressData?.cep || null,
+            addressStreet: addressData?.street || addressData?.logradouro || null,
+            addressNumber: addressData?.number || addressData?.numero || null,
+            addressComplement: addressData?.complement || addressData?.complemento || null,
+            addressNeighborhood: addressData?.neighborhood || addressData?.bairro || null,
+            addressCity: addressData?.city || addressData?.cidade || null,
+            addressState: addressData?.state || addressData?.estado || null
           })
           .returning();
         
