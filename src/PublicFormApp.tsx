@@ -114,8 +114,47 @@ const PublicFormApp = () => {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   
+  // Extract telefone from URL query params
+  const extractTelefoneFromUrl = useCallback(() => {
+    try {
+      // Method 1: URLSearchParams
+      const params = new URLSearchParams(window.location.search);
+      const tel = params.get('telefone');
+      if (tel) return tel;
+      
+      // Method 2: Check if encoded in href (%3F = ?)
+      const href = window.location.href;
+      const match = href.match(/[?&]telefone=([^&]+)/);
+      if (match) return decodeURIComponent(match[1]);
+      
+      // Method 3: Check pathname (some frameworks encode query in path)
+      const pathMatch = window.location.pathname.match(/[?]telefone=([^&]+)/);
+      if (pathMatch) return decodeURIComponent(pathMatch[1]);
+      
+      return null;
+    } catch (e) {
+      console.warn('[PublicFormApp] Error extracting telefone:', e);
+      return null;
+    }
+  }, []);
+  
+  const telefoneFromUrl = useMemo(() => extractTelefoneFromUrl(), [extractTelefoneFromUrl]);
+  const [phoneLocked, setPhoneLocked] = useState(!!telefoneFromUrl);
+  
+  // Format telefone from URL
+  const formatTelefoneFromUrl = useCallback((tel: string): string => {
+    const digits = tel.replace(/\D/g, '');
+    // Remove country code 55 if present
+    const cleanDigits = digits.startsWith('55') && digits.length > 11 
+      ? digits.slice(2) 
+      : digits;
+    return formatPhone(cleanDigits);
+  }, []);
+  
+  const initialPhone = telefoneFromUrl ? formatTelefoneFromUrl(telefoneFromUrl) : '';
+  
   const [personalData, setPersonalData] = useState<PersonalData>({
-    name: '', email: '', cpf: '', phone: '', instagram: ''
+    name: '', email: '', cpf: '', phone: initialPhone, instagram: ''
   });
   const [personalErrors, setPersonalErrors] = useState<Partial<PersonalData>>({});
   
@@ -125,7 +164,25 @@ const PublicFormApp = () => {
   const [addressErrors, setAddressErrors] = useState<Partial<AddressData>>({});
   const [loadingCep, setLoadingCep] = useState(false);
 
-  const path = window.location.pathname;
+  // Clean path: remove query string if present (some browsers/proxies may encode ? as %3F in path)
+  const rawPath = window.location.pathname;
+  const path = useMemo(() => {
+    // Remove any query string that might have been encoded in the path
+    let cleanPath = rawPath.split('?')[0];
+    // Also handle URL-encoded ? (%3F)
+    if (cleanPath.includes('%3F')) {
+      cleanPath = cleanPath.split('%3F')[0];
+    }
+    return cleanPath;
+  }, [rawPath]);
+  
+  // Log telefone extraction for debugging
+  useEffect(() => {
+    if (telefoneFromUrl) {
+      console.log('📱 [PublicFormApp] Telefone extracted from URL:', telefoneFromUrl, '→', initialPhone);
+      setPhoneLocked(true);
+    }
+  }, [telefoneFromUrl, initialPhone]);
 
   const extractParams = useCallback(() => {
     const patterns = [
@@ -139,9 +196,14 @@ const PublicFormApp = () => {
       const match = path.match(pattern);
       if (match) {
         if (pattern.source.includes('f\\/')) {
-          return { token: match[1] };
+          // Also clean token from any query string artifacts
+          const cleanToken = match[1].split('?')[0].split('%3F')[0];
+          return { token: cleanToken };
         }
-        return { companySlug: match[1], formSlug: match[2] };
+        // Clean slugs from any query string artifacts
+        const cleanCompanySlug = match[1].split('?')[0].split('%3F')[0];
+        const cleanFormSlug = match[2].split('?')[0].split('%3F')[0];
+        return { companySlug: cleanCompanySlug, formSlug: cleanFormSlug };
       }
     }
     return null;
@@ -431,14 +493,48 @@ const PublicFormApp = () => {
           </div>
           
           <div style={styles.formGroup}>
-            <label style={styles.label}>Telefone</label>
-            <input
-              type="text"
-              style={{ ...styles.input, backgroundColor: secondaryColor }}
-              value={personalData.phone}
-              onChange={(e) => setPersonalData(prev => ({ ...prev, phone: formatPhone(e.target.value) }))}
-              placeholder="(11) 99999-9999"
-            />
+            <label style={styles.label}>
+              Telefone
+              {phoneLocked && (
+                <span style={{ 
+                  marginLeft: '8px', 
+                  color: '#22c55e', 
+                  fontSize: '12px',
+                  fontWeight: 'normal'
+                }}>
+                  ✓ Preenchido
+                </span>
+              )}
+            </label>
+            <div style={{ position: 'relative' }}>
+              <input
+                type="text"
+                style={{ 
+                  ...styles.input, 
+                  backgroundColor: phoneLocked ? '#f0fdf4' : secondaryColor,
+                  borderColor: phoneLocked ? '#22c55e' : undefined,
+                  borderWidth: phoneLocked ? '2px' : '1px',
+                  paddingRight: phoneLocked ? '40px' : undefined,
+                  cursor: phoneLocked ? 'not-allowed' : 'text'
+                }}
+                value={personalData.phone}
+                onChange={(e) => !phoneLocked && setPersonalData(prev => ({ ...prev, phone: formatPhone(e.target.value) }))}
+                placeholder="(11) 99999-9999"
+                readOnly={phoneLocked}
+              />
+              {phoneLocked && (
+                <span style={{ 
+                  position: 'absolute', 
+                  right: '12px', 
+                  top: '50%', 
+                  transform: 'translateY(-50%)',
+                  color: '#22c55e',
+                  fontSize: '18px'
+                }}>
+                  🔒
+                </span>
+              )}
+            </div>
           </div>
           
           <div style={styles.formGroup}>
