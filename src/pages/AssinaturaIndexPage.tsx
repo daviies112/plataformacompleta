@@ -39,7 +39,7 @@ const AssinaturaIndexPage = () => {
             <div className="flex flex-col sm:flex-row gap-4 justify-center animate-scale-in">
               <Button 
                 onClick={() => navigate("/assinatura/criar")}
-                variant="premium"
+                variant="default"
                 size="lg"
                 className="gap-2"
                 data-testid="button-criar-assinatura"

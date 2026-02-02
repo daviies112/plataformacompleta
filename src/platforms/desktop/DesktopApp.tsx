@@ -36,7 +36,6 @@ import { RootRedirect } from "@/components/RootRedirect";
 // Revendedora Platform - NOTA: RevendedoraApp é tratado diretamente no PlatformRouter
 
 // Import Assinatura Platform
-import AssinaturaIndexPage from "@/pages/AssinaturaIndexPage";
 import CriarAssinaturaPage from "@/pages/CriarAssinaturaPage";
 import PersonalizarAssinaturaPage from "@/pages/PersonalizarAssinaturaPage";
 import ContratosListaPage from "@/pages/ContratosListaPage";
@@ -759,13 +758,7 @@ const DesktopApp = () => {
       {/* Assinatura Digital - Admin */}
       <Route 
         path="/assinatura" 
-        element={
-          <ProtectedRoute>
-            <DesktopLayout>
-              <AssinaturaIndexPage />
-            </DesktopLayout>
-          </ProtectedRoute>
-        } 
+        element={<Navigate to="/assinatura/personalizar" replace />} 
       />
       <Route 
         path="/assinatura/criar" 

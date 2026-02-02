@@ -104,7 +104,7 @@ const HeaderNavigation = () => {
       active: location.pathname.startsWith("/revendedora")
     },
     { 
-      path: "/assinatura", 
+      path: "/assinatura/personalizar", 
       label: "Assinatura", 
       icon: FileSignature,
       active: location.pathname.startsWith("/assinatura")
