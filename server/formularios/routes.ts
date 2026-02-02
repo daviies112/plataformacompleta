@@ -349,17 +349,23 @@ export function registerRoutes(app: Express) {
       if (supabase) {
         console.log('📝 [POST /api/submissions] Salvando no Supabase...');
         
-        const snakeData = convertKeysToSnakeCase(req.body);
-        const stringifiedData = stringifyJsonbFields(snakeData, ['answers']);
+        // 🔥 REMOVER campos extras que o Supabase não aceita como colunas
+        // Esses campos vêm do front e agora são colunas separadas
+        // Também limpamos nomes variados que possam ter sido usados
+        const { 
+          _contactData, _addressData, 
+          contact_data, address_data, 
+          contactData, addressData,
+          ...restBodySupabase 
+        } = req.body;
         
-        // 🔥 DEBUG: Verificar conversão snake_case
-        console.log('📱 [POST /api/submissions] Após snake_case, contact_phone:', snakeData.contact_phone);
+        const snakeData = convertKeysToSnakeCase(restBodySupabase);
+        const stringifiedData = stringifyJsonbFields(snakeData, ['answers']);
         
         // 🔥 ADICIONAR tenant_id ao payload (CRÍTICO PARA MULTI-TENANT SECURITY)
         stringifiedData.tenant_id = tenantId;
         
-        // 🔥 DEBUG: Log do payload final
-        console.log('📱 [POST /api/submissions] Payload final para Supabase:', JSON.stringify(stringifiedData, null, 2));
+        console.log('📱 [POST /api/submissions] Payload para Supabase (limpo):', JSON.stringify(stringifiedData, null, 2));
         
         const { data, error } = await supabase
           .from('form_submissions')
@@ -369,6 +375,30 @@ export function registerRoutes(app: Express) {
         
         if (error) {
           console.error('❌ [SUPABASE] Erro ao criar submission:', error);
+          // Fallback: Tentar salvar apenas campos essenciais se o erro for de coluna
+          if (error.message?.includes('column')) {
+            console.warn('⚠️ Erro de coluna detectado, tentando salvar apenas campos mapeados...');
+            const essentialFields = [
+              'form_id', 'answers', 'total_score', 'passed', 'tenant_id',
+              'contact_name', 'contact_email', 'contact_phone', 'contact_cpf',
+              'participant_id', 'instagram_handle', 'birth_date',
+              'address_cep', 'address_street', 'address_number', 'address_complement',
+              'address_neighborhood', 'address_city', 'address_state'
+            ];
+            const filteredData: any = {};
+            essentialFields.forEach(field => {
+              if (stringifiedData[field] !== undefined) filteredData[field] = stringifiedData[field];
+            });
+            
+            const { data: retryData, error: retryError } = await supabase
+              .from('form_submissions')
+              .insert(filteredData)
+              .select()
+              .single();
+              
+            if (retryError) throw retryError;
+            return res.status(201).json(convertKeysToCamelCase(retryData));
+          }
           throw error;
         }
         
@@ -394,17 +424,22 @@ export function registerRoutes(app: Express) {
       }
       
       console.log('📝 [POST /api/submissions] Salvando no PostgreSQL local...');
-      const camelBody = convertKeysToCamelCase(req.body);
+      
+      // 🔥 REMOVER campos extras para o PostgreSQL local também
+      const { 
+        _contactData, _addressData, 
+        contact_data, address_data, 
+        contactData, addressData,
+        ...restBodyLocal 
+      } = req.body;
+      const camelBody = convertKeysToCamelCase(restBodyLocal);
       
       // Adicionar tenantId e garantir que answers seja mantido
       const submissionData = {
         ...camelBody,
         tenantId: tenantId,
-        answers: req.body.answers // Garantir que answers não seja perdido se o case converter mexer nele
+        answers: req.body.answers
       };
-      
-      // Remover campos que não pertencem à tabela local se necessário, 
-      // ou apenas confiar que o storage/drizzle ignora campos extras
       
       const submission = await storage.createFormSubmission(submissionData);
       
@@ -424,7 +459,7 @@ export function registerRoutes(app: Express) {
       res.status(201).json(submission);
     } catch (error: any) {
       console.error('❌ [POST /api/submissions] Erro geral:', error);
-      res.status(400).json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   });
 
