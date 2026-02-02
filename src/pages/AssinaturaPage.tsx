@@ -755,6 +755,14 @@ const AssinaturaPage = () => {
                       logoPosition={logoPosition}
                       companyName={companyName}
                       footerText={footerText}
+                      verificationPrimaryColor={verificationPrimaryColor}
+                      verificationTextColor={verificationTextColor}
+                      verificationFontFamily={verificationFontFamily}
+                      verificationFontSize={verificationFontSize}
+                      verificationLogoUrl={verificationLogoUrl}
+                      verificationLogoSize={verificationLogoSize}
+                      verificationLogoPosition={verificationLogoPosition}
+                      verificationFooterText={verificationFooterText}
                       welcomeText={verificationWelcomeText}
                       instructions={verificationInstructions}
                       securityText={verificationSecurityText}

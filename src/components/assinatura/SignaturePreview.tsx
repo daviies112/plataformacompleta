@@ -40,6 +40,14 @@ interface SignaturePreviewProps {
   companyName?: string;
   footerText?: string;
   
+  verificationPrimaryColor?: string;
+  verificationTextColor?: string;
+  verificationFontFamily?: string;
+  verificationFontSize?: string;
+  verificationLogoUrl?: string;
+  verificationLogoSize?: 'small' | 'medium' | 'large';
+  verificationLogoPosition?: 'center' | 'left' | 'right';
+  verificationFooterText?: string;
   welcomeText?: string;
   instructions?: string;
   securityText?: string;
@@ -85,6 +93,14 @@ export const SignaturePreview = ({
   companyName = 'Sua Empresa',
   footerText = 'Documento gerado eletronicamente',
   
+  verificationPrimaryColor,
+  verificationTextColor,
+  verificationFontFamily,
+  verificationFontSize,
+  verificationLogoUrl,
+  verificationLogoSize,
+  verificationLogoPosition,
+  verificationFooterText,
   welcomeText = 'Verificação de Identidade',
   instructions = 'Processo seguro e rápido para confirmar sua identidade através de reconhecimento facial.',
   securityText = 'Suas informações são processadas de forma segura e criptografada',
@@ -167,21 +183,45 @@ export const SignaturePreview = ({
   ];
 
   const renderVerificationStep = () => {
+    const vPrimaryColor = verificationPrimaryColor || primaryColor;
+    const vTextColor = verificationTextColor || textColor;
+    const vFontFamily = verificationFontFamily || fontFamily;
+    const vLogoUrl = verificationLogoUrl || logoUrl;
+    const vLogoSize = verificationLogoSize || logoSize;
+    const vLogoPosition = verificationLogoPosition || logoPosition;
+    const vFooterText = verificationFooterText || footerText;
+    
+    const getVerificationLogoSize = () => {
+      switch (vLogoSize) {
+        case 'small': return '80px';
+        case 'large': return '200px';
+        default: return '140px';
+      }
+    };
+    
+    const getVerificationLogoAlignment = () => {
+      switch (vLogoPosition) {
+        case 'left': return 'flex-start';
+        case 'right': return 'flex-end';
+        default: return 'center';
+      }
+    };
+    
     return (
       <div 
         className="min-h-[500px] flex flex-col items-center justify-center p-6"
-        style={{ backgroundColor, fontFamily }}
+        style={{ backgroundColor, fontFamily: vFontFamily }}
         data-testid="preview-verification-step"
       >
-        {logoUrl && (
+        {vLogoUrl && (
           <div 
             className="w-full mb-6"
-            style={{ display: 'flex', justifyContent: getLogoAlignment() }}
+            style={{ display: 'flex', justifyContent: getVerificationLogoAlignment() }}
           >
             <img 
-              src={logoUrl} 
+              src={vLogoUrl} 
               alt="Logo" 
-              style={{ maxWidth: getLogoSizeStyle(), height: 'auto' }}
+              style={{ maxWidth: getVerificationLogoSize(), height: 'auto' }}
               data-testid="img-preview-logo"
             />
           </div>
@@ -189,7 +229,7 @@ export const SignaturePreview = ({
 
         <h1 
           className="text-3xl font-bold text-center mb-3"
-          style={{ color: textColor }}
+          style={{ color: vTextColor }}
           data-testid="text-verification-title"
         >
           {welcomeText}
@@ -197,7 +237,7 @@ export const SignaturePreview = ({
 
         <p 
           className="text-center mb-8 max-w-md"
-          style={{ color: textColor, opacity: 0.85 }}
+          style={{ color: vTextColor, opacity: 0.85 }}
           data-testid="text-verification-instructions"
         >
           {instructions}
@@ -210,18 +250,18 @@ export const SignaturePreview = ({
               <div
                 key={index}
                 className="flex items-start gap-4 p-4 rounded-xl bg-white border shadow-sm"
-                style={{ borderColor: `${primaryColor}20` }}
+                style={{ borderColor: `${vPrimaryColor}20` }}
                 data-testid={`card-verification-step-${index}`}
               >
                 <div 
                   className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
-                  style={{ backgroundColor: `${primaryColor}20` }}
+                  style={{ backgroundColor: `${vPrimaryColor}20` }}
                 >
-                  <Icon className="w-5 h-5" style={{ color: primaryColor }} />
+                  <Icon className="w-5 h-5" style={{ color: vPrimaryColor }} />
                 </div>
                 <div>
-                  <h3 className="font-bold" style={{ color: textColor }}>{step.title}</h3>
-                  <p className="text-sm" style={{ color: textColor, opacity: 0.75 }}>{step.description}</p>
+                  <h3 className="font-bold" style={{ color: vTextColor }}>{step.title}</h3>
+                  <p className="text-sm" style={{ color: vTextColor, opacity: 0.75 }}>{step.description}</p>
                 </div>
               </div>
             );
@@ -231,7 +271,7 @@ export const SignaturePreview = ({
         <Button
           size="lg"
           className="h-14 px-8 text-lg font-bold shadow-lg"
-          style={{ backgroundColor: primaryColor, color: 'white' }}
+          style={{ backgroundColor: vPrimaryColor, color: 'white' }}
           onClick={() => handleStepChange(1)}
           data-testid="button-start-verification"
         >
@@ -241,12 +281,21 @@ export const SignaturePreview = ({
 
         <p 
           className="mt-6 text-xs text-center max-w-xs"
-          style={{ color: primaryColor }}
+          style={{ color: vPrimaryColor }}
           data-testid="text-security"
         >
           <Shield className="w-4 h-4 inline mr-1" />
           {securityText}
         </p>
+        
+        {vFooterText && (
+          <p 
+            className="mt-4 text-xs text-center opacity-60"
+            style={{ color: vTextColor }}
+          >
+            {vFooterText}
+          </p>
+        )}
       </div>
     );
   };
