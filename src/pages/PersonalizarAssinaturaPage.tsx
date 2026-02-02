@@ -135,6 +135,8 @@ const PersonalizarAssinaturaPage = () => {
   const [appStoreUrl, setAppStoreUrl] = useState('');
   const [googlePlayUrl, setGooglePlayUrl] = useState('');
 
+  const [verificationPreviewMode, setVerificationPreviewMode] = useState<string>('tela-inicial');
+
   const { data: globalConfig } = useQuery<any>({
     queryKey: ['/api/assinatura/global-config'],
   });
@@ -403,6 +405,7 @@ const PersonalizarAssinaturaPage = () => {
                   onGooglePlayUrlChange={setGooglePlayUrl}
                   onCreateContract={handleSaveConfig}
                   isSaving={saveConfigMutation.isPending}
+                  onVerificationSubTabChange={setVerificationPreviewMode}
                 />
               </div>
             </ScrollArea>
@@ -500,6 +503,7 @@ const PersonalizarAssinaturaPage = () => {
                       detectionLightingMessage={detectionLightingMessage}
                       detectionQualityMessage={detectionQualityMessage}
                       detectionPerfectMessage={detectionPerfectMessage}
+                      verificationPreviewMode={verificationPreviewMode as any}
                     />
                   </CardContent>
                 </Card>

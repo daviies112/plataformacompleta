@@ -111,6 +111,7 @@ interface SignaturePreviewProps {
   
   wizardStep?: number;
   onStepChange?: (step: number) => void;
+  verificationPreviewMode?: 'tela-inicial' | 'etapas-fluxo' | 'barra-navegacao' | 'botoes-captura' | 'mensagens-deteccao';
 }
 
 export const SignaturePreview = ({
@@ -203,7 +204,8 @@ export const SignaturePreview = ({
   progressInactiveCircleBg = 'rgba(255,255,255,0.2)',
   
   wizardStep: externalWizardStep,
-  onStepChange
+  onStepChange,
+  verificationPreviewMode
 }: SignaturePreviewProps) => {
   const [internalWizardStep, setInternalWizardStep] = useState(0);
   
@@ -298,6 +300,289 @@ export const SignaturePreview = ({
       { label: 'Qualidade', message: detectionQualityMessage },
       { label: 'Perfeito', message: detectionPerfectMessage },
     ];
+
+    const renderTelaInicialPreview = () => (
+      <div 
+        className="min-h-[400px] flex flex-col items-center p-6"
+        style={{ backgroundColor, fontFamily: vFontFamily }}
+        data-testid="preview-tela-inicial"
+      >
+        {vLogoUrl && (
+          <div 
+            className="w-full mb-6"
+            style={{ display: 'flex', justifyContent: getVerificationLogoAlignment() }}
+          >
+            <img 
+              src={vLogoUrl} 
+              alt="Logo" 
+              style={{ maxWidth: getVerificationLogoSize(), height: 'auto' }}
+              data-testid="img-preview-logo"
+            />
+          </div>
+        )}
+
+        <div 
+          className="w-24 h-24 rounded-full flex items-center justify-center mb-4 relative"
+          style={{ backgroundColor: `${vPrimaryColor}15` }}
+        >
+          <div 
+            className="w-16 h-16 rounded-full flex items-center justify-center"
+            style={{ backgroundColor: `${vPrimaryColor}25` }}
+          >
+            <Camera className="w-8 h-8" style={{ color: vPrimaryColor }} />
+          </div>
+        </div>
+
+        <h1 
+          className="text-2xl font-bold text-center mb-2"
+          style={{ color: vTextColor }}
+          data-testid="text-verification-title"
+        >
+          {welcomeText}
+        </h1>
+
+        <p 
+          className="text-center mb-4 max-w-sm text-sm"
+          style={{ color: vTextColor, opacity: 0.85 }}
+          data-testid="text-verification-instructions"
+        >
+          {instructions}
+        </p>
+
+        <Button
+          size="lg"
+          className="h-12 px-6 text-base font-bold shadow-lg mb-4"
+          style={{ backgroundColor: vPrimaryColor, color: 'white' }}
+          data-testid="button-start-verification"
+        >
+          {selfieButtonText}
+          <ArrowRight className="ml-2 w-4 h-4" />
+        </Button>
+
+        <p 
+          className="text-xs text-center max-w-xs"
+          style={{ color: vPrimaryColor }}
+          data-testid="text-security"
+        >
+          <Shield className="w-3 h-3 inline mr-1" />
+          {securityText}
+        </p>
+      </div>
+    );
+
+    const renderEtapasFluxoPreview = () => (
+      <div 
+        className="min-h-[400px] relative p-6"
+        style={{ backgroundColor, fontFamily: vFontFamily }}
+        data-testid="preview-etapas-fluxo"
+      >
+        <div className="w-full h-full bg-gray-100 rounded-lg flex items-center justify-center" style={{ minHeight: '300px' }}>
+          <p className="text-gray-400 text-sm">Área de Câmera</p>
+        </div>
+        
+        <div 
+          className="absolute bottom-4 left-4 p-4 rounded-xl border shadow-lg max-w-xs"
+          style={{ borderColor: `${vPrimaryColor}30`, backgroundColor: 'white' }}
+          data-testid="progress-popup"
+        >
+          <p className="text-xs font-semibold mb-3" style={{ color: vPrimaryColor }}>
+            Progresso do Fluxo
+          </p>
+          <div className="space-y-2">
+            {verificationSteps.map((step, index) => {
+              const Icon = step.icon;
+              const isActive = index === 0;
+              const isComplete = false;
+              return (
+                <div
+                  key={index}
+                  className="flex items-center gap-3 p-2 rounded-lg"
+                  style={{ 
+                    backgroundColor: isActive ? `${vPrimaryColor}15` : 'transparent',
+                    borderLeft: isActive ? `3px solid ${vPrimaryColor}` : '3px solid transparent'
+                  }}
+                >
+                  <div 
+                    className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
+                    style={{ 
+                      backgroundColor: isActive ? vPrimaryColor : progressIndicatorInactiveCircleColor,
+                      color: isActive ? 'white' : progressIndicatorInactiveTextColor
+                    }}
+                  >
+                    <Icon className="w-3 h-3" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p 
+                      className="text-xs font-medium truncate"
+                      style={{ color: isActive ? vPrimaryColor : progressIndicatorInactiveTextColor }}
+                    >
+                      {step.title}
+                    </p>
+                    <p 
+                      className="text-xs truncate"
+                      style={{ color: vTextColor, opacity: 0.6 }}
+                    >
+                      {step.description}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+
+    const renderBarraNavegacaoPreview = () => (
+      <div 
+        className="min-h-[200px] flex flex-col items-center justify-center p-6"
+        style={{ backgroundColor, fontFamily: vFontFamily }}
+        data-testid="preview-barra-navegacao"
+      >
+        <p className="text-xs font-semibold mb-4 text-center opacity-70" style={{ color: vTextColor }}>
+          Barra de Navegação (Etapas)
+        </p>
+        <div 
+          className="w-full max-w-lg p-4 rounded-xl border"
+          style={{ borderColor: `${vPrimaryColor}30`, backgroundColor: `${vPrimaryColor}05` }}
+          data-testid="step-navigation-preview"
+        >
+          <div className="flex items-center justify-between gap-2">
+            {stepLabels.map((step, index) => {
+              const Icon = step.icon;
+              const isActive = index === 0;
+              return (
+                <div key={index} className="flex items-center" data-testid={`step-nav-${index}`}>
+                  <div className="flex flex-col items-center gap-1">
+                    <div 
+                      className="w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold"
+                      style={{ 
+                        backgroundColor: isActive ? vPrimaryColor : progressIndicatorInactiveCircleColor,
+                        color: isActive ? 'white' : progressIndicatorInactiveTextColor
+                      }}
+                    >
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <span 
+                      className="text-sm font-medium text-center max-w-[80px]"
+                      style={{ color: isActive ? vPrimaryColor : progressIndicatorInactiveTextColor }}
+                    >
+                      {step.label}
+                    </span>
+                  </div>
+                  {index < stepLabels.length - 1 && (
+                    <div 
+                      className="h-0.5 flex-1 min-w-6 mx-2 -mt-6"
+                      style={{ backgroundColor: progressIndicatorInactiveCircleColor }}
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+
+    const renderBotoesCapturasPreview = () => (
+      <div 
+        className="min-h-[200px] flex flex-col items-center justify-center p-6"
+        style={{ backgroundColor, fontFamily: vFontFamily }}
+        data-testid="preview-botoes-captura"
+      >
+        <p className="text-xs font-semibold mb-4 text-center opacity-70" style={{ color: vTextColor }}>
+          Botões da Captura de Selfie
+        </p>
+        <div 
+          className="w-full max-w-md p-6 rounded-xl border"
+          style={{ borderColor: `${vPrimaryColor}30`, backgroundColor: `${vPrimaryColor}05` }}
+          data-testid="selfie-capture-preview"
+        >
+          <div className="flex flex-col items-center gap-4">
+            <Button
+              size="lg"
+              className="w-full max-w-xs h-12"
+              style={{ backgroundColor: vPrimaryColor, color: 'white' }}
+              data-testid="preview-capture-button"
+            >
+              <Camera className="w-5 h-5 mr-2" />
+              {selfieCaptureButtonText}
+            </Button>
+            <div className="flex gap-3 w-full max-w-xs">
+              <Button
+                variant="outline"
+                className="flex-1 h-10"
+                style={{ borderColor: vPrimaryColor, color: vPrimaryColor }}
+                data-testid="preview-retake-button"
+              >
+                {selfieRetakeButtonText}
+              </Button>
+              <Button
+                className="flex-1 h-10"
+                style={{ backgroundColor: '#22c55e', color: 'white' }}
+                data-testid="preview-confirm-button"
+              >
+                <CheckCircle className="w-4 h-4 mr-1" />
+                {selfieConfirmButtonText}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+
+    const renderMensagensDeteccaoPreview = () => (
+      <div 
+        className="min-h-[300px] flex flex-col items-center justify-center p-6"
+        style={{ backgroundColor, fontFamily: vFontFamily }}
+        data-testid="preview-mensagens-deteccao"
+      >
+        <p className="text-xs font-semibold mb-4 text-center opacity-70" style={{ color: vTextColor }}>
+          Mensagens de Detecção Facial
+        </p>
+        <div 
+          className="w-full max-w-md p-4 rounded-xl border"
+          style={{ borderColor: `${vPrimaryColor}30`, backgroundColor: `${vPrimaryColor}05` }}
+          data-testid="detection-messages-preview"
+        >
+          <div className="space-y-3">
+            {detectionMessages.map((item, index) => (
+              <div 
+                key={index}
+                className="flex items-center gap-3 text-sm p-3 rounded-lg"
+                style={{ backgroundColor: `${vPrimaryColor}10` }}
+                data-testid={`detection-message-${index}`}
+              >
+                <span 
+                  className="font-semibold min-w-[90px]"
+                  style={{ color: vPrimaryColor }}
+                >
+                  {item.label}:
+                </span>
+                <span style={{ color: vTextColor }}>{item.message}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+
+    if (verificationPreviewMode) {
+      switch (verificationPreviewMode) {
+        case 'tela-inicial':
+          return renderTelaInicialPreview();
+        case 'etapas-fluxo':
+          return renderEtapasFluxoPreview();
+        case 'barra-navegacao':
+          return renderBarraNavegacaoPreview();
+        case 'botoes-captura':
+          return renderBotoesCapturasPreview();
+        case 'mensagens-deteccao':
+          return renderMensagensDeteccaoPreview();
+        default:
+          return renderTelaInicialPreview();
+      }
+    }
     
     return (
       <div 
