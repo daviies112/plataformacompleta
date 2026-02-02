@@ -1037,135 +1037,144 @@ export function Meeting100ms({
                   </Button>
                 )}
 
-                {/* Botão Assinar só aparece quando há formulário associado à reunião */}
-                {hasFormSubmission && (
-                  <>
-                    <div 
-                      className="h-8 w-[1px] mx-1" 
-                      style={{ backgroundColor: `${config?.colors?.controlsText || "#ffffff"}1a` }}
-                    />
+                {/* Botão Assinar sempre visível - tenta encontrar formSubmissionId dinamicamente */}
+                <div 
+                  className="h-8 w-[1px] mx-1" 
+                  style={{ backgroundColor: `${config?.colors?.controlsText || "#ffffff"}1a` }}
+                />
 
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button 
-                          onClick={async () => {
-                            console.log("[Meeting100ms] Click Assinar Contrato");
-                        
-                        // IMPORTANTE: Abrir a janela ANTES das chamadas async para evitar bloqueio de popup
-                        // Em celulares, popups só funcionam se abertos diretamente pelo clique do usuário
-                        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-                        let signatureWindow: Window | null = null;
-                        
-                        if (!isMobile) {
-                          // Desktop: abrir janela em branco primeiro
-                          signatureWindow = window.open('about:blank', '_blank');
-                        }
-                        
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      onClick={async () => {
+                        console.log("[Meeting100ms] Click Assinar Contrato");
+                    
+                    // IMPORTANTE: Abrir a janela ANTES das chamadas async para evitar bloqueio de popup
+                    // Em celulares, popups só funcionam se abertos diretamente pelo clique do usuário
+                    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                    let signatureWindow: Window | null = null;
+                    
+                    if (!isMobile) {
+                      // Desktop: abrir janela em branco primeiro
+                      signatureWindow = window.open('about:blank', '_blank');
+                    }
+                    
+                    try {
+                      // Buscar dados do participante e o tenant_id da reunião
+                      // CRÍTICO: Usamos o meeting_id da URL para associar o contrato ao tenant correto
+                      const pathParts = window.location.pathname.split('/').filter(Boolean);
+                      const currentMeetingId = pathParts[pathParts.length - 1] || '';
+                      console.log("[Meeting100ms] Meeting ID extraído da URL:", currentMeetingId);
+                      
+                      let formSubmissionId: string | undefined = undefined;
+                      
+                      // PRIMEIRO: Tentar obter fsid da URL diretamente
+                      const urlSearchParams = new URLSearchParams(window.location.search);
+                      const currentFsid = urlSearchParams.get("fsid");
+                      if (currentFsid) {
+                        formSubmissionId = currentFsid;
+                        console.log("[Meeting100ms] formSubmissionId via URL fsid:", formSubmissionId);
+                      }
+                      
+                      // SEGUNDO: Buscar dados da reunião para obter o formSubmissionId dos metadados
+                      if (!formSubmissionId) {
+                        const fsidQueryString = currentFsid ? `?fsid=${currentFsid}` : '';
                         try {
-                          // Buscar dados do participante e o tenant_id da reunião
-                          // CRÍTICO: Usamos o meeting_id da URL para associar o contrato ao tenant correto
-                          const pathParts = window.location.pathname.split('/').filter(Boolean);
-                          const currentMeetingId = pathParts[pathParts.length - 1] || '';
-                          console.log("[Meeting100ms] Meeting ID extraído da URL:", currentMeetingId);
-                          
-                          let formSubmissionId: string | undefined = undefined;
-                          
-                          // PRIMEIRO: Buscar dados da reunião para obter o formSubmissionId dos metadados
-                          // FIX: Include fsid from URL to ensure sign button works correctly
-                          const urlSearchParams = new URLSearchParams(window.location.search);
-                          const currentFsid = urlSearchParams.get("fsid");
-                          const fsidQueryString = currentFsid ? `?fsid=${currentFsid}` : '';
-                          
-                          try {
-                            const meetingResponse = await fetch(`/api/public/reunioes/${currentMeetingId}/public${fsidQueryString}`);
-                            if (meetingResponse.ok) {
-                              const meetingData = await meetingResponse.json();
-                              // O formSubmissionId está em metadata.formSubmissionId
-                              if (meetingData?.metadata?.formSubmissionId) {
-                                formSubmissionId = meetingData.metadata.formSubmissionId;
-                                console.log("[Meeting100ms] formSubmissionId extraído dos metadados da reunião:", formSubmissionId);
-                              }
-                            }
-                          } catch (e) {
-                            console.log("[Meeting100ms] Erro ao buscar metadados da reunião:", e);
-                          }
-                          
-                          // Se ainda não tem formSubmissionId, tentar via participant-data (fallback)
-                          if (!formSubmissionId) {
-                            try {
-                              const participantResponse = await fetch(`/api/public/reunioes/${currentMeetingId}/participant-data`, {
-                                credentials: 'include',
-                              });
-                              if (participantResponse.ok) {
-                                const result = await participantResponse.json();
-                                if (result.formSubmissionId) {
-                                  formSubmissionId = result.formSubmissionId;
-                                  console.log("[Meeting100ms] formSubmissionId via participant-data:", formSubmissionId);
-                                }
-                              }
-                            } catch (e) {
-                              console.log("[Meeting100ms] Fallback participant-data também falhou");
+                          const meetingResponse = await fetch(`/api/public/reunioes/${currentMeetingId}/public${fsidQueryString}`);
+                          if (meetingResponse.ok) {
+                            const meetingData = await meetingResponse.json();
+                            // O formSubmissionId está em metadata.formSubmissionId
+                            if (meetingData?.metadata?.formSubmissionId) {
+                              formSubmissionId = meetingData.metadata.formSubmissionId;
+                              console.log("[Meeting100ms] formSubmissionId extraído dos metadados da reunião:", formSubmissionId);
                             }
                           }
-                          
-                          console.log("[Meeting100ms] formSubmissionId final:", formSubmissionId);
-                          
-                          // Criar contrato usando o endpoint que busca dados do formulário automaticamente
-                          // O endpoint from-meeting busca os dados do form_submission e preenche nome, CPF, email, telefone e endereço
-                          const response = await fetch('/api/assinatura/public/contracts/from-meeting', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                              meetingId: currentMeetingId,
-                              formSubmissionId: formSubmissionId || undefined,
-                            }),
-                          });
-
-                          if (!response.ok) {
-                            const errorData = await response.json().catch(() => ({}));
-                            throw new Error(errorData.error || 'Erro ao criar contrato');
-                          }
-
-                          const result = await response.json();
-                          const contract = result.contract;
-                          const signatureUrl = `/assinar/${contract.access_token}`;
-                          
-                          if (isMobile) {
-                            // Mobile: navegar diretamente (sai da reunião)
-                            toast.info("Redirecionando para assinatura...");
-                            window.location.href = signatureUrl;
-                          } else if (signatureWindow) {
-                            // Desktop: redirecionar a janela já aberta
-                            signatureWindow.location.href = signatureUrl;
-                            toast.success("Página de assinatura aberta!");
-                          } else {
-                            // Fallback: navegação direta
-                            window.location.href = signatureUrl;
-                          }
-                        } catch (err: any) {
-                          console.error("[Meeting100ms] Erro ao criar contrato:", err);
-                          if (signatureWindow) signatureWindow.close();
-                          toast.error("Erro ao abrir página de assinatura");
+                        } catch (e) {
+                          console.log("[Meeting100ms] Erro ao buscar metadados da reunião:", e);
                         }
-                      }}
-                      variant="ghost"
-                      className="h-12 px-4 rounded-2xl font-bold text-white shadow-lg hover:scale-105 transition-transform relative z-50 flex items-center gap-2"
-                      style={{ 
-                        backgroundColor: config?.colors?.primaryButton || "#059669",
-                        boxShadow: `0 10px 15px -3px ${config?.colors?.primaryButton}33`
-                      }}
-                      data-testid="button-assinar-contrato"
-                    >
-                      <FileSignature className="h-5 w-5" />
-                      <span className="hidden sm:inline">Assinar</span>
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Abrir página de assinatura de contrato</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </>
-                )}
+                      }
+                      
+                      // TERCEIRO: Tentar via participant-data (fallback)
+                      if (!formSubmissionId) {
+                        try {
+                          const participantResponse = await fetch(`/api/public/reunioes/${currentMeetingId}/participant-data`, {
+                            credentials: 'include',
+                          });
+                          if (participantResponse.ok) {
+                            const result = await participantResponse.json();
+                            if (result.formSubmissionId) {
+                              formSubmissionId = result.formSubmissionId;
+                              console.log("[Meeting100ms] formSubmissionId via participant-data:", formSubmissionId);
+                            }
+                          }
+                        } catch (e) {
+                          console.log("[Meeting100ms] Fallback participant-data também falhou");
+                        }
+                      }
+                      
+                      console.log("[Meeting100ms] formSubmissionId final:", formSubmissionId);
+                      
+                      // Se não encontrou formSubmissionId, mostrar mensagem de erro clara
+                      if (!formSubmissionId) {
+                        if (signatureWindow) signatureWindow.close();
+                        toast.error("Não foi possível identificar o formulário associado. Use um link com o parâmetro ?fsid=ID");
+                        return;
+                      }
+                      
+                      // Criar contrato usando o endpoint que busca dados do formulário automaticamente
+                      // O endpoint from-meeting busca os dados do form_submission e preenche nome, CPF, email, telefone e endereço
+                      const response = await fetch('/api/assinatura/public/contracts/from-meeting', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          meetingId: currentMeetingId,
+                          formSubmissionId: formSubmissionId,
+                        }),
+                      });
+
+                      if (!response.ok) {
+                        const errorData = await response.json().catch(() => ({}));
+                        throw new Error(errorData.error || 'Erro ao criar contrato');
+                      }
+
+                      const result = await response.json();
+                      const contract = result.contract;
+                      const signatureUrl = `/assinar/${contract.access_token}`;
+                      
+                      if (isMobile) {
+                        // Mobile: navegar diretamente (sai da reunião)
+                        toast.info("Redirecionando para assinatura...");
+                        window.location.href = signatureUrl;
+                      } else if (signatureWindow) {
+                        // Desktop: redirecionar a janela já aberta
+                        signatureWindow.location.href = signatureUrl;
+                        toast.success("Página de assinatura aberta!");
+                      } else {
+                        // Fallback: navegação direta
+                        window.location.href = signatureUrl;
+                      }
+                    } catch (err: any) {
+                      console.error("[Meeting100ms] Erro ao criar contrato:", err);
+                      if (signatureWindow) signatureWindow.close();
+                      toast.error(err.message || "Erro ao abrir página de assinatura");
+                    }
+                  }}
+                  variant="ghost"
+                  className="h-12 px-4 rounded-2xl font-bold text-white shadow-lg hover:scale-105 transition-transform relative z-50 flex items-center gap-2"
+                  style={{ 
+                    backgroundColor: config?.colors?.primaryButton || "#059669",
+                    boxShadow: `0 10px 15px -3px ${config?.colors?.primaryButton}33`
+                  }}
+                  data-testid="button-assinar-contrato"
+                >
+                  <FileSignature className="h-5 w-5" />
+                  <span className="hidden sm:inline">Assinar</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Abrir página de assinatura de contrato</p>
+                  </TooltipContent>
+                </Tooltip>
 
                 <Button 
                   onClick={() => {
