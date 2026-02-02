@@ -46,8 +46,11 @@ if (isPublicFormRoute) {
     createRoot(document.getElementById("root")!).render(<PublicMeetingApp />);
   });
 } else if (isPublicSignatureRoute) {
-  import("./PublicSignatureApp").then(({ default: PublicSignatureApp }) => {
-    createRoot(document.getElementById("root")!).render(<PublicSignatureApp />);
+  // Load CSS first for signature pages - required for proper styling
+  import("./index.css").then(() => {
+    import("./PublicSignatureApp").then(({ default: PublicSignatureApp }) => {
+      createRoot(document.getElementById("root")!).render(<PublicSignatureApp />);
+    });
   });
 } else {
   import("./index.css");
