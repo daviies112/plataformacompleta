@@ -18,7 +18,7 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { authenticateToken } from "../middleware/auth";
 import { db } from "../db";
-import { reunioes, gravacoes, hms100msConfig, formSubmissions, leads } from "../../shared/db-schema";
+import { reunioes, gravacoes, hms100msConfig, formSubmissions, leads, meetingTenants } from "../../shared/db-schema";
 import { eq, and, desc, sql, or } from "drizzle-orm";
 import { decrypt } from "../lib/credentialsManager";
 import { gerarTokenParticipante, criarSala, obterSala, iniciarGravacao, pararGravacao, obterGravacao, listarGravacoesSala, obterUrlPresignadaAsset } from "../services/meetings/hms100ms";
@@ -80,6 +80,133 @@ async function syncRecordingToSupabase(tenantId: string, recording: any) {
 // ===========================================
 // PUBLIC ROUTES - Participant Data by participant_id
 // ===========================================
+
+// FIX: New endpoint for PublicMeetingRoom.tsx - handles /api/reunioes/public/:companySlug/:roomId
+// This returns the full expected structure: { reuniao, tenant, designConfig, roomDesignConfig }
+publicRoomDesignRouter.get('/reunioes/public/:companySlug/:roomId', async (req: Request, res: Response) => {
+  try {
+    const { companySlug, roomId } = req.params;
+    const fsid = req.query.fsid as string | undefined;
+    
+    console.log(`[PublicMeetingRoom API] Buscando sala - companySlug: ${companySlug}, roomId: ${roomId}, fsid: ${fsid || 'nenhum'}`);
+
+    if (!companySlug || !roomId) {
+      return res.status(400).json({ error: 'Company slug e room ID são obrigatórios' });
+    }
+
+    // Find meeting by roomId (can be the meeting ID or roomId100ms)
+    const [meeting] = await db.select().from(reunioes)
+      .where(or(
+        eq(reunioes.id, roomId),
+        eq(reunioes.roomId100ms, roomId)
+      ))
+      .limit(1);
+
+    if (!meeting) {
+      console.log(`[PublicMeetingRoom API] Reunião não encontrada: ${roomId}`);
+      return res.status(404).json({ error: 'Reunião não encontrada' });
+    }
+
+    // Find tenant by slug or by meeting's tenantId
+    let tenant = null;
+    
+    // First try to find by slug
+    const [tenantBySlug] = await db.select().from(meetingTenants)
+      .where(eq(meetingTenants.slug, companySlug))
+      .limit(1);
+    
+    if (tenantBySlug) {
+      tenant = tenantBySlug;
+    } else if (meeting.tenantId) {
+      // Fallback: find by tenantId
+      const [tenantById] = await db.select().from(meetingTenants)
+        .where(eq(meetingTenants.id, meeting.tenantId))
+        .limit(1);
+      tenant = tenantById;
+    }
+
+    // Get design config from hms100msConfig (CRITICAL for room design)
+    let roomDesignConfig = null;
+    let designConfig = null;
+    
+    if (meeting.tenantId) {
+      const [config] = await db.select().from(hms100msConfig)
+        .where(eq(hms100msConfig.tenantId, meeting.tenantId))
+        .limit(1);
+      
+      if (config?.roomDesignConfig) {
+        roomDesignConfig = config.roomDesignConfig;
+        console.log(`[PublicMeetingRoom API] roomDesignConfig encontrado do hms100msConfig`);
+      }
+    }
+    
+    // Fallback: check meeting metadata for roomDesignConfig
+    if (!roomDesignConfig) {
+      const meetingMetadata = meeting.metadata as any;
+      if (meetingMetadata?.roomDesignConfig) {
+        roomDesignConfig = meetingMetadata.roomDesignConfig;
+        console.log(`[PublicMeetingRoom API] roomDesignConfig encontrado do meeting.metadata`);
+      }
+    }
+    
+    // Fallback: check tenant's roomDesignConfig
+    if (!roomDesignConfig && tenant?.roomDesignConfig) {
+      roomDesignConfig = tenant.roomDesignConfig;
+      console.log(`[PublicMeetingRoom API] roomDesignConfig encontrado do tenant`);
+    }
+
+    // Build metadata with formSubmissionId (support fsid query param as fallback)
+    const meetingMetadata = meeting.metadata as any || {};
+    const formSubmissionId = meetingMetadata.formSubmissionId || fsid || null;
+    
+    if (fsid && !meetingMetadata.formSubmissionId) {
+      console.log(`[PublicMeetingRoom API] Usando fsid da URL como formSubmissionId: ${fsid}`);
+    }
+
+    const response = {
+      reuniao: {
+        id: meeting.id,
+        titulo: meeting.titulo,
+        descricao: meetingMetadata.descricao || '',
+        dataInicio: meeting.dataInicio,
+        dataFim: meeting.dataFim,
+        duracao: meeting.duracao,
+        status: meeting.status,
+        roomId100ms: meeting.roomId100ms,
+        roomCode100ms: meetingMetadata.roomCode100ms || null,
+        linkReuniao: meetingMetadata.linkReuniao || null,
+        nome: meeting.nome,
+        email: meeting.email,
+        metadata: {
+          ...meetingMetadata,
+          formSubmissionId // Ensure formSubmissionId is included
+        }
+      },
+      tenant: tenant ? {
+        id: tenant.id,
+        nome: tenant.nome,
+        slug: tenant.slug,
+        logoUrl: tenant.logoUrl || null
+      } : {
+        id: meeting.tenantId || 'default',
+        nome: 'Empresa',
+        slug: companySlug,
+        logoUrl: null
+      },
+      designConfig: designConfig || tenant?.configuracoes || {},
+      roomDesignConfig: roomDesignConfig
+    };
+
+    console.log(`[PublicMeetingRoom API] Resposta - roomDesignConfig: ${roomDesignConfig ? 'presente' : 'null'}, formSubmissionId: ${formSubmissionId || 'null'}`);
+
+    res.setHeader('Cache-Control', 'public, max-age=60');
+    res.json(response);
+
+  } catch (error: any) {
+    console.error('[PublicMeetingRoom API] Erro:', error);
+    res.status(500).json({ error: 'Erro ao buscar dados da reunião' });
+  }
+});
 
 // Get participant data by participant_id or form_submission_id (for contract pre-fill)
 publicRoomDesignRouter.get('/reunioes/:meetingId/participant-data', async (req: Request, res: Response) => {
@@ -288,21 +415,25 @@ publicRoomDesignRouter.get('/reunioes/:meetingId/participant-data', async (req: 
 });
 
 // Public route to get full meeting data (alias for /info with more data) - WITH CACHE
+// FIX: Now includes formSubmissionId from fsid query param as fallback for sign button
 publicRoomDesignRouter.get('/reunioes/:meetingId/public', async (req: Request, res: Response) => {
   try {
     // Clean meetingId - remove any query string that might be URL-encoded in the path
     const meetingId = req.params.meetingId?.split('?')[0]?.split('%3F')[0];
+    const fsid = req.query.fsid as string | undefined;
     
     if (!meetingId) {
       return res.status(400).json({ error: 'ID da reunião é obrigatório' });
     }
     
-    // Check cache first
-    const cached = getCachedMeeting(meetingId);
-    if (cached) {
-      res.setHeader('X-Cache', 'HIT');
-      res.setHeader('Cache-Control', 'public, max-age=60');
-      return res.json(cached);
+    // Note: Skip cache if fsid is provided to ensure fresh metadata
+    if (!fsid) {
+      const cached = getCachedMeeting(meetingId);
+      if (cached) {
+        res.setHeader('X-Cache', 'HIT');
+        res.setHeader('Cache-Control', 'public, max-age=60');
+        return res.json(cached);
+      }
     }
     
     const [meeting] = await db.select().from(reunioes)
@@ -311,6 +442,18 @@ publicRoomDesignRouter.get('/reunioes/:meetingId/public', async (req: Request, r
 
     if (!meeting) {
       return res.status(404).json({ error: 'Reunião não encontrada' });
+    }
+
+    // FIX: Merge fsid into metadata if provided in query params
+    // This is critical for the sign button to work (Meeting100ms.tsx checks metadata.formSubmissionId)
+    const originalMetadata = meeting.metadata as any || {};
+    const enhancedMetadata = {
+      ...originalMetadata,
+      formSubmissionId: originalMetadata.formSubmissionId || fsid || null
+    };
+    
+    if (fsid && !originalMetadata.formSubmissionId) {
+      console.log(`[MeetingPublic] Usando fsid da URL como formSubmissionId: ${fsid}`);
     }
 
     const response = {
@@ -326,13 +469,15 @@ publicRoomDesignRouter.get('/reunioes/:meetingId/public', async (req: Request, r
       status: meeting.status,
       participantId: meeting.participantId,
       roomId100ms: meeting.roomId100ms,
-      metadata: meeting.metadata
+      metadata: enhancedMetadata
     };
     
-    // Cache the result
-    setCachedMeeting(meetingId, response);
+    // Only cache if no fsid was provided (cache is generic)
+    if (!fsid) {
+      setCachedMeeting(meetingId, response);
+    }
     
-    res.setHeader('X-Cache', 'MISS');
+    res.setHeader('X-Cache', fsid ? 'SKIP' : 'MISS');
     res.setHeader('Cache-Control', 'public, max-age=60');
     res.json(response);
 

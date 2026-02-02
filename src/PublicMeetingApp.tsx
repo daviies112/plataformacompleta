@@ -121,17 +121,33 @@ const PublicMeetingApp = () => {
 
   const extractMeetingId = useCallback(() => {
     const path = window.location.pathname;
-    const patterns = [
-      /^\/reuniao\/([^/?]+)/,
-      /^\/reuniao-publica\/([^/?]+)/,
-    ];
     
-    for (const pattern of patterns) {
-      const match = path.match(pattern);
-      if (match) {
-        return match[1].split('?')[0].split('%3F')[0];
-      }
+    // URL patterns:
+    // /reuniao/:companySlug/:meetingId -> extract meetingId (last segment)
+    // /reuniao-publica/:meetingId -> extract meetingId
+    
+    const twoSegmentPattern = /^\/reuniao\/[^/?]+\/([^/?]+)/;  // /reuniao/company/meetingId
+    const oneSegmentPattern = /^\/reuniao-publica\/([^/?]+)/;  // /reuniao-publica/meetingId
+    
+    // Try two-segment pattern first (new URL format with company slug)
+    let match = path.match(twoSegmentPattern);
+    if (match) {
+      return match[1].split('?')[0].split('%3F')[0];
     }
+    
+    // Try one-segment pattern (legacy format)
+    match = path.match(oneSegmentPattern);
+    if (match) {
+      return match[1].split('?')[0].split('%3F')[0];
+    }
+    
+    // Fallback: try to find a UUID pattern anywhere in the path
+    const uuidPattern = /([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i;
+    match = path.match(uuidPattern);
+    if (match) {
+      return match[1];
+    }
+    
     return null;
   }, []);
 

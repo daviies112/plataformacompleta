@@ -264,12 +264,19 @@ export function Meeting100ms({
           return;
         }
         
-        const response = await fetch(`/api/public/reunioes/${currentMeetingId}/public`);
+        // FIX: Include fsid from URL query params to enable sign button
+        const searchParams = new URLSearchParams(window.location.search);
+        const fsid = searchParams.get("fsid");
+        const queryString = fsid ? `?fsid=${fsid}` : '';
+        
+        console.log("[Meeting100ms] Buscando meeting data - meetingId:", currentMeetingId, "fsid:", fsid);
+        
+        const response = await fetch(`/api/public/reunioes/${currentMeetingId}/public${queryString}`);
         if (response.ok) {
           const data = await response.json();
           const hasForm = !!(data?.metadata?.formSubmissionId);
           setHasFormSubmission(hasForm);
-          console.log("[Meeting100ms] hasFormSubmission:", hasForm);
+          console.log("[Meeting100ms] hasFormSubmission:", hasForm, "formSubmissionId:", data?.metadata?.formSubmissionId);
         } else {
           setHasFormSubmission(false);
         }
