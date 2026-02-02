@@ -15,7 +15,6 @@ export const Sidebar = ({ currentPage, onNavigate }: SidebarProps) => {
   const location = useLocation();
   const [productOpen, setProductOpen] = useState(true);
   const [cadastroOpen, setCadastroOpen] = useState(false);
-  const [plataformaVendasOpen, setPlataformaVendasOpen] = useState(false);
 
   const isPlataformaVendasRoute = location.pathname.startsWith("/produto/admin");
 
@@ -25,9 +24,6 @@ export const Sidebar = ({ currentPage, onNavigate }: SidebarProps) => {
     }
     if (currentPage.startsWith("cadastro")) {
       setCadastroOpen(true);
-    }
-    if (isPlataformaVendasRoute) {
-      setPlataformaVendasOpen(true);
     }
   }, [currentPage, isPlataformaVendasRoute]);
 
@@ -147,51 +143,7 @@ export const Sidebar = ({ currentPage, onNavigate }: SidebarProps) => {
           </div>
         ))}
 
-        <Separator className="my-3 bg-sidebar-border" />
-
-        <div>
-          <Button
-            variant="ghost"
-            className={cn(
-              "w-full justify-start gap-3 h-11 px-3 rounded-lg transition-all duration-200",
-              "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:shadow-sm",
-              isPlataformaVendasRoute && "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-            )}
-            onClick={() => setPlataformaVendasOpen(!plataformaVendasOpen)}
-          >
-            <Store className="w-5 h-5 flex-shrink-0" />
-            <span className="flex-1 text-left text-sm">Plataforma de Vendas</span>
-            <ChevronRight
-              className={cn(
-                "w-4 h-4 transition-transform duration-200 flex-shrink-0",
-                plataformaVendasOpen && "rotate-90"
-              )}
-            />
-          </Button>
-          {plataformaVendasOpen && (
-            <div className="ml-3 mt-1 space-y-0.5 border-l-2 border-sidebar-border pl-3">
-              {plataformaVendasItems.map((item) => (
-                <Button
-                  key={item.path}
-                  variant="ghost"
-                  className={cn(
-                    "w-full justify-start gap-3 h-10 px-3 rounded-lg transition-all duration-200",
-                    "text-sm text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                    location.pathname === item.path &&
-                      "bg-primary text-primary-foreground hover:bg-primary-hover font-medium shadow-sm"
-                  )}
-                  onClick={() => navigate(item.path)}
-                >
-                  <item.icon className="w-4 h-4 flex-shrink-0" />
-                  <span className="text-sm">{item.label}</span>
-                </Button>
-              ))}
-            </div>
-          )}
-        </div>
-      </nav>
-
-      <Separator className="bg-sidebar-border" />
+        <Separator className="bg-sidebar-border" />
       
       <div className="p-3">
         <Button 
