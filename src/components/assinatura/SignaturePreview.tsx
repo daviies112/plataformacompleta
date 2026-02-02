@@ -54,6 +54,17 @@ interface SignaturePreviewProps {
   backgroundColor?: string;
   headerBackgroundColor?: string;
   
+  selfieStepTitle?: string;
+  selfieStepDescription?: string;
+  documentStepTitle?: string;
+  documentStepDescription?: string;
+  analysisStepTitle?: string;
+  analysisStepDescription?: string;
+  resultStepTitle?: string;
+  resultStepDescription?: string;
+  selfieButtonText?: string;
+  selfieInstructionText?: string;
+  
   contractTitle?: string;
   clauses?: ContractClause[];
   
@@ -111,6 +122,17 @@ export const SignaturePreview = ({
   securityText = 'Suas informações são processadas de forma segura e criptografada',
   backgroundColor = '#ffffff',
   headerBackgroundColor = '#2c3e50',
+  
+  selfieStepTitle = 'Tire uma selfie',
+  selfieStepDescription = 'Posicione seu rosto na área indicada',
+  documentStepTitle = 'Fotografe seu documento',
+  documentStepDescription = 'CNH, RG ou outro documento com foto',
+  analysisStepTitle = 'Verificação automática',
+  analysisStepDescription = 'Comparamos sua foto com o documento',
+  resultStepTitle = 'Verificação concluída',
+  resultStepDescription = 'Sua identidade foi verificada com sucesso',
+  selfieButtonText = 'Iniciar Verificação',
+  selfieInstructionText = 'Posicione seu rosto e aguarde a captura automática',
   
   contractTitle = 'Contrato de Prestação de Serviços',
   clauses = [
@@ -177,18 +199,23 @@ export const SignaturePreview = ({
   const verificationSteps = [
     {
       icon: Camera,
-      title: 'Tire uma selfie',
-      description: 'Posicione seu rosto na área indicada',
+      title: selfieStepTitle,
+      description: selfieStepDescription,
     },
     {
       icon: FileText,
-      title: 'Fotografe seu documento',
-      description: 'CNH, RG ou outro documento com foto',
+      title: documentStepTitle,
+      description: documentStepDescription,
     },
     {
       icon: CheckCircle,
-      title: 'Verificação automática',
-      description: 'Comparamos sua foto com o documento',
+      title: analysisStepTitle,
+      description: analysisStepDescription,
+    },
+    {
+      icon: Award,
+      title: resultStepTitle,
+      description: resultStepDescription,
     },
   ];
 
@@ -318,12 +345,20 @@ export const SignaturePreview = ({
           onClick={() => handleStepChange(1)}
           data-testid="button-start-verification"
         >
-          Iniciar Verificação
+          {selfieButtonText}
           <ArrowRight className="ml-2 w-5 h-5" />
         </Button>
 
         <p 
-          className="mt-6 text-xs text-center max-w-xs"
+          className="mt-4 text-sm text-center max-w-sm"
+          style={{ color: vTextColor, opacity: 0.75 }}
+          data-testid="text-selfie-instruction"
+        >
+          {selfieInstructionText}
+        </p>
+
+        <p 
+          className="mt-4 text-xs text-center max-w-xs"
           style={{ color: vPrimaryColor }}
           data-testid="text-security"
         >
@@ -627,10 +662,10 @@ export const SignaturePreview = ({
         style={{ backgroundColor: `${primaryColor}10`, borderColor: `${primaryColor}30` }}
       >
         <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-medium" style={{ color: textColor }}>
+          <span className="text-sm font-medium" style={{ color: progressTextColor || textColor }}>
             Pré-visualização do Fluxo de Assinatura
           </span>
-          <span className="text-sm" style={{ color: primaryColor }}>
+          <span className="text-sm" style={{ color: progressTextColor || primaryColor }}>
             {progress}% completo
           </span>
         </div>
@@ -656,7 +691,7 @@ export const SignaturePreview = ({
                 }`}
                 style={{ 
                   backgroundColor: index <= wizardStep ? primaryColor : `${primaryColor}30`,
-                  color: index <= wizardStep ? 'white' : textColor
+                  color: index <= wizardStep ? 'white' : (progressTextColor || textColor)
                 }}
               >
                 {index + 1}
@@ -664,7 +699,7 @@ export const SignaturePreview = ({
               <span 
                 className="text-xs font-medium"
                 style={{ 
-                  color: index === wizardStep ? primaryColor : `${textColor}80`
+                  color: index === wizardStep ? (progressTextColor || primaryColor) : `${progressTextColor || textColor}80`
                 }}
               >
                 {name}

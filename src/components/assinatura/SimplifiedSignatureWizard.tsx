@@ -74,6 +74,16 @@ export interface SimplifiedSignatureWizardProps {
   verificationBackgroundColor: string;
   verificationHeaderBackgroundColor: string;
   verificationHeaderCompanyName: string;
+  selfieStepTitle: string;
+  selfieStepDescription: string;
+  documentStepTitle: string;
+  documentStepDescription: string;
+  analysisStepTitle: string;
+  analysisStepDescription: string;
+  resultStepTitle: string;
+  resultStepDescription: string;
+  selfieButtonText: string;
+  selfieInstructionText: string;
   onVerificationPrimaryColorChange: (value: string) => void;
   onVerificationTextColorChange: (value: string) => void;
   onVerificationFontFamilyChange: (value: string) => void;
@@ -88,6 +98,16 @@ export interface SimplifiedSignatureWizardProps {
   onVerificationBackgroundColorChange: (value: string) => void;
   onVerificationHeaderBackgroundColorChange: (value: string) => void;
   onVerificationHeaderCompanyNameChange: (value: string) => void;
+  onSelfieStepTitleChange: (value: string) => void;
+  onSelfieStepDescriptionChange: (value: string) => void;
+  onDocumentStepTitleChange: (value: string) => void;
+  onDocumentStepDescriptionChange: (value: string) => void;
+  onAnalysisStepTitleChange: (value: string) => void;
+  onAnalysisStepDescriptionChange: (value: string) => void;
+  onResultStepTitleChange: (value: string) => void;
+  onResultStepDescriptionChange: (value: string) => void;
+  onSelfieButtonTextChange: (value: string) => void;
+  onSelfieInstructionTextChange: (value: string) => void;
 
   progressCardColor: string;
   progressButtonColor: string;
@@ -221,6 +241,16 @@ export const SimplifiedSignatureWizard = ({
   verificationBackgroundColor,
   verificationHeaderBackgroundColor,
   verificationHeaderCompanyName,
+  selfieStepTitle,
+  selfieStepDescription,
+  documentStepTitle,
+  documentStepDescription,
+  analysisStepTitle,
+  analysisStepDescription,
+  resultStepTitle,
+  resultStepDescription,
+  selfieButtonText,
+  selfieInstructionText,
   onVerificationPrimaryColorChange,
   onVerificationTextColorChange,
   onVerificationFontFamilyChange,
@@ -235,6 +265,16 @@ export const SimplifiedSignatureWizard = ({
   onVerificationBackgroundColorChange,
   onVerificationHeaderBackgroundColorChange,
   onVerificationHeaderCompanyNameChange,
+  onSelfieStepTitleChange,
+  onSelfieStepDescriptionChange,
+  onDocumentStepTitleChange,
+  onDocumentStepDescriptionChange,
+  onAnalysisStepTitleChange,
+  onAnalysisStepDescriptionChange,
+  onResultStepTitleChange,
+  onResultStepDescriptionChange,
+  onSelfieButtonTextChange,
+  onSelfieInstructionTextChange,
 
   progressCardColor,
   progressButtonColor,
@@ -587,6 +627,93 @@ export const SimplifiedSignatureWizard = ({
               </div>
             </CardContent>
           </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Etapas do Fluxo de Verificação</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-3">
+                <Label className="font-semibold">1. Selfie</Label>
+                <Input
+                  value={selfieStepTitle}
+                  onChange={(e) => onSelfieStepTitleChange(e.target.value)}
+                  placeholder="Tire uma selfie"
+                  data-testid="input-selfie-step-title"
+                />
+                <Input
+                  value={selfieStepDescription}
+                  onChange={(e) => onSelfieStepDescriptionChange(e.target.value)}
+                  placeholder="Posicione seu rosto na área indicada"
+                  data-testid="input-selfie-step-description"
+                />
+              </div>
+              <div className="space-y-3">
+                <Label className="font-semibold">2. Documento</Label>
+                <Input
+                  value={documentStepTitle}
+                  onChange={(e) => onDocumentStepTitleChange(e.target.value)}
+                  placeholder="Fotografe seu documento"
+                  data-testid="input-document-step-title"
+                />
+                <Input
+                  value={documentStepDescription}
+                  onChange={(e) => onDocumentStepDescriptionChange(e.target.value)}
+                  placeholder="CNH, RG ou outro documento com foto"
+                  data-testid="input-document-step-description"
+                />
+              </div>
+              <div className="space-y-3">
+                <Label className="font-semibold">3. Análise</Label>
+                <Input
+                  value={analysisStepTitle}
+                  onChange={(e) => onAnalysisStepTitleChange(e.target.value)}
+                  placeholder="Verificação automática"
+                  data-testid="input-analysis-step-title"
+                />
+                <Input
+                  value={analysisStepDescription}
+                  onChange={(e) => onAnalysisStepDescriptionChange(e.target.value)}
+                  placeholder="Comparamos sua foto com o documento"
+                  data-testid="input-analysis-step-description"
+                />
+              </div>
+              <div className="space-y-3">
+                <Label className="font-semibold">4. Resultado</Label>
+                <Input
+                  value={resultStepTitle}
+                  onChange={(e) => onResultStepTitleChange(e.target.value)}
+                  placeholder="Verificação concluída"
+                  data-testid="input-result-step-title"
+                />
+                <Input
+                  value={resultStepDescription}
+                  onChange={(e) => onResultStepDescriptionChange(e.target.value)}
+                  placeholder="Sua identidade foi verificada com sucesso"
+                  data-testid="input-result-step-description"
+                />
+              </div>
+              <Separator />
+              <div className="space-y-2">
+                <Label>Texto do Botão de Verificação</Label>
+                <Input
+                  value={selfieButtonText}
+                  onChange={(e) => onSelfieButtonTextChange(e.target.value)}
+                  placeholder="Iniciar Verificação"
+                  data-testid="input-selfie-button-text"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Instruções da Captura</Label>
+                <Input
+                  value={selfieInstructionText}
+                  onChange={(e) => onSelfieInstructionTextChange(e.target.value)}
+                  placeholder="Posicione seu rosto e aguarde a captura automática"
+                  data-testid="input-selfie-instruction-text"
+                />
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="progresso" className="space-y-4">
@@ -686,6 +813,23 @@ export const SimplifiedSignatureWizard = ({
                       className="flex-1"
                     />
                   </div>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Cor do Texto</Label>
+                <div className="flex gap-2">
+                  <Input
+                    type="color"
+                    value={progressTextColor}
+                    onChange={(e) => onProgressTextColorChange(e.target.value)}
+                    className="w-12 h-10 p-1 cursor-pointer"
+                    data-testid="input-progress-text-color"
+                  />
+                  <Input
+                    value={progressTextColor}
+                    onChange={(e) => onProgressTextColorChange(e.target.value)}
+                    className="flex-1"
+                  />
                 </div>
               </div>
             </CardContent>
