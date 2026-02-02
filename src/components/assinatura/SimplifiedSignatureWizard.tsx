@@ -551,6 +551,12 @@ export const SimplifiedSignatureWizard = ({
     { number: 2, label: 'Contrato', icon: FileText },
   ];
 
+  // Auto-close accordion behavior: open only one at a time and close on re-click
+  const handleAccordionChange = (value: string) => {
+    setVerificationSubTab(value as any);
+    if (value) onVerificationSubTabChange?.(value);
+  };
+
   const renderStepNavigation = () => (
     <div className="flex items-center justify-center gap-2 mb-6 px-4 py-3 bg-muted/30 rounded-lg" data-testid="step-navigation">
       {steps.map((step, index) => {
@@ -608,16 +614,11 @@ export const SimplifiedSignatureWizard = ({
             type="single" 
             collapsible 
             value={verificationSubTab}
-            onValueChange={(v) => {
-              if (v) {
-                setVerificationSubTab(v as any);
-                onVerificationSubTabChange?.(v);
-              }
-            }}
+            onValueChange={handleAccordionChange}
             className="space-y-2"
           >
             <AccordionItem value="tela-inicial" className="border rounded-lg px-4">
-              <AccordionTrigger className="text-base font-semibold" data-testid="accordion-tela-inicial">
+              <AccordionTrigger className="text-base font-semibold hover:no-underline" data-testid="accordion-tela-inicial">
                 Tela Inicial
               </AccordionTrigger>
               <AccordionContent className="space-y-4 pb-4">
@@ -721,7 +722,7 @@ export const SimplifiedSignatureWizard = ({
             </AccordionItem>
 
             <AccordionItem value="etapas-fluxo" className="border rounded-lg px-4">
-              <AccordionTrigger className="text-base font-semibold" data-testid="accordion-etapas-fluxo">
+              <AccordionTrigger className="text-base font-semibold hover:no-underline" data-testid="accordion-etapas-fluxo">
                 Etapas do Fluxo
               </AccordionTrigger>
               <AccordionContent className="space-y-4 pb-4">
@@ -808,7 +809,7 @@ export const SimplifiedSignatureWizard = ({
             </AccordionItem>
 
             <AccordionItem value="barra-navegacao" className="border rounded-lg px-4">
-              <AccordionTrigger className="text-base font-semibold" data-testid="accordion-barra-navegacao">
+              <AccordionTrigger className="text-base font-semibold hover:no-underline" data-testid="accordion-barra-navegacao">
                 Barra de Navegação
               </AccordionTrigger>
               <AccordionContent className="space-y-4 pb-4">
@@ -893,7 +894,7 @@ export const SimplifiedSignatureWizard = ({
             </AccordionItem>
 
             <AccordionItem value="botoes-captura" className="border rounded-lg px-4">
-              <AccordionTrigger className="text-base font-semibold" data-testid="accordion-botoes-captura">
+              <AccordionTrigger className="text-base font-semibold hover:no-underline" data-testid="accordion-botoes-captura">
                 Botões da Captura
               </AccordionTrigger>
               <AccordionContent className="space-y-4 pb-4">
@@ -930,7 +931,7 @@ export const SimplifiedSignatureWizard = ({
             </AccordionItem>
 
             <AccordionItem value="mensagens-deteccao" className="border rounded-lg px-4">
-              <AccordionTrigger className="text-base font-semibold" data-testid="accordion-mensagens-deteccao">
+              <AccordionTrigger className="text-base font-semibold hover:no-underline" data-testid="accordion-mensagens-deteccao">
                 Mensagens de Detecção
               </AccordionTrigger>
               <AccordionContent className="space-y-4 pb-4">

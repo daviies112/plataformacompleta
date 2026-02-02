@@ -741,71 +741,96 @@ const AssinaturaPage = () => {
           <ResizableHandle withHandle />
           
           <ResizablePanel defaultSize={50} minSize={30}>
-            <ScrollArea className="h-full">
-              <div className="p-4">
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <Eye className="w-4 h-4" />
-                      Preview em Tempo Real
-                    </CardTitle>
-                    <CardDescription>
-                      Visualização do contrato e etapas de assinatura
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <SignaturePreview
-                      clientName={clientName || 'João da Silva'}
-                      clientCpf={clientCpf || '123.456.789-00'}
-                      clientEmail={clientEmail || 'cliente@email.com'}
-                      clientPhone={clientPhone}
-                      primaryColor={primaryColor}
-                      textColor={textColor}
-                      fontFamily={fontFamily}
-                      fontSize={fontSize}
-                      logoUrl={logoUrl}
-                      logoSize={logoSize}
-                      logoPosition={logoPosition}
-                      companyName={companyName}
-                      footerText={footerText}
-                      verificationPrimaryColor={verificationPrimaryColor}
-                      verificationTextColor={verificationTextColor}
-                      verificationFontFamily={verificationFontFamily}
-                      verificationFontSize={verificationFontSize}
-                      verificationLogoUrl={verificationLogoUrl}
-                      verificationLogoSize={verificationLogoSize}
-                      verificationLogoPosition={verificationLogoPosition}
-                      verificationFooterText={verificationFooterText}
-                      welcomeText={verificationWelcomeText}
-                      instructions={verificationInstructions}
-                      securityText={verificationSecurityText}
-                      backgroundColor={verificationBackgroundColor}
-                      headerBackgroundColor={verificationHeaderBackgroundColor}
-                      contractTitle={contractTitle}
-                      clauses={clauses}
-                      contractPrimaryColor={contractPrimaryColor}
-                      contractTextColor={contractTextColor}
-                      contractBackgroundColor={contractBackgroundColor}
-                      contractFontFamily={contractFontFamily}
-                      parabensTitle={parabensTitle}
-                      parabensSubtitle={parabensSubtitle}
-                      parabensDescription={parabensDescription}
-                      parabensCardColor={parabensCardColor}
-                      parabensBackgroundColor={parabensBackgroundColor}
-                      parabensButtonColor={parabensButtonColor}
-                      parabensTextColor={parabensTextColor}
-                      parabensFontFamily={parabensFontFamily}
-                      parabensButtonText={parabensButtonText}
-                      progressCardColor={progressCardColor}
-                      progressButtonColor={progressButtonColor}
-                      progressTextColor={progressTextColor}
-                      progressTitle={progressTitle}
-                      progressSubtitle={progressSubtitle}
-                    />
-                  </CardContent>
-                </Card>
-              </div>
-            </ScrollArea>
+            <div className="h-full flex flex-col relative">
+              <ScrollArea className="flex-1">
+                <div className="p-4">
+                  <div className="sticky top-0 z-30 mb-4 pointer-events-none">
+                    <Card className="shadow-lg border-primary/20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 pointer-events-auto">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <Eye className="w-4 h-4" />
+                          Preview em Tempo Real
+                        </CardTitle>
+                        <CardDescription>
+                          Visualização do contrato e etapas de assinatura
+                        </CardDescription>
+                      </CardHeader>
+                    </Card>
+                  </div>
+                  <Card>
+                    <CardContent className="pt-6">
+                      <SignaturePreview
+                        clientName={clientName || 'João da Silva'}
+                        clientCpf={clientCpf || '123.456.789-00'}
+                        clientEmail={clientEmail || 'cliente@email.com'}
+                        clientPhone={clientPhone}
+                        primaryColor={primaryColor}
+                        textColor={textColor}
+                        fontFamily={fontFamily}
+                        fontSize={fontSize}
+                        logoUrl={logoUrl}
+                        logoSize={logoSize}
+                        logoPosition={logoPosition}
+                        companyName={companyName}
+                        footerText={footerText}
+                        verificationPrimaryColor={verificationPrimaryColor}
+                        verificationTextColor={verificationTextColor}
+                        verificationFontFamily={verificationFontFamily}
+                        verificationFontSize={verificationFontSize}
+                        verificationLogoUrl={verificationLogoUrl}
+                        verificationLogoSize={verificationLogoSize}
+                        verificationLogoPosition={verificationLogoPosition}
+                        verificationFooterText={verificationFooterText}
+                        welcomeText={verificationWelcomeText}
+                        instructions={verificationInstructions}
+                        securityText={verificationSecurityText}
+                        backgroundColor={verificationBackgroundColor}
+                        headerBackgroundColor={verificationHeaderBackgroundColor}
+                        contractTitle={contractTitle}
+                        clauses={clauses}
+                        contractPrimaryColor={contractPrimaryColor}
+                        contractTextColor={contractTextColor}
+                        contractBackgroundColor={contractBackgroundColor}
+                        contractFontFamily={contractFontFamily}
+                        parabensTitle={parabensTitle}
+                        parabensSubtitle={parabensSubtitle}
+                        parabensDescription={parabensDescription}
+                        parabensCardColor={parabensCardColor}
+                        parabensBackgroundColor={parabensBackgroundColor}
+                        parabensButtonColor={parabensButtonColor}
+                        parabensTextColor={parabensTextColor}
+                        parabensFontFamily={parabensFontFamily}
+                        parabensButtonText={parabensButtonText}
+                        progressCardColor={progressCardColor}
+                        progressButtonColor={progressButtonColor}
+                        progressTextColor={progressTextColor}
+                        progressTitle={progressTitle}
+                        progressSubtitle={progressSubtitle}
+                        progressActiveStepBg=""
+                        progressCompleteStepBg=""
+                        progressInactiveStepBg=""
+                        progressCheckIconColor=""
+                        progressInactiveCircleBg=""
+                        stepLabelSelfie=""
+                        stepLabelDocument=""
+                        stepLabelAnalysis=""
+                        stepLabelResult=""
+                        progressIndicatorInactiveCircleColor=""
+                        progressIndicatorInactiveTextColor=""
+                        selfieCaptureButtonText=""
+                        selfieRetakeButtonText=""
+                        selfieConfirmButtonText=""
+                        detectionDefaultMessage=""
+                        detectionCenterMessage=""
+                        detectionLightingMessage=""
+                        detectionQualityMessage=""
+                        detectionPerfectMessage=""
+                      />
+                    </CardContent>
+                  </Card>
+                </div>
+              </ScrollArea>
+            </div>
           </ResizablePanel>
         </ResizablePanelGroup>
       </div>
