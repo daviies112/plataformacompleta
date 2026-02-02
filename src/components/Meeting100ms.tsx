@@ -169,38 +169,6 @@ export function Meeting100ms({
   
   // CRÍTICO: Capturar notificações/erros do SDK 100ms
   const notification = useHMSNotifications();
-  
-  // DEBUG: Ativar logs verbose do 100ms SDK
-  useEffect(() => {
-    console.log("[Meeting100ms] 🔧 Ativando logs de debug do SDK 100ms...");
-    try {
-      // Tenta configurar log level para debug se disponível
-      if ((hmsActions as any).setLogLevel) {
-        (hmsActions as any).setLogLevel('debug');
-        console.log("[Meeting100ms] ✅ Log level setado para debug");
-      }
-    } catch (e) {
-      console.warn("[Meeting100ms] ⚠️ Não foi possível setar log level:", e);
-    }
-  }, [hmsActions]);
-  
-  // DEBUG: Monitorar estado do room continuamente
-  useEffect(() => {
-    console.log("[Meeting100ms] 📊 Room state atualizado:", {
-      roomId: room?.id,
-      roomName: room?.name,
-      roomState: roomState,
-      sessionId: room?.sessionId,
-      isConnected,
-      peersCount: peers?.length,
-      localPeerId: room?.localPeer,
-    });
-    
-    // Se o roomState for "Connected" mas isConnected é false, logar isso
-    if (roomState === HMSRoomState.Connected && !isConnected) {
-      console.warn("[Meeting100ms] ⚠️ INCONSISTÊNCIA: roomState=Connected mas isConnected=false!");
-    }
-  }, [room, roomState, isConnected, peers]);
 
   const localPeer = useHMSStore((store) => store.localPeer);
   const isHost = localPeer?.roleName === 'host';
@@ -250,64 +218,19 @@ export function Meeting100ms({
   const hasAttemptedJoin = useRef(false);
   const joinTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
-  // Estado para controlar se a reunião tem formulário associado (para mostrar/ocultar botão Assinar)
-  const [hasFormSubmission, setHasFormSubmission] = useState<boolean | null>(null);
+  // Estado para controlar se a reunião tem formulário associado (botão Assinar sempre visível)
+  const [hasFormSubmission, setHasFormSubmission] = useState<boolean | null>(true);
   
-  // Verificar se a reunião tem formSubmissionId ao carregar
-  useEffect(() => {
-    const checkFormSubmission = async () => {
-      try {
-        const pathParts = window.location.pathname.split('/').filter(Boolean);
-        const currentMeetingId = pathParts[pathParts.length - 1] || '';
-        if (!currentMeetingId) {
-          setHasFormSubmission(false);
-          return;
-        }
-        
-        // FIX: Include fsid from URL query params to enable sign button
-        const searchParams = new URLSearchParams(window.location.search);
-        const fsid = searchParams.get("fsid");
-        const queryString = fsid ? `?fsid=${fsid}` : '';
-        
-        console.log("[Meeting100ms] 🔍 Verificando formSubmission - meetingId:", currentMeetingId, "fsid:", fsid, "fullUrl:", window.location.href);
-        
-        const response = await fetch(`/api/public/reunioes/${currentMeetingId}/public${queryString}`);
-        console.log("[Meeting100ms] 📡 Resposta API:", response.status, response.ok);
-        
-        if (response.ok) {
-          const data = await response.json();
-          console.log("[Meeting100ms] 📦 Dados recebidos:", JSON.stringify({ id: data?.id, metadata: data?.metadata }, null, 2));
-          const hasForm = !!(data?.metadata?.formSubmissionId);
-          setHasFormSubmission(hasForm);
-          console.log("[Meeting100ms] ✅ hasFormSubmission:", hasForm, "formSubmissionId:", data?.metadata?.formSubmissionId);
-        } else {
-          console.log("[Meeting100ms] ❌ API retornou erro:", response.status);
-          setHasFormSubmission(false);
-        }
-      } catch (e) {
-        console.log("[Meeting100ms] Erro ao verificar formSubmission:", e);
-        setHasFormSubmission(false);
-      }
-    };
-    
-    checkFormSubmission();
-  }, []);
-  
-  // Processar notificações do SDK para debug e tratamento de erros
+  // Processar notificações do SDK para tratamento de erros (silenciado para performance)
   useEffect(() => {
     if (!notification) return;
     
-    console.log("[Meeting100ms] 🔔 Notificação recebida:", notification.type, notification.data);
-    
     switch (notification.type) {
       case HMSNotificationTypes.ERROR:
-        console.error("[Meeting100ms] ❌ ERRO DO SDK:", notification.data);
         const errorData = notification.data as any;
         const errorMsg = errorData?.message || errorData?.description || "Erro de conexão com a sala";
         const errorCode = errorData?.code?.toString() || "UNKNOWN";
-        console.error(`[Meeting100ms] Código: ${errorCode}, Mensagem: ${errorMsg}`);
         
-        // Erros críticos que devem ser mostrados ao usuário
         const criticalCodes = ['401', '403', '404', '500', '4001', '4002', '4003', '4004', '4005', '4100', '4101'];
         const isCritical = criticalCodes.some(code => errorCode.includes(code)) || 
                           errorMsg.toLowerCase().includes('token') ||
@@ -322,50 +245,28 @@ export function Meeting100ms({
         break;
         
       case HMSNotificationTypes.RECONNECTING:
-        console.warn("[Meeting100ms] 🔄 Reconectando...");
         setIsReconnecting(true);
         break;
         
       case HMSNotificationTypes.RECONNECTED:
-        console.log("[Meeting100ms] ✅ Reconectado com sucesso!");
         setIsReconnecting(false);
         setSdkError(null);
-        break;
-        
-      case HMSNotificationTypes.PEER_JOINED:
-        console.log("[Meeting100ms] 👤 Peer entrou:", (notification.data as any)?.name);
-        break;
-        
-      case HMSNotificationTypes.PEER_LEFT:
-        console.log("[Meeting100ms] 👋 Peer saiu:", (notification.data as any)?.name);
-        break;
-        
-      case HMSNotificationTypes.ROOM_ENDED:
-        console.log("[Meeting100ms] 🏁 Sala encerrada");
         break;
     }
   }, [notification]);
 
   useEffect(() => {
     // CRÍTICO: Não tentar join se não temos token válido
-    if (!authToken || authToken.length < 10) {
-      console.error("[Meeting100ms] ❌ Token inválido ou vazio! Aguardando token válido...");
-      return;
-    }
-    
-    if (hasAttemptedJoin.current) {
-      console.log("[Meeting100ms] Join já foi tentado, ignorando...");
-      return;
-    }
+    if (!authToken || authToken.length < 10) return;
+    if (hasAttemptedJoin.current) return;
     hasAttemptedJoin.current = true;
     
     const isBot = window.location.search.includes("recording_bot=true") || 
                   window.location.search.includes("recording=true");
     
     if (isBot) {
-      console.log("[Meeting100ms] Bot de gravação detectado, forçando início de áudio/vídeo e desativando overlay");
-      hmsActions.setLocalAudioEnabled(true).catch(console.error);
-      hmsActions.setLocalVideoEnabled(true).catch(console.error);
+      hmsActions.setLocalAudioEnabled(true).catch(() => {});
+      hmsActions.setLocalVideoEnabled(true).catch(() => {});
     }
 
     let isMounted = true;
@@ -374,71 +275,42 @@ export function Meeting100ms({
       if (!isMounted) return;
       
       try {
-        console.log(`[Meeting100ms] 🚀 Tentativa ${attempt + 1} de entrar na sala...`);
-        console.log("[Meeting100ms] Token válido:", authToken.substring(0, 30) + "...");
-        console.log("[Meeting100ms] userName:", userName);
-        console.log("[Meeting100ms] roomId:", roomId);
+        if (joinTimeoutRef.current) clearTimeout(joinTimeoutRef.current);
         
-        if (joinTimeoutRef.current) {
-          clearTimeout(joinTimeoutRef.current);
-        }
-        
+        // Timeout reduzido para 5s para falhar mais rápido
         joinTimeoutRef.current = setTimeout(() => {
           if (isMounted && attempt < 2) {
-            console.warn(`[Meeting100ms] ⚠️ Timeout de conexão (10s) - tentativa ${attempt + 2}...`);
             setConnectionAttempts(attempt + 1);
             hasAttemptedJoin.current = false;
             joinRoom(attempt + 1);
           } else if (isMounted) {
-            console.error("[Meeting100ms] ❌ Todas as tentativas falharam após 3 tentativas");
             setError("Timeout ao conectar à reunião. Verifique sua conexão e tente novamente.");
             setIsJoining(false);
             setCanRetry(true);
           }
-        }, 10000);
+        }, 5000);
         
-        console.log("[Meeting100ms] Chamando hmsActions.join()...");
-        // IMPORTANTE: Iniciar com áudio/vídeo MUTADOS para evitar problemas de dispositivos de mídia
-        // O SDK pode falhar na conexão se tentar acessar dispositivos de mídia indisponíveis
+        // Join otimizado com settings mínimos
         await hmsActions.join({
           userName,
           authToken,
-          settings: { 
-            isAudioMuted: true,  // Começa mutado para garantir conexão
-            isVideoMuted: true   // Começa com vídeo off para garantir conexão
-          },
-          rememberDeviceSelection: true
+          settings: { isAudioMuted: true, isVideoMuted: true },
+          rememberDeviceSelection: false // Desabilita para acelerar
         });
         
-        console.log("[Meeting100ms] ✅ join() resolveu com sucesso!");
-        
-        // Verificar estado após join
-        setTimeout(() => {
-          console.log("[Meeting100ms] 📊 Estado 2s após join - verificando conexão...");
-        }, 2000);
-        
       } catch (err: any) {
-        console.error("[Meeting100ms] ❌ Erro ao entrar na sala:", err);
         if (joinTimeoutRef.current) {
           clearTimeout(joinTimeoutRef.current);
           joinTimeoutRef.current = null;
         }
         if (isMounted) {
-          const errorMessage = err.message || "Erro ao conectar";
-          console.error("[Meeting100ms] 📋 Detalhes do erro:", {
-            name: err.name,
-            message: err.message,
-            code: err.code,
-            description: err.description
-          });
-          setError(errorMessage);
+          setError(err.message || "Erro ao conectar");
           setIsJoining(false);
           setCanRetry(true);
         }
       }
     };
     
-    console.log("[Meeting100ms] 🎬 Iniciando processo de join...");
     joinRoom(0);
     
     return () => { 
@@ -451,61 +323,14 @@ export function Meeting100ms({
   }, [hmsActions, authToken, userName, roomId]);
 
   useEffect(() => {
-    console.log("[Meeting100ms] 🔍 Estado de conexão atualizado:", { isConnected, isJoining, peersCount: peers?.length });
-    
     if (isConnected && isJoining) {
-      console.log("[Meeting100ms] ✅ CONEXÃO CONFIRMADA! Removendo spinner de loading...");
       if (joinTimeoutRef.current) {
         clearTimeout(joinTimeoutRef.current);
         joinTimeoutRef.current = null;
       }
       setIsJoining(false);
     }
-    
-    // Se estamos conectados mas isJoining ainda é true por algum motivo, corrigir
-    if (isConnected && !isJoining && peers && peers.length > 0) {
-      console.log("[Meeting100ms] 👥 Conexão estável com", peers.length, "participante(s)");
-    }
   }, [isConnected, isJoining, peers]);
-
-  // Registrar presença automática quando entrar na reunião (uma única vez por sessão)
-  const hasRegisteredAttendance = useRef(false);
-  useEffect(() => {
-    if (isConnected && !hasRegisteredAttendance.current && roomId) {
-      hasRegisteredAttendance.current = true;
-      console.log("[Meeting100ms] 📋 Registrando presença automática na sala:", roomId);
-      
-      // Fire and forget - não bloquear a UI
-      const searchParams = new URLSearchParams(window.location.search);
-      const email = searchParams.get("email");
-      const phone = searchParams.get("phone");
-      const cpf = searchParams.get("cpf");
-
-      fetch('/api/public/reunioes/registrar-presenca', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          room_id_100ms: roomId,
-          meeting_id: meetingId,
-          nome: userName,
-          email,
-          phone,
-          cpf
-        })
-      })
-        .then(res => res.json())
-        .then(data => {
-          if (data.success) {
-            console.log("[Meeting100ms] ✅ Presença registrada:", data.message);
-          } else {
-            console.warn("[Meeting100ms] ⚠️ Falha ao registrar presença:", data.error);
-          }
-        })
-        .catch(err => {
-          console.error("[Meeting100ms] ❌ Erro ao registrar presença:", err);
-        });
-    }
-  }, [isConnected, roomId, userName, meetingId]);
 
   useEffect(() => {
     return () => {
@@ -517,39 +342,29 @@ export function Meeting100ms({
 
   const toggleAudio = useCallback(async () => {
     try {
-      console.log("[Meeting100ms] Executando toggle áudio... Estado atual:", isAudioEnabled);
       await hmsActions.setLocalAudioEnabled(!isAudioEnabled);
-      console.log("[Meeting100ms] SDK Processou Áudio");
     } catch (err: any) {
-      console.error("[Meeting100ms] Erro no SDK (Áudio):", err);
       toast.error("Erro no áudio: " + err.message);
     }
   }, [hmsActions, isAudioEnabled]);
 
   const toggleVideo = useCallback(async () => {
     try {
-      console.log("[Meeting100ms] Executando toggle vídeo... Estado atual:", isVideoEnabled);
       await hmsActions.setLocalVideoEnabled(!isVideoEnabled);
-      console.log("[Meeting100ms] SDK Processou Vídeo");
     } catch (err: any) {
-      console.error("[Meeting100ms] Erro no SDK (Vídeo):", err);
       toast.error("Erro no vídeo: " + err.message);
     }
   }, [hmsActions, isVideoEnabled]);
   
   const toggleScreenShare = useCallback(async () => {
     try {
-      console.log("[Meeting100ms] Executando toggle tela... Estado atual:", isScreenShared);
-      // Para o SDK v0.11.0, o método correto é setScreenShareEnabled
       await hmsActions.setScreenShareEnabled(!isScreenShared);
-      console.log("[Meeting100ms] SDK Processou Tela");
       if (!isScreenShared) {
         toast.success("Compartilhamento de tela iniciado");
       } else {
         toast.success("Compartilhamento de tela encerrado");
       }
     } catch (err: any) {
-      console.error("[Meeting100ms] Erro no SDK (Tela):", err);
       // Verificando se o erro é de permissão ou cancelamento
       if (err.message?.includes("Permission denied") || err.message?.includes("cancelled")) {
         toast.error("Compartilhamento cancelado ou negado");
@@ -582,15 +397,12 @@ export function Meeting100ms({
 
     try {
       const isCurrentlyRecording = isRecordingOn;
-      console.log("[Meeting100ms] Executando toggle gravação... Estado atual:", isCurrentlyRecording);
-      
       const currentRoomId = roomId || window.location.pathname.split('/').pop();
       const currentUrl = window.location.href;
 
       setLocalRecordingStatus('loading');
 
       if (isCurrentlyRecording) {
-        console.log('[Meeting] Parando gravação...');
         const response = await fetch('/api/100ms/recording/stop', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -601,15 +413,13 @@ export function Meeting100ms({
 
         if (!response.ok) {
           const errData = await response.json();
-          console.error('[Meeting] Erro ao parar gravação:', errData);
-          setLocalRecordingStatus(true); // Reverter se der erro
+          setLocalRecordingStatus(true);
           throw new Error(errData.message || errData.error || 'Erro ao parar gravação');
         }
 
         toast.success("Gravação parada! O vídeo será processado em breve.");
         setLocalRecordingStatus(false);
       } else {
-        console.log('[Meeting] Iniciando gravação...');
         const response = await fetch('/api/100ms/recording/start', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -622,8 +432,7 @@ export function Meeting100ms({
 
         if (!response.ok) {
           const errData = await response.json();
-          console.error('[Meeting] Erro ao iniciar gravação:', errData);
-          setLocalRecordingStatus(false); // Reverter se der erro
+          setLocalRecordingStatus(false);
           throw new Error(errData.message || errData.error || 'Erro ao iniciar gravação');
         }
 
@@ -712,59 +521,35 @@ export function Meeting100ms({
   }, [hmsActions, onLeave]);
 
   const handleRetry = useCallback(async () => {
-    console.log("[Meeting100ms] Retry manual solicitado");
     setError(null);
     setIsJoining(true);
     setCanRetry(false);
     setConnectionAttempts(0);
     
     const retryTimeout = setTimeout(() => {
-      console.warn("[Meeting100ms] Timeout no retry (30s)");
       setError("Timeout ao reconectar. Verifique sua conexão.");
       setIsJoining(false);
       setCanRetry(true);
-    }, 30000);
+    }, 10000);
     
     try {
-      console.log("[Meeting100ms] Re-tentando conexão...");
       await hmsActions.join({
         userName,
         authToken,
-        settings: { 
-          isAudioMuted: true,  // Começa mutado para garantir conexão
-          isVideoMuted: true   // Começa com vídeo off para garantir conexão
-        },
-        rememberDeviceSelection: true
+        settings: { isAudioMuted: true, isVideoMuted: true },
+        rememberDeviceSelection: false
       });
       clearTimeout(retryTimeout);
-      console.log("[Meeting100ms] join() resolveu após retry");
     } catch (err: any) {
       clearTimeout(retryTimeout);
-      console.error("[Meeting100ms] Erro no retry:", err);
       setError(err.message || "Erro ao reconectar");
       setIsJoining(false);
       setCanRetry(true);
     }
   }, [hmsActions, userName, authToken]);
 
-  // Log de debug para entender o estado atual - DEVE estar antes de qualquer return condicional
-  useEffect(() => {
-    console.log("[Meeting100ms] 🔄 Estado atual:", {
-      isJoining,
-      isConnected,
-      hasError: !!error,
-      errorMessage: error,
-      peersCount: peers?.length || 0,
-      authTokenExists: !!authToken,
-      roomIdExists: !!roomId,
-      connectionAttempts,
-      roomState: room ? 'exists' : 'null'
-    });
-  }, [isJoining, isConnected, error, peers, authToken, roomId, connectionAttempts, room]);
-
   // Mostrar tela de erro do SDK se houver
   if (sdkError) {
-    console.log("[Meeting100ms] Mostrando erro do SDK:", sdkError);
     return (
       <div className="h-screen flex items-center justify-center p-4 bg-[#09090b]">
         <Card className="p-8 max-w-md w-full text-center bg-zinc-900 border-zinc-800">
@@ -797,7 +582,6 @@ export function Meeting100ms({
 
   // Mostrar tela de erro se houver
   if (error) {
-    console.log("[Meeting100ms] Mostrando tela de erro:", error, "canRetry:", canRetry);
     return (
       <div className="h-screen flex items-center justify-center p-4 bg-[#09090b]">
         <Card className="p-8 max-w-md w-full text-center bg-zinc-900 border-zinc-800">
@@ -825,7 +609,6 @@ export function Meeting100ms({
 
   // Mostrar tela de conexão enquanto está conectando
   if (isJoining || !isConnected) {
-    console.log("[Meeting100ms] Mostrando tela de conexão. isJoining:", isJoining, "isConnected:", isConnected);
     return (
       <div className="h-screen flex flex-col items-center justify-center" style={{ backgroundColor: "#09090b" }}>
         <div 
@@ -971,10 +754,7 @@ export function Meeting100ms({
             >
               <div className="flex items-center gap-3 relative z-50">
                 <Button
-                  onClick={() => {
-                    console.log("[Meeting100ms] Click Áudio Direto");
-                    toggleAudio();
-                  }}
+                  onClick={toggleAudio}
                   variant="ghost"
                   size="icon"
                   className={cn("h-12 w-12 rounded-2xl transition-all duration-300 relative z-50")}
@@ -985,10 +765,7 @@ export function Meeting100ms({
                 </Button>
 
                 <Button
-                  onClick={() => {
-                    console.log("[Meeting100ms] Click Vídeo Direto");
-                    toggleVideo();
-                  }}
+                  onClick={toggleVideo}
                   variant="ghost"
                   size="icon"
                   className={cn("h-12 w-12 rounded-2xl transition-all duration-300 relative z-50")}
@@ -1005,7 +782,6 @@ export function Meeting100ms({
 
                 <Button
                   onClick={() => {
-                    console.log("[Meeting100ms] Click Tela Direto");
                     if (!canShare) {
                       toast.error("Somente o administrador pode compartilhar tela nesta sala.");
                       return;
@@ -1047,24 +823,17 @@ export function Meeting100ms({
                   <TooltipTrigger asChild>
                     <Button 
                       onClick={async () => {
-                        console.log("[Meeting100ms] Click Assinar Contrato");
-                    
                     // IMPORTANTE: Abrir a janela ANTES das chamadas async para evitar bloqueio de popup
-                    // Em celulares, popups só funcionam se abertos diretamente pelo clique do usuário
                     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
                     let signatureWindow: Window | null = null;
                     
                     if (!isMobile) {
-                      // Desktop: abrir janela em branco primeiro
                       signatureWindow = window.open('about:blank', '_blank');
                     }
                     
                     try {
-                      // Buscar dados do participante e o tenant_id da reunião
-                      // CRÍTICO: Usamos o meeting_id da URL para associar o contrato ao tenant correto
                       const pathParts = window.location.pathname.split('/').filter(Boolean);
                       const currentMeetingId = pathParts[pathParts.length - 1] || '';
-                      console.log("[Meeting100ms] Meeting ID extraído da URL:", currentMeetingId);
                       
                       let formSubmissionId: string | undefined = undefined;
                       
@@ -1073,7 +842,6 @@ export function Meeting100ms({
                       const currentFsid = urlSearchParams.get("fsid");
                       if (currentFsid) {
                         formSubmissionId = currentFsid;
-                        console.log("[Meeting100ms] formSubmissionId via URL fsid:", formSubmissionId);
                       }
                       
                       // SEGUNDO: Buscar dados da reunião para obter o formSubmissionId dos metadados
@@ -1083,15 +851,11 @@ export function Meeting100ms({
                           const meetingResponse = await fetch(`/api/public/reunioes/${currentMeetingId}/public${fsidQueryString}`);
                           if (meetingResponse.ok) {
                             const meetingData = await meetingResponse.json();
-                            // O formSubmissionId está em metadata.formSubmissionId
                             if (meetingData?.metadata?.formSubmissionId) {
                               formSubmissionId = meetingData.metadata.formSubmissionId;
-                              console.log("[Meeting100ms] formSubmissionId extraído dos metadados da reunião:", formSubmissionId);
                             }
                           }
-                        } catch (e) {
-                          console.log("[Meeting100ms] Erro ao buscar metadados da reunião:", e);
-                        }
+                        } catch (e) {}
                       }
                       
                       // TERCEIRO: Tentar via participant-data (fallback)
@@ -1104,20 +868,10 @@ export function Meeting100ms({
                             const result = await participantResponse.json();
                             if (result.formSubmissionId) {
                               formSubmissionId = result.formSubmissionId;
-                              console.log("[Meeting100ms] formSubmissionId via participant-data:", formSubmissionId);
                             }
                           }
-                        } catch (e) {
-                          console.log("[Meeting100ms] Fallback participant-data também falhou");
-                        }
+                        } catch (e) {}
                       }
-                      
-                      console.log("[Meeting100ms] formSubmissionId final:", formSubmissionId);
-                      
-                      // Usar o endpoint público from-meeting que agora aceita:
-                      // - Com formSubmissionId: busca todos os dados do form_submission
-                      // - Sem formSubmissionId: busca dados da reunião (nome, telefone, email) e cria contrato direto
-                      console.log("[Meeting100ms] Chamando from-meeting com meetingId e client_name");
                       
                       const response = await fetch('/api/assinatura/public/contracts/from-meeting', {
                         method: 'POST',
@@ -1125,7 +879,7 @@ export function Meeting100ms({
                         body: JSON.stringify({
                           meetingId: currentMeetingId,
                           formSubmissionId: formSubmissionId || undefined,
-                          client_name: localPeer?.name || undefined, // Nome do participante na sala
+                          client_name: localPeer?.name || undefined,
                         }),
                       });
 
@@ -1139,19 +893,15 @@ export function Meeting100ms({
                       const signatureUrl = `/assinar/${contract.access_token}`;
                       
                       if (isMobile) {
-                        // Mobile: navegar diretamente (sai da reunião)
                         toast.info("Redirecionando para assinatura...");
                         window.location.href = signatureUrl;
                       } else if (signatureWindow) {
-                        // Desktop: redirecionar a janela já aberta
                         signatureWindow.location.href = signatureUrl;
                         toast.success("Página de assinatura aberta!");
                       } else {
-                        // Fallback: navegação direta
                         window.location.href = signatureUrl;
                       }
                     } catch (err: any) {
-                      console.error("[Meeting100ms] Erro ao criar contrato:", err);
                       if (signatureWindow) signatureWindow.close();
                       toast.error(err.message || "Erro ao abrir página de assinatura");
                     }
@@ -1174,10 +924,7 @@ export function Meeting100ms({
                 </Tooltip>
 
                 <Button 
-                  onClick={() => {
-                    console.log("[Meeting100ms] Click Sair Direto");
-                    handleLeave();
-                  }}
+                  onClick={handleLeave}
                   variant="destructive" 
                   className="h-12 px-6 rounded-2xl font-bold shadow-lg hover:scale-105 transition-transform relative z-50"
                   style={{ 
