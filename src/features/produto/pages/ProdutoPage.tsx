@@ -122,7 +122,7 @@ export interface Category {
 }
 
 const ProdutoPage = () => {
-  const [currentPage, setCurrentPage] = useState("dashboard");
+  const [currentPage, setCurrentPage] = useState("produto-list");
   const [showProductForm, setShowProductForm] = useState(false);
   const [showSupplierForm, setShowSupplierForm] = useState(false);
   const [showResellerForm, setShowResellerForm] = useState(false);
@@ -162,6 +162,14 @@ const ProdutoPage = () => {
   const { resellers, isLoading: resellersLoading, addReseller, updateReseller, deleteReseller } = useResellers();
   const { categories, isLoading: categoriesLoading, addCategory, updateCategory, deleteCategory } = useCategories();
   const { printQueue, addToPrintQueue, removeFromPrintQueue, clearPrintQueue } = usePrintQueue();
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const page = params.get("page");
+    if (page) {
+      setCurrentPage(page);
+    }
+  }, [window.location.search]);
 
   useEffect(() => {
     testSupabaseConnection().then((result) => {
