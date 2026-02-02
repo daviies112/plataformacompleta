@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { storage } from "../formularios/storage";
 import { db } from "../formularios/db";
 import { eq, desc, and, isNull } from "drizzle-orm";
-import { insertFormSchema, insertFormSubmissionSchema, insertFormTemplateSchema, insertCompletionPageSchema, appSettings, leads, whatsappLabels, supabaseConfig, forms, formTenantMapping } from "../../shared/db-schema";
+import { insertFormSchema, insertFormSubmissionSchema, insertFormTemplateSchema, insertCompletionPageSchema, appSettings, leads, whatsappLabels, supabaseConfig, forms, formTenantMapping, formSubmissions } from "../../shared/db-schema";
 import multer from "multer";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -1183,6 +1183,141 @@ export function registerFormulariosCompleteRoutes(app: Express) {
     } catch (error: any) {
       console.error('[FORM-SLUG] Erro ao buscar formulário por slug:', error);
       res.status(500).json({ error: error.message });
+    }
+  });
+
+  // 📝 PUBLIC FORM SUBMISSION ENDPOINT - No auth required
+  // POST /api/forms/:formId/submit - Submit form responses
+  app.post("/api/forms/:formId/submit", async (req, res) => {
+    try {
+      const { formId } = req.params;
+      const { 
+        answers, 
+        contactName, 
+        contactEmail, 
+        contactPhone,
+        contactCpf,
+        contactInstagram,
+        addressData,
+        companySlug
+      } = req.body;
+      
+      console.log(`📝 [POST /forms/${formId}/submit] Recebendo submission pública...`);
+      console.log(`   - Nome: ${contactName}`);
+      console.log(`   - Email: ${contactEmail}`);
+      console.log(`   - Telefone: ${contactPhone}`);
+      console.log(`   - CPF: ${contactCpf}`);
+      console.log(`   - Perguntas respondidas: ${Object.keys(answers || {}).length}`);
+      
+      if (!answers || Object.keys(answers).length === 0) {
+        return res.status(400).json({
+          success: false,
+          error: 'Respostas são obrigatórias'
+        });
+      }
+      
+      // Get tenant info from formTenantMapping
+      const mappingResult = await db
+        .select()
+        .from(formTenantMapping)
+        .where(eq(formTenantMapping.formId, formId))
+        .limit(1);
+      
+      const tenantId = mappingResult.length > 0 ? mappingResult[0].tenantId : null;
+      
+      // Try to save to Supabase first (primary storage for multi-tenant)
+      let supabaseSuccess = false;
+      let submissionId: string | null = null;
+      
+      if (tenantId) {
+        try {
+          const supabase = await getSupabaseClient(tenantId);
+          
+          if (supabase) {
+            const { data: insertedData, error: supabaseError } = await supabase
+              .from('form_submissions')
+              .insert({
+                form_id: formId,
+                name: contactName || null,
+                email: contactEmail || null,
+                telefone: contactPhone || null,
+                cpf: contactCpf || null,
+                instagram: contactInstagram || null,
+                answers: answers,
+                address_data: addressData || null,
+                total_score: 0,
+                passed: true,
+                synced_to_local: false,
+                created_at: new Date().toISOString()
+              })
+              .select('id')
+              .single();
+            
+            if (supabaseError) {
+              console.error('⚠️ [Supabase] Erro ao salvar submission:', supabaseError.message);
+            } else {
+              supabaseSuccess = true;
+              submissionId = insertedData?.id;
+              console.log(`✅ [Supabase] Submission salva com sucesso: ${submissionId}`);
+            }
+          }
+        } catch (supabaseErr: any) {
+          console.error('⚠️ [Supabase] Erro ao conectar:', supabaseErr.message);
+        }
+      }
+      
+      // Also save to local PostgreSQL as backup
+      try {
+        const localResult = await db
+          .insert(formSubmissions)
+          .values({
+            formId,
+            answers: {
+              ...answers,
+              _contactData: {
+                name: contactName,
+                email: contactEmail,
+                phone: contactPhone,
+                cpf: contactCpf,
+                instagram: contactInstagram,
+              },
+              _addressData: addressData
+            },
+            totalScore: 0,
+            passed: true,
+            contactName: contactName || null,
+            contactEmail: contactEmail || null,
+            contactPhone: contactPhone || null
+          })
+          .returning();
+        
+        if (!submissionId && localResult.length > 0) {
+          submissionId = localResult[0].id;
+        }
+        console.log(`✅ [PostgreSQL] Submission salva localmente: ${localResult[0].id}`);
+      } catch (localErr: any) {
+        console.error('⚠️ [PostgreSQL] Erro ao salvar localmente:', localErr.message);
+        
+        // If both failed, return error
+        if (!supabaseSuccess) {
+          return res.status(500).json({
+            success: false,
+            error: 'Erro ao salvar resposta. Tente novamente.'
+          });
+        }
+      }
+      
+      res.status(201).json({
+        success: true,
+        message: 'Resposta enviada com sucesso!',
+        submissionId
+      });
+    } catch (error: any) {
+      console.error('[POST /forms/:formId/submit] Erro:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Erro interno ao processar resposta'
+      });
     }
   });
 

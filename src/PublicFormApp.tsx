@@ -244,7 +244,13 @@ const PublicFormApp = () => {
   const getQuestions = useCallback(() => {
     if (!form) return [];
     const data = form.questions || form.elements || [];
-    return data.filter((q: any) => q.text || q.questionType);
+    // Only include actual questions (type='question' or has questionType)
+    // Exclude headings, text elements, and pageBreaks
+    return data.filter((q: any) => {
+      const isQuestion = q.type === 'question' || q.questionType;
+      const isNotHeading = q.type !== 'heading' && q.type !== 'text' && q.type !== 'pageBreak';
+      return isQuestion && isNotHeading;
+    });
   }, [form]);
 
   const lookupCep = async (cep: string) => {
@@ -323,19 +329,28 @@ const PublicFormApp = () => {
 
     try {
       const params = extractParams();
-      const response = await fetch('/api/form-submissions', {
+      const companySlug = params && 'companySlug' in params ? params.companySlug : undefined;
+      
+      // Use the correct public submission endpoint
+      const response = await fetch(`/api/forms/${form.id}/submit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          form_id: form.id,
-          company_slug: params && 'companySlug' in params ? params.companySlug : undefined,
-          responses: answers,
-          personal_data: personalData,
-          address_data: addressData,
+          answers,
+          contactName: personalData.name,
+          contactEmail: personalData.email,
+          contactPhone: personalData.phone,
+          contactCpf: personalData.cpf,
+          contactInstagram: personalData.instagram,
+          addressData,
+          companySlug,
         }),
       });
 
-      if (!response.ok) throw new Error('Erro ao enviar');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Erro ao enviar');
+      }
       setSubmitted(true);
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Erro ao enviar formulário');

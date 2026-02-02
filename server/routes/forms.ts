@@ -557,7 +557,23 @@ router.get('/submissions/:id', async (req: Request, res: Response) => {
 router.post('/forms/:formId/submit', async (req: Request, res: Response) => {
   try {
     const { formId } = req.params;
-    const { answers, contactName, contactEmail, contactPhone } = req.body;
+    const { 
+      answers, 
+      contactName, 
+      contactEmail, 
+      contactPhone,
+      contactCpf,
+      contactInstagram,
+      addressData,
+      companySlug
+    } = req.body;
+    
+    console.log(`📝 [POST /forms/${formId}/submit] Recebendo submission pública...`);
+    console.log(`   - Nome: ${contactName}`);
+    console.log(`   - Email: ${contactEmail}`);
+    console.log(`   - Telefone: ${contactPhone}`);
+    console.log(`   - CPF: ${contactCpf}`);
+    console.log(`   - Perguntas respondidas: ${Object.keys(answers || {}).length}`);
     
     if (!answers) {
       return res.status(400).json({
@@ -586,30 +602,86 @@ router.post('/forms/:formId/submit', async (req: Request, res: Response) => {
     let totalScore = 0;
     const questions = form.questions as any[];
     
-    questions.forEach((question: any) => {
-      const answer = answers[question.id];
-      if (answer && question.correctAnswer) {
-        if (answer === question.correctAnswer) {
-          totalScore += question.points || 1;
+    if (questions && Array.isArray(questions)) {
+      questions.forEach((question: any) => {
+        const answer = answers[question.id];
+        if (answer && question.correctAnswer) {
+          if (answer === question.correctAnswer) {
+            totalScore += question.points || 1;
+          }
         }
-      }
-    });
+      });
+    }
     
-    const passed = totalScore >= form.passingScore;
+    const passed = totalScore >= (form.passingScore || 0);
     
-    // Create submission
+    // Build submission data with all contact info
+    const submissionData: any = {
+      formId,
+      answers: {
+        ...answers,
+        // Store additional contact info in answers JSON
+        _contactData: {
+          name: contactName,
+          email: contactEmail,
+          phone: contactPhone,
+          cpf: contactCpf,
+          instagram: contactInstagram,
+        },
+        _addressData: addressData
+      },
+      totalScore,
+      passed,
+      contactName: contactName || null,
+      contactEmail: contactEmail || null,
+      contactPhone: contactPhone || null
+    };
+    
+    // Create submission in local DB
     const result = await db
       .insert(formSubmissions)
-      .values({
-        formId,
-        answers,
-        totalScore,
-        passed,
-        contactName: contactName || null,
-        contactEmail: contactEmail || null,
-        contactPhone: contactPhone || null
-      })
+      .values(submissionData)
       .returning();
+    
+    console.log(`✅ [POST /forms/${formId}/submit] Submission salva localmente: ${result[0].id}`);
+    
+    // Try to also save to Supabase if configured (for multi-tenant sync)
+    try {
+      const { formTenantMapping } = await import('../lib/publicCache');
+      const mapping = formTenantMapping.get(formId);
+      
+      if (mapping?.tenantId) {
+        const { getTenantSupabase } = await import('../lib/tenantSupabase');
+        const supabase = await getTenantSupabase(mapping.tenantId);
+        
+        if (supabase) {
+          const { error: supabaseError } = await supabase
+            .from('form_submissions')
+            .insert({
+              form_id: formId,
+              name: contactName,
+              email: contactEmail,
+              telefone: contactPhone,
+              cpf: contactCpf,
+              instagram: contactInstagram,
+              answers,
+              address_data: addressData,
+              total_score: totalScore,
+              passed,
+              created_at: new Date().toISOString()
+            });
+          
+          if (supabaseError) {
+            console.error('⚠️ [Supabase] Erro ao salvar submission:', supabaseError.message);
+          } else {
+            console.log(`✅ [Supabase] Submission também salva no Supabase do tenant`);
+          }
+        }
+      }
+    } catch (supabaseErr) {
+      console.error('⚠️ [Supabase] Erro ao sincronizar submission:', supabaseErr);
+      // Don't fail the request if Supabase sync fails
+    }
     
     res.status(201).json({
       success: true,
