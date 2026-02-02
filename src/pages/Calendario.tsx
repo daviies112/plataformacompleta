@@ -38,6 +38,22 @@ interface Reuniao {
   updatedAt: string | null;
 }
 
+interface CalendarEvent {
+  id: string;
+  title: string;
+  description?: string;
+  date: string;
+  time: string;
+  duration?: number;
+  isAllDay: boolean;
+  type: 'meeting' | 'workspace' | 'ical';
+  client?: string;
+  status?: string;
+  location?: string;
+  meetLink?: string;
+  source: string;
+}
+
 export default function CalendarioPage() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -137,8 +153,29 @@ export default function CalendarioPage() {
     }
   };
 
-  // Buscar reuniões diretamente do Supabase
-  const { data: reunioes = [], isLoading, error, refetch } = useQuery<Reuniao[]>({
+  // Buscar todos os eventos do calendário (reuniões + tarefas workspace)
+  const { data: calendarEvents = [], isLoading: isLoadingEvents, refetch: refetchEvents } = useQuery<CalendarEvent[]>({
+    queryKey: ['/api/dashboard/calendar-events'],
+    queryFn: async () => {
+      try {
+        const res = await fetch('/api/dashboard/calendar-events', { credentials: 'include' });
+        if (res.ok) {
+          const data = await res.json();
+          console.log('[Calendario] Eventos recebidos:', data.events?.length || 0);
+          return data.events || [];
+        }
+      } catch (err) {
+        console.warn('[Calendario] Erro ao buscar eventos:', err);
+      }
+      return [];
+    },
+    refetchInterval: 30000,
+    refetchOnWindowFocus: true,
+    retry: 1,
+  });
+
+  // Buscar reuniões diretamente do Supabase para detalhes extras
+  const { data: reunioes = [], isLoading: isLoadingReunioes, error, refetch } = useQuery<Reuniao[]>({
     queryKey: ['reunioes-calendario', format(currentMonth, 'yyyy-MM')],
     queryFn: async () => {
       try {
@@ -203,10 +240,12 @@ export default function CalendarioPage() {
       }
       return [];
     },
-    refetchInterval: 30000, // Polling a cada 30 segundos como fallback
+    refetchInterval: 30000,
     refetchOnWindowFocus: true,
-    retry: 1, // Apenas 1 retry para não ficar preso
+    retry: 1,
   });
+
+  const isLoading = isLoadingEvents || isLoadingReunioes;
 
   // Supabase Realtime Subscription
   useEffect(() => {
@@ -317,11 +356,60 @@ export default function CalendarioPage() {
     return map;
   }, [reunioes]);
 
+  // Mapa de eventos do workspace (tarefas com datas)
+  const workspaceEventsByDate = useMemo(() => {
+    const map = new Map<string, CalendarEvent[]>();
+    calendarEvents.forEach((event) => {
+      // Filtrar apenas eventos de workspace (não reuniões para evitar duplicatas)
+      if (event.type === 'workspace' || event.source?.includes('workspace')) {
+        const dateKey = event.date;
+        if (!map.has(dateKey)) {
+          map.set(dateKey, []);
+        }
+        map.get(dateKey)!.push(event);
+      }
+    });
+    return map;
+  }, [calendarEvents]);
+
+  // Mapa combinado de todos os eventos por data
+  const allEventsByDate = useMemo(() => {
+    const map = new Map<string, { meetings: Reuniao[], workspaceEvents: CalendarEvent[] }>();
+    
+    // Adicionar reuniões
+    reunioes.forEach((reuniao) => {
+      const dateKey = format(parseISO(reuniao.dataInicio), 'yyyy-MM-dd');
+      if (!map.has(dateKey)) {
+        map.set(dateKey, { meetings: [], workspaceEvents: [] });
+      }
+      map.get(dateKey)!.meetings.push(reuniao);
+    });
+    
+    // Adicionar eventos do workspace
+    calendarEvents.forEach((event) => {
+      if (event.type === 'workspace' || event.source?.includes('workspace')) {
+        const dateKey = event.date;
+        if (!map.has(dateKey)) {
+          map.set(dateKey, { meetings: [], workspaceEvents: [] });
+        }
+        map.get(dateKey)!.workspaceEvents.push(event);
+      }
+    });
+    
+    return map;
+  }, [reunioes, calendarEvents]);
+
   const selectedDateMeetings = useMemo(() => {
     if (!selectedDate) return [];
     const dateKey = format(selectedDate, 'yyyy-MM-dd');
     return meetingsByDate.get(dateKey) || [];
   }, [selectedDate, meetingsByDate]);
+
+  const selectedDateWorkspaceEvents = useMemo(() => {
+    if (!selectedDate) return [];
+    const dateKey = format(selectedDate, 'yyyy-MM-dd');
+    return workspaceEventsByDate.get(dateKey) || [];
+  }, [selectedDate, workspaceEventsByDate]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -448,6 +536,8 @@ export default function CalendarioPage() {
               {daysInMonth.map((day) => {
                 const dateKey = format(day, 'yyyy-MM-dd');
                 const dayMeetings = meetingsByDate.get(dateKey) || [];
+                const dayWorkspaceEvents = workspaceEventsByDate.get(dateKey) || [];
+                const totalEvents = dayMeetings.length + dayWorkspaceEvents.length;
                 const isSelected = selectedDate && isSameDay(day, selectedDate);
                 const isToday = isSameDay(day, new Date());
                 
@@ -478,11 +568,23 @@ export default function CalendarioPage() {
                             {format(parseISO(meeting.dataInicio), 'HH:mm')} {meeting.titulo || 'Reunião'}
                           </div>
                         ))}
-                        {dayMeetings.length > 2 && (
-                          <div className="text-xs text-muted-foreground">
-                            +{dayMeetings.length - 2} mais
+                      </div>
+                    )}
+                    {dayWorkspaceEvents.length > 0 && (
+                      <div className="mt-1 space-y-1">
+                        {dayWorkspaceEvents.slice(0, dayMeetings.length >= 2 ? 0 : 2 - dayMeetings.length).map((event) => (
+                          <div
+                            key={event.id}
+                            className="text-xs bg-purple-500/10 text-purple-700 dark:text-purple-400 rounded px-1 py-0.5 truncate"
+                          >
+                            {event.time !== '00:00' ? event.time : ''} {event.title.replace('📋 ', '').replace('📊 ', '')}
                           </div>
-                        )}
+                        ))}
+                      </div>
+                    )}
+                    {totalEvents > 2 && (
+                      <div className="text-xs text-muted-foreground">
+                        +{totalEvents - 2} mais
                       </div>
                     )}
                   </button>
@@ -504,12 +606,12 @@ export default function CalendarioPage() {
           <CardContent className="flex-1 overflow-auto">
             {!selectedDate ? (
               <p className="text-muted-foreground text-sm text-center py-8">
-                Clique em uma data no calendário para ver as reuniões.
+                Clique em uma data no calendário para ver os eventos.
               </p>
-            ) : selectedDateMeetings.length === 0 ? (
+            ) : (selectedDateMeetings.length === 0 && selectedDateWorkspaceEvents.length === 0) ? (
               <div className="text-center py-8">
                 <p className="text-muted-foreground text-sm mb-4">
-                  Nenhuma reunião agendada para esta data.
+                  Nenhum evento para esta data.
                 </p>
                 <Button variant="outline" size="sm" onClick={() => navigate('/reuniao')}>
                   <Plus className="mr-2 h-4 w-4" />
@@ -634,6 +736,52 @@ export default function CalendarioPage() {
                     </div>
                   </div>
                 ))}
+                
+                {/* Eventos do Workspace */}
+                {selectedDateWorkspaceEvents.length > 0 && (
+                  <>
+                    {selectedDateMeetings.length > 0 && (
+                      <div className="border-t pt-3 mt-3">
+                        <h5 className="text-sm font-medium text-muted-foreground mb-2">Tarefas</h5>
+                      </div>
+                    )}
+                    {selectedDateWorkspaceEvents.map((event) => (
+                      <div
+                        key={event.id}
+                        className="p-3 border rounded-lg border-purple-200 dark:border-purple-800 bg-purple-50/50 dark:bg-purple-900/10"
+                        data-testid={`workspace-event-${event.id}`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <h4 className="font-medium text-sm truncate text-purple-700 dark:text-purple-400">
+                            {event.title.replace('📋 ', '').replace('📊 ', '')}
+                          </h4>
+                          <Badge variant="outline" className="text-purple-600 dark:text-purple-400 border-purple-300 dark:border-purple-700">
+                            Tarefa
+                          </Badge>
+                        </div>
+                        {event.time && event.time !== '00:00' && (
+                          <div className="flex items-center gap-1 text-sm text-muted-foreground mt-2">
+                            <Clock className="h-3 w-3" />
+                            {event.time}
+                          </div>
+                        )}
+                        {event.description && (
+                          <p className="text-sm text-muted-foreground mt-1 truncate">
+                            {event.description}
+                          </p>
+                        )}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="mt-2 w-full"
+                          onClick={() => navigate('/workspace')}
+                        >
+                          Ver no Workspace
+                        </Button>
+                      </div>
+                    ))}
+                  </>
+                )}
               </div>
             )}
           </CardContent>
