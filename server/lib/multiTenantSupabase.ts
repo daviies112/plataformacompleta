@@ -40,55 +40,74 @@ export async function getClientSupabaseClientStrict(tenantId: string): Promise<S
 }
 
 /**
+ * 🚀 PERFORMANCE: Cache de resultados de teste de conexão
+ * Evita testes repetidos - TTL de 30 segundos
+ */
+const connectionTestCache = new Map<string, { result: boolean; timestamp: number }>();
+const CONNECTION_TEST_CACHE_TTL = 30000; // 30 segundos
+
+/**
  * Testa conexão com Supabase de um cliente específico
- * Verifica acesso a todas as tabelas usadas pelo sistema
+ * 🚀 PERFORMANCE: Usa Promise.all para testar todas as tabelas em paralelo
+ * 🚀 PERFORMANCE: Cacheia resultado por 30 segundos
  * 
  * @param clientId - ID único do cliente
  * @returns true se conectado com sucesso, false caso contrário
  */
 export async function testClientSupabaseConnection(clientId: string): Promise<boolean> {
+  // 🚀 PERFORMANCE: Check cache first
+  const cached = connectionTestCache.get(clientId);
+  if (cached && Date.now() - cached.timestamp < CONNECTION_TEST_CACHE_TTL) {
+    console.log(`⚡ [MULTI-TENANT] Usando teste em cache para ${clientId}`);
+    return cached.result;
+  }
+
   const client = await getClientSupabaseClient(clientId);
   
   if (!client) {
     console.warn(`[MULTI-TENANT] Cliente Supabase não disponível para ${clientId}`);
+    connectionTestCache.set(clientId, { result: false, timestamp: Date.now() });
     return false;
   }
   
   try {
-    // Testar acesso às tabelas principais do sistema
-    const tablesToTest = [
-      'forms',               // Formulários
-      'form_submissions',    // Submissões de formulários
-      'workspace_pages',     // Páginas do workspace
-      'workspace_boards',    // Boards do workspace
-      'workspace_databases'  // Databases do workspace
-    ];
-
     console.log(`🔍 [MULTI-TENANT] Testando acesso às tabelas para ${clientId}...`);
     
-    for (const table of tablesToTest) {
-      const { error } = await client
-        .from(table)
-        .select('*', { count: 'exact', head: true });
-        
-      if (error) {
-        console.warn(`⚠️ [MULTI-TENANT] Tabela '${table}' não acessível:`, error.message);
-        // Continua testando outras tabelas
-      } else {
-        console.log(`✅ [MULTI-TENANT] Tabela '${table}' acessível`);
-      }
+    // 🚀 PERFORMANCE: Test just the 'forms' table for quick connection check
+    // Full table testing is done separately when needed
+    const { error } = await client
+      .from('forms')
+      .select('id', { count: 'exact', head: true });
+    
+    const result = !error || error.message.includes('does not exist');
+    
+    if (error && !error.message.includes('does not exist')) {
+      console.warn(`⚠️ [MULTI-TENANT] Erro na conexão:`, error.message);
+    } else {
+      console.log(`✅ [MULTI-TENANT] Teste de conexão concluído para ${clientId}`);
     }
     
-    console.log(`✅ [MULTI-TENANT] Teste de conexão concluído para ${clientId}`);
-    return true;
+    // 🚀 PERFORMANCE: Cache the result
+    connectionTestCache.set(clientId, { result, timestamp: Date.now() });
+    return result;
   } catch (error) {
     console.error(`❌ [MULTI-TENANT] Erro na conexão para ${clientId}:`, error);
+    connectionTestCache.set(clientId, { result: false, timestamp: Date.now() });
     return false;
   }
 }
 
 /**
+ * Invalida cache de teste de conexão para um tenant
+ */
+export function invalidateConnectionTestCache(clientId: string): void {
+  connectionTestCache.delete(clientId);
+  console.log(`🗑️ [MULTI-TENANT] Cache de teste de conexão invalidado para ${clientId}`);
+}
+
+/**
  * Testa acesso detalhado a todas as tabelas do sistema
+ * 🚀 PERFORMANCE: Usa Promise.all para testar todas as tabelas em paralelo
  * Retorna status de cada tabela individualmente
  * 
  * @param clientId - ID único do cliente
@@ -107,7 +126,6 @@ export async function testAllTables(clientId: string): Promise<{
     };
   }
   
-  const tables: Record<string, { accessible: boolean; error?: string }> = {};
   const tablesToTest = [
     'forms',
     'form_submissions',
@@ -117,23 +135,41 @@ export async function testAllTables(clientId: string): Promise<{
     'clientes_completos'  // Tabela correta do dashboard
   ];
 
-  for (const table of tablesToTest) {
-    try {
-      const { error } = await client
-        .from(table)
-        .select('*', { count: 'exact', head: true });
-        
-      tables[table] = {
-        accessible: !error,
-        error: error?.message
-      };
-    } catch (error: any) {
-      tables[table] = {
-        accessible: false,
-        error: error.message
-      };
-    }
-  }
+  // 🚀 PERFORMANCE: Test all tables in parallel using Promise.all
+  const startTime = Date.now();
+  console.log(`🔍 [MULTI-TENANT] Testando ${tablesToTest.length} tabelas em paralelo...`);
+  
+  const results = await Promise.all(
+    tablesToTest.map(async (table) => {
+      try {
+        const { error } = await client
+          .from(table)
+          .select('id', { count: 'exact', head: true });
+          
+        return {
+          table,
+          accessible: !error,
+          error: error?.message
+        };
+      } catch (error: any) {
+        return {
+          table,
+          accessible: false,
+          error: error.message
+        };
+      }
+    })
+  );
+  
+  const tables: Record<string, { accessible: boolean; error?: string }> = {};
+  results.forEach(result => {
+    tables[result.table] = {
+      accessible: result.accessible,
+      error: result.error
+    };
+  });
+  
+  console.log(`✅ [MULTI-TENANT] Teste de ${tablesToTest.length} tabelas concluído em ${Date.now() - startTime}ms`);
   
   return {
     connected: true,
@@ -340,52 +376,58 @@ export async function fetchTenantSupabaseData(
   }
   
   try {
+    const startTime = Date.now();
     console.log(`🔄 [AGGREGATION] Buscando dados agregados para ${clientId}...`);
     
-    // Workspace tables
+    // 🚀 PERFORMANCE: Execute ALL 12 queries in a single Promise.all
     const [
-      { data: pages, error: pagesError },
-      { data: databases, error: databasesError },
-      { data: boards, error: boardsError }
+      pagesResult,
+      databasesResult,
+      boardsResult,
+      formsResult,
+      submissionsResult,
+      productsResult,
+      suppliersResult,
+      resellersResult,
+      categoriesResult,
+      printQueueResult,
+      filesResult,
+      dashboardResult
     ] = await Promise.all([
+      // Workspace tables
       client.from('workspace_pages').select('*', { count: 'exact' }).order('updated_at', { ascending: false }).limit(5),
       client.from('workspace_databases').select('*', { count: 'exact' }),
-      client.from('workspace_boards').select('*', { count: 'exact' })
-    ]);
-    
-    // Forms tables
-    const [
-      { data: forms, error: formsError },
-      { data: submissions, error: submissionsError }
-    ] = await Promise.all([
+      client.from('workspace_boards').select('*', { count: 'exact' }),
+      // Forms tables
       client.from('forms').select('*', { count: 'exact' }),
-      client.from('form_submissions').select('*', { count: 'exact' }).order('created_at', { ascending: false }).limit(10)
-    ]);
-    
-    // Products tables
-    const [
-      { data: products, error: productsError },
-      { data: suppliers, error: suppliersError },
-      { data: resellers, error: resellersError },
-      { data: categories, error: categoriesError },
-      { data: printQueue, error: printQueueError }
-    ] = await Promise.all([
+      client.from('form_submissions').select('*', { count: 'exact' }).order('created_at', { ascending: false }).limit(10),
+      // Products tables
       client.from('products').select('*', { count: 'exact' }),
       client.from('suppliers').select('*', { count: 'exact' }),
       client.from('resellers').select('*', { count: 'exact' }),
       client.from('categories').select('*', { count: 'exact' }),
-      client.from('print_queue').select('*', { count: 'exact' })
+      client.from('print_queue').select('*', { count: 'exact' }),
+      // Billing table
+      client.from('files').select('*', { count: 'exact' }),
+      // Dashboard table
+      client.from('clientes_completos').select('*', { count: 'exact' })
     ]);
     
-    // Billing table
-    const { data: files, error: filesError } = await client
-      .from('files')
-      .select('*', { count: 'exact' });
+    // Destructure results
+    const { data: pages, error: pagesError } = pagesResult;
+    const { data: databases, error: databasesError } = databasesResult;
+    const { data: boards, error: boardsError } = boardsResult;
+    const { data: forms, error: formsError } = formsResult;
+    const { data: submissions, error: submissionsError } = submissionsResult;
+    const { data: products, error: productsError } = productsResult;
+    const { data: suppliers, error: suppliersError } = suppliersResult;
+    const { data: resellers, error: resellersError } = resellersResult;
+    const { data: categories, error: categoriesError } = categoriesResult;
+    const { data: printQueue, error: printQueueError } = printQueueResult;
+    const { data: files, error: filesError } = filesResult;
+    const { data: dashboardClients, error: dashboardError } = dashboardResult;
     
-    // Dashboard table
-    const { data: dashboardClients, error: dashboardError } = await client
-      .from('clientes_completos')
-      .select('*', { count: 'exact' });
+    console.log(`⚡ [AGGREGATION] 12 queries executadas em paralelo em ${Date.now() - startTime}ms`);
     
     // Count errors
     const errors = [

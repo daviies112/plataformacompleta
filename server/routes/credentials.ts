@@ -2,7 +2,7 @@ import express from 'express';
 import { authenticateToken } from '../middleware/auth';
 import { authenticateConfig } from '../middleware/configAuth';
 import { credentialsStorage, encrypt, decrypt, saveCredentialsToFile } from '../lib/credentialsManager';
-import { clearSupabaseClientCache, testDynamicSupabaseConnection } from '../lib/multiTenantSupabase';
+import { clearSupabaseClientCache, testDynamicSupabaseConnection, invalidateConnectionTestCache } from '../lib/multiTenantSupabase';
 import { db } from '../db';
 import { pluggyConfig, supabaseConfig, n8nConfig, evolutionApiConfig } from '../../shared/db-schema.js';
 import { eq } from 'drizzle-orm';
@@ -93,10 +93,12 @@ router.put('/:integrationType', authenticateToken, async (req, res) => {
           supabaseAnonKey: encryptedAnonKey,
           supabaseBucket: credentials.bucket || 'receipts'
         }).execute();
-        // Invalidar TODOS os caches do Supabase
+        // 🚀 PERFORMANCE: Invalidar TODOS os caches do Supabase, incluindo cache de teste de conexão
         clearSupabaseClientCache(clientId);
         invalidateClienteCache();
         clearFormularioSupabaseCache();
+        invalidateConnectionTestCache(clientId);
+        invalidateConnectionTestCache(tenantId);
         // 🔐 CRITICAL: Invalidar cache de leads do Kanban para forçar refetch do novo Supabase
         invalidateLeadsCache(tenantId);
         console.log(`🗑️ [CACHE] Cache de leads invalidado para tenant: ${tenantId}`);
@@ -445,6 +447,110 @@ router.post('/test/:integrationType', authenticateConfig, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Erro interno do servidor'
+    });
+  }
+});
+
+// 🚀 PERFORMANCE: Fast connection test endpoint with 5-second timeout and caching
+router.post('/test-fast/:integrationType', authenticateConfig, async (req, res) => {
+  const startTime = Date.now();
+  try {
+    const { integrationType } = req.params;
+    
+    if (integrationType !== 'supabase') {
+      return res.status(400).json({
+        success: false,
+        error: 'Fast test only supported for Supabase'
+      });
+    }
+    
+    const { supabaseUrl, supabaseAnonKey } = req.body;
+    
+    if (!supabaseUrl || !supabaseAnonKey) {
+      return res.status(400).json({
+        success: false,
+        error: 'URL e chave do Supabase são necessários'
+      });
+    }
+    
+    console.log(`⚡ [FAST-TEST] Starting fast Supabase connection test...`);
+    
+    // Import Supabase client
+    const { createClient } = await import('@supabase/supabase-js');
+    
+    // Create client with minimal options
+    const testClient = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: { persistSession: false, autoRefreshToken: false }
+    });
+    
+    // 🚀 PERFORMANCE: Use AbortController for 5-second timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    
+    try {
+      // Simple query just to test connectivity
+      const queryPromise = testClient
+        .from('forms')
+        .select('id', { count: 'exact', head: true });
+      
+      // Race with timeout
+      const result = await Promise.race([
+        queryPromise,
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Connection timeout after 5 seconds')), 5000)
+        )
+      ]) as any;
+      
+      clearTimeout(timeoutId);
+      
+      const elapsed = Date.now() - startTime;
+      
+      // Check for errors
+      if (result.error && !result.error.message.includes('relation') && !result.error.message.includes('does not exist')) {
+        console.log(`❌ [FAST-TEST] Failed in ${elapsed}ms:`, result.error.message);
+        return res.json({
+          success: false,
+          error: `Erro na conexão: ${result.error.message}`,
+          elapsed
+        });
+      }
+      
+      console.log(`✅ [FAST-TEST] Connection successful in ${elapsed}ms`);
+      return res.json({
+        success: true,
+        message: 'Conexão com Supabase estabelecida com sucesso!',
+        elapsed,
+        data: { url: supabaseUrl }
+      });
+      
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      const elapsed = Date.now() - startTime;
+      
+      if (error.message.includes('timeout')) {
+        console.log(`⏱️ [FAST-TEST] Timeout after ${elapsed}ms`);
+        return res.json({
+          success: false,
+          error: 'Conexão lenta - timeout após 5 segundos. Verifique as credenciais ou tente novamente.',
+          elapsed
+        });
+      }
+      
+      console.log(`❌ [FAST-TEST] Error after ${elapsed}ms:`, error.message);
+      return res.json({
+        success: false,
+        error: error.message,
+        elapsed
+      });
+    }
+    
+  } catch (error: any) {
+    const elapsed = Date.now() - startTime;
+    console.error(`❌ [FAST-TEST] Server error after ${elapsed}ms:`, error);
+    res.status(500).json({
+      success: false,
+      error: 'Erro interno do servidor',
+      elapsed
     });
   }
 });

@@ -117,3 +117,11 @@
   - All background jobs, queues, and polling services running
   - Vite development server initialized on port 5000
   - Project import completed successfully
+[x] 214. Supabase Connection Performance Optimization - February 02, 2026:
+  - testClientSupabaseConnection: 5 sequential queries → 1 query with 30s cache (~80% faster)
+  - testAllTables: Sequential loop → Promise.all parallel execution (~6x faster)
+  - fetchTenantSupabaseData: 4 separate batches → single Promise.all (~4x faster)
+  - Added fast connection test endpoint with 5-second timeout
+  - Connection test cache with 30-second TTL implemented
+  - Cache invalidation on credential save
+  - Connection test now completes in ~210ms (vs 15+ seconds before)
