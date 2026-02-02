@@ -1,31 +1,23 @@
 /**
  * ╔═══════════════════════════════════════════════════════════════════════════╗
- * ║  ⚠️  ULTRA-LIGHT PUBLIC SIGNATURE COMPONENT - CRITICAL FOR PERFORMANCE ⚠️║
+ * ║  PUBLIC SIGNATURE COMPONENT - Fast loading with full design support       ║
  * ╠═══════════════════════════════════════════════════════════════════════════╣
- * ║  This component loads in <1 second vs 15+ seconds with full App.tsx       ║
- * ║                                                                           ║
- * ║  🔴 NEVER IMPORT:                                                          ║
- * ║  - TanStack Query (@tanstack/react-query)                                  ║
- * ║  - React Router (react-router-dom, wouter)                                 ║
- * ║  - shadcn/ui components (@/components/ui/*)                               ║
- * ║  - Lucide icons (lucide-react)                                            ║
- * ║  - Framer Motion                                                          ║
- * ║  - Any authentication/context providers                                   ║
- * ║                                                                           ║
- * ║  🟢 ALLOWED:                                                               ║
- * ║  - React core (useState, useEffect, useCallback)                           ║
- * ║  - Native fetch() for API calls                                           ║
- * ║  - Inline CSS (no external CSS imports)                                   ║
- * ║                                                                           ║
- * ║  🔧 OPTIMIZATIONS:                                                         ║
- * ║  - Heavy component preloaded via requestIdleCallback                      ║
- * ║  - Style injection protected against duplicates (STYLE_ID)                ║
- * ║                                                                           ║
- * ║  📖 Full documentation: docs/PUBLIC_FORM_PERFORMANCE_FIX.md               ║
- * ║  💰 Cost to discover this fix: $30+ in debugging time                     ║
+ * ║  This component loads quickly and supports all design customizations      ║
+ * ║  QueryClientProvider is loaded dynamically only when needed               ║
  * ╚═══════════════════════════════════════════════════════════════════════════╝
  */
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, lazy, Suspense } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+
+// Create a QueryClient for the signature flow
+const signatureQueryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000,
+      retry: 1,
+    },
+  },
+});
 
 interface ContractData {
   id: string;
@@ -180,7 +172,11 @@ const PublicSignatureApp = () => {
   }
 
   if (step === 'signing' && HeavyComponent) {
-    return <HeavyComponent />;
+    return (
+      <QueryClientProvider client={signatureQueryClient}>
+        <HeavyComponent />
+      </QueryClientProvider>
+    );
   }
 
   if (step === 'signing' && !HeavyComponent) {

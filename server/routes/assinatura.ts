@@ -2377,7 +2377,7 @@ router.post('/public/contracts/from-meeting', async (req: Request, res: Response
             if (supabaseClient) {
               let submission = null;
               
-              // Buscar por telefone
+              // Buscar por telefone - incluindo nome e email para usar no contrato
               if (finalPhone) {
                 const phoneDigits = finalPhone.replace(/\D/g, '');
                 const lastDigits = phoneDigits.slice(-9);
@@ -2385,7 +2385,7 @@ router.post('/public/contracts/from-meeting', async (req: Request, res: Response
                   const flexPattern = '%' + lastDigits.split('').join('%') + '%';
                   const { data } = await supabaseClient
                     .from('form_submissions')
-                    .select('id, contact_cpf, address_street, address_number, address_complement, address_city, address_state, address_cep')
+                    .select('id, contact_name, contact_email, contact_cpf, address_street, address_number, address_complement, address_city, address_state, address_cep')
                     .ilike('contact_phone', flexPattern)
                     .order('created_at', { ascending: false })
                     .limit(1);
@@ -2400,7 +2400,7 @@ router.post('/public/contracts/from-meeting', async (req: Request, res: Response
               if (!submission && finalEmail && !finalEmail.includes('placeholder')) {
                 const { data } = await supabaseClient
                   .from('form_submissions')
-                  .select('id, contact_cpf, address_street, address_number, address_complement, address_city, address_state, address_cep')
+                  .select('id, contact_name, contact_email, contact_cpf, address_street, address_number, address_complement, address_city, address_state, address_cep')
                   .ilike('contact_email', finalEmail)
                   .order('created_at', { ascending: false })
                   .limit(1);
@@ -2418,7 +2418,9 @@ router.post('/public/contracts/from-meeting', async (req: Request, res: Response
                   city: submission.address_city || '',
                   state: submission.address_state || '',
                   zipcode: submission.address_cep || '',
-                  cpf: submission.contact_cpf || null
+                  cpf: submission.contact_cpf || null,
+                  name: submission.contact_name || null,
+                  email: submission.contact_email || null
                 };
               }
             }
@@ -2428,7 +2430,7 @@ router.post('/public/contracts/from-meeting', async (req: Request, res: Response
         }
       }
       
-      // Criar contrato diretamente
+      // Criar contrato diretamente - usar dados do form_submission quando disponíveis
       const id = nanoid();
       const access_token = crypto.randomUUID();
       const protocolNum = `CONT-${Date.now()}-${nanoid(9).toUpperCase()}`;
@@ -2436,12 +2438,16 @@ router.post('/public/contracts/from-meeting', async (req: Request, res: Response
       const protocolScheme = domain.includes('localhost') ? 'http' : 'https';
       const signature_url = `${protocolScheme}://${domain}/assinar/${access_token}`;
       
+      // IMPORTANTE: Priorizar dados do form_submission sobre dados da reunião
+      const contractClientName = addressData?.name || finalName;
+      const contractClientEmail = addressData?.email || finalEmail || '';
+      
       const globalConfig = localGlobalConfig;
       const contractData: any = {
         id,
-        client_name: finalName,
+        client_name: contractClientName,
         client_cpf: addressData?.cpf || null,
-        client_email: finalEmail || null,
+        client_email: contractClientEmail,
         client_phone: finalPhone || null,
         protocol_number: protocolNum,
         status: 'sem preencher',
@@ -2476,14 +2482,14 @@ router.post('/public/contracts/from-meeting', async (req: Request, res: Response
       if (tenantId && SUPABASE_CONFIGURED && supabaseOwner) {
         try {
           const supabaseContractData = {
-            client_name: finalName,
+            client_name: contractClientName,
             client_cpf: addressData?.cpf || '',
-            client_email: finalEmail || '',
+            client_email: contractClientEmail,
             client_phone: finalPhone || null,
             protocol_number: protocolNum,
             status: 'sem preencher',
             access_token,
-            contract_html: '<p>Contrato gerado automaticamente a partir da reunião</p>', // NOT NULL na tabela
+            contract_html: '<p>Contrato gerado automaticamente a partir da reunião</p>',
             address_street: addressData?.street || null,
             address_number: addressData?.number || null,
             address_complement: addressData?.complement || null,
@@ -2493,20 +2499,20 @@ router.post('/public/contracts/from-meeting', async (req: Request, res: Response
           };
           
           const supabaseContract = await assinaturaSupabaseService.createContract(supabaseContractData);
-          console.log(`[Assinatura] ✅ Contrato salvo no Supabase: ${supabaseContract?.id || 'sem id'}`);
+          console.log(`[Assinatura] ✅ Contrato salvo no Supabase: ${supabaseContract?.id || 'sem id'}, nome: ${contractClientName}`);
         } catch (err) {
           console.log('[Assinatura] Erro ao salvar no Supabase (contrato local mantido):', err);
         }
       }
       
-      console.log(`[Assinatura] ✅ Contrato criado diretamente: ${id}, signature_url: ${signature_url}`);
+      console.log(`[Assinatura] ✅ Contrato criado: ${id}, cliente: ${contractClientName}`);
       
       return res.json({
         success: true,
         contract: {
           id,
           access_token,
-          client_name: finalName,
+          client_name: contractClientName,
           protocol_number: protocolNum,
           signature_url,
           status: 'sem preencher',
