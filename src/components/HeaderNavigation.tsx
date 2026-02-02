@@ -71,7 +71,8 @@ const HeaderNavigation = () => {
       path: "/produto", 
       label: "Etiqueta", 
       icon: Package,
-      active: location.pathname === "/produto" && !location.pathname.startsWith("/produto/admin")
+      active: location.pathname === "/produto" && !location.pathname.startsWith("/produto/admin"),
+      onClick: () => navigate("/produto?page=produto-list")
     },
     { 
       path: "/vendas", 

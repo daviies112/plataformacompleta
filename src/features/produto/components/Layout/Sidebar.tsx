@@ -28,12 +28,6 @@ export const Sidebar = ({ currentPage, onNavigate }: SidebarProps) => {
   }, [currentPage, isPlataformaVendasRoute]);
 
   const menuItems = [
-    { 
-      icon: LayoutDashboard, 
-      label: "Dashboard", 
-      id: "dashboard",
-      description: "Visão geral do sistema" 
-    },
     {
       icon: Users,
       label: "Cadastros",
@@ -41,7 +35,6 @@ export const Sidebar = ({ currentPage, onNavigate }: SidebarProps) => {
       description: "Gerenciar parceiros",
       submenu: [
         { icon: ShoppingBag, label: "Fornecedores", id: "cadastro-fornecedor" },
-        { icon: UserCheck, label: "Revendedores", id: "cadastro-revendedor" },
       ],
     },
     {
