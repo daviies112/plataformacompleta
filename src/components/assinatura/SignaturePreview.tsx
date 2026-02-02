@@ -88,6 +88,11 @@ interface SignaturePreviewProps {
   progressTextColor?: string;
   progressTitle?: string;
   progressSubtitle?: string;
+  progressActiveStepBg?: string;
+  progressCompleteStepBg?: string;
+  progressInactiveStepBg?: string;
+  progressCheckIconColor?: string;
+  progressInactiveCircleBg?: string;
   
   wizardStep?: number;
   onStepChange?: (step: number) => void;
@@ -161,6 +166,11 @@ export const SignaturePreview = ({
   progressTextColor = '#1e40af',
   progressTitle = 'Assinatura Digital',
   progressSubtitle = 'Conclua os passos abaixo para finalizar o processo.',
+  progressActiveStepBg = 'rgba(255,255,255,0.2)',
+  progressCompleteStepBg = 'rgba(34,197,94,0.2)',
+  progressInactiveStepBg = 'rgba(255,255,255,0.05)',
+  progressCheckIconColor = '#22c55e',
+  progressInactiveCircleBg = 'rgba(255,255,255,0.2)',
   
   wizardStep: externalWizardStep,
   onStepChange

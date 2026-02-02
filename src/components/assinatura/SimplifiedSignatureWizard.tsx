@@ -84,6 +84,34 @@ export interface SimplifiedSignatureWizardProps {
   resultStepDescription: string;
   selfieButtonText: string;
   selfieInstructionText: string;
+  stepLabelSelfie: string;
+  stepLabelDocument: string;
+  stepLabelAnalysis: string;
+  stepLabelResult: string;
+  progressIndicatorInactiveCircleColor: string;
+  progressIndicatorInactiveTextColor: string;
+  selfieCaptureButtonText: string;
+  selfieRetakeButtonText: string;
+  selfieConfirmButtonText: string;
+  onStepLabelSelfieChange: (value: string) => void;
+  onStepLabelDocumentChange: (value: string) => void;
+  onStepLabelAnalysisChange: (value: string) => void;
+  onStepLabelResultChange: (value: string) => void;
+  onProgressIndicatorInactiveCircleColorChange: (value: string) => void;
+  onProgressIndicatorInactiveTextColorChange: (value: string) => void;
+  onSelfieCaptureButtonTextChange: (value: string) => void;
+  onSelfieRetakeButtonTextChange: (value: string) => void;
+  onSelfieConfirmButtonTextChange: (value: string) => void;
+  detectionDefaultMessage: string;
+  detectionCenterMessage: string;
+  detectionLightingMessage: string;
+  detectionQualityMessage: string;
+  detectionPerfectMessage: string;
+  onDetectionDefaultMessageChange: (value: string) => void;
+  onDetectionCenterMessageChange: (value: string) => void;
+  onDetectionLightingMessageChange: (value: string) => void;
+  onDetectionQualityMessageChange: (value: string) => void;
+  onDetectionPerfectMessageChange: (value: string) => void;
   onVerificationPrimaryColorChange: (value: string) => void;
   onVerificationTextColorChange: (value: string) => void;
   onVerificationFontFamilyChange: (value: string) => void;
@@ -122,6 +150,11 @@ export interface SimplifiedSignatureWizardProps {
   progressStep3Description: string;
   progressButtonText: string;
   progressFontFamily: string;
+  progressActiveStepBg: string;
+  progressCompleteStepBg: string;
+  progressInactiveStepBg: string;
+  progressCheckIconColor: string;
+  progressInactiveCircleBg: string;
   onProgressCardColorChange: (value: string) => void;
   onProgressButtonColorChange: (value: string) => void;
   onProgressTextColorChange: (value: string) => void;
@@ -135,6 +168,11 @@ export interface SimplifiedSignatureWizardProps {
   onProgressStep3DescriptionChange: (value: string) => void;
   onProgressButtonTextChange: (value: string) => void;
   onProgressFontFamilyChange: (value: string) => void;
+  onProgressActiveStepBgChange: (value: string) => void;
+  onProgressCompleteStepBgChange: (value: string) => void;
+  onProgressInactiveStepBgChange: (value: string) => void;
+  onProgressCheckIconColorChange: (value: string) => void;
+  onProgressInactiveCircleBgChange: (value: string) => void;
 
   parabensTitle: string;
   parabensSubtitle: string;
@@ -251,6 +289,34 @@ export const SimplifiedSignatureWizard = ({
   resultStepDescription,
   selfieButtonText,
   selfieInstructionText,
+  stepLabelSelfie,
+  stepLabelDocument,
+  stepLabelAnalysis,
+  stepLabelResult,
+  progressIndicatorInactiveCircleColor,
+  progressIndicatorInactiveTextColor,
+  selfieCaptureButtonText,
+  selfieRetakeButtonText,
+  selfieConfirmButtonText,
+  onStepLabelSelfieChange,
+  onStepLabelDocumentChange,
+  onStepLabelAnalysisChange,
+  onStepLabelResultChange,
+  onProgressIndicatorInactiveCircleColorChange,
+  onProgressIndicatorInactiveTextColorChange,
+  onSelfieCaptureButtonTextChange,
+  onSelfieRetakeButtonTextChange,
+  onSelfieConfirmButtonTextChange,
+  detectionDefaultMessage,
+  detectionCenterMessage,
+  detectionLightingMessage,
+  detectionQualityMessage,
+  detectionPerfectMessage,
+  onDetectionDefaultMessageChange,
+  onDetectionCenterMessageChange,
+  onDetectionLightingMessageChange,
+  onDetectionQualityMessageChange,
+  onDetectionPerfectMessageChange,
   onVerificationPrimaryColorChange,
   onVerificationTextColorChange,
   onVerificationFontFamilyChange,
@@ -289,6 +355,11 @@ export const SimplifiedSignatureWizard = ({
   progressStep3Description,
   progressButtonText,
   progressFontFamily,
+  progressActiveStepBg,
+  progressCompleteStepBg,
+  progressInactiveStepBg,
+  progressCheckIconColor,
+  progressInactiveCircleBg,
   onProgressCardColorChange,
   onProgressButtonColorChange,
   onProgressTextColorChange,
@@ -302,6 +373,11 @@ export const SimplifiedSignatureWizard = ({
   onProgressStep3DescriptionChange,
   onProgressButtonTextChange,
   onProgressFontFamilyChange,
+  onProgressActiveStepBgChange,
+  onProgressCompleteStepBgChange,
+  onProgressInactiveStepBgChange,
+  onProgressCheckIconColorChange,
+  onProgressInactiveCircleBgChange,
 
   parabensTitle,
   parabensSubtitle,
@@ -714,6 +790,181 @@ export const SimplifiedSignatureWizard = ({
               </div>
             </CardContent>
           </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Barra de Navegação (Etapas)</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Rótulo - Selfie</Label>
+                  <Input
+                    value={stepLabelSelfie}
+                    onChange={(e) => onStepLabelSelfieChange(e.target.value)}
+                    placeholder="Selfie"
+                    data-testid="input-step-label-selfie"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Rótulo - Documento</Label>
+                  <Input
+                    value={stepLabelDocument}
+                    onChange={(e) => onStepLabelDocumentChange(e.target.value)}
+                    placeholder="Documento"
+                    data-testid="input-step-label-document"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Rótulo - Análise</Label>
+                  <Input
+                    value={stepLabelAnalysis}
+                    onChange={(e) => onStepLabelAnalysisChange(e.target.value)}
+                    placeholder="Análise"
+                    data-testid="input-step-label-analysis"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Rótulo - Resultado</Label>
+                  <Input
+                    value={stepLabelResult}
+                    onChange={(e) => onStepLabelResultChange(e.target.value)}
+                    placeholder="Resultado"
+                    data-testid="input-step-label-result"
+                  />
+                </div>
+              </div>
+              <Separator />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Cor Círculo Inativo</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="color"
+                      value={progressIndicatorInactiveCircleColor}
+                      onChange={(e) => onProgressIndicatorInactiveCircleColorChange(e.target.value)}
+                      className="w-12 h-10 p-1 cursor-pointer"
+                      data-testid="input-progress-indicator-inactive-circle-color"
+                    />
+                    <Input
+                      value={progressIndicatorInactiveCircleColor}
+                      onChange={(e) => onProgressIndicatorInactiveCircleColorChange(e.target.value)}
+                      className="flex-1"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Cor Texto Inativo</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="color"
+                      value={progressIndicatorInactiveTextColor}
+                      onChange={(e) => onProgressIndicatorInactiveTextColorChange(e.target.value)}
+                      className="w-12 h-10 p-1 cursor-pointer"
+                      data-testid="input-progress-indicator-inactive-text-color"
+                    />
+                    <Input
+                      value={progressIndicatorInactiveTextColor}
+                      onChange={(e) => onProgressIndicatorInactiveTextColorChange(e.target.value)}
+                      className="flex-1"
+                    />
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Botões da Captura de Selfie</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>Texto - Botão Capturar</Label>
+                <Input
+                  value={selfieCaptureButtonText}
+                  onChange={(e) => onSelfieCaptureButtonTextChange(e.target.value)}
+                  placeholder="Capturar Agora"
+                  data-testid="input-selfie-capture-button-text"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Texto - Tirar Outra</Label>
+                  <Input
+                    value={selfieRetakeButtonText}
+                    onChange={(e) => onSelfieRetakeButtonTextChange(e.target.value)}
+                    placeholder="Tirar Outra"
+                    data-testid="input-selfie-retake-button-text"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Texto - Confirmar</Label>
+                  <Input
+                    value={selfieConfirmButtonText}
+                    onChange={(e) => onSelfieConfirmButtonTextChange(e.target.value)}
+                    placeholder="Confirmar"
+                    data-testid="input-selfie-confirm-button-text"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Mensagens de Detecção Facial</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>Mensagem Padrão (rosto não detectado)</Label>
+                <Input
+                  value={detectionDefaultMessage}
+                  onChange={(e) => onDetectionDefaultMessageChange(e.target.value)}
+                  placeholder="Posicione seu rosto na área indicada"
+                  data-testid="input-detection-default-message"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Mensagem de Centralização</Label>
+                <Input
+                  value={detectionCenterMessage}
+                  onChange={(e) => onDetectionCenterMessageChange(e.target.value)}
+                  placeholder="Centralize seu rosto"
+                  data-testid="input-detection-center-message"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Mensagem de Iluminação</Label>
+                <Input
+                  value={detectionLightingMessage}
+                  onChange={(e) => onDetectionLightingMessageChange(e.target.value)}
+                  placeholder="Melhore a iluminação"
+                  data-testid="input-detection-lighting-message"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Mensagem de Qualidade/Distância</Label>
+                <Input
+                  value={detectionQualityMessage}
+                  onChange={(e) => onDetectionQualityMessageChange(e.target.value)}
+                  placeholder="Aproxime seu rosto"
+                  data-testid="input-detection-quality-message"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Mensagem de Captura Perfeita</Label>
+                <Input
+                  value={detectionPerfectMessage}
+                  onChange={(e) => onDetectionPerfectMessageChange(e.target.value)}
+                  placeholder="Perfeito! Capturando..."
+                  data-testid="input-detection-perfect-message"
+                />
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="progresso" className="space-y-4">
@@ -829,6 +1080,101 @@ export const SimplifiedSignatureWizard = ({
                     value={progressTextColor}
                     onChange={(e) => onProgressTextColorChange(e.target.value)}
                     className="flex-1"
+                  />
+                </div>
+              </div>
+              <Separator />
+              <Label className="font-semibold">Cores dos Passos</Label>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Fundo Passo Ativo</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="color"
+                      value={progressActiveStepBg.startsWith('rgba') ? '#ffffff' : progressActiveStepBg}
+                      onChange={(e) => onProgressActiveStepBgChange(e.target.value)}
+                      className="w-12 h-10 p-1 cursor-pointer"
+                      data-testid="input-progress-active-step-bg"
+                    />
+                    <Input
+                      value={progressActiveStepBg}
+                      onChange={(e) => onProgressActiveStepBgChange(e.target.value)}
+                      className="flex-1"
+                      placeholder="rgba(255,255,255,0.2)"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Fundo Passo Completo</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="color"
+                      value={progressCompleteStepBg.startsWith('rgba') ? '#22c55e' : progressCompleteStepBg}
+                      onChange={(e) => onProgressCompleteStepBgChange(e.target.value)}
+                      className="w-12 h-10 p-1 cursor-pointer"
+                      data-testid="input-progress-complete-step-bg"
+                    />
+                    <Input
+                      value={progressCompleteStepBg}
+                      onChange={(e) => onProgressCompleteStepBgChange(e.target.value)}
+                      className="flex-1"
+                      placeholder="rgba(34,197,94,0.2)"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Fundo Passo Inativo</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="color"
+                      value={progressInactiveStepBg.startsWith('rgba') ? '#ffffff' : progressInactiveStepBg}
+                      onChange={(e) => onProgressInactiveStepBgChange(e.target.value)}
+                      className="w-12 h-10 p-1 cursor-pointer"
+                      data-testid="input-progress-inactive-step-bg"
+                    />
+                    <Input
+                      value={progressInactiveStepBg}
+                      onChange={(e) => onProgressInactiveStepBgChange(e.target.value)}
+                      className="flex-1"
+                      placeholder="rgba(255,255,255,0.05)"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Cor Ícone Check</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="color"
+                      value={progressCheckIconColor}
+                      onChange={(e) => onProgressCheckIconColorChange(e.target.value)}
+                      className="w-12 h-10 p-1 cursor-pointer"
+                      data-testid="input-progress-check-icon-color"
+                    />
+                    <Input
+                      value={progressCheckIconColor}
+                      onChange={(e) => onProgressCheckIconColorChange(e.target.value)}
+                      className="flex-1"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Fundo Círculo Inativo</Label>
+                <div className="flex gap-2">
+                  <Input
+                    type="color"
+                    value={progressInactiveCircleBg.startsWith('rgba') ? '#ffffff' : progressInactiveCircleBg}
+                    onChange={(e) => onProgressInactiveCircleBgChange(e.target.value)}
+                    className="w-12 h-10 p-1 cursor-pointer"
+                    data-testid="input-progress-inactive-circle-bg"
+                  />
+                  <Input
+                    value={progressInactiveCircleBg}
+                    onChange={(e) => onProgressInactiveCircleBgChange(e.target.value)}
+                    className="flex-1"
+                    placeholder="rgba(255,255,255,0.2)"
                   />
                 </div>
               </div>

@@ -92,6 +92,21 @@ const PersonalizarAssinaturaPage = () => {
   const [resultStepDescription, setResultStepDescription] = useState('Sua identidade foi verificada com sucesso');
   const [selfieButtonText, setSelfieButtonText] = useState('Iniciar Verificação');
   const [selfieInstructionText, setSelfieInstructionText] = useState('Posicione seu rosto e aguarde a captura automática');
+  
+  const [stepLabelSelfie, setStepLabelSelfie] = useState('Selfie');
+  const [stepLabelDocument, setStepLabelDocument] = useState('Documento');
+  const [stepLabelAnalysis, setStepLabelAnalysis] = useState('Análise');
+  const [stepLabelResult, setStepLabelResult] = useState('Resultado');
+  const [progressIndicatorInactiveCircleColor, setProgressIndicatorInactiveCircleColor] = useState('#e5e5e5');
+  const [progressIndicatorInactiveTextColor, setProgressIndicatorInactiveTextColor] = useState('#666666');
+  const [selfieCaptureButtonText, setSelfieCaptureButtonText] = useState('Capturar Agora');
+  const [selfieRetakeButtonText, setSelfieRetakeButtonText] = useState('Tirar Outra');
+  const [selfieConfirmButtonText, setSelfieConfirmButtonText] = useState('Confirmar');
+  const [detectionDefaultMessage, setDetectionDefaultMessage] = useState('Posicione seu rosto na área indicada');
+  const [detectionCenterMessage, setDetectionCenterMessage] = useState('Centralize seu rosto');
+  const [detectionLightingMessage, setDetectionLightingMessage] = useState('Melhore a iluminação');
+  const [detectionQualityMessage, setDetectionQualityMessage] = useState('Aproxime seu rosto');
+  const [detectionPerfectMessage, setDetectionPerfectMessage] = useState('Perfeito! Capturando...');
 
   const [progressCardColor, setProgressCardColor] = useState('#dbeafe');
   const [progressButtonColor, setProgressButtonColor] = useState('#22c55e');
@@ -106,6 +121,11 @@ const PersonalizarAssinaturaPage = () => {
   const [progressStep3Description, setProgressStep3Description] = useState('Confirme seus dados e finalize');
   const [progressButtonText, setProgressButtonText] = useState('Complete os passos acima');
   const [progressFontFamily, setProgressFontFamily] = useState('Arial, sans-serif');
+  const [progressActiveStepBg, setProgressActiveStepBg] = useState('rgba(255,255,255,0.2)');
+  const [progressCompleteStepBg, setProgressCompleteStepBg] = useState('rgba(34,197,94,0.2)');
+  const [progressInactiveStepBg, setProgressInactiveStepBg] = useState('rgba(255,255,255,0.05)');
+  const [progressCheckIconColor, setProgressCheckIconColor] = useState('#22c55e');
+  const [progressInactiveCircleBg, setProgressInactiveCircleBg] = useState('rgba(255,255,255,0.2)');
 
   const [contractPrimaryColor, setContractPrimaryColor] = useState('#2c3e50');
   const [contractTextColor, setContractTextColor] = useState('#333333');
@@ -271,6 +291,34 @@ const PersonalizarAssinaturaPage = () => {
                   resultStepDescription={resultStepDescription}
                   selfieButtonText={selfieButtonText}
                   selfieInstructionText={selfieInstructionText}
+                  stepLabelSelfie={stepLabelSelfie}
+                  stepLabelDocument={stepLabelDocument}
+                  stepLabelAnalysis={stepLabelAnalysis}
+                  stepLabelResult={stepLabelResult}
+                  progressIndicatorInactiveCircleColor={progressIndicatorInactiveCircleColor}
+                  progressIndicatorInactiveTextColor={progressIndicatorInactiveTextColor}
+                  selfieCaptureButtonText={selfieCaptureButtonText}
+                  selfieRetakeButtonText={selfieRetakeButtonText}
+                  selfieConfirmButtonText={selfieConfirmButtonText}
+                  onStepLabelSelfieChange={setStepLabelSelfie}
+                  onStepLabelDocumentChange={setStepLabelDocument}
+                  onStepLabelAnalysisChange={setStepLabelAnalysis}
+                  onStepLabelResultChange={setStepLabelResult}
+                  onProgressIndicatorInactiveCircleColorChange={setProgressIndicatorInactiveCircleColor}
+                  onProgressIndicatorInactiveTextColorChange={setProgressIndicatorInactiveTextColor}
+                  onSelfieCaptureButtonTextChange={setSelfieCaptureButtonText}
+                  onSelfieRetakeButtonTextChange={setSelfieRetakeButtonText}
+                  onSelfieConfirmButtonTextChange={setSelfieConfirmButtonText}
+                  detectionDefaultMessage={detectionDefaultMessage}
+                  detectionCenterMessage={detectionCenterMessage}
+                  detectionLightingMessage={detectionLightingMessage}
+                  detectionQualityMessage={detectionQualityMessage}
+                  detectionPerfectMessage={detectionPerfectMessage}
+                  onDetectionDefaultMessageChange={setDetectionDefaultMessage}
+                  onDetectionCenterMessageChange={setDetectionCenterMessage}
+                  onDetectionLightingMessageChange={setDetectionLightingMessage}
+                  onDetectionQualityMessageChange={setDetectionQualityMessage}
+                  onDetectionPerfectMessageChange={setDetectionPerfectMessage}
                   onSelfieStepTitleChange={setSelfieStepTitle}
                   onSelfieStepDescriptionChange={setSelfieStepDescription}
                   onDocumentStepTitleChange={setDocumentStepTitle}
@@ -294,6 +342,11 @@ const PersonalizarAssinaturaPage = () => {
                   progressStep3Description={progressStep3Description}
                   progressButtonText={progressButtonText}
                   progressFontFamily={progressFontFamily}
+                  progressActiveStepBg={progressActiveStepBg}
+                  progressCompleteStepBg={progressCompleteStepBg}
+                  progressInactiveStepBg={progressInactiveStepBg}
+                  progressCheckIconColor={progressCheckIconColor}
+                  progressInactiveCircleBg={progressInactiveCircleBg}
                   onProgressCardColorChange={setProgressCardColor}
                   onProgressButtonColorChange={setProgressButtonColor}
                   onProgressTextColorChange={setProgressTextColor}
@@ -307,6 +360,11 @@ const PersonalizarAssinaturaPage = () => {
                   onProgressStep3DescriptionChange={setProgressStep3Description}
                   onProgressButtonTextChange={setProgressButtonText}
                   onProgressFontFamilyChange={setProgressFontFamily}
+                  onProgressActiveStepBgChange={setProgressActiveStepBg}
+                  onProgressCompleteStepBgChange={setProgressCompleteStepBg}
+                  onProgressInactiveStepBgChange={setProgressInactiveStepBg}
+                  onProgressCheckIconColorChange={setProgressCheckIconColor}
+                  onProgressInactiveCircleBgChange={setProgressInactiveCircleBg}
                   parabensTitle={parabensTitle}
                   parabensSubtitle={parabensSubtitle}
                   parabensDescription={parabensDescription}
@@ -423,6 +481,11 @@ const PersonalizarAssinaturaPage = () => {
                       progressTextColor={progressTextColor}
                       progressTitle={progressTitle}
                       progressSubtitle={progressSubtitle}
+                      progressActiveStepBg={progressActiveStepBg}
+                      progressCompleteStepBg={progressCompleteStepBg}
+                      progressInactiveStepBg={progressInactiveStepBg}
+                      progressCheckIconColor={progressCheckIconColor}
+                      progressInactiveCircleBg={progressInactiveCircleBg}
                     />
                   </CardContent>
                 </Card>

@@ -15,6 +15,13 @@ import { ResultScreen } from './ResultScreen';
 import type { DocumentType, VerificationResult } from '@/types/verification';
 import { toast } from 'sonner';
 
+interface StepLabels {
+  selfie: string;
+  document: string;
+  analysis: string;
+  result: string;
+}
+
 interface VerificationFlowProps {
   primaryColor?: string;
   secondaryColor?: string;
@@ -41,6 +48,18 @@ interface VerificationFlowProps {
   headerCompanyName?: string;
   companyName?: string;
   startAtSelfie?: boolean;
+  stepLabels?: StepLabels;
+  inactiveCircleColor?: string;
+  inactiveTextColor?: string;
+  captureButtonText?: string;
+  retakeButtonText?: string;
+  confirmButtonText?: string;
+  waitingInstructionText?: string;
+  detectionDefaultMessage?: string;
+  detectionCenterMessage?: string;
+  detectionLightingMessage?: string;
+  detectionQualityMessage?: string;
+  detectionPerfectMessage?: string;
 }
 
 export const VerificationFlow = ({ 
@@ -65,7 +84,19 @@ export const VerificationFlow = ({
   headerLogoUrl = '',
   headerCompanyName = '',
   companyName = '',
-  startAtSelfie = false
+  startAtSelfie = false,
+  stepLabels,
+  inactiveCircleColor,
+  inactiveTextColor,
+  captureButtonText,
+  retakeButtonText,
+  confirmButtonText,
+  waitingInstructionText,
+  detectionDefaultMessage,
+  detectionCenterMessage,
+  detectionLightingMessage,
+  detectionQualityMessage,
+  detectionPerfectMessage
 }: VerificationFlowProps & { textColor?: string }) => {
   const {
     session,
@@ -311,7 +342,13 @@ export const VerificationFlow = ({
               )}
             </div>
           )}
-          <ProgressIndicator currentStep={currentStep} primaryColor={primaryColor} />
+          <ProgressIndicator 
+            currentStep={currentStep} 
+            primaryColor={primaryColor}
+            stepLabels={stepLabels}
+            inactiveCircleColor={inactiveCircleColor}
+            inactiveTextColor={inactiveTextColor}
+          />
           
           {logoUrl && (
             <div style={{
@@ -351,6 +388,15 @@ export const VerificationFlow = ({
               primaryColor={primaryColor}
               logoUrl={logoUrl}
               logoSize={logoSize}
+              captureButtonText={captureButtonText}
+              retakeButtonText={retakeButtonText}
+              confirmButtonText={confirmButtonText}
+              waitingInstructionText={waitingInstructionText}
+              detectionDefaultMessage={detectionDefaultMessage}
+              detectionCenterMessage={detectionCenterMessage}
+              detectionLightingMessage={detectionLightingMessage}
+              detectionQualityMessage={detectionQualityMessage}
+              detectionPerfectMessage={detectionPerfectMessage}
             />
           )}
           

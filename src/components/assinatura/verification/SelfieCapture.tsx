@@ -13,9 +13,33 @@ interface SelfieCaptureProps {
   primaryColor?: string;
   logoUrl?: string;
   logoSize?: 'small' | 'medium' | 'large';
+  captureButtonText?: string;
+  retakeButtonText?: string;
+  confirmButtonText?: string;
+  waitingInstructionText?: string;
+  detectionDefaultMessage?: string;
+  detectionCenterMessage?: string;
+  detectionLightingMessage?: string;
+  detectionQualityMessage?: string;
+  detectionPerfectMessage?: string;
 }
 
-export const SelfieCapture = ({ onCapture, onBack, primaryColor = '#2c3e50', logoUrl = '', logoSize = 'medium' }: SelfieCaptureProps) => {
+export const SelfieCapture = ({ 
+  onCapture, 
+  onBack, 
+  primaryColor = '#2c3e50', 
+  logoUrl = '', 
+  logoSize = 'medium',
+  captureButtonText = 'Capturar Agora',
+  retakeButtonText = 'Tirar Outra',
+  confirmButtonText = 'Confirmar',
+  waitingInstructionText = 'Posicione seu rosto e aguarde a captura automática',
+  detectionDefaultMessage = 'Posicione seu rosto na área indicada',
+  detectionCenterMessage = 'Centralize seu rosto',
+  detectionLightingMessage = 'Melhore a iluminação',
+  detectionQualityMessage = 'Aproxime seu rosto',
+  detectionPerfectMessage = 'Perfeito! Capturando...'
+}: SelfieCaptureProps) => {
   const { 
     videoRef, 
     isReady, 
@@ -68,13 +92,12 @@ export const SelfieCapture = ({ onCapture, onBack, primaryColor = '#2c3e50', log
         try {
           const result = await detectFace(video);
           
-          // Enhanced messages based on detection result
-          let message = 'Posicione seu rosto na área indicada';
+          let message = detectionDefaultMessage;
           if (result.detected) {
-            if (!result.centered) message = 'Centralize seu rosto';
-            else if (!result.goodLighting) message = 'Melhore a iluminação';
-            else if (result.quality < 75) message = 'Aproxime seu rosto';
-            else message = 'Perfeito! Capturando...';
+            if (!result.centered) message = detectionCenterMessage;
+            else if (!result.goodLighting) message = detectionLightingMessage;
+            else if (result.quality < 75) message = detectionQualityMessage;
+            else message = detectionPerfectMessage;
           }
           
           const updatedResult = { ...result, message };
@@ -247,8 +270,6 @@ export const SelfieCapture = ({ onCapture, onBack, primaryColor = '#2c3e50', log
                 }}
               />
               
-              {/* Selfie capture is fixed to 'user' camera only, no flip button provided here */}
-              
               {showLoading && (
                 <div className="absolute inset-0 flex items-center justify-center bg-background">
                   <div className="flex flex-col items-center gap-4">
@@ -315,7 +336,7 @@ export const SelfieCapture = ({ onCapture, onBack, primaryColor = '#2c3e50', log
                 className="flex-1 h-14"
               >
                 <RotateCcw className="w-5 h-5 mr-2" />
-                Tirar Outra
+                {retakeButtonText}
               </Button>
               <Button
                 size="lg"
@@ -323,7 +344,7 @@ export const SelfieCapture = ({ onCapture, onBack, primaryColor = '#2c3e50', log
                 className="flex-1 h-14 bg-accent hover:bg-accent-light text-accent-foreground"
               >
                 <Check className="w-5 h-5 mr-2" />
-                Confirmar
+                {confirmButtonText}
               </Button>
             </motion.div>
           ) : (
@@ -338,7 +359,7 @@ export const SelfieCapture = ({ onCapture, onBack, primaryColor = '#2c3e50', log
                   ? 'Aguardando câmera...'
                   : autoCapture 
                     ? 'Capturando automaticamente...' 
-                    : 'Posicione seu rosto e aguarde a captura automática'}
+                    : waitingInstructionText}
               </p>
               <Button
                 size="lg"
@@ -347,7 +368,7 @@ export const SelfieCapture = ({ onCapture, onBack, primaryColor = '#2c3e50', log
                 className="w-full h-14 bg-primary hover:bg-primary-light text-primary-foreground"
               >
                 <Camera className="w-5 h-5 mr-2" />
-                {isReady ? 'Capturar Agora' : 'Aguardando...'}
+                {isReady ? captureButtonText : 'Aguardando...'}
               </Button>
             </motion.div>
           )}

@@ -2,17 +2,27 @@ import { motion } from 'framer-motion';
 import { Check, Camera, FileText, Cpu, CheckCircle } from 'lucide-react';
 import type { VerificationStep } from '@/types/verification';
 
+interface StepLabels {
+  selfie: string;
+  document: string;
+  analysis: string;
+  result: string;
+}
+
 interface ProgressIndicatorProps {
   currentStep: VerificationStep;
   primaryColor?: string;
+  stepLabels?: StepLabels;
+  inactiveCircleColor?: string;
+  inactiveTextColor?: string;
 }
 
-const steps = [
-  { id: 'selfie', label: 'Selfie', icon: Camera },
-  { id: 'document', label: 'Documento', icon: FileText },
-  { id: 'processing', label: 'Análise', icon: Cpu },
-  { id: 'result', label: 'Resultado', icon: CheckCircle },
-];
+const defaultStepLabels: StepLabels = {
+  selfie: 'Selfie',
+  document: 'Documento',
+  analysis: 'Análise',
+  result: 'Resultado',
+};
 
 const stepOrder: Record<VerificationStep, number> = {
   welcome: -1,
@@ -22,10 +32,23 @@ const stepOrder: Record<VerificationStep, number> = {
   result: 3,
 };
 
-export const ProgressIndicator = ({ currentStep, primaryColor = '#2c3e50' }: ProgressIndicatorProps) => {
+export const ProgressIndicator = ({ 
+  currentStep, 
+  primaryColor = '#2c3e50',
+  stepLabels = defaultStepLabels,
+  inactiveCircleColor = '#e5e5e5',
+  inactiveTextColor = '#666666'
+}: ProgressIndicatorProps) => {
   const currentIndex = stepOrder[currentStep];
 
   if (currentStep === 'welcome') return null;
+
+  const steps = [
+    { id: 'selfie', label: stepLabels.selfie, icon: Camera },
+    { id: 'document', label: stepLabels.document, icon: FileText },
+    { id: 'processing', label: stepLabels.analysis, icon: Cpu },
+    { id: 'result', label: stepLabels.result, icon: CheckCircle },
+  ];
 
   return (
     <div className="w-full py-4 px-6">
@@ -44,8 +67,8 @@ export const ProgressIndicator = ({ currentStep, primaryColor = '#2c3e50' }: Pro
                   transition={{ delay: index * 0.1 }}
                   className="relative w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300"
                   style={{
-                    backgroundColor: isCompleted ? primaryColor : isCurrent ? primaryColor : '#e5e5e5',
-                    color: isCompleted || isCurrent ? 'white' : '#666',
+                    backgroundColor: isCompleted ? primaryColor : isCurrent ? primaryColor : inactiveCircleColor,
+                    color: isCompleted || isCurrent ? 'white' : inactiveTextColor,
                     boxShadow: isCurrent ? `0 0 0 4px ${primaryColor}40` : 'none'
                   }}
                 >
@@ -62,10 +85,10 @@ export const ProgressIndicator = ({ currentStep, primaryColor = '#2c3e50' }: Pro
                     />
                   )}
                 </motion.div>
-                <span className={`
-                  mt-2 text-xs font-medium transition-colors
-                  ${isCurrent ? 'text-foreground' : 'text-muted-foreground'}
-                `}>
+                <span 
+                  className="mt-2 text-xs font-medium transition-colors"
+                  style={{ color: isCurrent ? undefined : inactiveTextColor }}
+                >
                   {step.label}
                 </span>
               </div>

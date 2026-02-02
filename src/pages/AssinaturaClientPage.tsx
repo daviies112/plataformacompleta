@@ -102,6 +102,11 @@ interface ContractData {
   progress_text_color?: string | null;
   progress_font_family?: string | null;
   progress_button_text?: string | null;
+  progress_active_step_bg?: string | null;
+  progress_complete_step_bg?: string | null;
+  progress_inactive_step_bg?: string | null;
+  progress_check_icon_color?: string | null;
+  progress_inactive_circle_bg?: string | null;
   parabens_title?: string | null;
   parabens_subtitle?: string | null;
   parabens_description?: string | null;
@@ -126,6 +131,21 @@ interface ContractData {
   residence_proof_extracted_address?: string | null;
   residence_proof_date?: string | null;
   residence_proof_manual_review?: boolean;
+  step_label_selfie?: string | null;
+  step_label_document?: string | null;
+  step_label_analysis?: string | null;
+  step_label_result?: string | null;
+  progress_indicator_inactive_circle_color?: string | null;
+  progress_indicator_inactive_text_color?: string | null;
+  selfie_capture_button_text?: string | null;
+  selfie_retake_button_text?: string | null;
+  selfie_confirm_button_text?: string | null;
+  selfie_waiting_instruction_text?: string | null;
+  detection_default_message?: string | null;
+  detection_center_message?: string | null;
+  detection_lighting_message?: string | null;
+  detection_quality_message?: string | null;
+  detection_perfect_message?: string | null;
 }
 
 interface ProgressTrackerDisplayProps {
@@ -140,6 +160,11 @@ const ProgressTrackerDisplay = memo(({ currentStep, contract }: ProgressTrackerD
   const progressButtonColor = contract?.progress_button_color || '#22c55e';
   const progressTextColor = contract?.progress_text_color || '#ffffff';
   const progressFontFamily = contract?.progress_font_family || 'Arial, sans-serif';
+  const progressActiveStepBg = contract?.progress_active_step_bg || 'rgba(255,255,255,0.2)';
+  const progressCompleteStepBg = contract?.progress_complete_step_bg || 'rgba(34,197,94,0.2)';
+  const progressInactiveStepBg = contract?.progress_inactive_step_bg || 'rgba(255,255,255,0.05)';
+  const progressCheckIconColor = contract?.progress_check_icon_color || '#22c55e';
+  const progressInactiveCircleBg = contract?.progress_inactive_circle_bg || 'rgba(255,255,255,0.2)';
 
   const steps = useMemo(() => [
     { 
@@ -205,14 +230,15 @@ const ProgressTrackerDisplay = memo(({ currentStep, contract }: ProgressTrackerD
               return (
                 <div 
                   key={step.num}
-                  className={`flex items-start gap-3 p-3 rounded-lg transition-all ${
-                    isActive ? 'bg-white/20' : isComplete ? 'bg-green-500/20' : 'bg-white/5'
-                  }`}
+                  className="flex items-start gap-3 p-3 rounded-lg transition-all"
+                  style={{
+                    backgroundColor: isActive ? progressActiveStepBg : isComplete ? progressCompleteStepBg : progressInactiveStepBg
+                  }}
                 >
                   <div 
                     className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
                     style={{ 
-                      backgroundColor: isComplete ? '#22c55e' : isActive ? progressButtonColor : 'rgba(255,255,255,0.2)',
+                      backgroundColor: isComplete ? progressCheckIconColor : isActive ? progressButtonColor : progressInactiveCircleBg,
                       color: 'white'
                     }}
                   >
@@ -508,6 +534,23 @@ const AssinaturaClientContent = () => {
             securityText={contract.verification_security_text || 'Suas informações são processadas de forma segura.'}
             headerBackgroundColor={contract.verification_header_background_color || primaryColor}
             logoUrl={contract.logo_url || undefined}
+            stepLabels={contract.step_label_selfie || contract.step_label_document || contract.step_label_analysis || contract.step_label_result ? {
+              selfie: contract.step_label_selfie || 'Selfie',
+              document: contract.step_label_document || 'Documento',
+              analysis: contract.step_label_analysis || 'Análise',
+              result: contract.step_label_result || 'Resultado'
+            } : undefined}
+            inactiveCircleColor={contract.progress_indicator_inactive_circle_color || undefined}
+            inactiveTextColor={contract.progress_indicator_inactive_text_color || undefined}
+            captureButtonText={contract.selfie_capture_button_text || undefined}
+            retakeButtonText={contract.selfie_retake_button_text || undefined}
+            confirmButtonText={contract.selfie_confirm_button_text || undefined}
+            waitingInstructionText={contract.selfie_waiting_instruction_text || undefined}
+            detectionDefaultMessage={contract.detection_default_message || undefined}
+            detectionCenterMessage={contract.detection_center_message || undefined}
+            detectionLightingMessage={contract.detection_lighting_message || undefined}
+            detectionQualityMessage={contract.detection_quality_message || undefined}
+            detectionPerfectMessage={contract.detection_perfect_message || undefined}
           />
         </Suspense>
       </div>
