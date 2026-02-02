@@ -216,14 +216,16 @@ const CalendarPage = () => {
     return () => window.removeEventListener('supabase-config-changed', handleSupabaseConfigChange);
   }, [refetch]);
 
-  const events = calendarData?.data || [];
+  const events = calendarData?.events || calendarData?.data || [];
 
   // DEBUG: Log dos dados recebidos (simplificado)
   useEffect(() => {
-    if (events.length > 0) {
-      console.log('[Calendar] Eventos carregados:', events.length);
-    }
-  }, [events]);
+    console.log('[Calendar] Dados recebidos:', { 
+      hasCalendarData: !!calendarData, 
+      eventsLength: events.length,
+      rawData: calendarData
+    });
+  }, [calendarData, events]);
 
   // Agrupa eventos por data
   const eventsByDate = useMemo(() => {
