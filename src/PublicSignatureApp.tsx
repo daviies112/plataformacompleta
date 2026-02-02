@@ -1,23 +1,13 @@
 /**
  * ╔═══════════════════════════════════════════════════════════════════════════╗
- * ║  PUBLIC SIGNATURE COMPONENT - Fast loading with full design support       ║
+ * ║  ⚠️  ULTRA-LIGHT PUBLIC SIGNATURE COMPONENT - CRITICAL FOR PERFORMANCE ⚠️║
  * ╠═══════════════════════════════════════════════════════════════════════════╣
- * ║  This component loads quickly and supports all design customizations      ║
- * ║  QueryClientProvider is loaded dynamically only when needed               ║
+ * ║  This component loads in <1 second                                        ║
+ * ║  Heavy providers (QueryClient, ThemeProvider, Toaster) are loaded         ║
+ * ║  dynamically via AssinaturaClientWrapper only when user clicks start      ║
  * ╚═══════════════════════════════════════════════════════════════════════════╝
  */
-import { useState, useEffect, useCallback, lazy, Suspense } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-
-// Create a QueryClient for the signature flow
-const signatureQueryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 5 * 60 * 1000,
-      retry: 1,
-    },
-  },
-});
+import { useState, useEffect, useCallback } from "react";
 
 interface ContractData {
   id: string;
@@ -106,7 +96,7 @@ const PublicSignatureApp = () => {
     if (contractData && step === 'welcome') {
       // Use requestIdleCallback for non-blocking preload
       const preload = () => {
-        import('./pages/AssinaturaClientPage').catch(() => {});
+        import('./pages/AssinaturaClientWrapper').catch(() => {});
       };
       
       if ('requestIdleCallback' in window) {
@@ -121,7 +111,8 @@ const PublicSignatureApp = () => {
     setStep('signing');
     
     try {
-      const module = await import('./pages/AssinaturaClientPage');
+      // Load the wrapper that includes all providers (QueryClient, ThemeProvider, etc.)
+      const module = await import('./pages/AssinaturaClientWrapper');
       setHeavyComponent(() => module.default);
     } catch (err) {
       console.error('Erro ao carregar componente:', err);
@@ -172,11 +163,8 @@ const PublicSignatureApp = () => {
   }
 
   if (step === 'signing' && HeavyComponent) {
-    return (
-      <QueryClientProvider client={signatureQueryClient}>
-        <HeavyComponent />
-      </QueryClientProvider>
-    );
+    // HeavyComponent is AssinaturaClientWrapper which includes all providers
+    return <HeavyComponent />;
   }
 
   if (step === 'signing' && !HeavyComponent) {
