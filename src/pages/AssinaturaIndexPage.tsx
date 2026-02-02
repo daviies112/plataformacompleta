@@ -41,17 +41,17 @@ const AssinaturaIndexPage = () => {
                 onClick={() => navigate("/assinatura/criar")}
                 variant="premium"
                 size="lg"
-                className="gap-2 text-lg px-10 py-7 h-auto"
+                className="gap-2"
                 data-testid="button-criar-assinatura"
               >
                 Criar Assinatura
-                <ArrowRight className="h-6 w-6" />
+                <ArrowRight className="h-5 w-5" />
               </Button>
               <Button 
                 onClick={() => navigate("/assinatura/contratos")}
                 variant="outline"
                 size="lg"
-                className="gap-2 text-lg px-10 py-7 h-auto glass"
+                className="gap-2 glass"
                 data-testid="button-ver-contratos"
               >
                 <FileText className="h-5 w-5" />

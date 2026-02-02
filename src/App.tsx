@@ -38,8 +38,21 @@ const MinimalSkeleton = () => (
   </div>
 );
 
+// ✅ Rotas internas de assinatura (não públicas)
+const internalAssinaturaRoutes = [
+  '/assinatura',
+  '/assinatura/criar',
+  '/assinatura/personalizar',
+  '/assinatura/contratos'
+];
+
 // ✅ Função centralizada para verificar se é rota pública
 const isPublicRoute = (path: string): boolean => {
+  // Rotas internas de assinatura NÃO são públicas
+  if (internalAssinaturaRoutes.includes(path)) {
+    return false;
+  }
+  
   return (
     path === '/' ||
     path === '/login' ||
@@ -87,7 +100,8 @@ const PublicRoutes = () => {
     );
   }
   
-  if (path.startsWith('/assinatura/')) {
+  // Assinaturas públicas (exceto rotas internas)
+  if (path.startsWith('/assinatura/') && !internalAssinaturaRoutes.includes(path)) {
     return (
       <Suspense fallback={<MinimalSkeleton />}>
         <AssinaturaFromMeeting />

@@ -54,8 +54,21 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
+// Rotas internas de assinatura (não públicas)
+const internalAssinaturaRoutes = [
+  '/assinatura',
+  '/assinatura/criar',
+  '/assinatura/personalizar',
+  '/assinatura/contratos'
+];
+
 // ✅ OTIMIZAÇÃO: Função rápida para identificar rotas públicas no AuthContext
 const isPublicRoute = (path: string): boolean => {
+  // Rotas internas de assinatura NÃO são públicas
+  if (internalAssinaturaRoutes.includes(path)) {
+    return false;
+  }
+  
   return (
     path === '/' ||
     path === '/login' ||

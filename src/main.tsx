@@ -33,9 +33,18 @@ const isPublicMeetingRoute =
   path.startsWith('/reuniao/') ||
   path.startsWith('/reuniao-publica/');
 
+// Rotas internas de assinatura (não públicas)
+const internalAssinaturaRoutes = [
+  '/assinatura',
+  '/assinatura/criar',
+  '/assinatura/personalizar',
+  '/assinatura/contratos'
+];
+
 const isPublicSignatureRoute = 
-  path.startsWith('/assinar/') ||
-  path.startsWith('/assinatura/');
+  (path.startsWith('/assinar/') ||
+  path.startsWith('/assinatura/')) &&
+  !internalAssinaturaRoutes.includes(path);
 
 if (isPublicFormRoute) {
   import("./PublicFormApp").then(({ default: PublicFormApp }) => {
