@@ -144,6 +144,9 @@ export const Sidebar = ({ currentPage, onNavigate }: SidebarProps) => {
         ))}
 
         <Separator className="bg-sidebar-border" />
+      </nav>
+
+      <Separator className="bg-sidebar-border" />
       
       <div className="p-3">
         <Button 
