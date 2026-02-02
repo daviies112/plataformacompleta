@@ -812,7 +812,16 @@ export const formSubmissions = pgTable("form_submissions", {
   addressCity: text("address_city"),
   addressState: text("address_state"),
   
+  // Status de processamento e agendamento
+  processadoWhatsapp: boolean("processado_whatsapp").default(false),
+  agendouReuniao: boolean("agendou_reuniao").default(false),
+  dataAgendamento: timestamp("data_agendamento", { withTimezone: true }),
+  followUpCount: integer("follow_up_count").default(0),
+  ultimoFollowUp: timestamp("ultimo_follow_up", { withTimezone: true }),
+  followUpEncerrado: boolean("follow_up_encerrado").default(false),
+  
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 }, (table) => ({
   formIdIdx: index("idx_submissions_form_id").on(table.formId),
   createdAtIdx: index("idx_submissions_created_at").on(table.createdAt.desc()),
@@ -1116,6 +1125,7 @@ export const insertFormSchema = createInsertSchema(forms).omit({
 export const insertFormSubmissionSchema = createInsertSchema(formSubmissions).omit({
   id: true,
   createdAt: true,
+  updatedAt: true,
 });
 
 export const insertFormTemplateSchema = createInsertSchema(formTemplates).omit({

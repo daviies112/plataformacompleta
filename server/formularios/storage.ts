@@ -90,7 +90,7 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(formSubmissions.createdAt));
   }
 
-  async createFormSubmission(submission: InsertFormSubmission): Promise<FormSubmission> {
+  async createFormSubmission(submission: any): Promise<FormSubmission> {
     const result = await db.insert(formSubmissions).values(submission).returning();
     return result[0];
   }

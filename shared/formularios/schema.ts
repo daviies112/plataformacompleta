@@ -87,6 +87,10 @@ export const formSubmissions = pgTable("form_submissions", {
   contactName: text("contact_name"),
   contactEmail: text("contact_email"),
   contactPhone: text("contact_phone"),
+  contactCpf: text("contact_cpf"),
+  tenantId: text("tenant_id"),
+  instagramHandle: text("instagram_handle"),
+  birthDate: text("birth_date"),
   addressCep: text("address_cep"),
   addressStreet: text("address_street"),
   addressNumber: text("address_number"),
@@ -94,10 +98,21 @@ export const formSubmissions = pgTable("form_submissions", {
   addressNeighborhood: text("address_neighborhood"),
   addressCity: text("address_city"),
   addressState: text("address_state"),
+  processadoWhatsapp: boolean("processado_whatsapp").default(false),
+  agendouReuniao: boolean("agendou_reuniao").default(false),
+  dataAgendamento: timestamp("data_agendamento", { withTimezone: true }),
+  followUpCount: integer("follow_up_count").default(0),
+  ultimoFollowUp: timestamp("ultimo_follow_up", { withTimezone: true }),
+  followUpEncerrado: boolean("follow_up_encerrado").default(false),
+  participantId: text("participant_id"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 }, (table) => ({
   formIdIdx: index("idx_submissions_form_id").on(table.formId),
   createdAtIdx: index("idx_submissions_created_at").on(table.createdAt.desc()),
+  cpfIdx: index("idx_form_submissions_cpf").on(table.contactCpf),
+  tenantIdx: index("idx_form_submissions_tenant_id").on(table.tenantId),
+  participantIdx: index("idx_form_submissions_participant_id").on(table.participantId),
 }));
 
 export const formTemplates = pgTable("form_templates", {
@@ -129,6 +144,7 @@ export const insertFormSchema = createInsertSchema(forms).omit({
 export const insertFormSubmissionSchema = createInsertSchema(formSubmissions).omit({
   id: true,
   createdAt: true,
+  updatedAt: true,
 });
 
 export const insertFormTemplateSchema = createInsertSchema(formTemplates).omit({

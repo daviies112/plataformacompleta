@@ -321,115 +321,6 @@ export function registerRoutes(app: Express) {
       
       const supabase = await getDynamicSupabaseClient(supabaseUrl, supabaseKey);
       
-      if (supabase) {
-        console.log('📝 [POST /api/submissions] Salvando no Supabase...');
-        
-        // 🔥 MULTI-TENANT SECURITY: Obter tenant_id da sessão ou lookup via form_tenant_mapping
-        let tenantId = (req.session as any)?.tenantId;
-        
-        // Se não há sessão (formulário público), buscar tenant_id via form_tenant_mapping
-        if (!tenantId) {
-          console.log('🔍 [POST /api/submissions] Sem sessão - buscando tenant_id via form_tenant_mapping...');
-          const formMapping = await db
-            .select({ tenantId: formTenantMapping.tenantId })
-            .from(formTenantMapping)
-            .where(eq(formTenantMapping.formId, req.body.formId))
-            .limit(1);
-          
-          if (formMapping.length > 0) {
-            tenantId = formMapping[0].tenantId;
-            console.log(`✅ [POST /api/submissions] Tenant ID encontrado no mapping: ${tenantId}`);
-          } else {
-            console.error(`❌ [POST /api/submissions] Form ${req.body.formId} não encontrado no form_tenant_mapping`);
-            return res.status(400).json({ 
-              error: 'Cannot determine tenant_id for this form. Form may not be properly configured.' 
-            });
-          }
-        }
-        
-        console.log(`🏢 [POST /api/submissions] Tenant ID: ${tenantId}`);
-        
-        const snakeData = convertKeysToSnakeCase(req.body);
-        const stringifiedData = stringifyJsonbFields(snakeData, ['answers']);
-        
-        // 🔥 DEBUG: Verificar conversão snake_case
-        console.log('📱 [POST /api/submissions] Após snake_case, contact_phone:', snakeData.contact_phone);
-        console.log('📱 [POST /api/submissions] stringifiedData.contact_phone:', stringifiedData.contact_phone);
-        
-        // 🔥 ADICIONAR tenant_id ao payload (CRÍTICO PARA MULTI-TENANT SECURITY)
-        stringifiedData.tenant_id = tenantId;
-        
-        // 🔥 DEBUG: Log do payload final
-        console.log('📱 [POST /api/submissions] Payload final para Supabase:', JSON.stringify(stringifiedData, null, 2));
-        
-        const { data, error } = await supabase
-          .from('form_submissions')
-          .insert(stringifiedData)
-          .select()
-          .single();
-        
-        if (error) {
-          console.error('❌ [SUPABASE] Erro ao criar submission:', error);
-          throw error;
-        }
-        
-        console.log('✅ [SUPABASE] Submission criada com sucesso!');
-        
-        const camelData = convertKeysToCamelCase(data);
-        const parsedData = parseJsonbFields(camelData, ['answers']);
-        
-        // 🔥 DEBUG: Verificar CPF após conversão
-        console.log('🔍 [SUPABASE DEBUG] =====================================');
-        console.log('🔍 [SUPABASE DEBUG] Dados do Supabase (raw) contact_cpf:', data?.contact_cpf);
-        console.log('🔍 [SUPABASE DEBUG] camelData.contactCpf:', camelData?.contactCpf);
-        console.log('🔍 [SUPABASE DEBUG] parsedData.contactCpf:', parsedData?.contactCpf);
-        console.log('🔍 [SUPABASE DEBUG] Todas as chaves no data:', Object.keys(data || {}));
-        console.log('🔍 [SUPABASE DEBUG] =====================================');
-        
-        // 🔥 SINCRONIZAR LEAD AUTOMATICAMENTE QUANDO FORMULÁRIO É COMPLETADO
-        if (parsedData.contactPhone) {
-          try {
-            console.log('📞 [SUPABASE] Sincronizando lead para submission:', parsedData.id);
-            console.log('🔍 [SUPABASE DEBUG] contactCpf sendo passado para sync:', parsedData.contactCpf);
-            const syncResult = await leadSyncService.syncSubmissionToLead(
-              {
-                id: parsedData.id,
-                formId: parsedData.formId,
-                tenantId: tenantId,  // 🔥 MULTI-TENANT SECURITY
-                contactPhone: parsedData.contactPhone,
-                contactName: parsedData.contactName,
-                contactEmail: parsedData.contactEmail,
-                contactCpf: parsedData.contactCpf,
-                instagramHandle: parsedData.instagramHandle,
-                birthDate: parsedData.birthDate,
-                addressCep: parsedData.addressCep,
-                addressStreet: parsedData.addressStreet,
-                addressNumber: parsedData.addressNumber,
-                addressComplement: parsedData.addressComplement,
-                addressNeighborhood: parsedData.addressNeighborhood,
-                addressCity: parsedData.addressCity,
-                addressState: parsedData.addressState,
-                agendouReuniao: parsedData.agendouReuniao,
-                dataAgendamento: parsedData.dataAgendamento,
-                answers: parsedData.answers,
-                totalScore: parsedData.totalScore,
-                passed: parsedData.passed,
-              }
-            );
-            if (syncResult.success) {
-              console.log('✅ [SUPABASE] Lead sincronizado com sucesso:', syncResult.leadId);
-            } else {
-              console.warn('⚠️ [SUPABASE] Aviso na sincronização:', syncResult.message);
-            }
-          } catch (error) {
-            console.error('❌ [SUPABASE] Erro ao sincronizar lead:', error);
-            // Não bloqueia a resposta se falhar
-          }
-        }
-        
-        return res.status(201).json(parsedData);
-      }
-      
       // 🔥 MULTI-TENANT SECURITY: Obter tenant_id da sessão ou lookup via form_tenant_mapping
       let tenantId = (req.session as any)?.tenantId;
       
@@ -454,55 +345,85 @@ export function registerRoutes(app: Express) {
       }
       
       console.log(`🏢 [POST /api/submissions] Tenant ID: ${tenantId}`);
+
+      if (supabase) {
+        console.log('📝 [POST /api/submissions] Salvando no Supabase...');
+        
+        const snakeData = convertKeysToSnakeCase(req.body);
+        const stringifiedData = stringifyJsonbFields(snakeData, ['answers']);
+        
+        // 🔥 DEBUG: Verificar conversão snake_case
+        console.log('📱 [POST /api/submissions] Após snake_case, contact_phone:', snakeData.contact_phone);
+        
+        // 🔥 ADICIONAR tenant_id ao payload (CRÍTICO PARA MULTI-TENANT SECURITY)
+        stringifiedData.tenant_id = tenantId;
+        
+        // 🔥 DEBUG: Log do payload final
+        console.log('📱 [POST /api/submissions] Payload final para Supabase:', JSON.stringify(stringifiedData, null, 2));
+        
+        const { data, error } = await supabase
+          .from('form_submissions')
+          .insert(stringifiedData)
+          .select()
+          .single();
+        
+        if (error) {
+          console.error('❌ [SUPABASE] Erro ao criar submission:', error);
+          throw error;
+        }
+        
+        console.log('✅ [SUPABASE] Submission criada com sucesso!');
+        
+        const camelData = convertKeysToCamelCase(data);
+        const parsedData = parseJsonbFields(camelData, ['answers']);
+        
+        // 🔥 SINCRONIZAR LEAD AUTOMATICAMENTE
+        if (parsedData.contactPhone) {
+          try {
+            console.log('📞 [SUPABASE] Sincronizando lead para submission:', parsedData.id);
+            await leadSyncService.syncSubmissionToLead({
+              ...parsedData,
+              tenantId: tenantId
+            });
+          } catch (error) {
+            console.error('❌ [SUPABASE] Erro ao sincronizar lead:', error);
+          }
+        }
+        
+        return res.status(201).json(parsedData);
+      }
       
-      // 🔥 DEBUG: Log antes do parse
-      console.log('📱 [PostgreSQL] req.body.contactPhone ANTES do parse:', req.body.contactPhone);
+      console.log('📝 [POST /api/submissions] Salvando no PostgreSQL local...');
+      const camelBody = convertKeysToCamelCase(req.body);
       
-      const validatedData = insertFormSubmissionSchema.parse(req.body);
-      
-      // 🔥 DEBUG: Log após parse
-      console.log('📱 [PostgreSQL] validatedData.contactPhone APÓS parse:', validatedData.contactPhone);
-      
-      // 🔥 ADICIONAR tenant_id ao payload (CRÍTICO PARA MULTI-TENANT SECURITY)
+      // Adicionar tenantId e garantir que answers seja mantido
       const submissionData = {
-        ...validatedData,
-        tenantId: tenantId
+        ...camelBody,
+        tenantId: tenantId,
+        answers: req.body.answers // Garantir que answers não seja perdido se o case converter mexer nele
       };
       
-      // 🔥 DEBUG: Log do payload final para PostgreSQL
-      console.log('📱 [PostgreSQL] submissionData.contactPhone FINAL:', submissionData.contactPhone);
-      console.log('📱 [PostgreSQL] Payload completo:', JSON.stringify(submissionData, null, 2));
+      // Remover campos que não pertencem à tabela local se necessário, 
+      // ou apenas confiar que o storage/drizzle ignora campos extras
       
       const submission = await storage.createFormSubmission(submissionData);
       
-      // 🔥 SINCRONIZAR LEAD AUTOMATICAMENTE QUANDO FORMULÁRIO É COMPLETADO (PostgreSQL local)
+      // 🔥 SINCRONIZAR LEAD AUTOMATICAMENTE (PostgreSQL local)
       if (submission.contactPhone) {
         try {
           console.log('📞 [PostgreSQL] Sincronizando lead para submission:', submission.id);
-          const syncResult = await leadSyncService.syncSubmissionToLead({
-            id: submission.id,
-            formId: submission.formId,
-            tenantId: tenantId,  // 🔥 MULTI-TENANT SECURITY
-            contactPhone: submission.contactPhone,
-            contactName: submission.contactName,
-            contactEmail: submission.contactEmail,
-            contactCpf: submission.contactCpf,
-            totalScore: submission.totalScore,
-            passed: submission.passed,
+          await leadSyncService.syncSubmissionToLead({
+            ...submission,
+            tenantId: tenantId
           });
-          if (syncResult.success) {
-            console.log('✅ [PostgreSQL] Lead sincronizado com sucesso:', syncResult.leadId);
-          } else {
-            console.warn('⚠️ [PostgreSQL] Aviso na sincronização:', syncResult.message);
-          }
         } catch (error) {
           console.error('❌ [PostgreSQL] Erro ao sincronizar lead:', error);
-          // Não bloqueia a resposta se falhar
         }
       }
       
       res.status(201).json(submission);
     } catch (error: any) {
+      console.error('❌ [POST /api/submissions] Erro geral:', error);
       res.status(400).json({ error: error.message });
     }
   });
