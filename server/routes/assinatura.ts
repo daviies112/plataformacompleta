@@ -2257,6 +2257,46 @@ Responda APENAS em JSON válido com esta estrutura:
   }
 });
 
+// ROTA PÚBLICA: Buscar contrato por access_token (para página de assinatura)
+router.get('/public/contract/:token', async (req: Request, res: Response) => {
+  try {
+    const { token } = req.params;
+    
+    console.log(`[Assinatura/Public] Buscando contrato por token: ${token}`);
+    
+    // Primeiro buscar no Supabase
+    if (assinaturaSupabaseService.isConnected()) {
+      let contract = await assinaturaSupabaseService.getContractByToken(token);
+      if (contract) {
+        console.log(`[Assinatura/Public] Contrato encontrado no Supabase`);
+        res.set('Cache-Control', 'private, max-age=300');
+        return res.json(contract);
+      }
+    }
+    
+    // Fallback: buscar no store local
+    let contract = Array.from(localContractsStore.values()).find(
+      (c) => c.access_token === token
+    );
+    
+    if (!contract) {
+      contract = localContractsStore.get(token);
+    }
+
+    if (!contract) {
+      console.log(`[Assinatura/Public] Contrato não encontrado: ${token}`);
+      return res.status(404).json({ error: 'Contrato não encontrado' });
+    }
+
+    console.log(`[Assinatura/Public] Contrato encontrado no local storage: ${contract.id}`);
+    res.set('Cache-Control', 'private, max-age=300');
+    res.json(contract);
+  } catch (error) {
+    console.error('[Assinatura/Public] Erro ao buscar contrato:', error);
+    res.status(500).json({ error: 'Falha ao buscar contrato' });
+  }
+});
+
 // Endpoint público para criar contrato a partir de uma reunião/form_submission
 router.post('/public/contracts/from-meeting', async (req: Request, res: Response) => {
   try {

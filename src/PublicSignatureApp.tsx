@@ -92,7 +92,7 @@ const PublicSignatureApp = () => {
 
     const fetchContract = async () => {
       try {
-        const response = await fetch(`/api/assinatura/${token}`);
+        const response = await fetch(`/api/assinatura/public/contract/${token}`);
         if (!response.ok) {
           throw new Error('Contrato não encontrado');
         }
