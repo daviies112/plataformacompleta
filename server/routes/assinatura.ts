@@ -2350,7 +2350,9 @@ router.post('/public/contracts/from-meeting', async (req: Request, res: Response
       
       // Verificar se temos dados mínimos para criar o contrato
       const finalName = client_name || meetingData?.nome || 'Participante';
-      const finalPhone = client_phone || meetingData?.telefone || '';
+      // Limpar telefone: remover @s.whatsapp.net e manter apenas números (max 20 chars para varchar(20))
+      let rawPhone = client_phone || meetingData?.telefone || '';
+      const finalPhone = rawPhone.replace(/@s\.whatsapp\.net$/i, '').replace(/\D/g, '').slice(0, 20);
       const finalEmail = client_email || meetingData?.email || '';
       let tenantId = meetingData?.tenant_id || null;
       
@@ -2475,14 +2477,13 @@ router.post('/public/contracts/from-meeting', async (req: Request, res: Response
         try {
           const supabaseContractData = {
             client_name: finalName,
-            client_cpf: addressData?.cpf || null,
-            client_email: finalEmail || null,
+            client_cpf: addressData?.cpf || '',
+            client_email: finalEmail || '',
             client_phone: finalPhone || null,
             protocol_number: protocolNum,
             status: 'sem preencher',
             access_token,
-            meeting_id: meetingId,
-            tenant_id: tenantId,
+            contract_html: '<p>Contrato gerado automaticamente a partir da reunião</p>', // NOT NULL na tabela
             address_street: addressData?.street || null,
             address_number: addressData?.number || null,
             address_complement: addressData?.complement || null,

@@ -4019,5 +4019,34 @@
       "state": "MG",
       "zipcode": "30510-690"
     }
+  },
+  "RJ24OH07to1BoMU_RyGDo": {
+    "id": "RJ24OH07to1BoMU_RyGDo",
+    "client_name": "Participante",
+    "client_cpf": "145.155.666-79",
+    "client_email": "sem-email@placeholder.com",
+    "client_phone": "553192267220@s.whatsapp.net",
+    "protocol_number": "CONT-1770044527946-8PJRN1RHN",
+    "status": "sem preencher",
+    "access_token": "65199b9c-ee1a-457b-b2b9-fed6ba4e8193",
+    "created_at": "2026-02-02T15:02:07.946Z",
+    "signed_at": null,
+    "logo_size": "medium",
+    "logo_position": "center",
+    "primary_color": "#27ae60",
+    "text_color": "#2c3e50",
+    "font_family": "Arial, sans-serif",
+    "font_size": "16px",
+    "company_name": "TESTE FINAL SUCESSO",
+    "footer_text": "Documento gerado eletronicamente",
+    "meeting_id": "a299e39e-a2a0-48ad-8b78-269644fe2ff0",
+    "address": {
+      "street": "Rua Seringueira",
+      "number": "350",
+      "complement": "",
+      "city": "Belo Horizonte",
+      "state": "MG",
+      "zipcode": "30510-690"
+    }
   }
 }
