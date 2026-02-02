@@ -72,8 +72,9 @@ const PublicSignatureApp = () => {
       return;
     }
 
-    const fetchContract = async () => {
+    const fetchContractAndLoadComponent = async () => {
       try {
+        // Fetch contract data
         const response = await fetch(`/api/assinatura/public/contract/${token}`);
         if (!response.ok) {
           throw new Error('Contrato não encontrado');
@@ -81,6 +82,14 @@ const PublicSignatureApp = () => {
         
         const data = await response.json();
         setContractData(data);
+        
+        // Go directly to signing step - skip welcome screen
+        setStep('signing');
+        
+        // Load the heavy component immediately
+        const module = await import('./pages/AssinaturaClientWrapper');
+        setHeavyComponent(() => module.default);
+        
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Erro ao carregar contrato');
       } finally {
@@ -88,24 +97,8 @@ const PublicSignatureApp = () => {
       }
     };
 
-    fetchContract();
+    fetchContractAndLoadComponent();
   }, [extractToken]);
-
-  // Preload heavy component after initial data is loaded
-  useEffect(() => {
-    if (contractData && step === 'welcome') {
-      // Use requestIdleCallback for non-blocking preload
-      const preload = () => {
-        import('./pages/AssinaturaClientWrapper').catch(() => {});
-      };
-      
-      if ('requestIdleCallback' in window) {
-        (window as any).requestIdleCallback(preload, { timeout: 2000 });
-      } else {
-        setTimeout(preload, 500);
-      }
-    }
-  }, [contractData, step]);
 
   const handleStartSigning = async () => {
     setStep('signing');
