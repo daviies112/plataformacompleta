@@ -1114,21 +1114,18 @@ export function Meeting100ms({
                       
                       console.log("[Meeting100ms] formSubmissionId final:", formSubmissionId);
                       
-                      // Se não encontrou formSubmissionId, mostrar mensagem de erro clara
-                      if (!formSubmissionId) {
-                        if (signatureWindow) signatureWindow.close();
-                        toast.error("Não foi possível identificar o formulário associado. Use um link com o parâmetro ?fsid=ID");
-                        return;
-                      }
+                      // Usar o endpoint público from-meeting que agora aceita:
+                      // - Com formSubmissionId: busca todos os dados do form_submission
+                      // - Sem formSubmissionId: busca dados da reunião (nome, telefone, email) e cria contrato direto
+                      console.log("[Meeting100ms] Chamando from-meeting com meetingId e client_name");
                       
-                      // Criar contrato usando o endpoint que busca dados do formulário automaticamente
-                      // O endpoint from-meeting busca os dados do form_submission e preenche nome, CPF, email, telefone e endereço
                       const response = await fetch('/api/assinatura/public/contracts/from-meeting', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                           meetingId: currentMeetingId,
-                          formSubmissionId: formSubmissionId,
+                          formSubmissionId: formSubmissionId || undefined,
+                          client_name: localPeerName || undefined, // Nome do participante na sala
                         }),
                       });
 

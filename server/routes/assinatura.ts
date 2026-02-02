@@ -2260,17 +2260,225 @@ Responda APENAS em JSON válido com esta estrutura:
 // Endpoint público para criar contrato a partir de uma reunião/form_submission
 router.post('/public/contracts/from-meeting', async (req: Request, res: Response) => {
   try {
-    const { meetingId, formSubmissionId, fsid } = req.body;
+    const { meetingId, formSubmissionId, fsid, client_name, client_phone, client_email } = req.body;
     
     // Aceitar formSubmissionId ou fsid como parâmetro
     const submissionId = formSubmissionId || fsid;
     
-    console.log(`[Assinatura] POST /public/contracts/from-meeting - meetingId: ${meetingId}, submissionId: ${submissionId}`);
+    console.log(`[Assinatura] POST /public/contracts/from-meeting - meetingId: ${meetingId}, submissionId: ${submissionId || 'null'}`);
     
+    // Se não tem submissionId mas tem meetingId, buscar dados da reunião diretamente
+    if (!submissionId && meetingId) {
+      console.log('[Assinatura] Sem formSubmissionId - tentando criar contrato direto dos dados da reunião');
+      
+      // Buscar dados da reunião de múltiplas fontes
+      let meetingData: any = null;
+      
+      // Fonte 1: PostgreSQL local
+      try {
+        const { pool } = await import('../db.js');
+        if (pool) {
+          const result = await pool.query(
+            `SELECT id, tenant_id, nome, telefone, email FROM reunioes WHERE id = $1`,
+            [meetingId]
+          );
+          if (result.rows.length > 0) {
+            meetingData = result.rows[0];
+            console.log(`[Assinatura] Reunião encontrada no PostgreSQL: nome=${meetingData.nome}, telefone=${meetingData.telefone}`);
+          }
+        }
+      } catch (err) {
+        console.log('[Assinatura] Erro ao buscar reunião no PostgreSQL:', err);
+      }
+      
+      // Fonte 2: Supabase (se não encontrou localmente)
+      if (!meetingData && SUPABASE_CONFIGURED && supabaseOwner) {
+        try {
+          const { data, error } = await supabaseOwner
+            .from('reunioes')
+            .select('id, tenant_id, nome, telefone, email')
+            .eq('id', meetingId)
+            .single();
+          if (!error && data) {
+            meetingData = data;
+            console.log(`[Assinatura] Reunião encontrada no Supabase: nome=${meetingData.nome}, telefone=${meetingData.telefone}`);
+          }
+        } catch (err) {
+          console.log('[Assinatura] Erro ao buscar reunião no Supabase:', err);
+        }
+      }
+      
+      // Verificar se temos dados mínimos para criar o contrato
+      const finalName = client_name || meetingData?.nome || 'Participante';
+      const finalPhone = client_phone || meetingData?.telefone || '';
+      const finalEmail = client_email || meetingData?.email || '';
+      let tenantId = meetingData?.tenant_id || null;
+      
+      // Se não temos tenant_id, tentar resolver via form_submissions usando telefone/email
+      if (!tenantId && (finalPhone || finalEmail)) {
+        console.log('[Assinatura] Tentando resolver tenant_id via form_submissions...');
+        tenantId = await findTenantIdFromSubmission(finalEmail || null, null, finalPhone || null);
+        if (tenantId) {
+          console.log(`[Assinatura] ✅ Tenant resolvido via form_submissions: ${tenantId}`);
+        }
+      }
+      
+      console.log(`[Assinatura] Criando contrato com: nome=${finalName}, telefone=${finalPhone}, tenantId=${tenantId}`);
+      
+      // Buscar endereço automaticamente por telefone/email se disponível
+      let addressData: any = null;
+      if (finalPhone || finalEmail) {
+        try {
+          const { getClienteSupabase, isClienteSupabaseConfigured } = await import('../lib/clienteSupabase.js');
+          if (await isClienteSupabaseConfigured()) {
+            const supabaseClient = await getClienteSupabase();
+            if (supabaseClient) {
+              let submission = null;
+              
+              // Buscar por telefone
+              if (finalPhone) {
+                const phoneDigits = finalPhone.replace(/\D/g, '');
+                const lastDigits = phoneDigits.slice(-9);
+                if (lastDigits.length >= 8) {
+                  const flexPattern = '%' + lastDigits.split('').join('%') + '%';
+                  const { data } = await supabaseClient
+                    .from('form_submissions')
+                    .select('id, contact_cpf, address_street, address_number, address_complement, address_city, address_state, address_cep')
+                    .ilike('contact_phone', flexPattern)
+                    .order('created_at', { ascending: false })
+                    .limit(1);
+                  if (data && data.length > 0) {
+                    submission = data[0];
+                    console.log('[Assinatura] ✅ Form_submission encontrado por telefone');
+                  }
+                }
+              }
+              
+              // Fallback para email
+              if (!submission && finalEmail && !finalEmail.includes('placeholder')) {
+                const { data } = await supabaseClient
+                  .from('form_submissions')
+                  .select('id, contact_cpf, address_street, address_number, address_complement, address_city, address_state, address_cep')
+                  .ilike('contact_email', finalEmail)
+                  .order('created_at', { ascending: false })
+                  .limit(1);
+                if (data && data.length > 0) {
+                  submission = data[0];
+                  console.log('[Assinatura] ✅ Form_submission encontrado por email');
+                }
+              }
+              
+              if (submission) {
+                addressData = {
+                  street: submission.address_street || '',
+                  number: submission.address_number || '',
+                  complement: submission.address_complement || '',
+                  city: submission.address_city || '',
+                  state: submission.address_state || '',
+                  zipcode: submission.address_cep || '',
+                  cpf: submission.contact_cpf || null
+                };
+              }
+            }
+          }
+        } catch (err) {
+          console.log('[Assinatura] Erro ao buscar endereço:', err);
+        }
+      }
+      
+      // Criar contrato diretamente
+      const id = nanoid();
+      const access_token = crypto.randomUUID();
+      const protocolNum = `CONT-${Date.now()}-${nanoid(9).toUpperCase()}`;
+      const domain = process.env.REPLIT_DOMAINS?.split(',')[0] || process.env.REPLIT_DEV_DOMAIN || 'localhost:5000';
+      const protocolScheme = domain.includes('localhost') ? 'http' : 'https';
+      const signature_url = `${protocolScheme}://${domain}/assinar/${access_token}`;
+      
+      const globalConfig = localGlobalConfig;
+      const contractData: any = {
+        id,
+        client_name: finalName,
+        client_cpf: addressData?.cpf || null,
+        client_email: finalEmail || null,
+        client_phone: finalPhone || null,
+        protocol_number: protocolNum,
+        status: 'sem preencher',
+        access_token,
+        created_at: new Date().toISOString(),
+        signed_at: null,
+        logo_url: globalConfig.logo_url,
+        logo_size: globalConfig.logo_size,
+        logo_position: globalConfig.logo_position,
+        primary_color: globalConfig.primary_color,
+        text_color: globalConfig.text_color,
+        font_family: globalConfig.font_family,
+        font_size: globalConfig.font_size,
+        company_name: globalConfig.company_name,
+        footer_text: globalConfig.footer_text,
+        meeting_id: meetingId,
+        address: addressData ? {
+          street: addressData.street,
+          number: addressData.number,
+          complement: addressData.complement,
+          city: addressData.city,
+          state: addressData.state,
+          zipcode: addressData.zipcode
+        } : null
+      };
+      
+      // Salvar localmente
+      localContractsStore.set(id, contractData);
+      saveLocalContracts(localContractsStore);
+      
+      // Salvar no Supabase se configurado e tiver tenantId
+      if (tenantId && SUPABASE_CONFIGURED && supabaseOwner) {
+        try {
+          const supabaseContractData = {
+            client_name: finalName,
+            client_cpf: addressData?.cpf || null,
+            client_email: finalEmail || null,
+            client_phone: finalPhone || null,
+            protocol_number: protocolNum,
+            status: 'sem preencher',
+            access_token,
+            meeting_id: meetingId,
+            tenant_id: tenantId,
+            address_street: addressData?.street || null,
+            address_number: addressData?.number || null,
+            address_complement: addressData?.complement || null,
+            address_city: addressData?.city || null,
+            address_state: addressData?.state || null,
+            address_zipcode: addressData?.zipcode || null,
+          };
+          
+          const supabaseContract = await assinaturaSupabaseService.createContract(supabaseContractData);
+          console.log(`[Assinatura] ✅ Contrato salvo no Supabase: ${supabaseContract?.id || 'sem id'}`);
+        } catch (err) {
+          console.log('[Assinatura] Erro ao salvar no Supabase (contrato local mantido):', err);
+        }
+      }
+      
+      console.log(`[Assinatura] ✅ Contrato criado diretamente: ${id}, signature_url: ${signature_url}`);
+      
+      return res.json({
+        success: true,
+        contract: {
+          id,
+          access_token,
+          client_name: finalName,
+          protocol_number: protocolNum,
+          signature_url,
+          status: 'sem preencher',
+          created_at: contractData.created_at
+        }
+      });
+    }
+    
+    // Se não tem nem submissionId nem meetingId, erro
     if (!submissionId) {
       return res.status(400).json({ 
         error: 'Campo obrigatório ausente', 
-        details: 'formSubmissionId ou fsid é obrigatório' 
+        details: 'formSubmissionId, fsid ou meetingId é obrigatório' 
       });
     }
     
