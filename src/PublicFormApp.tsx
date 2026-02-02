@@ -381,10 +381,13 @@ const PublicFormApp = () => {
     };
   }, [form, currentStep, currentQuestionPage, getQuestions]);
 
+  // Use CSS classes for mobile optimization (defined in index.html)
+  // This reduces JavaScript style recalculations significantly on mobile
+  
   if (loading) {
     return (
-      <div style={styles.container}>
-        <div style={styles.card}>
+      <div className="pf-container" style={{ background: `linear-gradient(135deg, ${colors?.background || '#e0f7fa'} 0%, ${colors?.secondary || '#b2ebf2'} 100%)` }}>
+        <div className="pf-card">
           <div style={styles.skeleton} />
           <div style={{ ...styles.skeleton, width: '70%', marginTop: 16 }} />
           <div style={{ ...styles.skeleton, height: 48, marginTop: 32 }} />
@@ -395,8 +398,8 @@ const PublicFormApp = () => {
 
   if (error) {
     return (
-      <div style={styles.container}>
-        <div style={styles.card}>
+      <div className="pf-container" style={{ background: `linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%)` }}>
+        <div className="pf-card">
           <h2 style={styles.errorTitle}>Erro</h2>
           <p style={styles.errorText}>{error}</p>
         </div>
@@ -407,8 +410,8 @@ const PublicFormApp = () => {
   if (submitted) {
     const thankYou = form?.thank_you_screen;
     return (
-      <div style={styles.container}>
-        <div style={styles.card}>
+      <div className="pf-container" style={{ background: `linear-gradient(135deg, ${colors?.background || '#e0f7fa'} 0%, ${colors?.secondary || '#b2ebf2'} 100%)` }}>
+        <div className="pf-card">
           <div style={{ ...styles.successIcon, backgroundColor: buttonColor }}>✓</div>
           <h2 style={{ ...styles.successTitle, color: primaryColor }}>
             {thankYou?.title || 'Obrigado!'}
@@ -423,8 +426,8 @@ const PublicFormApp = () => {
 
   if (currentStep === 0) {
     return (
-      <div style={styles.container}>
-        <div style={{ ...styles.card, textAlign: 'center' }}>
+      <div className="pf-container" style={{ background: `linear-gradient(135deg, ${colors?.background || '#e0f7fa'} 0%, ${colors?.secondary || '#b2ebf2'} 100%)` }}>
+        <div className="pf-card" style={{ textAlign: 'center' }}>
           <h1 style={{ ...styles.welcomeTitle, color: primaryColor }}>
             {welcomeConfig?.title || form?.title || 'Bem-vindo!'}
           </h1>
@@ -433,7 +436,8 @@ const PublicFormApp = () => {
           </p>
           <div style={{ display: 'flex', justifyContent: 'center' }}>
             <button
-              style={{ ...styles.primaryButton, backgroundColor: buttonColor, color: buttonTextColor }}
+              className="pf-btn"
+              style={{ backgroundColor: buttonColor, color: buttonTextColor }}
               onClick={handleNext}
             >
               ✨ {welcomeConfig?.buttonText || 'Começar'}
@@ -446,10 +450,10 @@ const PublicFormApp = () => {
 
   if (currentStep === 1) {
     return (
-      <div style={styles.container}>
-        <div style={styles.card}>
-          <div style={{ ...styles.progress, backgroundColor: secondaryColor }}>
-            <div style={{ ...styles.progressBar, width: `${progressPercent}%`, backgroundColor: progressBarColor }} />
+      <div className="pf-container" style={{ background: `linear-gradient(135deg, ${colors?.background || '#e0f7fa'} 0%, ${colors?.secondary || '#b2ebf2'} 100%)` }}>
+        <div className="pf-card">
+          <div className="pf-progress" style={{ backgroundColor: secondaryColor }}>
+            <div className="pf-progress-bar" style={{ width: `${progressPercent}%`, backgroundColor: progressBarColor }} />
           </div>
           <p style={styles.stepLabel}>{progressPercent}% completo</p>
           
@@ -460,7 +464,8 @@ const PublicFormApp = () => {
             <label style={styles.label}>Nome completo *</label>
             <input
               type="text"
-              style={{ ...styles.input, ...(personalErrors.name ? styles.inputError : {}), backgroundColor: secondaryColor }}
+              className="pf-input"
+              style={{ ...(personalErrors.name ? styles.inputError : {}), backgroundColor: secondaryColor }}
               value={personalData.name}
               onChange={(e) => setPersonalData(prev => ({ ...prev, name: e.target.value }))}
               placeholder="João da Silva"
@@ -472,7 +477,8 @@ const PublicFormApp = () => {
             <label style={styles.label}>Email *</label>
             <input
               type="email"
-              style={{ ...styles.input, ...(personalErrors.email ? styles.inputError : {}), backgroundColor: secondaryColor }}
+              className="pf-input"
+              style={{ ...(personalErrors.email ? styles.inputError : {}), backgroundColor: secondaryColor }}
               value={personalData.email}
               onChange={(e) => setPersonalData(prev => ({ ...prev, email: e.target.value }))}
               placeholder="joao@email.com"
@@ -484,7 +490,8 @@ const PublicFormApp = () => {
             <label style={styles.label}>CPF *</label>
             <input
               type="text"
-              style={{ ...styles.input, ...(personalErrors.cpf ? styles.inputError : {}), backgroundColor: secondaryColor }}
+              className="pf-input"
+              style={{ ...(personalErrors.cpf ? styles.inputError : {}), backgroundColor: secondaryColor }}
               value={personalData.cpf}
               onChange={(e) => setPersonalData(prev => ({ ...prev, cpf: formatCPF(e.target.value) }))}
               placeholder="123.456.789-00"
@@ -509,8 +516,8 @@ const PublicFormApp = () => {
             <div style={{ position: 'relative' }}>
               <input
                 type="text"
+                className="pf-input"
                 style={{ 
-                  ...styles.input, 
                   backgroundColor: phoneLocked ? '#f0fdf4' : secondaryColor,
                   borderColor: phoneLocked ? '#22c55e' : undefined,
                   borderWidth: phoneLocked ? '2px' : '1px',
@@ -541,7 +548,8 @@ const PublicFormApp = () => {
             <label style={styles.label}>Instagram</label>
             <input
               type="text"
-              style={{ ...styles.input, backgroundColor: secondaryColor }}
+              className="pf-input"
+              style={{ backgroundColor: secondaryColor }}
               value={personalData.instagram}
               onChange={(e) => setPersonalData(prev => ({ ...prev, instagram: e.target.value }))}
               placeholder="@joaosilva"
@@ -549,8 +557,8 @@ const PublicFormApp = () => {
           </div>
           
           <div style={styles.buttonRow}>
-            <button style={styles.secondaryButton} onClick={handleBack}>Voltar</button>
-            <button style={{ ...styles.primaryButton, backgroundColor: buttonColor, color: buttonTextColor }} onClick={handleNext}>
+            <button className="pf-btn" style={{ backgroundColor: '#f1f5f9', color: '#333' }} onClick={handleBack}>Voltar</button>
+            <button className="pf-btn" style={{ backgroundColor: buttonColor, color: buttonTextColor }} onClick={handleNext}>
               Próxima →
             </button>
           </div>
@@ -561,10 +569,10 @@ const PublicFormApp = () => {
 
   if (currentStep === 2) {
     return (
-      <div style={styles.container}>
-        <div style={styles.card}>
-          <div style={{ ...styles.progress, backgroundColor: secondaryColor }}>
-            <div style={{ ...styles.progressBar, width: `${progressPercent}%`, backgroundColor: progressBarColor }} />
+      <div className="pf-container" style={{ background: `linear-gradient(135deg, ${colors?.background || '#e0f7fa'} 0%, ${colors?.secondary || '#b2ebf2'} 100%)` }}>
+        <div className="pf-card">
+          <div className="pf-progress" style={{ backgroundColor: secondaryColor }}>
+            <div className="pf-progress-bar" style={{ width: `${progressPercent}%`, backgroundColor: progressBarColor }} />
           </div>
           <p style={styles.stepLabel}>{progressPercent}% completo</p>
           
@@ -659,8 +667,8 @@ const PublicFormApp = () => {
           </div>
           
           <div style={styles.buttonRow}>
-            <button style={styles.secondaryButton} onClick={handleBack}>Voltar</button>
-            <button style={{ ...styles.primaryButton, backgroundColor: buttonColor, color: buttonTextColor }} onClick={handleNext}>
+            <button className="pf-btn" style={{ backgroundColor: '#f1f5f9', color: '#333' }} onClick={handleBack}>Voltar</button>
+            <button className="pf-btn" style={{ backgroundColor: buttonColor, color: buttonTextColor }} onClick={handleNext}>
               Próxima →
             </button>
           </div>
@@ -672,8 +680,8 @@ const PublicFormApp = () => {
   if (currentStep === 3) {
     if (!currentQuestion) {
       return (
-        <div style={styles.container}>
-          <div style={styles.card}>
+        <div className="pf-container" style={{ background: `linear-gradient(135deg, ${colors?.background || '#e0f7fa'} 0%, ${colors?.secondary || '#b2ebf2'} 100%)` }}>
+          <div className="pf-card">
             <p>Carregando perguntas...</p>
           </div>
         </div>
@@ -683,10 +691,10 @@ const PublicFormApp = () => {
     const isLastQuestion = currentQuestionPage === questions.length - 1;
 
     return (
-      <div style={styles.container}>
-        <div style={styles.card}>
-          <div style={{ ...styles.progress, backgroundColor: secondaryColor }}>
-            <div style={{ ...styles.progressBar, width: `${progressPercent}%`, backgroundColor: progressBarColor }} />
+      <div className="pf-container" style={{ background: `linear-gradient(135deg, ${colors?.background || '#e0f7fa'} 0%, ${colors?.secondary || '#b2ebf2'} 100%)` }}>
+        <div className="pf-card">
+          <div className="pf-progress" style={{ backgroundColor: secondaryColor }}>
+            <div className="pf-progress-bar" style={{ width: `${progressPercent}%`, backgroundColor: progressBarColor }} />
           </div>
           <p style={styles.stepLabel}>{progressPercent}% completo</p>
           
@@ -702,11 +710,12 @@ const PublicFormApp = () => {
           </div>
 
           <div style={styles.buttonRow}>
-            <button style={styles.secondaryButton} onClick={handleBack}>Voltar</button>
+            <button className="pf-btn" style={{ backgroundColor: '#f1f5f9', color: '#333' }} onClick={handleBack}>Voltar</button>
             
             {isLastQuestion ? (
               <button
-                style={{ ...styles.primaryButton, backgroundColor: buttonColor, color: buttonTextColor, opacity: submitting ? 0.6 : 1 }}
+                className="pf-btn"
+                style={{ backgroundColor: buttonColor, color: buttonTextColor, opacity: submitting ? 0.6 : 1 }}
                 onClick={handleSubmit}
                 disabled={submitting}
               >
@@ -714,7 +723,8 @@ const PublicFormApp = () => {
               </button>
             ) : (
               <button
-                style={{ ...styles.primaryButton, backgroundColor: buttonColor, color: buttonTextColor }}
+                className="pf-btn"
+                style={{ backgroundColor: buttonColor, color: buttonTextColor }}
                 onClick={handleNext}
               >
                 Próxima →
