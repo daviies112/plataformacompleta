@@ -1125,7 +1125,7 @@ export function Meeting100ms({
                         body: JSON.stringify({
                           meetingId: currentMeetingId,
                           formSubmissionId: formSubmissionId || undefined,
-                          client_name: localPeerName || undefined, // Nome do participante na sala
+                          client_name: localPeer?.name || undefined, // Nome do participante na sala
                         }),
                       });
 
