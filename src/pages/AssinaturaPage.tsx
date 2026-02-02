@@ -4,33 +4,30 @@ import { useLocation } from 'wouter';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { ContractDetailsModal } from '@/components/assinatura/modals/ContractDetailsModal';
+import { SimplifiedSignatureWizard } from '@/components/assinatura/SimplifiedSignatureWizard';
+import { SignaturePreview } from '@/components/assinatura/SignaturePreview';
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { 
   FileText, 
   Copy, 
   Check, 
   Plus, 
-  Trash2, 
   Clock, 
   CheckCircle2, 
-  Users, 
   FileCheck, 
-  Gift, 
   Loader2, 
-  AlertCircle, 
-  Camera, 
-  Shield, 
-  Smartphone,
-  Palette,
   Eye,
-  FileSignature
+  FileSignature,
+  ChevronDown,
+  ChevronUp,
+  List
 } from 'lucide-react';
 
 interface ContractClause {
@@ -69,23 +66,20 @@ const defaultClauses: ContractClause[] = [
 const AssinaturaPage = () => {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState('cliente');
   const [generatedUrl, setGeneratedUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [selectedContract, setSelectedContract] = useState<Contract | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [showContracts, setShowContracts] = useState(false);
 
-  // Dados Cliente
   const [clientName, setClientName] = useState('');
   const [clientCpf, setClientCpf] = useState('');
   const [clientEmail, setClientEmail] = useState('');
   const [clientPhone, setClientPhone] = useState('');
 
-  // Contrato - Conteúdo
   const [contractTitle, setContractTitle] = useState('Contrato de Prestação de Serviços');
   const [clauses, setClauses] = useState<ContractClause[]>(defaultClauses);
   
-  // Contrato - Personalizações
   const [logoUrl, setLogoUrl] = useState('');
   const [logoSize, setLogoSize] = useState<'small' | 'medium' | 'large'>('medium');
   const [logoPosition, setLogoPosition] = useState<'center' | 'left' | 'right'>('center');
@@ -97,12 +91,10 @@ const AssinaturaPage = () => {
   const [companyName, setCompanyName] = useState('Sua Empresa');
   const [footerText, setFooterText] = useState('Documento gerado eletronicamente');
 
-  // Maleta - Cores
   const [maletaCardColor, setMaletaCardColor] = useState('#dbeafe');
   const [maletaButtonColor, setMaletaButtonColor] = useState('#22c55e');
   const [maletaTextColor, setMaletaTextColor] = useState('#1e40af');
 
-  // Parabéns - Personalização
   const [parabensTitle, setParabensTitle] = useState('Parabéns!');
   const [parabensSubtitle, setParabensSubtitle] = useState('Processo concluído com sucesso!');
   const [parabensDescription, setParabensDescription] = useState('Sua documentação foi processada. Aguarde as próximas instruções.');
@@ -114,7 +106,6 @@ const AssinaturaPage = () => {
   const [parabensFormTitle, setParabensFormTitle] = useState('Endereço para Entrega');
   const [parabensButtonText, setParabensButtonText] = useState('Confirmar e Continuar');
 
-  // Verificação - Personalização
   const [verificationPrimaryColor, setVerificationPrimaryColor] = useState('#2c3e50');
   const [verificationTextColor, setVerificationTextColor] = useState('#000000');
   const [verificationFontFamily, setVerificationFontFamily] = useState('Arial, sans-serif');
@@ -130,7 +121,6 @@ const AssinaturaPage = () => {
   const [verificationHeaderBackgroundColor, setVerificationHeaderBackgroundColor] = useState('#2c3e50');
   const [verificationHeaderCompanyName, setVerificationHeaderCompanyName] = useState('Sua Empresa');
 
-  // Progresso - Personalização
   const [progressCardColor, setProgressCardColor] = useState('#dbeafe');
   const [progressButtonColor, setProgressButtonColor] = useState('#22c55e');
   const [progressTextColor, setProgressTextColor] = useState('#1e40af');
@@ -145,16 +135,13 @@ const AssinaturaPage = () => {
   const [progressButtonText, setProgressButtonText] = useState('Complete os passos acima');
   const [progressFontFamily, setProgressFontFamily] = useState('Arial, sans-serif');
 
-  // Aplicativos
   const [appStoreUrl, setAppStoreUrl] = useState('');
   const [googlePlayUrl, setGooglePlayUrl] = useState('');
 
-  // Carregar Configurações Globais (incluindo links de apps)
   const { data: globalConfig } = useQuery<any>({
     queryKey: ['/api/assinatura/global-config'],
   });
   
-  // Carregar URLs de Apps da nova tabela app_promotion_configs
   const { data: appPromotionConfig, isLoading: isLoadingAppPromotion } = useQuery<{
     app_store_url: string;
     google_play_url: string;
@@ -162,7 +149,6 @@ const AssinaturaPage = () => {
     queryKey: ['/api/assinatura/app-promotion'],
   });
 
-  // Atualizar campos quando config global carregar
   React.useEffect(() => {
     if (globalConfig) {
       if (globalConfig.logo_url) setLogoUrl(globalConfig.logo_url);
@@ -170,7 +156,6 @@ const AssinaturaPage = () => {
     }
   }, [globalConfig]);
 
-  // Atualizar campos de app quando app promotion config carregar
   React.useEffect(() => {
     if (appPromotionConfig) {
       if (appPromotionConfig.app_store_url) setAppStoreUrl(appPromotionConfig.app_store_url);
@@ -199,13 +184,6 @@ const AssinaturaPage = () => {
     }
   });
 
-  const handleSaveAppLinks = () => {
-    saveAppPromotionMutation.mutate({
-      app_store_url: appStoreUrl,
-      google_play_url: googlePlayUrl
-    });
-  };
-
   const { data: contracts = [], isLoading: isLoadingContracts } = useQuery<Contract[]>({
     queryKey: ['/api/assinatura/contracts'],
   });
@@ -219,7 +197,6 @@ const AssinaturaPage = () => {
       queryClient.invalidateQueries({ queryKey: ['/api/assinatura/contracts'] });
       const url = `${window.location.origin}/assinar/${data.access_token}`;
       setGeneratedUrl(url);
-      setActiveTab('contratos');
       toast({
         title: 'Contrato criado!',
         description: 'URL gerada com sucesso. Copie e envie ao cliente.',
@@ -277,20 +254,6 @@ const AssinaturaPage = () => {
 
   const handlePhoneChange = (value: string) => {
     setClientPhone(formatPhone(value));
-  };
-
-  const addClause = () => {
-    setClauses([...clauses, { title: '', content: '' }]);
-  };
-
-  const removeClause = (index: number) => {
-    setClauses(clauses.filter((_, i) => i !== index));
-  };
-
-  const updateClause = (index: number, field: 'title' | 'content', value: string) => {
-    const updated = [...clauses];
-    updated[index][field] = value;
-    setClauses(updated);
   };
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -402,9 +365,7 @@ const AssinaturaPage = () => {
     const contractHTML = generateContractHTML();
     const protocolNumber = `CONT-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
 
-    // Validar se há conteúdo no contrato
     if (clauses.length === 0 || clauses.some(c => !c.title.trim() || !c.content.trim())) {
-      setActiveTab('contrato');
       toast({ 
         title: 'Aviso', 
         description: 'Preencha todas as cláusulas do contrato antes de criar.', 
@@ -515,56 +476,49 @@ const AssinaturaPage = () => {
   };
 
   return (
-    <div className="space-y-6 relative pb-20 sm:pb-0">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-col h-full">
+      <div className="flex items-center justify-between px-4 py-3 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div>
-          <h1 className="text-2xl font-bold" data-testid="text-page-title">
-            <FileSignature className="inline-block w-6 h-6 mr-2" />
+          <h1 className="text-xl font-bold flex items-center gap-2" data-testid="text-page-title">
+            <FileSignature className="w-5 h-5" />
             Assinatura Digital
           </h1>
-          <p className="text-muted-foreground mt-1">Gerenciador de contratos para assinatura digital</p>
+          <p className="text-sm text-muted-foreground">Gerenciador de contratos para assinatura digital</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowContracts(!showContracts)}
+            className="flex items-center gap-2"
+            data-testid="button-toggle-contracts"
+          >
+            <List className="w-4 h-4" />
+            Ver Contratos
+            {showContracts ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          </Button>
         </div>
       </div>
 
-      {/* Floating Action Button (FAB) for Creating Contract */}
-      {!generatedUrl && activeTab !== 'contratos' && (
-        <div className="fixed bottom-6 right-6 z-[100]">
-          <Button
-            size="lg"
-            onClick={handleCreateContract}
-            disabled={createContractMutation.isPending}
-            className="h-16 px-8 rounded-full shadow-2xl bg-accent hover:bg-accent/90 text-accent-foreground flex items-center gap-3 animate-in fade-in zoom-in duration-300"
-            data-testid="button-create-contract-floating"
-          >
-            {createContractMutation.isPending ? (
-              <Loader2 className="w-6 h-6 animate-spin" />
-            ) : (
-              <FileSignature className="w-6 h-6" />
-            )}
-            <span className="text-lg font-bold">Criar Contrato</span>
-          </Button>
-        </div>
-      )}
-
       {generatedUrl && (
-        <Card className="border-green-500/50 bg-green-500/10">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-green-600">
-              <Check className="w-6 h-6" />
+        <Card className="mx-4 mt-4 border-green-500/50 bg-green-500/10">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-green-600 text-lg">
+              <Check className="w-5 h-5" />
               Contrato Criado com Sucesso!
             </CardTitle>
             <CardDescription>
               Copie a URL abaixo e envie para o cliente assinar o contrato.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3">
             <div className="flex gap-2">
               <Input value={generatedUrl} readOnly className="font-mono text-sm" data-testid="input-generated-url" />
               <Button onClick={copyToClipboard} variant="outline" data-testid="button-copy-url">
                 {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
               </Button>
             </div>
-            <Button onClick={resetForm} className="w-full" data-testid="button-new-contract">
+            <Button onClick={resetForm} className="w-full" size="sm" data-testid="button-new-contract">
               <Plus className="w-4 h-4 mr-2" />
               Criar Novo Contrato
             </Button>
@@ -572,1249 +526,264 @@ const AssinaturaPage = () => {
         </Card>
       )}
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="flex flex-wrap gap-1">
-          <TabsTrigger value="cliente" className="flex items-center gap-2" data-testid="tab-cliente">
-            <Users className="w-4 h-4" />
-            <span className="hidden sm:inline">Cliente</span>
-          </TabsTrigger>
-          <TabsTrigger value="aparencia" className="flex items-center gap-2" data-testid="tab-aparencia">
-            <Palette className="w-4 h-4" />
-            <span className="hidden sm:inline">Aparência</span>
-          </TabsTrigger>
-          <TabsTrigger value="verificacao" className="flex items-center gap-2" data-testid="tab-verificacao">
-            <Camera className="w-4 h-4" />
-            <span className="hidden sm:inline">Verificação</span>
-          </TabsTrigger>
-          <TabsTrigger value="contrato" className="flex items-center gap-2" data-testid="tab-contrato">
-            <FileText className="w-4 h-4" />
-            <span className="hidden sm:inline">Contrato</span>
-          </TabsTrigger>
-          <TabsTrigger value="progresso" className="flex items-center gap-2" data-testid="tab-progresso">
-            <Shield className="w-4 h-4" />
-            <span className="hidden sm:inline">Progresso</span>
-          </TabsTrigger>
-          <TabsTrigger value="parabens" className="flex items-center gap-2" data-testid="tab-parabens">
-            <Gift className="w-4 h-4" />
-            <span className="hidden sm:inline">Parabéns</span>
-          </TabsTrigger>
-          <TabsTrigger value="aplicativos" className="flex items-center gap-2" data-testid="tab-aplicativos">
-            <Smartphone className="w-4 h-4" />
-            <span className="hidden sm:inline">Apps</span>
-          </TabsTrigger>
-          <TabsTrigger value="contratos" className="flex items-center gap-2" data-testid="tab-contratos">
-            <FileCheck className="w-4 h-4" />
-            <span className="hidden sm:inline">Contratos</span>
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="cliente" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Dados do Cliente</CardTitle>
-              <CardDescription>Informações do cliente que irá assinar o contrato</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="clientName">Nome Completo *</Label>
-                  <Input
-                    id="clientName"
-                    value={clientName}
-                    onChange={(e) => setClientName(e.target.value)}
-                    placeholder="Nome do cliente"
-                    data-testid="input-client-name"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="clientCpf">CPF *</Label>
-                  <Input
-                    id="clientCpf"
-                    value={clientCpf}
-                    onChange={(e) => handleCpfChange(e.target.value)}
-                    placeholder="000.000.000-00"
-                    data-testid="input-client-cpf"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="clientEmail">E-mail *</Label>
-                  <Input
-                    id="clientEmail"
-                    type="email"
-                    value={clientEmail}
-                    onChange={(e) => setClientEmail(e.target.value)}
-                    placeholder="email@exemplo.com"
-                    data-testid="input-client-email"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="clientPhone">Telefone</Label>
-                  <Input
-                    id="clientPhone"
-                    value={clientPhone}
-                    onChange={(e) => handlePhoneChange(e.target.value)}
-                    placeholder="(00) 00000-0000"
-                    data-testid="input-client-phone"
-                  />
-                </div>
-              </div>
-            </CardContent>
-            <CardFooter className="flex justify-end gap-2 border-t pt-4">
-              <Button 
-                variant="outline" 
-                onClick={resetForm}
-                data-testid="button-clear-form"
-              >
-                Limpar
-              </Button>
-              <Button 
-                onClick={handleCreateContract}
-                disabled={createContractMutation.isPending}
-                className="bg-accent hover:bg-accent/90 text-accent-foreground"
-                data-testid="button-create-contract"
-              >
-                {createContractMutation.isPending ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <FileSignature className="w-4 h-4 mr-2" />
-                )}
-                Criar Contrato
-              </Button>
-            </CardFooter>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="aparencia" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Identidade Visual</CardTitle>
-              <CardDescription>Personalize a aparência do contrato</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="companyName">Nome da Empresa</Label>
-                  <Input
-                    id="companyName"
-                    value={companyName}
-                    onChange={(e) => setCompanyName(e.target.value)}
-                    placeholder="Sua Empresa"
-                    data-testid="input-company-name"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="logoFile">Logo (Upload)</Label>
-                  <Input
-                    id="logoFile"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleLogoUpload}
-                    data-testid="input-logo-upload"
-                  />
-                  {logoPreview && (
-                    <div className="mt-2 p-3 border rounded-md bg-muted">
-                      <img src={logoPreview} alt="Preview" style={{maxWidth: '150px', height: 'auto'}} />
-                    </div>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="logoSize">Tamanho do Logo</Label>
-                  <select
-                    id="logoSize"
-                    value={logoSize}
-                    onChange={(e) => setLogoSize(e.target.value as 'small' | 'medium' | 'large')}
-                    className="w-full px-3 py-2 border rounded-md bg-background"
-                    data-testid="select-logo-size"
-                  >
-                    <option value="small">Pequeno (100px)</option>
-                    <option value="medium">Médio (200px)</option>
-                    <option value="large">Grande (300px)</option>
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="logoPosition">Posição do Logo</Label>
-                  <select
-                    id="logoPosition"
-                    value={logoPosition}
-                    onChange={(e) => setLogoPosition(e.target.value as 'center' | 'left' | 'right')}
-                    className="w-full px-3 py-2 border rounded-md bg-background"
-                    data-testid="select-logo-position"
-                  >
-                    <option value="left">Esquerda</option>
-                    <option value="center">Centro</option>
-                    <option value="right">Direita</option>
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="primaryColor">Cor Primária</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="primaryColor"
-                      type="color"
-                      value={primaryColor}
-                      onChange={(e) => setPrimaryColor(e.target.value)}
-                      className="h-10 w-20"
-                      data-testid="input-primary-color"
-                    />
-                    <Input
-                      value={primaryColor}
-                      onChange={(e) => setPrimaryColor(e.target.value)}
-                      placeholder="#2c3e50"
-                      className="flex-1"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="textColor">Cor do Texto</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="textColor"
-                      type="color"
-                      value={textColor}
-                      onChange={(e) => setTextColor(e.target.value)}
-                      className="h-10 w-20"
-                      data-testid="input-text-color"
-                    />
-                    <Input
-                      value={textColor}
-                      onChange={(e) => setTextColor(e.target.value)}
-                      placeholder="#333333"
-                      className="flex-1"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="fontFamily">Fonte</Label>
-                  <select
-                    id="fontFamily"
-                    value={fontFamily}
-                    onChange={(e) => setFontFamily(e.target.value)}
-                    className="w-full px-3 py-2 border rounded-md bg-background"
-                    data-testid="select-font-family"
-                  >
-                    <option value="Arial, sans-serif">Arial</option>
-                    <option value="Georgia, serif">Georgia</option>
-                    <option value="Courier New, monospace">Courier New</option>
-                    <option value="Times New Roman, serif">Times New Roman</option>
-                    <option value="Verdana, sans-serif">Verdana</option>
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="footerText">Texto do Rodapé</Label>
-                  <Input
-                    id="footerText"
-                    value={footerText}
-                    onChange={(e) => setFooterText(e.target.value)}
-                    placeholder="Texto do rodapé"
-                    data-testid="input-footer-text"
-                  />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="verificacao" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Verificação de Identidade</CardTitle>
-                  <CardDescription>Personalize a etapa de verificação facial</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="verificationWelcomeText">Título da Página</Label>
-                      <Input
-                        id="verificationWelcomeText"
-                        value={verificationWelcomeText}
-                        onChange={(e) => setVerificationWelcomeText(e.target.value)}
-                        placeholder="Verificação de Identidade"
-                        data-testid="input-verification-welcome"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="verificationHeaderCompanyName">Nome da Empresa no Header</Label>
-                      <Input
-                        id="verificationHeaderCompanyName"
-                        value={verificationHeaderCompanyName}
-                        onChange={(e) => setVerificationHeaderCompanyName(e.target.value)}
-                        placeholder="Sua Empresa"
-                        data-testid="input-verification-company"
-                      />
-                    </div>
-                    <div className="md:col-span-2 space-y-2">
-                      <Label htmlFor="verificationInstructions">Instruções</Label>
-                      <Textarea
-                        id="verificationInstructions"
-                        value={verificationInstructions}
-                        onChange={(e) => setVerificationInstructions(e.target.value)}
-                        placeholder="Descrição do processo"
-                        rows={3}
-                        data-testid="input-verification-instructions"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="verificationPrimaryColor">Cor Primária</Label>
-                      <div className="flex gap-2">
-                        <Input
-                          id="verificationPrimaryColor"
-                          type="color"
-                          value={verificationPrimaryColor}
-                          onChange={(e) => setVerificationPrimaryColor(e.target.value)}
-                          className="h-10 w-20"
-                          data-testid="input-verification-primary-color"
-                        />
-                        <Input
-                          value={verificationPrimaryColor}
-                          onChange={(e) => setVerificationPrimaryColor(e.target.value)}
-                          className="flex-1"
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="verificationHeaderBackgroundColor">Cor do Header</Label>
-                      <div className="flex gap-2">
-                        <Input
-                          id="verificationHeaderBackgroundColor"
-                          type="color"
-                          value={verificationHeaderBackgroundColor}
-                          onChange={(e) => setVerificationHeaderBackgroundColor(e.target.value)}
-                          className="h-10 w-20"
-                          data-testid="input-verification-header-color"
-                        />
-                        <Input
-                          value={verificationHeaderBackgroundColor}
-                          onChange={(e) => setVerificationHeaderBackgroundColor(e.target.value)}
-                          className="flex-1"
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="verificationFooterText">Texto do Rodapé</Label>
-                      <Input
-                        id="verificationFooterText"
-                        value={verificationFooterText}
-                        onChange={(e) => setVerificationFooterText(e.target.value)}
-                        placeholder="Texto do rodapé"
-                        data-testid="input-verification-footer"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="verificationSecurityText">Texto de Segurança</Label>
-                      <Input
-                        id="verificationSecurityText"
-                        value={verificationSecurityText}
-                        onChange={(e) => setVerificationSecurityText(e.target.value)}
-                        placeholder="Suas informações são seguras"
-                        data-testid="input-verification-security"
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="sticky top-6 h-fit">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Preview da Verificação</CardTitle>
-                  <CardDescription>Visualização em tempo real</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="border rounded-lg overflow-hidden shadow-sm" style={{ minHeight: '400px' }}>
-                    <div 
-                      className="p-4 flex items-center justify-between"
-                      style={{ backgroundColor: verificationHeaderBackgroundColor }}
-                    >
-                      {logoUrl && (
-                        <img src={logoUrl} alt="Logo" className="h-8 object-contain" />
-                      )}
-                      <span className="text-white font-medium text-sm">{verificationHeaderCompanyName}</span>
-                      <Shield className="w-5 h-5 text-white opacity-75" />
-                    </div>
-                    <div className="p-6 bg-gray-50 flex flex-col items-center">
-                      <div 
-                        className="w-16 h-16 rounded-full flex items-center justify-center mb-4"
-                        style={{ backgroundColor: verificationPrimaryColor }}
-                      >
-                        <Camera className="w-8 h-8 text-white" />
-                      </div>
-                      <h3 className="text-xl font-bold mb-2 text-center" style={{ color: verificationPrimaryColor }}>
-                        {verificationWelcomeText}
-                      </h3>
-                      <p className="text-sm text-gray-600 text-center mb-6 max-w-xs">
-                        {verificationInstructions}
-                      </p>
-                      <div className="w-32 h-32 bg-gray-200 rounded-full flex items-center justify-center border-4 mb-4" style={{ borderColor: verificationPrimaryColor }}>
-                        <Camera className="w-12 h-12 text-gray-400" />
-                      </div>
-                      <button 
-                        className="px-6 py-2 rounded-lg text-white font-medium text-sm"
-                        style={{ backgroundColor: verificationPrimaryColor }}
-                      >
-                        Tirar Selfie
-                      </button>
-                      <p className="text-xs text-gray-500 mt-4 flex items-center gap-1">
-                        <Shield className="w-3 h-3" />
-                        {verificationSecurityText}
-                      </p>
-                    </div>
-                    <div className="p-3 bg-gray-100 text-center">
-                      <p className="text-xs text-gray-500">{verificationFooterText}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="contrato" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Conteúdo do Contrato</CardTitle>
-                  <CardDescription>Defina o título e as cláusulas do contrato</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="primaryColor">Cor Primária (Título/Bordas)</Label>
-                      <div className="flex gap-2">
-                        <Input
-                          id="primaryColor"
-                          type="color"
-                          value={primaryColor}
-                          onChange={(e) => setPrimaryColor(e.target.value)}
-                          className="h-10 w-20"
-                          data-testid="input-contract-primary-color"
-                        />
-                        <Input
-                          value={primaryColor}
-                          onChange={(e) => setPrimaryColor(e.target.value)}
-                          className="flex-1"
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="textColor">Cor do Texto</Label>
-                      <div className="flex gap-2">
-                        <Input
-                          id="textColor"
-                          type="color"
-                          value={textColor}
-                          onChange={(e) => setTextColor(e.target.value)}
-                          className="h-10 w-20"
-                          data-testid="input-contract-text-color"
-                        />
-                        <Input
-                          value={textColor}
-                          onChange={(e) => setTextColor(e.target.value)}
-                          className="flex-1"
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="fontFamily">Fonte</Label>
-                      <select
-                        id="fontFamily"
-                        value={fontFamily}
-                        onChange={(e) => setFontFamily(e.target.value)}
-                        className="w-full px-3 py-2 border rounded-md bg-background"
-                        data-testid="select-contract-font"
-                      >
-                        <option value="Arial, sans-serif">Arial</option>
-                        <option value="Georgia, serif">Georgia</option>
-                        <option value="Courier New, monospace">Courier New</option>
-                        <option value="Times New Roman, serif">Times New Roman</option>
-                        <option value="Verdana, sans-serif">Verdana</option>
-                      </select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="fontSize">Tamanho da Fonte</Label>
-                      <select
-                        id="fontSize"
-                        value={fontSize}
-                        onChange={(e) => setFontSize(e.target.value)}
-                        className="w-full px-3 py-2 border rounded-md bg-background"
-                        data-testid="select-contract-font-size"
-                      >
-                        <option value="12px">Pequeno (12px)</option>
-                        <option value="14px">Normal (14px)</option>
-                        <option value="16px">Médio (16px)</option>
-                        <option value="18px">Grande (18px)</option>
-                        <option value="20px">Extra Grande (20px)</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="contractTitle">Título do Contrato</Label>
-                    <Input
-                      id="contractTitle"
-                      value={contractTitle}
-                      onChange={(e) => setContractTitle(e.target.value)}
-                      placeholder="Contrato de Prestação de Serviços"
-                      data-testid="input-contract-title"
-                    />
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <Label>Cláusulas</Label>
-                      <Button onClick={addClause} variant="outline" size="sm" data-testid="button-add-clause">
-                        <Plus className="w-4 h-4 mr-2" />
-                        Adicionar Cláusula
-                      </Button>
-                    </div>
-
-                    {clauses.map((clause, index) => (
-                      <Card key={index} className="p-4">
-                        <div className="space-y-3">
-                          <div className="flex items-center justify-between">
-                            <Label>Cláusula {index + 1}</Label>
-                            <Button
-                              onClick={() => removeClause(index)}
-                              variant="ghost"
-                              size="sm"
-                              className="text-destructive"
-                              data-testid={`button-remove-clause-${index}`}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                          <Input
-                            value={clause.title}
-                            onChange={(e) => updateClause(index, 'title', e.target.value)}
-                            placeholder="Título da cláusula"
-                            data-testid={`input-clause-title-${index}`}
-                          />
-                          <Textarea
-                            value={clause.content}
-                            onChange={(e) => updateClause(index, 'content', e.target.value)}
-                            placeholder="Conteúdo da cláusula"
-                            rows={3}
-                            data-testid={`input-clause-content-${index}`}
-                          />
-                        </div>
-                      </Card>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="sticky top-6 h-fit">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Preview do Contrato</CardTitle>
-                  <CardDescription>Visualização em tempo real do documento</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div 
-                    className="border shadow-sm rounded-lg overflow-hidden bg-white"
-                    style={{ 
-                      fontFamily: fontFamily,
-                      color: textColor
-                    }}
-                  >
-                    <div className="p-8 space-y-6 overflow-y-auto max-h-[600px] text-zinc-900">
-                      {logoUrl && (
-                        <div style={{ textAlign: logoPosition }}>
-                          <img 
-                            src={logoUrl} 
-                            alt="Logo" 
-                            style={{ 
-                              maxWidth: logoSize === 'small' ? '100px' : logoSize === 'large' ? '300px' : '200px',
-                              height: 'auto'
-                            }} 
-                          />
-                        </div>
-                      )}
-
-                      <div className="text-center pb-4 border-b-2" style={{ borderColor: primaryColor }}>
-                        <h1 className="text-2xl font-bold" style={{ color: primaryColor }}>
-                          {contractTitle}
-                        </h1>
-                      </div>
-
-                      <div className="space-y-4">
-                        <h2 className="text-lg font-bold" style={{ color: primaryColor }}>Dados do Contratante</h2>
-                        <div className="grid grid-cols-1 gap-1 text-sm">
-                          <p><strong>Nome:</strong> {clientName || '---'}</p>
-                          <p><strong>CPF:</strong> {clientCpf || '---'}</p>
-                          <p><strong>E-mail:</strong> {clientEmail || '---'}</p>
-                          <p><strong>Telefone:</strong> {clientPhone || '---'}</p>
-                        </div>
-                      </div>
-
-                      <div className="space-y-4">
-                        <h2 className="text-lg font-bold" style={{ color: primaryColor }}>Cláusulas</h2>
-                        {clauses.map((clause, index) => (
-                          <div key={index} className="space-y-2">
-                            <h3 className="font-bold" style={{ color: textColor }}>{clause.title || `Cláusula ${index + 1}`}</h3>
-                            <p className="text-sm text-justify leading-relaxed whitespace-pre-wrap">{clause.content || '...'}</p>
-                          </div>
-                        ))}
-                      </div>
-
-                      <div className="mt-8 pt-4 border-t text-center text-[10px] text-zinc-400">
-                        {footerText}
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="progresso" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Rastreador de Progresso</CardTitle>
-                  <CardDescription>Personalize o indicador de progresso exibido ao cliente</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="progressTitle">Título</Label>
-                      <Input
-                        id="progressTitle"
-                        value={progressTitle}
-                        onChange={(e) => setProgressTitle(e.target.value)}
-                        placeholder="Assinatura Digital"
-                        data-testid="input-progress-title"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="progressCardColor">Cor do Card</Label>
-                      <div className="flex gap-2">
-                        <Input
-                          id="progressCardColor"
-                          type="color"
-                          value={progressCardColor}
-                          onChange={(e) => setProgressCardColor(e.target.value)}
-                          className="h-10 w-20"
-                          data-testid="input-progress-card-color"
-                        />
-                        <Input
-                          value={progressCardColor}
-                          onChange={(e) => setProgressCardColor(e.target.value)}
-                          className="flex-1"
-                        />
-                      </div>
-                    </div>
-                    <div className="md:col-span-2 space-y-2">
-                      <Label htmlFor="progressSubtitle">Subtítulo</Label>
-                      <Textarea
-                        id="progressSubtitle"
-                        value={progressSubtitle}
-                        onChange={(e) => setProgressSubtitle(e.target.value)}
-                        placeholder="Conclua os passos abaixo"
-                        rows={2}
-                        data-testid="input-progress-subtitle"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="progressStep1Title">Passo 1 - Título</Label>
-                      <Input
-                        id="progressStep1Title"
-                        value={progressStep1Title}
-                        onChange={(e) => setProgressStep1Title(e.target.value)}
-                        placeholder="1. Reconhecimento Facial"
-                        data-testid="input-progress-step1-title"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="progressStep1Description">Passo 1 - Descrição</Label>
-                      <Input
-                        id="progressStep1Description"
-                        value={progressStep1Description}
-                        onChange={(e) => setProgressStep1Description(e.target.value)}
-                        placeholder="Descrição do passo 1"
-                        data-testid="input-progress-step1-desc"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="progressStep2Title">Passo 2 - Título</Label>
-                      <Input
-                        id="progressStep2Title"
-                        value={progressStep2Title}
-                        onChange={(e) => setProgressStep2Title(e.target.value)}
-                        placeholder="2. Assinar Contrato"
-                        data-testid="input-progress-step2-title"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="progressStep2Description">Passo 2 - Descrição</Label>
-                      <Input
-                        id="progressStep2Description"
-                        value={progressStep2Description}
-                        onChange={(e) => setProgressStep2Description(e.target.value)}
-                        placeholder="Descrição do passo 2"
-                        data-testid="input-progress-step2-desc"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="progressStep3Title">Passo 3 - Título</Label>
-                      <Input
-                        id="progressStep3Title"
-                        value={progressStep3Title}
-                        onChange={(e) => setProgressStep3Title(e.target.value)}
-                        placeholder="3. Confirmação"
-                        data-testid="input-progress-step3-title"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="progressStep3Description">Passo 3 - Descrição</Label>
-                      <Input
-                        id="progressStep3Description"
-                        value={progressStep3Description}
-                        onChange={(e) => setProgressStep3Description(e.target.value)}
-                        placeholder="Descrição do passo 3"
-                        data-testid="input-progress-step3-desc"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="progressButtonColor">Cor do Botão</Label>
-                      <div className="flex gap-2">
-                        <Input
-                          id="progressButtonColor"
-                          type="color"
-                          value={progressButtonColor}
-                          onChange={(e) => setProgressButtonColor(e.target.value)}
-                          className="h-10 w-20"
-                          data-testid="input-progress-button-color"
-                        />
-                        <Input
-                          value={progressButtonColor}
-                          onChange={(e) => setProgressButtonColor(e.target.value)}
-                          className="flex-1"
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="progressTextColor">Cor do Texto</Label>
-                      <div className="flex gap-2">
-                        <Input
-                          id="progressTextColor"
-                          type="color"
-                          value={progressTextColor}
-                          onChange={(e) => setProgressTextColor(e.target.value)}
-                          className="h-10 w-20"
-                          data-testid="input-progress-text-color"
-                        />
-                        <Input
-                          value={progressTextColor}
-                          onChange={(e) => setProgressTextColor(e.target.value)}
-                          className="flex-1"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="sticky top-6 h-fit">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Preview do Progresso</CardTitle>
-                  <CardDescription>Visualização em tempo real</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div 
-                    style={{ 
-                      backgroundColor: progressCardColor,
-                      fontFamily: progressFontFamily,
-                      padding: '16px',
-                      borderRadius: '8px',
-                      gap: '12px',
-                      display: 'flex',
-                      flexDirection: 'column'
-                    }}
-                  >
-                    <h2 
-                      style={{ 
-                        color: progressTextColor,
-                        fontSize: '18px',
-                        fontWeight: 'bold',
-                        margin: 0
-                      }}
-                    >
-                      {progressTitle}
-                    </h2>
-                    <p 
-                      style={{ 
-                        color: progressTextColor,
-                        fontSize: '13px',
-                        margin: 0,
-                        opacity: 0.9
-                      }}
-                    >
-                      {progressSubtitle}
-                    </p>
-
-                    <div style={{ gap: '8px', display: 'flex', flexDirection: 'column' }}>
-                      {[
-                        { num: 1, title: progressStep1Title, desc: progressStep1Description, complete: true },
-                        { num: 2, title: progressStep2Title, desc: progressStep2Description, complete: false },
-                        { num: 3, title: progressStep3Title, desc: progressStep3Description, complete: false },
-                      ].map((step) => (
-                        <div 
-                          key={step.num}
-                          style={{ 
-                            display: 'flex',
-                            alignItems: 'flex-start',
-                            gap: '12px',
-                            padding: '12px',
-                            borderRadius: '6px',
-                            borderColor: progressButtonColor,
-                            borderWidth: '1px',
-                            borderStyle: 'solid',
-                            backgroundColor: step.complete ? 'rgba(34, 197, 94, 0.15)' : 'rgba(255, 255, 255, 0.1)'
-                          }}
-                        >
-                          <div className="flex-shrink-0">
-                            <div 
-                              className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold"
-                              style={{ backgroundColor: progressButtonColor }}
-                            >
-                              {step.complete ? <Check className="w-3 h-3" /> : step.num}
-                            </div>
-                          </div>
-                          <div className="flex-1">
-                            <p 
-                              style={{ 
-                                color: progressTextColor,
-                                fontSize: '13px',
-                                fontWeight: 'bold',
-                                margin: 0,
-                                textDecoration: step.complete ? 'line-through' : 'none'
-                              }}
-                            >
-                              {step.title}
-                            </p>
-                            <p 
-                              style={{ 
-                                color: progressTextColor,
-                                fontSize: '11px',
-                                opacity: 0.8,
-                                margin: '2px 0 0 0'
-                              }}
-                            >
-                              {step.desc}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    <button 
-                      style={{ 
-                        backgroundColor: progressButtonColor,
-                        fontFamily: progressFontFamily,
-                        fontSize: '13px',
-                        width: '100%',
-                        padding: '10px 0',
-                        color: 'white',
-                        fontWeight: 'bold',
-                        borderRadius: '6px',
-                        border: 'none',
-                        opacity: 0.5,
-                        cursor: 'default'
-                      }}
-                      disabled
-                    >
-                      {progressButtonText}
-                    </button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="parabens" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Página de Parabéns</CardTitle>
-                  <CardDescription>Personalize a página de conclusão</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="parabensBackgroundColor">Cor de Fundo da Página</Label>
-                      <div className="flex gap-2">
-                        <Input
-                          id="parabensBackgroundColor"
-                          type="color"
-                          value={parabensBackgroundColor}
-                          onChange={(e) => setParabensBackgroundColor(e.target.value)}
-                          className="h-10 w-20"
-                          data-testid="input-parabens-bg-color"
-                        />
-                        <Input
-                          value={parabensBackgroundColor}
-                          onChange={(e) => setParabensBackgroundColor(e.target.value)}
-                          className="flex-1"
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="parabensTextColor">Cor do Texto</Label>
-                      <div className="flex gap-2">
-                        <Input
-                          id="parabensTextColor"
-                          type="color"
-                          value={parabensTextColor}
-                          onChange={(e) => setParabensTextColor(e.target.value)}
-                          className="h-10 w-20"
-                          data-testid="input-parabens-text-color"
-                        />
-                        <Input
-                          value={parabensTextColor}
-                          onChange={(e) => setParabensTextColor(e.target.value)}
-                          className="flex-1"
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="parabensFontFamily">Fonte</Label>
-                      <select
-                        id="parabensFontFamily"
-                        value={parabensFontFamily}
-                        onChange={(e) => setParabensFontFamily(e.target.value)}
-                        className="w-full px-3 py-2 border rounded-md bg-background"
-                        data-testid="select-parabens-font"
-                      >
-                        <option value="Arial, sans-serif">Arial</option>
-                        <option value="Georgia, serif">Georgia</option>
-                        <option value="Courier New, monospace">Courier New</option>
-                        <option value="Times New Roman, serif">Times New Roman</option>
-                        <option value="Verdana, sans-serif">Verdana</option>
-                      </select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="parabensTitle">Título</Label>
-                      <Input
-                        id="parabensTitle"
-                        value={parabensTitle}
-                        onChange={(e) => setParabensTitle(e.target.value)}
-                        placeholder="Parabéns!"
-                        data-testid="input-parabens-title"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="parabensSubtitle">Subtítulo</Label>
-                      <Input
-                        id="parabensSubtitle"
-                        value={parabensSubtitle}
-                        onChange={(e) => setParabensSubtitle(e.target.value)}
-                        placeholder="Processo concluído!"
-                        data-testid="input-parabens-subtitle"
-                      />
-                    </div>
-                    <div className="md:col-span-2 space-y-2">
-                      <Label htmlFor="parabensDescription">Descrição</Label>
-                      <Textarea
-                        id="parabensDescription"
-                        value={parabensDescription}
-                        onChange={(e) => setParabensDescription(e.target.value)}
-                        placeholder="Sua documentação foi processada"
-                        rows={3}
-                        data-testid="input-parabens-description"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="parabensCardColor">Cor do Card</Label>
-                      <div className="flex gap-2">
-                        <Input
-                          id="parabensCardColor"
-                          type="color"
-                          value={parabensCardColor}
-                          onChange={(e) => setParabensCardColor(e.target.value)}
-                          className="h-10 w-20"
-                          data-testid="input-parabens-card-color"
-                        />
-                        <Input
-                          value={parabensCardColor}
-                          onChange={(e) => setParabensCardColor(e.target.value)}
-                          className="flex-1"
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="parabensButtonColor">Cor do Botão</Label>
-                      <div className="flex gap-2">
-                        <Input
-                          id="parabensButtonColor"
-                          type="color"
-                          value={parabensButtonColor}
-                          onChange={(e) => setParabensButtonColor(e.target.value)}
-                          className="h-10 w-20"
-                          data-testid="input-parabens-button-color"
-                        />
-                        <Input
-                          value={parabensButtonColor}
-                          onChange={(e) => setParabensButtonColor(e.target.value)}
-                          className="flex-1"
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="parabensButtonText">Texto do Botão</Label>
-                      <Input
-                        id="parabensButtonText"
-                        value={parabensButtonText}
-                        onChange={(e) => setParabensButtonText(e.target.value)}
-                        placeholder="Confirmar e Continuar"
-                        data-testid="input-parabens-button-text"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="parabensFormTitle">Título do Formulário</Label>
-                      <Input
-                        id="parabensFormTitle"
-                        value={parabensFormTitle}
-                        onChange={(e) => setParabensFormTitle(e.target.value)}
-                        placeholder="Endereço para Entrega"
-                        data-testid="input-parabens-form-title"
-                      />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="sticky top-6 h-fit">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Preview de Parabéns</CardTitle>
-                  <CardDescription>Visualização em tempo real</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div 
-                    className="rounded-lg p-6 flex flex-col items-center"
-                    style={{ 
-                      backgroundColor: parabensBackgroundColor,
-                      fontFamily: parabensFontFamily
-                    }}
-                  >
-                    <div 
-                      className="w-16 h-16 rounded-full flex items-center justify-center mb-4"
-                      style={{ backgroundColor: 'rgba(34, 197, 94, 0.1)' }}
-                    >
-                      <Gift className="w-8 h-8 text-green-600" />
-                    </div>
-                    <h2 
-                      className="text-2xl font-bold mb-2 text-center"
-                      style={{ color: parabensTextColor }}
-                    >
-                      {parabensTitle}
-                    </h2>
-                    <p 
-                      className="text-lg mb-1 text-center"
-                      style={{ color: parabensTextColor }}
-                    >
-                      {parabensSubtitle}
-                    </p>
-                    <p 
-                      className="text-sm text-center mb-6 opacity-80"
-                      style={{ color: parabensTextColor }}
-                    >
-                      {parabensDescription}
-                    </p>
-
-                    <div 
-                      className="w-full p-4 rounded-lg mb-4"
-                      style={{ backgroundColor: parabensCardColor }}
-                    >
-                      <h3 
-                        className="text-sm font-semibold mb-3"
-                        style={{ color: parabensTextColor }}
-                      >
-                        {parabensFormTitle}
-                      </h3>
-                      <div className="space-y-2">
-                        <div className="h-8 bg-white rounded border border-gray-200" />
-                        <div className="flex gap-2">
-                          <div className="h-8 flex-1 bg-white rounded border border-gray-200" />
-                          <div className="h-8 w-20 bg-white rounded border border-gray-200" />
-                        </div>
-                        <div className="flex gap-2">
-                          <div className="h-8 flex-1 bg-white rounded border border-gray-200" />
-                          <div className="h-8 w-16 bg-white rounded border border-gray-200" />
-                        </div>
-                      </div>
-                    </div>
-
-                    <button 
-                      className="w-full py-3 rounded-lg text-white font-bold text-sm"
-                      style={{ backgroundColor: parabensButtonColor }}
-                    >
-                      {parabensButtonText}
-                    </button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="aplicativos" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Smartphone className="w-5 h-5" />
-                Links dos Aplicativos
+      <Collapsible open={showContracts} onOpenChange={setShowContracts}>
+        <CollapsibleContent>
+          <Card className="mx-4 mt-4">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <FileCheck className="w-5 h-5" />
+                Contratos Criados
               </CardTitle>
-              <CardDescription>URLs das lojas de aplicativos para download. Essas URLs serão exibidas na tela de promoção do app após a assinatura.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {isLoadingAppPromotion ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-                  <span className="ml-2 text-muted-foreground">Carregando...</span>
-                </div>
-              ) : (
-                <>
-                  <div className="space-y-2">
-                    <Label htmlFor="appStoreUrl">App Store (iOS)</Label>
-                    <Input
-                      id="appStoreUrl"
-                      value={appStoreUrl}
-                      onChange={(e) => setAppStoreUrl(e.target.value)}
-                      placeholder="https://apps.apple.com/..."
-                      data-testid="input-app-store-url"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="googlePlayUrl">Google Play (Android)</Label>
-                    <Input
-                      id="googlePlayUrl"
-                      value={googlePlayUrl}
-                      onChange={(e) => setGooglePlayUrl(e.target.value)}
-                      placeholder="https://play.google.com/..."
-                      data-testid="input-google-play-url"
-                    />
-                  </div>
-                </>
-              )}
-            </CardContent>
-            <CardFooter>
-              <Button 
-                onClick={handleSaveAppLinks}
-                disabled={saveAppPromotionMutation.isPending || isLoadingAppPromotion}
-                className="w-full"
-                data-testid="button-save-app-links"
-              >
-                {saveAppPromotionMutation.isPending ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Salvando...
-                  </>
-                ) : (
-                  <>
-                    <Check className="w-4 h-4 mr-2" />
-                    Salvar Links
-                  </>
-                )}
-              </Button>
-            </CardFooter>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="contratos" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Contratos Criados</CardTitle>
               <CardDescription>Lista de todos os contratos gerados</CardDescription>
             </CardHeader>
             <CardContent>
               {isLoadingContracts ? (
-                <div className="text-center py-8 text-muted-foreground">Carregando contratos...</div>
+                <div className="text-center py-4 text-muted-foreground">
+                  <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2" />
+                  Carregando contratos...
+                </div>
               ) : contracts.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <div className="text-center py-4 text-muted-foreground">
+                  <FileText className="w-10 h-10 mx-auto mb-2 opacity-50" />
                   <p>Nenhum contrato criado ainda</p>
                 </div>
               ) : (
-                <div className="space-y-3">
-                  {contracts.map((contract) => (
-                    <div
-                      key={contract.id}
-                      className="flex items-center justify-between p-4 border rounded-lg hover-elevate cursor-pointer"
-                      onClick={() => {
-                        setSelectedContract(contract);
-                        setModalOpen(true);
-                      }}
-                      data-testid={`contract-item-${contract.id}`}
-                    >
-                      <div className="flex items-center gap-4">
-                        <div>
-                          <p className="font-medium">{contract.client_name}</p>
-                          <p className="text-sm text-muted-foreground">{contract.client_email}</p>
+                <ScrollArea className="h-[200px]">
+                  <div className="space-y-2">
+                    {contracts.map((contract) => (
+                      <div
+                        key={contract.id}
+                        className="flex items-center justify-between p-3 border rounded-lg hover-elevate cursor-pointer"
+                        onClick={() => {
+                          setSelectedContract(contract);
+                          setModalOpen(true);
+                        }}
+                        data-testid={`contract-item-${contract.id}`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div>
+                            <p className="font-medium text-sm">{contract.client_name}</p>
+                            <p className="text-xs text-muted-foreground">{contract.client_email}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {getStatusBadge(contract.status)}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const url = `${window.location.origin}/assinar/${contract.access_token}`;
+                              navigator.clipboard.writeText(url);
+                              toast({ title: 'URL copiada!' });
+                            }}
+                            data-testid={`button-copy-contract-${contract.id}`}
+                          >
+                            <Copy className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              window.open(`/assinar/${contract.access_token}`, '_blank');
+                            }}
+                            data-testid={`button-view-contract-${contract.id}`}
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
                         </div>
                       </div>
-                      <div className="flex items-center gap-4">
-                        {getStatusBadge(contract.status)}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            const url = `${window.location.origin}/assinar/${contract.access_token}`;
-                            navigator.clipboard.writeText(url);
-                            toast({ title: 'URL copiada!' });
-                          }}
-                          data-testid={`button-copy-contract-${contract.id}`}
-                        >
-                          <Copy className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            window.open(`/assinar/${contract.access_token}`, '_blank');
-                          }}
-                          data-testid={`button-view-contract-${contract.id}`}
-                        >
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                </ScrollArea>
               )}
             </CardContent>
           </Card>
-        </TabsContent>
-      </Tabs>
+        </CollapsibleContent>
+      </Collapsible>
 
-      {activeTab !== 'contratos' && (
-        <div className="flex justify-end gap-4">
-          <Button variant="outline" onClick={resetForm} data-testid="button-reset-form">
-            Limpar
-          </Button>
-          <Button 
-            onClick={handleCreateContract} 
-            disabled={createContractMutation.isPending}
-            data-testid="button-create-contract"
-          >
-            {createContractMutation.isPending ? 'Criando...' : 'Criar Contrato'}
-          </Button>
-        </div>
-      )}
+      <div className="flex-1 min-h-0 p-4">
+        <ResizablePanelGroup direction="horizontal" className="h-full rounded-lg border">
+          <ResizablePanel defaultSize={50} minSize={30}>
+            <ScrollArea className="h-full">
+              <div className="p-4">
+                <SimplifiedSignatureWizard
+                  clientName={clientName}
+                  clientCpf={clientCpf}
+                  clientEmail={clientEmail}
+                  clientPhone={clientPhone}
+                  onClientNameChange={setClientName}
+                  onClientCpfChange={handleCpfChange}
+                  onClientEmailChange={setClientEmail}
+                  onClientPhoneChange={handlePhoneChange}
+                  logoUrl={logoUrl}
+                  logoSize={logoSize}
+                  logoPosition={logoPosition}
+                  primaryColor={primaryColor}
+                  textColor={textColor}
+                  fontFamily={fontFamily}
+                  fontSize={fontSize}
+                  companyName={companyName}
+                  footerText={footerText}
+                  onLogoUrlChange={setLogoUrl}
+                  onLogoSizeChange={setLogoSize}
+                  onLogoPositionChange={setLogoPosition}
+                  onPrimaryColorChange={setPrimaryColor}
+                  onTextColorChange={setTextColor}
+                  onFontFamilyChange={setFontFamily}
+                  onFontSizeChange={setFontSize}
+                  onCompanyNameChange={setCompanyName}
+                  onFooterTextChange={setFooterText}
+                  onLogoUpload={handleLogoUpload}
+                  verificationPrimaryColor={verificationPrimaryColor}
+                  verificationTextColor={verificationTextColor}
+                  verificationFontFamily={verificationFontFamily}
+                  verificationFontSize={verificationFontSize}
+                  verificationLogoUrl={verificationLogoUrl}
+                  verificationLogoSize={verificationLogoSize}
+                  verificationLogoPosition={verificationLogoPosition}
+                  verificationFooterText={verificationFooterText}
+                  verificationWelcomeText={verificationWelcomeText}
+                  verificationInstructions={verificationInstructions}
+                  verificationSecurityText={verificationSecurityText}
+                  verificationBackgroundColor={verificationBackgroundColor}
+                  verificationHeaderBackgroundColor={verificationHeaderBackgroundColor}
+                  verificationHeaderCompanyName={verificationHeaderCompanyName}
+                  onVerificationPrimaryColorChange={setVerificationPrimaryColor}
+                  onVerificationTextColorChange={setVerificationTextColor}
+                  onVerificationFontFamilyChange={setVerificationFontFamily}
+                  onVerificationFontSizeChange={setVerificationFontSize}
+                  onVerificationLogoUrlChange={setVerificationLogoUrl}
+                  onVerificationLogoSizeChange={setVerificationLogoSize}
+                  onVerificationLogoPositionChange={setVerificationLogoPosition}
+                  onVerificationFooterTextChange={setVerificationFooterText}
+                  onVerificationWelcomeTextChange={setVerificationWelcomeText}
+                  onVerificationInstructionsChange={setVerificationInstructions}
+                  onVerificationSecurityTextChange={setVerificationSecurityText}
+                  onVerificationBackgroundColorChange={setVerificationBackgroundColor}
+                  onVerificationHeaderBackgroundColorChange={setVerificationHeaderBackgroundColor}
+                  onVerificationHeaderCompanyNameChange={setVerificationHeaderCompanyName}
+                  progressCardColor={progressCardColor}
+                  progressButtonColor={progressButtonColor}
+                  progressTextColor={progressTextColor}
+                  progressTitle={progressTitle}
+                  progressSubtitle={progressSubtitle}
+                  progressStep1Title={progressStep1Title}
+                  progressStep1Description={progressStep1Description}
+                  progressStep2Title={progressStep2Title}
+                  progressStep2Description={progressStep2Description}
+                  progressStep3Title={progressStep3Title}
+                  progressStep3Description={progressStep3Description}
+                  progressButtonText={progressButtonText}
+                  progressFontFamily={progressFontFamily}
+                  onProgressCardColorChange={setProgressCardColor}
+                  onProgressButtonColorChange={setProgressButtonColor}
+                  onProgressTextColorChange={setProgressTextColor}
+                  onProgressTitleChange={setProgressTitle}
+                  onProgressSubtitleChange={setProgressSubtitle}
+                  onProgressStep1TitleChange={setProgressStep1Title}
+                  onProgressStep1DescriptionChange={setProgressStep1Description}
+                  onProgressStep2TitleChange={setProgressStep2Title}
+                  onProgressStep2DescriptionChange={setProgressStep2Description}
+                  onProgressStep3TitleChange={setProgressStep3Title}
+                  onProgressStep3DescriptionChange={setProgressStep3Description}
+                  onProgressButtonTextChange={setProgressButtonText}
+                  onProgressFontFamilyChange={setProgressFontFamily}
+                  parabensTitle={parabensTitle}
+                  parabensSubtitle={parabensSubtitle}
+                  parabensDescription={parabensDescription}
+                  parabensCardColor={parabensCardColor}
+                  parabensBackgroundColor={parabensBackgroundColor}
+                  parabensButtonColor={parabensButtonColor}
+                  parabensTextColor={parabensTextColor}
+                  parabensFontFamily={parabensFontFamily}
+                  parabensFormTitle={parabensFormTitle}
+                  parabensButtonText={parabensButtonText}
+                  onParabensTitleChange={setParabensTitle}
+                  onParabensSubtitleChange={setParabensSubtitle}
+                  onParabensDescriptionChange={setParabensDescription}
+                  onParabensCardColorChange={setParabensCardColor}
+                  onParabensBackgroundColorChange={setParabensBackgroundColor}
+                  onParabensButtonColorChange={setParabensButtonColor}
+                  onParabensTextColorChange={setParabensTextColor}
+                  onParabensFontFamilyChange={setParabensFontFamily}
+                  onParabensFormTitleChange={setParabensFormTitle}
+                  onParabensButtonTextChange={setParabensButtonText}
+                  contractTitle={contractTitle}
+                  clauses={clauses}
+                  onContractTitleChange={setContractTitle}
+                  onClausesChange={setClauses}
+                  appStoreUrl={appStoreUrl}
+                  googlePlayUrl={googlePlayUrl}
+                  onAppStoreUrlChange={setAppStoreUrl}
+                  onGooglePlayUrlChange={setGooglePlayUrl}
+                  onCreateContract={handleCreateContract}
+                  isSaving={createContractMutation.isPending}
+                />
+              </div>
+            </ScrollArea>
+          </ResizablePanel>
+          
+          <ResizableHandle withHandle />
+          
+          <ResizablePanel defaultSize={50} minSize={30}>
+            <ScrollArea className="h-full">
+              <div className="p-4">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Eye className="w-4 h-4" />
+                      Preview em Tempo Real
+                    </CardTitle>
+                    <CardDescription>
+                      Visualização do contrato e etapas de assinatura
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <SignaturePreview
+                      clientName={clientName || 'João da Silva'}
+                      clientCpf={clientCpf || '123.456.789-00'}
+                      clientEmail={clientEmail || 'cliente@email.com'}
+                      clientPhone={clientPhone}
+                      primaryColor={primaryColor}
+                      textColor={textColor}
+                      fontFamily={fontFamily}
+                      fontSize={fontSize}
+                      logoUrl={logoUrl}
+                      logoSize={logoSize}
+                      logoPosition={logoPosition}
+                      companyName={companyName}
+                      footerText={footerText}
+                      welcomeText={verificationWelcomeText}
+                      instructions={verificationInstructions}
+                      securityText={verificationSecurityText}
+                      backgroundColor={verificationBackgroundColor}
+                      headerBackgroundColor={verificationHeaderBackgroundColor}
+                      contractTitle={contractTitle}
+                      clauses={clauses}
+                      parabensTitle={parabensTitle}
+                      parabensSubtitle={parabensSubtitle}
+                      parabensDescription={parabensDescription}
+                      parabensCardColor={parabensCardColor}
+                      parabensBackgroundColor={parabensBackgroundColor}
+                      parabensButtonColor={parabensButtonColor}
+                      parabensTextColor={parabensTextColor}
+                      parabensFontFamily={parabensFontFamily}
+                      parabensButtonText={parabensButtonText}
+                      progressCardColor={progressCardColor}
+                      progressButtonColor={progressButtonColor}
+                      progressTextColor={progressTextColor}
+                      progressTitle={progressTitle}
+                      progressSubtitle={progressSubtitle}
+                    />
+                  </CardContent>
+                </Card>
+              </div>
+            </ScrollArea>
+          </ResizablePanel>
+        </ResizablePanelGroup>
+      </div>
 
       {selectedContract && (
         <ContractDetailsModal
