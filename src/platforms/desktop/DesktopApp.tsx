@@ -36,7 +36,10 @@ import { RootRedirect } from "@/components/RootRedirect";
 // Revendedora Platform - NOTA: RevendedoraApp é tratado diretamente no PlatformRouter
 
 // Import Assinatura Platform
-import AssinaturaPage from "@/pages/AssinaturaPage";
+import AssinaturaIndexPage from "@/pages/AssinaturaIndexPage";
+import CriarAssinaturaPage from "@/pages/CriarAssinaturaPage";
+import PersonalizarAssinaturaPage from "@/pages/PersonalizarAssinaturaPage";
+import ContratosListaPage from "@/pages/ContratosListaPage";
 // AssinaturaClientPage removido - tratado via lazy loading no App.tsx
 
 // Import Envio Platform
@@ -759,7 +762,37 @@ const DesktopApp = () => {
         element={
           <ProtectedRoute>
             <DesktopLayout>
-              <AssinaturaPage />
+              <AssinaturaIndexPage />
+            </DesktopLayout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/assinatura/criar" 
+        element={
+          <ProtectedRoute>
+            <DesktopLayout>
+              <CriarAssinaturaPage />
+            </DesktopLayout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/assinatura/personalizar" 
+        element={
+          <ProtectedRoute>
+            <DesktopLayout>
+              <PersonalizarAssinaturaPage />
+            </DesktopLayout>
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/assinatura/contratos" 
+        element={
+          <ProtectedRoute>
+            <DesktopLayout>
+              <ContratosListaPage />
             </DesktopLayout>
           </ProtectedRoute>
         } 

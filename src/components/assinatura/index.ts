@@ -26,3 +26,4 @@ export { StepIndicator } from './StepIndicator';
 export { SignaturePreview } from './SignaturePreview';
 export { SimplifiedSignatureWizard } from './SimplifiedSignatureWizard';
 export type { SimplifiedSignatureWizardProps } from './SimplifiedSignatureWizard';
+export { AssinaturaNav } from './AssinaturaNav';
