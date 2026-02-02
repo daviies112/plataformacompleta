@@ -135,6 +135,11 @@ const AssinaturaPage = () => {
   const [progressButtonText, setProgressButtonText] = useState('Complete os passos acima');
   const [progressFontFamily, setProgressFontFamily] = useState('Arial, sans-serif');
 
+  const [contractPrimaryColor, setContractPrimaryColor] = useState('#2c3e50');
+  const [contractTextColor, setContractTextColor] = useState('#333333');
+  const [contractBackgroundColor, setContractBackgroundColor] = useState('#ffffff');
+  const [contractFontFamily, setContractFontFamily] = useState('Arial, sans-serif');
+
   const [appStoreUrl, setAppStoreUrl] = useState('');
   const [googlePlayUrl, setGooglePlayUrl] = useState('');
 
@@ -714,6 +719,14 @@ const AssinaturaPage = () => {
                   clauses={clauses}
                   onContractTitleChange={setContractTitle}
                   onClausesChange={setClauses}
+                  contractPrimaryColor={contractPrimaryColor}
+                  contractTextColor={contractTextColor}
+                  contractBackgroundColor={contractBackgroundColor}
+                  contractFontFamily={contractFontFamily}
+                  onContractPrimaryColorChange={setContractPrimaryColor}
+                  onContractTextColorChange={setContractTextColor}
+                  onContractBackgroundColorChange={setContractBackgroundColor}
+                  onContractFontFamilyChange={setContractFontFamily}
                   appStoreUrl={appStoreUrl}
                   googlePlayUrl={googlePlayUrl}
                   onAppStoreUrlChange={setAppStoreUrl}
@@ -770,6 +783,10 @@ const AssinaturaPage = () => {
                       headerBackgroundColor={verificationHeaderBackgroundColor}
                       contractTitle={contractTitle}
                       clauses={clauses}
+                      contractPrimaryColor={contractPrimaryColor}
+                      contractTextColor={contractTextColor}
+                      contractBackgroundColor={contractBackgroundColor}
+                      contractFontFamily={contractFontFamily}
                       parabensTitle={parabensTitle}
                       parabensSubtitle={parabensSubtitle}
                       parabensDescription={parabensDescription}

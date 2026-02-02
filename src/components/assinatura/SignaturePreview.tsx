@@ -57,6 +57,11 @@ interface SignaturePreviewProps {
   contractTitle?: string;
   clauses?: ContractClause[];
   
+  contractPrimaryColor?: string;
+  contractTextColor?: string;
+  contractBackgroundColor?: string;
+  contractFontFamily?: string;
+  
   parabensTitle?: string;
   parabensSubtitle?: string;
   parabensDescription?: string;
@@ -113,6 +118,11 @@ export const SignaturePreview = ({
     { title: 'Obrigações das Partes', content: 'As partes comprometem-se a cumprir todas as disposições previstas neste instrumento, agindo sempre com boa-fé e transparência.' },
     { title: 'Prazo de Vigência', content: 'Este contrato terá vigência pelo prazo acordado entre as partes, podendo ser renovado mediante acordo mútuo.' }
   ],
+  
+  contractPrimaryColor,
+  contractTextColor,
+  contractBackgroundColor,
+  contractFontFamily,
   
   parabensTitle = 'Parabéns!',
   parabensSubtitle = 'Processo concluído com sucesso!',
@@ -227,6 +237,39 @@ export const SignaturePreview = ({
           </div>
         )}
 
+        <div 
+          className="w-32 h-32 rounded-full flex items-center justify-center mb-6 relative"
+          style={{ backgroundColor: `${vPrimaryColor}15` }}
+          data-testid="selfie-illustration"
+        >
+          <div 
+            className="w-24 h-24 rounded-full flex items-center justify-center"
+            style={{ backgroundColor: `${vPrimaryColor}25` }}
+          >
+            <div 
+              className="w-16 h-16 rounded-full flex items-center justify-center relative"
+              style={{ backgroundColor: `${vPrimaryColor}40` }}
+            >
+              <svg 
+                viewBox="0 0 24 24" 
+                className="w-10 h-10"
+                fill="none"
+                stroke={vPrimaryColor}
+                strokeWidth="1.5"
+              >
+                <circle cx="12" cy="8" r="4" />
+                <path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2" />
+              </svg>
+            </div>
+          </div>
+          <div 
+            className="absolute -bottom-1 -right-1 w-10 h-10 rounded-full flex items-center justify-center shadow-lg"
+            style={{ backgroundColor: vPrimaryColor }}
+          >
+            <Camera className="w-5 h-5 text-white" />
+          </div>
+        </div>
+
         <h1 
           className="text-3xl font-bold text-center mb-3"
           style={{ color: vTextColor }}
@@ -301,10 +344,15 @@ export const SignaturePreview = ({
   };
 
   const renderContractStep = () => {
+    const cPrimaryColor = contractPrimaryColor || primaryColor;
+    const cTextColor = contractTextColor || textColor;
+    const cBackgroundColor = contractBackgroundColor || backgroundColor;
+    const cFontFamily = contractFontFamily || fontFamily;
+    
     return (
       <div 
         className="min-h-[500px] p-6"
-        style={{ backgroundColor, fontFamily }}
+        style={{ backgroundColor: cBackgroundColor, fontFamily: cFontFamily }}
         data-testid="preview-contract-step"
       >
         {logoUrl && (
@@ -323,38 +371,38 @@ export const SignaturePreview = ({
         <div className="text-center mb-6">
           <h2 
             className="text-2xl font-bold mb-2"
-            style={{ color: textColor }}
+            style={{ color: cTextColor }}
             data-testid="text-contract-title"
           >
             {contractTitle}
           </h2>
-          <p style={{ color: textColor, opacity: 0.7 }}>
-            Protocolo: <span className="font-mono font-semibold" style={{ color: primaryColor }}>CONT-PREVIEW-001</span>
+          <p style={{ color: cTextColor, opacity: 0.7 }}>
+            Protocolo: <span className="font-mono font-semibold" style={{ color: cPrimaryColor }}>CONT-PREVIEW-001</span>
           </p>
         </div>
 
-        <Card className="mb-6" style={{ borderColor: `${primaryColor}30` }}>
+        <Card className="mb-6" style={{ borderColor: `${cPrimaryColor}30` }}>
           <CardHeader className="pb-2">
             <div className="flex items-center gap-2">
-              <FileText className="w-5 h-5" style={{ color: primaryColor }} />
-              <CardTitle className="text-lg" style={{ color: textColor }}>Dados do Contratante</CardTitle>
+              <FileText className="w-5 h-5" style={{ color: cPrimaryColor }} />
+              <CardTitle className="text-lg" style={{ color: cTextColor }}>Dados do Contratante</CardTitle>
             </div>
           </CardHeader>
           <CardContent className="space-y-2">
-            <div className="flex items-center gap-2" style={{ color: textColor }}>
+            <div className="flex items-center gap-2" style={{ color: cTextColor }}>
               <User className="w-4 h-4 opacity-60" />
               <span className="font-medium">Nome:</span> {clientName}
             </div>
-            <div className="flex items-center gap-2" style={{ color: textColor }}>
+            <div className="flex items-center gap-2" style={{ color: cTextColor }}>
               <CreditCard className="w-4 h-4 opacity-60" />
               <span className="font-medium">CPF:</span> {clientCpf}
             </div>
-            <div className="flex items-center gap-2" style={{ color: textColor }}>
+            <div className="flex items-center gap-2" style={{ color: cTextColor }}>
               <Mail className="w-4 h-4 opacity-60" />
               <span className="font-medium">E-mail:</span> {clientEmail}
             </div>
             {clientPhone && (
-              <div className="flex items-center gap-2" style={{ color: textColor }}>
+              <div className="flex items-center gap-2" style={{ color: cTextColor }}>
                 <Phone className="w-4 h-4 opacity-60" />
                 <span className="font-medium">Telefone:</span> {clientPhone}
               </div>
@@ -362,15 +410,15 @@ export const SignaturePreview = ({
           </CardContent>
         </Card>
 
-        <Card className="mb-6" style={{ borderColor: `${primaryColor}30` }}>
+        <Card className="mb-6" style={{ borderColor: `${cPrimaryColor}30` }}>
           <CardHeader className="pb-2">
-            <CardTitle className="text-lg" style={{ color: textColor }}>Cláusulas do Contrato</CardTitle>
+            <CardTitle className="text-lg" style={{ color: cTextColor }}>Cláusulas do Contrato</CardTitle>
           </CardHeader>
           <CardContent className="max-h-48 overflow-y-auto space-y-4">
             {clauses.map((clause, index) => (
               <div key={index} data-testid={`contract-clause-${index}`}>
-                <h4 className="font-bold mb-1" style={{ color: textColor }}>{clause.title}</h4>
-                <p className="text-sm text-justify" style={{ color: textColor, opacity: 0.85, fontSize }}>
+                <h4 className="font-bold mb-1" style={{ color: cTextColor }}>{clause.title}</h4>
+                <p className="text-sm text-justify" style={{ color: cTextColor, opacity: 0.85, fontSize }}>
                   {clause.content}
                 </p>
               </div>
@@ -378,25 +426,25 @@ export const SignaturePreview = ({
           </CardContent>
         </Card>
 
-        <Card className="mb-6 border-2" style={{ borderColor: primaryColor, backgroundColor: `${primaryColor}05` }}>
+        <Card className="mb-6 border-2" style={{ borderColor: cPrimaryColor, backgroundColor: `${cPrimaryColor}05` }}>
           <CardContent className="pt-6">
             <div className="text-center">
-              <p className="text-sm mb-2" style={{ color: textColor, opacity: 0.7 }}>Assinado digitalmente por:</p>
+              <p className="text-sm mb-2" style={{ color: cTextColor, opacity: 0.7 }}>Assinado digitalmente por:</p>
               <p 
                 className="text-2xl mb-1"
                 style={{ 
                   fontFamily: "'Brush Script MT', 'Segoe Script', cursive", 
-                  color: primaryColor 
+                  color: cPrimaryColor 
                 }}
               >
                 {clientName}
               </p>
               <div 
                 className="w-48 h-0.5 mx-auto mb-2"
-                style={{ backgroundColor: primaryColor }}
+                style={{ backgroundColor: cPrimaryColor }}
               />
-              <p className="text-sm font-semibold" style={{ color: textColor }}>{clientName}</p>
-              <p className="text-xs" style={{ color: textColor, opacity: 0.7 }}>CPF: {clientCpf}</p>
+              <p className="text-sm font-semibold" style={{ color: cTextColor }}>{clientName}</p>
+              <p className="text-xs" style={{ color: cTextColor, opacity: 0.7 }}>CPF: {clientCpf}</p>
             </div>
           </CardContent>
         </Card>
@@ -404,7 +452,7 @@ export const SignaturePreview = ({
         {footerText && (
           <p 
             className="text-center text-xs"
-            style={{ color: textColor, opacity: 0.6 }}
+            style={{ color: cTextColor, opacity: 0.6 }}
             data-testid="text-contract-footer"
           >
             {footerText}
@@ -415,7 +463,7 @@ export const SignaturePreview = ({
           <Button
             variant="outline"
             onClick={() => handleStepChange(0)}
-            style={{ borderColor: primaryColor, color: primaryColor }}
+            style={{ borderColor: cPrimaryColor, color: cPrimaryColor }}
             data-testid="button-contract-back"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
@@ -423,7 +471,7 @@ export const SignaturePreview = ({
           </Button>
           <Button
             onClick={() => handleStepChange(2)}
-            style={{ backgroundColor: primaryColor, color: 'white' }}
+            style={{ backgroundColor: cPrimaryColor, color: 'white' }}
             data-testid="button-contract-sign"
           >
             <PenTool className="w-4 h-4 mr-2" />

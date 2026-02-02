@@ -142,6 +142,15 @@ export interface SimplifiedSignatureWizardProps {
   onContractTitleChange: (value: string) => void;
   onClausesChange: (clauses: ContractClause[]) => void;
 
+  contractPrimaryColor: string;
+  contractTextColor: string;
+  contractBackgroundColor: string;
+  contractFontFamily: string;
+  onContractPrimaryColorChange: (value: string) => void;
+  onContractTextColorChange: (value: string) => void;
+  onContractBackgroundColorChange: (value: string) => void;
+  onContractFontFamilyChange: (value: string) => void;
+
   appStoreUrl: string;
   googlePlayUrl: string;
   onAppStoreUrlChange: (value: string) => void;
@@ -279,6 +288,15 @@ export const SimplifiedSignatureWizard = ({
   clauses,
   onContractTitleChange,
   onClausesChange,
+
+  contractPrimaryColor,
+  contractTextColor,
+  contractBackgroundColor,
+  contractFontFamily,
+  onContractPrimaryColorChange,
+  onContractTextColorChange,
+  onContractBackgroundColorChange,
+  onContractFontFamilyChange,
 
   appStoreUrl,
   googlePlayUrl,
@@ -1177,6 +1195,85 @@ export const SimplifiedSignatureWizard = ({
         </TabsContent>
 
         <TabsContent value="design" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Palette className="w-5 h-5" />
+                Cores do Contrato
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Cor Principal</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="color"
+                      value={contractPrimaryColor}
+                      onChange={(e) => onContractPrimaryColorChange(e.target.value)}
+                      className="w-12 h-10 p-1 cursor-pointer"
+                      data-testid="input-contract-primary-color"
+                    />
+                    <Input
+                      value={contractPrimaryColor}
+                      onChange={(e) => onContractPrimaryColorChange(e.target.value)}
+                      className="flex-1"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Cor do Texto</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="color"
+                      value={contractTextColor}
+                      onChange={(e) => onContractTextColorChange(e.target.value)}
+                      className="w-12 h-10 p-1 cursor-pointer"
+                      data-testid="input-contract-text-color"
+                    />
+                    <Input
+                      value={contractTextColor}
+                      onChange={(e) => onContractTextColorChange(e.target.value)}
+                      className="flex-1"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Cor de Fundo</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="color"
+                      value={contractBackgroundColor}
+                      onChange={(e) => onContractBackgroundColorChange(e.target.value)}
+                      className="w-12 h-10 p-1 cursor-pointer"
+                      data-testid="input-contract-background-color"
+                    />
+                    <Input
+                      value={contractBackgroundColor}
+                      onChange={(e) => onContractBackgroundColorChange(e.target.value)}
+                      className="flex-1"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Fonte</Label>
+                  <Select value={contractFontFamily} onValueChange={(v) => onContractFontFamilyChange(v)}>
+                    <SelectTrigger data-testid="select-contract-font-family">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {fontOptions.map((font) => (
+                        <SelectItem key={font.value} value={font.value}>{font.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Rodapé do Contrato</CardTitle>
