@@ -107,23 +107,19 @@ publicRoomDesignRouter.get('/reunioes/public/:companySlug/:roomId', async (req: 
       return res.status(404).json({ error: 'Reunião não encontrada' });
     }
 
-    // Find tenant by slug or by meeting's tenantId
+    // Find tenant by slug (meeting_tenants uses UUID as ID, not tenantId string)
     let tenant = null;
     
-    // First try to find by slug
+    // Try to find by slug
     const [tenantBySlug] = await db.select().from(meetingTenants)
       .where(eq(meetingTenants.slug, companySlug))
       .limit(1);
     
     if (tenantBySlug) {
       tenant = tenantBySlug;
-    } else if (meeting.tenantId) {
-      // Fallback: find by tenantId
-      const [tenantById] = await db.select().from(meetingTenants)
-        .where(eq(meetingTenants.id, meeting.tenantId))
-        .limit(1);
-      tenant = tenantById;
     }
+    // Note: We don't fallback to meeting.tenantId because that's a string like "dev-teste_empresa_com"
+    // but meetingTenants.id is a UUID. The important roomDesignConfig comes from hms100msConfig below.
 
     // Get design config from hms100msConfig (CRITICAL for room design)
     let roomDesignConfig = null;
