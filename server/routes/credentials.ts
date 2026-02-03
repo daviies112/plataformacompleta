@@ -4,7 +4,7 @@ import { authenticateConfig } from '../middleware/configAuth';
 import { credentialsStorage, encrypt, decrypt, saveCredentialsToFile } from '../lib/credentialsManager';
 import { clearSupabaseClientCache, testDynamicSupabaseConnection, invalidateConnectionTestCache } from '../lib/multiTenantSupabase';
 import { db } from '../db';
-import { pluggyConfig, supabaseConfig, n8nConfig, evolutionApiConfig } from '../../shared/db-schema.js';
+import { pluggyConfig, supabaseConfig, n8nConfig, evolutionApiConfig, hms100msConfig, totalExpressConfig, bigdatacorpConfig } from '../../shared/db-schema.js';
 import { eq } from 'drizzle-orm';
 import { getSupabaseCredentials, getSupabaseCredentialsStrict, getPluggyCredentials, getN8nCredentials, getEvolutionApiCredentials } from '../lib/credentialsDb';
 import { resetAllPollerStates } from '../lib/stateReset';
@@ -94,6 +94,36 @@ router.delete('/clear-all', authenticateToken, async (req, res) => {
       console.log(`🗑️ [DB] evolutionApiConfig deletado para tenant ${tenantId}`);
     } catch (dbErr) {
       console.warn('⚠️ [DB] Erro ao deletar evolutionApiConfig:', dbErr);
+    }
+
+    try {
+      await db.delete(hms100msConfig)
+        .where(eq(hms100msConfig.tenantId, tenantId))
+        .execute();
+      cleared.database.push('hms100msConfig');
+      console.log(`🗑️ [DB] hms100msConfig deletado para tenant ${tenantId}`);
+    } catch (dbErr) {
+      console.warn('⚠️ [DB] Erro ao deletar hms100msConfig:', dbErr);
+    }
+
+    try {
+      await db.delete(totalExpressConfig)
+        .where(eq(totalExpressConfig.tenantId, tenantId))
+        .execute();
+      cleared.database.push('totalExpressConfig');
+      console.log(`🗑️ [DB] totalExpressConfig deletado para tenant ${tenantId}`);
+    } catch (dbErr) {
+      console.warn('⚠️ [DB] Erro ao deletar totalExpressConfig:', dbErr);
+    }
+
+    try {
+      await db.delete(bigdatacorpConfig)
+        .where(eq(bigdatacorpConfig.tenantId, tenantId))
+        .execute();
+      cleared.database.push('bigdatacorpConfig');
+      console.log(`🗑️ [DB] bigdatacorpConfig deletado para tenant ${tenantId}`);
+    } catch (dbErr) {
+      console.warn('⚠️ [DB] Erro ao deletar bigdatacorpConfig:', dbErr);
     }
 
     // 4. Reset poller states

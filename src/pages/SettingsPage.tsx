@@ -971,6 +971,66 @@ const SettingsPage = () => {
       window.dispatchEvent(new CustomEvent('supabase-config-changed'));
       window.dispatchEvent(new CustomEvent('tenant-credentials-changed'));
       
+      // Reset all integration forms to initial empty state
+      setIntegrationForms({
+        supabase: { url: '', anon_key: '', bucket: 'receipts' },
+        google_calendar: { client_id: '', client_secret: '', refresh_token: '' },
+        pluggy: { client_id: '', client_secret: '' },
+        n8n: { webhook_url: '' },
+        evolution_api: { api_url: '', api_key: '', instance: 'nexus-whatsapp' },
+        redis: { redis_url: '', redis_token: '' },
+        sentry: { dsn: '', auth_token: '', organization: '', project: '', environment: 'production', traces_sample_rate: '0.1' },
+        cloudflare: { zone_id: '', api_token: '' },
+        better_stack: { source_token: '', ingesting_host: '' },
+        bigdatacorp: { token_id: '', chave_token: '' },
+        supabase_master: { url: '', service_role_key: '' },
+        totalexpress: { user: '', password: '', reid: '', service_type: 'EXP', profit_margin: '40', test_mode: false },
+        cache: {
+          progressive_ttl_enabled: 'false',
+          access_threshold_high: '100',
+          access_threshold_medium: '50',
+          access_threshold_low: '10',
+          ttl_high: '3600',
+          ttl_medium: '1800',
+          ttl_low: '900',
+          ttl_default: '300',
+          batch_invalidation_enabled: 'false',
+          batch_invalidation_delay: '5000',
+          cache_warming_enabled: 'false',
+          compression_enabled: 'false',
+          compression_threshold: '1024'
+        },
+        optimizer: {
+          default_field_set: 'compact',
+          default_page_size: '20',
+          max_page_size: '100',
+          pagination_type: 'offset',
+          query_caching_enabled: 'false',
+          query_cache_ttl: '300',
+          aggregation_enabled: 'false'
+        },
+        hms100ms: { 
+          app_access_key: '', 
+          app_secret: '', 
+          management_token: '',
+          template_id: '',
+          api_base_url: 'https://api.100ms.live/v2'
+        },
+        monitoring: {
+          monitoring_enabled: 'false',
+          monitoring_interval: '60000',
+          redis_commands_daily: '1000',
+          redis_warning_threshold: '70',
+          redis_critical_threshold: '90',
+          supabase_bandwidth_monthly: '1073741824',
+          supabase_warning_threshold: '70',
+          supabase_critical_threshold: '90',
+          alerts_enabled: 'false',
+          alert_email: '',
+          auto_actions_enabled: 'false'
+        }
+      });
+      
       queryClient.invalidateQueries({ queryKey: ['/api/credentials'] });
       queryClient.invalidateQueries({ queryKey: ['/api/config/supabase'] });
       queryClient.invalidateQueries({ queryKey: ['/api/config/supabase/credentials'] });
@@ -978,6 +1038,8 @@ const SettingsPage = () => {
       queryClient.invalidateQueries({ queryKey: ['/api/config/n8n'] });
       queryClient.invalidateQueries({ queryKey: ['/api/config/total-express'] });
       queryClient.invalidateQueries({ queryKey: ['/api/config/hms100ms/credentials'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/config/bigdatacorp'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/config/evolution-api'] });
       refetchCredentials();
       
       toast({
