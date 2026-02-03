@@ -151,7 +151,51 @@ const PersonalizarAssinaturaPage = () => {
   React.useEffect(() => {
     if (globalConfig) {
       if (globalConfig.logo_url) setLogoUrl(globalConfig.logo_url);
+      if (globalConfig.logo_size) setLogoSize(globalConfig.logo_size);
+      if (globalConfig.logo_position) setLogoPosition(globalConfig.logo_position);
       if (globalConfig.company_name) setCompanyName(globalConfig.company_name);
+      if (globalConfig.footer_text) setFooterText(globalConfig.footer_text);
+      if (globalConfig.primary_color) setPrimaryColor(globalConfig.primary_color);
+      if (globalConfig.text_color) setTextColor(globalConfig.text_color);
+      if (globalConfig.font_family) setFontFamily(globalConfig.font_family);
+      if (globalConfig.font_size) setFontSize(globalConfig.font_size);
+      
+      if (globalConfig.verification_primary_color) setVerificationPrimaryColor(globalConfig.verification_primary_color);
+      if (globalConfig.verification_text_color) setVerificationTextColor(globalConfig.verification_text_color);
+      if (globalConfig.verification_font_family) setVerificationFontFamily(globalConfig.verification_font_family);
+      if (globalConfig.verification_font_size) setVerificationFontSize(globalConfig.verification_font_size);
+      if (globalConfig.verification_logo_url) setVerificationLogoUrl(globalConfig.verification_logo_url);
+      if (globalConfig.verification_logo_size) setVerificationLogoSize(globalConfig.verification_logo_size);
+      if (globalConfig.verification_logo_position) setVerificationLogoPosition(globalConfig.verification_logo_position);
+      if (globalConfig.verification_footer_text) setVerificationFooterText(globalConfig.verification_footer_text);
+      if (globalConfig.verification_welcome_text) setVerificationWelcomeText(globalConfig.verification_welcome_text);
+      if (globalConfig.verification_instructions) setVerificationInstructions(globalConfig.verification_instructions);
+      if (globalConfig.verification_security_text) setVerificationSecurityText(globalConfig.verification_security_text);
+      if (globalConfig.verification_background_color) setVerificationBackgroundColor(globalConfig.verification_background_color);
+      if (globalConfig.verification_header_background_color) setVerificationHeaderBackgroundColor(globalConfig.verification_header_background_color);
+      if (globalConfig.verification_header_company_name) setVerificationHeaderCompanyName(globalConfig.verification_header_company_name);
+      
+      if (globalConfig.progress_card_color) setProgressCardColor(globalConfig.progress_card_color);
+      if (globalConfig.progress_button_color) setProgressButtonColor(globalConfig.progress_button_color);
+      if (globalConfig.progress_text_color) setProgressTextColor(globalConfig.progress_text_color);
+      if (globalConfig.progress_title) setProgressTitle(globalConfig.progress_title);
+      if (globalConfig.progress_subtitle) setProgressSubtitle(globalConfig.progress_subtitle);
+      if (globalConfig.progress_step1_title) setProgressStep1Title(globalConfig.progress_step1_title);
+      if (globalConfig.progress_step1_description) setProgressStep1Description(globalConfig.progress_step1_description);
+      if (globalConfig.progress_step2_title) setProgressStep2Title(globalConfig.progress_step2_title);
+      if (globalConfig.progress_step2_description) setProgressStep2Description(globalConfig.progress_step2_description);
+      if (globalConfig.progress_step3_title) setProgressStep3Title(globalConfig.progress_step3_title);
+      if (globalConfig.progress_step3_description) setProgressStep3Description(globalConfig.progress_step3_description);
+      if (globalConfig.progress_button_text) setProgressButtonText(globalConfig.progress_button_text);
+      if (globalConfig.progress_font_family) setProgressFontFamily(globalConfig.progress_font_family);
+      
+      if (globalConfig.contract_primary_color) setContractPrimaryColor(globalConfig.contract_primary_color);
+      if (globalConfig.contract_text_color) setContractTextColor(globalConfig.contract_text_color);
+      if (globalConfig.contract_background_color) setContractBackgroundColor(globalConfig.contract_background_color);
+      if (globalConfig.contract_font_family) setContractFontFamily(globalConfig.contract_font_family);
+      
+      if (globalConfig.app_store_url) setAppStoreUrl(globalConfig.app_store_url);
+      if (globalConfig.google_play_url) setGooglePlayUrl(globalConfig.google_play_url);
     }
   }, [globalConfig]);
 
@@ -205,6 +249,43 @@ const PersonalizarAssinaturaPage = () => {
       font_size: fontSize,
       company_name: companyName,
       footer_text: footerText,
+      
+      verification_primary_color: verificationPrimaryColor,
+      verification_text_color: verificationTextColor,
+      verification_font_family: verificationFontFamily,
+      verification_font_size: verificationFontSize,
+      verification_logo_url: verificationLogoUrl,
+      verification_logo_size: verificationLogoSize,
+      verification_logo_position: verificationLogoPosition,
+      verification_footer_text: verificationFooterText,
+      verification_welcome_text: verificationWelcomeText,
+      verification_instructions: verificationInstructions,
+      verification_security_text: verificationSecurityText,
+      verification_background_color: verificationBackgroundColor,
+      verification_header_background_color: verificationHeaderBackgroundColor,
+      verification_header_company_name: verificationHeaderCompanyName,
+      
+      progress_card_color: progressCardColor,
+      progress_button_color: progressButtonColor,
+      progress_text_color: progressTextColor,
+      progress_title: progressTitle,
+      progress_subtitle: progressSubtitle,
+      progress_step1_title: progressStep1Title,
+      progress_step1_description: progressStep1Description,
+      progress_step2_title: progressStep2Title,
+      progress_step2_description: progressStep2Description,
+      progress_step3_title: progressStep3Title,
+      progress_step3_description: progressStep3Description,
+      progress_button_text: progressButtonText,
+      progress_font_family: progressFontFamily,
+      
+      contract_primary_color: contractPrimaryColor,
+      contract_text_color: contractTextColor,
+      contract_background_color: contractBackgroundColor,
+      contract_font_family: contractFontFamily,
+      
+      app_store_url: appStoreUrl,
+      google_play_url: googlePlayUrl,
     });
   };
 

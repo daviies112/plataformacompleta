@@ -1,10 +1,23 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
+function getTenantIdFromStorage(): string | null {
+  try {
+    const userData = localStorage.getItem('user_data');
+    if (userData) {
+      const parsedUser = JSON.parse(userData);
+      return parsedUser?.tenantId || null;
+    }
+    return localStorage.getItem('tenantId') || localStorage.getItem('tenant_id') || null;
+  } catch (error) {
+    console.warn('[queryClient] Error getting tenantId from localStorage:', error);
+    return null;
+  }
+}
+
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
     
-    // Tentar extrair mensagem amigável do JSON
     try {
       const json = JSON.parse(text);
       if (json.error) {
@@ -14,15 +27,12 @@ async function throwIfResNotOk(res: Response) {
         throw new Error(json.message);
       }
     } catch (parseError) {
-      // Se não for JSON ou não tiver campo error/message, usar texto original
       if (parseError instanceof SyntaxError) {
         throw new Error(text || res.statusText);
       }
-      // Re-throw se for o Error que criamos acima
       throw parseError;
     }
     
-    // Fallback caso nenhum dos casos acima funcione
     throw new Error(text || res.statusText);
   }
 }
@@ -32,9 +42,20 @@ export async function apiRequest(
   url: string,
   data?: unknown | undefined,
 ): Promise<Response> {
+  const headers: Record<string, string> = {};
+  
+  if (data) {
+    headers["Content-Type"] = "application/json";
+  }
+  
+  const tenantId = getTenantIdFromStorage();
+  if (tenantId) {
+    headers["x-tenant-id"] = tenantId;
+  }
+  
   const res = await fetch(url, {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
+    headers,
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
   });
@@ -49,8 +70,16 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
+    const headers: Record<string, string> = {};
+    
+    const tenantId = getTenantIdFromStorage();
+    if (tenantId) {
+      headers["x-tenant-id"] = tenantId;
+    }
+    
     const res = await fetch(queryKey.join("/") as string, {
       credentials: "include",
+      headers,
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {

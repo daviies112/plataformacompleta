@@ -1,7 +1,7 @@
 {
-  "company_name": "TESTE SALVO NO SUPABASE",
-  "primary_color": "#ff5722",
-  "text_color": "#333333",
+  "verification_welcome_text": "Teste de persistencia 123",
+  "primary_color": "#ff5500",
+  "company_name": "Empresa Teste ABC",
   "tenant_id": "dev-daviemericko_gmail_com",
-  "updated_at": "2026-02-03T01:59:40.601Z"
+  "updated_at": "2026-02-03T14:20:17.760Z"
 }

@@ -166,3 +166,17 @@
     4. Audit trail updated with proper status transitions
   - Flow now: pending → contract_signed (step 2) → signed (step 5)
   - Prevents premature 'signed' status before completing residence proof and app download
+[x] 220. Fix Assinatura Settings Persistence in Admin - February 03, 2026:
+  - Problem: Customization settings were lost when navigating away from page
+  - Root Causes Found:
+    1. queryClient.ts: apiRequest and getQueryFn were NOT sending x-tenant-id header
+    2. PersonalizarAssinaturaPage.tsx: useEffect only loaded 2 fields (logo_url, company_name)
+    3. PersonalizarAssinaturaPage.tsx: handleSaveConfig only saved 9 fields
+  - Fixes Applied:
+    1. queryClient.ts: Added getTenantIdFromStorage() function to get tenantId from localStorage
+    2. queryClient.ts: apiRequest now includes x-tenant-id header from localStorage
+    3. queryClient.ts: getQueryFn now includes x-tenant-id header from localStorage  
+    4. PersonalizarAssinaturaPage.tsx: useEffect now loads ALL config fields (~45 fields)
+    5. PersonalizarAssinaturaPage.tsx: handleSaveConfig now saves ALL config fields (~45 fields)
+  - Tested: Save returns savedTo: "both", Load returns data from Supabase correctly
+  - Server logs confirm: "Config global salva no Supabase do tenant" + "Config global carregada do Supabase do tenant"
