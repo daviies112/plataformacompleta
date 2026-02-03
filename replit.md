@@ -49,6 +49,11 @@ ExecutiveAI Pro utilizes a modern web stack with a multi-tenant, API-driven arch
 - **Product Requests System:** Allows admins to view and update reseller product requests.
 - **CPF Compliance Score System:** Evaluates reseller risk (0-1000 score) based on legal processes, debts, and CPF status, with race condition and duplicate protection.
 
+## Recent Changes (February 2026)
+
+- **Critical Cache Fix**: Fixed issue where forms weren't loading after saving Supabase credentials. The `publicCache.ts` credentials cache is now properly invalidated via `invalidateCredentialsCache(tenantId)` when credentials are saved in `/api/config/supabase`. This ensures forms and contracts load immediately after credential configuration.
+- **Reset Total Feature**: Complete system reset functionality that clears all credentials (7 config tables), local cache files, and in-memory contract cache via `clearLocalContractsCache()`.
+
 ## External Dependencies
 
 - **PostgreSQL:** Primary relational database.

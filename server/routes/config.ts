@@ -31,6 +31,7 @@ import {
   getEffectiveSupabaseConfig,
   getSupabaseFileConfig 
 } from '../lib/supabaseFileConfig';
+import { invalidateCredentialsCache } from '../lib/publicCache';
 import axios from 'axios';
 import Redis from 'ioredis';
 
@@ -2092,6 +2093,15 @@ export function setupConfigRoutes(app: Express) {
         console.log(`✅ LeadsCache invalidated for tenant ${tenantId}`);
       } catch (leadsCacheError) {
         console.warn("⚠️ Could not invalidate LeadsCache:", leadsCacheError);
+      }
+      
+      // 🔐 CRITICAL: Invalidate publicCache credentials (used by /api/forms endpoint)
+      // This cache was preventing forms from loading after credential save
+      try {
+        invalidateCredentialsCache(tenantId);
+        console.log(`✅ PublicCache credentials invalidated for tenant ${tenantId}`);
+      } catch (publicCacheError) {
+        console.warn("⚠️ Could not invalidate PublicCache:", publicCacheError);
       }
       
       // Reinitialize assinaturaSupabaseService to use new credentials
