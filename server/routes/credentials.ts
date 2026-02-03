@@ -12,8 +12,149 @@ import { invalidateClienteCache } from '../lib/clienteSupabase';
 import { clearSupabaseClientCache as clearFormularioSupabaseCache } from '../formularios/utils/supabaseClient';
 import { syncAdminCredentialsToOwner } from '../lib/masterSyncService';
 import { invalidateLeadsCache } from './leadsPipelineRoutes';
+import fs from 'fs';
+import path from 'path';
 
 const router = express.Router();
+
+// Clear all credentials and cache for testing with new credentials
+router.delete('/clear-all', authenticateToken, async (req, res) => {
+  try {
+    const clientId = req.user!.clientId;
+    const tenantId = req.user!.tenantId;
+
+    if (!tenantId) {
+      console.error('❌ [SECURITY] Tentativa de limpar credenciais sem tenantId - bloqueado');
+      return res.status(401).json({
+        success: false,
+        error: 'Tenant ID ausente - isolamento de credenciais comprometido'
+      });
+    }
+
+    console.log(`🧹 [CREDENTIALS] Limpando todas as credenciais e cache para tenant ${tenantId}`);
+
+    const cleared: { credentials: string[]; cache: string[]; database: string[]; files: string[] } = {
+      credentials: [],
+      cache: [],
+      database: [],
+      files: []
+    };
+
+    // 1. Clear in-memory credentials for this client
+    if (credentialsStorage.has(clientId)) {
+      const clientCreds = credentialsStorage.get(clientId);
+      if (clientCreds) {
+        const types = Array.from(clientCreds.keys());
+        credentialsStorage.delete(clientId);
+        cleared.credentials.push(...types);
+        console.log(`🗑️ [CREDENTIALS] Credenciais em memória limpas: ${types.join(', ')}`);
+      }
+    }
+
+    // 2. Save updated credentials file (without this client's credentials)
+    saveCredentialsToFile();
+    console.log(`💾 [CREDENTIALS] Arquivo credentials.json atualizado`);
+
+    // 3. Delete from database tables for this tenant
+    try {
+      await db.delete(supabaseConfig)
+        .where(eq(supabaseConfig.tenantId, tenantId))
+        .execute();
+      cleared.database.push('supabaseConfig');
+      console.log(`🗑️ [DB] supabaseConfig deletado para tenant ${tenantId}`);
+    } catch (dbErr) {
+      console.warn('⚠️ [DB] Erro ao deletar supabaseConfig:', dbErr);
+    }
+
+    try {
+      await db.delete(pluggyConfig)
+        .where(eq(pluggyConfig.tenantId, tenantId))
+        .execute();
+      cleared.database.push('pluggyConfig');
+      console.log(`🗑️ [DB] pluggyConfig deletado para tenant ${tenantId}`);
+    } catch (dbErr) {
+      console.warn('⚠️ [DB] Erro ao deletar pluggyConfig:', dbErr);
+    }
+
+    try {
+      await db.delete(n8nConfig)
+        .where(eq(n8nConfig.tenantId, tenantId))
+        .execute();
+      cleared.database.push('n8nConfig');
+      console.log(`🗑️ [DB] n8nConfig deletado para tenant ${tenantId}`);
+    } catch (dbErr) {
+      console.warn('⚠️ [DB] Erro ao deletar n8nConfig:', dbErr);
+    }
+
+    try {
+      await db.delete(evolutionApiConfig)
+        .where(eq(evolutionApiConfig.tenantId, tenantId))
+        .execute();
+      cleared.database.push('evolutionApiConfig');
+      console.log(`🗑️ [DB] evolutionApiConfig deletado para tenant ${tenantId}`);
+    } catch (dbErr) {
+      console.warn('⚠️ [DB] Erro ao deletar evolutionApiConfig:', dbErr);
+    }
+
+    // 4. Reset poller states
+    resetAllPollerStates();
+    cleared.cache.push('pollerStates');
+    console.log(`🔄 [CACHE] Estados de polling resetados`);
+
+    // 5. Clear all Supabase client caches
+    clearSupabaseClientCache(clientId);
+    cleared.cache.push('supabaseClientCache');
+    
+    invalidateClienteCache();
+    cleared.cache.push('clienteCache');
+    
+    clearFormularioSupabaseCache();
+    cleared.cache.push('formularioSupabaseCache');
+    
+    invalidateConnectionTestCache(clientId);
+    invalidateConnectionTestCache(tenantId);
+    cleared.cache.push('connectionTestCache');
+    
+    invalidateLeadsCache(tenantId);
+    cleared.cache.push('leadsCache');
+    
+    console.log(`🗑️ [CACHE] Todos os caches Supabase invalidados`);
+
+    // 6. Delete local config files (NOT credentials.json structure, NOT contracts, NOT audit)
+    const dataDir = path.join(process.cwd(), 'data');
+    
+    // Delete supabase-config.json
+    const supabaseConfigPath = path.join(dataDir, 'supabase-config.json');
+    if (fs.existsSync(supabaseConfigPath)) {
+      fs.unlinkSync(supabaseConfigPath);
+      cleared.files.push('supabase-config.json');
+      console.log(`🗑️ [FILE] supabase-config.json deletado`);
+    }
+    
+    // Delete cpf_auto_check_processed.json
+    const cpfAutoCheckPath = path.join(dataDir, 'cpf_auto_check_processed.json');
+    if (fs.existsSync(cpfAutoCheckPath)) {
+      fs.unlinkSync(cpfAutoCheckPath);
+      cleared.files.push('cpf_auto_check_processed.json');
+      console.log(`🗑️ [FILE] cpf_auto_check_processed.json deletado`);
+    }
+
+    console.log(`✅ [CREDENTIALS] Limpeza completa para tenant ${tenantId}`);
+
+    res.json({
+      success: true,
+      cleared,
+      message: 'Todas as credenciais e cache foram limpos com sucesso'
+    });
+
+  } catch (error) {
+    console.error('❌ [CREDENTIALS] Erro ao limpar credenciais:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erro interno do servidor ao limpar credenciais'
+    });
+  }
+});
 
 // Salvar credenciais
 router.put('/:integrationType', authenticateToken, async (req, res) => {

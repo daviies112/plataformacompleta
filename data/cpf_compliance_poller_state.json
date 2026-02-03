@@ -1,6 +1,6 @@
 {
-  "lastPolledAt": "2026-02-03T14:19:55.598Z",
-  "totalProcessed": 21748,
-  "totalErrors": 454,
+  "lastPolledAt": null,
+  "totalProcessed": 0,
+  "totalErrors": 0,
   "lastError": null
 }

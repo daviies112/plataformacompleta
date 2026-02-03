@@ -18,10 +18,21 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Video, Workflow, Copy, RefreshCw, Trash2, Check, Eye, EyeOff, Truck } from "lucide-react";
+import { Loader2, Video, Workflow, Copy, RefreshCw, Trash2, Check, Eye, EyeOff, Truck, AlertTriangle } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const configSchema = z.object({
   nome_empresa: z.string().min(2, "Nome muito curto"),
@@ -427,6 +438,50 @@ export default function Configuracoes() {
     onError: (error: any) => {
       toast({
         title: "Erro",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const clearCredentialsMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch("/api/credentials/clear-all", {
+        method: "DELETE",
+        headers: { 
+          "Authorization": `Bearer ${localStorage.getItem('token')}`
+        },
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Erro ao limpar credenciais");
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('supabase_') || key.startsWith('credentials_')) {
+          localStorage.removeItem(key);
+        }
+      });
+      
+      window.dispatchEvent(new CustomEvent('supabase-config-changed'));
+      
+      queryClient.invalidateQueries({ queryKey: ["/api/credentials"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/config/supabase"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/config/hms100ms/credentials"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/config/total-express"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/n8n/api-key/status"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/tenants/me"] });
+      
+      toast({
+        title: "Credenciais e cache limpos",
+        description: `Limpo: ${data.cleared?.database?.length || 0} configs do banco, ${data.cleared?.cache?.length || 0} caches, ${data.cleared?.files?.length || 0} arquivos.`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao limpar credenciais",
         description: error.message,
         variant: "destructive",
       });
@@ -1139,6 +1194,87 @@ export default function Configuracoes() {
           </div>
         </form>
       </Form>
+
+      <Separator className="my-8" />
+
+      <Card className="border-destructive/50 bg-destructive/5" data-testid="card-danger-zone">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-destructive" />
+            <div>
+              <CardTitle className="text-destructive">Zona de Perigo</CardTitle>
+              <CardDescription>
+                Ações destrutivas que não podem ser desfeitas.
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-start justify-between gap-4">
+            <div className="space-y-1">
+              <p className="font-medium">Limpar Credenciais e Cache</p>
+              <p className="text-sm text-muted-foreground">
+                Remove todas as credenciais de integrações (Supabase, N8N, Evolution API, Pluggy) e limpa caches do sistema.
+                Útil para testar com novas credenciais ou resetar o ambiente.
+              </p>
+            </div>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="destructive"
+                  disabled={clearCredentialsMutation.isPending}
+                  data-testid="button-clear-credentials"
+                >
+                  {clearCredentialsMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Limpando...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Limpar Credenciais e Cache
+                    </>
+                  )}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent data-testid="dialog-clear-credentials">
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Limpar Todas as Credenciais?</AlertDialogTitle>
+                  <AlertDialogDescription asChild>
+                    <div className="space-y-4">
+                      <p>Esta ação irá remover:</p>
+                      <ul className="list-disc pl-4 space-y-1 text-sm">
+                        <li>Credenciais do Supabase, N8N, Evolution API e Pluggy</li>
+                        <li>Configurações de cache e estados de sincronização</li>
+                        <li>Arquivos de configuração local</li>
+                      </ul>
+                      <p className="font-medium text-foreground">O que será preservado:</p>
+                      <ul className="list-disc pl-4 space-y-1 text-sm">
+                        <li>Dados de usuários e tenant (nome, email, horário)</li>
+                        <li>Contratos de assinatura</li>
+                        <li>Configurações de personalização</li>
+                        <li>Trilha de auditoria</li>
+                      </ul>
+                      <p className="text-destructive font-medium">Esta ação não pode ser desfeita.</p>
+                    </div>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel data-testid="button-cancel-clear">Cancelar</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => clearCredentialsMutation.mutate()}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    data-testid="button-confirm-clear"
+                  >
+                    Limpar Tudo
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        </CardContent>
+      </Card>
 
     </div>
   );
