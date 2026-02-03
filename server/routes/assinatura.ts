@@ -539,6 +539,12 @@ interface LocalContract {
   selfie_photo?: string | null;
   document_photo?: string | null;
   document_back_photo?: string | null;
+  residence_proof_photo?: string | null;
+  residence_proof_validated?: boolean | null;
+  residence_proof_manual_review?: boolean | null;
+  residence_proof_date?: string | null;
+  virou_revendedora?: boolean | null;
+  data_virou_revendedora?: string | null;
 }
 
 function ensureDataDir(): void {
@@ -2038,12 +2044,22 @@ router.post('/save-residence-proof', async (req: Request, res: Response) => {
     
     console.log(`[Assinatura] Salvando comprovante de residência para contrato: ${contractId}`);
     
+    const currentTimestamp = new Date().toISOString();
+    
+    // Update residence proof data AND mark contract as signed (assinado)
+    // This is the final step - when residence proof is saved, the user becomes a reseller
     const updates = {
       residence_proof_photo: imageBase64 || null,
       residence_proof_validated: validated || false,
       residence_proof_manual_review: manualReviewRequired || false,
-      residence_proof_date: new Date().toISOString()
+      residence_proof_date: currentTimestamp,
+      // Mark contract as fully signed when residence proof is submitted
+      status: 'assinado',
+      virou_revendedora: true,
+      data_virou_revendedora: currentTimestamp
     };
+    
+    console.log(`[Assinatura] Marcando contrato como ASSINADO e virou_revendedora=true`);
     
     // Try to find contract in local store by token or ID
     let localContract = localContractsStore.get(contractId);
@@ -2058,21 +2074,20 @@ router.post('/save-residence-proof', async (req: Request, res: Response) => {
       console.log(`[Assinatura] Contrato local atualizado: ${localContract.id}`);
     }
     
-    if (assinaturaSupabaseService.isConnected()) {
-      console.log(`[Assinatura] Salvando comprovante no Supabase, foto presente: ${!!updates.residence_proof_photo}, tamanho: ${updates.residence_proof_photo?.length || 0} chars`);
-      
-      // Try by access_token first, then by ID
-      let result = await assinaturaSupabaseService.updateContractByToken(contractId, updates);
-      if (!result) {
-        console.log(`[Assinatura] Tentando atualizar por ID ao invés de token...`);
-        result = await assinaturaSupabaseService.updateContract(contractId, updates);
-      }
-      
-      if (result) {
-        console.log(`[Assinatura] ✅ Supabase atualizado com sucesso, residence_proof_photo salva`);
-      } else {
-        console.error(`[Assinatura] ❌ Falha ao atualizar Supabase - contrato não encontrado por token nem ID: ${contractId}`);
-      }
+    // Try to update in Supabase - the service will initialize lazily
+    console.log(`[Assinatura] Salvando comprovante no Supabase, foto presente: ${!!updates.residence_proof_photo}, tamanho: ${updates.residence_proof_photo?.length || 0} chars`);
+    
+    // Try by access_token first, then by ID
+    let result = await assinaturaSupabaseService.updateContractByToken(contractId, updates);
+    if (!result) {
+      console.log(`[Assinatura] Tentando atualizar por ID ao invés de token...`);
+      result = await assinaturaSupabaseService.updateContract(contractId, updates);
+    }
+    
+    if (result) {
+      console.log(`[Assinatura] ✅ Supabase atualizado: status=${result.status}, virou_revendedora=${result.virou_revendedora}`);
+    } else {
+      console.warn(`[Assinatura] ⚠️ Supabase não atualizado - contrato não encontrado ou credenciais não configuradas: ${contractId}`);
     }
     
     return res.json({ success: true, message: 'Comprovante salvo com sucesso' });

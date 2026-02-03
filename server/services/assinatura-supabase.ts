@@ -97,6 +97,9 @@ interface AssinaturaContract {
   signature_url?: string | null;
   whatsapp_enviado?: boolean;
   whatsapp_enviado_at?: string | null;
+  // Campos para marcar quando virou revendedora
+  virou_revendedora?: boolean | null;
+  data_virou_revendedora?: string | null;
 }
 
 interface AssinaturaGlobalConfig {
@@ -667,7 +670,9 @@ class AssinaturaSupabaseService {
         has_doc: !!updates.document_photo,
         has_residence_proof: !!updates.residence_proof_photo,
         has_signed_html: !!updates.signed_contract_html,
-        status: updates.status
+        status: updates.status,
+        virou_revendedora: updates.virou_revendedora,
+        data_virou_revendedora: updates.data_virou_revendedora
       });
       
       const updatePayload = {
