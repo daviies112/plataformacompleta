@@ -7,7 +7,8 @@ import multer from "multer";
 import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs";
-import { getDynamicSupabaseClient } from "../formularios/utils/supabaseClient";
+import { getDynamicSupabaseClient as getFormSupabaseClient } from "../formularios/utils/supabaseClient";
+import { getDynamicSupabaseClient } from "../lib/multiTenantSupabase";
 import { convertKeysToCamelCase, convertKeysToSnakeCase, parseJsonbFields, stringifyJsonbFields, mapFormDataToSupabase, SUPABASE_FORMS_VALID_FIELDS, reconstructFormDataFromSupabase } from "../formularios/utils/caseConverter";
 import * as leadService from "../formularios/services/leadService";
 import { leadTrackingService } from "../formularios/services/leadTracking";
@@ -246,21 +247,12 @@ export function registerFormulariosCompleteRoutes(app: Express) {
         return res.status(401).json({ error: 'Sessão inválida - faça login novamente' });
       }
       
-      // 🔐 REGRA: Verificar PRIMEIRO se tenant tem Supabase configurado
-      // - Se configurado → usar APENAS Supabase (mesmo que vazio, retornar array vazio)
-      // - Se NÃO configurado → usar PostgreSQL local
-      const isSupabaseConfigured = await hasSupabaseConfigured(tenantId);
+      // 🔐 CORREÇÃO: Usar MESMA função que Workspace usa (getDynamicSupabaseClient de multiTenantSupabase)
+      // Esta função NÃO tem negative caching e busca sempre do banco
+      const supabase = await getDynamicSupabaseClient(tenantId);
       
-      if (isSupabaseConfigured) {
-        const supabase = await getSupabaseClient(tenantId);
-        
-        if (!supabase) {
-          // Supabase configurado mas erro ao criar cliente
-          console.error('❌ [GET /api/forms] Supabase configurado mas erro ao criar cliente');
-          return res.status(500).json({ error: 'Erro ao conectar com Supabase' });
-        }
-        
-        console.log('🔍 [GET /api/forms] Buscando do Supabase com contador de respostas (APENAS Supabase)...');
+      if (supabase) {
+        console.log('🔍 [GET /api/forms] Buscando do Supabase (usando mesma lógica do Workspace)...');
         
         const { data, error } = await supabase
           .from('forms')
@@ -285,7 +277,7 @@ export function registerFormulariosCompleteRoutes(app: Express) {
         // CORREÇÃO: Enrich forms with submission counts from form_submissions table
         const enrichedForms = await enrichFormsWithSubmissionCount(supabase, formattedData);
         
-        console.log(`✅ [SUPABASE] Retornando ${enrichedForms.length} formulário(s) com contador de respostas (SEM fallback local)`);
+        console.log(`✅ [SUPABASE] Retornando ${enrichedForms.length} formulário(s) (usando mesma lógica do Workspace)`);
         return res.json({
           success: true,
           forms: enrichedForms,
@@ -293,8 +285,7 @@ export function registerFormulariosCompleteRoutes(app: Express) {
         });
       }
       
-      // 🔐 Supabase NÃO configurado → retornar lista vazia (dados vêm apenas do Supabase)
-      // Isso garante que após Reset Total, a página de formulários mostra vazio
+      // 🔐 Supabase NÃO configurado → retornar lista vazia
       console.log('⚠️ [GET /api/forms] Supabase NÃO configurado - retornando lista vazia');
       console.log('💡 [GET /api/forms] Configure credenciais Supabase em /configuracoes para ver formulários');
       res.json({
