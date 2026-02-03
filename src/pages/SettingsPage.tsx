@@ -356,11 +356,20 @@ const SettingsPage = () => {
         console.log('✅ Credenciais do Supabase salvas no localStorage (após limpar cache)');
       }
       
+      // 🔐 CRITICAL: Invalidar queries de formulários para recarregar do Supabase
+      console.log('🔄 Invalidando queries de formulários para carregar dados do Supabase...');
+      queryClient.invalidateQueries({ queryKey: ['/api/forms'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/formularios/ativo'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/assinatura/contracts'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/leads'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/workspace'] });
+      console.log('✅ Queries invalidadas - formulários serão recarregados do Supabase');
+      
       refetchCredentials();
       
       toast({
         title: "Integração configurada",
-        description: "Credenciais do Supabase salvas! Cache limpo automaticamente.",
+        description: "Credenciais do Supabase salvas! Formulários serão carregados automaticamente.",
       });
     },
     onError: (error: any) => {
