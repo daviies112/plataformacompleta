@@ -356,14 +356,15 @@ const SettingsPage = () => {
         console.log('✅ Credenciais do Supabase salvas no localStorage (após limpar cache)');
       }
       
-      // 🔐 CRITICAL: Invalidar queries de formulários para recarregar do Supabase
-      console.log('🔄 Invalidando queries de formulários para carregar dados do Supabase...');
-      queryClient.invalidateQueries({ queryKey: ['/api/forms'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/formularios/ativo'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/assinatura/contracts'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/leads'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/workspace'] });
-      console.log('✅ Queries invalidadas - formulários serão recarregados do Supabase');
+      // 🔐 CRITICAL: Forçar refetch imediato de dados para carregar do Supabase
+      console.log('🔄 Forçando refetch de dados para carregar do Supabase...');
+      // Usar refetchQueries para forçar reload imediato (não apenas marcar como stale)
+      queryClient.refetchQueries({ queryKey: ['/api/forms'] });
+      queryClient.refetchQueries({ queryKey: ['/api/formularios/ativo'] });
+      queryClient.refetchQueries({ queryKey: ['/api/assinatura/contracts'] });
+      queryClient.refetchQueries({ queryKey: ['/api/leads'] });
+      queryClient.refetchQueries({ queryKey: ['/api/workspace'] });
+      console.log('✅ Refetch forçado - formulários serão recarregados do Supabase');
       
       refetchCredentials();
       

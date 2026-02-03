@@ -278,6 +278,10 @@ export function registerFormulariosCompleteRoutes(app: Express) {
         const enrichedForms = await enrichFormsWithSubmissionCount(supabase, formattedData);
         
         console.log(`✅ [SUPABASE] Retornando ${enrichedForms.length} formulário(s) (usando mesma lógica do Workspace)`);
+        // Desabilitar cache HTTP para garantir dados frescos
+        res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.set('Pragma', 'no-cache');
+        res.set('Expires', '0');
         return res.json({
           success: true,
           forms: enrichedForms,
@@ -288,6 +292,10 @@ export function registerFormulariosCompleteRoutes(app: Express) {
       // 🔐 Supabase NÃO configurado → retornar lista vazia
       console.log('⚠️ [GET /api/forms] Supabase NÃO configurado - retornando lista vazia');
       console.log('💡 [GET /api/forms] Configure credenciais Supabase em /configuracoes para ver formulários');
+      // Desabilitar cache HTTP para garantir dados frescos após configurar credenciais
+      res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.set('Pragma', 'no-cache');
+      res.set('Expires', '0');
       res.json({
         success: true,
         forms: [],
