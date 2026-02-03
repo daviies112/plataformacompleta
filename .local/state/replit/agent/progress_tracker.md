@@ -180,3 +180,22 @@
     5. PersonalizarAssinaturaPage.tsx: handleSaveConfig now saves ALL config fields (~45 fields)
   - Tested: Save returns savedTo: "both", Load returns data from Supabase correctly
   - Server logs confirm: "Config global salva no Supabase do tenant" + "Config global carregada do Supabase do tenant"
+[x] 221. Add Clear Credentials and Cache Button - February 03, 2026:
+  - User request: Create button to clear all credentials and cache for testing with new credentials
+  - Backend: Added DELETE /api/credentials/clear-all endpoint
+  - What it clears:
+    1. Supabase, Pluggy, N8N, Evolution API credentials from database
+    2. In-memory credentials cache (credentialsStorage)
+    3. Poller states (FormPoller, CPF, Automation)
+    4. Local files: supabase-config.json, cpf_auto_check_processed.json
+    5. All Supabase client caches (multiTenant, cliente, formulario, connectionTest, leads)
+  - What is PRESERVED (not deleted):
+    1. User data (users, tenants, sessions in database)
+    2. Signature contracts (assinatura_contracts.json)
+    3. Customization settings (assinatura_global_config_*.json)
+    4. Audit trail (data/audit/)
+    5. Tenant configuration (nome, email, horario)
+  - Frontend: Added "Zona de Perigo" card at bottom of Configuracoes.tsx
+  - AlertDialog confirmation before deleting
+  - Clears localStorage credential keys after deletion
+  - Tested: curl DELETE returns success with detailed cleared items
