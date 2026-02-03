@@ -1338,11 +1338,10 @@ export async function checkApprovedSubmissionsWithoutCPF(): Promise<{
               continue;
             }
             
-            // Se já existe consulta, marcar como processado e pular
+            // NOTA: SEMPRE consulta CPF, mesmo se já existe consulta anterior
+            // Isso garante que os dados estejam sempre atualizados
             if (existingResult && existingResult.length > 0) {
-              console.log(`ℹ️ [CPFAutoCheck] CPF ${normalizedCPF.substring(0, 3)}... já possui consulta - pulando`);
-              cpfAutoCheckState.processedSubmissionIds.push(submission.id);
-              continue;
+              console.log(`🔄 [CPFAutoCheck] CPF ${normalizedCPF.substring(0, 3)}... já possui consulta anterior - RECONSULTANDO para atualização`);
             }
             
             // 8. Disparar consulta CPF com o tenantId correto

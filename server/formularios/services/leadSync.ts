@@ -489,12 +489,16 @@ export class LeadSyncService {
       // Condições para disparar:
       // 1. CPF normalizado existe na submission
       // 2. qualificationStatus é 'approved' (formulário aprovado no Kanban)
-      // 3. CPF ainda não foi consultado (cpfStatus não definido E cpfCheckedAt não definido)
-      const cpfJaConsultado = lead.cpfStatus || lead.cpfCheckedAt;
-      const deveConsultarCPF = cpfNormalizado && qualificationStatus === 'approved' && !cpfJaConsultado;
+      // NOTA: SEMPRE consulta, mesmo se CPF já foi consultado anteriormente
+      const deveConsultarCPF = cpfNormalizado && qualificationStatus === 'approved';
       
       if (deveConsultarCPF) {
-        console.log(`🔍 [LeadSync] Disparando consulta CPF automática para lead APROVADO ${updatedLead.id}...`);
+        const cpfJaConsultado = lead.cpfStatus || lead.cpfCheckedAt;
+        if (cpfJaConsultado) {
+          console.log(`🔄 [LeadSync] RECONSULTANDO CPF para lead ${updatedLead.id} (cpfStatus anterior=${lead.cpfStatus || 'N/A'})...`);
+        } else {
+          console.log(`🔍 [LeadSync] Disparando consulta CPF automática para lead APROVADO ${updatedLead.id}...`);
+        }
         console.log(`   📋 qualificationStatus=${qualificationStatus}, cpfStatus=${lead.cpfStatus || 'N/A'}, cpfCheckedAt=${lead.cpfCheckedAt || 'N/A'}`);
         
         // 🛡️ Prevenir duplicidade: Adicionar pequeno delay para permitir que o frontend ou outros processos terminem
@@ -511,8 +515,6 @@ export class LeadSyncService {
             console.error(`❌ [LeadSync] Erro ao disparar consulta CPF automática:`, err);
           });
         }, 1500); 
-      } else if (cpfNormalizado && qualificationStatus === 'approved' && cpfJaConsultado) {
-        console.log(`⏭️ [LeadSync] CPF já foi consultado anteriormente para lead ${updatedLead.id} (cpfStatus=${lead.cpfStatus}) - pulando consulta duplicada`);
       }
       
       return {

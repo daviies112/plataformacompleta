@@ -139,35 +139,51 @@ export function SubmissionCard({ submission, index }: SubmissionCardProps) {
                 Ver respostas detalhadas
               </summary>
               <div className="mt-5 space-y-3 pl-4">
-                {submission.answers && Array.isArray(submission.answers) && submission.answers.map((answer: any, idx: number) => (
-                  <div key={idx} className="p-4 glass rounded-xl border border-border/50 hover:border-primary/30 transition-colors">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex-1">
-                        <p className="text-xs text-muted-foreground mb-1 font-semibold">
-                          Pergunta {idx + 1}
-                        </p>
-                        {answer.questionText && (
-                          <p className="text-sm font-medium text-foreground mb-2">
-                            {answer.questionText}
+                {(() => {
+                  const answersArray = Array.isArray(submission.answers) 
+                    ? submission.answers 
+                    : submission.answers && typeof submission.answers === 'object'
+                      ? Object.entries(submission.answers).map(([questionId, answer], idx) => ({
+                          questionId,
+                          answer: answer as string,
+                          questionText: `Pergunta ${idx + 1}`,
+                          points: 0
+                        }))
+                      : [];
+                  
+                  if (answersArray.length === 0) {
+                    return (
+                      <p className="text-sm text-muted-foreground text-center py-4">
+                        Nenhuma resposta detalhada disponível
+                      </p>
+                    );
+                  }
+                  
+                  return answersArray.map((answer: any, idx: number) => (
+                    <div key={idx} className="p-4 glass rounded-xl border border-border/50 hover:border-primary/30 transition-colors">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1">
+                          <p className="text-xs text-muted-foreground mb-1 font-semibold">
+                            Pergunta {idx + 1}
                           </p>
-                        )}
-                        <p className="text-sm font-medium text-foreground leading-relaxed">
-                          Resposta: <span className="text-primary">{answer.answer || 'N/A'}</span>
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="font-mono">
-                          {answer.points || 0} pts
-                        </Badge>
+                          {answer.questionText && (
+                            <p className="text-sm font-medium text-foreground mb-2">
+                              {answer.questionText}
+                            </p>
+                          )}
+                          <p className="text-sm font-medium text-foreground leading-relaxed">
+                            Resposta: <span className="text-primary">{answer.answer || 'N/A'}</span>
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="font-mono">
+                            {answer.points || 0} pts
+                          </Badge>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-                {(!submission.answers || !Array.isArray(submission.answers) || submission.answers.length === 0) && (
-                  <p className="text-sm text-muted-foreground text-center py-4">
-                    Nenhuma resposta detalhada disponível
-                  </p>
-                )}
+                  ));
+                })()}
               </div>
             </details>
           </div>
