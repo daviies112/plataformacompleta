@@ -8,7 +8,18 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from 'next-themes';
-import { Settings, User, Shield, Plug, Database, Calendar, MessageSquare, Zap, Video, CreditCard, Webhook, Activity, Search, Bell, ChevronDown, Sun, Moon, Code, Server, Cloud, BarChart3, Copy, Eye, EyeOff, RefreshCw, Trash2, Check, Link2, Truck, LogOut } from 'lucide-react';
+import { Settings, User, Shield, Plug, Database, Calendar, MessageSquare, Zap, Video, CreditCard, Webhook, Activity, Search, Bell, ChevronDown, Sun, Moon, Code, Server, Cloud, BarChart3, Copy, Eye, EyeOff, RefreshCw, Trash2, Check, Link2, Truck, LogOut, AlertTriangle } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -931,6 +942,55 @@ const SettingsPage = () => {
     },
     onError: (error: any) => {
       toast({ title: "Erro", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const clearCredentialsMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch("/api/credentials/clear-all", {
+        method: "DELETE",
+        headers: { 
+          "Authorization": `Bearer ${localStorage.getItem('token')}`
+        },
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Erro ao limpar credenciais");
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      const keysToRemove = Object.keys(localStorage).filter(key => 
+        key.startsWith('supabase_') || 
+        key.startsWith('credentials_') ||
+        key.startsWith('cache_') ||
+        key.startsWith('tenant_')
+      );
+      keysToRemove.forEach(key => localStorage.removeItem(key));
+      
+      window.dispatchEvent(new CustomEvent('supabase-config-changed'));
+      window.dispatchEvent(new CustomEvent('tenant-credentials-changed'));
+      
+      queryClient.invalidateQueries({ queryKey: ['/api/credentials'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/config/supabase'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/config/supabase/credentials'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/config/pluggy'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/config/n8n'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/config/total-express'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/config/hms100ms/credentials'] });
+      refetchCredentials();
+      
+      toast({
+        title: "Credenciais limpas",
+        description: `Removido: ${data.cleared?.database?.length || 0} configurações do banco, ${data.cleared?.cache?.length || 0} caches, ${data.cleared?.files?.length || 0} arquivos.`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao limpar",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 
@@ -3437,6 +3497,83 @@ const SettingsPage = () => {
               </PremiumButton>
             </div>
           </CollapsibleSection>
+
+          {/* Danger Zone Section */}
+          <PremiumCard variant="elevated" padding="lg" className="border-destructive/50 bg-destructive/5" data-testid="card-danger-zone">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-12 h-12 rounded-xl bg-destructive/20 border border-destructive/30 flex items-center justify-center">
+                <AlertTriangle className="w-6 h-6 text-destructive" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-destructive">Zona de Perigo</h3>
+                <p className="text-sm text-muted-foreground">Ações destrutivas que não podem ser desfeitas.</p>
+              </div>
+            </div>
+
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-1">
+                <p className="font-medium">Limpar Credenciais e Cache</p>
+                <p className="text-sm text-muted-foreground">
+                  Remove todas as credenciais de integrações (Supabase, N8N, Evolution API, Pluggy) e limpa caches do sistema.
+                  Útil para testar com novas credenciais ou resetar o ambiente.
+                </p>
+              </div>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <PremiumButton
+                    variant="danger"
+                    disabled={clearCredentialsMutation.isPending}
+                    data-testid="button-clear-credentials"
+                  >
+                    {clearCredentialsMutation.isPending ? (
+                      <>
+                        <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                        Limpando...
+                      </>
+                    ) : (
+                      <>
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Limpar Tudo
+                      </>
+                    )}
+                  </PremiumButton>
+                </AlertDialogTrigger>
+                <AlertDialogContent data-testid="dialog-clear-credentials">
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Limpar Todas as Credenciais?</AlertDialogTitle>
+                    <AlertDialogDescription asChild>
+                      <div className="space-y-4">
+                        <p>Esta ação irá remover:</p>
+                        <ul className="list-disc pl-4 space-y-1 text-sm">
+                          <li>Credenciais do Supabase, N8N, Evolution API e Pluggy</li>
+                          <li>Configurações de cache e estados de sincronização</li>
+                          <li>Arquivos de configuração local</li>
+                        </ul>
+                        <p className="font-medium text-foreground">O que será preservado:</p>
+                        <ul className="list-disc pl-4 space-y-1 text-sm">
+                          <li>Dados de usuários e tenant (nome, email, horário)</li>
+                          <li>Contratos de assinatura</li>
+                          <li>Configurações de personalização</li>
+                          <li>Trilha de auditoria</li>
+                        </ul>
+                        <p className="text-destructive font-medium">Esta ação não pode ser desfeita.</p>
+                      </div>
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel data-testid="button-cancel-clear">Cancelar</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => clearCredentialsMutation.mutate()}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      data-testid="button-confirm-clear"
+                    >
+                      Limpar Tudo
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          </PremiumCard>
 
         </div>
       </main>
