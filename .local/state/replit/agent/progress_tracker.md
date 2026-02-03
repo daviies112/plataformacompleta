@@ -154,3 +154,5 @@
   - Public URL now uses contract's tenant_id to fetch correct appearance settings
   - Local backup files created per tenant: data/assinatura_global_config_{tenantId}.json
   - SQL migration created: migrations/add_tenant_id_to_global_appearance_settings.sql
+  - Fixed unique constraint issue: Now checks by identifier='default' before save (UPDATE vs INSERT)
+  - Verified: Config saves to Supabase and retrieves correctly with tenant isolation

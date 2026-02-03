@@ -1116,39 +1116,36 @@ export async function saveTenantGlobalConfig(
       updated_at: new Date().toISOString()
     };
 
-    // Check if record exists for this tenant
-    const { data: existing } = await tenantSupabase
+    // Check if record exists by identifier='default' (unique constraint is on identifier)
+    const { data: existingByIdentifier } = await tenantSupabase
       .from('global_appearance_settings')
-      .select('id')
-      .eq('tenant_id', tenantId)
+      .select('id, tenant_id')
+      .eq('identifier', 'default')
       .maybeSingle();
 
     let result;
-    if (existing) {
+    if (existingByIdentifier) {
+      // Record exists - UPDATE it
+      console.log(`[AssinaturaSupabase] Atualizando config existente (id: ${existingByIdentifier.id})`);
       result = await tenantSupabase
         .from('global_appearance_settings')
         .update(supabaseData)
-        .eq('tenant_id', tenantId);
+        .eq('identifier', 'default');
     } else {
-      // Try inserting with tenant_id
+      // No record exists - INSERT new one
+      console.log(`[AssinaturaSupabase] Inserindo nova config`);
       result = await tenantSupabase
         .from('global_appearance_settings')
         .insert([supabaseData]);
     }
 
     if (result.error) {
-      // If tenant_id column doesn't exist, try with identifier only
+      // If tenant_id column doesn't exist, try without it
       if (result.error.message.includes('tenant_id') || result.error.code === '42703') {
-        console.log(`[AssinaturaSupabase] Tabela não tem coluna tenant_id - usando identifier='default'`);
+        console.log(`[AssinaturaSupabase] Tabela não tem coluna tenant_id - removendo do payload`);
         delete supabaseData.tenant_id;
         
-        const { data: existingDefault } = await tenantSupabase
-          .from('global_appearance_settings')
-          .select('id')
-          .eq('identifier', 'default')
-          .maybeSingle();
-
-        if (existingDefault) {
+        if (existingByIdentifier) {
           result = await tenantSupabase
             .from('global_appearance_settings')
             .update(supabaseData)
