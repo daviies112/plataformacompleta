@@ -1,0 +1,6 @@
+{
+  "supabaseUrl": "https://axrvyrpefpntacuibyds.supabase.co",
+  "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF4cnZ5cnBlZnBudGFjdWlieWRzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY1NTI0MDUsImV4cCI6MjA3MjEyODQwNX0.gxBncGJuDEajfo25UTgPHarg9x48i0esVv7Bqp1Piqc",
+  "configuredAt": "2025-12-08T12:11:26.554Z",
+  "configuredBy": "ui"
+}
