@@ -569,6 +569,49 @@ async function getCachedCheckFromSupabase(
   }
 }
 
+/**
+ * DEDUPLICATION: Check if a CPF check already exists for a specific submission_id.
+ * This is the centralized guard that prevents duplicate API calls from multiple triggers
+ * (LeadSync, CPFPoller, FormsAutomation, etc.)
+ * 
+ * @param submissionId - The form submission ID
+ * @param tenantId - The tenant ID
+ * @returns The existing check if found, null otherwise
+ */
+async function getExistingCheckForSubmission(
+  submissionId: string,
+  tenantId: string
+): Promise<DatacorpCheck | null> {
+  try {
+    const supabase = await getSupabaseMasterForTenant(tenantId);
+    const tenantUUID = tenantIdToUUID(tenantId);
+    
+    const { data: existingCheck, error } = await supabase
+      .from('datacorp_checks')
+      .select('*')
+      .eq('submission_id', submissionId)
+      .eq('tenant_id', tenantUUID)
+      .order('consulted_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    
+    if (error && error.code !== 'PGRST116') {
+      log(`⚠️ [DEDUP] Erro ao verificar check existente para submission ${submissionId}: ${error.message}`);
+      return null;
+    }
+    
+    if (existingCheck) {
+      log(`🛡️ [DEDUP] Check já existe para submission ${submissionId} - Check ID: ${existingCheck.id} | Status: ${existingCheck.status}`);
+      return existingCheck;
+    }
+    
+    return null;
+  } catch (error: any) {
+    log(`❌ [DEDUP] Exceção ao verificar check existente: ${error.message}`);
+    return null;
+  }
+}
+
 async function createCheckInSupabase(checkData: {
   cpfHash: string;
   cpfEncrypted: string;
@@ -1689,6 +1732,52 @@ export async function checkCompliance(
     log('🎯 Usando Supabase MESTRE para cache de compliance');
   } else {
     log('⚠️  Usando PostgreSQL Replit local (desenvolvimento apenas)');
+  }
+
+  // ===================================================================
+  // SUBMISSION_ID-BASED DEDUPLICATION - CRITICAL FIX FOR DUPLICATE CHECKS
+  // ===================================================================
+  // If a submission_id is provided, check if a CPF check already exists for this
+  // specific submission. This prevents multiple triggers (LeadSync, CPFPoller,
+  // FormsAutomation) from creating duplicate checks for the same form submission.
+  // This is the centralized guard that catches ALL duplicate triggers.
+  if (submissionId && useSupabaseMaster && !forceRefresh) {
+    log(`🔍 [DEDUP] Verificando se já existe check para submission_id: ${submissionId}`);
+    
+    const existingSubmissionCheck = await getExistingCheckForSubmission(submissionId, tenantId);
+    
+    if (existingSubmissionCheck) {
+      // Found existing check for this submission - return it instead of creating a duplicate
+      const existingPayload = normalizeBigdatacorpResponse(existingSubmissionCheck.payload);
+      const existingProcessData = existingPayload?.Result?.[0]?.Processes || {};
+      const riskScoreValue = existingSubmissionCheck.risk_score ?? 0;
+      
+      log(`🛡️ [DEDUP] DUPLICAÇÃO PREVENIDA! Retornando check existente para submission ${submissionId}`);
+      log(`   📋 Check ID: ${existingSubmissionCheck.id}`);
+      log(`   📊 Status: ${existingSubmissionCheck.status}`);
+      log(`   📈 Risk Score: ${riskScoreValue}`);
+      log(`   💰 ECONOMIA: R$ 0,05-0,07 (evitou consulta duplicada)`);
+      
+      return {
+        id: existingSubmissionCheck.id,
+        checkId: existingSubmissionCheck.id,
+        personName: existingSubmissionCheck.person_name || existingPayload?._basic_data?.Result?.[0]?.BasicData?.Name || null,
+        personCpf: existingSubmissionCheck.person_cpf || formatCPF(normalizedCPF),
+        status: existingSubmissionCheck.status as ComplianceStatus,
+        riskScore: typeof riskScoreValue === 'number' ? riskScoreValue : parseFloat(riskScoreValue.toString()),
+        fromCache: true,
+        totalLawsuits: existingProcessData.TotalLawsuits || 0,
+        asAuthor: existingProcessData.TotalLawsuitsAsAuthor || 0,
+        asDefendant: existingProcessData.TotalLawsuitsAsDefendant || 0,
+        firstLawsuitDate: existingProcessData.FirstLawsuitDate,
+        lastLawsuitDate: existingProcessData.LastLawsuitDate,
+        payload: existingPayload,
+        consultedAt: new Date(existingSubmissionCheck.consulted_at),
+        expiresAt: new Date(existingSubmissionCheck.expires_at),
+      };
+    }
+    
+    log(`✅ [DEDUP] Nenhum check existente para submission ${submissionId} - prosseguindo com verificação`);
   }
 
   // Se forceRefresh=true, pular busca no cache e ir direto para consulta à API

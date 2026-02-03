@@ -72,6 +72,19 @@ function getPipelineStatus(formStatus: string, qualificationStatus: string): str
  * 4. Se não houver cache, consulta BigDataCorp e salva nos dois Supabase (Master e Cliente)
  * 5. O resultado aparece automaticamente no histórico de compliance
  */
+/**
+ * Trigger automatic CPF compliance check for a lead.
+ * IMPORTANT: The deduplication is handled centrally in checkCompliance() function
+ * via submission_id-based check. If a CPF check already exists for this submission_id,
+ * checkCompliance() will return the existing check instead of creating a duplicate.
+ * 
+ * @param cpf - The CPF to check
+ * @param leadId - The lead ID
+ * @param submissionId - The form submission ID (used for deduplication)
+ * @param tenantId - The tenant ID
+ * @param personName - The person's name
+ * @param personPhone - The person's phone
+ */
 async function triggerAutoCPFCheck(
   cpf: string,
   leadId: string,
@@ -80,18 +93,25 @@ async function triggerAutoCPFCheck(
   personName: string | null,
   personPhone: string | null
 ): Promise<void> {
+  const timestamp = new Date().toISOString();
+  
   try {
+    console.log(`🔔 [LeadSync:AutoCPF] ${timestamp} - TRIGGER recebido`);
+    console.log(`   📋 Submission ID: ${submissionId}`);
+    console.log(`   🆔 Lead ID: ${leadId}`);
+    console.log(`   🏢 Tenant: ${tenantId.substring(0, 8)}...`);
+    
     if (!(await isBigdatacorpConfigured(tenantId))) {
-      console.log(`⚠️ [AutoCPF] BigDataCorp não configurado - pulando consulta CPF para lead ${leadId}`);
+      console.log(`⚠️ [LeadSync:AutoCPF] BigDataCorp não configurado - pulando consulta CPF para lead ${leadId}`);
       return;
     }
 
     if (!validateCPF(cpf)) {
-      console.log(`⚠️ [AutoCPF] CPF inválido (${cpf.substring(0, 3)}...) - pulando consulta para lead ${leadId}`);
+      console.log(`⚠️ [LeadSync:AutoCPF] CPF inválido (${cpf.substring(0, 3)}...) - pulando consulta para lead ${leadId}`);
       return;
     }
 
-    console.log(`🔍 [AutoCPF] Iniciando consulta automática de CPF para lead ${leadId}...`);
+    console.log(`🔍 [LeadSync:AutoCPF] Chamando checkCompliance() para submission ${submissionId}...`);
     console.log(`   📋 CPF: ${cpf.substring(0, 3)}...${cpf.substring(cpf.length - 2)}`);
     console.log(`   👤 Nome: ${personName || 'Não informado'}`);
     console.log(`   📱 Telefone: ${personPhone || 'Não informado'}`);
@@ -100,23 +120,20 @@ async function triggerAutoCPFCheck(
       tenantId,
       leadId,
       submissionId,
-      // CORREÇÃO 2024-12: Usar 'system-auto-cpf' como identificador de automação
-      // A busca no histórico agora usa submission_id para vincular ao email do usuário
-      createdBy: 'system-auto-cpf',
+      createdBy: 'system-leadsync-auto',
       personName: personName || undefined,
       personPhone: personPhone || undefined,
-      forceNewRecord: true, // Sempre cria registro no histórico para automação
+      forceNewRecord: true,
     });
 
-    const cacheStatus = result.fromCache ? 'CACHE HIT (economia de API)' : 'API CALL (nova consulta)';
-    console.log(`✅ [AutoCPF] Consulta concluída para lead ${leadId}:`);
+    const cacheStatus = result.fromCache ? 'DEDUP/CACHE HIT (economia de API)' : 'API CALL (nova consulta)';
+    console.log(`✅ [LeadSync:AutoCPF] Consulta concluída para submission ${submissionId}:`);
     console.log(`   📊 Status: ${result.status}`);
     console.log(`   📈 Risk Score: ${result.riskScore}`);
-    console.log(`   💾 Cache: ${cacheStatus}`);
+    console.log(`   💾 Resultado: ${cacheStatus}`);
     console.log(`   🏷️ Check ID: ${result.checkId}`);
   } catch (error) {
-    console.error(`❌ [AutoCPF] Erro na consulta automática para lead ${leadId}:`, error);
-    // Não propaga o erro para não afetar o fluxo principal de criação de leads
+    console.error(`❌ [LeadSync:AutoCPF] Erro na consulta automática para submission ${submissionId}:`, error);
   }
 }
 

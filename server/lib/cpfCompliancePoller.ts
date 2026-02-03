@@ -1346,16 +1346,29 @@ export async function checkApprovedSubmissionsWithoutCPF(): Promise<{
             }
             
             // 8. Disparar consulta CPF com o tenantId correto
-            console.log(`🔍 [CPFAutoCheck] Disparando consulta CPF para submission ${submission.id} (tenant: ${tenantId})...`);
+            // IMPORTANT: checkCompliance() now has centralized submission_id deduplication
+            // If a check already exists for this submission_id, it will return the existing check
+            const timestamp = new Date().toISOString();
+            console.log(`🔔 [CPFAutoCheck] ${timestamp} - TRIGGER recebido`);
+            console.log(`   📋 Submission ID: ${submission.id}`);
+            console.log(`   🏢 Tenant: ${tenantId.substring(0, 8)}...`);
+            console.log(`   📋 CPF: ${normalizedCPF.substring(0, 3)}...${normalizedCPF.substring(normalizedCPF.length - 2)}`);
+            console.log(`🔍 [CPFAutoCheck] Chamando checkCompliance() para submission ${submission.id}...`);
             
             const result = await checkCompliance(cpf, {
               tenantId: tenantId,
               submissionId: submission.id,
               personName: submission.contact_name || undefined,
               personPhone: submission.contact_phone || undefined,
+              createdBy: 'system-cpfautocheck',
             });
             
-            console.log(`✅ [CPFAutoCheck] Consulta CPF concluída: ${submission.id} - Status: ${result.status}`);
+            const cacheStatus = result.fromCache ? 'DEDUP/CACHE HIT (economia de API)' : 'API CALL (nova consulta)';
+            console.log(`✅ [CPFAutoCheck] Consulta concluída para submission ${submission.id}:`);
+            console.log(`   📊 Status: ${result.status}`);
+            console.log(`   📈 Risk Score: ${result.riskScore}`);
+            console.log(`   💾 Resultado: ${cacheStatus}`);
+            console.log(`   🏷️ Check ID: ${result.checkId}`);
             
             // Marcar como processado
             cpfAutoCheckState.processedSubmissionIds.push(submission.id);

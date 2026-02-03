@@ -125,3 +125,10 @@
   - Connection test cache with 30-second TTL implemented
   - Cache invalidation on credential save
   - Connection test now completes in ~210ms (vs 15+ seconds before)
+[x] 215. Fix Duplicate CPF Consultation Issue - February 03, 2026:
+  - Root cause: 3 independent services (LeadSync, CPFAutoCheck, FormsAutomation) could trigger CPF checks
+  - Solution: Centralized submission_id-based deduplication in checkCompliance()
+  - New function getExistingCheckForSubmission() checks datacorp_checks table before any API call
+  - Added comprehensive logging to all 3 trigger points with [LeadSync:AutoCPF], [CPFAutoCheck], [FormsAutomation] prefixes
+  - Log message shows "🛡️ [DEDUP] DUPLICAÇÃO PREVENIDA!" when duplicate is caught
+  - Estimated savings: R$ 0,05-0,07 per duplicate prevented

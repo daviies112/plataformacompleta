@@ -222,17 +222,32 @@ export async function processApprovedSubmission(
     }
 
     // Consultar DataCorp
+    // IMPORTANT: checkCompliance() now has centralized submission_id deduplication
+    // If a check already exists for this submission_id, it will return the existing check
+    const timestamp = new Date().toISOString();
+    log(`🔔 [FormsAutomation] ${timestamp} - TRIGGER recebido`);
+    log(`   📋 Submission ID: ${submissionId}`);
+    log(`   🏢 Tenant: ${tenantId.substring(0, 8)}...`);
     log(`✅ CPF válido encontrado, iniciando consulta de compliance...`);
     const personName = submission.contact_name || 'N/A';
     const personPhone = submission.contact_phone || undefined;
+    
+    log(`🔍 [FormsAutomation] Chamando checkCompliance() para submission ${submissionId}...`);
     const complianceResult = await checkCompliance(cpf, {
       tenantId,
       submissionId,
-      createdBy: userId || '00000000-0000-0000-0000-000000000099',
+      createdBy: userId || 'system-formsautomation',
       personName,
-      personPhone, // Telefone para sincronização de etiquetas WhatsApp
-      forceNewRecord: true, // Sempre criar novo registro no histórico
+      personPhone,
+      forceNewRecord: true,
     });
+
+    const cacheStatus = complianceResult.fromCache ? 'DEDUP/CACHE HIT (economia de API)' : 'API CALL (nova consulta)';
+    log(`✅ [FormsAutomation] Consulta concluída para submission ${submissionId}:`);
+    log(`   📊 Status: ${complianceResult.status}`);
+    log(`   📈 Risk Score: ${complianceResult.riskScore}`);
+    log(`   💾 Resultado: ${cacheStatus}`);
+    log(`   🏷️ Check ID: ${complianceResult.checkId}`);
 
     // Salvar tracking de sucesso
     await createTrackingRecord(
