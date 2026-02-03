@@ -12,6 +12,7 @@ import { invalidateClienteCache } from '../lib/clienteSupabase';
 import { clearSupabaseClientCache as clearFormularioSupabaseCache } from '../formularios/utils/supabaseClient';
 import { syncAdminCredentialsToOwner } from '../lib/masterSyncService';
 import { invalidateLeadsCache } from './leadsPipelineRoutes';
+import { clearLocalContractsCache } from './assinatura';
 import fs from 'fs';
 import path from 'path';
 
@@ -196,6 +197,14 @@ router.delete('/clear-all', authenticateToken, async (req, res) => {
           console.warn(`⚠️ [FILE] Erro ao deletar ${fileName}:`, err);
         }
       }
+    }
+
+    // 7. Clear in-memory contract cache
+    try {
+      clearLocalContractsCache();
+      cleared.cache.push('assinatura_contracts_memory');
+    } catch (err) {
+      console.warn('⚠️ [CACHE] Erro ao limpar cache de contratos em memória:', err);
     }
 
     console.log(`✅ [CREDENTIALS] Reset total completo para tenant ${tenantId}`);

@@ -2866,4 +2866,12 @@ router.post('/public/contracts/from-meeting', async (req: Request, res: Response
   }
 });
 
+// Function to clear in-memory contract cache (used by credentials clear-all)
+export function clearLocalContractsCache(): void {
+  const count = localContractsStore.size;
+  localContractsStore.clear();
+  localGlobalConfig = null;
+  console.log(`🗑️ [Assinatura] Cache em memória limpo: ${count} contratos removidos`);
+}
+
 export default router;
