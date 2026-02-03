@@ -53,6 +53,8 @@ ExecutiveAI Pro utilizes a modern web stack with a multi-tenant, API-driven arch
 
 - **Critical Cache Fix**: Fixed issue where forms weren't loading after saving Supabase credentials. The `publicCache.ts` credentials cache is now properly invalidated via `invalidateCredentialsCache(tenantId)` when credentials are saved in `/api/config/supabase`. This ensures forms and contracts load immediately after credential configuration.
 - **Reset Total Feature**: Complete system reset functionality that clears all credentials (7 config tables), local cache files, and in-memory contract cache via `clearLocalContractsCache()`.
+- **Frontend Cache Invalidation**: After Reset Total, all TanStack Query caches are now cleared via `queryClient.clear()` to ensure the UI shows empty state immediately.
+- **Empty State on No Supabase**: When Supabase credentials are not configured, `/api/forms` and `/api/assinatura/contracts` now return empty arrays instead of falling back to local data. This ensures consistent behavior after Reset Total.
 
 ## External Dependencies
 

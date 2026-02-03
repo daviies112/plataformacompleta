@@ -1032,6 +1032,7 @@ const SettingsPage = () => {
       });
       
       queryClient.invalidateQueries({ queryKey: ['/api/credentials'] });
+      // Invalidar caches de configuração
       queryClient.invalidateQueries({ queryKey: ['/api/config/supabase'] });
       queryClient.invalidateQueries({ queryKey: ['/api/config/supabase/credentials'] });
       queryClient.invalidateQueries({ queryKey: ['/api/config/pluggy'] });
@@ -1040,6 +1041,22 @@ const SettingsPage = () => {
       queryClient.invalidateQueries({ queryKey: ['/api/config/hms100ms/credentials'] });
       queryClient.invalidateQueries({ queryKey: ['/api/config/bigdatacorp'] });
       queryClient.invalidateQueries({ queryKey: ['/api/config/evolution-api'] });
+      
+      // 🔐 CRITICAL: Invalidar caches de DADOS para limpar formulários/contratos do frontend
+      queryClient.invalidateQueries({ queryKey: ['/api/forms'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/formularios'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/formularios/ativo'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/assinatura/contracts'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/assinatura/global-config'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/leads'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/compliance/history'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/workspace'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/company-slug'] });
+      
+      // Limpar TODO o cache do TanStack Query para garantir fresh data
+      queryClient.clear();
+      
       refetchCredentials();
       
       toast({

@@ -293,19 +293,15 @@ export function registerFormulariosCompleteRoutes(app: Express) {
         });
       }
       
-      // 🔐 Supabase NÃO configurado → usar PostgreSQL local
-      console.log('🔍 [GET /api/forms] Supabase NÃO configurado - buscando do PostgreSQL local...');
-      // 🔐 ISOLAMENTO MULTI-TENANT: Filtrar forms por tenantId para prevenir vazamento
-      const localForms = await db
-        .select()
-        .from(forms)
-        .where(eq(forms.tenantId, tenantId));
-      
-      const enrichedLocalForms = await enrichFormsWithSubmissionCount(null, localForms);
+      // 🔐 Supabase NÃO configurado → retornar lista vazia (dados vêm apenas do Supabase)
+      // Isso garante que após Reset Total, a página de formulários mostra vazio
+      console.log('⚠️ [GET /api/forms] Supabase NÃO configurado - retornando lista vazia');
+      console.log('💡 [GET /api/forms] Configure credenciais Supabase em /configuracoes para ver formulários');
       res.json({
         success: true,
-        forms: enrichedLocalForms,
-        total: enrichedLocalForms.length
+        forms: [],
+        total: 0,
+        message: 'Configure credenciais do Supabase para ver formulários'
       });
     } catch (error: any) {
       res.status(500).json({ error: error.message });

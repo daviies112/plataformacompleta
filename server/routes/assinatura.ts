@@ -776,17 +776,11 @@ router.get('/contracts', async (req: Request, res: Response) => {
       return res.json(supabaseContracts);
     }
     
-    // Fallback: usar dados locais APENAS quando Supabase não está configurado
-    const localContracts = Array.from(localContractsStore.values());
-    console.log(`[Assinatura] Supabase NÃO conectado - usando ${localContracts.length} contratos locais`);
-    
-    localContracts.sort((a, b) => {
-      const dateA = new Date(a.created_at || 0).getTime();
-      const dateB = new Date(b.created_at || 0).getTime();
-      return dateB - dateA;
-    });
-    
-    res.json(localContracts);
+    // 🔐 Supabase NÃO configurado → retornar lista vazia (dados vêm apenas do Supabase)
+    // Isso garante que após Reset Total, a página de contratos mostra vazio
+    console.log('⚠️ [Assinatura] Supabase NÃO conectado - retornando lista vazia');
+    console.log('💡 [Assinatura] Configure credenciais Supabase em /configuracoes para ver contratos');
+    res.json([]);
   } catch (error) {
     console.error('[Assinatura] Erro ao buscar contratos:', error);
     res.status(500).json({ error: 'Falha ao buscar contratos' });
