@@ -574,6 +574,9 @@ async function getCachedCheckFromSupabase(
  * This is the centralized guard that prevents duplicate API calls from multiple triggers
  * (LeadSync, CPFPoller, FormsAutomation, etc.)
  * 
+ * IMPORTANT: Checks BOTH Supabase Master (datacorp_checks) AND Supabase Client (cpf_compliance_results)
+ * to handle cases where Master save fails but Client save succeeds.
+ * 
  * @param submissionId - The form submission ID
  * @param tenantId - The tenant ID
  * @returns The existing check if found, null otherwise
@@ -583,6 +586,7 @@ async function getExistingCheckForSubmission(
   tenantId: string
 ): Promise<DatacorpCheck | null> {
   try {
+    // STEP 1: Check in Supabase Master (datacorp_checks)
     const supabase = await getSupabaseMasterForTenant(tenantId);
     const tenantUUID = tenantIdToUUID(tenantId);
     
@@ -596,13 +600,63 @@ async function getExistingCheckForSubmission(
       .maybeSingle();
     
     if (error && error.code !== 'PGRST116') {
-      log(`⚠️ [DEDUP] Erro ao verificar check existente para submission ${submissionId}: ${error.message}`);
-      return null;
+      log(`⚠️ [DEDUP] Erro ao verificar check no Master para submission ${submissionId}: ${error.message}`);
     }
     
     if (existingCheck) {
-      log(`🛡️ [DEDUP] Check já existe para submission ${submissionId} - Check ID: ${existingCheck.id} | Status: ${existingCheck.status}`);
+      log(`🛡️ [DEDUP] Check já existe no MASTER para submission ${submissionId} - Check ID: ${existingCheck.id} | Status: ${existingCheck.status}`);
       return existingCheck;
+    }
+    
+    // STEP 2: FALLBACK - Check in Supabase Client (cpf_compliance_results)
+    // This handles cases where Master save fails but Client save succeeds
+    // We check by check_id that matches submission_id format, or by recent CPF check
+    try {
+      const { getClienteSupabase, isClienteSupabaseConfigured } = await import('./clienteSupabase.js');
+      const isConfigured = await isClienteSupabaseConfigured();
+      
+      if (isConfigured) {
+        const clienteSupabase = await getClienteSupabase();
+        
+        // Check for compliance result with the SAME submission_id
+        // This is the reliable deduplication that prevents duplicate API calls for the same form submission
+        const { data: existingClienteCheck, error: clienteError } = await clienteSupabase
+          .from('cpf_compliance_results')
+          .select('*')
+          .eq('submission_id', submissionId)
+          .order('data_consulta', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        
+        if (clienteError && clienteError.code !== 'PGRST116') {
+          log(`⚠️ [DEDUP] Erro ao verificar check por submission_id no Cliente: ${clienteError.message}`);
+        }
+        
+        if (existingClienteCheck) {
+          log(`🛡️ [DEDUP] Check já existe no CLIENTE para submission ${submissionId} - ID: ${existingClienteCheck.id} | Status: ${existingClienteCheck.status}`);
+          log(`   💰 ECONOMIA: R$ 0,05-0,07 (evitou consulta duplicada para mesma submission)`);
+          // Convert to DatacorpCheck format for compatibility
+          return {
+            id: existingClienteCheck.id,
+            cpf_hash: '',
+            cpf_encrypted: '',
+            tenant_id: tenantUUID,
+            status: existingClienteCheck.status,
+            risk_score: parseFloat(existingClienteCheck.risco || '0'),
+            payload: null,
+            consulted_at: new Date(existingClienteCheck.data_consulta),
+            expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+            source: 'cliente_fallback_submission',
+            api_cost: 0,
+            person_name: existingClienteCheck.nome,
+            person_cpf: existingClienteCheck.cpf,
+            submission_id: submissionId,
+            _from_cliente: true,
+          } as DatacorpCheck;
+        }
+      }
+    } catch (clienteErr: any) {
+      log(`⚠️ [DEDUP] Erro ao verificar no Supabase Cliente: ${clienteErr.message}`);
     }
     
     return null;
@@ -1807,6 +1861,7 @@ export async function checkCompliance(
   if (submissionId && useSupabaseMaster && !forceRefresh) {
     log(`🔍 [DEDUP] Verificando se já existe check para submission_id: ${submissionId}`);
     
+    // Check both Master and Client databases for existing check by submission_id
     const existingSubmissionCheck = await getExistingCheckForSubmission(submissionId, tenantId);
     
     if (existingSubmissionCheck) {
@@ -1908,6 +1963,7 @@ export async function checkCompliance(
         aprovado: cachedCheck.status === 'approved',
         data_consulta: new Date().toISOString(),
         check_id: newHistoryCheck.id,
+        submission_id: submissionId || undefined, // For deduplication
       };
       
       saveComplianceToClienteSupabase(clienteComplianceDataAuto, tenantId).catch(err => {
@@ -2026,6 +2082,7 @@ export async function checkCompliance(
       aprovado: cachedCheck.status === 'approved',
       data_consulta: new Date().toISOString(),
       check_id: newCheckId,
+      submission_id: submissionId || undefined, // For deduplication
     };
     
     saveComplianceToClienteSupabase(clienteComplianceDataManual, tenantId).catch(err => {
@@ -2200,6 +2257,7 @@ export async function checkCompliance(
     aprovado: riskAnalysis.status === 'approved',
     data_consulta: new Date().toISOString(),
     check_id: newCheck.id,
+    submission_id: submissionId || undefined, // For deduplication
   };
   
   // Salvar no Supabase do Cliente (não bloqueia o fluxo principal)
