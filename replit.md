@@ -51,6 +51,7 @@ ExecutiveAI Pro utilizes a modern web stack with a multi-tenant, API-driven arch
 
 ## Recent Changes (February 2026)
 
+- **Reset Total Admin UUID Fix**: Fixed `admin_supabase_credentials` deletion to use the correct admin UUID (`req.user.userId`) instead of `clientId` (tenantId string). Includes fallback search by `project_name` if UUID lookup fails.
 - **Critical Cache Fix**: Fixed issue where forms weren't loading after saving Supabase credentials. The `publicCache.ts` credentials cache is now properly invalidated via `invalidateCredentialsCache(tenantId)` when credentials are saved in `/api/config/supabase`. This ensures forms and contracts load immediately after credential configuration.
 - **Reset Total Feature**: Complete system reset functionality that clears all credentials (7 config tables), local cache files, and in-memory contract cache via `clearLocalContractsCache()`.
 - **Frontend Cache Invalidation**: After Reset Total, all TanStack Query caches are now cleared via `queryClient.clear()` to ensure the UI shows empty state immediately.
