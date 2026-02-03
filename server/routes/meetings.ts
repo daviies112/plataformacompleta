@@ -217,8 +217,12 @@ publicRoomDesignRouter.get('/reunioes/:meetingId/participant-data', async (req: 
     console.log(`[ParticipantData] Buscando dados para meeting ${meetingId}, pid=${pid || 'nenhum'}, fsid=${fsid || 'nenhum'}`);
 
     // First, get the meeting to find tenantId
+    // FIX: Search by BOTH id and roomId100ms for consistency
     const [meeting] = await db.select().from(reunioes)
-      .where(eq(reunioes.id, meetingId))
+      .where(or(
+        eq(reunioes.id, meetingId),
+        eq(reunioes.roomId100ms, meetingId)
+      ))
       .limit(1);
 
     if (!meeting) {
@@ -512,13 +516,21 @@ publicRoomDesignRouter.get('/reunioes/:meetingId/room-design-public', async (req
       return res.json(cached);
     }
     
+    // FIX: Search by BOTH id and roomId100ms to support URLs with either value
+    // This ensures API-created meetings (via n8n) work the same as instant meetings
     const [meeting] = await db.select().from(reunioes)
-      .where(eq(reunioes.id, meetingId))
+      .where(or(
+        eq(reunioes.id, meetingId),
+        eq(reunioes.roomId100ms, meetingId)
+      ))
       .limit(1);
 
     if (!meeting) {
+      console.log(`[RoomDesignPublic] Reunião não encontrada para meetingId: ${meetingId}`);
       return res.status(404).json({ error: 'Reunião não encontrada' });
     }
+
+    console.log(`[RoomDesignPublic] Reunião encontrada: id=${meeting.id}, tenantId=${meeting.tenantId}`);
 
     // SEMPRE buscar config atualizada do tenant (prioridade sobre metadata da reunião)
     // Isso garante que mudanças nas cores da página Design sejam aplicadas a todas as reuniões
@@ -531,13 +543,23 @@ publicRoomDesignRouter.get('/reunioes/:meetingId/room-design-public', async (req
       
       if (config?.roomDesignConfig) {
         designConfig = config.roomDesignConfig;
+        console.log(`[RoomDesignPublic] ✅ roomDesignConfig encontrado no hms100msConfig para tenant ${meeting.tenantId}`);
+      } else {
+        console.log(`[RoomDesignPublic] ⚠️ roomDesignConfig NÃO encontrado no hms100msConfig para tenant ${meeting.tenantId}`);
       }
+    } else {
+      console.log(`[RoomDesignPublic] ⚠️ meeting.tenantId é null/undefined`);
     }
     
     // Fallback: usar metadata da reunião se tenant não tiver configuração
     if (!designConfig) {
       const metadata = meeting.metadata as any;
       designConfig = metadata?.roomDesignConfig || null;
+      if (designConfig) {
+        console.log(`[RoomDesignPublic] ✅ roomDesignConfig encontrado no meeting.metadata`);
+      } else {
+        console.log(`[RoomDesignPublic] ❌ roomDesignConfig NÃO encontrado (nem no hms100msConfig nem no metadata)`);
+      }
     }
 
     const response = {
@@ -581,13 +603,20 @@ publicRoomDesignRouter.get('/reunioes/:meetingId/full-public', async (req: Reque
       return res.json(cached);
     }
     
+    // FIX: Search by BOTH id and roomId100ms to support URLs with either value
     const [meeting] = await db.select().from(reunioes)
-      .where(eq(reunioes.id, meetingId))
+      .where(or(
+        eq(reunioes.id, meetingId),
+        eq(reunioes.roomId100ms, meetingId)
+      ))
       .limit(1);
 
     if (!meeting) {
+      console.log(`[MeetingFullPublic] Reunião não encontrada para meetingId: ${meetingId}`);
       return res.status(404).json({ error: 'Reunião não encontrada' });
     }
+
+    console.log(`[MeetingFullPublic] Reunião encontrada: id=${meeting.id}, tenantId=${meeting.tenantId}`);
 
     // Get design config
     let designConfig = null;
@@ -645,8 +674,12 @@ publicRoomDesignRouter.get('/reunioes/:meetingId/info', async (req: Request, res
   try {
     const { meetingId } = req.params;
     
+    // FIX: Search by BOTH id and roomId100ms for consistency
     const [meeting] = await db.select().from(reunioes)
-      .where(eq(reunioes.id, meetingId))
+      .where(or(
+        eq(reunioes.id, meetingId),
+        eq(reunioes.roomId100ms, meetingId)
+      ))
       .limit(1);
 
     if (!meeting) {
@@ -688,8 +721,12 @@ publicRoomDesignRouter.post('/reunioes/:meetingId/token-public', async (req: Req
 
     console.log(`[TokenPublic] Gerando token para reunião ${meetingId}, participante: ${name}, role: ${role}`);
 
+    // FIX: Search by BOTH id and roomId100ms for consistency
     const [meeting] = await db.select().from(reunioes)
-      .where(eq(reunioes.id, meetingId))
+      .where(or(
+        eq(reunioes.id, meetingId),
+        eq(reunioes.roomId100ms, meetingId)
+      ))
       .limit(1);
 
     if (!meeting) {

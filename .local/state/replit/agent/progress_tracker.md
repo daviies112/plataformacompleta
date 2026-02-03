@@ -132,3 +132,10 @@
   - Added comprehensive logging to all 3 trigger points with [LeadSync:AutoCPF], [CPFAutoCheck], [FormsAutomation] prefixes
   - Log message shows "🛡️ [DEDUP] DUPLICAÇÃO PREVENIDA!" when duplicate is caught
   - Estimated savings: R$ 0,05-0,07 per duplicate prevented
+[x] 216. Fix Meeting Branding for N8N API-created meetings - February 03, 2026:
+  - Problem: Meetings created via N8N API showed default blue color instead of custom branding
+  - Root cause: Public endpoints only searched by 'id' but N8N meetings use 'roomId100ms'
+  - Fixed endpoints: room-design-public, full-public, participant-data, info, token
+  - All endpoints now search by BOTH id OR roomId100ms using or() clause
+  - Added debug logging to track branding lookup and application
+  - N8N meetings now correctly display tenant's custom colors

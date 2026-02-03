@@ -316,6 +316,19 @@ n8nRouter.post('/reunioes', authenticateN8NByTenantKey, async (req: Request, res
         const endDate = new Date(startDate.getTime() + (duracao * 60 * 1000));
 
         let finalDesignConfig = customDesignConfig || config.roomDesignConfig || null;
+        
+        // Log para debug de branding
+        console.log(`[N8N] 🎨 Branding Debug:`, {
+            customDesignConfig: customDesignConfig ? 'presente' : 'null',
+            configRoomDesignConfig: config.roomDesignConfig ? 'presente' : 'null',
+            finalDesignConfig: finalDesignConfig ? 'presente' : 'null',
+            tenantId: tenantId
+        });
+        if (finalDesignConfig) {
+            console.log(`[N8N] ✅ roomDesignConfig será aplicado à reunião`);
+        } else {
+            console.log(`[N8N] ⚠️ roomDesignConfig NÃO foi encontrado - reunião usará cores padrão`);
+        }
 
         // PRIORIDADE: Usar form_submission_id passado pelo N8N (mais confiável)
         let formSubmissionId: string | null = passedFormSubmissionId || null;
