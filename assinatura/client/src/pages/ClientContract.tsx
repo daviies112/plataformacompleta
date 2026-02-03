@@ -107,13 +107,14 @@ const ProgressTrackerDisplay = ({
 
   return (
     <div 
-      className="fixed bottom-8 left-2 rounded-lg space-y-1 max-w-xs shadow-lg"
+      className="fixed left-2 right-2 sm:right-auto rounded-lg space-y-1 max-w-xs shadow-lg"
       style={{ 
         backgroundColor: progressCardColor,
         fontFamily: progressFontFamily,
         padding: '8px',
         zIndex: 40,
-        border: `1px solid ${progressButtonColor}20`
+        border: `1px solid ${progressButtonColor}20`,
+        bottom: 'max(2rem, calc(env(safe-area-inset-bottom) + 0.5rem))'
       }}
     >
       <h2 
@@ -476,8 +477,8 @@ const ClientContractFlow = ({ contract }: { contract: ContractRecord }) => {
   const progressFontSize = contract.progress_font_size || '16px';
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <main className="flex-1 overflow-y-auto">{renderStep()}</main>
+    <div className="bg-background flex flex-col" style={{ minHeight: '100dvh' }}>
+      <main className="flex-1 overflow-y-auto pb-72 sm:pb-64" style={{ paddingBottom: 'max(18rem, calc(env(safe-area-inset-bottom) + 16rem))' }}>{renderStep()}</main>
       {/* Floating Progress Tracker */}
       <ProgressTrackerDisplay currentStep={currentStep} contract={contract} />
     </div>

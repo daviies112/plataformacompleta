@@ -241,7 +241,7 @@ export const ContractStep = ({ clientData, selfiePhoto, documentPhoto, currentSt
   const progressFontSize = clientData?.progress_font_size || '14px';
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8 animate-fade-in">
+    <div className="max-w-4xl mx-auto px-4 py-8 pb-80 animate-fade-in" style={{ minHeight: '100dvh', paddingBottom: 'max(20rem, calc(env(safe-area-inset-bottom) + 18rem))' }}>
       {clientData?.logo_url && (
         <div style={{ textAlign: (clientData?.logo_position || 'center') as any, marginBottom: '24px' }}>
           <img 

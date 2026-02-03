@@ -179,8 +179,8 @@ export const ResidenceProofStep = (props: ResidenceProofStepProps = {}) => {
 
   return (
     <div 
-      className="min-h-screen flex flex-col px-4 py-6"
-      style={{ fontFamily, backgroundColor }}
+      className="flex flex-col px-4 py-6 pb-24"
+      style={{ fontFamily, backgroundColor, minHeight: '100dvh', paddingBottom: 'max(6rem, env(safe-area-inset-bottom))' }}
     >
       <div className="max-w-lg mx-auto w-full flex-1 flex flex-col">
         <div className="text-center mb-6">

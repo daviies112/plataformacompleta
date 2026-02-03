@@ -38,8 +38,8 @@ export const AppPromotionStep = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-neutral-50 font-sans selection:bg-amber-100 selection:text-amber-900">
-      <div className="max-w-6xl mx-auto py-16 px-4 sm:px-6 lg:px-8 space-y-20">
+    <div className="bg-neutral-50 font-sans selection:bg-amber-100 selection:text-amber-900" style={{ minHeight: '100dvh' }}>
+      <div className="max-w-6xl mx-auto py-16 px-4 sm:px-6 lg:px-8 pb-80 space-y-20" style={{ paddingBottom: 'max(20rem, calc(env(safe-area-inset-bottom) + 18rem))' }}>
         
         {/* Header Elegante */}
         <div className="text-center space-y-10 max-w-4xl mx-auto">

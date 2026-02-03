@@ -81,7 +81,7 @@ export const SuccessStep = () => {
   };
 
   return (
-    <div className="max-w-xl mx-auto px-4 py-8 animate-fade-in">
+    <div className="max-w-xl mx-auto px-4 py-8 pb-80 animate-fade-in" style={{ minHeight: '100dvh', paddingBottom: 'max(20rem, calc(env(safe-area-inset-bottom) + 18rem))' }}>
       {/* Success Icon */}
       <div className="text-center mb-8">
         <div className="w-24 h-24 rounded-full bg-success/10 flex items-center justify-center mx-auto mb-6 animate-scale-in">

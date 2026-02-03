@@ -56,7 +56,7 @@ function PeerVideo({
     <Card 
       className={cn(
         "relative aspect-video overflow-hidden bg-zinc-900 border-white/5 shadow-2xl transition-all duration-300",
-        totalPeers === 1 ? "w-full max-w-4xl mx-auto" : "w-full",
+        totalPeers === 1 ? "w-full max-w-4xl mx-auto max-h-[70vh] sm:max-h-none" : "w-full",
         isRecordingBot && "border-none shadow-none"
       )}
       style={{ 
@@ -449,7 +449,7 @@ export function Meeting100ms({
 
   return (
     <TooltipProvider>
-      <div className={cn("flex flex-col h-screen overflow-hidden bg-[#09090b]", isRecordingBot && "bg-black")}>
+      <div className={cn("flex flex-col overflow-hidden bg-[#09090b]", isRecordingBot && "bg-black")} style={{ height: '100dvh', minHeight: '-webkit-fill-available' }}>
         {!isRecordingBot && (
           <header className="h-14 px-6 border-b border-white/5 flex items-center justify-between bg-zinc-900/40 backdrop-blur-xl z-20">
             <div className="flex items-center gap-3">
@@ -486,11 +486,11 @@ export function Meeting100ms({
           </header>
         )}
 
-        <main className={cn("flex-1 overflow-y-auto p-4 flex flex-col items-center justify-center gap-6", isRecordingBot && "p-0")}>
+        <main className={cn("flex-1 overflow-y-auto p-2 sm:p-4 flex flex-col items-center justify-center gap-4 sm:gap-6", isRecordingBot && "p-0")}>
           {screenSharePeer && screenShareTrackId && (
             <ScreenShare peer={screenSharePeer} trackId={screenShareTrackId} />
           )}
-          <div className={cn("grid gap-6 w-full h-fit mx-auto", gridClass, isRecordingBot && "gap-0 max-w-full h-full")}>
+          <div className={cn("grid gap-4 sm:gap-6 w-full h-fit mx-auto", gridClass, isRecordingBot && "gap-0 max-w-full h-full", peers.length === 1 && "flex-1 flex items-center")}>
             {peers.map((peer) => (
               <PeerVideo key={peer.id} peer={peer} config={config} totalPeers={peers.length} />
             ))}
@@ -498,8 +498,8 @@ export function Meeting100ms({
         </main>
 
         {!isRecordingBot && (
-          <footer className="h-24 px-6 flex items-center justify-center z-50">
-            <div className="px-6 py-3 rounded-3xl flex items-center gap-3 bg-zinc-900/90 border border-white/20 backdrop-blur-2xl shadow-2xl relative">
+          <footer className="flex-shrink-0 px-4 sm:px-6 pb-4 flex items-center justify-center z-50" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
+            <div className="px-4 sm:px-6 py-3 rounded-3xl flex items-center gap-2 sm:gap-3 bg-zinc-900/90 border border-white/20 backdrop-blur-2xl shadow-2xl relative">
               <div className="flex items-center gap-3 relative z-50">
                 <Button
                   onClick={() => {

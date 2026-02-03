@@ -111,7 +111,7 @@ export const ResellerWelcomeStep = (props: ResellerWelcomeStepProps = {}) => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-4 py-8" style={{ fontFamily: parabensFontFamily, backgroundColor: parabensBackgroundColor }}>
+    <div className="flex flex-col items-center px-4 py-8 pb-80" style={{ fontFamily: parabensFontFamily, backgroundColor: parabensBackgroundColor, minHeight: '100dvh', paddingBottom: 'max(20rem, calc(env(safe-area-inset-bottom) + 18rem))' }}>
       <div className="max-w-2xl w-full">
         {/* Hero Section */}
         <div className="text-center mb-12">

@@ -139,3 +139,11 @@
   - All endpoints now search by BOTH id OR roomId100ms using or() clause
   - Added debug logging to track branding lookup and application
   - N8N meetings now correctly display tenant's custom colors
+[x] 217. Fix Mobile Layout Issues - February 03, 2026:
+  - Meeting Room: Changed h-screen to 100dvh for proper mobile viewport
+  - Meeting Room: Footer controls now have safe-area-inset-bottom padding for iOS
+  - Meeting Room: Video container uses more screen space on mobile (max-h-[70vh])
+  - Signature Flow: Main container uses 100dvh instead of min-h-screen
+  - Signature Flow: Added 18rem bottom padding to prevent content cutoff
+  - Signature Flow: Progress tracker respects iOS safe area
+  - Fixed all step components: ResidenceProof, ResellerWelcome, AppPromotion, Success, Contract
