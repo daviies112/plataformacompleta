@@ -947,3 +947,240 @@ class AssinaturaSupabaseService {
 
 export const assinaturaSupabaseService = new AssinaturaSupabaseService();
 export type { AssinaturaContract, AssinaturaGlobalConfig };
+
+/**
+ * TENANT-AWARE GLOBAL CONFIG FUNCTIONS
+ * 
+ * These functions use the tenant's specific Supabase client to save/load
+ * global appearance settings, ensuring proper tenant isolation.
+ */
+
+import { getClientSupabaseClient } from '../lib/multiTenantSupabase.js';
+
+/**
+ * Load global config from tenant's Supabase
+ * Falls back to local file if tenant Supabase is not configured
+ */
+export async function getTenantGlobalConfig(tenantId: string): Promise<AssinaturaGlobalConfig | null> {
+  if (!tenantId) {
+    console.warn('[AssinaturaSupabase] getTenantGlobalConfig chamado sem tenantId');
+    return assinaturaSupabaseService.getGlobalConfig();
+  }
+
+  try {
+    const tenantSupabase = await getClientSupabaseClient(tenantId);
+    
+    if (!tenantSupabase) {
+      console.warn(`[AssinaturaSupabase] Supabase do tenant ${tenantId.substring(0, 16)}... não configurado - usando fallback`);
+      return assinaturaSupabaseService.getGlobalConfig(tenantId);
+    }
+
+    console.log(`[AssinaturaSupabase] Buscando config global do tenant: ${tenantId.substring(0, 16)}...`);
+
+    // Buscar por tenant_id primeiro (mais específico)
+    let { data, error } = await tenantSupabase
+      .from('global_appearance_settings')
+      .select('*')
+      .eq('tenant_id', tenantId)
+      .maybeSingle();
+
+    // Se não encontrar por tenant_id, buscar por identifier='default'
+    if (!data && !error) {
+      const result = await tenantSupabase
+        .from('global_appearance_settings')
+        .select('*')
+        .eq('identifier', 'default')
+        .maybeSingle();
+      data = result.data;
+      error = result.error;
+    }
+
+    if (error && error.code !== 'PGRST116') {
+      console.error(`[AssinaturaSupabase] Erro ao buscar config do tenant:`, error.message);
+      return assinaturaSupabaseService.getGlobalConfig(tenantId);
+    }
+
+    if (data) {
+      console.log(`[AssinaturaSupabase] ✅ Config global carregada do Supabase do tenant`);
+      return {
+        ...data,
+        tenant_id: tenantId
+      } as AssinaturaGlobalConfig;
+    }
+
+    console.log(`[AssinaturaSupabase] Nenhuma config encontrada no tenant - usando fallback`);
+    return assinaturaSupabaseService.getGlobalConfig(tenantId);
+  } catch (error: any) {
+    console.error(`[AssinaturaSupabase] Erro ao buscar config do tenant:`, error.message);
+    return assinaturaSupabaseService.getGlobalConfig(tenantId);
+  }
+}
+
+/**
+ * Save global config to tenant's Supabase
+ * Also saves to local file as backup
+ */
+export async function saveTenantGlobalConfig(
+  config: AssinaturaGlobalConfig, 
+  tenantId: string
+): Promise<{ success: boolean; savedTo: 'supabase' | 'local' | 'both'; error?: string }> {
+  if (!tenantId) {
+    console.warn('[AssinaturaSupabase] saveTenantGlobalConfig chamado sem tenantId - usando fallback');
+    const result = await assinaturaSupabaseService.saveGlobalConfig(config);
+    return { success: !!result, savedTo: 'local' };
+  }
+
+  const updatedConfig = {
+    ...config,
+    tenant_id: tenantId,
+    updated_at: new Date().toISOString()
+  };
+
+  // Sempre salva localmente como backup (com tenant_id no nome do arquivo)
+  const localFilePath = path.join(process.cwd(), 'data', `assinatura_global_config_${tenantId}.json`);
+  try {
+    const dataDir = path.dirname(localFilePath);
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
+    }
+    fs.writeFileSync(localFilePath, JSON.stringify(updatedConfig, null, 2));
+    console.log(`[AssinaturaSupabase] Config global salva localmente: ${localFilePath}`);
+  } catch (err: any) {
+    console.error(`[AssinaturaSupabase] Erro ao salvar config local:`, err.message);
+  }
+
+  try {
+    const tenantSupabase = await getClientSupabaseClient(tenantId);
+    
+    if (!tenantSupabase) {
+      console.warn(`[AssinaturaSupabase] Supabase do tenant ${tenantId.substring(0, 16)}... não configurado`);
+      return { success: true, savedTo: 'local', error: 'Supabase do tenant não configurado' };
+    }
+
+    console.log(`[AssinaturaSupabase] Salvando config global no Supabase do tenant: ${tenantId.substring(0, 16)}...`);
+
+    const supabaseData: any = {
+      tenant_id: tenantId,
+      identifier: 'default',
+      logo_url: config.logo_url,
+      logo_size: config.logo_size,
+      logo_position: config.logo_position,
+      company_name: config.company_name,
+      footer_text: config.footer_text,
+      primary_color: config.primary_color,
+      text_color: config.text_color,
+      font_family: config.font_family,
+      font_size: config.font_size,
+      maleta_card_color: config.maleta_card_color,
+      maleta_button_color: config.maleta_button_color,
+      maleta_text_color: config.maleta_text_color,
+      verification_primary_color: config.verification_primary_color,
+      verification_text_color: config.verification_text_color,
+      verification_font_family: config.verification_font_family,
+      verification_font_size: config.verification_font_size,
+      verification_logo_url: config.verification_logo_url,
+      verification_logo_size: config.verification_logo_size,
+      verification_logo_position: config.verification_logo_position,
+      verification_footer_text: config.verification_footer_text,
+      verification_welcome_text: config.verification_welcome_text,
+      verification_instructions: config.verification_instructions,
+      verification_security_text: config.verification_security_text,
+      verification_background_color: config.verification_background_color,
+      verification_header_background_color: config.verification_header_background_color,
+      verification_header_company_name: config.verification_header_company_name,
+      progress_card_color: config.progress_card_color,
+      progress_button_color: config.progress_button_color,
+      progress_text_color: config.progress_text_color,
+      progress_title: config.progress_title,
+      progress_subtitle: config.progress_subtitle,
+      progress_step1_title: config.progress_step1_title,
+      progress_step1_description: config.progress_step1_description,
+      progress_step2_title: config.progress_step2_title,
+      progress_step2_description: config.progress_step2_description,
+      progress_step3_title: config.progress_step3_title,
+      progress_step3_description: config.progress_step3_description,
+      progress_button_text: config.progress_button_text,
+      progress_font_family: config.progress_font_family,
+      parabens_title: config.parabens_title,
+      parabens_subtitle: config.parabens_subtitle,
+      parabens_description: config.parabens_description,
+      parabens_card_color: config.parabens_card_color,
+      parabens_background_color: config.parabens_background_color,
+      parabens_button_color: config.parabens_button_color,
+      parabens_text_color: config.parabens_text_color,
+      parabens_font_family: config.parabens_font_family,
+      parabens_form_title: config.parabens_form_title,
+      parabens_button_text: config.parabens_button_text,
+      app_store_url: config.app_store_url,
+      google_play_url: config.google_play_url,
+      updated_at: new Date().toISOString()
+    };
+
+    // Check if record exists for this tenant
+    const { data: existing } = await tenantSupabase
+      .from('global_appearance_settings')
+      .select('id')
+      .eq('tenant_id', tenantId)
+      .maybeSingle();
+
+    let result;
+    if (existing) {
+      result = await tenantSupabase
+        .from('global_appearance_settings')
+        .update(supabaseData)
+        .eq('tenant_id', tenantId);
+    } else {
+      // Try inserting with tenant_id
+      result = await tenantSupabase
+        .from('global_appearance_settings')
+        .insert([supabaseData]);
+    }
+
+    if (result.error) {
+      // If tenant_id column doesn't exist, try with identifier only
+      if (result.error.message.includes('tenant_id') || result.error.code === '42703') {
+        console.log(`[AssinaturaSupabase] Tabela não tem coluna tenant_id - usando identifier='default'`);
+        delete supabaseData.tenant_id;
+        
+        const { data: existingDefault } = await tenantSupabase
+          .from('global_appearance_settings')
+          .select('id')
+          .eq('identifier', 'default')
+          .maybeSingle();
+
+        if (existingDefault) {
+          result = await tenantSupabase
+            .from('global_appearance_settings')
+            .update(supabaseData)
+            .eq('identifier', 'default');
+        } else {
+          result = await tenantSupabase
+            .from('global_appearance_settings')
+            .insert([supabaseData]);
+        }
+      }
+      
+      if (result.error) {
+        console.error(`[AssinaturaSupabase] Erro ao salvar no Supabase:`, result.error.message);
+        return { success: true, savedTo: 'local', error: result.error.message };
+      }
+    }
+
+    console.log(`[AssinaturaSupabase] ✅ Config global salva no Supabase do tenant`);
+    return { success: true, savedTo: 'both' };
+  } catch (error: any) {
+    console.error(`[AssinaturaSupabase] Erro ao salvar config do tenant:`, error.message);
+    return { success: true, savedTo: 'local', error: error.message };
+  }
+}
+
+/**
+ * Get global config for a contract based on its tenant_id
+ * Falls back to legacy behavior if no tenant_id on contract
+ */
+export async function getGlobalConfigForContract(contract: { tenant_id?: string | null }): Promise<AssinaturaGlobalConfig | null> {
+  if (contract.tenant_id) {
+    return getTenantGlobalConfig(contract.tenant_id);
+  }
+  return assinaturaSupabaseService.getGlobalConfig();
+}

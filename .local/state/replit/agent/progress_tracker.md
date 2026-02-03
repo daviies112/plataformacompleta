@@ -147,3 +147,10 @@
   - Signature Flow: Added 18rem bottom padding to prevent content cutoff
   - Signature Flow: Progress tracker respects iOS safe area
   - Fixed all step components: ResidenceProof, ResellerWelcome, AppPromotion, Success, Contract
+[x] 218. Fix Assinatura Config Persistence to Supabase - February 03, 2026:
+  - Problem: Singleton service used first tenant for all operations, no tenant isolation
+  - New tenant-aware functions: getTenantGlobalConfig, saveTenantGlobalConfig, getGlobalConfigForContract
+  - Routes updated to accept x-tenant-id header for proper tenant isolation
+  - Public URL now uses contract's tenant_id to fetch correct appearance settings
+  - Local backup files created per tenant: data/assinatura_global_config_{tenantId}.json
+  - SQL migration created: migrations/add_tenant_id_to_global_appearance_settings.sql

@@ -3,7 +3,14 @@ import { nanoid } from 'nanoid';
 import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
-import { assinaturaSupabaseService, AssinaturaContract, AssinaturaGlobalConfig } from '../services/assinatura-supabase';
+import { 
+  assinaturaSupabaseService, 
+  AssinaturaContract, 
+  AssinaturaGlobalConfig,
+  getTenantGlobalConfig,
+  saveTenantGlobalConfig,
+  getGlobalConfigForContract
+} from '../services/assinatura-supabase';
 import { supabaseOwner, SUPABASE_CONFIGURED } from '../config/supabaseOwner';
 import { assinaturaLogger } from '../lib/logger';
 import { validateDocument, quickValidate } from '../lib/document-validator';
@@ -662,12 +669,29 @@ function invalidateGlobalConfigCache(): void {
 
 router.get('/global-config', async (req: Request, res: Response) => {
   try {
-    res.set('Cache-Control', 'public, max-age=3600');
+    // MULTI-TENANT: Obter tenant_id do header ou query
+    const tenantId = (req.headers['x-tenant-id'] as string) || 
+                     (req.query.tenantId as string) || 
+                     '';
     
-    if (assinaturaSupabaseService.isConnected()) {
-      const config = await assinaturaSupabaseService.getGlobalConfig();
+    // Não cachear se for multi-tenant (cada tenant tem sua config)
+    if (tenantId) {
+      res.set('Cache-Control', 'no-cache');
+      console.log(`[Assinatura] Buscando config global para tenant: ${tenantId.substring(0, 16)}...`);
+      
+      const config = await getTenantGlobalConfig(tenantId);
       if (config) {
         return res.json(config);
+      }
+    } else {
+      // Fallback para comportamento legado (singleton)
+      res.set('Cache-Control', 'public, max-age=3600');
+      
+      if (assinaturaSupabaseService.isConnected()) {
+        const config = await assinaturaSupabaseService.getGlobalConfig();
+        if (config) {
+          return res.json(config);
+        }
       }
     }
     
@@ -682,6 +706,39 @@ router.put('/global-config', async (req: Request, res: Response) => {
   try {
     const updates = req.body;
     
+    // MULTI-TENANT: Obter tenant_id do header, body ou query
+    const tenantId = (req.headers['x-tenant-id'] as string) || 
+                     updates.tenant_id ||
+                     (req.query.tenantId as string) || 
+                     '';
+    
+    if (tenantId) {
+      console.log(`[Assinatura] Salvando config global para tenant: ${tenantId.substring(0, 16)}...`);
+      
+      const result = await saveTenantGlobalConfig(updates, tenantId);
+      
+      if (result.success) {
+        // Também atualiza o cache local como backup
+        localGlobalConfig = { ...localGlobalConfig, ...updates };
+        invalidateGlobalConfigCache();
+        
+        return res.json({ 
+          ...updates, 
+          tenant_id: tenantId,
+          savedTo: result.savedTo,
+          message: result.savedTo === 'both' 
+            ? 'Configuração salva no Supabase do tenant e localmente'
+            : result.savedTo === 'local'
+              ? 'Configuração salva apenas localmente (Supabase não disponível)'
+              : 'Configuração salva'
+        });
+      } else {
+        console.error(`[Assinatura] Erro ao salvar config do tenant:`, result.error);
+        return res.status(500).json({ error: result.error || 'Falha ao salvar configurações' });
+      }
+    }
+    
+    // Fallback para comportamento legado (singleton)
     if (assinaturaSupabaseService.isConnected()) {
       const result = await assinaturaSupabaseService.saveGlobalConfig(updates);
       if (result) {
@@ -882,8 +939,11 @@ router.get('/contracts/:token/full', async (req: Request, res: Response) => {
       console.warn('[Assinatura/Full] Participant data lookup failed:', err);
     }
 
-    // Buscar configurações globais para usar como fallback
-    const globalConfig = await assinaturaSupabaseService.getGlobalConfig() || getGlobalConfigCached();
+    // MULTI-TENANT: Buscar configurações globais do tenant correto
+    // Usa o tenant_id do contrato para buscar a config do Supabase do tenant
+    const globalConfig = await getGlobalConfigForContract(contract) || getGlobalConfigCached();
+    console.log(`[Assinatura/Full] Config global carregada para tenant: ${contract.tenant_id || 'fallback'}`);
+    
     
     // Mapear campos de endereço do formato aninhado (local) para campos individuais (esperado pelo frontend)
     const localContractTyped = contract as any;
