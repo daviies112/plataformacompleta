@@ -4,7 +4,7 @@ import { authenticateConfig } from '../middleware/configAuth';
 import { credentialsStorage, encrypt, decrypt, saveCredentialsToFile } from '../lib/credentialsManager';
 import { clearSupabaseClientCache, testDynamicSupabaseConnection, invalidateConnectionTestCache } from '../lib/multiTenantSupabase';
 import { db } from '../db';
-import { pluggyConfig, supabaseConfig, n8nConfig, evolutionApiConfig, hms100msConfig, totalExpressConfig, bigdatacorpConfig } from '../../shared/db-schema.js';
+import { pluggyConfig, supabaseConfig, n8nConfig, evolutionApiConfig, hms100msConfig, totalExpressConfig, bigdatacorpConfig, forms, leads, formSubmissions, formTenantMapping } from '../../shared/db-schema.js';
 import { eq } from 'drizzle-orm';
 import { getSupabaseCredentials, getSupabaseCredentialsStrict, getPluggyCredentials, getN8nCredentials, getEvolutionApiCredentials } from '../lib/credentialsDb';
 import { resetAllPollerStates } from '../lib/stateReset';
@@ -13,6 +13,7 @@ import { clearSupabaseClientCache as clearFormularioSupabaseCache } from '../for
 import { syncAdminCredentialsToOwner } from '../lib/masterSyncService';
 import { invalidateLeadsCache } from './leadsPipelineRoutes';
 import { clearLocalContractsCache } from './assinatura';
+import { supabaseOwner, SUPABASE_CONFIGURED } from '../config/supabaseOwner';
 import fs from 'fs';
 import path from 'path';
 
@@ -207,12 +208,81 @@ router.delete('/clear-all', authenticateToken, async (req, res) => {
       console.warn('⚠️ [CACHE] Erro ao limpar cache de contratos em memória:', err);
     }
 
-    console.log(`✅ [CREDENTIALS] Reset total completo para tenant ${tenantId}`);
+    // 8. ⚠️ CRITICAL: Delete ALL local PostgreSQL data (forms, leads, submissions, etc.)
+    // User confirmed: all data is saved in Supabase, so local data can be safely deleted
+    console.log(`🗑️ [RESET TOTAL] Deletando TODOS os dados locais do PostgreSQL para tenant ${tenantId}...`);
+    
+    try {
+      // Delete form submissions first (foreign key dependency)
+      const deletedSubmissions = await db.delete(formSubmissions)
+        .where(eq(formSubmissions.tenantId, tenantId))
+        .execute();
+      cleared.database.push('formSubmissions');
+      console.log(`🗑️ [DB] formSubmissions deletado para tenant ${tenantId}`);
+    } catch (dbErr) {
+      console.warn('⚠️ [DB] Erro ao deletar formSubmissions:', dbErr);
+    }
+
+    try {
+      // Delete form tenant mappings
+      const deletedMappings = await db.delete(formTenantMapping)
+        .where(eq(formTenantMapping.tenantId, tenantId))
+        .execute();
+      cleared.database.push('formTenantMapping');
+      console.log(`🗑️ [DB] formTenantMapping deletado para tenant ${tenantId}`);
+    } catch (dbErr) {
+      console.warn('⚠️ [DB] Erro ao deletar formTenantMapping:', dbErr);
+    }
+
+    try {
+      // Delete forms
+      const deletedForms = await db.delete(forms)
+        .where(eq(forms.tenantId, tenantId))
+        .execute();
+      cleared.database.push('forms');
+      console.log(`🗑️ [DB] forms deletado para tenant ${tenantId}`);
+    } catch (dbErr) {
+      console.warn('⚠️ [DB] Erro ao deletar forms:', dbErr);
+    }
+
+    try {
+      // Delete leads
+      const deletedLeads = await db.delete(leads)
+        .where(eq(leads.tenantId, tenantId))
+        .execute();
+      cleared.database.push('leads');
+      console.log(`🗑️ [DB] leads deletado para tenant ${tenantId}`);
+    } catch (dbErr) {
+      console.warn('⚠️ [DB] Erro ao deletar leads:', dbErr);
+    }
+
+    // 9. ⚠️ CRITICAL: Delete admin credentials from Supabase Owner (central database)
+    // This prevents MasterSync from re-syncing the credentials after reset
+    if (SUPABASE_CONFIGURED && supabaseOwner) {
+      try {
+        // Use clientId as admin_id since that's how we identify admins
+        const { error } = await supabaseOwner
+          .from('admin_supabase_credentials')
+          .delete()
+          .eq('admin_id', clientId);
+        
+        if (!error) {
+          cleared.database.push('admin_supabase_credentials (Supabase Owner)');
+          console.log(`🗑️ [SUPABASE OWNER] admin_supabase_credentials deletado para admin ${clientId}`);
+        } else {
+          console.warn(`⚠️ [SUPABASE OWNER] Erro ao deletar admin_supabase_credentials:`, error);
+        }
+      } catch (ownerErr) {
+        console.warn('⚠️ [SUPABASE OWNER] Erro ao deletar credenciais do owner:', ownerErr);
+      }
+    }
+
+    console.log(`✅ [CREDENTIALS] Reset total completo para tenant ${tenantId} - TODOS os dados locais E do Supabase Owner foram deletados`);
 
     res.json({
       success: true,
       cleared,
-      message: 'Todas as credenciais e cache foram limpos com sucesso'
+      message: 'Todas as credenciais, cache e dados foram limpos com sucesso (incluindo Supabase Owner)'
     });
 
   } catch (error) {
