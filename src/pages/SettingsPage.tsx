@@ -3574,10 +3574,10 @@ const SettingsPage = () => {
 
             <div className="flex items-start justify-between gap-4">
               <div className="space-y-1">
-                <p className="font-medium">Limpar Credenciais e Cache</p>
+                <p className="font-medium">Reset Total do Sistema</p>
                 <p className="text-sm text-muted-foreground">
-                  Remove todas as credenciais de integrações (Supabase, N8N, Evolution API, Pluggy) e limpa caches do sistema.
-                  Útil para testar com novas credenciais ou resetar o ambiente.
+                  Remove credenciais, cache local e todos os dados sincronizados (contratos, leads, estados).
+                  Ao reconectar as credenciais, os dados serão sincronizados novamente do Supabase.
                 </p>
               </div>
               <AlertDialog>
@@ -3595,28 +3595,28 @@ const SettingsPage = () => {
                     ) : (
                       <>
                         <Trash2 className="mr-2 h-4 w-4" />
-                        Limpar Tudo
+                        Reset Total
                       </>
                     )}
                   </PremiumButton>
                 </AlertDialogTrigger>
                 <AlertDialogContent data-testid="dialog-clear-credentials">
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Limpar Todas as Credenciais?</AlertDialogTitle>
+                    <AlertDialogTitle>Reset Total do Sistema?</AlertDialogTitle>
                     <AlertDialogDescription asChild>
                       <div className="space-y-4">
-                        <p>Esta ação irá remover:</p>
+                        <p>Esta ação irá remover <strong>todos os dados locais</strong>:</p>
                         <ul className="list-disc pl-4 space-y-1 text-sm">
-                          <li>Credenciais do Supabase, N8N, Evolution API e Pluggy</li>
-                          <li>Configurações de cache e estados de sincronização</li>
+                          <li>Credenciais de todas as integrações (Supabase, N8N, 100ms, TotalExpress, etc.)</li>
+                          <li>Cache de contratos, leads e formulários</li>
+                          <li>Estados de sincronização e automação</li>
                           <li>Arquivos de configuração local</li>
                         </ul>
-                        <p className="font-medium text-foreground">O que será preservado:</p>
+                        <p className="font-medium text-foreground">Seus dados no Supabase permanecem intactos:</p>
                         <ul className="list-disc pl-4 space-y-1 text-sm">
-                          <li>Dados de usuários e tenant (nome, email, horário)</li>
-                          <li>Contratos de assinatura</li>
-                          <li>Configurações de personalização</li>
-                          <li>Trilha de auditoria</li>
+                          <li>Ao reconectar as credenciais, contratos serão sincronizados novamente</li>
+                          <li>Leads e formulários voltarão do Supabase</li>
+                          <li>Configurações de personalização serão restauradas</li>
                         </ul>
                         <p className="text-destructive font-medium">Esta ação não pode ser desfeita.</p>
                       </div>
@@ -3629,7 +3629,7 @@ const SettingsPage = () => {
                       className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                       data-testid="button-confirm-clear"
                     >
-                      Limpar Tudo
+                      Confirmar Reset
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>

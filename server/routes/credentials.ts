@@ -169,7 +169,36 @@ router.delete('/clear-all', authenticateToken, async (req, res) => {
       console.log(`🗑️ [FILE] cpf_auto_check_processed.json deletado`);
     }
 
-    console.log(`✅ [CREDENTIALS] Limpeza completa para tenant ${tenantId}`);
+    // Delete all local cache files for complete reset
+    const cacheFilesToDelete = [
+      'assinatura_contracts.json',
+      'assinatura_contracts.json.bak',
+      `assinatura_global_config_${tenantId}.json`,
+      'assinatura_global_config.json',
+      'automation_state.json',
+      'cpf_compliance_poller_state.json',
+      'cpf_processed_ids.json',
+      'form_submission_poller_state.json',
+      'credentials.json',
+      'supabase-config.json.bak',
+      'leads_cache.json',
+      'form_mappings_cache.json'
+    ];
+
+    for (const fileName of cacheFilesToDelete) {
+      const filePath = path.join(dataDir, fileName);
+      if (fs.existsSync(filePath)) {
+        try {
+          fs.unlinkSync(filePath);
+          cleared.files.push(fileName);
+          console.log(`🗑️ [FILE] ${fileName} deletado`);
+        } catch (err) {
+          console.warn(`⚠️ [FILE] Erro ao deletar ${fileName}:`, err);
+        }
+      }
+    }
+
+    console.log(`✅ [CREDENTIALS] Reset total completo para tenant ${tenantId}`);
 
     res.json({
       success: true,
