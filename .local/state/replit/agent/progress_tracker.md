@@ -156,3 +156,13 @@
   - SQL migration created: migrations/add_tenant_id_to_global_appearance_settings.sql
   - Fixed unique constraint issue: Now checks by identifier='default' before save (UPDATE vs INSERT)
   - Verified: Config saves to Supabase and retrieves correctly with tenant isolation
+[x] 219. Fix Signature Flow Status Logic - February 03, 2026:
+  - Problem: Status was set to 'signed' immediately when contract was signed (step 2)
+  - User requirement: Status should only become 'signed' after residence proof upload + app download step
+  - Solution implemented:
+    1. ContractStep.tsx: Changed status from 'signed' to 'contract_signed' after contract signing
+    2. Added new endpoint: POST /api/contracts/:id/mark-signed with validation
+    3. AppPromotionStep.tsx: Added useEffect to call mark-signed when user reaches step 5
+    4. Audit trail updated with proper status transitions
+  - Flow now: pending → contract_signed (step 2) → signed (step 5)
+  - Prevents premature 'signed' status before completing residence proof and app download

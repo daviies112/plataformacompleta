@@ -180,7 +180,7 @@ export const ContractStep = ({ clientData, selfiePhoto, documentPhoto, currentSt
         selfie_photo: selfiePhoto,
         document_photo: documentPhoto,
         signed_contract_html: html,
-        status: 'signed',
+        status: 'contract_signed',
       });
 
       await apiRequest('POST', '/api/signature-logs', {
@@ -193,9 +193,10 @@ export const ContractStep = ({ clientData, selfiePhoto, documentPhoto, currentSt
 
       await apiRequest('POST', '/api/audit-trail', {
         contract_id: clientData.id,
-        action: 'signed',
+        action: 'contract_signed',
         metadata: {
           signed_via: 'facial_recognition',
+          awaiting_residence_proof: true,
         },
       });
 

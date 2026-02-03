@@ -1,13 +1,33 @@
+import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ShoppingBag, Trophy, TrendingUp, Smartphone, ArrowRight, CheckCircle2 } from "lucide-react";
 import { useContract } from "@/contexts/ContractContext";
+import { apiRequest } from "@/lib/queryClient";
 import jewelryApp from "@assets/stock_images/luxury_jewelry_store_e7290e08.jpg";
 import financialApp from "@assets/stock_images/professional_busines_a0c2523c.jpg";
 import trophyApp from "@assets/stock_images/golden_trophy_award__62627ba6.jpg";
 
 export const AppPromotionStep = () => {
   const { setCurrentStep, contractData } = useContract();
+  const hasMarkedSigned = useRef(false);
+  
+  useEffect(() => {
+    const markContractAsSigned = async () => {
+      if (!contractData?.id || hasMarkedSigned.current) return;
+      
+      hasMarkedSigned.current = true;
+      
+      try {
+        await apiRequest('POST', `/api/contracts/${contractData.id}/mark-signed`, {});
+        console.log('[AppPromotionStep] Contract marked as fully signed');
+      } catch (error) {
+        console.error('[AppPromotionStep] Error marking contract as signed:', error);
+      }
+    };
+    
+    markContractAsSigned();
+  }, [contractData?.id]);
   
   // As URLs virão do contexto do contrato que foi carregado do banco
   const googlePlayUrl = contractData?.google_play_url || 'https://play.google.com/store';

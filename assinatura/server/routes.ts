@@ -261,6 +261,49 @@ export function registerRoutes(app: Express): void {
     }
   });
 
+  app.post("/api/contracts/:id/mark-signed", async (req, res) => {
+    try {
+      const { id } = req.params;
+      
+      const existingContract = await storage.getContractById(id);
+      if (!existingContract) {
+        return res.status(404).json({ error: "Contract not found" });
+      }
+      
+      if (existingContract.status === 'signed') {
+        return res.json({ success: true, message: "Contract already signed", contract: existingContract });
+      }
+      
+      if (existingContract.status !== 'contract_signed') {
+        return res.status(400).json({ 
+          error: "Contract must be in 'contract_signed' status to mark as fully signed",
+          currentStatus: existingContract.status
+        });
+      }
+      
+      const contract = await storage.updateContract(id, {
+        status: 'signed',
+      });
+      
+      await storage.createAuditTrail({
+        contract_id: id,
+        action: 'signed',
+        metadata: {
+          previous_status: 'contract_signed',
+          completed_residence_proof: true,
+          completed_app_download_step: true,
+        },
+      });
+      
+      console.log(`[Assinatura] Contract ${id} marked as fully signed after completing all steps`);
+      
+      res.json({ success: true, contract });
+    } catch (error) {
+      console.error("Error marking contract as signed:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   app.post("/api/users", async (req, res) => {
     try {
       const validatedData = insertUserSchema.parse(req.body);
