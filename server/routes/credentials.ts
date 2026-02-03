@@ -14,6 +14,7 @@ import { syncAdminCredentialsToOwner } from '../lib/masterSyncService';
 import { invalidateLeadsCache } from './leadsPipelineRoutes';
 import { clearLocalContractsCache } from './assinatura';
 import { supabaseOwner, SUPABASE_CONFIGURED } from '../config/supabaseOwner';
+import { invalidateCredentialsCache } from '../lib/publicCache';
 import fs from 'fs';
 import path from 'path';
 
@@ -150,6 +151,9 @@ router.delete('/clear-all', authenticateToken, async (req, res) => {
     invalidateLeadsCache(tenantId);
     cleared.cache.push('leadsCache');
     
+    invalidateCredentialsCache(tenantId);
+    cleared.cache.push('publicCredentialsCache');
+    
     console.log(`🗑️ [CACHE] Todos os caches Supabase invalidados`);
 
     // 6. Delete local config files (NOT credentials.json structure, NOT contracts, NOT audit)
@@ -260,17 +264,44 @@ router.delete('/clear-all', authenticateToken, async (req, res) => {
     // This prevents MasterSync from re-syncing the credentials after reset
     if (SUPABASE_CONFIGURED && supabaseOwner) {
       try {
-        // Use clientId as admin_id since that's how we identify admins
+        // userId contains the UUID of the admin (set during login as admin.id)
+        const adminUuid = req.user!.userId;
+        
+        // First try to delete by UUID (admin_id is UUID in Supabase Owner)
         const { error } = await supabaseOwner
           .from('admin_supabase_credentials')
           .delete()
-          .eq('admin_id', clientId);
+          .eq('admin_id', adminUuid);
         
         if (!error) {
           cleared.database.push('admin_supabase_credentials (Supabase Owner)');
-          console.log(`🗑️ [SUPABASE OWNER] admin_supabase_credentials deletado para admin ${clientId}`);
+          console.log(`🗑️ [SUPABASE OWNER] admin_supabase_credentials deletado para admin UUID ${adminUuid}`);
         } else {
-          console.warn(`⚠️ [SUPABASE OWNER] Erro ao deletar admin_supabase_credentials:`, error);
+          // If UUID fails, try to find admin by email/tenantId first
+          console.warn(`⚠️ [SUPABASE OWNER] Erro ao deletar por UUID, tentando por email...`);
+          
+          // Get admin by tenantId (project_name contains tenantId)
+          const { data: adminCreds } = await supabaseOwner
+            .from('admin_supabase_credentials')
+            .select('admin_id')
+            .ilike('project_name', `%${tenantId}%`)
+            .maybeSingle();
+          
+          if (adminCreds?.admin_id) {
+            const { error: deleteError } = await supabaseOwner
+              .from('admin_supabase_credentials')
+              .delete()
+              .eq('admin_id', adminCreds.admin_id);
+            
+            if (!deleteError) {
+              cleared.database.push('admin_supabase_credentials (Supabase Owner - by project_name)');
+              console.log(`🗑️ [SUPABASE OWNER] admin_supabase_credentials deletado para admin ${adminCreds.admin_id}`);
+            } else {
+              console.warn(`⚠️ [SUPABASE OWNER] Erro ao deletar admin_supabase_credentials:`, deleteError);
+            }
+          } else {
+            console.warn(`⚠️ [SUPABASE OWNER] Admin não encontrado por project_name para tenant ${tenantId}`);
+          }
         }
       } catch (ownerErr) {
         console.warn('⚠️ [SUPABASE OWNER] Erro ao deletar credenciais do owner:', ownerErr);
@@ -381,6 +412,9 @@ router.put('/:integrationType', authenticateToken, async (req, res) => {
         // 🔐 CRITICAL: Invalidar cache de leads do Kanban para forçar refetch do novo Supabase
         invalidateLeadsCache(tenantId);
         console.log(`🗑️ [CACHE] Cache de leads invalidado para tenant: ${tenantId}`);
+        // 🔐 CRITICAL: Invalidar cache de credenciais do publicCache para formulários carregarem
+        invalidateCredentialsCache(tenantId);
+        console.log(`🗑️ [CACHE] Cache de credenciais publicCache invalidado para tenant: ${tenantId}`);
         // 🔄 IMPORTANTE: Resetar estados dos pollers para sincronizar do zero
         // Isso garante que em uma nova instalação, todos os dados sejam sincronizados
         resetAllPollerStates();
