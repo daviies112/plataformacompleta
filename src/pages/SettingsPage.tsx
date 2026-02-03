@@ -356,15 +356,16 @@ const SettingsPage = () => {
         console.log('✅ Credenciais do Supabase salvas no localStorage (após limpar cache)');
       }
       
-      // 🔐 CRITICAL: Forçar refetch imediato de dados para carregar do Supabase
-      console.log('🔄 Forçando refetch de dados para carregar do Supabase...');
-      // Usar refetchQueries para forçar reload imediato (não apenas marcar como stale)
-      queryClient.refetchQueries({ queryKey: ['/api/forms'] });
-      queryClient.refetchQueries({ queryKey: ['/api/formularios/ativo'] });
-      queryClient.refetchQueries({ queryKey: ['/api/assinatura/contracts'] });
-      queryClient.refetchQueries({ queryKey: ['/api/leads'] });
-      queryClient.refetchQueries({ queryKey: ['/api/workspace'] });
-      console.log('✅ Refetch forçado - formulários serão recarregados do Supabase');
+      // 🔐 CRITICAL: Resetar cache de dados para forçar novo fetch na próxima navegação
+      // NOTA: refetchQueries não funciona se a query não está montada (usuário está em outra página)
+      // resetQueries LIMPA o cache, garantindo um novo fetch quando o usuário navegar para a página
+      console.log('🔄 Resetando cache de dados para forçar novo fetch...');
+      queryClient.resetQueries({ queryKey: ['/api/forms'], exact: true });
+      queryClient.resetQueries({ queryKey: ['/api/formularios/ativo'], exact: true });
+      queryClient.resetQueries({ queryKey: ['/api/assinatura/contracts'], exact: true });
+      queryClient.resetQueries({ queryKey: ['/api/leads'], exact: true });
+      queryClient.resetQueries({ queryKey: ['/api/workspace'], exact: true });
+      console.log('✅ Cache resetado - formulários serão recarregados na próxima navegação');
       
       refetchCredentials();
       
