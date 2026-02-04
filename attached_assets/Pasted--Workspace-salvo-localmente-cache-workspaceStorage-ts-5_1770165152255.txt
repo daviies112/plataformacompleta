@@ -1,0 +1,39 @@
+💾 Workspace salvo localmente (cache)
+workspaceStorage.ts:503 📤 Sincronizando com Supabase (apenas insert/update)...
+WorkspacePage.tsx:65 📊 [WorkspacePage] Estado atual: Object
+WorkspacePage.tsx:75 🔍 [WorkspacePage] Verificando se precisa criar página inicial...
+WorkspacePage.tsx:80 ✅ [WorkspacePage] 1 páginas já existem - não criando nova
+WorkspacePage.tsx:50 ✅ [WorkspacePage] Dados carregados do Supabase com sucesso
+workspaceStorage.ts:107 🔒 [SYNC] Iniciando sincronização com Supabase...
+workspaceStorage.ts:129 🔑 IDs extraídos do localStorage: Object
+workspaceStorage.ts:161 🔒 Preparando para salvar 1 páginas no Supabase...
+workspaceStorage.ts:184 📄 Dados das páginas: Array(1)
+workspaceStorage.ts:189 ✅ Páginas salvas no Supabase com sucesso!
+workspaceStorage.ts:262 📤 Workspace sincronizado com Supabase (background): Object
+6b41d56f-4af6-4ae1-a043-69285c215846-00-3e3gly3kz4sy7.janeway.replit.dev/api/formularios/ativo:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+api.ts:203 📤 [API] Fazendo upload de logo...
+api.ts:220 ✅ [API] Logo enviada com sucesso: /uploads/logos/logo-1770164820490-53538102.png
+api.ts:203 📤 [API] Fazendo upload de logo...
+api.ts:220 ✅ [API] Logo enviada com sucesso: /uploads/logos/logo-1770164835093-161476850.png
+api.ts:65 📝 [API] Criando formulário...
+api.ts:23 🔑 [API] Enviando credenciais Supabase nos headers
+api.ts:79 ✅ [API] Formulário criado com sucesso!
+6b41d56f-4af6-4ae1-a043-69285c215846-00-3e3gly3kz4sy7.janeway.replit.dev/api/formularios/ativo:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+VerFormularios.tsx:63 ✅ Formulário ativo salvo: 5a7d6bf7-e086-4510-a1f3-b8a985f21140
+RoomDesignSettings.tsx:137 [Design] Buscando configurações do Supabase (hms_100ms_config)...
+RoomDesignSettings.tsx:225 [Design] Configurando Realtime para 'hms_100ms_config'...
+jeinwwuzzoqayascplnh.supabase.co/rest/v1/hms_100ms_config?select=room_design_config:1  Failed to load resource: the server responded with a status of 406 ()Understand this error
+RoomDesignSettings.tsx:147 [Design] Nenhuma config no Supabase ou erro: Cannot coerce the result to a single JSON object
+RoomDesignSettings.tsx:326 [ColorExtract] Starting extraction from: https://6b41d56f-4af6-4ae1-a043-69285c215846-00-3e3gly3kz4sy7.janeway.replit.dev/uploads/logos/logo-1770164918027-179869180.png
+RoomDesignSettings.tsx:328 [ColorExtract] Colors extracted: Array(4)
+RoomDesignSettings.tsx:170 [Design] Salvando configurações...
+6b41d56f-4af6-4ae1-a043-69285c215846-00-3e3gly3kz4sy7.janeway.replit.dev/api/reunioes/room-design:1  Failed to load resource: the server responded with a status of 400 (Bad Request)Understand this error
+RoomDesignSettings.tsx:185 [Design] Erro ao salvar: AxiosError
+onError @ RoomDesignSettings.tsx:185Understand this error
+RoomDesignSettings.tsx:170 [Design] Salvando configurações...
+6b41d56f-4af6-4ae1-a043-69285c215846-00-3e3gly3kz4sy7.janeway.replit.dev/api/reunioes/room-design:1  Failed to load resource: the server responded with a status of 400 (Bad Request)Understand this error
+RoomDesignSettings.tsx:185 [Design] Erro ao salvar: AxiosError
+onError @ RoomDesignSettings.tsx:185Understand this error
+usePWAInstall.ts:112 📱 [PWA] Device Info: Object
+usePWAInstall.ts:176 🧪 [PWA] Modo desenvolvimento detectado - botão sempre visível para testes
+usePWAInstall.ts:125 ✅ [PWA] Service Worker registrado: https://6b41d56f-4af6-4ae1-a043-69285c215846-00-3e3gly3kz4sy7.janeway.replit.dev/

@@ -1532,6 +1532,8 @@ meetingsRouter.patch('/room-design', authenticateToken, async (req: Request, res
     try {
       const supabase = await getClientSupabaseClient(user.tenantId);
       if (supabase) {
+        console.log(`[RoomDesign] 🔄 Sincronizando com Supabase para tenant: ${user.tenantId}`);
+        
         // Primeiro verificar se existe registro no Supabase
         const { data: existingData, error: selectError } = await supabase
           .from('hms_100ms_config')
@@ -1540,44 +1542,43 @@ meetingsRouter.patch('/room-design', authenticateToken, async (req: Request, res
           .maybeSingle();
         
         if (selectError) {
-          console.warn('[RoomDesign] Erro ao verificar Supabase:', selectError.message);
-        } else if (existingData) {
-          // Update existente
+          console.warn('[RoomDesign] ⚠️ Erro ao verificar Supabase:', selectError.message);
+        }
+
+        const configToSave = {
+          tenant_id: user.tenantId,
+          room_design_config: roomDesignConfig,
+          updated_at: new Date().toISOString()
+        };
+
+        let error;
+        if (existingData) {
+          console.log(`[RoomDesign] 📝 Atualizando registro existente no Supabase para tenant: ${user.tenantId}`);
           const { error: updateError } = await supabase
             .from('hms_100ms_config')
-            .update({
-              room_design_config: roomDesignConfig,
-              updated_at: new Date().toISOString()
-            })
+            .update(configToSave)
             .eq('tenant_id', user.tenantId);
-          
-          if (updateError) {
-            console.warn('[RoomDesign] Erro Supabase update:', updateError.message);
-          } else {
-            console.log(`[RoomDesign] Atualizado no Supabase para tenant ${user.tenantId}`);
-            supabaseSyncSuccess = true;
-          }
+          error = updateError;
         } else {
-          // Inserir novo no Supabase
+          console.log(`[RoomDesign] ➕ Criando novo registro no Supabase para tenant: ${user.tenantId}`);
           const { error: insertError } = await supabase
             .from('hms_100ms_config')
             .insert({
-              tenant_id: user.tenantId,
-              room_design_config: roomDesignConfig,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
+              ...configToSave,
+              created_at: new Date().toISOString()
             });
-          
-          if (insertError) {
-            console.warn('[RoomDesign] Erro Supabase insert:', insertError.message);
-          } else {
-            console.log(`[RoomDesign] Inserido no Supabase para tenant ${user.tenantId}`);
-            supabaseSyncSuccess = true;
-          }
+          error = insertError;
+        }
+        
+        if (error) {
+          console.error(`[RoomDesign] ❌ Erro ao salvar no Supabase:`, error.message);
+        } else {
+          console.log(`[RoomDesign] ✅ Sucesso ao sincronizar com Supabase para tenant: ${user.tenantId}`);
+          supabaseSyncSuccess = true;
         }
       }
     } catch (sbErr: any) {
-      console.warn('[RoomDesign] Erro ao sincronizar com Supabase:', sbErr?.message || sbErr);
+      console.error('[RoomDesign] ❌ Erro crítico ao sincronizar com Supabase:', sbErr?.message || sbErr);
     }
 
     res.json({ 
