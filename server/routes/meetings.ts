@@ -1522,7 +1522,10 @@ meetingsRouter.patch('/room-design', authenticateToken, async (req: Request, res
       await db.insert(hms100msConfig).values({
         tenantId: user.tenantId,
         roomDesignConfig: roomDesignConfig,
-        updatedAt: new Date()
+        appAccessKey: 'placeholder_key', 
+        appSecret: 'placeholder_secret',    
+        updatedAt: new Date(),
+        apiBaseUrl: 'https://api.100ms.live/v2'
       });
     }
 
@@ -1538,8 +1541,7 @@ meetingsRouter.patch('/room-design', authenticateToken, async (req: Request, res
         // Primeiro verificar se existe registro no Supabase
         const { data: existingData, error: selectError } = await supabase
           .from('hms_100ms_config')
-          .select('id')
-          .eq('tenant_id', user.tenantId)
+          .select('room_design_config')
           .maybeSingle();
         
         if (selectError) {

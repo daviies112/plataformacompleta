@@ -138,7 +138,7 @@ export default function RoomDesignSettings() {
           const { data, error } = await supabase
             .from('hms_100ms_config')
             .select('room_design_config')
-            .single();
+            .maybeSingle();
 
           if (!error && data?.room_design_config) {
             console.log('[Design] Configurações carregadas do Supabase');
