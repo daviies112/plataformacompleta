@@ -1506,24 +1506,25 @@ meetingsRouter.patch('/room-design', authenticateToken, async (req: Request, res
       return res.status(400).json({ error: 'roomDesignConfig é obrigatório' });
     }
 
-    // Verificar se já existe config para este tenant
+    // Salvar no DB local
     const [existingConfig] = await db.select().from(hms100msConfig)
       .where(eq(hms100msConfig.tenantId, user.tenantId))
       .limit(1);
 
-    if (!existingConfig) {
-      return res.status(400).json({ 
-        error: 'Configuração 100ms não encontrada. Configure primeiro as credenciais 100ms.' 
-      });
-    }
-
-    // Atualizar DB local
-    await db.update(hms100msConfig)
-      .set({ 
+    if (existingConfig) {
+      await db.update(hms100msConfig)
+        .set({ 
+          roomDesignConfig: roomDesignConfig,
+          updatedAt: new Date()
+        })
+        .where(eq(hms100msConfig.tenantId, user.tenantId));
+    } else {
+      await db.insert(hms100msConfig).values({
+        tenantId: user.tenantId,
         roomDesignConfig: roomDesignConfig,
         updatedAt: new Date()
-      })
-      .where(eq(hms100msConfig.tenantId, user.tenantId));
+      });
+    }
 
     console.log(`[RoomDesign] Salvo no DB local para tenant ${user.tenantId}`);
 
@@ -1545,18 +1546,15 @@ meetingsRouter.patch('/room-design', authenticateToken, async (req: Request, res
           console.warn('[RoomDesign] ⚠️ Erro ao verificar Supabase:', selectError.message);
         }
 
-        const configToSave = {
-          tenant_id: user.tenantId,
-          room_design_config: roomDesignConfig,
-          updated_at: new Date().toISOString()
-        };
-
         let error;
         if (existingData) {
           console.log(`[RoomDesign] 📝 Atualizando registro existente no Supabase para tenant: ${user.tenantId}`);
           const { error: updateError } = await supabase
             .from('hms_100ms_config')
-            .update(configToSave)
+            .update({
+              room_design_config: roomDesignConfig,
+              updated_at: new Date().toISOString()
+            })
             .eq('tenant_id', user.tenantId);
           error = updateError;
         } else {
@@ -1564,8 +1562,10 @@ meetingsRouter.patch('/room-design', authenticateToken, async (req: Request, res
           const { error: insertError } = await supabase
             .from('hms_100ms_config')
             .insert({
-              ...configToSave,
-              created_at: new Date().toISOString()
+              tenant_id: user.tenantId,
+              room_design_config: roomDesignConfig,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
             });
           error = insertError;
         }
