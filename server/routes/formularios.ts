@@ -18,10 +18,10 @@ const DEFAULT_SETTINGS_ID = '00000000-0000-0000-0000-000000000001';
  * NÃO armazena URL estática - sempre gera baseado no ambiente atual
  */
 function generateDynamicFormUrl(companySlug: string, formSlug: string): string {
-  const domain = process.env.REPLIT_DOMAINS?.split(',')[0] || 
-                 (process.env.REPL_SLUG && process.env.REPL_OWNER ? 
-                   `${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : 
-                   'localhost:5000');
+  const domain = process.env.APP_DOMAIN || process.env.REPLIT_DOMAINS?.split(',')[0] ||
+    (process.env.REPL_SLUG && process.env.REPL_OWNER ?
+      `${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` :
+      'localhost:5000');
   const protocol = domain.includes('localhost') ? 'http' : 'https';
   return `${protocol}://${domain}/formulario/${companySlug}/form/${formSlug}`;
 }
@@ -31,18 +31,18 @@ function generateDynamicFormUrl(companySlug: string, formSlug: string): string {
  */
 async function getOrCreateLocalAppSettings() {
   const existing = await db.select().from(appSettings).limit(1);
-  
+
   if (existing.length > 0) {
     return existing[0];
   }
-  
+
   // Criar configuração padrão
   const newSettings = await db.insert(appSettings).values({
     id: DEFAULT_SETTINGS_ID,
     companyName: 'Minha Empresa',
     companySlug: 'empresa',
   }).returning();
-  
+
   return newSettings[0];
 }
 
@@ -61,23 +61,23 @@ async function getSupabaseClientForFormularios(req?: Request): Promise<SupabaseC
       return tenantClient;
     }
   }
-  
+
   // Fallback: Tentar cliente global
   const globalClient = getGlobalSupabaseClient();
   if (globalClient) {
     console.log('✅ [FORMS] Usando cliente Supabase global');
     return globalClient;
   }
-  
+
   // Fallback final: Usar environment variables (com trim)
   const url = (process.env.REACT_APP_SUPABASE_URL || process.env.SUPABASE_URL || '').trim();
   const anonKey = (process.env.REACT_APP_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '').trim();
-  
+
   if (!url || !anonKey) {
     console.error('❌ [FORMS] Supabase não configurado - nem tenant, nem env vars');
     return null;
   }
-  
+
   console.log('⚠️ [FORMS] Usando Supabase de environment variables (não recomendado para multi-tenant)');
   return createClient(url, anonKey);
 }
@@ -92,11 +92,11 @@ async function getOrCreateAppSettingsInSupabase(supabase: SupabaseClient) {
     .select('*')
     .eq('id', DEFAULT_SETTINGS_ID)
     .single();
-  
+
   if (error && error.code !== 'PGRST116') {
     throw error;
   }
-  
+
   // Se não existir, criar no Supabase
   if (!data) {
     const { data: newData, error: insertError } = await supabase
@@ -108,14 +108,14 @@ async function getOrCreateAppSettingsInSupabase(supabase: SupabaseClient) {
       })
       .select()
       .single();
-    
+
     if (insertError) {
       throw insertError;
     }
-    
+
     return newData;
   }
-  
+
   return data;
 }
 
@@ -130,18 +130,18 @@ async function getCompanySlugFromSupabase(supabase: SupabaseClient): Promise<str
       .select('company_name, company_slug')
       .limit(1)
       .single();
-    
+
     if (!error && companySettings?.company_slug) {
       console.log(`✅ [FORMS] Company slug encontrado: ${companySettings.company_slug}`);
       return companySettings.company_slug;
     }
-    
+
     if (!error && companySettings?.company_name) {
       const generatedSlug = generateCompanySlug(companySettings.company_name);
       console.log(`✅ [FORMS] Company slug gerado do nome: ${generatedSlug}`);
       return generatedSlug;
     }
-    
+
     console.log('⚠️ [FORMS] Company settings não encontrado, usando fallback "empresa"');
     return 'empresa';
   } catch (err) {
@@ -158,11 +158,11 @@ router.get('/ativo', async (req, res) => {
   try {
     // PRIORIDADE 1: Buscar do PostgreSQL LOCAL
     const localSettings = await db.select().from(appSettings).limit(1);
-    
+
     if (localSettings.length > 0 && localSettings[0].activeFormId) {
       const settings = localSettings[0];
       console.log(`✅ [FORMS/ativo] Formulário ativo encontrado no PostgreSQL local: ${settings.activeFormId}`);
-      
+
       // Buscar mapeamento para obter slug correto
       const mappingResult = await db
         .select({
@@ -215,7 +215,7 @@ router.get('/ativo', async (req, res) => {
           .select('*')
           .eq('id', settings.activeFormId)
           .single();
-        
+
         if (!error && data) {
           return res.json({
             id: data.id,
@@ -235,18 +235,18 @@ router.get('/ativo', async (req, res) => {
 
     // PRIORIDADE 2: Tentar buscar do Supabase se PostgreSQL local não tem configuração
     const supabase = await getSupabaseClientForFormularios(req);
-    
+
     if (supabase) {
       try {
         const supabaseSettings = await getOrCreateAppSettingsInSupabase(supabase);
-        
+
         if (supabaseSettings.active_form_id) {
           const { data, error } = await supabase
             .from('forms')
             .select('*')
             .eq('id', supabaseSettings.active_form_id)
             .single();
-          
+
           if (!error && data) {
             // Obter slug da empresa
             let companySlug = 'empresa';
@@ -287,13 +287,13 @@ router.get('/ativo', async (req, res) => {
       }
     }
 
-    return res.status(404).json({ 
+    return res.status(404).json({
       error: 'Nenhum formulário ativo configurado',
       message: 'Configure um formulário como ativo primeiro'
     });
   } catch (error) {
     console.error('Erro ao buscar formulário ativo:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Erro ao buscar formulário ativo',
       details: error instanceof Error ? error.message : 'Erro desconhecido'
     });
@@ -310,10 +310,10 @@ router.put('/config/ativo', async (req, res) => {
     // Isso permite que o frontend envie o company_slug correto (ex: "elena")
     // em vez de depender da busca no Supabase que pode falhar e retornar "empresa"
     const { formId, companySlug: requestedCompanySlug } = req.body;
-    
+
     if (!formId) {
-      return res.status(400).json({ 
-        error: 'formId é obrigatório' 
+      return res.status(400).json({
+        error: 'formId é obrigatório'
       });
     }
 
@@ -380,7 +380,7 @@ router.put('/config/ativo', async (req, res) => {
           .select('*')
           .eq('id', formId)
           .single();
-        
+
         if (!formError && formData) {
           supabaseFormData = formData;
           formTitle = formData.title || 'Formulário';
@@ -399,7 +399,7 @@ router.put('/config/ativo', async (req, res) => {
           } else {
             console.log(`📝 [FORMS] Usando companySlug do body da requisição: ${companySlug}`);
           }
-          
+
           // 🔐 CRÍTICO: Copiar formulário do Supabase para PostgreSQL local
           // Isso garante que o formulário funcione mesmo após exportar a plataforma
           try {
@@ -408,10 +408,10 @@ router.put('/config/ativo', async (req, res) => {
               .from(forms)
               .where(eq(forms.id, formId))
               .limit(1);
-            
+
             if (existingLocal.length === 0) {
               console.log(`📥 [FORMS] Copiando formulário do Supabase para PostgreSQL local...`);
-              
+
               await db.insert(forms).values({
                 id: formData.id,
                 title: formData.title,
@@ -427,7 +427,7 @@ router.put('/config/ativo', async (req, res) => {
                 createdAt: new Date(formData.created_at || Date.now()),
                 updatedAt: new Date()
               });
-              
+
               console.log(`✅ [FORMS] Formulário copiado com sucesso para PostgreSQL local!`);
             } else {
               // Atualizar formulário existente
@@ -445,7 +445,7 @@ router.put('/config/ativo', async (req, res) => {
                   updatedAt: new Date()
                 })
                 .where(eq(forms.id, formId));
-              
+
               console.log(`✅ [FORMS] Formulário atualizado no PostgreSQL local!`);
             }
           } catch (copyError) {
@@ -456,7 +456,7 @@ router.put('/config/ativo', async (req, res) => {
     }
 
     if (!formFound) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         error: 'Formulário não encontrado',
         message: 'O formulário não foi encontrado no banco de dados local nem no Supabase'
       });
@@ -495,7 +495,7 @@ router.put('/config/ativo', async (req, res) => {
         .limit(1);
 
       const tenantId = req.session?.tenantId || 'default';
-      
+
       if (existingMapping.length > 0) {
         // Atualizar mapping existente para marcar como público
         await db.update(formTenantMapping)
@@ -551,7 +551,7 @@ router.put('/config/ativo', async (req, res) => {
         const supabaseSettings = await getOrCreateAppSettingsInSupabase(supabase);
         await supabase
           .from('app_settings')
-          .update({ 
+          .update({
             active_form_id: formId,
             active_form_url: formUrl,
             updated_at: new Date().toISOString()
@@ -572,7 +572,7 @@ router.put('/config/ativo', async (req, res) => {
     });
   } catch (error) {
     console.error('Erro ao configurar formulário ativo:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Erro ao configurar formulário ativo',
       details: error instanceof Error ? error.message : 'Erro desconhecido'
     });
@@ -587,11 +587,11 @@ router.get('/config/ativo', async (req, res) => {
   try {
     // PRIORIDADE 1: Buscar do PostgreSQL LOCAL
     const localSettings = await db.select().from(appSettings).limit(1);
-    
+
     if (localSettings.length > 0 && localSettings[0].activeFormId) {
       const settings = localSettings[0];
       console.log(`✅ [FORMS] Formulário ativo encontrado no PostgreSQL local: ${settings.activeFormId}`);
-      
+
       // Buscar mapeamento para obter slug correto
       const mappingResult = await db
         .select({
@@ -644,7 +644,7 @@ router.get('/config/ativo', async (req, res) => {
           .select('*')
           .eq('id', settings.activeFormId)
           .single();
-        
+
         if (!error && data) {
           return res.json({
             id: data.id,
@@ -664,18 +664,18 @@ router.get('/config/ativo', async (req, res) => {
 
     // PRIORIDADE 2: Tentar buscar do Supabase se PostgreSQL local não tem configuração
     const supabase = await getSupabaseClientForFormularios(req);
-    
+
     if (supabase) {
       try {
         const supabaseSettings = await getOrCreateAppSettingsInSupabase(supabase);
-        
+
         if (supabaseSettings.active_form_id) {
           const { data, error } = await supabase
             .from('forms')
             .select('*')
             .eq('id', supabaseSettings.active_form_id)
             .single();
-          
+
           if (!error && data) {
             // Obter slug da empresa
             let companySlug = 'empresa';
@@ -716,13 +716,13 @@ router.get('/config/ativo', async (req, res) => {
       }
     }
 
-    return res.status(404).json({ 
+    return res.status(404).json({
       error: 'Nenhum formulário ativo configurado',
       message: 'Configure um formulário como ativo primeiro'
     });
   } catch (error) {
     console.error('Erro ao buscar formulário ativo:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Erro ao buscar formulário ativo',
       details: error instanceof Error ? error.message : 'Erro desconhecido'
     });
@@ -742,18 +742,18 @@ router.post('/form-templates/complete-registration', requireTenant, async (req, 
   try {
     // 🔐 Extract and validate tenantId from authenticated session
     const tenantId = req.session?.tenantId;
-    
+
     if (!tenantId) {
-      return res.status(401).json({ 
+      return res.status(401).json({
         error: 'Sessão inválida - tenantId não encontrado',
         code: 'TENANT_ID_MISSING'
       });
     }
-    
+
     console.log(`📝 [POST /form-templates/complete-registration] Creating template for tenant: ${tenantId}`);
-    
+
     const supabase = await getSupabaseClientForFormularios(req);
-    
+
     const templateData = {
       name: "Formulário Completo de Cadastro",
       description: "Template completo com todos os campos essenciais de cadastro de clientes (CPF/CNPJ, Nome, Email, Contato, Endereço, etc.)",
@@ -763,11 +763,11 @@ router.post('/form-templates/complete-registration', requireTenant, async (req, 
       questions: STANDARD_REGISTRATION_FIELDS,
       tenant_id: tenantId // 🔐 SECURITY: Always include tenantId
     };
-    
+
     if (supabase) {
       // Multi-tenant: Use Supabase
       console.log(`✅ [FORMS] Using Supabase for tenant: ${tenantId}`);
-      
+
       // 🔐 SECURITY: Filter by tenantId to ensure multi-tenant isolation
       const { data: existing, error: searchError } = await supabase
         .from('form_templates')
@@ -776,33 +776,33 @@ router.post('/form-templates/complete-registration', requireTenant, async (req, 
         .eq('tenant_id', tenantId)
         .eq('is_default', true)
         .maybeSingle();
-      
+
       if (searchError && searchError.code !== 'PGRST116') {
         throw searchError;
       }
-      
+
       if (existing) {
         console.log('✅ Template already exists for tenant');
         return res.status(201).json(existing);
       }
-      
+
       // 🔐 SECURITY: Insert with tenantId
       const { data, error } = await supabase
         .from('form_templates')
         .insert(templateData)
         .select()
         .single();
-      
+
       if (error) {
         throw error;
       }
-      
+
       console.log('✅ Template created successfully for tenant');
       return res.status(201).json(data);
     } else {
       // Local database
       console.log(`📝 Using local database for tenant: ${tenantId}`);
-      
+
       // 🔐 SECURITY: Filter by tenantId
       const existing = await db.select()
         .from(formTemplates)
@@ -810,12 +810,12 @@ router.post('/form-templates/complete-registration', requireTenant, async (req, 
           sql`${formTemplates.name} = ${templateData.name} AND ${formTemplates.tenantId} = ${tenantId}`
         )
         .limit(1);
-      
+
       if (existing.length > 0) {
         console.log('✅ Template already exists locally');
         return res.status(201).json(existing[0]);
       }
-      
+
       // 🔐 SECURITY: Insert with tenantId (schema requires it)
       const localTemplateData = {
         name: templateData.name,
@@ -826,7 +826,7 @@ router.post('/form-templates/complete-registration', requireTenant, async (req, 
         questions: templateData.questions,
         tenantId: tenantId // 🔐 CRITICAL: Insert tenantId in local DB
       };
-      
+
       const result = await db.insert(formTemplates).values(localTemplateData).returning();
       console.log('✅ Template created successfully locally with tenantId');
       return res.status(201).json(result[0]);
@@ -846,29 +846,29 @@ router.post('/forms/from-template/:templateId', requireTenant, async (req, res) 
   try {
     // 🔐 Extract and validate tenantId from authenticated session
     const tenantId = req.session?.tenantId;
-    
+
     if (!tenantId) {
-      return res.status(401).json({ 
+      return res.status(401).json({
         error: 'Sessão inválida - tenantId não encontrado',
         code: 'TENANT_ID_MISSING'
       });
     }
-    
+
     const { templateId } = req.params;
     const { title, description, passingScore } = req.body;
-    
+
     if (!title) {
       return res.status(400).json({ error: "Title is required" });
     }
-    
+
     console.log(`📝 [POST /forms/from-template/:templateId] Cloning form from template ${templateId} for tenant: ${tenantId}...`);
-    
+
     const supabase = await getSupabaseClientForFormularios(req);
-    
+
     if (supabase) {
       // Multi-tenant: Use Supabase
       console.log(`✅ [FORMS] Using Supabase for tenant: ${tenantId}`);
-      
+
       // 🔐 SECURITY: Get template with tenantId filter
       const { data: template, error: templateError } = await supabase
         .from('form_templates')
@@ -876,11 +876,11 @@ router.post('/forms/from-template/:templateId', requireTenant, async (req, res) 
         .eq('id', templateId)
         .eq('tenant_id', tenantId)
         .single();
-      
+
       if (templateError) {
         throw new Error(`Template not found or access denied: ${templateError.message}`);
       }
-      
+
       // 🔐 SECURITY: Create new form with tenantId
       const newForm = {
         title: title,
@@ -891,23 +891,23 @@ router.post('/forms/from-template/:templateId', requireTenant, async (req, res) 
         score_tiers: null,
         tenant_id: tenantId // 🔐 CRITICAL: Include tenantId
       };
-      
+
       const { data, error } = await supabase
         .from('forms')
         .insert(newForm)
         .select()
         .single();
-      
+
       if (error) {
         throw error;
       }
-      
+
       console.log('✅ Form cloned from template successfully');
       return res.status(201).json(data);
     } else {
       // Local database
       console.log(`📝 Using local database for tenant: ${tenantId}`);
-      
+
       // 🔐 SECURITY: Filter template by tenantId
       const template = await db.select()
         .from(formTemplates)
@@ -915,11 +915,11 @@ router.post('/forms/from-template/:templateId', requireTenant, async (req, res) 
           sql`${formTemplates.id} = ${templateId} AND ${formTemplates.tenantId} = ${tenantId}`
         )
         .limit(1);
-      
+
       if (template.length === 0) {
         throw new Error("Template not found or access denied");
       }
-      
+
       // 🔐 SECURITY: Insert form with tenantId (schema requires it)
       const newForm = {
         title: title,
@@ -930,7 +930,7 @@ router.post('/forms/from-template/:templateId', requireTenant, async (req, res) 
         scoreTiers: null,
         tenantId: tenantId // 🔐 CRITICAL: Insert tenantId in local DB
       };
-      
+
       const result = await db.insert(forms).values(newForm).returning();
       console.log('✅ Form cloned from template successfully with tenantId');
       return res.status(201).json(result[0]);
@@ -950,24 +950,24 @@ router.post('/forms/:formId/add-standard-fields', requireTenant, async (req, res
   try {
     // 🔐 Extract and validate tenantId from authenticated session
     const tenantId = req.session?.tenantId;
-    
+
     if (!tenantId) {
-      return res.status(401).json({ 
+      return res.status(401).json({
         error: 'Sessão inválida - tenantId não encontrado',
         code: 'TENANT_ID_MISSING'
       });
     }
-    
+
     const { formId } = req.params;
-    
+
     console.log(`📝 [POST /forms/:formId/add-standard-fields] Adding standard fields to form ${formId} for tenant: ${tenantId}...`);
-    
+
     const supabase = await getSupabaseClientForFormularios(req);
-    
+
     if (supabase) {
       // Multi-tenant: Use Supabase
       console.log(`✅ [FORMS] Using Supabase for tenant: ${tenantId}`);
-      
+
       // 🔐 SECURITY: Get form with tenantId filter
       const { data: form, error: formError } = await supabase
         .from('forms')
@@ -975,23 +975,23 @@ router.post('/forms/:formId/add-standard-fields', requireTenant, async (req, res
         .eq('id', formId)
         .eq('tenant_id', tenantId)
         .single();
-      
+
       if (formError) {
         throw new Error(`Form not found or access denied: ${formError.message}`);
       }
-      
+
       const existingQuestions = Array.isArray(form.questions) ? form.questions : [];
-      
+
       // Get standard fields with unique IDs
       const nextId = existingQuestions.length + 1;
       const standardFields = getStandardFields(`q${nextId}_`);
-      
+
       // Remove duplicate CPF/CNPJ fields
       const fieldsToAdd = removeDuplicateCpfCnpj(existingQuestions, standardFields);
-      
+
       // Merge questions
       const updatedQuestions = [...existingQuestions, ...fieldsToAdd];
-      
+
       // 🔐 SECURITY: Update with tenantId filter to prevent cross-tenant modification
       const { data: updatedForm, error: updateError } = await supabase
         .from('forms')
@@ -1003,17 +1003,17 @@ router.post('/forms/:formId/add-standard-fields', requireTenant, async (req, res
         .eq('tenant_id', tenantId)
         .select()
         .single();
-      
+
       if (updateError) {
         throw updateError;
       }
-      
+
       console.log(`✅ Added ${fieldsToAdd.length} standard fields to form`);
       return res.json(updatedForm);
     } else {
       // Local database
       console.log(`📝 Using local database for tenant: ${tenantId}`);
-      
+
       // 🔐 SECURITY: Filter form by tenantId
       const formResult = await db.select()
         .from(forms)
@@ -1021,24 +1021,24 @@ router.post('/forms/:formId/add-standard-fields', requireTenant, async (req, res
           sql`${forms.id} = ${formId} AND ${forms.tenantId} = ${tenantId}`
         )
         .limit(1);
-      
+
       if (formResult.length === 0) {
         throw new Error("Form not found or access denied");
       }
-      
+
       const form = formResult[0];
       const existingQuestions = Array.isArray(form.questions) ? form.questions as QuestionField[] : [];
-      
+
       // Get standard fields with unique IDs
       const nextId = existingQuestions.length + 1;
       const standardFields = getStandardFields(`q${nextId}_`);
-      
+
       // Remove duplicate CPF/CNPJ fields
       const fieldsToAdd = removeDuplicateCpfCnpj(existingQuestions, standardFields);
-      
+
       // Merge questions
       const updatedQuestions = [...existingQuestions, ...fieldsToAdd];
-      
+
       // 🔐 SECURITY: Update with tenantId filter to prevent cross-tenant modification
       const result = await db.update(forms)
         .set({
@@ -1049,7 +1049,7 @@ router.post('/forms/:formId/add-standard-fields', requireTenant, async (req, res
           sql`${forms.id} = ${formId} AND ${forms.tenantId} = ${tenantId}`
         )
         .returning();
-      
+
       console.log(`✅ Added ${fieldsToAdd.length} standard fields to form`);
       return res.json(result[0]);
     }

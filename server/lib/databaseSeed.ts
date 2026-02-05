@@ -94,7 +94,7 @@ export async function seedWhatsAppLabels(): Promise<void> {
 
     // Verificar se já existem labels
     const existingLabels = await db.select().from(whatsappLabels);
-    
+
     if (existingLabels && existingLabels.length > 0) {
       console.log(`✅ [SEED] ${existingLabels.length} labels já existem no banco`);
       return;
@@ -102,7 +102,7 @@ export async function seedWhatsAppLabels(): Promise<void> {
 
     // Inserir labels padrão
     console.log('📝 [SEED] Inserindo labels padrão...');
-    
+
     for (const label of DEFAULT_LABELS) {
       await db.insert(whatsappLabels).values(label);
       console.log(`   ✓ Label criada: ${label.nome} (${label.cor})`);
@@ -127,7 +127,7 @@ export async function seedDemoForm(): Promise<void> {
 
     // Verificar se já existem formulários
     const existingForms = await db.select().from(forms).limit(1);
-    
+
     if (existingForms && existingForms.length > 0) {
       console.log(`✅ [SEED] Formulários já existem no banco - pulando seed de demo`);
       return;
@@ -135,12 +135,12 @@ export async function seedDemoForm(): Promise<void> {
 
     // Criar formulário de demonstração
     console.log('📝 [SEED] Criando formulário de demonstração...');
-    
+
     const demoFormId = crypto.randomUUID();
     const demoTenantId = 'demo-tenant';
     const demoCompanySlug = 'demo';
     const demoFormSlug = 'exemplo';
-    
+
     const demoQuestions = [
       {
         id: crypto.randomUUID(),
@@ -218,7 +218,7 @@ export async function seedDemoForm(): Promise<void> {
       tenantId: demoTenantId,
       isPublic: true
     });
-    
+
     console.log(`   ✓ Formulário criado: ${demoFormId}`);
 
     // Criar mapeamento para acesso público via slug
@@ -229,7 +229,7 @@ export async function seedDemoForm(): Promise<void> {
       companySlug: demoCompanySlug,
       isPublic: true
     });
-    
+
     console.log(`   ✓ Mapeamento criado: /${demoCompanySlug}/form/${demoFormSlug}`);
     console.log(`✅ [SEED] Formulário de demonstração criado com sucesso!`);
     console.log(`   📝 Acesse: /formulario/${demoCompanySlug}/form/${demoFormSlug}`);
@@ -245,41 +245,41 @@ export async function seedDemoForm(): Promise<void> {
 export async function autoSelectActiveForm(): Promise<void> {
   try {
     console.log('🔍 [SEED] Verificando formulário ativo...');
-    
+
     // Importar appSettings
     const { appSettings, formTenantMapping } = await import('../../shared/db-schema');
-    
+
     // Verificar se já tem um formulário ativo
     const existingSettings = await db.select().from(appSettings).limit(1);
-    
+
     if (existingSettings.length > 0 && existingSettings[0].activeFormId) {
       console.log(`✅ [SEED] Formulário ativo já configurado: ${existingSettings[0].activeFormId}`);
       return;
     }
-    
+
     // Buscar primeiro formulário disponível com mapeamento
     const firstMapping = await db.select()
       .from(formTenantMapping)
       .where(eq(formTenantMapping.isPublic, true))
       .limit(1);
-    
+
     if (firstMapping.length === 0) {
       console.log('⚠️ [SEED] Nenhum formulário público disponível para auto-seleção');
       return;
     }
-    
+
     const mapping = firstMapping[0];
     const companySlug = mapping.companySlug || 'demo';
     const formSlug = mapping.slug || mapping.formId;
-    
+
     // Gerar URL dinâmica
-    const domain = process.env.REPLIT_DOMAINS?.split(',')[0] || 
-                   (process.env.REPL_SLUG && process.env.REPL_OWNER ? 
-                     `${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : 
-                     'localhost:5000');
+    const domain = process.env.APP_DOMAIN || process.env.REPLIT_DOMAINS?.split(',')[0] ||
+      (process.env.REPL_SLUG && process.env.REPL_OWNER ?
+        `${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` :
+        'localhost:5000');
     const protocol = domain.includes('localhost') ? 'http' : 'https';
     const formUrl = `${protocol}://${domain}/formulario/${companySlug}/form/${formSlug}`;
-    
+
     // Criar ou atualizar app_settings
     if (existingSettings.length === 0) {
       await db.insert(appSettings).values({
@@ -314,17 +314,17 @@ export async function autoSelectActiveForm(): Promise<void> {
  */
 export async function initializeDatabase(): Promise<void> {
   console.log('🚀 [SEED] Inicializando banco de dados...');
-  
+
   try {
     // Seed de labels do WhatsApp
     await seedWhatsAppLabels();
-    
+
     // Seed de formulário de demonstração (para novas importações do GitHub)
     await seedDemoForm();
-    
+
     // Auto-selecionar formulário ativo se nenhum estiver configurado
     await autoSelectActiveForm();
-    
+
     console.log('✅ [SEED] Inicialização do banco de dados concluída!');
   } catch (error: any) {
     console.error('❌ [SEED] Erro na inicialização do banco:', error.message);

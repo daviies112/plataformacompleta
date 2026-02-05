@@ -23,18 +23,18 @@ function generateApiKey(): string {
 async function authenticateN8NByTenantKey(req: Request, res: Response, next: any) {
     // Tenta obter a chave de múltiplos headers comuns
     const apiKey = (
-        req.headers['x-n8n-api-key'] || 
+        req.headers['x-n8n-api-key'] ||
         req.headers['authorization']?.toString().replace('Bearer ', '') ||
         req.query.apiKey
     ) as string;
-    
+
     console.log(`[N8N Auth Debug] URL: ${req.originalUrl || req.url}`);
     console.log(`[N8N Auth Debug] Headers: ${JSON.stringify(req.headers)}`);
     console.log(`[N8N Auth Debug] API Key extraída: ${apiKey ? apiKey.substring(0, 8) + '...' : 'null'}`);
 
     if (!apiKey) {
         console.log(`[N8N Auth] API Key não encontrada nos headers ou query. Enviando 401.`);
-        return res.status(401).json({ 
+        return res.status(401).json({
             error: 'Authorization failed - please check your credentials',
             message: 'API Key não fornecida ou inválida. Use o header X-N8N-API-Key.'
         });
@@ -44,19 +44,19 @@ async function authenticateN8NByTenantKey(req: Request, res: Response, next: any
         console.log(`[N8N Auth] API Key recebida (truncada): ${apiKey ? apiKey.substring(0, 8) : 'null'}...`);
         const configs = await db.select().from(hms100msConfig);
         console.log(`[N8N Auth] Verificando ${configs.length} configurações de tenant`);
-        
+
         let matchedConfig = null;
         for (const config of configs) {
             if (config.n8nApiKey) {
                 try {
                     const decryptedKey = decrypt(config.n8nApiKey);
-                    
+
                     // Removendo possíveis espaços ou caracteres invisíveis
                     const cleanReceivedKey = apiKey ? apiKey.trim() : '';
                     const cleanDecryptedKey = decryptedKey ? decryptedKey.trim() : '';
-                    
+
                     console.log(`[N8N Auth] Comparando com tenant ${config.tenantId}`);
-                    
+
                     if (cleanDecryptedKey === cleanReceivedKey) {
                         matchedConfig = config;
                         break;
@@ -75,7 +75,7 @@ async function authenticateN8NByTenantKey(req: Request, res: Response, next: any
                 return next();
             }
 
-            return res.status(401).json({ 
+            return res.status(401).json({
                 error: 'API Key inválida',
                 message: 'A API Key fornecida não corresponde a nenhum tenant configurado'
             });
@@ -105,7 +105,7 @@ n8nRouter.post('/api-key/generate', authenticateToken, async (req: Request, res:
             .limit(1);
 
         if (!existingConfig) {
-            return res.status(400).json({ 
+            return res.status(400).json({
                 error: 'Configuração 100ms não encontrada',
                 message: 'Configure primeiro as credenciais do 100ms em Configurações'
             });
@@ -115,7 +115,7 @@ n8nRouter.post('/api-key/generate', authenticateToken, async (req: Request, res:
         const encryptedKey = encrypt(newApiKey);
 
         await db.update(hms100msConfig)
-            .set({ 
+            .set({
                 n8nApiKey: encryptedKey,
                 n8nApiKeyCreatedAt: new Date(),
                 updatedAt: new Date()
@@ -146,7 +146,7 @@ n8nRouter.delete('/api-key', authenticateToken, async (req: Request, res: Respon
         }
 
         await db.update(hms100msConfig)
-            .set({ 
+            .set({
                 n8nApiKey: null,
                 n8nApiKeyCreatedAt: null,
                 updatedAt: new Date()
@@ -230,10 +230,10 @@ n8nRouter.post('/reunioes', authenticateN8NByTenantKey, async (req: Request, res
     try {
         console.log('[N8N] Recebendo requisição para criar reunião');
         console.log('[N8N] Body recebido:', JSON.stringify(req.body, null, 2));
-        
+
         const data = createMeetingSchema.parse(req.body);
-        const { 
-            titulo, nome, email, telefone, dataInicio, duracao, 
+        const {
+            titulo, nome, email, telefone, dataInicio, duracao,
             roomDesignConfig: customDesignConfig,
             form_submission_id: passedFormSubmissionId,
             tipo_reuniao,
@@ -251,29 +251,29 @@ n8nRouter.post('/reunioes', authenticateN8NByTenantKey, async (req: Request, res
                 const [foundConfig] = await db.select().from(hms100msConfig)
                     .where(eq(hms100msConfig.tenantId, tenantId))
                     .limit(1);
-                
+
                 if (!foundConfig) {
-                    return res.status(400).json({ 
+                    return res.status(400).json({
                         error: 'Configuração do 100ms não encontrada para o tenantId especificado'
                     });
                 }
                 config = foundConfig;
             } else {
                 const allConfigs = await db.select().from(hms100msConfig).limit(2);
-                
+
                 if (allConfigs.length === 0) {
-                    return res.status(400).json({ 
+                    return res.status(400).json({
                         error: 'Nenhuma configuração 100ms encontrada',
                         message: 'Configure as credenciais do 100ms na plataforma primeiro'
                     });
                 }
-                
+
                 if (allConfigs.length === 1) {
                     config = allConfigs[0];
                     tenantId = config.tenantId;
                     console.log(`[N8N] Usando único tenant disponível: ${tenantId}`);
                 } else {
-                    return res.status(400).json({ 
+                    return res.status(400).json({
                         error: 'tenantId obrigatório',
                         message: 'Existem múltiplos tenants configurados. Especifique o tenantId ou use uma API Key específica do tenant.',
                         hint: 'Gere uma API Key do tenant em /configuracoes para autenticação automática'
@@ -281,13 +281,13 @@ n8nRouter.post('/reunioes', authenticateN8NByTenantKey, async (req: Request, res
                 }
             }
         } else {
-            return res.status(400).json({ 
+            return res.status(400).json({
                 error: 'Configuração inválida'
             });
         }
 
         if (!config.appAccessKey || !config.appSecret) {
-            return res.status(400).json({ 
+            return res.status(400).json({
                 error: 'Credenciais do 100ms não configuradas para este tenant'
             });
         }
@@ -316,7 +316,7 @@ n8nRouter.post('/reunioes', authenticateN8NByTenantKey, async (req: Request, res
         const endDate = new Date(startDate.getTime() + (duracao * 60 * 1000));
 
         let finalDesignConfig = customDesignConfig || config.roomDesignConfig || null;
-        
+
         // Log para debug de branding
         console.log(`[N8N] 🎨 Branding Debug:`, {
             customDesignConfig: customDesignConfig ? 'presente' : 'null',
@@ -333,13 +333,13 @@ n8nRouter.post('/reunioes', authenticateN8NByTenantKey, async (req: Request, res
         // PRIORIDADE: Usar form_submission_id passado pelo N8N (mais confiável)
         let formSubmissionId: string | null = passedFormSubmissionId || null;
         let participantId: string | null = null;
-        
+
         // Se o N8N passou o form_submission_id, buscar o participantId (se existir no banco local)
         if (formSubmissionId) {
             console.log(`[N8N] Usando form_submission_id passado pelo N8N: ${formSubmissionId}`);
             try {
-                const [sub] = await db.select({ 
-                    participantId: formSubmissions.participantId 
+                const [sub] = await db.select({
+                    participantId: formSubmissions.participantId
                 }).from(formSubmissions)
                     .where(eq(formSubmissions.id, formSubmissionId))
                     .limit(1);
@@ -354,14 +354,14 @@ n8nRouter.post('/reunioes', authenticateN8NByTenantKey, async (req: Request, res
                 // Continua com o form_submission_id passado mesmo que não exista no banco local
             }
         }
-        
+
         // Fallback: buscar por telefone se não foi passado form_submission_id
         if (!formSubmissionId && telefone) {
             const normalizedPhone = telefone.replace(/\D/g, '');
             console.log(`[N8N] Buscando form_submission por telefone: ${normalizedPhone}`);
-            const [sub] = await db.select({ 
-                id: formSubmissions.id, 
-                participantId: formSubmissions.participantId 
+            const [sub] = await db.select({
+                id: formSubmissions.id,
+                participantId: formSubmissions.participantId
             }).from(formSubmissions)
                 .where(sql`REPLACE(REPLACE(REPLACE(REPLACE(${formSubmissions.contactPhone}, '-', ''), ' ', ''), '(', ''), ')', '') LIKE '%' || ${normalizedPhone} || '%'`)
                 .orderBy(desc(formSubmissions.createdAt))
@@ -372,13 +372,13 @@ n8nRouter.post('/reunioes', authenticateN8NByTenantKey, async (req: Request, res
                 console.log(`[N8N] Form submission encontrado por telefone: ${formSubmissionId}, participantId: ${participantId}`);
             }
         }
-        
+
         // Fallback: buscar por email se não encontrou por telefone
         if (!formSubmissionId && email) {
             console.log(`[N8N] Buscando form_submission por email: ${email}`);
-            const [sub] = await db.select({ 
-                id: formSubmissions.id, 
-                participantId: formSubmissions.participantId 
+            const [sub] = await db.select({
+                id: formSubmissions.id,
+                participantId: formSubmissions.participantId
             }).from(formSubmissions)
                 .where(sql`LOWER(${formSubmissions.contactEmail}) = LOWER(${email})`)
                 .orderBy(desc(formSubmissions.createdAt))
@@ -389,7 +389,7 @@ n8nRouter.post('/reunioes', authenticateN8NByTenantKey, async (req: Request, res
                 console.log(`[N8N] Form submission encontrado por email: ${formSubmissionId}, participantId: ${participantId}`);
             }
         }
-        
+
         // Generate participant_id if form_submission found but has no participant_id yet
         if (formSubmissionId && !participantId) {
             participantId = generateParticipantId();
@@ -403,25 +403,25 @@ n8nRouter.post('/reunioes', authenticateN8NByTenantKey, async (req: Request, res
             source: 'n8n',
             createdVia: 'n8n-api'
         };
-        
+
         // Store formSubmissionId in metadata for signature pre-fill
         if (formSubmissionId) {
             metadata.formSubmissionId = formSubmissionId;
             console.log(`[N8N] formSubmissionId armazenado no metadata: ${formSubmissionId}`);
         }
-        
+
         // Store participantId in metadata for backward compatibility
         if (participantId) {
             metadata.participantId = participantId;
         }
-        
+
         if (finalDesignConfig) {
             metadata.roomDesignConfig = finalDesignConfig;
         }
-        
+
         // Montar array de participantes para salvar no Supabase
         const participantesParaSalvar: any[] = passedParticipantes ? [...passedParticipantes] : [];
-        
+
         // Se não veio participantes mas temos dados do participante principal, criar array
         if (participantesParaSalvar.length === 0 && (nome || email || telefone)) {
             participantesParaSalvar.push({
@@ -432,7 +432,7 @@ n8nRouter.post('/reunioes', authenticateN8NByTenantKey, async (req: Request, res
                 adicionado_em: new Date().toISOString()
             });
         }
-        
+
         console.log(`[N8N] Participantes para salvar: ${JSON.stringify(participantesParaSalvar)}`);
 
         const participantName = nome || 'Participante';
@@ -457,19 +457,19 @@ n8nRouter.post('/reunioes', authenticateN8NByTenantKey, async (req: Request, res
             participantes: participantesParaSalvar.length > 0 ? participantesParaSalvar : [],
         }).returning();
 
-        const baseUrl = process.env.REPLIT_DOMAINS?.split(',')[0] || req.get('host') || 'localhost:5000';
+        const baseUrl = process.env.APP_DOMAIN || process.env.REPLIT_DOMAINS?.split(',')[0] || req.get('host') || 'localhost:5000';
         // PRIORITY: Use fsid (form_submission_id) for unique identification - works when multiple participants share same meeting
         // fsid is more reliable than pid because it's generated when the form is submitted, not when the meeting is created
-        const linkReuniao = formSubmissionId 
+        const linkReuniao = formSubmissionId
             ? `https://${baseUrl}/reuniao/${newMeeting.id}?fsid=${formSubmissionId}`
-            : participantId 
-              ? `https://${baseUrl}/reuniao/${newMeeting.id}?pid=${participantId}`
-              : `https://${baseUrl}/reuniao/${newMeeting.id}`;
+            : participantId
+                ? `https://${baseUrl}/reuniao/${newMeeting.id}?pid=${participantId}`
+                : `https://${baseUrl}/reuniao/${newMeeting.id}`;
         const linkPublico = formSubmissionId
             ? `https://${baseUrl}/reuniao-publica/${newMeeting.id}?fsid=${formSubmissionId}`
             : participantId
-              ? `https://${baseUrl}/reuniao-publica/${newMeeting.id}?pid=${participantId}`
-              : `https://${baseUrl}/reuniao-publica/${newMeeting.id}`;
+                ? `https://${baseUrl}/reuniao-publica/${newMeeting.id}?pid=${participantId}`
+                : `https://${baseUrl}/reuniao-publica/${newMeeting.id}`;
 
         await db.update(reunioes).set({ linkReuniao }).where(eq(reunioes.id, newMeeting.id));
 
@@ -549,12 +549,12 @@ n8nRouter.post('/reunioes', authenticateN8NByTenantKey, async (req: Request, res
     } catch (error: any) {
         console.error('[N8N Route] Erro:', error);
         if (error instanceof z.ZodError) {
-            return res.status(400).json({ 
-                error: 'Dados inválidos', 
-                details: (error as any).issues || (error as any).errors 
+            return res.status(400).json({
+                error: 'Dados inválidos',
+                details: (error as any).issues || (error as any).errors
             });
         }
-        res.status(500).json({ 
+        res.status(500).json({
             error: 'Erro interno ao processar requisição',
             message: error.message
         });
@@ -851,7 +851,7 @@ n8nRouter.patch('/reunioes/:id', authenticateN8NByTenantKey, async (req: Request
 
     } catch (error: any) {
         console.error('[N8N] Erro ao reagendar reunião:', error);
-        
+
         if (error instanceof z.ZodError) {
             return res.status(400).json({
                 success: false,
@@ -859,7 +859,7 @@ n8nRouter.patch('/reunioes/:id', authenticateN8NByTenantKey, async (req: Request
                 details: error.errors
             });
         }
-        
+
         res.status(500).json({
             success: false,
             error: 'Erro interno ao reagendar reunião',
@@ -911,9 +911,9 @@ n8nRouter.get('/schema', (req: Request, res: Response) => {
                 telefone: { type: 'string', required: false, description: 'Telefone do participante' },
                 dataInicio: { type: 'string (ISO 8601)', required: false, description: 'Data/hora de início' },
                 duracao: { type: 'number', required: false, default: 60, description: 'Duração em minutos (15-480)' },
-                roomDesignConfig: { 
-                    type: 'object', 
-                    required: false, 
+                roomDesignConfig: {
+                    type: 'object',
+                    required: false,
                     description: 'OPCIONAL - Override de design. Se não fornecido, usa configuração do tenant automaticamente'
                 }
             },

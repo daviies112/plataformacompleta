@@ -87,7 +87,7 @@ publicRoomDesignRouter.get('/reunioes/public/:companySlug/:roomId', async (req: 
   try {
     const { companySlug, roomId } = req.params;
     const fsid = req.query.fsid as string | undefined;
-    
+
     console.log(`[PublicMeetingRoom API] Buscando sala - companySlug: ${companySlug}, roomId: ${roomId}, fsid: ${fsid || 'nenhum'}`);
 
     if (!companySlug || !roomId) {
@@ -109,12 +109,12 @@ publicRoomDesignRouter.get('/reunioes/public/:companySlug/:roomId', async (req: 
 
     // Find tenant by slug (meeting_tenants uses UUID as ID, not tenantId string)
     let tenant = null;
-    
+
     // Try to find by slug
     const [tenantBySlug] = await db.select().from(meetingTenants)
       .where(eq(meetingTenants.slug, companySlug))
       .limit(1);
-    
+
     if (tenantBySlug) {
       tenant = tenantBySlug;
     }
@@ -124,18 +124,18 @@ publicRoomDesignRouter.get('/reunioes/public/:companySlug/:roomId', async (req: 
     // Get design config from hms100msConfig (CRITICAL for room design)
     let roomDesignConfig = null;
     let designConfig = null;
-    
+
     if (meeting.tenantId) {
       const [config] = await db.select().from(hms100msConfig)
         .where(eq(hms100msConfig.tenantId, meeting.tenantId))
         .limit(1);
-      
+
       if (config?.roomDesignConfig) {
         roomDesignConfig = config.roomDesignConfig;
         console.log(`[PublicMeetingRoom API] roomDesignConfig encontrado do hms100msConfig`);
       }
     }
-    
+
     // Fallback: check meeting metadata for roomDesignConfig
     if (!roomDesignConfig) {
       const meetingMetadata = meeting.metadata as any;
@@ -144,7 +144,7 @@ publicRoomDesignRouter.get('/reunioes/public/:companySlug/:roomId', async (req: 
         console.log(`[PublicMeetingRoom API] roomDesignConfig encontrado do meeting.metadata`);
       }
     }
-    
+
     // Fallback: check tenant's roomDesignConfig
     if (!roomDesignConfig && tenant?.roomDesignConfig) {
       roomDesignConfig = tenant.roomDesignConfig;
@@ -154,7 +154,7 @@ publicRoomDesignRouter.get('/reunioes/public/:companySlug/:roomId', async (req: 
     // Build metadata with formSubmissionId (support fsid query param as fallback)
     const meetingMetadata = meeting.metadata as any || {};
     const formSubmissionId = meetingMetadata.formSubmissionId || fsid || null;
-    
+
     if (fsid && !meetingMetadata.formSubmissionId) {
       console.log(`[PublicMeetingRoom API] Usando fsid da URL como formSubmissionId: ${fsid}`);
     }
@@ -235,7 +235,7 @@ publicRoomDesignRouter.get('/reunioes/:meetingId/participant-data', async (req: 
       const [sub] = await db.select().from(formSubmissions)
         .where(eq(formSubmissions.id, fsid))
         .limit(1);
-      
+
       if (sub) {
         formSubmission = sub;
         console.log(`[ParticipantData] ✅ Encontrado por fsid: ${sub.id} - ${sub.contactName}`);
@@ -248,7 +248,7 @@ publicRoomDesignRouter.get('/reunioes/:meetingId/participant-data', async (req: 
       const [sub] = await db.select().from(formSubmissions)
         .where(eq(formSubmissions.participantId, pid))
         .limit(1);
-      
+
       if (sub) {
         formSubmission = sub;
         console.log(`[ParticipantData] Encontrado por participant_id: ${sub.id}`);
@@ -261,7 +261,7 @@ publicRoomDesignRouter.get('/reunioes/:meetingId/participant-data', async (req: 
       const [sub] = await db.select().from(formSubmissions)
         .where(eq(formSubmissions.participantId, meeting.participantId))
         .limit(1);
-      
+
       if (sub) {
         formSubmission = sub;
         console.log(`[ParticipantData] Encontrado por meeting.participantId: ${sub.id}`);
@@ -276,7 +276,7 @@ publicRoomDesignRouter.get('/reunioes/:meetingId/participant-data', async (req: 
         const [sub] = await db.select().from(formSubmissions)
           .where(eq(formSubmissions.id, metadata.formSubmissionId))
           .limit(1);
-        
+
         if (sub) {
           formSubmission = sub;
           console.log(`[ParticipantData] Encontrado por formSubmissionId: ${sub.id}`);
@@ -287,27 +287,27 @@ publicRoomDesignRouter.get('/reunioes/:meetingId/participant-data', async (req: 
     // Method 4: Fallback to matching by phone/email from meeting data
     if (!formSubmission) {
       const normalizedPhone = meeting.telefone?.replace(/\D/g, '') || '';
-      
+
       if (normalizedPhone && normalizedPhone.length >= 8) {
         console.log(`[ParticipantData] Buscando por telefone: ${normalizedPhone}`);
         const [sub] = await db.select().from(formSubmissions)
           .where(sql`REPLACE(REPLACE(REPLACE(REPLACE(${formSubmissions.contactPhone}, '-', ''), ' ', ''), '(', ''), ')', '') LIKE '%' || ${normalizedPhone} || '%'`)
           .orderBy(desc(formSubmissions.createdAt))
           .limit(1);
-        
+
         if (sub) {
           formSubmission = sub;
           console.log(`[ParticipantData] Encontrado por telefone: ${sub.id}`);
         }
       }
-      
+
       if (!formSubmission && meeting.email) {
         console.log(`[ParticipantData] Buscando por email: ${meeting.email}`);
         const [sub] = await db.select().from(formSubmissions)
           .where(sql`LOWER(${formSubmissions.contactEmail}) = LOWER(${meeting.email})`)
           .orderBy(desc(formSubmissions.createdAt))
           .limit(1);
-        
+
         if (sub) {
           formSubmission = sub;
           console.log(`[ParticipantData] Encontrado por email: ${sub.id}`);
@@ -317,7 +317,7 @@ publicRoomDesignRouter.get('/reunioes/:meetingId/participant-data', async (req: 
 
     // Prepare response data
     let responseData: any = null;
-    
+
     // If we have formSubmission from local DB, check if it has complete data
     if (formSubmission) {
       responseData = {
@@ -338,13 +338,13 @@ publicRoomDesignRouter.get('/reunioes/:meetingId/participant-data', async (req: 
         }
       };
     }
-    
+
     // If local data is incomplete, try to fetch from Supabase tenant
     const hasCompleteData = responseData?.nome && responseData?.cpf;
     if (!hasCompleteData && (fsid || formSubmission?.id)) {
       const submissionId = fsid || formSubmission?.id;
       console.log(`[ParticipantData] Dados locais incompletos, buscando no Supabase do tenant: ${meeting.tenantId}`);
-      
+
       try {
         const supabase = await getClientSupabaseClient(meeting.tenantId);
         if (supabase) {
@@ -353,7 +353,7 @@ publicRoomDesignRouter.get('/reunioes/:meetingId/participant-data', async (req: 
             .select('*')
             .eq('id', submissionId)
             .single();
-          
+
           if (supabaseSubmission && !error) {
             console.log(`[ParticipantData] ✅ Dados encontrados no Supabase: ${supabaseSubmission.contact_name}`);
             responseData = {
@@ -373,7 +373,7 @@ publicRoomDesignRouter.get('/reunioes/:meetingId/participant-data', async (req: 
                 estado: supabaseSubmission.address_state
               }
             };
-            
+
             // Also include the form_submission_id for contract pre-fill
             if (!formSubmission) {
               formSubmission = { id: submissionId } as any;
@@ -386,7 +386,7 @@ publicRoomDesignRouter.get('/reunioes/:meetingId/participant-data', async (req: 
         console.log(`[ParticipantData] Erro ao conectar ao Supabase: ${(err as Error).message}`);
       }
     }
-    
+
     if (!responseData || (!responseData.nome && !responseData.email)) {
       console.log(`[ParticipantData] Nenhum form_submission encontrado`);
       return res.json({
@@ -421,11 +421,11 @@ publicRoomDesignRouter.get('/reunioes/:meetingId/public', async (req: Request, r
     // Clean meetingId - remove any query string that might be URL-encoded in the path
     const meetingId = req.params.meetingId?.split('?')[0]?.split('%3F')[0];
     const fsid = req.query.fsid as string | undefined;
-    
+
     if (!meetingId) {
       return res.status(400).json({ error: 'ID da reunião é obrigatório' });
     }
-    
+
     // Note: Skip cache if fsid is provided to ensure fresh metadata
     if (!fsid) {
       const cached = getCachedMeeting(meetingId);
@@ -435,7 +435,7 @@ publicRoomDesignRouter.get('/reunioes/:meetingId/public', async (req: Request, r
         return res.json(cached);
       }
     }
-    
+
     // FIX: Search by BOTH id and roomId100ms to support URLs with either value
     const [meeting] = await db.select().from(reunioes)
       .where(or(
@@ -456,11 +456,11 @@ publicRoomDesignRouter.get('/reunioes/:meetingId/public', async (req: Request, r
       ...originalMetadata,
       formSubmissionId: originalMetadata.formSubmissionId || fsid || null
     };
-    
+
     if (fsid && !originalMetadata.formSubmissionId) {
       console.log(`[MeetingPublic] ✅ Usando fsid da URL como formSubmissionId: ${fsid}`);
     }
-    
+
     console.log(`[MeetingPublic] 📦 Resposta para meetingId=${meetingId}: formSubmissionId=${enhancedMetadata.formSubmissionId || 'null'}, fsid=${fsid || 'null'}`);
 
     const response = {
@@ -478,12 +478,12 @@ publicRoomDesignRouter.get('/reunioes/:meetingId/public', async (req: Request, r
       roomId100ms: meeting.roomId100ms,
       metadata: enhancedMetadata
     };
-    
+
     // Only cache if no fsid was provided (cache is generic)
     if (!fsid) {
       setCachedMeeting(meetingId, response);
     }
-    
+
     res.setHeader('X-Cache', fsid ? 'SKIP' : 'MISS');
     res.setHeader('Cache-Control', 'public, max-age=60');
     res.json(response);
@@ -499,11 +499,11 @@ publicRoomDesignRouter.get('/reunioes/:meetingId/room-design-public', async (req
   try {
     // Clean meetingId - remove any query string that might be URL-encoded in the path
     const meetingId = req.params.meetingId?.split('?')[0]?.split('%3F')[0];
-    
+
     if (!meetingId) {
       return res.status(400).json({ error: 'ID da reunião é obrigatório' });
     }
-    
+
     // Check cache first
     const cached = getCachedRoomDesign(meetingId);
     if (cached) {
@@ -511,7 +511,7 @@ publicRoomDesignRouter.get('/reunioes/:meetingId/room-design-public', async (req
       res.setHeader('Cache-Control', 'public, max-age=60');
       return res.json(cached);
     }
-    
+
     // FIX: Search by BOTH id and roomId100ms to support URLs with either value
     // This ensures API-created meetings (via n8n) work the same as instant meetings
     const [meeting] = await db.select().from(reunioes)
@@ -531,12 +531,12 @@ publicRoomDesignRouter.get('/reunioes/:meetingId/room-design-public', async (req
     // SEMPRE buscar config atualizada do tenant (prioridade sobre metadata da reunião)
     // Isso garante que mudanças nas cores da página Design sejam aplicadas a todas as reuniões
     let designConfig = null;
-    
+
     if (meeting.tenantId) {
       const [config] = await db.select().from(hms100msConfig)
         .where(eq(hms100msConfig.tenantId, meeting.tenantId))
         .limit(1);
-      
+
       if (config?.roomDesignConfig) {
         designConfig = config.roomDesignConfig;
         console.log(`[RoomDesignPublic] ✅ roomDesignConfig encontrado no hms100msConfig para tenant ${meeting.tenantId}`);
@@ -546,7 +546,7 @@ publicRoomDesignRouter.get('/reunioes/:meetingId/room-design-public', async (req
     } else {
       console.log(`[RoomDesignPublic] ⚠️ meeting.tenantId é null/undefined`);
     }
-    
+
     // Fallback: usar metadata da reunião se tenant não tiver configuração
     if (!designConfig) {
       const metadata = meeting.metadata as any;
@@ -568,10 +568,10 @@ publicRoomDesignRouter.get('/reunioes/:meetingId/room-design-public', async (req
         tenantId: meeting.tenantId
       }
     };
-    
+
     // Cache the result
     setCachedRoomDesign(meetingId, response);
-    
+
     res.setHeader('X-Cache', 'MISS');
     res.setHeader('Cache-Control', 'public, max-age=60');
     res.json(response);
@@ -586,11 +586,11 @@ publicRoomDesignRouter.get('/reunioes/:meetingId/room-design-public', async (req
 publicRoomDesignRouter.get('/reunioes/:meetingId/full-public', async (req: Request, res: Response) => {
   try {
     const meetingId = req.params.meetingId?.split('?')[0]?.split('%3F')[0];
-    
+
     if (!meetingId) {
       return res.status(400).json({ error: 'ID da reunião é obrigatório' });
     }
-    
+
     // Check cache first
     const cached = getCachedMeetingFull(meetingId);
     if (cached) {
@@ -598,7 +598,7 @@ publicRoomDesignRouter.get('/reunioes/:meetingId/full-public', async (req: Reque
       res.setHeader('Cache-Control', 'public, max-age=60');
       return res.json(cached);
     }
-    
+
     // FIX: Search by BOTH id and roomId100ms to support URLs with either value
     const [meeting] = await db.select().from(reunioes)
       .where(or(
@@ -620,12 +620,12 @@ publicRoomDesignRouter.get('/reunioes/:meetingId/full-public', async (req: Reque
       const [config] = await db.select().from(hms100msConfig)
         .where(eq(hms100msConfig.tenantId, meeting.tenantId))
         .limit(1);
-      
+
       if (config?.roomDesignConfig) {
         designConfig = config.roomDesignConfig;
       }
     }
-    
+
     // Fallback to metadata
     if (!designConfig) {
       const metadata = meeting.metadata as any;
@@ -651,10 +651,10 @@ publicRoomDesignRouter.get('/reunioes/:meetingId/full-public', async (req: Reque
       roomDesignConfig: designConfig,
       designConfig
     };
-    
+
     // Cache the combined result
     setCachedMeetingFull(meetingId, response);
-    
+
     res.setHeader('X-Cache', 'MISS');
     res.setHeader('Cache-Control', 'public, max-age=60');
     res.json(response);
@@ -669,7 +669,7 @@ publicRoomDesignRouter.get('/reunioes/:meetingId/full-public', async (req: Reque
 publicRoomDesignRouter.get('/reunioes/:meetingId/info', async (req: Request, res: Response) => {
   try {
     const { meetingId } = req.params;
-    
+
     // FIX: Search by BOTH id and roomId100ms for consistency
     const [meeting] = await db.select().from(reunioes)
       .where(or(
@@ -767,7 +767,7 @@ publicRoomDesignRouter.post('/reunioes/:meetingId/token-public', async (req: Req
         .where(eq(reunioes.id, meetingId));
     }
 
-    res.json({ 
+    res.json({
       token,
       participantId,
       roomId: meeting.roomId100ms
@@ -790,19 +790,19 @@ publicRoomDesignRouter.post('/reunioes/:meetingId/token-public', async (req: Req
 publicRoomDesignRouter.post('/100ms/recording/start', async (req: Request, res: Response) => {
   try {
     const { roomId, meetingUrl, tenantSlug } = req.body;
-    
+
     console.log('[Recording Public] Iniciando gravação:', { roomId, tenantSlug });
-    
+
     if (!roomId) {
       return res.status(400).json({ error: 'roomId é obrigatório' });
     }
-    
+
     // Find meeting by roomId (which is actually the meeting ID from URL)
     let meeting = await db.select().from(reunioes)
       .where(eq(reunioes.id, roomId))
       .limit(1)
       .then(rows => rows[0]);
-    
+
     if (!meeting) {
       console.log('[Recording Public] Reunião não encontrada, tentando por room_id_100ms:', roomId);
       // Try finding by room_id_100ms
@@ -810,38 +810,38 @@ publicRoomDesignRouter.post('/100ms/recording/start', async (req: Request, res: 
         .where(eq(reunioes.roomId100ms, roomId))
         .limit(1)
         .then(rows => rows[0]);
-      
+
       if (!meeting) {
         return res.status(404).json({ error: 'Reunião não encontrada' });
       }
     }
-    
+
     const tenantId = meeting.tenantId;
     if (!tenantId) {
       return res.status(400).json({ error: 'Tenant não identificado na reunião' });
     }
-    
+
     // Get 100ms config for this tenant
     const [config] = await db.select().from(hms100msConfig)
       .where(eq(hms100msConfig.tenantId, tenantId))
       .limit(1);
-    
+
     if (!config || !config.appAccessKey || !config.appSecret) {
       return res.status(400).json({ error: 'Credenciais 100ms não configuradas para este tenant' });
     }
-    
+
     const appAccessKey = decrypt(config.appAccessKey);
     const appSecret = decrypt(config.appSecret);
-    
+
     const hmsRoomId = meeting.roomId100ms;
     if (!hmsRoomId) {
       return res.status(400).json({ error: 'Reunião sem sala 100ms configurada' });
     }
-    
+
     // Start recording via 100ms API
     console.log('[Recording Public] Chamando API 100ms para iniciar gravação, room:', hmsRoomId);
     const recordingResult = await iniciarGravacao(hmsRoomId, appAccessKey, appSecret);
-    
+
     // Save recording to local database
     const [newRecording] = await db.insert(gravacoes).values({
       reuniaoId: meeting.id,
@@ -851,18 +851,18 @@ publicRoomDesignRouter.post('/100ms/recording/start', async (req: Request, res: 
       startedAt: new Date(),
       metadata: { ...recordingResult, meetingUrl }
     }).returning();
-    
+
     console.log('[Recording Public] Gravação criada:', newRecording.id);
-    
+
     // Sync to Supabase
     await syncRecordingToSupabase(tenantId, newRecording);
-    
-    res.json({ 
-      success: true, 
+
+    res.json({
+      success: true,
       recordingId: newRecording.id,
       status: 'recording'
     });
-    
+
   } catch (error: any) {
     console.error('[Recording Public] Erro ao iniciar gravação:', error);
     res.status(500).json({ error: error.message || 'Erro ao iniciar gravação' });
@@ -873,24 +873,24 @@ publicRoomDesignRouter.post('/100ms/recording/start', async (req: Request, res: 
 publicRoomDesignRouter.post('/100ms/recording/stop', async (req: Request, res: Response) => {
   try {
     const { roomId, recordingId } = req.body;
-    
+
     console.log('[Recording Public] Parando gravação:', { roomId, recordingId });
-    
+
     if (!roomId) {
       return res.status(400).json({ error: 'roomId é obrigatório' });
     }
-    
+
     // Find active recording for this room
-    let recording = recordingId 
+    let recording = recordingId
       ? await db.select().from(gravacoes)
-          .where(and(
-            eq(gravacoes.id, recordingId),
-            eq(gravacoes.status, 'recording')
-          ))
-          .limit(1)
-          .then(rows => rows[0])
+        .where(and(
+          eq(gravacoes.id, recordingId),
+          eq(gravacoes.status, 'recording')
+        ))
+        .limit(1)
+        .then(rows => rows[0])
       : null;
-    
+
     // If no recording found by ID, find by roomId
     if (!recording) {
       // First find meeting by ID or room_id_100ms
@@ -898,14 +898,14 @@ publicRoomDesignRouter.post('/100ms/recording/stop', async (req: Request, res: R
         .where(eq(reunioes.id, roomId))
         .limit(1)
         .then(rows => rows[0]);
-      
+
       if (!meeting) {
         meeting = await db.select().from(reunioes)
           .where(eq(reunioes.roomId100ms, roomId))
           .limit(1)
           .then(rows => rows[0]);
       }
-      
+
       if (meeting) {
         recording = await db.select().from(gravacoes)
           .where(and(
@@ -917,39 +917,39 @@ publicRoomDesignRouter.post('/100ms/recording/stop', async (req: Request, res: R
           .then(rows => rows[0]);
       }
     }
-    
+
     if (!recording) {
       return res.status(404).json({ error: 'Gravação ativa não encontrada' });
     }
-    
+
     const tenantId = recording.tenantId;
-    
+
     // Get 100ms config
     const [config] = await db.select().from(hms100msConfig)
       .where(eq(hms100msConfig.tenantId, tenantId))
       .limit(1);
-    
+
     if (!config || !config.appAccessKey || !config.appSecret) {
       return res.status(400).json({ error: 'Credenciais 100ms não configuradas' });
     }
-    
+
     const appAccessKey = decrypt(config.appAccessKey);
     const appSecret = decrypt(config.appSecret);
-    
+
     // Stop recording via 100ms API
     if (recording.roomId100ms) {
       console.log('[Recording Public] Chamando API 100ms para parar gravação, room:', recording.roomId100ms);
       await pararGravacao(recording.roomId100ms, appAccessKey, appSecret);
     }
-    
+
     // Calculate duration
     const startedAt = new Date(recording.startedAt);
     const stoppedAt = new Date();
     const durationSeconds = Math.floor((stoppedAt.getTime() - startedAt.getTime()) / 1000);
-    
+
     // Update recording status
     const [updatedRecording] = await db.update(gravacoes)
-      .set({ 
+      .set({
         status: 'completed',
         stoppedAt: stoppedAt,
         duration: durationSeconds,
@@ -957,17 +957,17 @@ publicRoomDesignRouter.post('/100ms/recording/stop', async (req: Request, res: R
       })
       .where(eq(gravacoes.id, recording.id))
       .returning();
-    
+
     console.log('[Recording Public] Gravação parada:', updatedRecording.id, 'duração:', durationSeconds, 'segundos');
-    
+
     // Sync to Supabase
     await syncRecordingToSupabase(tenantId, updatedRecording);
-    
-    res.json({ 
-      success: true, 
-      recording: updatedRecording 
+
+    res.json({
+      success: true,
+      recording: updatedRecording
     });
-    
+
   } catch (error: any) {
     console.error('[Recording Public] Erro ao parar gravação:', error);
     res.status(500).json({ error: error.message || 'Erro ao parar gravação' });
@@ -978,13 +978,13 @@ publicRoomDesignRouter.post('/100ms/recording/stop', async (req: Request, res: R
 publicRoomDesignRouter.get('/100ms/recording/:roomId', async (req: Request, res: Response) => {
   try {
     const { roomId } = req.params;
-    
+
     // Find meeting
     let meeting = await db.select().from(reunioes)
       .where(eq(reunioes.id, roomId))
       .limit(1)
       .then(rows => rows[0]);
-    
+
     if (!meeting) {
       // Try by room_id_100ms
       meeting = await db.select().from(reunioes)
@@ -992,16 +992,16 @@ publicRoomDesignRouter.get('/100ms/recording/:roomId', async (req: Request, res:
         .limit(1)
         .then(rows => rows[0]);
     }
-    
+
     if (!meeting) {
       return res.json([]); // Return empty list if meeting not found
     }
-    
+
     // Get recordings for this meeting
     const recordings = await db.select().from(gravacoes)
       .where(eq(gravacoes.reuniaoId, meeting.id))
       .orderBy(desc(gravacoes.startedAt));
-    
+
     res.json(recordings.map(r => ({
       id: r.id,
       status: r.status,
@@ -1011,7 +1011,7 @@ publicRoomDesignRouter.get('/100ms/recording/:roomId', async (req: Request, res:
       duration: r.duration,
       fileUrl: r.fileUrl
     })));
-    
+
   } catch (error: any) {
     console.error('[Recording Public] Erro ao listar gravações:', error);
     res.status(500).json({ error: 'Erro ao listar gravações' });
@@ -1026,17 +1026,17 @@ publicRoomDesignRouter.get('/100ms/recording/:roomId', async (req: Request, res:
 publicRoomDesignRouter.get('/room-design/:meetingId', async (req: Request, res: Response) => {
   try {
     const { meetingId } = req.params;
-    
+
     // Check cache first
     const cached = await getCachedMeeting(meetingId);
     if (cached && cached.designConfig) {
-      return res.json({ 
+      return res.json({
         designConfig: cached.designConfig,
         meetingInfo: cached.meetingInfo,
-        fromCache: true 
+        fromCache: true
       });
     }
-    
+
     const [meeting] = await db.select().from(reunioes)
       .where(eq(reunioes.id, meetingId))
       .limit(1);
@@ -1047,17 +1047,17 @@ publicRoomDesignRouter.get('/room-design/:meetingId', async (req: Request, res: 
 
     // SEMPRE buscar config atualizada do tenant (prioridade sobre metadata da reunião)
     let designConfig = null;
-    
+
     if (meeting.tenantId) {
       const [config] = await db.select().from(hms100msConfig)
         .where(eq(hms100msConfig.tenantId, meeting.tenantId))
         .limit(1);
-      
+
       if (config?.roomDesignConfig) {
         designConfig = config.roomDesignConfig;
       }
     }
-    
+
     // Fallback: usar metadata da reunião
     if (!designConfig) {
       const metadata = meeting.metadata as any;
@@ -1074,12 +1074,12 @@ publicRoomDesignRouter.get('/room-design/:meetingId', async (req: Request, res: 
         participantId: meeting.participantId
       }
     };
-    
+
     // Cache the result
     await setCachedMeeting(meetingId, result);
 
     res.json(result);
-    
+
   } catch (error: any) {
     console.error('[RoomDesign] Erro:', error);
     res.status(500).json({ error: 'Erro ao buscar configuração da sala' });
@@ -1182,7 +1182,7 @@ meetingsRouter.post('/', authenticateToken, async (req: Request, res: Response) 
       participantes: participantes || [],
     }).returning();
 
-    const baseUrl = process.env.REPLIT_DOMAINS?.split(',')[0] || req.get('host') || 'localhost:5000';
+    const baseUrl = process.env.APP_DOMAIN || process.env.REPLIT_DOMAINS?.split(',')[0] || req.get('host') || 'localhost:5000';
     const linkReuniao = `https://${baseUrl}/reuniao/${newMeeting.id}`;
     const linkPublico = `https://${baseUrl}/reuniao-publica/${newMeeting.id}`;
 
@@ -1243,8 +1243,8 @@ meetingsRouter.post('/instantanea', authenticateToken, async (req: Request, res:
       .limit(1);
 
     if (!config || !config.appAccessKey || !config.appSecret) {
-      return res.status(400).json({ 
-        success: false, 
+      return res.status(400).json({
+        success: false,
         error: 'Credenciais 100ms não configuradas',
         message: 'Configure as credenciais do 100ms em Configurações antes de criar reuniões'
       });
@@ -1260,9 +1260,9 @@ meetingsRouter.post('/instantanea', authenticateToken, async (req: Request, res:
     // Generate meeting title if not provided
     const now = new Date();
     const meetingTitle = titulo || `Reunião Instantânea - ${now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
-    
+
     console.log(`[Meetings] Criando reunião instantânea para tenant ${user.tenantId}...`);
-    
+
     // Create 100ms room
     const sala = await criarSala(
       meetingTitle,
@@ -1308,7 +1308,7 @@ meetingsRouter.post('/instantanea', authenticateToken, async (req: Request, res:
     }).returning();
 
     // Generate meeting links
-    const baseUrl = process.env.REPLIT_DOMAINS?.split(',')[0] || req.get('host') || 'localhost:5000';
+    const baseUrl = process.env.APP_DOMAIN || process.env.REPLIT_DOMAINS?.split(',')[0] || req.get('host') || 'localhost:5000';
     const linkReuniao = `https://${baseUrl}/reuniao/${newMeeting.id}`;
     const linkPublico = `https://${baseUrl}/reuniao-publica/${newMeeting.id}`;
 
@@ -1374,10 +1374,10 @@ meetingsRouter.post('/instantanea', authenticateToken, async (req: Request, res:
 
   } catch (error: any) {
     console.error('[Meetings] Erro ao criar reunião instantânea:', error);
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       error: 'Erro ao criar reunião instantânea',
-      message: error.message 
+      message: error.message
     });
   }
 });
@@ -1482,7 +1482,7 @@ meetingsRouter.get('/room-design', authenticateToken, async (req: Request, res: 
       return res.json({ roomDesignConfig: null });
     }
 
-    res.json({ 
+    res.json({
       roomDesignConfig: config.roomDesignConfig,
       tenantId: config.tenantId
     });
@@ -1513,7 +1513,7 @@ meetingsRouter.patch('/room-design', authenticateToken, async (req: Request, res
 
     if (existingConfig) {
       await db.update(hms100msConfig)
-        .set({ 
+        .set({
           roomDesignConfig: roomDesignConfig,
           updatedAt: new Date()
         })
@@ -1522,8 +1522,8 @@ meetingsRouter.patch('/room-design', authenticateToken, async (req: Request, res
       await db.insert(hms100msConfig).values({
         tenantId: user.tenantId,
         roomDesignConfig: roomDesignConfig,
-        appAccessKey: 'placeholder_key', 
-        appSecret: 'placeholder_secret',    
+        appAccessKey: 'placeholder_key',
+        appSecret: 'placeholder_secret',
         updatedAt: new Date(),
         apiBaseUrl: 'https://api.100ms.live/v2'
       });
@@ -1537,13 +1537,13 @@ meetingsRouter.patch('/room-design', authenticateToken, async (req: Request, res
       const supabase = await getClientSupabaseClient(user.tenantId);
       if (supabase) {
         console.log(`[RoomDesign] 🔄 Sincronizando com Supabase para tenant: ${user.tenantId}`);
-        
+
         // Primeiro verificar se existe registro no Supabase
         const { data: existingData, error: selectError } = await supabase
           .from('hms_100ms_config')
           .select('room_design_config')
           .maybeSingle();
-        
+
         if (selectError) {
           console.warn('[RoomDesign] ⚠️ Erro ao verificar Supabase:', selectError.message);
         }
@@ -1571,7 +1571,7 @@ meetingsRouter.patch('/room-design', authenticateToken, async (req: Request, res
             });
           error = insertError;
         }
-        
+
         if (error) {
           console.error(`[RoomDesign] ❌ Erro ao salvar no Supabase:`, error.message);
         } else {
@@ -1583,10 +1583,10 @@ meetingsRouter.patch('/room-design', authenticateToken, async (req: Request, res
       console.error('[RoomDesign] ❌ Erro crítico ao sincronizar com Supabase:', sbErr?.message || sbErr);
     }
 
-    res.json({ 
-      success: true, 
-      message: supabaseSyncSuccess 
-        ? 'Configurações salvas e sincronizadas com Supabase!' 
+    res.json({
+      success: true,
+      message: supabaseSyncSuccess
+        ? 'Configurações salvas e sincronizadas com Supabase!'
         : 'Configurações salvas no banco local (Supabase indisponível)',
       supabaseSynced: supabaseSyncSuccess
     });
@@ -1702,7 +1702,7 @@ meetingsRouter.get('/:id', authenticateToken, async (req: Request, res: Response
   try {
     const { id } = req.params;
     const user = (req as any).user;
-    
+
     if (!user?.tenantId) {
       return res.status(400).json({ error: 'Tenant não identificado' });
     }
@@ -1733,7 +1733,7 @@ meetingsRouter.post('/:id/token', authenticateToken, async (req: Request, res: R
     const { id } = req.params;
     const { userName } = req.body;
     const user = (req as any).user;
-    
+
     if (!user?.tenantId) {
       return res.status(400).json({ error: 'Tenant não identificado' });
     }
@@ -1777,7 +1777,7 @@ meetingsRouter.post('/:id/token', authenticateToken, async (req: Request, res: R
 
     console.log(`[Meetings] Token de host gerado para ${participantName} na reunião ${id}`);
 
-    res.json({ 
+    res.json({
       token: hostToken,
       role: 'host',
       roomId: meeting.roomId100ms
@@ -1794,7 +1794,7 @@ meetingsRouter.get('/:id/host-token', authenticateToken, async (req: Request, re
   try {
     const { id } = req.params;
     const user = (req as any).user;
-    
+
     if (!user?.tenantId) {
       return res.status(400).json({ error: 'Tenant não identificado' });
     }
@@ -1846,7 +1846,7 @@ meetingsRouter.get('/:id/guest-token', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const { name, pid } = req.query;
-    
+
     const participantName = (name as string) || 'Participante';
     const participantId = pid as string | undefined;
 
@@ -1886,7 +1886,7 @@ meetingsRouter.get('/:id/guest-token', async (req: Request, res: Response) => {
       await db.update(reunioes)
         .set({ compareceu: true, updatedAt: new Date() })
         .where(eq(reunioes.id, id));
-      
+
       // Sync to Supabase
       const supabase = await getClientSupabaseClient(meeting.tenantId);
       if (supabase) {
@@ -1896,7 +1896,7 @@ meetingsRouter.get('/:id/guest-token', async (req: Request, res: Response) => {
       }
     }
 
-    res.json({ 
+    res.json({
       token: guestToken,
       participantId: participantId || meeting.participantId || null
     });
@@ -1913,7 +1913,7 @@ meetingsRouter.patch('/:id/status', authenticateToken, async (req: Request, res:
     const { id } = req.params;
     const { status } = req.body;
     const user = (req as any).user;
-    
+
     if (!user?.tenantId) {
       return res.status(400).json({ error: 'Tenant não identificado' });
     }
@@ -1959,7 +1959,7 @@ meetingsRouter.get('/:id/recordings', authenticateToken, async (req: Request, re
   try {
     const { id } = req.params;
     const user = (req as any).user;
-    
+
     if (!user?.tenantId) {
       return res.status(400).json({ error: 'Tenant não identificado' });
     }
@@ -1992,7 +1992,7 @@ meetingsRouter.post('/:id/recordings/start', authenticateToken, async (req: Requ
   try {
     const { id } = req.params;
     const user = (req as any).user;
-    
+
     if (!user?.tenantId) {
       return res.status(400).json({ error: 'Tenant não identificado' });
     }
@@ -2051,7 +2051,7 @@ meetingsRouter.post('/:id/recordings/:recordingId/stop', authenticateToken, asyn
   try {
     const { id, recordingId } = req.params;
     const user = (req as any).user;
-    
+
     if (!user?.tenantId) {
       return res.status(400).json({ error: 'Tenant não identificado' });
     }
@@ -2085,7 +2085,7 @@ meetingsRouter.post('/:id/recordings/:recordingId/stop', authenticateToken, asyn
 
     // Update recording status
     const [updatedRecording] = await db.update(gravacoes)
-      .set({ 
+      .set({
         status: 'completed',
         stoppedAt: new Date(),
         updatedAt: new Date()

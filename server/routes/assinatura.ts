@@ -3,9 +3,9 @@ import { nanoid } from 'nanoid';
 import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
-import { 
-  assinaturaSupabaseService, 
-  AssinaturaContract, 
+import {
+  assinaturaSupabaseService,
+  AssinaturaContract,
   AssinaturaGlobalConfig,
   getTenantGlobalConfig,
   saveTenantGlobalConfig,
@@ -24,36 +24,36 @@ function normalizeCPF(cpf: string): string {
 
 async function findTenantIdFromSubmission(email: string | null, cpf: string | null, phone: string | null = null): Promise<string | null> {
   if (!email && !cpf && !phone) return null;
-  
+
   try {
     // Usar supabaseOwner para consultar form_submissions (tem acesso a todos os tenants)
     if (!SUPABASE_CONFIGURED || !supabaseOwner) {
       console.log('[NEXUS] supabaseOwner não configurado, tentando fallback...');
       const { getClienteSupabase, isClienteSupabaseConfigured } = await import('../lib/clienteSupabase.js');
       if (!await isClienteSupabaseConfigured()) return null;
-      
+
       const supabaseClient = await getClienteSupabase();
       if (!supabaseClient) return null;
-      
+
       const cpfNormalizado = cpf ? cpf.replace(/\D/g, '') : null;
-      
+
       let query = supabaseClient.from('form_submissions').select('tenant_id');
       if (email) {
         query = query.eq('contact_email', email);
       } else if (cpfNormalizado) {
         query = query.eq('contact_cpf', cpfNormalizado);
       }
-      
+
       const { data, error } = await query.limit(1).maybeSingle();
       if (error || !data) return null;
-      
+
       console.log(`[NEXUS] Tenant encontrado via form_submission (fallback): ${data.tenant_id}`);
       return data.tenant_id;
     }
-    
+
     const cpfNormalizado = cpf ? cpf.replace(/\D/g, '') : null;
     const phoneDigits = phone ? phone.replace(/\D/g, '') : null;
-    
+
     // Tentar por email primeiro
     if (email) {
       const { data, error } = await supabaseOwner
@@ -62,13 +62,13 @@ async function findTenantIdFromSubmission(email: string | null, cpf: string | nu
         .eq('contact_email', email)
         .limit(1)
         .maybeSingle();
-      
+
       if (!error && data?.tenant_id) {
         console.log(`[NEXUS] Tenant encontrado via email: ${data.tenant_id}`);
         return data.tenant_id;
       }
     }
-    
+
     // Tentar por CPF
     if (cpfNormalizado) {
       const { data, error } = await supabaseOwner
@@ -77,13 +77,13 @@ async function findTenantIdFromSubmission(email: string | null, cpf: string | nu
         .eq('contact_cpf', cpfNormalizado)
         .limit(1)
         .maybeSingle();
-      
+
       if (!error && data?.tenant_id) {
         console.log(`[NEXUS] Tenant encontrado via CPF: ${data.tenant_id}`);
         return data.tenant_id;
       }
     }
-    
+
     // Tentar por telefone (últimos 9 dígitos)
     if (phoneDigits && phoneDigits.length >= 9) {
       const lastDigits = phoneDigits.slice(-9);
@@ -93,13 +93,13 @@ async function findTenantIdFromSubmission(email: string | null, cpf: string | nu
         .ilike('contact_phone', `%${lastDigits}%`)
         .limit(1)
         .maybeSingle();
-      
+
       if (!error && data?.tenant_id) {
         console.log(`[NEXUS] Tenant encontrado via telefone: ${data.tenant_id}`);
         return data.tenant_id;
       }
     }
-    
+
     console.log(`[NEXUS] Nenhum tenant encontrado para email=${email}, cpf=${cpf ? 'presente' : 'ausente'}, phone=${phone ? 'presente' : 'ausente'}`);
     return null;
   } catch (error) {
@@ -111,14 +111,14 @@ async function findTenantIdFromSubmission(email: string | null, cpf: string | nu
 async function createEnvioFromContract(contract: any): Promise<void> {
   try {
     const { envioService } = await import('../services/envioService.js');
-    
+
     // Encontrar tenant_id do contrato
     let adminId = contract.tenant_id || null;
-    
+
     if (!adminId && (contract.client_email || contract.client_cpf || contract.client_phone)) {
       adminId = await findTenantIdFromSubmission(contract.client_email, contract.client_cpf, contract.client_phone);
     }
-    
+
     if (!adminId) {
       console.log('[ENVIO] Sem admin_id disponível - pulando criação de envio automático');
       return;
@@ -127,7 +127,7 @@ async function createEnvioFromContract(contract: any): Promise<void> {
     // Verificar se já existe envio para este contrato
     const existingEnvios = await envioService.getEnvios(adminId);
     const jaTemEnvio = existingEnvios.some((e: any) => e.contract_id === contract.id);
-    
+
     if (jaTemEnvio) {
       console.log(`[ENVIO] Contrato ${contract.id} já tem envio - pulando`);
       return;
@@ -160,30 +160,30 @@ async function createEnvioFromContract(contract: any): Promise<void> {
 async function saveSupabaseCredentialsForReseller(email: string, adminId: string, supabaseOwnerClient: any): Promise<void> {
   try {
     console.log('[NEXUS] Buscando credenciais do admin para salvar na revendedora...');
-    
+
     // Buscar credenciais do admin na tabela admin_supabase_credentials
     const { data: adminCreds, error: credsError } = await supabaseOwnerClient
       .from('admin_supabase_credentials')
       .select('supabase_url, supabase_anon_key, supabase_service_role_key')
       .eq('admin_id', adminId)
       .single();
-    
+
     if (credsError || !adminCreds) {
       console.warn('[NEXUS] Credenciais do admin não encontradas:', credsError?.message);
       return;
     }
-    
+
     console.log('[NEXUS] Credenciais do admin encontradas, salvando para revendedora...');
-    
+
     // Importar pool para acessar banco local
     const { pool } = await import('../db.js');
-    
+
     // Verificar se já existe config para este email
     const checkResult = await pool.query(
       'SELECT id FROM reseller_supabase_configs WHERE reseller_email = $1',
       [email]
     );
-    
+
     if (checkResult.rows.length === 0) {
       // Inserir novas credenciais
       await pool.query(
@@ -216,7 +216,7 @@ async function createRevendedoraFromContract(contract: any): Promise<void> {
     client_email: contract.client_email,
     tenant_id: contract.tenant_id
   }));
-  
+
   const { client_name, client_cpf, client_email, client_phone, tenant_id } = contract;
 
   if (!client_cpf || !client_email) {
@@ -230,7 +230,7 @@ async function createRevendedoraFromContract(contract: any): Promise<void> {
     console.log('[NEXUS] ❌ CPF inválido (tamanho:', cpfNormalizado.length, ') - pulando criação de revendedora');
     return;
   }
-  
+
   console.log('[NEXUS] ✓ CPF normalizado:', cpfNormalizado.substring(0, 3) + '***');
 
   try {
@@ -238,17 +238,17 @@ async function createRevendedoraFromContract(contract: any): Promise<void> {
     console.log('[NEXUS] Verificando supabaseOwner...');
     console.log('[NEXUS] SUPABASE_CONFIGURED:', SUPABASE_CONFIGURED);
     console.log('[NEXUS] supabaseOwner existe:', !!supabaseOwner);
-    
+
     if (!SUPABASE_CONFIGURED || !supabaseOwner) {
       console.log('[NEXUS] ❌ supabaseOwner não configurado - pulando criação de revendedora');
       return;
     }
-    
+
     console.log('[NEXUS] ✓ supabaseOwner configurado corretamente');
-    
+
     // Encontrar o admin_id: primeiro tenta do contrato, depois busca no admin_supabase_credentials
     let adminId = tenant_id || null;
-    
+
     if (!adminId) {
       // Buscar admin_id na tabela admin_supabase_credentials usando o supabaseOwner
       console.log('[NEXUS] Buscando admin_id na tabela admin_supabase_credentials...');
@@ -257,19 +257,19 @@ async function createRevendedoraFromContract(contract: any): Promise<void> {
         .select('admin_id')
         .limit(1)
         .single();
-      
+
       if (adminCreds?.admin_id) {
         adminId = adminCreds.admin_id;
         console.log(`[NEXUS] Admin encontrado: ${adminId}`);
       }
     }
-    
+
     if (!adminId) {
       // Fallback: tentar via form_submission
       console.log('[NEXUS] Tentando encontrar tenant via form_submission...');
       adminId = await findTenantIdFromSubmission(client_email, client_cpf, client_phone);
     }
-    
+
     if (!adminId) {
       console.log('[NEXUS] Sem admin_id disponível - pulando criação de revendedora');
       return;
@@ -295,7 +295,7 @@ async function createRevendedoraFromContract(contract: any): Promise<void> {
     }
 
     const senhaHash = crypto.createHash('sha256').update(cpfNormalizado).digest('hex');
-    
+
     // Inserir na tabela revendedoras do Master
     // Colunas existentes: id, admin_id, nome, email, cpf, status, senha_hash, created_at
     console.log('[NEXUS] Inserindo revendedora no Master...');
@@ -318,7 +318,7 @@ async function createRevendedoraFromContract(contract: any): Promise<void> {
     }
 
     console.log(`[NEXUS] ✅ Revendedora criada automaticamente: ${revendedora.email} (CPF: ${cpfNormalizado})`);
-    
+
     // Salvar automaticamente as credenciais do Supabase para a revendedora
     await saveSupabaseCredentialsForReseller(client_email, adminId, supabaseOwner);
   } catch (error) {
@@ -340,36 +340,36 @@ router.get('/public/diagnostico-revendedora', async (req: Request, res: Response
     contractsSigned: null,
     errors: []
   };
-  
+
   try {
     // 1. Verificar se supabaseOwner está configurado
     diagnostico.supabaseOwnerConfigured = SUPABASE_CONFIGURED;
-    
+
     if (!SUPABASE_CONFIGURED || !supabaseOwner) {
       diagnostico.errors.push('supabaseOwner não configurado (SUPABASE_OWNER_URL/KEY não definidos)');
       return res.json(diagnostico);
     }
-    
+
     // 2. Testar conexão buscando admin_supabase_credentials
     const { data: adminCreds, error: adminError } = await supabaseOwner
       .from('admin_supabase_credentials')
       .select('admin_id, project_name')
       .limit(5);
-    
+
     if (adminError) {
       diagnostico.errors.push(`Erro ao buscar admin_supabase_credentials: ${adminError.message}`);
     } else {
       diagnostico.supabaseOwnerConnected = true;
       diagnostico.adminCredentials = adminCreds;
     }
-    
+
     // 3. Verificar tabela revendedoras
     const { data: revendedoras, error: revError } = await supabaseOwner
       .from('revendedoras')
       .select('id, email, cpf, nome, status, created_at')
       .order('created_at', { ascending: false })
       .limit(10);
-    
+
     if (revError) {
       diagnostico.errors.push(`Erro ao buscar revendedoras: ${revError.message}`);
     } else {
@@ -382,7 +382,7 @@ router.get('/public/diagnostico-revendedora', async (req: Request, res: Response
         status: r.status
       }));
     }
-    
+
     // 4. Verificar contratos assinados no Supabase Cliente
     if (assinaturaSupabaseService.isConnected()) {
       const supabaseClient = assinaturaSupabaseService.getSupabaseClient();
@@ -393,7 +393,7 @@ router.get('/public/diagnostico-revendedora', async (req: Request, res: Response
           .eq('status', 'signed')
           .order('signed_at', { ascending: false })
           .limit(5);
-        
+
         if (contractError) {
           diagnostico.errors.push(`Erro ao buscar contracts: ${contractError.message}`);
         } else {
@@ -407,7 +407,7 @@ router.get('/public/diagnostico-revendedora', async (req: Request, res: Response
         }
       }
     }
-    
+
     res.json(diagnostico);
   } catch (error: any) {
     diagnostico.errors.push(`Erro geral: ${error.message}`);
@@ -418,28 +418,28 @@ router.get('/public/diagnostico-revendedora', async (req: Request, res: Response
 // Endpoint para forçar sincronização manual de contrato para revendedora
 router.post('/public/sync-revendedora/:contractId', async (req: Request, res: Response) => {
   const { contractId } = req.params;
-  
+
   try {
     if (!SUPABASE_CONFIGURED || !supabaseOwner) {
       return res.status(500).json({ error: 'supabaseOwner não configurado' });
     }
-    
+
     // Buscar contrato no Supabase Cliente
     const supabaseClient = assinaturaSupabaseService.getSupabaseClient();
     if (!supabaseClient) {
       return res.status(500).json({ error: 'Supabase Cliente não conectado' });
     }
-    
+
     const { data: contract, error: contractError } = await supabaseClient
       .from('contracts')
       .select('*')
       .eq('id', contractId)
       .single();
-    
+
     if (contractError || !contract) {
       return res.status(404).json({ error: 'Contrato não encontrado', details: contractError?.message });
     }
-    
+
     // Chamar função de criação de revendedora
     console.log('[SYNC] Forçando sincronização de contrato:', contractId);
     console.log('[SYNC] Dados do contrato:', {
@@ -448,9 +448,9 @@ router.post('/public/sync-revendedora/:contractId', async (req: Request, res: Re
       client_cpf: contract.client_cpf,
       tenant_id: contract.tenant_id
     });
-    
+
     await createRevendedoraFromContract(contract);
-    
+
     res.json({ success: true, message: 'Sincronização executada - verifique logs' });
   } catch (error: any) {
     console.error('[SYNC] Erro:', error);
@@ -676,15 +676,15 @@ function invalidateGlobalConfigCache(): void {
 router.get('/global-config', async (req: Request, res: Response) => {
   try {
     // MULTI-TENANT: Obter tenant_id do header ou query
-    const tenantId = (req.headers['x-tenant-id'] as string) || 
-                     (req.query.tenantId as string) || 
-                     '';
-    
+    const tenantId = (req.headers['x-tenant-id'] as string) ||
+      (req.query.tenantId as string) ||
+      '';
+
     // Não cachear se for multi-tenant (cada tenant tem sua config)
     if (tenantId) {
       res.set('Cache-Control', 'no-cache');
       console.log(`[Assinatura] Buscando config global para tenant: ${tenantId.substring(0, 16)}...`);
-      
+
       const config = await getTenantGlobalConfig(tenantId);
       if (config) {
         return res.json(config);
@@ -692,7 +692,7 @@ router.get('/global-config', async (req: Request, res: Response) => {
     } else {
       // Fallback para comportamento legado (singleton)
       res.set('Cache-Control', 'public, max-age=3600');
-      
+
       if (assinaturaSupabaseService.isConnected()) {
         const config = await assinaturaSupabaseService.getGlobalConfig();
         if (config) {
@@ -700,7 +700,7 @@ router.get('/global-config', async (req: Request, res: Response) => {
         }
       }
     }
-    
+
     res.json(getGlobalConfigCached());
   } catch (error) {
     console.error('[Assinatura] Erro ao buscar config global:', error);
@@ -711,28 +711,28 @@ router.get('/global-config', async (req: Request, res: Response) => {
 router.put('/global-config', async (req: Request, res: Response) => {
   try {
     const updates = req.body;
-    
+
     // MULTI-TENANT: Obter tenant_id do header, body ou query
-    const tenantId = (req.headers['x-tenant-id'] as string) || 
-                     updates.tenant_id ||
-                     (req.query.tenantId as string) || 
-                     '';
-    
+    const tenantId = (req.headers['x-tenant-id'] as string) ||
+      updates.tenant_id ||
+      (req.query.tenantId as string) ||
+      '';
+
     if (tenantId) {
       console.log(`[Assinatura] Salvando config global para tenant: ${tenantId.substring(0, 16)}...`);
-      
+
       const result = await saveTenantGlobalConfig(updates, tenantId);
-      
+
       if (result.success) {
         // Também atualiza o cache local como backup
         localGlobalConfig = { ...localGlobalConfig, ...updates };
         invalidateGlobalConfigCache();
-        
-        return res.json({ 
-          ...updates, 
+
+        return res.json({
+          ...updates,
           tenant_id: tenantId,
           savedTo: result.savedTo,
-          message: result.savedTo === 'both' 
+          message: result.savedTo === 'both'
             ? 'Configuração salva no Supabase do tenant e localmente'
             : result.savedTo === 'local'
               ? 'Configuração salva apenas localmente (Supabase não disponível)'
@@ -743,7 +743,7 @@ router.put('/global-config', async (req: Request, res: Response) => {
         return res.status(500).json({ error: result.error || 'Falha ao salvar configurações' });
       }
     }
-    
+
     // Fallback para comportamento legado (singleton)
     if (assinaturaSupabaseService.isConnected()) {
       const result = await assinaturaSupabaseService.saveGlobalConfig(updates);
@@ -753,7 +753,7 @@ router.put('/global-config', async (req: Request, res: Response) => {
         return res.json(result);
       }
     }
-    
+
     localGlobalConfig = { ...localGlobalConfig, ...updates };
     saveLocalGlobalConfig(localGlobalConfig);
     invalidateGlobalConfigCache();
@@ -771,17 +771,17 @@ router.get('/contracts', async (req: Request, res: Response) => {
     if (assinaturaSupabaseService.isConnected()) {
       const supabaseContracts = await assinaturaSupabaseService.getAllContracts();
       console.log(`[Assinatura] Supabase conectado - retornando APENAS ${supabaseContracts.length} contratos do Supabase`);
-      
+
       // Ordenar por data de criação (mais recente primeiro)
       supabaseContracts.sort((a, b) => {
         const dateA = new Date(a.created_at || 0).getTime();
         const dateB = new Date(b.created_at || 0).getTime();
         return dateB - dateA;
       });
-      
+
       return res.json(supabaseContracts);
     }
-    
+
     // 🔐 Supabase NÃO configurado → retornar lista vazia (dados vêm apenas do Supabase)
     // Isso garante que após Reset Total, a página de contratos mostra vazio
     console.log('⚠️ [Assinatura] Supabase NÃO conectado - retornando lista vazia');
@@ -796,9 +796,9 @@ router.get('/contracts', async (req: Request, res: Response) => {
 router.get('/contracts/:token', async (req: Request, res: Response) => {
   try {
     const { token } = req.params;
-    
+
     assinaturaLogger.log(`Buscando contrato por token/id: ${token}`);
-    
+
     if (assinaturaSupabaseService.isConnected()) {
       let contract = await assinaturaSupabaseService.getContractByToken(token);
       if (contract) {
@@ -806,7 +806,7 @@ router.get('/contracts/:token', async (req: Request, res: Response) => {
         res.set('Cache-Control', 'private, max-age=300');
         return res.json(contract);
       }
-      
+
       contract = await assinaturaSupabaseService.getContractById(token);
       if (contract) {
         assinaturaLogger.log(`Contrato encontrado no Supabase por ID`);
@@ -814,11 +814,11 @@ router.get('/contracts/:token', async (req: Request, res: Response) => {
         return res.json(contract);
       }
     }
-    
+
     let contract = Array.from(localContractsStore.values()).find(
       (c) => c.access_token === token
     );
-    
+
     if (!contract) {
       contract = localContractsStore.get(token);
     }
@@ -872,10 +872,10 @@ router.get('/contracts/:token/full', async (req: Request, res: Response) => {
     try {
       const contractPhone = contract.client_phone;
       const contractCpf = contract.client_cpf;
-      
+
       if (contractPhone || contractCpf) {
         const { getClienteSupabase, isClienteSupabaseConfigured } = await import('../lib/clienteSupabase.js');
-        
+
         // Use Promise.race with a timeout to prevent slow queries from blocking the response
         const participantLookup = new Promise(async (resolve) => {
           try {
@@ -928,7 +928,7 @@ router.get('/contracts/:token/full', async (req: Request, res: Response) => {
             resolve(null);
           }
         });
-        
+
         // Wait max 1.5 seconds for participant data - if timeout, continue without it
         participantData = await Promise.race([
           participantLookup,
@@ -943,8 +943,8 @@ router.get('/contracts/:token/full', async (req: Request, res: Response) => {
     // Usa o tenant_id do contrato para buscar a config do Supabase do tenant
     const globalConfig = await getGlobalConfigForContract(contract) || getGlobalConfigCached();
     console.log(`[Assinatura/Full] Config global carregada para tenant: ${contract.tenant_id || 'fallback'}`);
-    
-    
+
+
     // Mapear campos de endereço do formato aninhado (local) para campos individuais (esperado pelo frontend)
     const localContractTyped = contract as any;
     const addressFromNestedObject = localContractTyped.address && typeof localContractTyped.address === 'object' ? {
@@ -956,7 +956,7 @@ router.get('/contracts/:token/full', async (req: Request, res: Response) => {
       address_state: localContractTyped.address.state || null,
       address_zipcode: localContractTyped.address.zipcode || null,
     } : {};
-    
+
     // Mesclar configurações globais com contrato (contrato tem prioridade se não for null)
     const mergedContract = {
       ...contract,
@@ -1041,21 +1041,21 @@ router.post('/contracts', async (req: Request, res: Response) => {
     if (!client_name) {
       return res.status(400).json({ error: 'Campo obrigatório ausente: client_name' });
     }
-    
+
     console.log(`[Assinatura] Recebido meeting_id: ${meeting_id || 'não informado'}`);
 
     const id = nanoid();
     // Usar UUID para access_token (compatível com Supabase que espera UUID)
     const access_token = crypto.randomUUID();
     const protocolNum = protocol_number || `CONT-${Date.now()}-${nanoid(9).toUpperCase()}`;
-    
+
     // Gerar URL completa para o fluxo de assinatura (para envio via WhatsApp/N8N)
-    const domain = process.env.REPLIT_DOMAINS?.split(',')[0] || process.env.REPLIT_DEV_DOMAIN || 'localhost:5000';
+    const domain = process.env.APP_DOMAIN || process.env.REPLIT_DOMAINS?.split(',')[0] || process.env.REPLIT_DEV_DOMAIN || 'localhost:5000';
     const protocolScheme = domain.includes('localhost') ? 'http' : 'https';
     const signature_url = `${protocolScheme}://${domain}/assinar/${access_token}`;
 
     console.log(`[Assinatura] Criando novo contrato para ${client_name}, telefone: ${client_phone}, email: ${client_email}, cpf: ${client_cpf ? 'presente' : 'ausente'}, endereço: ${client_address ? 'presente' : 'ausente'}, access_token: ${access_token}`);
-    
+
     // Se o client_address não foi recebido do frontend, buscar automaticamente do form_submissions
     let finalAddress = client_address;
     if (!finalAddress && (client_phone || client_email)) {
@@ -1066,7 +1066,7 @@ router.post('/contracts', async (req: Request, res: Response) => {
           const supabaseClient = await getClienteSupabase();
           if (supabaseClient) {
             let submission = null;
-            
+
             // Primeiro tentar por telefone (mais confiável)
             if (client_phone) {
               const phoneDigits = client_phone.replace(/\D/g, '');
@@ -1087,7 +1087,7 @@ router.post('/contracts', async (req: Request, res: Response) => {
                 }
               }
             }
-            
+
             // Fallback para email
             if (!submission && client_email) {
               console.log(`[Assinatura] Buscando form_submission por email: ${client_email}`);
@@ -1102,7 +1102,7 @@ router.post('/contracts', async (req: Request, res: Response) => {
                 console.log(`[Assinatura] Form_submission encontrado por email`);
               }
             }
-            
+
             // Se encontrou, mapear os campos
             if (submission) {
               finalAddress = {
@@ -1216,7 +1216,7 @@ router.post('/contracts', async (req: Request, res: Response) => {
 
     // MULTI-TENANT: Buscar tenantId - primeiro da reunião, depois de form_submissions
     let tenantId: string | null = null;
-    
+
     // CRÍTICO: Se meeting_id foi fornecido, buscar tenant_id do banco LOCAL (reunioes está no PostgreSQL local)
     if (meeting_id) {
       console.log(`[Assinatura] Buscando tenant_id da reunião no banco LOCAL: ${meeting_id}`);
@@ -1227,7 +1227,7 @@ router.post('/contracts', async (req: Request, res: Response) => {
             'SELECT tenant_id FROM reunioes WHERE id = $1',
             [meeting_id]
           );
-          
+
           if (result.rows.length > 0 && result.rows[0].tenant_id) {
             tenantId = result.rows[0].tenant_id;
             console.log(`[Assinatura] ✅ Tenant encontrado via reunião (banco local): ${tenantId}`);
@@ -1241,24 +1241,24 @@ router.post('/contracts', async (req: Request, res: Response) => {
         console.error('[Assinatura] Erro ao buscar tenant da reunião no banco local:', err);
       }
     }
-    
+
     // Fallback: tentar encontrar tenant via form_submissions (email/cpf/phone)
     if (!tenantId) {
       tenantId = await findTenantIdFromSubmission(client_email, client_cpf, client_phone);
     }
-    
+
     console.log(`[Assinatura] TenantId final: ${tenantId || 'nenhum'}`);
-    
+
     let supabaseContractSaved = false;
     let supabaseContractId: string | null = null;
-    
+
     if (tenantId) {
       // Usar cliente Supabase específico do tenant
       const tenantSupabase = await getClientSupabaseClient(tenantId);
-      
+
       if (tenantSupabase) {
         console.log(`[Assinatura] Usando cliente Supabase do tenant: ${tenantId}`);
-        
+
         // Preparar dados do contrato para o Supabase
         const contractData: any = {
           client_name: client_name || '',
@@ -1312,29 +1312,29 @@ router.post('/contracts', async (req: Request, res: Response) => {
           google_play_url: customizations.google_play_url ?? null,
           whatsapp_enviado: false
         };
-        
+
         console.log('[Assinatura] Criando contrato no Supabase do tenant:', {
           client_name: contractData.client_name,
           access_token: contractData.access_token,
           protocol_number: contractData.protocol_number,
           tenantId
         });
-        
+
         try {
           // Mapeamento manual de colunas para o insert do Supabase
           const insertData: any = {
             ...contractData
           };
-          
+
           // Remover campos que podem não existir ou causar conflito no insert inicial
           // Mas manter os essenciais de endereço que acabamos de adicionar
-          
+
           const { data, error } = await tenantSupabase
             .from('contracts')
             .insert(insertData)
             .select()
             .single();
-          
+
           if (error) {
             console.error(`[Assinatura] ❌ Erro ao criar contrato no Supabase do tenant ${tenantId}:`, error);
           } else if (data) {
@@ -1349,7 +1349,7 @@ router.post('/contracts', async (req: Request, res: Response) => {
         console.log(`[Assinatura] ⚠️ Cliente Supabase não disponível para tenant ${tenantId}`);
       }
     }
-    
+
     // Fallback: tentar usar o serviço singleton se não conseguiu salvar via multi-tenant
     if (!supabaseContractSaved && assinaturaSupabaseService.isConnected()) {
       console.log(`[Assinatura] Tentando fallback via assinaturaSupabaseService...`);
@@ -1366,7 +1366,7 @@ router.post('/contracts', async (req: Request, res: Response) => {
         signature_url,
         ...customizations
       });
-      
+
       if (supabaseContract) {
         supabaseContractSaved = true;
         supabaseContractId = supabaseContract.id || null;
@@ -1375,7 +1375,7 @@ router.post('/contracts', async (req: Request, res: Response) => {
         console.log(`[Assinatura] ⚠️ Fallback também falhou ao salvar no Supabase`);
       }
     }
-    
+
     if (supabaseContractSaved && supabaseContractId) {
       return res.status(201).json({
         ...localContract,
@@ -1394,7 +1394,7 @@ router.patch('/contracts/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
     const updates = req.body;
-    
+
     console.log(`[Assinatura] PATCH contrato: ${id}`);
 
     const localContract = localContractsStore.get(id);
@@ -1448,7 +1448,7 @@ router.post('/contracts/:id/finalize', async (req: Request, res: Response) => {
     });
 
     let localContract = localContractsStore.get(id);
-    
+
     if (!localContract) {
       localContract = Array.from(localContractsStore.values()).find(c => c.access_token === id) || undefined;
     }
@@ -1468,7 +1468,7 @@ router.post('/contracts/:id/finalize', async (req: Request, res: Response) => {
       if (!supabaseContract) {
         supabaseContract = await assinaturaSupabaseService.getContractById(id);
       }
-      
+
       const updateData = {
         ...addressData,
         selfie_photo,
@@ -1477,40 +1477,40 @@ router.post('/contracts/:id/finalize', async (req: Request, res: Response) => {
         signed_contract_html,
         status: status || 'signed'
       };
-      
+
       let supabaseResult = null;
-      
+
       // Try by access_token first if we found the contract
       if (supabaseContract?.access_token) {
         console.log(`[Assinatura] Tentando finalizar por access_token: ${supabaseContract.access_token}`);
         supabaseResult = await assinaturaSupabaseService.finalizeContractByToken(supabaseContract.access_token, updateData);
       }
-      
+
       // If that failed, try by ID
       if (!supabaseResult && supabaseContract?.id) {
         console.log(`[Assinatura] Tentando finalizar por ID: ${supabaseContract.id}`);
         supabaseResult = await assinaturaSupabaseService.finalizeContract(supabaseContract.id, updateData);
       }
-      
+
       // Last resort: try with the original id parameter
       if (!supabaseResult) {
         console.log(`[Assinatura] Tentando finalizar diretamente por param ID: ${id}`);
         supabaseResult = await assinaturaSupabaseService.finalizeContract(id, updateData);
       }
-      
+
       if (supabaseResult) {
         console.log(`[Assinatura] Contrato finalizado no Supabase com sucesso:`, supabaseResult.id);
-        
+
         // NEXUS: Criar revendedora automaticamente quando contrato é assinado
         createRevendedoraFromContract(supabaseResult).catch(err => {
           console.error('[NEXUS] Erro ao criar revendedora (fire-and-forget):', err);
         });
-        
+
         // ENVIO: Criar envio automaticamente com código de rastreio
         createEnvioFromContract(supabaseResult).catch(err => {
           console.error('[ENVIO] Erro ao criar envio (fire-and-forget):', err);
         });
-        
+
         // Update local store too if it exists
         if (localContract) {
           const updatedContract: LocalContract = {
@@ -1527,7 +1527,7 @@ router.post('/contracts/:id/finalize', async (req: Request, res: Response) => {
           localContractsStore.set(localContract.id, updatedContract);
           saveLocalContracts(localContractsStore);
         }
-        
+
         return res.json(supabaseResult);
       } else {
         console.log(`[Assinatura] Falha ao finalizar no Supabase`);
@@ -1549,12 +1549,12 @@ router.post('/contracts/:id/finalize', async (req: Request, res: Response) => {
 
       localContractsStore.set(localContract.id, updatedContract);
       saveLocalContracts(localContractsStore);
-      
+
       // NEXUS: Criar revendedora automaticamente quando contrato é assinado localmente
       createRevendedoraFromContract(updatedContract).catch(err => {
         console.error('[NEXUS] Erro ao criar revendedora (fire-and-forget):', err);
       });
-      
+
       // ENVIO: Criar envio automaticamente com código de rastreio
       createEnvioFromContract(updatedContract).catch(err => {
         console.error('[ENVIO] Erro ao criar envio (fire-and-forget):', err);
@@ -1574,11 +1574,11 @@ router.post('/contracts/:id/finalize', async (req: Request, res: Response) => {
 router.get('/contracts/:token/participant-data', async (req: Request, res: Response) => {
   try {
     const { token } = req.params;
-    
+
     console.log(`[Assinatura] Buscando participant-data para token ${token}`);
-    
+
     let contract: LocalContract | null = null;
-    
+
     if (assinaturaSupabaseService.isConnected()) {
       let c = await assinaturaSupabaseService.getContractByToken(token);
       if (!c) {
@@ -1588,13 +1588,13 @@ router.get('/contracts/:token/participant-data', async (req: Request, res: Respo
         contract = c as unknown as LocalContract;
       }
     }
-    
+
     if (!contract) {
       contract = Array.from(localContractsStore.values()).find(
         (c) => c.access_token === token
       ) || null;
     }
-    
+
     if (!contract) {
       contract = localContractsStore.get(token) || null;
     }
@@ -1603,15 +1603,15 @@ router.get('/contracts/:token/participant-data', async (req: Request, res: Respo
       console.log(`[Assinatura] Contrato não encontrado para token: ${token}`);
       return res.status(404).json({ error: 'Contrato não encontrado' });
     }
-    
+
     const contractPhone = contract.client_phone;
     const contractEmail = contract.client_email;
-    
+
     console.log(`[Assinatura] Contrato encontrado: ${contract.id}, telefone: ${contractPhone}, email: ${contractEmail}`);
-    
+
     let submission: any = null;
     let supabaseClient: any = null;
-    
+
     try {
       const { getClienteSupabase, isClienteSupabaseConfigured } = await import('../lib/clienteSupabase.js');
       if (await isClienteSupabaseConfigured()) {
@@ -1621,11 +1621,11 @@ router.get('/contracts/:token/participant-data', async (req: Request, res: Respo
     } catch (e) {
       console.log('[Assinatura] Supabase do cliente não disponível');
     }
-    
+
     const normalizePhone = (p: string | null | undefined) => p?.replace(/@s\.whatsapp\.net/g, '').replace(/\D/g, '') || '';
     const searchPhone = normalizePhone(contractPhone);
     const searchEmail = (contractEmail || '').toLowerCase();
-    
+
     if (supabaseClient) {
       if (searchPhone && !submission) {
         console.log(`[Assinatura] Supabase: buscando por telefone: ${searchPhone}`);
@@ -1640,7 +1640,7 @@ router.get('/contracts/:token/participant-data', async (req: Request, res: Respo
           console.log(`[Assinatura] Supabase: encontrado por telefone: ${submission.id}`);
         }
       }
-      
+
       if (!submission && searchEmail) {
         console.log(`[Assinatura] Supabase: buscando por email: ${searchEmail}`);
         const { data: subs, error } = await supabaseClient
@@ -1655,13 +1655,13 @@ router.get('/contracts/:token/participant-data', async (req: Request, res: Respo
         }
       }
     }
-    
+
     if (!submission) {
       try {
         const { db } = await import('../db.js');
         const { formSubmissions } = await import('../../shared/db-schema.js');
         const { desc, sql } = await import('drizzle-orm');
-        
+
         if (searchPhone) {
           console.log(`[Assinatura] Local DB: buscando por telefone: ${searchPhone}`);
           const [sub] = await db.select().from(formSubmissions)
@@ -1686,7 +1686,7 @@ router.get('/contracts/:token/participant-data', async (req: Request, res: Respo
 
     if (!submission) {
       console.log(`[Assinatura] Nenhum form_submission encontrado para contrato ${contract.id}`);
-      return res.json({ 
+      return res.json({
         found: false,
         message: 'Nenhum formulário encontrado para este participante',
         contractData: {
@@ -1786,7 +1786,7 @@ function saveLocalAppPromotionConfig(config: AppPromotionConfig): void {
 router.get('/app-promotion', async (req: Request, res: Response) => {
   try {
     console.log('[Assinatura] Buscando app promotion config');
-    
+
     // Try Supabase first
     if (assinaturaSupabaseService.isConnected()) {
       try {
@@ -1797,7 +1797,7 @@ router.get('/app-promotion', async (req: Request, res: Response) => {
             .select('*')
             .eq('contract_id', GLOBAL_CONTRACT_ID)
             .single();
-          
+
           if (!error && data) {
             console.log('[Assinatura] App promotion config encontrado no Supabase');
             return res.json({
@@ -1810,7 +1810,7 @@ router.get('/app-promotion', async (req: Request, res: Response) => {
         console.log('[Assinatura] Erro ao buscar do Supabase:', supaError);
       }
     }
-    
+
     // Fallback to local storage
     const localConfig = loadLocalAppPromotionConfig();
     if (localConfig) {
@@ -1820,7 +1820,7 @@ router.get('/app-promotion', async (req: Request, res: Response) => {
         google_play_url: localConfig.google_play_url || ''
       });
     }
-    
+
     // Return empty defaults
     console.log('[Assinatura] Sem app promotion config, retornando defaults');
     res.json({
@@ -1840,9 +1840,9 @@ router.get('/app-promotion', async (req: Request, res: Response) => {
 router.put('/app-promotion', async (req: Request, res: Response) => {
   try {
     const { app_store_url, google_play_url } = req.body;
-    
+
     console.log('[Assinatura] Salvando app promotion config:', { app_store_url, google_play_url });
-    
+
     const now = new Date().toISOString();
     const config: AppPromotionConfig = {
       contract_id: GLOBAL_CONTRACT_ID,
@@ -1850,7 +1850,7 @@ router.put('/app-promotion', async (req: Request, res: Response) => {
       google_play_url: google_play_url || '',
       updated_at: now
     };
-    
+
     // Save to Supabase
     if (assinaturaSupabaseService.isConnected()) {
       try {
@@ -1867,7 +1867,7 @@ router.put('/app-promotion', async (req: Request, res: Response) => {
             }, { onConflict: 'contract_id' })
             .select()
             .single();
-          
+
           if (!error && data) {
             console.log('[Assinatura] App promotion config salvo no Supabase');
             // Also save locally as backup
@@ -1891,7 +1891,7 @@ router.put('/app-promotion', async (req: Request, res: Response) => {
               })
               .select()
               .single();
-            
+
             if (!insertError && insertData) {
               console.log('[Assinatura] App promotion config inserido no Supabase');
               saveLocalAppPromotionConfig({ ...config, id: insertData.id });
@@ -1907,11 +1907,11 @@ router.put('/app-promotion', async (req: Request, res: Response) => {
         console.log('[Assinatura] Erro ao salvar no Supabase:', supaError);
       }
     }
-    
+
     // Fallback: save locally
     saveLocalAppPromotionConfig(config);
     console.log('[Assinatura] App promotion config salvo localmente');
-    
+
     res.json({
       success: true,
       app_store_url: config.app_store_url,
@@ -1926,7 +1926,7 @@ router.put('/app-promotion', async (req: Request, res: Response) => {
 router.delete('/contracts/:id', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    
+
     console.log(`[Assinatura] Deletando contrato: ${id}`);
 
     const localContract = localContractsStore.get(id);
@@ -1969,7 +1969,7 @@ router.delete('/contracts/:id', async (req: Request, res: Response) => {
 router.post('/validate-document', async (req: Request, res: Response) => {
   try {
     const { image, documentType, side } = req.body;
-    
+
     if (!image) {
       return res.status(400).json({
         valid: false,
@@ -1979,7 +1979,7 @@ router.post('/validate-document', async (req: Request, res: Response) => {
         documentType: null
       });
     }
-    
+
     if (!documentType) {
       return res.status(400).json({
         valid: false,
@@ -1989,7 +1989,7 @@ router.post('/validate-document', async (req: Request, res: Response) => {
         documentType: null
       });
     }
-    
+
     const result = await validateDocument(image, documentType, side);
     res.json(result);
   } catch (error) {
@@ -2011,14 +2011,14 @@ router.post('/validate-document', async (req: Request, res: Response) => {
 router.post('/validate-document/quick', (req: Request, res: Response) => {
   try {
     const { image } = req.body;
-    
+
     if (!image) {
       return res.json({
         valid: false,
         reason: 'Imagem não fornecida'
       });
     }
-    
+
     const result = quickValidate(image);
     res.json(result);
   } catch (error) {
@@ -2037,15 +2037,15 @@ router.post('/validate-document/quick', (req: Request, res: Response) => {
 router.post('/save-residence-proof', async (req: Request, res: Response) => {
   try {
     const { contractId, imageBase64, validated, manualReviewRequired } = req.body;
-    
+
     if (!contractId) {
       return res.status(400).json({ success: false, message: 'Contract ID não fornecido' });
     }
-    
+
     console.log(`[Assinatura] Salvando comprovante de residência para contrato: ${contractId}`);
-    
+
     const currentTimestamp = new Date().toISOString();
-    
+
     // Update residence proof data AND mark contract as signed (assinado)
     // This is the final step - when residence proof is saved, the user becomes a reseller
     const updates = {
@@ -2058,38 +2058,38 @@ router.post('/save-residence-proof', async (req: Request, res: Response) => {
       virou_revendedora: true,
       data_virou_revendedora: currentTimestamp
     };
-    
+
     console.log(`[Assinatura] Marcando contrato como ASSINADO e virou_revendedora=true`);
-    
+
     // Try to find contract in local store by token or ID
     let localContract = localContractsStore.get(contractId);
     if (!localContract) {
       localContract = Array.from(localContractsStore.values()).find(c => c.access_token === contractId);
     }
-    
+
     if (localContract) {
       const updatedContract = { ...localContract, ...updates };
       localContractsStore.set(localContract.id, updatedContract);
       saveLocalContracts(localContractsStore);
       console.log(`[Assinatura] Contrato local atualizado: ${localContract.id}`);
     }
-    
+
     // Try to update in Supabase - the service will initialize lazily
     console.log(`[Assinatura] Salvando comprovante no Supabase, foto presente: ${!!updates.residence_proof_photo}, tamanho: ${updates.residence_proof_photo?.length || 0} chars`);
-    
+
     // Try by access_token first, then by ID
     let result = await assinaturaSupabaseService.updateContractByToken(contractId, updates);
     if (!result) {
       console.log(`[Assinatura] Tentando atualizar por ID ao invés de token...`);
       result = await assinaturaSupabaseService.updateContract(contractId, updates);
     }
-    
+
     if (result) {
       console.log(`[Assinatura] ✅ Supabase atualizado: status=${result.status}, virou_revendedora=${result.virou_revendedora}`);
     } else {
       console.warn(`[Assinatura] ⚠️ Supabase não atualizado - contrato não encontrado ou credenciais não configuradas: ${contractId}`);
     }
-    
+
     return res.json({ success: true, message: 'Comprovante salvo com sucesso' });
   } catch (error: any) {
     console.error('[Assinatura] Erro ao salvar comprovante:', error);
@@ -2104,7 +2104,7 @@ router.post('/save-residence-proof', async (req: Request, res: Response) => {
 router.post('/validate-residence-proof', async (req: Request, res: Response) => {
   try {
     const { contractId, imageBase64, addressData } = req.body;
-    
+
     if (!imageBase64) {
       return res.status(400).json({
         success: false,
@@ -2114,7 +2114,7 @@ router.post('/validate-residence-proof', async (req: Request, res: Response) => 
         message: 'Imagem não fornecida'
       });
     }
-    
+
     if (!addressData || !addressData.street || !addressData.city) {
       return res.status(400).json({
         success: false,
@@ -2124,14 +2124,14 @@ router.post('/validate-residence-proof', async (req: Request, res: Response) => 
         message: 'Dados de endereço incompletos'
       });
     }
-    
+
     console.log('[Assinatura] Validando comprovante de residência...');
     console.log('[Assinatura] Endereço informado:', JSON.stringify(addressData));
     console.log('[Assinatura] Contract ID:', contractId);
-    
+
     const openaiApiKey = process.env.OPENAI_API_KEY || process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
     const openaiBaseUrl = process.env.OPENAI_BASE_URL || process.env.AI_INTEGRATIONS_OPENAI_BASE_URL;
-    
+
     if (openaiApiKey && openaiApiKey.length > 10) {
       try {
         const OpenAI = (await import('openai')).default;
@@ -2139,9 +2139,9 @@ router.post('/validate-residence-proof', async (req: Request, res: Response) => 
           apiKey: openaiApiKey,
           baseURL: openaiBaseUrl || undefined
         });
-        
+
         const userAddress = `${addressData.street}, ${addressData.number || ''}, ${addressData.neighborhood || ''}, ${addressData.city}, ${addressData.state}, CEP: ${addressData.zipcode}`.trim();
-        
+
         const response = await openai.chat.completions.create({
           model: 'gpt-4o-mini',
           messages: [
@@ -2180,10 +2180,10 @@ Responda APENAS em JSON válido com esta estrutura:
           ],
           max_tokens: 500
         });
-        
+
         const content = response.choices[0]?.message?.content || '';
         console.log('[Assinatura] Resposta da IA:', content);
-        
+
         let parsed: any = {};
         try {
           const jsonMatch = content.match(/\{[\s\S]*\}/);
@@ -2193,25 +2193,25 @@ Responda APENAS em JSON válido com esta estrutura:
         } catch (parseErr) {
           console.error('[Assinatura] Erro ao parsear resposta da IA:', parseErr);
         }
-        
+
         const extractedAddress = parsed.endereco_extraido || parsed.rua || '';
         const confidence = parsed.confianca || 0.5;
-        
+
         const normalizeStr = (s: string) => (s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
-        
+
         const userStreet = normalizeStr(addressData.street);
         const userCity = normalizeStr(addressData.city);
         const extractedStreet = normalizeStr(parsed.rua || extractedAddress);
         const extractedCity = normalizeStr(parsed.cidade || '');
-        
-        const streetMatch = extractedStreet.includes(userStreet) || userStreet.includes(extractedStreet) || 
-                           (userStreet.length > 3 && extractedStreet.includes(userStreet.substring(0, Math.min(10, userStreet.length))));
+
+        const streetMatch = extractedStreet.includes(userStreet) || userStreet.includes(extractedStreet) ||
+          (userStreet.length > 3 && extractedStreet.includes(userStreet.substring(0, Math.min(10, userStreet.length))));
         const cityMatch = extractedCity.includes(userCity) || userCity.includes(extractedCity);
-        
+
         const isMatch = (streetMatch && cityMatch) || confidence >= 0.8;
-        
+
         console.log(`[Assinatura] Comparação: rua=${streetMatch}, cidade=${cityMatch}, confiança=${confidence}, match=${isMatch}`);
-        
+
         if (contractId) {
           const proofUpdates = {
             residence_proof_photo: imageBase64 || null,
@@ -2221,16 +2221,16 @@ Responda APENAS em JSON válido com esta estrutura:
             residence_proof_date: new Date().toISOString(),
             residence_proof_manual_review: !isMatch
           };
-          
+
           console.log(`[Assinatura] Salvando comprovante de residência para: ${contractId}, foto presente: ${!!imageBase64}, tamanho: ${imageBase64?.length || 0} chars`);
-          
+
           const localContract = localContractsStore.get(contractId);
           if (localContract) {
             localContractsStore.set(contractId, { ...localContract, ...proofUpdates });
             saveLocalContracts(localContractsStore);
             console.log(`[Assinatura] Contrato local atualizado: ${contractId}`);
           }
-          
+
           if (assinaturaSupabaseService.isConnected()) {
             let result = await assinaturaSupabaseService.updateContractByToken(contractId, proofUpdates);
             if (!result) {
@@ -2245,14 +2245,14 @@ Responda APENAS em JSON válido com esta estrutura:
           }
           console.log(`[Assinatura] Dados do comprovante salvos para contrato: ${contractId} (com foto: ${imageBase64 ? 'sim' : 'não'})`);
         }
-        
+
         return res.json({
           success: true,
           match: isMatch,
           extractedAddress: extractedAddress || 'Endereço extraído do documento',
           confidence: confidence,
-          message: isMatch 
-            ? 'Endereço do comprovante confere com os dados informados!' 
+          message: isMatch
+            ? 'Endereço do comprovante confere com os dados informados!'
             : 'O endereço do comprovante parece diferente do informado. Verifique os dados.',
           details: {
             tipo_documento: parsed.tipo_documento,
@@ -2261,14 +2261,14 @@ Responda APENAS em JSON válido com esta estrutura:
             estado_extraido: parsed.estado
           }
         });
-        
+
       } catch (aiError: any) {
         console.error('[Assinatura] Erro na análise com IA:', aiError.message);
       }
     }
-    
+
     console.log('[Assinatura] IA não configurada - usando validação simplificada');
-    
+
     if (contractId) {
       const proofUpdates = {
         residence_proof_photo: imageBase64 || null,
@@ -2278,16 +2278,16 @@ Responda APENAS em JSON válido com esta estrutura:
         residence_proof_date: new Date().toISOString(),
         residence_proof_manual_review: true
       };
-      
+
       console.log(`[Assinatura] Salvando comprovante (modo simplificado) para: ${contractId}, foto presente: ${!!imageBase64}, tamanho: ${imageBase64?.length || 0} chars`);
-      
+
       const localContract = localContractsStore.get(contractId);
       if (localContract) {
         localContractsStore.set(contractId, { ...localContract, ...proofUpdates });
         saveLocalContracts(localContractsStore);
         console.log(`[Assinatura] Contrato local atualizado: ${contractId}`);
       }
-      
+
       if (assinaturaSupabaseService.isConnected()) {
         let result = await assinaturaSupabaseService.updateContractByToken(contractId, proofUpdates);
         if (!result) {
@@ -2302,7 +2302,7 @@ Responda APENAS em JSON válido com esta estrutura:
       }
       console.log(`[Assinatura] Dados do comprovante salvos para contrato: ${contractId} (modo simplificado, com foto: ${imageBase64 ? 'sim' : 'não'})`);
     }
-    
+
     return res.json({
       success: true,
       match: true,
@@ -2313,7 +2313,7 @@ Responda APENAS em JSON válido com esta estrutura:
         nota: 'Para validação automática com IA, configure a variável OPENAI_API_KEY'
       }
     });
-    
+
   } catch (error: any) {
     console.error('[Assinatura] Erro ao validar comprovante de residência:', error);
     return res.status(500).json({
@@ -2330,9 +2330,9 @@ Responda APENAS em JSON válido com esta estrutura:
 router.get('/public/contract/:token', async (req: Request, res: Response) => {
   try {
     const { token } = req.params;
-    
+
     console.log(`[Assinatura/Public] Buscando contrato por token: ${token}`);
-    
+
     // Primeiro buscar no Supabase
     if (assinaturaSupabaseService.isConnected()) {
       let contract = await assinaturaSupabaseService.getContractByToken(token);
@@ -2342,12 +2342,12 @@ router.get('/public/contract/:token', async (req: Request, res: Response) => {
         return res.json(contract);
       }
     }
-    
+
     // Fallback: buscar no store local
     let contract = Array.from(localContractsStore.values()).find(
       (c) => c.access_token === token
     );
-    
+
     if (!contract) {
       contract = localContractsStore.get(token);
     }
@@ -2370,19 +2370,19 @@ router.get('/public/contract/:token', async (req: Request, res: Response) => {
 router.post('/public/contracts/from-meeting', async (req: Request, res: Response) => {
   try {
     const { meetingId, formSubmissionId, fsid, client_name, client_phone, client_email } = req.body;
-    
+
     // Aceitar formSubmissionId ou fsid como parâmetro
     const submissionId = formSubmissionId || fsid;
-    
+
     console.log(`[Assinatura] POST /public/contracts/from-meeting - meetingId: ${meetingId}, submissionId: ${submissionId || 'null'}`);
-    
+
     // Se não tem submissionId mas tem meetingId, buscar dados da reunião diretamente
     if (!submissionId && meetingId) {
       console.log('[Assinatura] Sem formSubmissionId - tentando criar contrato direto dos dados da reunião');
-      
+
       // Buscar dados da reunião de múltiplas fontes
       let meetingData: any = null;
-      
+
       // Fonte 1: PostgreSQL local
       try {
         const { pool } = await import('../db.js');
@@ -2399,7 +2399,7 @@ router.post('/public/contracts/from-meeting', async (req: Request, res: Response
       } catch (err) {
         console.log('[Assinatura] Erro ao buscar reunião no PostgreSQL:', err);
       }
-      
+
       // Fonte 2: Supabase (se não encontrou localmente)
       if (!meetingData && SUPABASE_CONFIGURED && supabaseOwner) {
         try {
@@ -2416,7 +2416,7 @@ router.post('/public/contracts/from-meeting', async (req: Request, res: Response
           console.log('[Assinatura] Erro ao buscar reunião no Supabase:', err);
         }
       }
-      
+
       // Verificar se temos dados mínimos para criar o contrato
       const finalName = client_name || meetingData?.nome || 'Participante';
       // Limpar telefone: remover @s.whatsapp.net e manter apenas números (max 20 chars para varchar(20))
@@ -2424,7 +2424,7 @@ router.post('/public/contracts/from-meeting', async (req: Request, res: Response
       const finalPhone = rawPhone.replace(/@s\.whatsapp\.net$/i, '').replace(/\D/g, '').slice(0, 20);
       const finalEmail = client_email || meetingData?.email || '';
       let tenantId = meetingData?.tenant_id || null;
-      
+
       // Se não temos tenant_id, tentar resolver via form_submissions usando telefone/email
       if (!tenantId && (finalPhone || finalEmail)) {
         console.log('[Assinatura] Tentando resolver tenant_id via form_submissions...');
@@ -2433,9 +2433,9 @@ router.post('/public/contracts/from-meeting', async (req: Request, res: Response
           console.log(`[Assinatura] ✅ Tenant resolvido via form_submissions: ${tenantId}`);
         }
       }
-      
+
       console.log(`[Assinatura] Criando contrato com: nome=${finalName}, telefone=${finalPhone}, tenantId=${tenantId}`);
-      
+
       // Buscar endereço automaticamente por telefone/email se disponível
       let addressData: any = null;
       if (finalPhone || finalEmail) {
@@ -2445,7 +2445,7 @@ router.post('/public/contracts/from-meeting', async (req: Request, res: Response
             const supabaseClient = await getClienteSupabase();
             if (supabaseClient) {
               let submission = null;
-              
+
               // Buscar por telefone - incluindo nome e email para usar no contrato
               if (finalPhone) {
                 const phoneDigits = finalPhone.replace(/\D/g, '');
@@ -2464,7 +2464,7 @@ router.post('/public/contracts/from-meeting', async (req: Request, res: Response
                   }
                 }
               }
-              
+
               // Fallback para email
               if (!submission && finalEmail && !finalEmail.includes('placeholder')) {
                 const { data } = await supabaseClient
@@ -2478,7 +2478,7 @@ router.post('/public/contracts/from-meeting', async (req: Request, res: Response
                   console.log('[Assinatura] ✅ Form_submission encontrado por email');
                 }
               }
-              
+
               if (submission) {
                 addressData = {
                   street: submission.address_street || '',
@@ -2498,19 +2498,19 @@ router.post('/public/contracts/from-meeting', async (req: Request, res: Response
           console.log('[Assinatura] Erro ao buscar endereço:', err);
         }
       }
-      
+
       // Criar contrato diretamente - usar dados do form_submission quando disponíveis
       const id = nanoid();
       const access_token = crypto.randomUUID();
       const protocolNum = `CONT-${Date.now()}-${nanoid(9).toUpperCase()}`;
-      const domain = process.env.REPLIT_DOMAINS?.split(',')[0] || process.env.REPLIT_DEV_DOMAIN || 'localhost:5000';
+      const domain = process.env.APP_DOMAIN || process.env.REPLIT_DOMAINS?.split(',')[0] || process.env.REPLIT_DEV_DOMAIN || 'localhost:5000';
       const protocolScheme = domain.includes('localhost') ? 'http' : 'https';
       const signature_url = `${protocolScheme}://${domain}/assinar/${access_token}`;
-      
+
       // IMPORTANTE: Priorizar dados do form_submission sobre dados da reunião
       const contractClientName = addressData?.name || finalName;
       const contractClientEmail = addressData?.email || finalEmail || '';
-      
+
       const globalConfig = localGlobalConfig;
       const contractData: any = {
         id,
@@ -2542,11 +2542,11 @@ router.post('/public/contracts/from-meeting', async (req: Request, res: Response
           zipcode: addressData.zipcode
         } : null
       };
-      
+
       // Salvar localmente
       localContractsStore.set(id, contractData);
       saveLocalContracts(localContractsStore);
-      
+
       // Salvar no Supabase se configurado e tiver tenantId
       if (tenantId && SUPABASE_CONFIGURED && supabaseOwner) {
         try {
@@ -2566,16 +2566,16 @@ router.post('/public/contracts/from-meeting', async (req: Request, res: Response
             address_state: addressData?.state || null,
             address_zipcode: addressData?.zipcode || null,
           };
-          
+
           const supabaseContract = await assinaturaSupabaseService.createContract(supabaseContractData);
           console.log(`[Assinatura] ✅ Contrato salvo no Supabase: ${supabaseContract?.id || 'sem id'}, nome: ${contractClientName}`);
         } catch (err) {
           console.log('[Assinatura] Erro ao salvar no Supabase (contrato local mantido):', err);
         }
       }
-      
+
       console.log(`[Assinatura] ✅ Contrato criado: ${id}, cliente: ${contractClientName}`);
-      
+
       return res.json({
         success: true,
         contract: {
@@ -2589,39 +2589,39 @@ router.post('/public/contracts/from-meeting', async (req: Request, res: Response
         }
       });
     }
-    
+
     // Se não tem nem submissionId nem meetingId, erro
     if (!submissionId) {
-      return res.status(400).json({ 
-        error: 'Campo obrigatório ausente', 
-        details: 'formSubmissionId, fsid ou meetingId é obrigatório' 
+      return res.status(400).json({
+        error: 'Campo obrigatório ausente',
+        details: 'formSubmissionId, fsid ou meetingId é obrigatório'
       });
     }
-    
+
     // Log se supabaseOwner não está configurado (mas não falhar - continuar com fallbacks)
     const useSupabaseOwner = SUPABASE_CONFIGURED && supabaseOwner;
     if (!useSupabaseOwner) {
       console.log('[Assinatura] supabaseOwner não configurado - usando fallbacks locais');
     }
-    
+
     // 1. Buscar dados do form_submission
     console.log(`[Assinatura] Buscando form_submission: ${submissionId}`);
     let formSubmission: any = null;
-    
+
     if (useSupabaseOwner) {
       const { data, error: fsError } = await supabaseOwner
         .from('form_submissions')
         .select('id, tenant_id, contact_name, contact_cpf, contact_email, contact_phone, address_street, address_number, address_complement, address_city, address_state, address_cep')
         .eq('id', submissionId)
         .single();
-      
+
       if (!fsError && data) {
         formSubmission = data;
       } else if (fsError) {
         console.log('[Assinatura] Erro ao buscar form_submission via supabaseOwner:', fsError.message);
       }
     }
-    
+
     // Fallback: buscar via clienteSupabase se disponível
     if (!formSubmission) {
       try {
@@ -2634,7 +2634,7 @@ router.post('/public/contracts/from-meeting', async (req: Request, res: Response
               .select('id, tenant_id, contact_name, contact_cpf, contact_email, contact_phone, address_street, address_number, address_complement, address_city, address_state, address_cep')
               .eq('id', submissionId)
               .single();
-            
+
             if (!fsError && data) {
               formSubmission = data;
               console.log('[Assinatura] form_submission encontrado via clienteSupabase');
@@ -2645,7 +2645,7 @@ router.post('/public/contracts/from-meeting', async (req: Request, res: Response
         console.log('[Assinatura] Fallback clienteSupabase falhou:', err);
       }
     }
-    
+
     // Fallback: buscar do PostgreSQL local via pool
     if (!formSubmission) {
       try {
@@ -2678,25 +2678,25 @@ router.post('/public/contracts/from-meeting', async (req: Request, res: Response
         console.log('[Assinatura] Fallback para PostgreSQL local falhou:', err);
       }
     }
-    
+
     if (!formSubmission) {
       console.error('[Assinatura] form_submission não encontrado em nenhuma fonte');
-      return res.status(404).json({ 
+      return res.status(404).json({
         error: 'form_submission não encontrado',
         details: 'Registro não existe'
       });
     }
-    
+
     console.log(`[Assinatura] form_submission encontrado:`, {
       id: formSubmission.id,
       tenant_id: formSubmission.tenant_id,
       contact_name: formSubmission.contact_name,
       contact_email: formSubmission.contact_email
     });
-    
+
     // 2. Verificar se já existe contrato para este formSubmissionId
     let existingContract: any = null;
-    
+
     if (useSupabaseOwner) {
       // Buscar por form_submission_id apenas (mais confiável)
       const { data: existing } = await supabaseOwner
@@ -2705,7 +2705,7 @@ router.post('/public/contracts/from-meeting', async (req: Request, res: Response
         .eq('form_submission_id', submissionId)
         .maybeSingle();
       existingContract = existing;
-      
+
       // Se não encontrou e temos meetingId, buscar por meeting_id
       if (!existingContract && meetingId) {
         const { data: existingByMeeting } = await supabaseOwner
@@ -2716,7 +2716,7 @@ router.post('/public/contracts/from-meeting', async (req: Request, res: Response
         existingContract = existingByMeeting;
       }
     }
-    
+
     // Também verificar no store local
     if (!existingContract) {
       for (const [id, contract] of localContractsStore.entries()) {
@@ -2730,7 +2730,7 @@ router.post('/public/contracts/from-meeting', async (req: Request, res: Response
         }
       }
     }
-    
+
     if (existingContract) {
       console.log(`[Assinatura] Contrato já existe para este form_submission: ${existingContract.id}`);
       return res.status(200).json({
@@ -2740,16 +2740,16 @@ router.post('/public/contracts/from-meeting', async (req: Request, res: Response
         duplicate: true
       });
     }
-    
+
     // 3. Gerar protocol_number e access_token
     const protocolNumber = `CONT-${Date.now()}-${nanoid(9).toUpperCase()}`;
     const accessToken = crypto.randomUUID();
-    
+
     // Gerar URL de assinatura
-    const domain = process.env.REPLIT_DOMAINS?.split(',')[0] || process.env.REPLIT_DEV_DOMAIN || 'localhost:5000';
+    const domain = process.env.APP_DOMAIN || process.env.REPLIT_DOMAINS?.split(',')[0] || process.env.REPLIT_DEV_DOMAIN || 'localhost:5000';
     const protocolScheme = domain.includes('localhost') ? 'http' : 'https';
     const signatureUrl = `${protocolScheme}://${domain}/assinar/${accessToken}`;
-    
+
     // 4. Preparar dados do contrato
     const contractData = {
       client_name: formSubmission.contact_name || 'Cliente',
@@ -2772,13 +2772,13 @@ router.post('/public/contracts/from-meeting', async (req: Request, res: Response
       tenant_id: formSubmission.tenant_id || null,
       created_at: new Date().toISOString()
     };
-    
+
     console.log(`[Assinatura] Criando contrato para: ${contractData.client_name}, protocol: ${protocolNumber}`);
-    
+
     // 5. Tentar criar no Supabase do tenant específico se disponível
     let createdContract = null;
     let supabaseContractId: string | null = null;
-    
+
     // Dados para o Supabase (sem colunas extras que não existem na tabela)
     // A tabela contracts NÃO tem: form_submission_id, meeting_id, tenant_id
     const supabaseContractData = {
@@ -2799,7 +2799,7 @@ router.post('/public/contracts/from-meeting', async (req: Request, res: Response
       contract_html: contractData.contract_html,
       created_at: contractData.created_at
     };
-    
+
     if (formSubmission.tenant_id) {
       try {
         const tenantSupabase = await getClientSupabaseClient(formSubmission.tenant_id);
@@ -2809,7 +2809,7 @@ router.post('/public/contracts/from-meeting', async (req: Request, res: Response
             .insert(supabaseContractData)
             .select()
             .single();
-          
+
           if (insertError) {
             console.error(`[Assinatura] Erro ao criar contrato no tenant ${formSubmission.tenant_id}:`, insertError);
           } else if (data) {
@@ -2822,19 +2822,19 @@ router.post('/public/contracts/from-meeting', async (req: Request, res: Response
         console.error('[Assinatura] Erro ao criar contrato via tenant:', err);
       }
     }
-    
+
     // 6. Fallback: usar assinaturaSupabaseService
     if (!createdContract && assinaturaSupabaseService.isConnected()) {
       console.log('[Assinatura] Tentando fallback via assinaturaSupabaseService...');
       const supabaseContract = await assinaturaSupabaseService.createContract(supabaseContractData);
-      
+
       if (supabaseContract) {
         createdContract = supabaseContract;
         supabaseContractId = supabaseContract.id || null;
         console.log(`[Assinatura] ✅ Contrato criado via fallback: ${supabaseContractId}`);
       }
     }
-    
+
     // 7. Salvar localmente também
     const localId = supabaseContractId || nanoid();
     const localContract: LocalContract = {
@@ -2843,16 +2843,16 @@ router.post('/public/contracts/from-meeting', async (req: Request, res: Response
     };
     localContractsStore.set(localId, localContract);
     saveLocalContracts(localContractsStore);
-    
+
     // 8. Retornar resultado
     const responseContract = createdContract || localContract;
-    
+
     console.log(`[Assinatura] ✅ Contrato criado com sucesso:`, {
       id: responseContract.id || localId,
       protocol_number: protocolNumber,
       access_token: accessToken
     });
-    
+
     return res.status(201).json({
       success: true,
       message: 'Contrato criado com sucesso',
@@ -2865,12 +2865,12 @@ router.post('/public/contracts/from-meeting', async (req: Request, res: Response
       },
       duplicate: false
     });
-    
+
   } catch (error: any) {
     console.error('[Assinatura] Erro ao criar contrato from-meeting:', error);
-    return res.status(500).json({ 
+    return res.status(500).json({
       error: 'Erro interno ao criar contrato',
-      details: error.message 
+      details: error.message
     });
   }
 });
