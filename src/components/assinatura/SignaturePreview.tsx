@@ -80,6 +80,14 @@ interface SignaturePreviewProps {
   detectionQualityMessage?: string;
   detectionPerfectMessage?: string;
   
+  selfieStepBackgroundColor?: string;
+  selfieStepTextColor?: string;
+  documentStepBackgroundColor?: string;
+  documentStepTextColor?: string;
+  analysisStepBackgroundColor?: string;
+  analysisStepTextColor?: string;
+  resultStepBackgroundColor?: string;
+  resultStepTextColor?: string;
   contractTitle?: string;
   clauses?: ContractClause[];
   
@@ -146,12 +154,20 @@ export const SignaturePreview = ({
   
   selfieStepTitle = 'Tire uma selfie',
   selfieStepDescription = 'Posicione seu rosto na área indicada',
+  selfieStepBackgroundColor = '#ffffff',
+  selfieStepTextColor = '#000000',
   documentStepTitle = 'Fotografe seu documento',
   documentStepDescription = 'CNH, RG ou outro documento com foto',
+  documentStepBackgroundColor = '#ffffff',
+  documentStepTextColor = '#000000',
   analysisStepTitle = 'Verificação automática',
   analysisStepDescription = 'Comparamos sua foto com o documento',
+  analysisStepBackgroundColor = '#ffffff',
+  analysisStepTextColor = '#000000',
   resultStepTitle = 'Verificação concluída',
   resultStepDescription = 'Sua identidade foi verificada com sucesso',
+  resultStepBackgroundColor = '#ffffff',
+  resultStepTextColor = '#000000',
   selfieButtonText = 'Iniciar Verificação',
   selfieInstructionText = 'Posicione seu rosto e aguarde a captura automática',
   
@@ -243,21 +259,29 @@ export const SignaturePreview = ({
       icon: Camera,
       title: selfieStepTitle,
       description: selfieStepDescription,
+      backgroundColor: selfieStepBackgroundColor,
+      textColor: selfieStepTextColor,
     },
     {
       icon: FileText,
       title: documentStepTitle,
       description: documentStepDescription,
+      backgroundColor: documentStepBackgroundColor,
+      textColor: documentStepTextColor,
     },
     {
       icon: CheckCircle,
       title: analysisStepTitle,
       description: analysisStepDescription,
+      backgroundColor: analysisStepBackgroundColor,
+      textColor: analysisStepTextColor,
     },
     {
       icon: Award,
       title: resultStepTitle,
       description: resultStepDescription,
+      backgroundColor: resultStepBackgroundColor,
+      textColor: resultStepTextColor,
     },
   ];
 
@@ -304,7 +328,7 @@ export const SignaturePreview = ({
     const renderTelaInicialPreview = () => (
       <div 
         className="min-h-[400px] flex flex-col items-center p-6"
-        style={{ backgroundColor, fontFamily: vFontFamily }}
+        style={{ backgroundColor: selfieStepBackgroundColor || backgroundColor, fontFamily: vFontFamily }}
         data-testid="preview-tela-inicial"
       >
         {vLogoUrl && (
@@ -398,7 +422,7 @@ export const SignaturePreview = ({
                   key={index}
                   className="flex items-center gap-3 p-2 rounded-lg"
                   style={{ 
-                    backgroundColor: isActive ? `${vPrimaryColor}15` : 'transparent',
+                    backgroundColor: isActive ? (step.backgroundColor || `${vPrimaryColor}15`) : 'transparent',
                     borderLeft: isActive ? `3px solid ${vPrimaryColor}` : '3px solid transparent'
                   }}
                 >
@@ -414,13 +438,13 @@ export const SignaturePreview = ({
                   <div className="flex-1 min-w-0">
                     <p 
                       className="text-xs font-medium truncate"
-                      style={{ color: isActive ? vPrimaryColor : progressIndicatorInactiveTextColor }}
+                      style={{ color: isActive ? (step.textColor || vPrimaryColor) : progressIndicatorInactiveTextColor }}
                     >
                       {step.title}
                     </p>
                     <p 
                       className="text-xs truncate"
-                      style={{ color: vTextColor, opacity: 0.6 }}
+                      style={{ color: isActive ? (step.textColor || vTextColor) : vTextColor, opacity: 0.6 }}
                     >
                       {step.description}
                     </p>

@@ -99,6 +99,16 @@ const PersonalizarAssinaturaPage = () => {
   const [stepLabelResult, setStepLabelResult] = useState('Resultado');
   const [progressIndicatorInactiveCircleColor, setProgressIndicatorInactiveCircleColor] = useState('#e5e5e5');
   const [progressIndicatorInactiveTextColor, setProgressIndicatorInactiveTextColor] = useState('#666666');
+  
+  const [selfieStepBackgroundColor, setSelfieStepBackgroundColor] = useState('#ffffff');
+  const [selfieStepTextColor, setSelfieStepTextColor] = useState('#000000');
+  const [documentStepBackgroundColor, setDocumentStepBackgroundColor] = useState('#ffffff');
+  const [documentStepTextColor, setDocumentStepTextColor] = useState('#000000');
+  const [analysisStepBackgroundColor, setAnalysisStepBackgroundColor] = useState('#ffffff');
+  const [analysisStepTextColor, setAnalysisStepTextColor] = useState('#000000');
+  const [resultStepBackgroundColor, setResultStepBackgroundColor] = useState('#ffffff');
+  const [resultStepTextColor, setResultStepTextColor] = useState('#000000');
+
   const [selfieCaptureButtonText, setSelfieCaptureButtonText] = useState('Capturar Agora');
   const [selfieRetakeButtonText, setSelfieRetakeButtonText] = useState('Tirar Outra');
   const [selfieConfirmButtonText, setSelfieConfirmButtonText] = useState('Confirmar');
@@ -174,6 +184,15 @@ const PersonalizarAssinaturaPage = () => {
       if (globalConfig.verification_background_color) setVerificationBackgroundColor(globalConfig.verification_background_color);
       if (globalConfig.verification_header_background_color) setVerificationHeaderBackgroundColor(globalConfig.verification_header_background_color);
       if (globalConfig.verification_header_company_name) setVerificationHeaderCompanyName(globalConfig.verification_header_company_name);
+      
+      if (globalConfig.selfie_step_background_color) setSelfieStepBackgroundColor(globalConfig.selfie_step_background_color);
+      if (globalConfig.selfie_step_text_color) setSelfieStepTextColor(globalConfig.selfie_step_text_color);
+      if (globalConfig.document_step_background_color) setDocumentStepBackgroundColor(globalConfig.document_step_background_color);
+      if (globalConfig.document_step_text_color) setDocumentStepTextColor(globalConfig.document_step_text_color);
+      if (globalConfig.analysis_step_background_color) setAnalysisStepBackgroundColor(globalConfig.analysis_step_background_color);
+      if (globalConfig.analysis_step_text_color) setAnalysisStepTextColor(globalConfig.analysis_step_text_color);
+      if (globalConfig.result_step_background_color) setResultStepBackgroundColor(globalConfig.result_step_background_color);
+      if (globalConfig.result_step_text_color) setResultStepTextColor(globalConfig.result_step_text_color);
       
       if (globalConfig.progress_card_color) setProgressCardColor(globalConfig.progress_card_color);
       if (globalConfig.progress_button_color) setProgressButtonColor(globalConfig.progress_button_color);
@@ -264,6 +283,15 @@ const PersonalizarAssinaturaPage = () => {
       verification_background_color: verificationBackgroundColor,
       verification_header_background_color: verificationHeaderBackgroundColor,
       verification_header_company_name: verificationHeaderCompanyName,
+      
+      selfie_step_background_color: selfieStepBackgroundColor,
+      selfie_step_text_color: selfieStepTextColor,
+      document_step_background_color: documentStepBackgroundColor,
+      document_step_text_color: documentStepTextColor,
+      analysis_step_background_color: analysisStepBackgroundColor,
+      analysis_step_text_color: analysisStepTextColor,
+      result_step_background_color: resultStepBackgroundColor,
+      result_step_text_color: resultStepTextColor,
       
       progress_card_color: progressCardColor,
       progress_button_color: progressButtonColor,
@@ -404,6 +432,28 @@ const PersonalizarAssinaturaPage = () => {
                   onDetectionPerfectMessageChange={setDetectionPerfectMessage}
                   onSelfieStepTitleChange={setSelfieStepTitle}
                   onSelfieStepDescriptionChange={setSelfieStepDescription}
+                  selfieStepBackgroundColor={selfieStepBackgroundColor}
+                  onSelfieStepBackgroundColorChange={setSelfieStepBackgroundColor}
+                  selfieStepTextColor={selfieStepTextColor}
+                  onSelfieStepTextColorChange={setSelfieStepTextColor}
+                  onDocumentStepTitleChange={setDocumentStepTitle}
+                  onDocumentStepDescriptionChange={setDocumentStepDescription}
+                  documentStepBackgroundColor={documentStepBackgroundColor}
+                  onDocumentStepBackgroundColorChange={setDocumentStepBackgroundColor}
+                  documentStepTextColor={documentStepTextColor}
+                  onDocumentStepTextColorChange={setDocumentStepTextColor}
+                  onAnalysisStepTitleChange={setAnalysisStepTitle}
+                  onAnalysisStepDescriptionChange={setAnalysisStepDescription}
+                  analysisStepBackgroundColor={analysisStepBackgroundColor}
+                  onAnalysisStepBackgroundColorChange={setAnalysisStepBackgroundColor}
+                  analysisStepTextColor={analysisStepTextColor}
+                  onAnalysisStepTextColorChange={setAnalysisStepTextColor}
+                  onResultStepTitleChange={setResultStepTitle}
+                  onResultStepDescriptionChange={setResultStepDescription}
+                  resultStepBackgroundColor={resultStepBackgroundColor}
+                  onResultStepBackgroundColorChange={setResultStepBackgroundColor}
+                  resultStepTextColor={resultStepTextColor}
+                  onResultStepTextColorChange={setResultStepTextColor}
                   onDocumentStepTitleChange={setDocumentStepTitle}
                   onDocumentStepDescriptionChange={setDocumentStepDescription}
                   onAnalysisStepTitleChange={setAnalysisStepTitle}
@@ -542,12 +592,20 @@ const PersonalizarAssinaturaPage = () => {
                         headerBackgroundColor={verificationHeaderBackgroundColor}
                         selfieStepTitle={selfieStepTitle}
                         selfieStepDescription={selfieStepDescription}
+                        selfieStepBackgroundColor={selfieStepBackgroundColor}
+                        selfieStepTextColor={selfieStepTextColor}
                         documentStepTitle={documentStepTitle}
                         documentStepDescription={documentStepDescription}
+                        documentStepBackgroundColor={documentStepBackgroundColor}
+                        documentStepTextColor={documentStepTextColor}
                         analysisStepTitle={analysisStepTitle}
                         analysisStepDescription={analysisStepDescription}
+                        analysisStepBackgroundColor={analysisStepBackgroundColor}
+                        analysisStepTextColor={analysisStepTextColor}
                         resultStepTitle={resultStepTitle}
                         resultStepDescription={resultStepDescription}
+                        resultStepBackgroundColor={resultStepBackgroundColor}
+                        resultStepTextColor={resultStepTextColor}
                         selfieButtonText={selfieButtonText}
                         selfieInstructionText={selfieInstructionText}
                         contractTitle={contractTitle}

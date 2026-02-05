@@ -77,12 +77,20 @@ export interface SimplifiedSignatureWizardProps {
   verificationHeaderCompanyName: string;
   selfieStepTitle: string;
   selfieStepDescription: string;
+  selfieStepBackgroundColor: string;
+  selfieStepTextColor: string;
   documentStepTitle: string;
   documentStepDescription: string;
+  documentStepBackgroundColor: string;
+  documentStepTextColor: string;
   analysisStepTitle: string;
   analysisStepDescription: string;
+  analysisStepBackgroundColor: string;
+  analysisStepTextColor: string;
   resultStepTitle: string;
   resultStepDescription: string;
+  resultStepBackgroundColor: string;
+  resultStepTextColor: string;
   selfieButtonText: string;
   selfieInstructionText: string;
   stepLabelSelfie: string;
@@ -129,12 +137,20 @@ export interface SimplifiedSignatureWizardProps {
   onVerificationHeaderCompanyNameChange: (value: string) => void;
   onSelfieStepTitleChange: (value: string) => void;
   onSelfieStepDescriptionChange: (value: string) => void;
+  onSelfieStepBackgroundColorChange: (value: string) => void;
+  onSelfieStepTextColorChange: (value: string) => void;
   onDocumentStepTitleChange: (value: string) => void;
   onDocumentStepDescriptionChange: (value: string) => void;
+  onDocumentStepBackgroundColorChange: (value: string) => void;
+  onDocumentStepTextColorChange: (value: string) => void;
   onAnalysisStepTitleChange: (value: string) => void;
   onAnalysisStepDescriptionChange: (value: string) => void;
+  onAnalysisStepBackgroundColorChange: (value: string) => void;
+  onAnalysisStepTextColorChange: (value: string) => void;
   onResultStepTitleChange: (value: string) => void;
   onResultStepDescriptionChange: (value: string) => void;
+  onResultStepBackgroundColorChange: (value: string) => void;
+  onResultStepTextColorChange: (value: string) => void;
   onSelfieButtonTextChange: (value: string) => void;
   onSelfieInstructionTextChange: (value: string) => void;
 
@@ -283,12 +299,20 @@ export const SimplifiedSignatureWizard = ({
   verificationHeaderCompanyName,
   selfieStepTitle,
   selfieStepDescription,
+  selfieStepBackgroundColor,
+  selfieStepTextColor,
   documentStepTitle,
   documentStepDescription,
+  documentStepBackgroundColor,
+  documentStepTextColor,
   analysisStepTitle,
   analysisStepDescription,
+  analysisStepBackgroundColor,
+  analysisStepTextColor,
   resultStepTitle,
   resultStepDescription,
+  resultStepBackgroundColor,
+  resultStepTextColor,
   selfieButtonText,
   selfieInstructionText,
   stepLabelSelfie,
@@ -335,12 +359,20 @@ export const SimplifiedSignatureWizard = ({
   onVerificationHeaderCompanyNameChange,
   onSelfieStepTitleChange,
   onSelfieStepDescriptionChange,
+  onSelfieStepBackgroundColorChange,
+  onSelfieStepTextColorChange,
   onDocumentStepTitleChange,
   onDocumentStepDescriptionChange,
+  onDocumentStepBackgroundColorChange,
+  onDocumentStepTextColorChange,
   onAnalysisStepTitleChange,
   onAnalysisStepDescriptionChange,
+  onAnalysisStepBackgroundColorChange,
+  onAnalysisStepTextColorChange,
   onResultStepTitleChange,
   onResultStepDescriptionChange,
+  onResultStepBackgroundColorChange,
+  onResultStepTextColorChange,
   onSelfieButtonTextChange,
   onSelfieInstructionTextChange,
 
@@ -740,6 +772,26 @@ export const SimplifiedSignatureWizard = ({
                     placeholder="Posicione seu rosto na área indicada"
                     data-testid="input-selfie-step-description"
                   />
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Cor Fundo</Label>
+                      <Input
+                        type="color"
+                        value={selfieStepBackgroundColor || '#ffffff'}
+                        onChange={(e) => onSelfieStepBackgroundColorChange(e.target.value)}
+                        className="h-8 p-1"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Cor Texto</Label>
+                      <Input
+                        type="color"
+                        value={selfieStepTextColor || '#000000'}
+                        onChange={(e) => onSelfieStepTextColorChange(e.target.value)}
+                        className="h-8 p-1"
+                      />
+                    </div>
+                  </div>
                 </div>
                 <div className="space-y-3">
                   <Label className="font-semibold">2. Documento</Label>
@@ -755,6 +807,26 @@ export const SimplifiedSignatureWizard = ({
                     placeholder="CNH, RG ou outro documento com foto"
                     data-testid="input-document-step-description"
                   />
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Cor Fundo</Label>
+                      <Input
+                        type="color"
+                        value={documentStepBackgroundColor || '#ffffff'}
+                        onChange={(e) => onDocumentStepBackgroundColorChange(e.target.value)}
+                        className="h-8 p-1"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Cor Texto</Label>
+                      <Input
+                        type="color"
+                        value={documentStepTextColor || '#000000'}
+                        onChange={(e) => onDocumentStepTextColorChange(e.target.value)}
+                        className="h-8 p-1"
+                      />
+                    </div>
+                  </div>
                 </div>
                 <div className="space-y-3">
                   <Label className="font-semibold">3. Análise</Label>
@@ -770,6 +842,26 @@ export const SimplifiedSignatureWizard = ({
                     placeholder="Comparamos sua foto com o documento"
                     data-testid="input-analysis-step-description"
                   />
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Cor Fundo</Label>
+                      <Input
+                        type="color"
+                        value={analysisStepBackgroundColor || '#ffffff'}
+                        onChange={(e) => onAnalysisStepBackgroundColorChange(e.target.value)}
+                        className="h-8 p-1"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Cor Texto</Label>
+                      <Input
+                        type="color"
+                        value={analysisStepTextColor || '#000000'}
+                        onChange={(e) => onAnalysisStepTextColorChange(e.target.value)}
+                        className="h-8 p-1"
+                      />
+                    </div>
+                  </div>
                 </div>
                 <div className="space-y-3">
                   <Label className="font-semibold">4. Resultado</Label>
@@ -785,6 +877,26 @@ export const SimplifiedSignatureWizard = ({
                     placeholder="Sua identidade foi verificada com sucesso"
                     data-testid="input-result-step-description"
                   />
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Cor Fundo</Label>
+                      <Input
+                        type="color"
+                        value={resultStepBackgroundColor || '#ffffff'}
+                        onChange={(e) => onResultStepBackgroundColorChange(e.target.value)}
+                        className="h-8 p-1"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Cor Texto</Label>
+                      <Input
+                        type="color"
+                        value={resultStepTextColor || '#000000'}
+                        onChange={(e) => onResultStepTextColorChange(e.target.value)}
+                        className="h-8 p-1"
+                      />
+                    </div>
+                  </div>
                 </div>
                 <Separator />
                 <div className="space-y-2">
