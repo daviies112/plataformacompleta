@@ -36,8 +36,9 @@ function initializeDatabase(): void {
     try {
       pool = new Pool({ 
         connectionString: databaseUrl,
-        connectionTimeoutMillis: 5000,
-        max: 10,
+        connectionTimeoutMillis: 10000, // Aumentado para 10s
+        max: 20, // Aumentado para 20
+        ssl: databaseUrl.includes('neon.tech') ? { rejectUnauthorized: false } : false
       });
       
       db = drizzle(pool, { schema });

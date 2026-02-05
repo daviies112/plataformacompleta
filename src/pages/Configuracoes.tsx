@@ -516,6 +516,75 @@ export default function Configuracoes() {
     });
   };
 
+  const [tokenId, setTokenId] = useState("");
+  const [chaveToken, setChaveToken] = useState("");
+  const [showChaveToken, setShowChaveToken] = useState(false);
+
+  const { data: bdcConfig } = useQuery({
+    queryKey: ["/api/credentials/bigdatacorp"],
+    queryFn: async () => {
+      const response = await fetch("/api/credentials/bigdatacorp", {
+        headers: { "Authorization": `Bearer ${localStorage.getItem('token')}` },
+      });
+      if (!response.ok) return null;
+      return response.json();
+    },
+  });
+
+  useEffect(() => {
+    if (bdcConfig?.credentials) {
+      setTokenId(bdcConfig.credentials.token_id || "");
+    }
+  }, [bdcConfig]);
+
+  const saveBdcMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const response = await fetch("/api/credentials/bigdatacorp", {
+        method: "PUT",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) throw new Error("Erro ao salvar configuração");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/credentials/bigdatacorp"] });
+      toast({ title: "BigDataCorp configurado", description: "Credenciais salvas com sucesso" });
+    },
+  });
+
+  const testBdcMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const response = await fetch("/api/credentials/test/bigdatacorp", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) throw new Error("Credenciais inválidas");
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Sucesso!", description: "Conexão com BigDataCorp validada" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    }
+  });
+
+  const handleSaveBdc = () => {
+    saveBdcMutation.mutate({ token_id: tokenId, chave_token: chaveToken });
+  };
+
+  const handleTestBdc = () => {
+    testBdcMutation.mutate({ token_id: tokenId, chave_token: chaveToken });
+  };
+
   const handleTestTotalExpress = () => {
     if (!totalExpressUser || !totalExpressReid) {
       toast({
@@ -617,6 +686,71 @@ export default function Configuracoes() {
                     </FormItem>
                   )}
                 />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5 text-yellow-500" />
+                  BigDataCorp (CPF)
+                </CardTitle>
+                <CardDescription>
+                  Configurações para consulta de CPF e Compliance.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <FormLabel>Token ID</FormLabel>
+                  <Input 
+                    value={tokenId} 
+                    onChange={(e) => setTokenId(e.target.value)} 
+                    placeholder="Seu Token ID"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <FormLabel>Chave Token</FormLabel>
+                  <div className="relative">
+                    <Input 
+                      type={showChaveToken ? "text" : "password"}
+                      value={chaveToken} 
+                      onChange={(e) => setChaveToken(e.target.value)} 
+                      placeholder="Sua Chave Token"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                      onClick={() => setShowChaveToken(!showChaveToken)}
+                    >
+                      {showChaveToken ? (
+                        <EyeOff className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <Eye className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={handleTestBdc}
+                    disabled={testBdcMutation.isPending}
+                  >
+                    {testBdcMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                    Testar Conexão
+                  </Button>
+                  <Button 
+                    type="button" 
+                    onClick={handleSaveBdc}
+                    disabled={saveBdcMutation.isPending}
+                  >
+                    {saveBdcMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Salvar BigDataCorp
+                  </Button>
+                </div>
               </CardContent>
             </Card>
 
