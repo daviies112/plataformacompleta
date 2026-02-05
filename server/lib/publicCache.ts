@@ -111,7 +111,13 @@ export async function getCachedSupabaseCredentials(tenantId: string): Promise<Ca
         
         // No Replit, as credenciais no banco podem não estar criptografadas
         // Verificamos se o dado parece estar criptografado (não começa com http/ey)
-        const isEncrypted = (str: string) => str && !str.startsWith('http') && !str.startsWith('ey') && !str.startsWith('https');
+        const isEncrypted = (str: string) => {
+          if (!str) return false;
+          // Se começar com http (URL) ou ey (JWT/Anon Key), não está criptografado
+          if (str.startsWith('http') || str.startsWith('ey')) return false;
+          // Caso contrário, assumimos que está criptografado
+          return true;
+        };
         const { decrypt } = await import('./credentialsManager');
 
         let url = config.supabase_url;

@@ -112,7 +112,11 @@ function decryptSupabaseConfig(config: typeof supabaseConfig.$inferSelect): Supa
     let anonKey: string;
     
     // Verificamos se o dado parece estar criptografado (não começa com http/ey)
-    const isEncrypted = (str: string) => str && !str.startsWith('http') && !str.startsWith('ey') && !str.startsWith('https');
+    const isEncrypted = (str: string) => {
+      if (!str) return false;
+      if (str.startsWith('http') || str.startsWith('ey')) return false;
+      return true;
+    };
 
     try {
       if (isEncrypted(config.supabaseUrl)) {
