@@ -34,10 +34,28 @@ function initializeDatabase(): void {
   // Prioridade para o DATABASE_URL dos Secrets
   const databaseUrl = process.env.DATABASE_URL || getDatabaseUrl();
   
-  if (databaseUrl) {
+  // Se não temos DATABASE_URL mas temos os segredos do Supabase, construímos a URL
+  let finalDbUrl = databaseUrl;
+  if (!finalDbUrl && process.env.REACT_APP_SUPABASE_URL && process.env.REACT_APP_SUPABASE_SERVICE_ROLE) {
+    const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+    const serviceRole = process.env.REACT_APP_SUPABASE_SERVICE_ROLE;
+    
+    // Extrair o ID do projeto da URL (ex: https://xyz.supabase.co -> xyz)
+    const projectId = supabaseUrl.split('//')[1]?.split('.')[0];
+    if (projectId) {
+      // Supabase PostgreSQL costuma seguir este padrão de URL
+      // Importante: A senha do banco de dados (postgres) pode não ser a Service Role Key.
+      // No entanto, em muitos setups do Replit, o usuário tenta usar o que tem disponível.
+      // Se o DATABASE_URL for fornecido diretamente nos Secrets, ele terá precedência.
+      finalDbUrl = `postgresql://postgres:${serviceRole}@db.${projectId}.supabase.co:5432/postgres`;
+      console.log('🏗️ Constructed DATABASE_URL from Supabase secrets for project:', projectId);
+    }
+  }
+
+  if (finalDbUrl) {
     try {
       // Remover query params que podem causar problemas com o driver node-postgres
-      const cleanDbUrl = databaseUrl.split('?')[0];
+      const cleanDbUrl = finalDbUrl.split('?')[0];
       
       console.log('🔌 Connecting to database with SSL:', !cleanDbUrl.includes('localhost'));
       

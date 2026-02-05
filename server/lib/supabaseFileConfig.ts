@@ -96,10 +96,23 @@ export function getEffectiveSupabaseConfig(): { url: string; anonKey: string; se
   const envDbUrl = process.env.DATABASE_URL;
   
   if (envUrl && (envKey || envServiceKey)) {
+    // Se temos service role mas não anon key, usamos service role para ambos no fallback
     return {
       url: envUrl,
       anonKey: envKey || envServiceKey,
       serviceRoleKey: envServiceKey,
+      databaseUrl: envDbUrl,
+    };
+  }
+
+  // Fallback para secrets do Replit que podem estar sem o prefixo REACT_APP_
+  const directEnvUrl = (process.env.SUPABASE_URL || '').trim();
+  const directEnvServiceKey = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
+  if (directEnvUrl && directEnvServiceKey) {
+    return {
+      url: directEnvUrl,
+      anonKey: directEnvServiceKey,
+      serviceRoleKey: directEnvServiceKey,
       databaseUrl: envDbUrl,
     };
   }
