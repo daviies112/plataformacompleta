@@ -33,6 +33,15 @@
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
     
+    <!-- Preconnect for APIs used in public forms (CEP lookup) -->
+    <link rel="preconnect" href="https://viacep.com.br">
+    <link rel="dns-prefetch" href="https://viacep.com.br">
+    
+    <!-- Preload ONLY React core modules - other deps loaded on-demand per route -->
+    <link rel="modulepreload" href="/node_modules/.vite/deps/react.js">
+    <link rel="modulepreload" href="/node_modules/.vite/deps/react-dom_client.js">
+    <link rel="modulepreload" href="/node_modules/.vite/deps/react_jsx-dev-runtime.js">
+    
     <!-- Critical CSS - instant visual feedback skeleton (LIGHT by default for public routes) -->
     <style>
       html, body { margin: 0; padding: 0; }
@@ -85,22 +94,88 @@
       .dark .skeleton-block {
         background: rgba(255,255,255,0.06);
       }
+      
+      /* CRITICAL CSS for Public Forms - Mobile Optimized */
+      /* Reduces JavaScript style recalculations on mobile devices */
+      .pf-container {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+        box-sizing: border-box;
+      }
+      .pf-card {
+        width: 100%;
+        max-width: 480px;
+        background: white;
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+      }
+      .pf-input {
+        width: 100%;
+        padding: 12px;
+        font-size: 16px; /* Prevents zoom on iOS */
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        outline: none;
+        box-sizing: border-box;
+        -webkit-appearance: none; /* Fix iOS styling */
+      }
+      .pf-input:focus {
+        border-color: var(--pf-primary, #e91e63);
+      }
+      .pf-btn {
+        padding: 14px 28px;
+        border: none;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+      }
+      .pf-progress {
+        height: 6px;
+        background: #e5e7eb;
+        border-radius: 3px;
+        margin-bottom: 8px;
+        overflow: hidden;
+      }
+      .pf-progress-bar {
+        height: 100%;
+        transition: width 0.3s ease;
+        will-change: width;
+      }
+      /* Mobile-specific optimizations */
+      @media (max-width: 640px) {
+        .pf-container { padding: 12px; }
+        .pf-card { padding: 20px; border-radius: 12px; }
+        .pf-input { padding: 14px; } /* Larger touch targets */
+        .pf-btn { padding: 16px 24px; min-height: 52px; } /* 44px+ for accessibility */
+      }
+      /* Reduce animations on mobile for performance */
+      @media (prefers-reduced-motion: reduce), (max-width: 640px) {
+        .pf-progress-bar { transition: none; }
+        .skeleton-block { animation: none; opacity: 0.7; }
+      }
+      /* GPU acceleration for mobile transforms */
+      .pf-card, .pf-btn { 
+        transform: translateZ(0);
+        backface-visibility: hidden;
+      }
     </style>
-    <script type="module" crossorigin src="/assets/main-D34OIFkz.js"></script>
+    <script type="module" crossorigin src="/assets/main-BNUlAtOf.js"></script>
     <link rel="modulepreload" crossorigin href="/assets/barcode-CSs31hT8.js">
-    <link rel="modulepreload" crossorigin href="/assets/pdf-generator-EXeaimJq.js">
+    <link rel="modulepreload" crossorigin href="/assets/pdf-generator-CFz6flLF.js">
     <link rel="modulepreload" crossorigin href="/assets/ui-vendor-BQCqNqg0.js">
     <link rel="modulepreload" crossorigin href="/assets/date-utils-DmQsh9uh.js">
-    <link rel="modulepreload" crossorigin href="/assets/react-core-CfCHFxSI.js">
-    <link rel="modulepreload" crossorigin href="/assets/charts-DahXU-9K.js">
-    <link rel="modulepreload" crossorigin href="/assets/query-DKG5W8aV.js">
-    <link rel="modulepreload" crossorigin href="/assets/router-Bkygsdae.js">
-    <link rel="modulepreload" crossorigin href="/assets/http-B9ygI19o.js">
-    <link rel="modulepreload" crossorigin href="/assets/supabase-BWEQ55NN.js">
-    <link rel="modulepreload" crossorigin href="/assets/spreadsheet-DREyypUJ.js">
-    <link rel="modulepreload" crossorigin href="/assets/label-designer-h5d5DNkb.js">
-    <link rel="modulepreload" crossorigin href="/assets/validation-DKR-4eo_.js">
-    <link rel="stylesheet" crossorigin href="/assets/main-C-ekfA82.css">
+    <link rel="modulepreload" crossorigin href="/assets/react-core-B88MDwjD.js">
   </head>
 
   <body>
@@ -118,8 +193,6 @@
       </div>
     </div>
     
-    <!-- QZ Tray for thermal printer integration - load async to not block -->
-    <script async src="https://cdn.jsdelivr.net/npm/qz-tray@2.2/qz-tray.min.js"></script>
-    
+    <!-- QZ Tray - loaded lazily only when needed (not on page load) -->
   </body>
 </html>

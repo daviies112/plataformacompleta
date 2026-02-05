@@ -1,15 +1,15 @@
 {
   "isRunning": true,
-  "startedAt": "2026-02-03T18:46:37.326Z",
+  "startedAt": "2026-02-05T13:04:25.810Z",
   "lastExecutions": {
     "dev-daviemericko_gmail_com-dev-daviemericko_gmail_com": {
       "clientId": "dev-daviemericko_gmail_com",
       "tenantId": "dev-daviemericko_gmail_com",
-      "lastRun": "2026-02-03T14:47:14.593Z",
-      "lastSuccess": "2026-02-03T14:47:14.593Z",
+      "lastRun": "2026-02-05T13:52:26.834Z",
+      "lastSuccess": "2026-02-04T23:48:28.929Z",
       "lastError": null,
       "consecutiveErrors": 0,
-      "totalExecutions": 1762,
+      "totalExecutions": 2121,
       "totalNewClientsDetected": 0,
       "totalEventsCreated": 0,
       "status": "running"
@@ -17,11 +17,11 @@
     "system-system": {
       "clientId": "system",
       "tenantId": "system",
-      "lastRun": "2025-12-13T21:56:49.010Z",
-      "lastSuccess": "2025-12-13T21:56:49.010Z",
+      "lastRun": "2026-02-04T16:21:11.676Z",
+      "lastSuccess": "2026-02-04T16:21:11.676Z",
       "lastError": null,
       "consecutiveErrors": 0,
-      "totalExecutions": 377,
+      "totalExecutions": 486,
       "totalNewClientsDetected": 1,
       "totalEventsCreated": 0,
       "status": "stopped"
@@ -36,15 +36,39 @@
       "totalExecutions": 284,
       "totalNewClientsDetected": 0,
       "totalEventsCreated": 0,
-      "status": "running"
+      "status": "stopped"
+    },
+    "6fc3b7c3-4429-406c-9728-fdb6cbd67359-6fc3b7c3-4429-406c-9728-fdb6cbd67359": {
+      "clientId": "6fc3b7c3-4429-406c-9728-fdb6cbd67359",
+      "tenantId": "6fc3b7c3-4429-406c-9728-fdb6cbd67359",
+      "lastRun": "2026-02-04T16:21:11.677Z",
+      "lastSuccess": "2026-02-04T16:21:11.677Z",
+      "lastError": null,
+      "consecutiveErrors": 0,
+      "totalExecutions": 45,
+      "totalNewClientsDetected": 0,
+      "totalEventsCreated": 0,
+      "status": "stopped"
+    },
+    "b25cf69e-def4-4cea-afbf-0b93eabb77b2-b25cf69e-def4-4cea-afbf-0b93eabb77b2": {
+      "clientId": "b25cf69e-def4-4cea-afbf-0b93eabb77b2",
+      "tenantId": "b25cf69e-def4-4cea-afbf-0b93eabb77b2",
+      "lastRun": "2026-02-04T23:48:28.932Z",
+      "lastSuccess": null,
+      "lastError": null,
+      "consecutiveErrors": 0,
+      "totalExecutions": 53,
+      "totalNewClientsDetected": 0,
+      "totalEventsCreated": 0,
+      "status": "stopped"
     }
   },
   "globalStats": {
-    "totalExecutions": 2423,
+    "totalExecutions": 2989,
     "totalNewClientsDetected": 1,
     "totalEventsCreated": 0,
     "totalErrors": 0,
-    "uptime": 120
+    "uptime": 2999
   },
   "settings": {
     "detectionIntervalMinutes": 2,

@@ -54,8 +54,8 @@ app.use(express.urlencoded({ extended: false, limit: '10mb' }));
 app.set('trust proxy', 1);
 
 // Configuração de sessão para autenticação multi-tenant
-// CRITICAL: sameSite: 'none' é necessário para funcionar em iframes (Replit preview)
-// secure: true é OBRIGATÓRIO quando sameSite é 'none'
+// CRITICAL: sameSite: 'lax' é necessário para funcionar em iframes (Replit preview)
+// secure: false é OBRIGATÓRIO quando sameSite é 'none'
 // proxy: true permite que Express confie no x-forwarded-proto do proxy HTTPS do Replit
 app.use(session({
   secret: process.env.SESSION_SECRET || (() => {
@@ -68,9 +68,9 @@ app.use(session({
   saveUninitialized: false,
   proxy: true, // CRITICAL: Confiar no proxy HTTPS do Replit
   cookie: {
-    secure: true, // OBRIGATÓRIO com sameSite: 'none'
+    secure: false, // OBRIGATÓRIO com sameSite: 'lax'
     httpOnly: true,
-    sameSite: 'none', // CRITICAL: Permite cookies em requisições cross-site (iframe)
+    sameSite: 'lax', // CRITICAL: Permite cookies em requisições cross-site (iframe)
     maxAge: 24 * 60 * 60 * 1000 // 24 horas
   }
 }));
