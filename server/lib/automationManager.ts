@@ -457,14 +457,35 @@ function stopClientAutomation(clientId: string, tenantId: string): void {
 async function syncFormsToMappingTable(): Promise<void> {
   console.log('🔄 [FormMappingSync] Iniciando sincronização de formulários do Supabase...');
   
-  let totalSynced = 0;
-  let totalErrors = 0;
-  
   try {
-    // Importar dependências necessárias
     const { db } = await import('../db');
-    const { supabaseConfig, formTenantMapping } = await import('../../shared/db-schema');
-    const { isNotNull } = await import('drizzle-orm');
+    
+    // Tenta garantir que a tabela existe via SQL bruto se necessário
+    try {
+      // Usar a instância global do pool para garantir a conexão correta
+      const { pool } = await import('../db');
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS form_tenant_mapping (
+          form_id TEXT PRIMARY KEY,
+          tenant_id TEXT NOT NULL,
+          slug TEXT,
+          company_slug TEXT,
+          is_public BOOLEAN DEFAULT true,
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
+      console.log('✅ [FormMappingSync] Tabela form_tenant_mapping verificada/criada');
+    } catch (e: any) {
+      console.warn('⚠️ [FormMappingSync] Erro ao criar tabela:', e.message);
+    }
+
+    let totalSynced = 0;
+    let totalErrors = 0;
+    
+    // Importar dependências necessárias
+    const { formTenantMapping } = await import('../../shared/db-schema');
+    const { eq } = await import('drizzle-orm');
     const { getDynamicSupabaseClient } = await import('../formularios/utils/supabaseClient');
     const { getSupabaseCredentials } = await import('../lib/credentialsDb');
     
@@ -495,6 +516,22 @@ async function syncFormsToMappingTable(): Promise<void> {
     // Sincronizar formulários de cada tenant
     for (const { tenantId } of tenants) {
       try {
+        // Garante que a tabela mapping existe
+        try {
+          const { db } = await import('../db');
+          await db.execute(require('drizzle-orm').sql`
+            CREATE TABLE IF NOT EXISTS form_tenant_mapping (
+              form_id TEXT PRIMARY KEY,
+              tenant_id TEXT NOT NULL,
+              slug TEXT,
+              company_slug TEXT,
+              is_public BOOLEAN DEFAULT true,
+              created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+              updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+            );
+          `);
+        } catch (e) {}
+
         console.log(`🔍 [FormMappingSync] Sincronizando tenant: ${tenantId}`);
         
         // Obter credenciais do tenant

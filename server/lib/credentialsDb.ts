@@ -196,9 +196,28 @@ export async function getSupabaseCredentialsStrict(tenantId: string): Promise<Su
 export async function getSupabaseCredentials(tenantId: string): Promise<SupabaseCredentials | null> {
   // 1. First try with provided tenantId (strict)
   try {
-    const { db } = await import('../db');
+    const { db, pool } = await import('../db');
     const { supabaseConfig } = await import('../../shared/db-schema');
     const { eq } = await import('drizzle-orm');
+
+    // Tenta garantir que a tabela existe via SQL bruto se necessário
+    try {
+      if (pool) {
+        await pool.query(`
+          CREATE TABLE IF NOT EXISTS supabase_config (
+            id SERIAL PRIMARY KEY,
+            tenant_id TEXT NOT NULL,
+            supabase_url TEXT NOT NULL,
+            supabase_anon_key TEXT NOT NULL,
+            supabase_bucket TEXT,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+          );
+        `);
+      }
+    } catch (e: any) {
+      // Ignorar erro se tabela já existir ou erro de permissão
+    }
 
     console.log(`🔍 [SUPABASE] Buscando credenciais do banco de dados (supabase_config)...`);
     

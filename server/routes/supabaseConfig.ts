@@ -96,6 +96,53 @@ router.post('/supabase-setup', async (req, res) => {
     const saved = saveSupabaseFileConfig(config);
     
     if (saved) {
+      // 🔐 Sincronizar credenciais com o banco de dados local para persistência
+      try {
+        const { db, pool } = await import('../db');
+        const { supabaseConfig } = await import('../../shared/db-schema');
+        const { eq } = await import('drizzle-orm');
+        const { encrypt } = await import('../lib/credentialsManager');
+        
+        // Garantir tabelas
+        try {
+          await pool.query(`
+            CREATE TABLE IF NOT EXISTS supabase_config (
+              id SERIAL PRIMARY KEY,
+              tenant_id TEXT NOT NULL,
+              supabase_url TEXT NOT NULL,
+              supabase_anon_key TEXT NOT NULL,
+              supabase_bucket TEXT,
+              created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+              updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+            );
+          `);
+        } catch (e) {}
+
+        const tenantId = 'system'; 
+        const encryptedUrl = encrypt(supabaseUrl);
+        const encryptedAnonKey = encrypt(supabaseAnonKey);
+
+        const existing = await db.select().from(supabaseConfig).where(eq(supabaseConfig.tenantId, tenantId)).limit(1);
+        if (existing.length > 0) {
+          await db.update(supabaseConfig).set({
+            supabaseUrl: encryptedUrl,
+            supabaseAnonKey: encryptedAnonKey,
+            supabaseBucket: 'receipts',
+            updatedAt: new Date()
+          }).where(eq(supabaseConfig.tenantId, tenantId));
+        } else {
+          await db.insert(supabaseConfig).values({
+            tenantId,
+            supabaseUrl: encryptedUrl,
+            supabaseAnonKey: encryptedAnonKey,
+            supabaseBucket: 'receipts'
+          });
+        }
+        console.log('✅ Supabase credentials synced to local database');
+      } catch (dbSyncError: any) {
+        console.warn('⚠️ Could not sync credentials to database:', dbSyncError.message);
+      }
+
       console.log('✅ Supabase credentials saved to file');
       console.log(`   URL: ${maskUrl(supabaseUrl)}`);
       console.log(`   Database URL: ${databaseUrl ? 'configured' : 'not configured'}`);

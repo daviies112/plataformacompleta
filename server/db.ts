@@ -58,15 +58,13 @@ function initializeDatabase(): void {
   if (finalDbUrl) {
     try {
       // Remover query params que podem causar problemas com o driver node-postgres
-      const cleanDbUrl = finalDbUrl.split('?')[0];
-      
-      console.log('🔌 Connecting to database with SSL:', !cleanDbUrl.includes('localhost'));
-      
       pool = new Pool({ 
-        connectionString: cleanDbUrl,
+        connectionString: finalDbUrl,
         connectionTimeoutMillis: 15000,
         max: 20,
-        ssl: cleanDbUrl.includes('localhost') ? false : { rejectUnauthorized: false }
+        ssl: finalDbUrl.includes('localhost') ? false : { 
+          rejectUnauthorized: false
+        }
       });
       
       db = drizzle(pool, { schema });
