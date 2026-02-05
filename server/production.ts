@@ -23,7 +23,7 @@ export function serveStatic(app: Express) {
     );
   }
 
-  // 1. Servir arquivos estáticos com cache inteligente
+  // Servir arquivos estáticos com configuração de cache
   app.use(express.static(distPath, {
     maxAge: '1y',
     etag: true,
@@ -37,16 +37,13 @@ export function serveStatic(app: Express) {
     }
   }));
 
-  // 2. Proteção contra erro MIME Type (Express 5 requer *nomeado)
-  app.get('*any', (req, res, next) => {
-    if (req.path.match(/\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot|json|map)$/)) {
+  // Fallback SPA - serve index.html para rotas que não são arquivos
+  app.use((req, res, next) => {
+    // Se a requisição parece ser um arquivo estático, retorna 404
+    if (req.path.match(/\.[a-zA-Z0-9]+$/)) {
       return res.status(404).send('File not found');
     }
-    next();
-  });
-
-  // 3. Fallback SPA
-  app.use((_req, res) => {
+    // Caso contrário, serve o index.html (SPA routing)
     res.sendFile(path.resolve(distPath, "index.html"));
   });
 }
