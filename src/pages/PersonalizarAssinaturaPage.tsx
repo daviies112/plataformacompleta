@@ -608,6 +608,14 @@ const PersonalizarAssinaturaPage = () => {
                         resultStepTextColor={resultStepTextColor}
                         selfieButtonText={selfieButtonText}
                         selfieInstructionText={selfieInstructionText}
+                        selfieStepBackgroundColor={selfieStepBackgroundColor}
+                        selfieStepTextColor={selfieStepTextColor}
+                        documentStepBackgroundColor={documentStepBackgroundColor}
+                        documentStepTextColor={documentStepTextColor}
+                        analysisStepBackgroundColor={analysisStepBackgroundColor}
+                        analysisStepTextColor={analysisStepTextColor}
+                        resultStepBackgroundColor={resultStepBackgroundColor}
+                        resultStepTextColor={resultStepTextColor}
                         contractTitle={contractTitle}
                         clauses={clauses}
                         contractPrimaryColor={contractPrimaryColor}

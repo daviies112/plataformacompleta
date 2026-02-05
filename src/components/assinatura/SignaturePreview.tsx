@@ -359,7 +359,7 @@ export const SignaturePreview = ({
 
         <h1 
           className="text-2xl font-bold text-center mb-2"
-          style={{ color: vTextColor }}
+          style={{ color: selfieStepTextColor || (verificationTextColor || textColor) }}
           data-testid="text-verification-title"
         >
           {welcomeText}
@@ -367,7 +367,7 @@ export const SignaturePreview = ({
 
         <p 
           className="text-center mb-4 max-w-sm text-sm"
-          style={{ color: vTextColor, opacity: 0.85 }}
+          style={{ color: selfieStepTextColor || (verificationTextColor || textColor), opacity: 0.85 }}
           data-testid="text-verification-instructions"
         >
           {instructions}
@@ -416,7 +416,6 @@ export const SignaturePreview = ({
             {verificationSteps.map((step, index) => {
               const Icon = step.icon;
               const isActive = index === 0;
-              const isComplete = false;
               return (
                 <div
                   key={index}
@@ -440,7 +439,7 @@ export const SignaturePreview = ({
                       className="text-xs font-medium truncate"
                       style={{ color: isActive ? (step.textColor || vPrimaryColor) : progressIndicatorInactiveTextColor }}
                     >
-                      {step.title}
+                      {step.label}
                     </p>
                     <p 
                       className="text-xs truncate"
@@ -454,6 +453,182 @@ export const SignaturePreview = ({
             })}
           </div>
         </div>
+      </div>
+    );
+
+    const renderAnalisePreview = () => (
+      <div 
+        className="min-h-[400px] flex flex-col items-center justify-center p-6 text-center"
+        style={{ 
+          backgroundColor: analysisStepBackgroundColor || backgroundColor, 
+          color: analysisStepTextColor || vTextColor, 
+          fontFamily: vFontFamily 
+        }}
+        data-testid="preview-analise"
+      >
+        <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4" style={{ borderColor: `${vPrimaryColor} transparent ${vPrimaryColor} ${vPrimaryColor}` }}></div>
+        <h2 className="text-xl font-bold mb-2" style={{ color: analysisStepTextColor || vTextColor }}>{analysisStepTitle}</h2>
+        <p className="opacity-80" style={{ color: analysisStepTextColor || vTextColor }}>{analysisStepDescription}</p>
+      </div>
+    );
+
+    const renderResultadoPreview = () => (
+      <div 
+        className="min-h-[400px] flex flex-col items-center justify-center p-6 text-center"
+        style={{ 
+          backgroundColor: resultStepBackgroundColor || backgroundColor, 
+          color: resultStepTextColor || vTextColor, 
+          fontFamily: vFontFamily 
+        }}
+        data-testid="preview-resultado"
+      >
+        <CheckCircle className="w-16 h-16 text-green-500 mb-4" />
+        <h2 className="text-xl font-bold mb-2" style={{ color: resultStepTextColor || vTextColor }}>{resultStepTitle}</h2>
+        <p className="opacity-80" style={{ color: resultStepTextColor || vTextColor }}>{resultStepDescription}</p>
+      </div>
+    );
+
+    const renderAnalisePreview = () => (
+      <div 
+        className="min-h-[400px] flex flex-col items-center justify-center p-6 text-center"
+        style={{ 
+          backgroundColor: analysisStepBackgroundColor || backgroundColor, 
+          color: analysisStepTextColor || (verificationTextColor || textColor), 
+          fontFamily: verificationFontFamily || fontFamily 
+        }}
+        data-testid="preview-analise"
+      >
+        <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4" style={{ borderColor: `${verificationPrimaryColor || primaryColor} transparent ${verificationPrimaryColor || primaryColor} ${verificationPrimaryColor || primaryColor}` }}></div>
+        <h2 className="text-xl font-bold mb-2" style={{ color: analysisStepTextColor || (verificationTextColor || textColor) }}>{analysisStepTitle}</h2>
+        <p className="opacity-80" style={{ color: analysisStepTextColor || (verificationTextColor || textColor) }}>{analysisStepDescription}</p>
+      </div>
+    );
+
+    const renderResultadoPreview = () => (
+      <div 
+        className="min-h-[400px] flex flex-col items-center justify-center p-6 text-center"
+        style={{ 
+          backgroundColor: resultStepBackgroundColor || backgroundColor, 
+          color: resultStepTextColor || (verificationTextColor || textColor), 
+          fontFamily: verificationFontFamily || fontFamily 
+        }}
+        data-testid="preview-resultado"
+      >
+        <CheckCircle className="w-16 h-16 text-green-500 mb-4" />
+        <h2 className="text-xl font-bold mb-2" style={{ color: resultStepTextColor || (verificationTextColor || textColor) }}>{resultStepTitle}</h2>
+        <p className="opacity-80" style={{ color: resultStepTextColor || (verificationTextColor || textColor) }}>{resultStepDescription}</p>
+      </div>
+    );
+
+    const renderDocumentoPreview = () => (
+      <div 
+        className="min-h-[400px] flex flex-col items-center justify-center p-6 text-center"
+        style={{ 
+          backgroundColor: documentStepBackgroundColor || backgroundColor, 
+          color: documentStepTextColor || (verificationTextColor || textColor), 
+          fontFamily: verificationFontFamily || fontFamily 
+        }}
+        data-testid="preview-documento"
+      >
+        <FileText className="w-16 h-16 mb-4" style={{ color: verificationPrimaryColor || primaryColor }} />
+        <h2 className="text-xl font-bold mb-2" style={{ color: documentStepTextColor || (verificationTextColor || textColor) }}>{documentStepTitle}</h2>
+        <p className="opacity-80" style={{ color: documentStepTextColor || (verificationTextColor || textColor) }}>{documentStepDescription}</p>
+      </div>
+    );
+
+    const renderAnalisePreview = () => (
+      <div 
+        className="min-h-[400px] flex flex-col items-center justify-center p-6 text-center"
+        style={{ 
+          backgroundColor: analysisStepBackgroundColor || backgroundColor, 
+          color: analysisStepTextColor || (verificationTextColor || textColor), 
+          fontFamily: verificationFontFamily || fontFamily 
+        }}
+        data-testid="preview-analise"
+      >
+        <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4" style={{ borderColor: `${verificationPrimaryColor || primaryColor} transparent ${verificationPrimaryColor || primaryColor} ${verificationPrimaryColor || primaryColor}` }}></div>
+        <h2 className="text-xl font-bold mb-2" style={{ color: analysisStepTextColor || (verificationTextColor || textColor) }}>{analysisStepTitle}</h2>
+        <p className="opacity-80" style={{ color: analysisStepTextColor || (verificationTextColor || textColor) }}>{analysisStepDescription}</p>
+      </div>
+    );
+
+    const renderResultadoPreview = () => (
+      <div 
+        className="min-h-[400px] flex flex-col items-center justify-center p-6 text-center"
+        style={{ 
+          backgroundColor: resultStepBackgroundColor || backgroundColor, 
+          color: resultStepTextColor || (verificationTextColor || textColor), 
+          fontFamily: verificationFontFamily || fontFamily 
+        }}
+        data-testid="preview-resultado"
+      >
+        <CheckCircle className="w-16 h-16 text-green-500 mb-4" />
+        <h2 className="text-xl font-bold mb-2" style={{ color: resultStepTextColor || (verificationTextColor || textColor) }}>{resultStepTitle}</h2>
+        <p className="opacity-80" style={{ color: resultStepTextColor || (verificationTextColor || textColor) }}>{resultStepDescription}</p>
+      </div>
+    );
+
+    const renderDocumentoPreview = () => (
+      <div 
+        className="min-h-[400px] flex flex-col items-center justify-center p-6 text-center"
+        style={{ 
+          backgroundColor: documentStepBackgroundColor || backgroundColor, 
+          color: documentStepTextColor || (verificationTextColor || textColor), 
+          fontFamily: verificationFontFamily || fontFamily 
+        }}
+        data-testid="preview-documento"
+      >
+        <FileText className="w-16 h-16 mb-4" style={{ color: verificationPrimaryColor || primaryColor }} />
+        <h2 className="text-xl font-bold mb-2" style={{ color: documentStepTextColor || (verificationTextColor || textColor) }}>{documentStepTitle}</h2>
+        <p className="opacity-80" style={{ color: documentStepTextColor || (verificationTextColor || textColor) }}>{documentStepDescription}</p>
+      </div>
+    );
+
+    const renderAnalisePreview = () => (
+      <div 
+        className="min-h-[400px] flex flex-col items-center justify-center p-6 text-center"
+        style={{ 
+          backgroundColor: analysisStepBackgroundColor || backgroundColor, 
+          color: analysisStepTextColor || (verificationTextColor || textColor), 
+          fontFamily: verificationFontFamily || fontFamily 
+        }}
+        data-testid="preview-analise"
+      >
+        <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4" style={{ borderColor: `${verificationPrimaryColor || primaryColor} transparent ${verificationPrimaryColor || primaryColor} ${verificationPrimaryColor || primaryColor}` }}></div>
+        <h2 className="text-xl font-bold mb-2" style={{ color: analysisStepTextColor || (verificationTextColor || textColor) }}>{analysisStepTitle}</h2>
+        <p className="opacity-80" style={{ color: analysisStepTextColor || (verificationTextColor || textColor) }}>{analysisStepDescription}</p>
+      </div>
+    );
+
+    const renderResultadoPreview = () => (
+      <div 
+        className="min-h-[400px] flex flex-col items-center justify-center p-6 text-center"
+        style={{ 
+          backgroundColor: resultStepBackgroundColor || backgroundColor, 
+          color: resultStepTextColor || (verificationTextColor || textColor), 
+          fontFamily: verificationFontFamily || fontFamily 
+        }}
+        data-testid="preview-resultado"
+      >
+        <CheckCircle className="w-16 h-16 text-green-500 mb-4" />
+        <h2 className="text-xl font-bold mb-2" style={{ color: resultStepTextColor || (verificationTextColor || textColor) }}>{resultStepTitle}</h2>
+        <p className="opacity-80" style={{ color: resultStepTextColor || (verificationTextColor || textColor) }}>{resultStepDescription}</p>
+      </div>
+    );
+
+    const renderDocumentoPreview = () => (
+      <div 
+        className="min-h-[400px] flex flex-col items-center justify-center p-6 text-center"
+        style={{ 
+          backgroundColor: documentStepBackgroundColor || backgroundColor, 
+          color: documentStepTextColor || (verificationTextColor || textColor), 
+          fontFamily: verificationFontFamily || fontFamily 
+        }}
+        data-testid="preview-documento"
+      >
+        <FileText className="w-16 h-16 mb-4" style={{ color: verificationPrimaryColor || primaryColor }} />
+        <h2 className="text-xl font-bold mb-2" style={{ color: documentStepTextColor || (verificationTextColor || textColor) }}>{documentStepTitle}</h2>
+        <p className="opacity-80" style={{ color: documentStepTextColor || (verificationTextColor || textColor) }}>{documentStepDescription}</p>
       </div>
     );
 
