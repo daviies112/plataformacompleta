@@ -1218,21 +1218,35 @@ export async function checkApprovedSubmissionsWithoutCPF(): Promise<{
   console.log('🔍 [CPFAutoCheck] Verificando leads aprovados sem consulta CPF...');
   
   try {
-    // 1. Buscar tenants com credenciais BigDataCorp configuradas no banco
-    const tenantsWithBigdata = await db.select({ tenantId: bigdatacorpConfig.tenantId })
-      .from(bigdatacorpConfig)
-      .where(isNotNull(bigdatacorpConfig.tenantId));
+    let tenants: { tenantId: string }[] = [];
+    try {
+      tenants = await db.select({ tenantId: bigdatacorpConfig.tenantId })
+        .from(bigdatacorpConfig)
+        .where(isNotNull(bigdatacorpConfig.tenantId));
+    } catch (e) {
+      console.log('⚠️ [CPFAutoCheck] Erro ao buscar tenants BigDataCorp, usando fallback');
+    }
     
-    const tenantsWithBigdataSet = new Set(tenantsWithBigdata.map(t => t.tenantId).filter(Boolean));
+    const tenantsWithBigdataSet = new Set(tenants.map(t => t.tenantId).filter(Boolean));
+    if (tenantsWithBigdataSet.size === 0) tenantsWithBigdataSet.add('system');
     
     // 2. Buscar tenants com Supabase configurado
-    const tenantsWithSupabase = await db.select({
-      tenantId: supabaseConfig.tenantId,
-      supabaseUrl: supabaseConfig.supabaseUrl,
-      supabaseAnonKey: supabaseConfig.supabaseAnonKey
-    })
-      .from(supabaseConfig)
-      .where(isNotNull(supabaseConfig.tenantId));
+    let tenantsWithSupabase: any[] = [];
+    try {
+      tenantsWithSupabase = await db.select({
+        tenantId: supabaseConfig.tenantId,
+        supabaseUrl: supabaseConfig.supabaseUrl,
+        supabaseAnonKey: supabaseConfig.supabaseAnonKey
+      })
+        .from(supabaseConfig)
+        .where(isNotNull(supabaseConfig.tenantId));
+    } catch (e) {
+      console.log('⚠️ [CPFAutoCheck] Erro ao buscar tenants Supabase, usando fallback');
+    }
+    
+    if (tenantsWithSupabase.length === 0) {
+      tenantsWithSupabase = [{ tenantId: 'system' }];
+    }
     
     // 3. Filtrar apenas tenants que têm AMBOS configurados (BigDataCorp + Supabase)
     const eligibleTenants = tenantsWithSupabase.filter(t => 

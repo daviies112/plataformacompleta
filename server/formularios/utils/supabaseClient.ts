@@ -27,7 +27,7 @@ const DEFAULT_TENANT_ID = process.env.DEFAULT_TENANT_ID || 'system';
  */
 function getSupabaseCredentialsFromEnv(): SupabaseCredentialsFromDb | null {
   const url = (process.env.REACT_APP_SUPABASE_URL || process.env.SUPABASE_URL || '').trim();
-  const anonKey = (process.env.REACT_APP_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '').trim();
+  const anonKey = (process.env.REACT_APP_SUPABASE_SERVICE_ROLE || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.REACT_APP_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '').trim();
   
   if (url && anonKey) {
     console.log(`✅ [SUPABASE] Credenciais carregadas dos SECRETS (tenant: ${DEFAULT_TENANT_ID})`);
@@ -52,22 +52,29 @@ async function getSupabaseCredentialsFromDatabase(): Promise<SupabaseCredentials
   try {
     console.log('🔍 [SUPABASE] Buscando credenciais do banco de dados (supabase_config)...');
     
-    const configs = await db.select()
-      .from(supabaseConfig)
-      .limit(1)
-      .execute();
+    // Tentar buscar do banco, mas falhar silenciosamente se a tabela não existir
+    let configs = [];
+    try {
+      configs = await db.select()
+        .from(supabaseConfig)
+        .limit(1)
+        .execute();
+    } catch (dbError: any) {
+      if (dbError.message?.includes('does not exist')) {
+        console.log('⚠️ [SUPABASE] Tabela supabase_config não encontrada, usando fallbacks');
+      } else {
+        throw dbError;
+      }
+    }
     
     if (configs.length === 0) {
-      console.log('⚠️ [SUPABASE] Nenhuma configuração encontrada no banco de dados');
-      
-      // FALLBACK: Tentar usar variáveis de ambiente (Secrets)
+      // PRIORIDADE: Tentar usar variáveis de ambiente (Secrets)
       const envCredentials = getSupabaseCredentialsFromEnv();
       if (envCredentials) {
-        console.log('✅ [SUPABASE] Usando credenciais dos Secrets como fallback');
         return envCredentials;
       }
       
-      console.log('⚠️ [SUPABASE] Configure as credenciais através da interface de administração em /configuracoes');
+      console.log('⚠️ [SUPABASE] Nenhuma configuração encontrada no banco ou Secrets');
       return null;
     }
     
@@ -86,15 +93,12 @@ async function getSupabaseCredentialsFromDatabase(): Promise<SupabaseCredentials
         // Fallback: dados podem estar em texto plano (formato legado)
         if (config.supabaseUrl.startsWith('http')) {
           console.log('⚠️ [SUPABASE] Usando credenciais em texto plano (formato legado)');
-          console.log('💡 [SUPABASE] Re-salve as credenciais em /configuracoes para usar criptografia');
           url = config.supabaseUrl;
           anonKey = config.supabaseAnonKey;
         } else {
           throw decryptError;
         }
       }
-      
-      console.log(`✅ [SUPABASE] URL: ${url.substring(0, 30)}...`);
       
       return {
         url,
@@ -112,16 +116,14 @@ async function getSupabaseCredentialsFromDatabase(): Promise<SupabaseCredentials
         return envCredentials;
       }
       
-      console.error('❌ [SUPABASE] Verifique se CREDENTIALS_ENCRYPTION_KEY_BASE64 está correto');
       return null;
     }
   } catch (error: any) {
-    console.error('❌ [SUPABASE] Erro ao buscar credenciais do banco de dados:', error.message);
+    console.error('❌ [SUPABASE] Erro ao buscar credenciais:', error.message);
     
     // FALLBACK: Tentar usar variáveis de ambiente (Secrets)
     const envCredentials = getSupabaseCredentialsFromEnv();
     if (envCredentials) {
-      console.log('✅ [SUPABASE] Usando credenciais dos Secrets como fallback após erro');
       return envCredentials;
     }
     

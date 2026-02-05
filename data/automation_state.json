@@ -1,13 +1,13 @@
 {
   "isRunning": true,
-  "startedAt": "2026-02-05T21:36:59.926Z",
+  "startedAt": "2026-02-05T21:52:32.018Z",
   "lastExecutions": {},
   "globalStats": {
     "totalExecutions": 0,
     "totalNewClientsDetected": 0,
     "totalEventsCreated": 0,
     "totalErrors": 0,
-    "uptime": 299
+    "uptime": 0
   },
   "settings": {
     "detectionIntervalMinutes": 2,

@@ -469,9 +469,21 @@ async function syncFormsToMappingTable(): Promise<void> {
     const { getSupabaseCredentials } = await import('../lib/credentialsDb');
     
     // Buscar todos os tenants configurados
-    const tenants = await db.select({ tenantId: supabaseConfig.tenantId })
-      .from(supabaseConfig)
-      .where(isNotNull(supabaseConfig.tenantId));
+    let tenants: { tenantId: string }[] = [];
+    try {
+      const { db } = await import('../db');
+      const { supabaseConfig } = await import('../../shared/db-schema');
+      const { isNotNull } = await import('drizzle-orm');
+      tenants = await db.select({ tenantId: supabaseConfig.tenantId })
+        .from(supabaseConfig)
+        .where(isNotNull(supabaseConfig.tenantId));
+    } catch (dbError: any) {
+      console.log('⚠️ [FormMappingSync] Usando fallback do sistema (Secrets)');
+    }
+    
+    if (tenants.length === 0) {
+      tenants = [{ tenantId: 'system' }];
+    }
     
     console.log(`📊 [FormMappingSync] Encontrados ${tenants.length} tenant(s) para sincronizar`);
     
@@ -809,21 +821,22 @@ async function startAutomationForAllTenants(): Promise<void> {
   try {
     console.log('🔍 Buscando tenants do banco de dados...');
     
-    const { db } = await import('../db');
-    const { supabaseConfig } = await import('../../shared/db-schema');
-    const { isNotNull } = await import('drizzle-orm');
-    
-    const tenants = await db.select({
-      tenantId: supabaseConfig.tenantId
-    })
-    .from(supabaseConfig)
-    .where(isNotNull(supabaseConfig.tenantId))
-    .execute();
+    // Buscar todos os tenants configurados
+    let tenants: { tenantId: string }[] = [];
+    try {
+      const { db } = await import('../db');
+      const { supabaseConfig } = await import('../../shared/db-schema');
+      const { isNotNull } = await import('drizzle-orm');
+      tenants = await db.select({ tenantId: supabaseConfig.tenantId })
+        .from(supabaseConfig)
+        .where(isNotNull(supabaseConfig.tenantId))
+        .execute();
+    } catch (dbError: any) {
+      console.log('⚠️ [startAutomationForAllTenants] Usando fallback do sistema (Secrets)');
+    }
     
     if (tenants.length === 0) {
-      console.log('⚠️ Nenhum tenant encontrado no banco de dados');
-      console.log('💡 Configure credenciais do Supabase para cada tenant em /configuracoes');
-      return;
+      tenants = [{ tenantId: 'system' }];
     }
     
     console.log(`✅ ${tenants.length} tenants encontrados no banco de dados`);

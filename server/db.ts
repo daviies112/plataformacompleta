@@ -36,28 +36,20 @@ function initializeDatabase(): void {
   
   // Se não temos DATABASE_URL mas temos os segredos do Supabase, construímos a URL
   let finalDbUrl = databaseUrl;
-  if (!finalDbUrl && process.env.REACT_APP_SUPABASE_URL && process.env.REACT_APP_SUPABASE_SERVICE_ROLE) {
-    const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
-    const serviceRole = process.env.REACT_APP_SUPABASE_SERVICE_ROLE;
-    
-    const projectId = supabaseUrl.split('//')[1]?.split('.')[0];
+  
+  const sUrl = process.env.REACT_APP_SUPABASE_URL || process.env.SUPABASE_URL;
+  const sKey = process.env.REACT_APP_SUPABASE_SERVICE_ROLE || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.REACT_APP_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+
+  if (!finalDbUrl && sUrl && sKey) {
+    const projectId = sUrl.split('//')[1]?.split('.')[0];
     if (projectId) {
-      finalDbUrl = `postgresql://postgres:${serviceRole}@db.${projectId}.supabase.co:5432/postgres`;
-      console.log('🏗️ Constructed DATABASE_URL from REACT_APP_SUPABASE secrets for project:', projectId);
+      // Prioridade para modo direto via Secrets se DATABASE_URL estiver ausente
+      finalDbUrl = `postgresql://postgres:${sKey}@db.${projectId}.supabase.co:5432/postgres`;
+      console.log('🏗️ Constructed DATABASE_URL from Supabase secrets for project:', projectId);
     }
   }
 
-  if (!finalDbUrl && process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
-    const supabaseUrl = process.env.SUPABASE_URL;
-    const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    const projectId = supabaseUrl.split('//')[1]?.split('.')[0];
-    if (projectId) {
-      finalDbUrl = `postgresql://postgres:${serviceRole}@db.${projectId}.supabase.co:5432/postgres`;
-      console.log('🏗️ Constructed DATABASE_URL from direct SUPABASE secrets for project:', projectId);
-    }
-  }
-
-  // Backup final para DATABASE_URL construído manualmente via PGPASSWORD se disponível
+  // Backup final para DATABASE_URL construído manualmente via PG vars se disponível
   if (!finalDbUrl && process.env.PGHOST && process.env.PGUSER && process.env.PGPASSWORD) {
     finalDbUrl = `postgresql://${process.env.PGUSER}:${process.env.PGPASSWORD}@${process.env.PGHOST}:${process.env.PGPORT || 5432}/${process.env.PGDATABASE || 'postgres'}`;
     console.log('🏗️ Constructed DATABASE_URL from PG secrets');
@@ -74,7 +66,7 @@ function initializeDatabase(): void {
         connectionString: cleanDbUrl,
         connectionTimeoutMillis: 15000,
         max: 20,
-        ssl: false
+        ssl: cleanDbUrl.includes('localhost') ? false : { rejectUnauthorized: false }
       });
       
       db = drizzle(pool, { schema });

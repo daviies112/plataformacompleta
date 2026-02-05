@@ -196,14 +196,24 @@ export async function getSupabaseCredentialsStrict(tenantId: string): Promise<Su
 export async function getSupabaseCredentials(tenantId: string): Promise<SupabaseCredentials | null> {
   // 1. First try with provided tenantId (strict)
   try {
+    const { db } = await import('../db');
+    const { supabaseConfig } = await import('../../shared/db-schema');
+    const { eq } = await import('drizzle-orm');
+
     console.log(`🔍 [SUPABASE] Buscando credenciais do banco de dados (supabase_config)...`);
-    const configs = await db.select()
-      .from(supabaseConfig)
-      .where(eq(supabaseConfig.tenantId, tenantId))
-      .limit(1)
-      .execute();
     
-    if (configs.length > 0) {
+    let configs = [];
+    try {
+      configs = await db.select()
+        .from(supabaseConfig)
+        .where(eq(supabaseConfig.tenantId, tenantId))
+        .limit(1)
+        .execute();
+    } catch (e) {
+      console.log(`⚠️ [SupabaseCredentials] Erro ao acessar tabela supabase_config para tenant ${tenantId}`);
+    }
+    
+    if (configs && configs.length > 0) {
       const result = decryptSupabaseConfig(configs[0]);
       if (result) {
         console.log(`✅ [SUPABASE] Usando credenciais do tenant: ${tenantId}`);
@@ -214,61 +224,50 @@ export async function getSupabaseCredentials(tenantId: string): Promise<Supabase
     console.warn(`⚠️ [SUPABASE] Erro ao buscar credenciais para tenant ${tenantId}:`, error);
   }
   
-  // 2. Fallback to 'system' tenant (used when credentials come from Secrets at startup)
-  // ⚠️ WARNING: This fallback is for background jobs ONLY - not for admin platform
+  // 2. Fallback to 'system' tenant
   if (tenantId !== 'system') {
     try {
-      console.log('🔄 [SUPABASE] Tentando fallback para tenant system (background jobs)...');
+      const { db } = await import('../db');
+      const { supabaseConfig } = await import('../../shared/db-schema');
+      const { eq } = await import('drizzle-orm');
+
       const systemConfigs = await db.select()
         .from(supabaseConfig)
         .where(eq(supabaseConfig.tenantId, 'system'))
         .limit(1)
         .execute();
       
-      if (systemConfigs.length > 0) {
+      if (systemConfigs && systemConfigs.length > 0) {
         const result = decryptSupabaseConfig(systemConfigs[0]);
         if (result) {
-          console.log('✅ [SUPABASE] Usando credenciais do tenant system (fallback para background jobs)');
           return result;
         }
       }
-    } catch (error) {
-      console.warn('⚠️ [SUPABASE] Erro ao buscar credenciais do tenant system:', error);
-    }
+    } catch (error) {}
   }
   
-  // 3. Fallback: environment variables (Secrets) - for background jobs only
+  // 3. Fallback: environment variables (Secrets)
   const envCredentials = await getSupabaseCredentialsFromEnv();
   if (envCredentials) {
-    console.log('✅ [SUPABASE] Usando credenciais dos Secrets (fallback para background jobs)');
+    console.log('✅ [SUPABASE] Usando credenciais dos Secrets (fallback)');
     return envCredentials;
   }
   
-  // 🔐 SECURITY FIX: Removed file-based fallback (data/supabase-config.json)
-  // This fallback caused multi-tenant data leakage by sharing credentials between tenants.
-  // Each tenant MUST configure their own Supabase credentials.
-  // For user-facing endpoints, use getSupabaseCredentialsStrict() instead.
-  
-  console.log(`ℹ️ [SUPABASE] Credenciais não encontradas para tenant ${tenantId}`);
-  console.log('💡 [SUPABASE] Tenant deve configurar suas próprias credenciais em /configuracoes');
   return null;
 }
 
-/**
- * Get Supabase credentials from environment variables ONLY
- * 🔧 SYSTEM-LEVEL: For background jobs and system-level code that don't have a tenantId
- * Does NOT query the database - only reads from environment variables
- */
 export async function getSupabaseCredentialsFromEnv(): Promise<SupabaseCredentials | null> {
   const url = (process.env.REACT_APP_SUPABASE_URL || process.env.SUPABASE_URL || '').trim();
+  const serviceRole = (process.env.REACT_APP_SUPABASE_SERVICE_ROLE || process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
   const anonKey = (process.env.REACT_APP_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '').trim();
   
-  if (url && anonKey) {
+  const key = serviceRole || anonKey;
+  
+  if (url && key) {
     console.log('✅ [SYSTEM] Credenciais do Supabase carregadas de environment variables');
-    return { url, anonKey, bucket: 'receipts' };
+    return { url, anonKey: key, bucket: 'receipts' };
   }
   
-  console.log('⚠️ [SYSTEM] Credenciais do Supabase não encontradas em environment variables');
   return null;
 }
 
