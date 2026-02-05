@@ -468,9 +468,24 @@ export const SignaturePreview = ({
 
   return (
     <Card className="w-full max-w-md mx-auto overflow-hidden shadow-xl" style={{ backgroundColor }}>
+      <CardHeader className="p-0 border-b overflow-hidden" style={{ backgroundColor: headerBackgroundColor }}>
+        <div className="p-4 flex items-center justify-between">
+          <h3 className="font-bold text-white truncate">{companyName}</h3>
+          <div className="flex gap-1">
+            <div className="w-2 h-2 rounded-full bg-white/30"></div>
+            <div className="w-2 h-2 rounded-full bg-white/30"></div>
+            <div className="w-2 h-2 rounded-full bg-white/30"></div>
+          </div>
+        </div>
+      </CardHeader>
       <CardContent className="p-0">
-        {wizardStep === 2 ? renderContractStep() : renderTelaInicialPreview()}
+        {wizardStep === 2 ? renderContractStep() : renderContent()}
       </CardContent>
+      {vFooterText && (
+        <CardFooter className="p-3 border-t justify-center bg-gray-50">
+          <p className="text-[10px] text-gray-400">{vFooterText}</p>
+        </CardFooter>
+      )}
     </Card>
   );
 };
