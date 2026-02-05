@@ -121,7 +121,7 @@ export default function Settings() {
 
   const loadConfig = async () => {
     try {
-      const response = await fetch("/api/config/pluggy");
+      const response = await fetch("/api/config/pluggy", { credentials: 'include' });
       if (response.ok) {
         const data = await response.json();
         setIsConfigured(data.configured);
@@ -136,7 +136,7 @@ export default function Settings() {
 
   const loadSupabaseConfig = async () => {
     try {
-      const response = await fetch("/api/config/supabase");
+      const response = await fetch("/api/config/supabase", { credentials: 'include' });
       if (response.ok) {
         const data = await response.json();
         setIsSupabaseConfigured(data.configured);
@@ -149,7 +149,7 @@ export default function Settings() {
         // Se tiver anonKey truncada, carregar credenciais completas
         if (data.configured && data.source === 'database') {
           try {
-            const credResponse = await fetch("/api/config/supabase/credentials");
+            const credResponse = await fetch("/api/config/supabase/credentials", { credentials: 'include' });
             if (credResponse.ok) {
               const credData = await credResponse.json();
               if (credData.success && credData.credentials) {
@@ -188,7 +188,7 @@ export default function Settings() {
 
   const loadN8nConfig = async () => {
     try {
-      const response = await fetch("/api/config/n8n");
+      const response = await fetch("/api/config/n8n", { credentials: 'include' });
       if (response.ok) {
         const data = await response.json();
         setIsN8nConfigured(data.configured);
@@ -203,7 +203,7 @@ export default function Settings() {
 
   const loadCacheConfig = async () => {
     try {
-      const response = await fetch("/api/config/cache/settings");
+      const response = await fetch("/api/config/cache/settings", { credentials: 'include' });
       if (response.ok) {
         const data = await response.json();
         if (data.success && data.data) {
@@ -230,7 +230,7 @@ export default function Settings() {
 
   const loadOptimizerConfig = async () => {
     try {
-      const response = await fetch("/api/config/optimizer/settings");
+      const response = await fetch("/api/config/optimizer/settings", { credentials: 'include' });
       if (response.ok) {
         const data = await response.json();
         if (data.success && data.data) {
@@ -251,7 +251,7 @@ export default function Settings() {
 
   const loadMonitoringConfig = async () => {
     try {
-      const response = await fetch("/api/config/monitoring/settings");
+      const response = await fetch("/api/config/monitoring/settings", { credentials: 'include' });
       if (response.ok) {
         const data = await response.json();
         if (data.success && data.data) {
@@ -291,6 +291,7 @@ export default function Settings() {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: 'include',
         body: JSON.stringify({
           supabaseUrl: supabaseUrl,
           supabaseAnonKey: supabaseAnonKey,
@@ -390,6 +391,7 @@ export default function Settings() {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: 'include',
         body: JSON.stringify({
           webhookUrl: n8nWebhookUrl,
         }),
@@ -435,6 +437,7 @@ export default function Settings() {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: 'include',
         body: JSON.stringify({
           clientId: clientId,
           clientSecret: clientSecret,
@@ -517,6 +520,7 @@ export default function Settings() {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: 'include',
         body: JSON.stringify({
           progressiveTtlEnabled: cacheProgressiveTtl,
           thresholds: {
@@ -569,6 +573,7 @@ export default function Settings() {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: 'include',
         body: JSON.stringify({
           defaultFieldSet: optimizerFieldSet,
           defaultPageSize: optimizerPageSize,
@@ -611,6 +616,7 @@ export default function Settings() {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: 'include',
         body: JSON.stringify({
           monitoringEnabled: monitoringEnabled,
           monitoringInterval: monitoringInterval,
@@ -663,7 +669,7 @@ export default function Settings() {
 
   const loadRedisConfig = async () => {
     try {
-      const response = await fetch("/api/config/redis");
+      const response = await fetch("/api/config/redis", { credentials: 'include' });
       if (response.ok) {
         const data = await response.json();
         setIsRedisConfigured(data.configured);
@@ -672,7 +678,7 @@ export default function Settings() {
           
           // Load credentials if configured
           try {
-            const credResponse = await fetch("/api/config/redis/credentials");
+            const credResponse = await fetch("/api/config/redis/credentials", { credentials: 'include' });
             if (credResponse.ok) {
               const credData = await credResponse.json();
               if (credData.success && credData.credentials) {
@@ -697,7 +703,7 @@ export default function Settings() {
 
   const loadRedisTelemetry = async () => {
     try {
-      const response = await fetch("/api/config/redis/telemetry");
+      const response = await fetch("/api/config/redis/telemetry", { credentials: 'include' });
       if (response.ok) {
         const data = await response.json();
         if (data.success && data.telemetry) {
@@ -732,6 +738,7 @@ export default function Settings() {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: 'include',
         body: JSON.stringify({
           redisUrl: redisUrl,
           redisToken: redisToken,
@@ -790,6 +797,7 @@ export default function Settings() {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: 'include',
         body: JSON.stringify({
           redisUrl: redisUrl,
           redisToken: redisToken,
@@ -831,6 +839,7 @@ export default function Settings() {
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: 'include',
       });
 
       const data = await response.json();

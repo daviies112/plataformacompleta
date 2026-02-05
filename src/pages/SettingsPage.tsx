@@ -963,6 +963,7 @@ const SettingsPage = () => {
         headers: { 
           "Authorization": `Bearer ${localStorage.getItem('token')}`
         },
+        credentials: 'include',
       });
       if (!response.ok) {
         const error = await response.json();

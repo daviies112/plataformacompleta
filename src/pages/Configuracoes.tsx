@@ -119,6 +119,7 @@ export default function Configuracoes() {
         // Primeiro, sincronizar secrets do environment
         const syncResponse = await fetch("/api/config/hms100ms/sync-from-env", {
           headers: { "Authorization": `Bearer ${localStorage.getItem('token')}` },
+          credentials: 'include',
         });
         
         if (syncResponse.ok) {
@@ -132,6 +133,7 @@ export default function Configuracoes() {
         // Se sincronização falhar, buscar do banco normalmente
         const response = await fetch("/api/config/hms100ms/credentials", {
           headers: { "Authorization": `Bearer ${localStorage.getItem('token')}` },
+          credentials: 'include',
         });
         if (!response.ok) return null;
         return response.json();
@@ -178,6 +180,7 @@ export default function Configuracoes() {
           "Authorization": `Bearer ${localStorage.getItem('token')}`
         },
         body: JSON.stringify(data),
+        credentials: 'include',
       });
       if (!response.ok) throw new Error("Erro ao salvar configuração");
       return response.json();
@@ -206,6 +209,7 @@ export default function Configuracoes() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(data),
+        credentials: 'include',
       });
       if (!response.ok) {
         const error = await response.json();
@@ -233,6 +237,7 @@ export default function Configuracoes() {
     queryFn: async () => {
       const response = await fetch("/api/n8n/api-key/status", {
         headers: { "Authorization": `Bearer ${localStorage.getItem('token')}` },
+        credentials: 'include',
       });
       if (!response.ok) return { hasApiKey: false, hasConfig: false };
       return response.json();
@@ -247,6 +252,7 @@ export default function Configuracoes() {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${localStorage.getItem('token')}`
         },
+        credentials: 'include',
       });
       if (!response.ok) {
         const error = await response.json();
@@ -279,6 +285,7 @@ export default function Configuracoes() {
         headers: { 
           "Authorization": `Bearer ${localStorage.getItem('token')}`
         },
+        credentials: 'include',
       });
       if (!response.ok) {
         const error = await response.json();
@@ -321,6 +328,7 @@ export default function Configuracoes() {
       try {
         const response = await fetch("/api/config/total-express", {
           headers: { "Authorization": `Bearer ${localStorage.getItem('token')}` },
+          credentials: 'include',
         });
         if (!response.ok) return { configured: false };
         return response.json();
@@ -353,6 +361,7 @@ export default function Configuracoes() {
           "Authorization": `Bearer ${localStorage.getItem('token')}`
         },
         body: JSON.stringify(data),
+        credentials: 'include',
       });
       if (!response.ok) {
         const error = await response.json();
@@ -386,6 +395,7 @@ export default function Configuracoes() {
           "Authorization": `Bearer ${localStorage.getItem('token')}`
         },
         body: JSON.stringify(data),
+        credentials: 'include',
       });
       if (!response.ok) {
         const error = await response.json();
@@ -415,6 +425,7 @@ export default function Configuracoes() {
         headers: { 
           "Authorization": `Bearer ${localStorage.getItem('token')}`
         },
+        credentials: 'include',
       });
       if (!response.ok) {
         const error = await response.json();
@@ -451,6 +462,7 @@ export default function Configuracoes() {
         headers: { 
           "Authorization": `Bearer ${localStorage.getItem('token')}`
         },
+        credentials: 'include',
       });
       if (!response.ok) {
         const error = await response.json();
@@ -525,6 +537,7 @@ export default function Configuracoes() {
     queryFn: async () => {
       const response = await fetch("/api/credentials/bigdatacorp", {
         headers: { "Authorization": `Bearer ${localStorage.getItem('token')}` },
+        credentials: 'include',
       });
       if (!response.ok) return null;
       return response.json();
@@ -546,6 +559,7 @@ export default function Configuracoes() {
           "Authorization": `Bearer ${localStorage.getItem('token')}`
         },
         body: JSON.stringify(data),
+        credentials: 'include',
       });
       if (!response.ok) throw new Error("Erro ao salvar configuração");
       return response.json();
@@ -565,6 +579,7 @@ export default function Configuracoes() {
           "Authorization": `Bearer ${localStorage.getItem('token')}`
         },
         body: JSON.stringify(data),
+        credentials: 'include',
       });
       if (!response.ok) throw new Error("Credenciais inválidas");
       return response.json();
@@ -595,6 +610,7 @@ export default function Configuracoes() {
     queryFn: async () => {
       const response = await fetch("/api/config/supabase", {
         headers: { "Authorization": `Bearer ${localStorage.getItem('token')}` },
+        credentials: 'include',
       });
       if (!response.ok) return null;
       return response.json();
@@ -607,8 +623,9 @@ export default function Configuracoes() {
       const response = await fetch("/api/config/supabase/credentials", {
         headers: { 
           "Authorization": `Bearer ${localStorage.getItem('token')}`,
-          "X-Config-Token": localStorage.getItem('token') // Usando token como placeholder se necessário
+          "X-Config-Token": localStorage.getItem('token')
         },
+        credentials: 'include',
       });
       if (!response.ok) return null;
       const data = await response.json();
@@ -637,6 +654,7 @@ export default function Configuracoes() {
           "X-Config-Token": localStorage.getItem('token')
         },
         body: JSON.stringify(data),
+        credentials: 'include',
       });
       if (!response.ok) throw new Error("Erro ao salvar configuração");
       return response.json();
@@ -660,6 +678,7 @@ export default function Configuracoes() {
           "Authorization": `Bearer ${localStorage.getItem('token')}`
         },
         body: JSON.stringify(data),
+        credentials: 'include',
       });
       if (!response.ok) {
         const err = await response.json();
