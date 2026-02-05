@@ -136,23 +136,36 @@ router.post('/supabase-setup', async (req, res) => {
         invalidateCredentialsCache(tenantId);
         invalidateCredentialsCache('system'); // Também invalida o sistema caso haja confusão
 
-        const existing = await db.select().from(supabaseConfig).where(eq(supabaseConfig.tenantId, tenantId)).limit(1);
-        if (existing.length > 0) {
-          console.log(`📝 [CONFIG] Atualizando credenciais existentes para tenant: ${tenantId}`);
-          await db.update(supabaseConfig).set({
-            supabaseUrl: encryptedUrl,
-            supabaseAnonKey: encryptedAnonKey,
-            supabaseBucket: 'receipts',
-            updatedAt: new Date()
-          }).where(eq(supabaseConfig.tenantId, tenantId));
+        // 🛠️ GARANTIR QUE ESTAMOS USANDO O POOL CORRETO E SQL BRUTO PARA EVITAR ERROS DE SCHEMA
+        if (pool) {
+          console.log(`💾 [CONFIG] Executando INSERT/UPDATE via SQL bruto para ${tenantId}`);
+          await pool.query(`
+            INSERT INTO supabase_config (tenant_id, supabase_url, supabase_anon_key, supabase_bucket, updated_at)
+            VALUES ($1, $2, $3, $4, NOW())
+            ON CONFLICT (tenant_id) 
+            DO UPDATE SET 
+              supabase_url = EXCLUDED.supabase_url,
+              supabase_anon_key = EXCLUDED.supabase_anon_key,
+              updated_at = NOW();
+          `, [tenantId, encryptedUrl, encryptedAnonKey, 'receipts']);
         } else {
-          console.log(`🆕 [CONFIG] Inserindo novas credenciais para tenant: ${tenantId}`);
-          await db.insert(supabaseConfig).values({
-            tenantId,
-            supabaseUrl: encryptedUrl,
-            supabaseAnonKey: encryptedAnonKey,
-            supabaseBucket: 'receipts'
-          });
+          // Fallback para Drizzle se pool não disponível (improvável)
+          const existing = await db.select().from(supabaseConfig).where(eq(supabaseConfig.tenantId, tenantId)).limit(1);
+          if (existing.length > 0) {
+            await db.update(supabaseConfig).set({
+              supabaseUrl: encryptedUrl,
+              supabaseAnonKey: encryptedAnonKey,
+              supabaseBucket: 'receipts',
+              updatedAt: new Date()
+            }).where(eq(supabaseConfig.tenantId, tenantId));
+          } else {
+            await db.insert(supabaseConfig).values({
+              tenantId,
+              supabaseUrl: encryptedUrl,
+              supabaseAnonKey: encryptedAnonKey,
+              supabaseBucket: 'receipts'
+            });
+          }
         }
         console.log(`✅ [CONFIG] Credenciais sincronizadas com sucesso no banco local para ${tenantId}`);
       } catch (dbSyncError: any) {
