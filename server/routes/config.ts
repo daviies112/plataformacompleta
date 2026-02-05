@@ -727,30 +727,45 @@ export function setupConfigRoutes(app: Express) {
       
       const encryptedKey = encrypt(supabaseAnonKey);
       
-      const existingConfig = await db.select().from(supabaseConfig)
-        .where(eq(supabaseConfig.tenantId, tenantId))
-        .limit(1);
-      
-      if (existingConfig[0]) {
-        await db
-          .update(supabaseConfig)
-          .set({
+      // Tentar verificar se a tabela existe antes de prosseguir
+      try {
+        const existingConfig = await db.select().from(supabaseConfig)
+          .where(eq(supabaseConfig.tenantId, tenantId))
+          .limit(1);
+        
+        if (existingConfig[0]) {
+          await db
+            .update(supabaseConfig)
+            .set({
+              supabaseUrl,
+              supabaseAnonKey: encryptedKey,
+              supabaseBucket: supabaseBucket || 'receipts',
+              updatedAt: new Date(),
+            })
+            .where(and(
+              eq(supabaseConfig.id, existingConfig[0].id),
+              eq(supabaseConfig.tenantId, tenantId)
+            ));
+        } else {
+          await db.insert(supabaseConfig).values({
+            tenantId,
             supabaseUrl,
             supabaseAnonKey: encryptedKey,
             supabaseBucket: supabaseBucket || 'receipts',
-            updatedAt: new Date(),
-          })
-          .where(and(
-            eq(supabaseConfig.id, existingConfig[0].id),
-            eq(supabaseConfig.tenantId, tenantId)
-          ));
-      } else {
-        await db.insert(supabaseConfig).values({
-          tenantId,
-          supabaseUrl,
-          supabaseAnonKey: encryptedKey,
-          supabaseBucket: supabaseBucket || 'receipts',
-        });
+          });
+        }
+      } catch (dbError: any) {
+        // Se a tabela não existir, tentamos forçar a criação (embora db:push deva cuidar disso)
+        if (dbError.message.includes('relation "supabase_config" does not exist')) {
+          console.error("⚠️ Tabela supabase_config não encontrada. Tentando sincronizar banco...");
+          // Em um ambiente real, poderíamos tentar rodar o push aqui, 
+          // mas por agora vamos retornar um erro claro instruindo a reinicialização
+          return res.status(500).json({
+            error: "Banco de dados em manutenção. Por favor, tente novamente em alguns segundos.",
+            message: "Tabela de configuração não encontrada no banco de dados."
+          });
+        }
+        throw dbError;
       }
 
       // Invalida o cache
@@ -765,6 +780,7 @@ export function setupConfigRoutes(app: Express) {
       console.error("Erro ao salvar configuração do Supabase:", error);
       return res.status(500).json({
         error: "Erro ao salvar configuração",
+        message: error instanceof Error ? error.message : "Erro desconhecido"
       });
     }
   });
