@@ -364,6 +364,8 @@ const PersonalizarAssinaturaPage = () => {
                   onCompanyNameChange={setCompanyName}
                   onFooterTextChange={setFooterText}
                   onLogoUpload={handleLogoUpload}
+                  verificationPreviewMode={verificationPreviewMode}
+                  onVerificationPreviewModeChange={setVerificationPreviewMode}
                   verificationPrimaryColor={verificationPrimaryColor}
                   verificationTextColor={verificationTextColor}
                   verificationFontFamily={verificationFontFamily}

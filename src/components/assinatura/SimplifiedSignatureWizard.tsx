@@ -60,6 +60,8 @@ export interface SimplifiedSignatureWizardProps {
   onCompanyNameChange: (value: string) => void;
   onFooterTextChange: (value: string) => void;
   onLogoUpload?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  verificationPreviewMode?: string;
+  onVerificationPreviewModeChange?: (value: string) => void;
 
   verificationPrimaryColor: string;
   verificationTextColor: string;
@@ -457,12 +459,23 @@ export const SimplifiedSignatureWizard = ({
   onSaveProgress,
   isSaving = false,
   onVerificationSubTabChange,
+  verificationPreviewMode,
+  onVerificationPreviewModeChange,
 }: SimplifiedSignatureWizardProps) => {
   const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState<1 | 2>(1);
   const [step1Tab, setStep1Tab] = useState<'verificacao' | 'progresso' | 'parabens' | 'apps'>('verificacao');
   const [step2Tab, setStep2Tab] = useState<'conteudo' | 'design'>('conteudo');
-  const [verificationSubTab, setVerificationSubTab] = useState<'tela-inicial' | 'etapas-fluxo' | 'barra-navegacao' | 'botoes-captura' | 'mensagens-deteccao'>('tela-inicial');
+  const [internalVerificationSubTab, setInternalVerificationSubTab] = useState<'tela-inicial' | 'etapas-fluxo' | 'barra-navegacao' | 'botoes-captura' | 'mensagens-deteccao' | 'documento' | 'analise' | 'resultado'>('tela-inicial');
+
+  const verificationSubTab = (verificationPreviewMode as any) || internalVerificationSubTab;
+  const setVerificationSubTab = (val: any) => {
+    if (onVerificationPreviewModeChange) {
+      onVerificationPreviewModeChange(val);
+    } else {
+      setInternalVerificationSubTab(val);
+    }
+  };
 
   const formatCPF = (value: string) => {
     const digits = value.replace(/\D/g, '').slice(0, 11);
@@ -749,6 +762,177 @@ export const SimplifiedSignatureWizard = ({
                       </SelectContent>
                     </Select>
                   </div>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="documento" className="border rounded-lg px-4">
+              <AccordionTrigger className="text-base font-semibold hover:no-underline" data-testid="accordion-documento">
+                Passo: Documento
+              </AccordionTrigger>
+              <AccordionContent className="pt-0 pb-4 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                  <div className="space-y-2">
+                    <Label>Cor de Fundo do Passo (Documento)</Label>
+                    <div className="flex gap-2">
+                      <Input 
+                        type="color" 
+                        value={documentStepBackgroundColor} 
+                        onChange={(e) => onDocumentStepBackgroundColorChange(e.target.value)}
+                        className="w-12 h-10 p-1"
+                      />
+                      <Input 
+                        value={documentStepBackgroundColor} 
+                        onChange={(e) => onDocumentStepBackgroundColorChange(e.target.value)}
+                        className="flex-1"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Cor do Texto do Passo (Documento)</Label>
+                    <div className="flex gap-2">
+                      <Input 
+                        type="color" 
+                        value={documentStepTextColor} 
+                        onChange={(e) => onDocumentStepTextColorChange(e.target.value)}
+                        className="w-12 h-10 p-1"
+                      />
+                      <Input 
+                        value={documentStepTextColor} 
+                        onChange={(e) => onDocumentStepTextColorChange(e.target.value)}
+                        className="flex-1"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-2 pt-2">
+                  <Label>Título do Passo de Documento</Label>
+                  <Input 
+                    value={documentStepTitle} 
+                    onChange={(e) => onDocumentStepTitleChange(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Descrição do Passo de Documento</Label>
+                  <Textarea 
+                    value={documentStepDescription} 
+                    onChange={(e) => onDocumentStepDescriptionChange(e.target.value)}
+                    rows={2}
+                  />
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="analise" className="border rounded-lg px-4">
+              <AccordionTrigger className="text-base font-semibold hover:no-underline" data-testid="accordion-analise">
+                Passo: Análise
+              </AccordionTrigger>
+              <AccordionContent className="pt-0 pb-4 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                  <div className="space-y-2">
+                    <Label>Cor de Fundo do Passo (Análise)</Label>
+                    <div className="flex gap-2">
+                      <Input 
+                        type="color" 
+                        value={analysisStepBackgroundColor} 
+                        onChange={(e) => onAnalysisStepBackgroundColorChange(e.target.value)}
+                        className="w-12 h-10 p-1"
+                      />
+                      <Input 
+                        value={analysisStepBackgroundColor} 
+                        onChange={(e) => onAnalysisStepBackgroundColorChange(e.target.value)}
+                        className="flex-1"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Cor do Texto do Passo (Análise)</Label>
+                    <div className="flex gap-2">
+                      <Input 
+                        type="color" 
+                        value={analysisStepTextColor} 
+                        onChange={(e) => onAnalysisStepTextColorChange(e.target.value)}
+                        className="w-12 h-10 p-1"
+                      />
+                      <Input 
+                        value={analysisStepTextColor} 
+                        onChange={(e) => onAnalysisStepTextColorChange(e.target.value)}
+                        className="flex-1"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-2 pt-2">
+                  <Label>Título do Passo de Análise</Label>
+                  <Input 
+                    value={analysisStepTitle} 
+                    onChange={(e) => onAnalysisStepTitleChange(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Descrição do Passo de Análise</Label>
+                  <Textarea 
+                    value={analysisStepDescription} 
+                    onChange={(e) => onAnalysisStepDescriptionChange(e.target.value)}
+                    rows={2}
+                  />
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="resultado" className="border rounded-lg px-4">
+              <AccordionTrigger className="text-base font-semibold hover:no-underline" data-testid="accordion-resultado">
+                Passo: Resultado
+              </AccordionTrigger>
+              <AccordionContent className="pt-0 pb-4 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                  <div className="space-y-2">
+                    <Label>Cor de Fundo do Passo (Resultado)</Label>
+                    <div className="flex gap-2">
+                      <Input 
+                        type="color" 
+                        value={resultStepBackgroundColor} 
+                        onChange={(e) => onResultStepBackgroundColorChange(e.target.value)}
+                        className="w-12 h-10 p-1"
+                      />
+                      <Input 
+                        value={resultStepBackgroundColor} 
+                        onChange={(e) => onResultStepBackgroundColorChange(e.target.value)}
+                        className="flex-1"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Cor do Texto do Passo (Resultado)</Label>
+                    <div className="flex gap-2">
+                      <Input 
+                        type="color" 
+                        value={resultStepTextColor} 
+                        onChange={(e) => onResultStepTextColorChange(e.target.value)}
+                        className="w-12 h-10 p-1"
+                      />
+                      <Input 
+                        value={resultStepTextColor} 
+                        onChange={(e) => onResultStepTextColorChange(e.target.value)}
+                        className="flex-1"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-2 pt-2">
+                  <Label>Título do Passo de Resultado</Label>
+                  <Input 
+                    value={resultStepTitle} 
+                    onChange={(e) => onResultStepTitleChange(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Descrição do Passo de Resultado</Label>
+                  <Textarea 
+                    value={resultStepDescription} 
+                    onChange={(e) => onResultStepDescriptionChange(e.target.value)}
+                    rows={2}
+                  />
                 </div>
               </AccordionContent>
             </AccordionItem>
