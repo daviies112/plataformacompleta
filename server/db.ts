@@ -52,6 +52,17 @@ function initializeDatabase(): void {
     }
   }
 
+  // Tentar também os segredos sem o prefixo REACT_APP_
+  if (!finalDbUrl && process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const projectId = supabaseUrl.split('//')[1]?.split('.')[0];
+    if (projectId) {
+      finalDbUrl = `postgresql://postgres:${serviceRole}@db.${projectId}.supabase.co:5432/postgres`;
+      console.log('🏗️ Constructed DATABASE_URL from direct Supabase secrets for project:', projectId);
+    }
+  }
+
   if (finalDbUrl) {
     try {
       // Remover query params que podem causar problemas com o driver node-postgres
