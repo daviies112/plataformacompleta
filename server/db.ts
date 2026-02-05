@@ -30,23 +30,34 @@ function initializeDatabase(): void {
   connectionAttempted = true;
   
   console.log('🐘 Initializing database connection...');
+  
+  // Prioridade para o DATABASE_URL dos Secrets
   const databaseUrl = process.env.DATABASE_URL || getDatabaseUrl();
   
   if (databaseUrl) {
     try {
+      // Remover query params que podem causar problemas com o driver node-postgres
+      const cleanDbUrl = databaseUrl.split('?')[0];
+      
+      console.log('🔌 Connecting to database with SSL:', !cleanDbUrl.includes('localhost'));
+      
       pool = new Pool({ 
-        connectionString: databaseUrl,
-        connectionTimeoutMillis: 10000, // Aumentado para 10s
-        max: 20, // Aumentado para 20
-        ssl: databaseUrl.includes('neon.tech') ? { rejectUnauthorized: false } : false
+        connectionString: cleanDbUrl,
+        connectionTimeoutMillis: 15000,
+        max: 20,
+        ssl: cleanDbUrl.includes('localhost') || cleanDbUrl.includes('127.0.0.1') ? false : { rejectUnauthorized: false }
       });
       
       db = drizzle(pool, { schema });
       
-      console.log('✅ Database connection configured (Supabase PostgreSQL)');
+      // Teste de conexão imediato (em background para não bloquear o startup)
+      pool.query('SELECT NOW()').then(() => {
+        console.log('✅ Database connection established and verified');
+      }).catch(err => {
+        console.error('❌ Database connection verification failed:', err);
+      });
     } catch (error) {
-      console.warn('⚠️  Database connection failed:', error);
-      console.log('📝 App will run without database - configure Supabase via /configuracoes');
+      console.error('❌ Database connection failed:', error);
       pool = null;
       db = null;
     }

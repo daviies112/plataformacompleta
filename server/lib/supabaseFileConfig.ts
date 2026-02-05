@@ -92,13 +92,13 @@ export function isSupabaseConfigured(): boolean {
 export function getEffectiveSupabaseConfig(): { url: string; anonKey: string; serviceRoleKey?: string; databaseUrl?: string } | null {
   const envUrl = (process.env.REACT_APP_SUPABASE_URL || process.env.SUPABASE_URL || '').trim();
   const envKey = (process.env.REACT_APP_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '').trim();
-  const envServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const envServiceKey = (process.env.REACT_APP_SUPABASE_SERVICE_ROLE || process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
   const envDbUrl = process.env.DATABASE_URL;
   
-  if (envUrl && envKey) {
+  if (envUrl && (envKey || envServiceKey)) {
     return {
       url: envUrl,
-      anonKey: envKey,
+      anonKey: envKey || envServiceKey,
       serviceRoleKey: envServiceKey,
       databaseUrl: envDbUrl,
     };
