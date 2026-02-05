@@ -139,15 +139,32 @@ router.post('/supabase-setup', async (req, res) => {
         // 🛠️ GARANTIR QUE ESTAMOS USANDO O POOL CORRETO E SQL BRUTO PARA EVITAR ERROS DE SCHEMA
         if (pool) {
           console.log(`💾 [CONFIG] Executando INSERT/UPDATE via SQL bruto para ${tenantId}`);
-          await pool.query(`
+          // Primeiro, garantir a restrição UNIQUE para ON CONFLICT funcionar
+          try {
+            await pool.query(`
+              DO $$ 
+              BEGIN 
+                  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'supabase_config_tenant_id_key') THEN
+                      ALTER TABLE supabase_config ADD CONSTRAINT supabase_config_tenant_id_key UNIQUE (tenant_id);
+                  END IF;
+              END $$;
+            `);
+          } catch (e: any) {
+            console.warn('⚠️ [CONFIG] Erro ao garantir UNIQUE constraint:', e.message);
+          }
+
+          const sqlResult = await pool.query(`
             INSERT INTO supabase_config (tenant_id, supabase_url, supabase_anon_key, supabase_bucket, updated_at)
             VALUES ($1, $2, $3, $4, NOW())
             ON CONFLICT (tenant_id) 
             DO UPDATE SET 
               supabase_url = EXCLUDED.supabase_url,
               supabase_anon_key = EXCLUDED.supabase_anon_key,
-              updated_at = NOW();
+              updated_at = NOW()
+            RETURNING id;
           `, [tenantId, encryptedUrl, encryptedAnonKey, 'receipts']);
+          
+          console.log(`✅ [CONFIG] Resultado SQL:`, sqlResult.rows[0]);
         } else {
           // Fallback para Drizzle se pool não disponível (improvável)
           const existing = await db.select().from(supabaseConfig).where(eq(supabaseConfig.tenantId, tenantId)).limit(1);
