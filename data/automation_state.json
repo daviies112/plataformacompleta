@@ -29,22 +29,22 @@
     "dev-teste_empresa_com-dev-teste_empresa_com": {
       "clientId": "dev-teste_empresa_com",
       "tenantId": "dev-teste_empresa_com",
-      "lastRun": "2026-02-04T00:45:55.326Z",
-      "lastSuccess": "2026-02-04T00:45:55.326Z",
+      "lastRun": "2026-02-04T01:11:55.331Z",
+      "lastSuccess": "2026-02-04T01:11:55.331Z",
       "lastError": null,
       "consecutiveErrors": 0,
-      "totalExecutions": 296,
+      "totalExecutions": 309,
       "totalNewClientsDetected": 0,
       "totalEventsCreated": 0,
       "status": "running"
     }
   },
   "globalStats": {
-    "totalExecutions": 2435,
+    "totalExecutions": 2448,
     "totalNewClientsDetected": 1,
     "totalEventsCreated": 0,
     "totalErrors": 0,
-    "uptime": 0
+    "uptime": 1560
   },
   "settings": {
     "detectionIntervalMinutes": 2,

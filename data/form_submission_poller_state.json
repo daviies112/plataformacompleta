@@ -1,14 +1,14 @@
 {
   "lastSyncedAt": null,
   "lastSyncedId": null,
-  "lastRunAt": "2026-02-04T00:45:55.253Z",
-  "totalSubmissionsProcessed": 3,
+  "lastRunAt": "2026-02-04T01:11:55.261Z",
+  "totalSubmissionsProcessed": 4,
   "totalErrors": 0,
   "lastError": null,
   "tenantStates": {
     "dev-teste_empresa_com": {
-      "lastSyncedAt": "2026-02-03T17:46:12.241857+00:00",
-      "lastSyncedId": "c1c8896e-ad12-4c88-aea6-53d2c8ecf995"
+      "lastSyncedAt": "2026-02-04T01:02:54.707113+00:00",
+      "lastSyncedId": "c7f36732-d698-476f-9758-f92d04333e90"
     },
     "system": {
       "lastSyncedAt": "2026-02-03T17:46:12.241857+00:00",
