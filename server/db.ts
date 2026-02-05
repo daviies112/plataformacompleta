@@ -45,7 +45,7 @@ function initializeDatabase(): void {
         connectionString: cleanDbUrl,
         connectionTimeoutMillis: 15000,
         max: 20,
-        ssl: cleanDbUrl.includes('localhost') || cleanDbUrl.includes('127.0.0.1') ? false : { rejectUnauthorized: false }
+        ssl: false
       });
       
       db = drizzle(pool, { schema });
