@@ -1,34 +1,12 @@
 {
   "lastSyncedAt": null,
   "lastSyncedId": null,
-<<<<<<< HEAD
-  "lastRunAt": "2026-02-04T01:11:55.261Z",
-  "totalSubmissionsProcessed": 4,
+  "lastRunAt": "2026-02-05T20:34:09.174Z",
+  "totalSubmissionsProcessed": 1,
   "totalErrors": 0,
-=======
-  "lastRunAt": "2026-02-05T13:58:25.830Z",
-  "totalSubmissionsProcessed": 5,
-  "totalErrors": 94,
->>>>>>> 1cc05a2eccbfd4afda1c3974c7f4cafa1c562a14
   "lastError": null,
   "tenantStates": {
-    "dev-teste_empresa_com": {
-      "lastSyncedAt": "2026-02-04T01:02:54.707113+00:00",
-      "lastSyncedId": "c7f36732-d698-476f-9758-f92d04333e90"
-    },
     "system": {
-      "lastSyncedAt": "2026-02-03T17:46:12.241857+00:00",
-      "lastSyncedId": "c1c8896e-ad12-4c88-aea6-53d2c8ecf995"
-    },
-    "system": {
-      "lastSyncedAt": "2026-02-03T17:46:12.241857+00:00",
-      "lastSyncedId": "c1c8896e-ad12-4c88-aea6-53d2c8ecf995"
-    },
-    "dev-daviemericko_gmail_com": {
-      "lastSyncedAt": "2026-02-04T01:02:54.707113+00:00",
-      "lastSyncedId": "c7f36732-d698-476f-9758-f92d04333e90"
-    },
-    "b25cf69e-def4-4cea-afbf-0b93eabb77b2": {
       "lastSyncedAt": "2026-02-03T17:46:12.241857+00:00",
       "lastSyncedId": "c1c8896e-ad12-4c88-aea6-53d2c8ecf995"
     }
