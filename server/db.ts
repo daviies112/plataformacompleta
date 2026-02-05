@@ -30,7 +30,7 @@ function initializeDatabase(): void {
   connectionAttempted = true;
   
   console.log('🐘 Initializing database connection...');
-  const databaseUrl = getDatabaseUrl();
+  const databaseUrl = process.env.DATABASE_URL || getDatabaseUrl();
   
   if (databaseUrl) {
     try {

@@ -345,7 +345,7 @@ router.put('/:integrationType', authenticateToken, async (req, res) => {
     console.log(`🔐 [CREDENTIALS] Salvando credenciais ${integrationType} para tenant ${tenantId}`);
 
     // Validar o tipo de integração
-    const validTypes = ['supabase', 'google_meet', 'whatsapp', 'evolution_api', 'n8n', 'pluggy'];
+    const validTypes = ['supabase', 'google_meet', 'whatsapp', 'evolution_api', 'n8n', 'pluggy', 'bigdatacorp'];
     if (!validTypes.includes(integrationType)) {
       return res.status(400).json({
         success: false,
