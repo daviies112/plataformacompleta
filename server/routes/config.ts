@@ -653,7 +653,160 @@ export function setupConfigRoutes(app: Express) {
   // NOTA: Rotas movidas para o final do arquivo (seção "HMS 100MS CONFIGURATION - COMPLETE")
   // para suportar todas as 5 credenciais: appAccessKey, appSecret, managementToken, templateId, apiBaseUrl
 
-  // ===== CLOUDFLARE CONFIGURATION =====
+  // ===== SUPABASE CONFIGURATION =====
+  
+  app.get("/api/config/supabase", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const tenantId = req.user!.tenantId;
+      const configFromDb = await db.select().from(supabaseConfig)
+        .where(eq(supabaseConfig.tenantId, tenantId))
+        .limit(1);
+      
+      if (configFromDb[0]) {
+        return res.json({
+          configured: true,
+          supabaseUrl: configFromDb[0].supabaseUrl,
+          supabaseBucket: configFromDb[0].supabaseBucket || 'receipts',
+          createdAt: configFromDb[0].createdAt,
+          updatedAt: configFromDb[0].updatedAt,
+        });
+      }
+      
+      return res.json({
+        configured: false,
+      });
+    } catch (error) {
+      console.error("Erro ao buscar configuração do Supabase:", error);
+      return res.json({
+        configured: false,
+      });
+    }
+  });
+
+  app.get("/api/config/supabase/credentials", authenticateConfig, async (req: AuthRequest, res) => {
+    try {
+      const tenantId = req.user!.tenantId;
+      const configFromDb = await db.select().from(supabaseConfig)
+        .where(eq(supabaseConfig.tenantId, tenantId))
+        .limit(1);
+      
+      if (configFromDb[0]) {
+        return res.json({
+          success: true,
+          credentials: {
+            supabaseUrl: configFromDb[0].supabaseUrl,
+            supabaseAnonKey: decrypt(configFromDb[0].supabaseAnonKey),
+            supabaseBucket: configFromDb[0].supabaseBucket || 'receipts',
+          }
+        });
+      }
+      
+      return res.status(404).json({
+        success: false,
+        error: "Credenciais não encontradas"
+      });
+    } catch (error) {
+      console.error("Erro ao buscar credenciais do Supabase:", error);
+      return res.status(500).json({
+        success: false,
+        error: "Erro ao buscar credenciais",
+      });
+    }
+  });
+
+  app.post("/api/config/supabase", authenticateConfig, async (req: AuthRequest, res) => {
+    try {
+      const { supabaseUrl, supabaseAnonKey, supabaseBucket } = req.body;
+      const tenantId = req.user!.tenantId;
+      
+      if (!supabaseUrl || !supabaseAnonKey) {
+        return res.status(400).json({
+          error: "URL e Chave Anon são obrigatórios",
+        });
+      }
+      
+      const encryptedKey = encrypt(supabaseAnonKey);
+      
+      const existingConfig = await db.select().from(supabaseConfig)
+        .where(eq(supabaseConfig.tenantId, tenantId))
+        .limit(1);
+      
+      if (existingConfig[0]) {
+        await db
+          .update(supabaseConfig)
+          .set({
+            supabaseUrl,
+            supabaseAnonKey: encryptedKey,
+            supabaseBucket: supabaseBucket || 'receipts',
+            updatedAt: new Date(),
+          })
+          .where(and(
+            eq(supabaseConfig.id, existingConfig[0].id),
+            eq(supabaseConfig.tenantId, tenantId)
+          ));
+      } else {
+        await db.insert(supabaseConfig).values({
+          tenantId,
+          supabaseUrl,
+          supabaseAnonKey: encryptedKey,
+          supabaseBucket: supabaseBucket || 'receipts',
+        });
+      }
+
+      // Invalida o cache
+      invalidateCredentialsCache(tenantId);
+      
+      console.log(`✅ Configuração do Supabase salva para tenant ${tenantId}`);
+      return res.json({
+        success: true,
+        message: "Credenciais salvas com sucesso",
+      });
+    } catch (error) {
+      console.error("Erro ao salvar configuração do Supabase:", error);
+      return res.status(500).json({
+        error: "Erro ao salvar configuração",
+      });
+    }
+  });
+
+  app.post("/api/config/supabase/test", async (req, res) => {
+    try {
+      const { supabaseUrl, supabaseAnonKey } = req.body;
+      
+      if (!supabaseUrl || !supabaseAnonKey) {
+        return res.status(400).json({
+          success: false,
+          error: "URL e Chave Anon são obrigatórios",
+        });
+      }
+
+      const { createClient } = await import('@supabase/supabase-js');
+      const testClient = createClient(supabaseUrl, supabaseAnonKey, {
+        auth: { persistSession: false, autoRefreshToken: false }
+      });
+
+      const { error } = await testClient.from('forms').select('id', { count: 'exact', head: true });
+
+      if (error && !error.message.includes('relation') && !error.message.includes('does not exist')) {
+        return res.status(400).json({
+          success: false,
+          error: `Erro na conexão: ${error.message}`,
+        });
+      }
+
+      return res.json({
+        success: true,
+        message: "Conexão com Supabase estabelecida com sucesso! ✅",
+      });
+    } catch (error: any) {
+      console.error("Erro ao testar configuração do Supabase:", error);
+      return res.status(500).json({
+        success: false,
+        error: "Erro ao testar conexão",
+        message: error.message,
+      });
+    }
+  });
   
   app.get("/api/config/cloudflare", authenticateToken, async (req: AuthRequest, res) => {
     try {

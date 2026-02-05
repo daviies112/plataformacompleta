@@ -585,6 +585,111 @@ export default function Configuracoes() {
     testBdcMutation.mutate({ token_id: tokenId, chave_token: chaveToken });
   };
 
+  const [supabaseUrl, setSupabaseUrl] = useState("");
+  const [supabaseAnonKey, setSupabaseAnonKey] = useState("");
+  const [supabaseBucket, setSupabaseBucket] = useState("receipts");
+  const [showSupabaseKey, setShowSupabaseKey] = useState(false);
+
+  const { data: supabaseConfig } = useQuery({
+    queryKey: ["/api/config/supabase"],
+    queryFn: async () => {
+      const response = await fetch("/api/config/supabase", {
+        headers: { "Authorization": `Bearer ${localStorage.getItem('token')}` },
+      });
+      if (!response.ok) return null;
+      return response.json();
+    },
+  });
+
+  const { data: supabaseCreds } = useQuery({
+    queryKey: ["/api/config/supabase/credentials"],
+    queryFn: async () => {
+      const response = await fetch("/api/config/supabase/credentials", {
+        headers: { 
+          "Authorization": `Bearer ${localStorage.getItem('token')}`,
+          "X-Config-Token": localStorage.getItem('token') // Usando token como placeholder se necessário
+        },
+      });
+      if (!response.ok) return null;
+      const data = await response.json();
+      return data.success ? data.credentials : null;
+    },
+    enabled: !!supabaseConfig?.configured,
+  });
+
+  useEffect(() => {
+    if (supabaseConfig?.configured) {
+      setSupabaseUrl(supabaseConfig.supabaseUrl || "");
+      setSupabaseBucket(supabaseConfig.supabaseBucket || "receipts");
+    }
+    if (supabaseCreds) {
+      setSupabaseAnonKey(supabaseCreds.supabaseAnonKey || "");
+    }
+  }, [supabaseConfig, supabaseCreds]);
+
+  const saveSupabaseMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const response = await fetch("/api/config/supabase", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem('token')}`,
+          "X-Config-Token": localStorage.getItem('token')
+        },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) throw new Error("Erro ao salvar configuração");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/config/supabase"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/config/supabase/credentials"] });
+      toast({ title: "Supabase configurado", description: "Credenciais salvas com sucesso" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    }
+  });
+
+  const testSupabaseMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const response = await fetch("/api/config/supabase/test", {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || "Erro ao testar conexão");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Sucesso!", description: "Conexão com Supabase validada" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Erro", description: error.message, variant: "destructive" });
+    }
+  });
+
+  const handleSaveSupabase = () => {
+    saveSupabaseMutation.mutate({ 
+      supabaseUrl, 
+      supabaseAnonKey, 
+      supabaseBucket 
+    });
+  };
+
+  const handleTestSupabase = () => {
+    testSupabaseMutation.mutate({ 
+      supabaseUrl, 
+      supabaseAnonKey 
+    });
+  };
+
   const handleTestTotalExpress = () => {
     if (!totalExpressUser || !totalExpressReid) {
       toast({
@@ -686,6 +791,79 @@ export default function Configuracoes() {
                     </FormItem>
                   )}
                 />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <RefreshCw className="h-5 w-5 text-blue-500" />
+                  Supabase Database
+                </CardTitle>
+                <CardDescription>
+                  Configuração do banco de dados e armazenamento.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <FormLabel>URL do Projeto Supabase</FormLabel>
+                  <Input 
+                    value={supabaseUrl} 
+                    onChange={(e) => setSupabaseUrl(e.target.value)} 
+                    placeholder="https://xyz.supabase.co"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <FormLabel>Chave Anônima (anon/public)</FormLabel>
+                  <div className="relative">
+                    <Input 
+                      type={showSupabaseKey ? "text" : "password"}
+                      value={supabaseAnonKey} 
+                      onChange={(e) => setSupabaseAnonKey(e.target.value)} 
+                      placeholder="Sua chave anônima"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                      onClick={() => setShowSupabaseKey(!showSupabaseKey)}
+                    >
+                      {showSupabaseKey ? (
+                        <EyeOff className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <Eye className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <FormLabel>Bucket de Armazenamento</FormLabel>
+                  <Input 
+                    value={supabaseBucket} 
+                    onChange={(e) => setSupabaseBucket(e.target.value)} 
+                    placeholder="receipts"
+                  />
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={handleTestSupabase}
+                    disabled={testSupabaseMutation.isPending}
+                  >
+                    {testSupabaseMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                    Testar Conexão
+                  </Button>
+                  <Button 
+                    type="button" 
+                    onClick={handleSaveSupabase}
+                    disabled={saveSupabaseMutation.isPending}
+                  >
+                    {saveSupabaseMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    Salvar Configuração
+                  </Button>
+                </div>
               </CardContent>
             </Card>
 
