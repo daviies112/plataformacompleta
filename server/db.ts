@@ -40,27 +40,27 @@ function initializeDatabase(): void {
     const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
     const serviceRole = process.env.REACT_APP_SUPABASE_SERVICE_ROLE;
     
-    // Extrair o ID do projeto da URL (ex: https://xyz.supabase.co -> xyz)
     const projectId = supabaseUrl.split('//')[1]?.split('.')[0];
     if (projectId) {
-      // Supabase PostgreSQL costuma seguir este padrão de URL
-      // Importante: A senha do banco de dados (postgres) pode não ser a Service Role Key.
-      // No entanto, em muitos setups do Replit, o usuário tenta usar o que tem disponível.
-      // Se o DATABASE_URL for fornecido diretamente nos Secrets, ele terá precedência.
       finalDbUrl = `postgresql://postgres:${serviceRole}@db.${projectId}.supabase.co:5432/postgres`;
-      console.log('🏗️ Constructed DATABASE_URL from Supabase secrets for project:', projectId);
+      console.log('🏗️ Constructed DATABASE_URL from REACT_APP_SUPABASE secrets for project:', projectId);
     }
   }
 
-  // Tentar também os segredos sem o prefixo REACT_APP_
   if (!finalDbUrl && process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
     const supabaseUrl = process.env.SUPABASE_URL;
     const serviceRole = process.env.SUPABASE_SERVICE_ROLE_KEY;
     const projectId = supabaseUrl.split('//')[1]?.split('.')[0];
     if (projectId) {
       finalDbUrl = `postgresql://postgres:${serviceRole}@db.${projectId}.supabase.co:5432/postgres`;
-      console.log('🏗️ Constructed DATABASE_URL from direct Supabase secrets for project:', projectId);
+      console.log('🏗️ Constructed DATABASE_URL from direct SUPABASE secrets for project:', projectId);
     }
+  }
+
+  // Backup final para DATABASE_URL construído manualmente via PGPASSWORD se disponível
+  if (!finalDbUrl && process.env.PGHOST && process.env.PGUSER && process.env.PGPASSWORD) {
+    finalDbUrl = `postgresql://${process.env.PGUSER}:${process.env.PGPASSWORD}@${process.env.PGHOST}:${process.env.PGPORT || 5432}/${process.env.PGDATABASE || 'postgres'}`;
+    console.log('🏗️ Constructed DATABASE_URL from PG secrets');
   }
 
   if (finalDbUrl) {
