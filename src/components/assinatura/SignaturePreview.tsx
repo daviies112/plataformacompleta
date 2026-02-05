@@ -112,6 +112,7 @@ interface SignaturePreviewProps {
   wizardStep?: number;
   onStepChange?: (step: number) => void;
   verificationPreviewMode?: string;
+  onVerificationPreviewModeChange?: (value: string) => void;
 }
 
 export const SignaturePreview = ({
@@ -209,7 +210,8 @@ export const SignaturePreview = ({
   
   wizardStep: externalWizardStep,
   onStepChange,
-  verificationPreviewMode = 'tela-inicial'
+  verificationPreviewMode = 'tela-inicial',
+  onVerificationPreviewModeChange,
 }: SignaturePreviewProps) => {
   const [internalWizardStep, setInternalWizardStep] = useState(0);
   const wizardStep = externalWizardStep !== undefined ? externalWizardStep : internalWizardStep;
@@ -398,8 +400,86 @@ export const SignaturePreview = ({
     </div>
   );
 
+  const renderSelfiePreview = () => (
+    <div className="min-h-[400px] flex flex-col items-center p-6" style={{ backgroundColor: selfieStepBackgroundColor || backgroundColor, fontFamily: vFontFamily }}>
+      <h2 className="text-xl font-bold mb-2" style={{ color: selfieStepTextColor || vTextColor }}>{selfieStepTitle}</h2>
+      <p className="text-sm mb-4 text-center" style={{ color: selfieStepTextColor || vTextColor, opacity: 0.8 }}>{selfieStepDescription}</p>
+      <div className="w-48 h-48 bg-gray-200 rounded-full flex items-center justify-center mb-4 border-4" style={{ borderColor: `${vPrimaryColor}40` }}>
+        <Camera className="w-16 h-16 text-gray-400" />
+      </div>
+      <p className="text-xs text-center mb-4" style={{ color: selfieStepTextColor || vTextColor, opacity: 0.7 }}>{selfieInstructionText}</p>
+      <p className="text-xs text-center mb-4 px-4 py-2 rounded-lg" style={{ backgroundColor: `${vPrimaryColor}15`, color: vPrimaryColor }}>
+        {detectionDefaultMessage}
+      </p>
+      <Button size="lg" className="w-full max-w-xs" style={{ backgroundColor: vPrimaryColor, color: 'white' }}>
+        <Camera className="w-4 h-4 mr-2" />
+        {selfieCaptureButtonText}
+      </Button>
+      <div className="flex gap-2 mt-3 w-full max-w-xs">
+        <Button variant="outline" className="flex-1" size="sm" style={{ borderColor: vPrimaryColor, color: vPrimaryColor }}>{selfieRetakeButtonText}</Button>
+        <Button className="flex-1" size="sm" style={{ backgroundColor: '#22c55e', color: 'white' }}>
+          <CheckCircle className="w-3 h-3 mr-1" />
+          {selfieConfirmButtonText}
+        </Button>
+      </div>
+    </div>
+  );
+
+  const previewStepPills = [
+    { value: 'selfie', label: stepLabelSelfie, modes: ['tela-inicial', 'selfie', 'etapas-fluxo', 'botoes-captura', 'mensagens-deteccao'] },
+    { value: 'documento', label: stepLabelDocument, modes: ['documento'] },
+    { value: 'analise', label: stepLabelAnalysis, modes: ['analise'] },
+    { value: 'resultado', label: stepLabelResult, modes: ['resultado'] },
+  ];
+
+  const getActivePreviewStep = () => {
+    for (const step of previewStepPills) {
+      if (step.modes.includes(verificationPreviewMode)) return step.value;
+    }
+    return 'selfie';
+  };
+
+  const handlePreviewStepClick = (stepValue: string) => {
+    if (onVerificationPreviewModeChange) {
+      onVerificationPreviewModeChange(stepValue === 'selfie' ? 'selfie' : stepValue);
+    }
+  };
+
+  const renderPreviewStepPills = () => (
+    <div className="flex items-center justify-between px-3 py-2 gap-1" style={{ backgroundColor: `${vPrimaryColor}10` }}>
+      {previewStepPills.map((step, index) => {
+        const isActive = getActivePreviewStep() === step.value;
+        return (
+          <button
+            key={step.value}
+            onClick={() => handlePreviewStepClick(step.value)}
+            className="flex flex-col items-center gap-0.5 flex-1 transition-all"
+            data-testid={`preview-pill-${step.value}`}
+          >
+            <div
+              className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold"
+              style={{
+                backgroundColor: isActive ? vPrimaryColor : progressIndicatorInactiveCircleColor,
+                color: isActive ? 'white' : progressIndicatorInactiveTextColor,
+              }}
+            >
+              {index + 1}
+            </div>
+            <span
+              className="text-[10px] font-medium truncate max-w-[60px]"
+              style={{ color: isActive ? vPrimaryColor : progressIndicatorInactiveTextColor }}
+            >
+              {step.label}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+
   const renderContent = () => {
     switch (verificationPreviewMode) {
+      case 'selfie': return renderSelfiePreview();
       case 'etapas-fluxo': return renderEtapasFluxoPreview();
       case 'barra-navegacao': return renderBarraNavegacaoPreview();
       case 'botoes-captura': return renderBotoesCapturasPreview();
@@ -425,6 +505,7 @@ export const SignaturePreview = ({
             </div>
           </div>
         </CardHeader>
+        {renderPreviewStepPills()}
         <CardContent className="p-0">{renderContent()}</CardContent>
         {vFooterText && (
           <CardFooter className="p-3 border-t justify-center bg-gray-50">

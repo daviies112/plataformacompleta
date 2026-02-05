@@ -466,7 +466,7 @@ export const SimplifiedSignatureWizard = ({
   const [currentStep, setCurrentStep] = useState<1 | 2>(1);
   const [step1Tab, setStep1Tab] = useState<'verificacao' | 'progresso' | 'parabens' | 'apps'>('verificacao');
   const [step2Tab, setStep2Tab] = useState<'conteudo' | 'design'>('conteudo');
-  const [internalVerificationSubTab, setInternalVerificationSubTab] = useState<'tela-inicial' | 'etapas-fluxo' | 'barra-navegacao' | 'botoes-captura' | 'mensagens-deteccao' | 'documento' | 'analise' | 'resultado'>('tela-inicial');
+  const [internalVerificationSubTab, setInternalVerificationSubTab] = useState<'tela-inicial' | 'selfie' | 'etapas-fluxo' | 'barra-navegacao' | 'botoes-captura' | 'mensagens-deteccao' | 'documento' | 'analise' | 'resultado'>('tela-inicial');
 
   const verificationSubTab = (verificationPreviewMode as any) || internalVerificationSubTab;
   const setVerificationSubTab = (val: any) => {
@@ -655,460 +655,460 @@ export const SimplifiedSignatureWizard = ({
         </TabsList>
 
         <TabsContent value="verificacao" className="space-y-4">
-          <Accordion 
-            type="single" 
-            collapsible 
-            value={verificationSubTab}
-            onValueChange={handleAccordionChange}
-            className="space-y-2"
-          >
-            <AccordionItem value="tela-inicial" className="border rounded-lg px-4">
-              <AccordionTrigger className="text-base font-semibold hover:no-underline" data-testid="accordion-tela-inicial">
-                Tela Inicial
+          <div className="flex flex-wrap gap-2 p-1 bg-muted/40 rounded-lg" data-testid="verification-step-pills">
+            {[
+              { value: 'tela-inicial', label: 'Tela Inicial' },
+              { value: 'selfie', label: 'Selfie' },
+              { value: 'documento', label: 'Documento' },
+              { value: 'analise', label: 'Análise' },
+              { value: 'resultado', label: 'Resultado' },
+            ].map((step) => (
+              <button
+                key={step.value}
+                onClick={() => setVerificationSubTab(step.value)}
+                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                  verificationSubTab === step.value
+                    ? 'text-white shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                }`}
+                style={verificationSubTab === step.value ? { backgroundColor: verificationPrimaryColor || '#2c3e50' } : undefined}
+                data-testid={`pill-${step.value}`}
+              >
+                {step.label}
+              </button>
+            ))}
+          </div>
+
+          {verificationSubTab === 'tela-inicial' && (
+            <div className="space-y-4" data-testid="section-tela-inicial">
+              <div className="space-y-2">
+                <Label>Texto de Boas-vindas</Label>
+                <Input
+                  value={verificationWelcomeText}
+                  onChange={(e) => onVerificationWelcomeTextChange(e.target.value)}
+                  placeholder="Verificação de Identidade"
+                  data-testid="input-verification-welcome"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Instruções</Label>
+                <Textarea
+                  value={verificationInstructions}
+                  onChange={(e) => onVerificationInstructionsChange(e.target.value)}
+                  placeholder="Processo seguro e rápido..."
+                  rows={3}
+                  data-testid="input-verification-instructions"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Texto de Segurança</Label>
+                <Input
+                  value={verificationSecurityText}
+                  onChange={(e) => onVerificationSecurityTextChange(e.target.value)}
+                  placeholder="Suas informações são processadas..."
+                  data-testid="input-verification-security"
+                />
+              </div>
+              <Separator />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Cor Principal</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="color"
+                      value={verificationPrimaryColor}
+                      onChange={(e) => onVerificationPrimaryColorChange(e.target.value)}
+                      className="w-12 h-10 p-1 cursor-pointer"
+                    />
+                    <Input
+                      value={verificationPrimaryColor}
+                      onChange={(e) => onVerificationPrimaryColorChange(e.target.value)}
+                      className="flex-1"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Cor do Texto</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="color"
+                      value={verificationTextColor}
+                      onChange={(e) => onVerificationTextColorChange(e.target.value)}
+                      className="w-12 h-10 p-1 cursor-pointer"
+                    />
+                    <Input
+                      value={verificationTextColor}
+                      onChange={(e) => onVerificationTextColorChange(e.target.value)}
+                      className="flex-1"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Cor de Fundo</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="color"
+                      value={verificationBackgroundColor}
+                      onChange={(e) => onVerificationBackgroundColorChange(e.target.value)}
+                      className="w-12 h-10 p-1 cursor-pointer"
+                    />
+                    <Input
+                      value={verificationBackgroundColor}
+                      onChange={(e) => onVerificationBackgroundColorChange(e.target.value)}
+                      className="flex-1"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Fonte</Label>
+                  <Select value={verificationFontFamily} onValueChange={onVerificationFontFamilyChange}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {fontOptions.map((font) => (
+                        <SelectItem key={font.value} value={font.value}>
+                          {font.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {verificationSubTab === 'selfie' && (
+            <div className="space-y-4" data-testid="section-selfie">
+              <div className="space-y-2">
+                <Label>Título do Passo</Label>
+                <Input
+                  value={selfieStepTitle}
+                  onChange={(e) => onSelfieStepTitleChange(e.target.value)}
+                  placeholder="Tire uma selfie"
+                  data-testid="input-selfie-step-title"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Descrição do Passo</Label>
+                <Input
+                  value={selfieStepDescription}
+                  onChange={(e) => onSelfieStepDescriptionChange(e.target.value)}
+                  placeholder="Posicione seu rosto na área indicada"
+                  data-testid="input-selfie-step-description"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Cor de Fundo</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="color"
+                      value={selfieStepBackgroundColor || '#ffffff'}
+                      onChange={(e) => onSelfieStepBackgroundColorChange(e.target.value)}
+                      className="w-12 h-10 p-1 cursor-pointer"
+                    />
+                    <Input
+                      value={selfieStepBackgroundColor || '#ffffff'}
+                      onChange={(e) => onSelfieStepBackgroundColorChange(e.target.value)}
+                      className="flex-1"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Cor do Texto</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="color"
+                      value={selfieStepTextColor || '#000000'}
+                      onChange={(e) => onSelfieStepTextColorChange(e.target.value)}
+                      className="w-12 h-10 p-1 cursor-pointer"
+                    />
+                    <Input
+                      value={selfieStepTextColor || '#000000'}
+                      onChange={(e) => onSelfieStepTextColorChange(e.target.value)}
+                      className="flex-1"
+                    />
+                  </div>
+                </div>
+              </div>
+              <Separator />
+              <div className="space-y-2">
+                <Label>Texto do Botão de Verificação</Label>
+                <Input
+                  value={selfieButtonText}
+                  onChange={(e) => onSelfieButtonTextChange(e.target.value)}
+                  placeholder="Iniciar Verificação"
+                  data-testid="input-selfie-button-text"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Instruções da Captura</Label>
+                <Input
+                  value={selfieInstructionText}
+                  onChange={(e) => onSelfieInstructionTextChange(e.target.value)}
+                  placeholder="Posicione seu rosto e aguarde a captura automática"
+                  data-testid="input-selfie-instruction-text"
+                />
+              </div>
+              <Separator />
+              <Label className="font-semibold text-sm">Botões da Captura</Label>
+              <div className="space-y-2">
+                <Label>Texto - Botão Capturar</Label>
+                <Input
+                  value={selfieCaptureButtonText}
+                  onChange={(e) => onSelfieCaptureButtonTextChange(e.target.value)}
+                  placeholder="Capturar Agora"
+                  data-testid="input-selfie-capture-button-text"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Texto - Tirar Outra</Label>
+                  <Input
+                    value={selfieRetakeButtonText}
+                    onChange={(e) => onSelfieRetakeButtonTextChange(e.target.value)}
+                    placeholder="Tirar Outra"
+                    data-testid="input-selfie-retake-button-text"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Texto - Confirmar</Label>
+                  <Input
+                    value={selfieConfirmButtonText}
+                    onChange={(e) => onSelfieConfirmButtonTextChange(e.target.value)}
+                    placeholder="Confirmar"
+                    data-testid="input-selfie-confirm-button-text"
+                  />
+                </div>
+              </div>
+              <Separator />
+              <Label className="font-semibold text-sm">Mensagens de Detecção</Label>
+              <div className="space-y-2">
+                <Label>Mensagem Padrão (rosto não detectado)</Label>
+                <Input
+                  value={detectionDefaultMessage}
+                  onChange={(e) => onDetectionDefaultMessageChange(e.target.value)}
+                  placeholder="Posicione seu rosto na área indicada"
+                  data-testid="input-detection-default-message"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Mensagem de Centralização</Label>
+                <Input
+                  value={detectionCenterMessage}
+                  onChange={(e) => onDetectionCenterMessageChange(e.target.value)}
+                  placeholder="Centralize seu rosto"
+                  data-testid="input-detection-center-message"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Mensagem de Iluminação</Label>
+                <Input
+                  value={detectionLightingMessage}
+                  onChange={(e) => onDetectionLightingMessageChange(e.target.value)}
+                  placeholder="Melhore a iluminação"
+                  data-testid="input-detection-lighting-message"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Mensagem de Qualidade/Distância</Label>
+                <Input
+                  value={detectionQualityMessage}
+                  onChange={(e) => onDetectionQualityMessageChange(e.target.value)}
+                  placeholder="Aproxime seu rosto"
+                  data-testid="input-detection-quality-message"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Mensagem de Captura Perfeita</Label>
+                <Input
+                  value={detectionPerfectMessage}
+                  onChange={(e) => onDetectionPerfectMessageChange(e.target.value)}
+                  placeholder="Perfeito! Capturando..."
+                  data-testid="input-detection-perfect-message"
+                />
+              </div>
+            </div>
+          )}
+
+          {verificationSubTab === 'documento' && (
+            <div className="space-y-4" data-testid="section-documento">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Cor de Fundo</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="color"
+                      value={documentStepBackgroundColor}
+                      onChange={(e) => onDocumentStepBackgroundColorChange(e.target.value)}
+                      className="w-12 h-10 p-1 cursor-pointer"
+                    />
+                    <Input
+                      value={documentStepBackgroundColor}
+                      onChange={(e) => onDocumentStepBackgroundColorChange(e.target.value)}
+                      className="flex-1"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Cor do Texto</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="color"
+                      value={documentStepTextColor}
+                      onChange={(e) => onDocumentStepTextColorChange(e.target.value)}
+                      className="w-12 h-10 p-1 cursor-pointer"
+                    />
+                    <Input
+                      value={documentStepTextColor}
+                      onChange={(e) => onDocumentStepTextColorChange(e.target.value)}
+                      className="flex-1"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Título do Passo</Label>
+                <Input
+                  value={documentStepTitle}
+                  onChange={(e) => onDocumentStepTitleChange(e.target.value)}
+                  data-testid="input-document-step-title"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Descrição do Passo</Label>
+                <Textarea
+                  value={documentStepDescription}
+                  onChange={(e) => onDocumentStepDescriptionChange(e.target.value)}
+                  rows={2}
+                  data-testid="input-document-step-description"
+                />
+              </div>
+            </div>
+          )}
+
+          {verificationSubTab === 'analise' && (
+            <div className="space-y-4" data-testid="section-analise">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Cor de Fundo</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="color"
+                      value={analysisStepBackgroundColor}
+                      onChange={(e) => onAnalysisStepBackgroundColorChange(e.target.value)}
+                      className="w-12 h-10 p-1 cursor-pointer"
+                    />
+                    <Input
+                      value={analysisStepBackgroundColor}
+                      onChange={(e) => onAnalysisStepBackgroundColorChange(e.target.value)}
+                      className="flex-1"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Cor do Texto</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="color"
+                      value={analysisStepTextColor}
+                      onChange={(e) => onAnalysisStepTextColorChange(e.target.value)}
+                      className="w-12 h-10 p-1 cursor-pointer"
+                    />
+                    <Input
+                      value={analysisStepTextColor}
+                      onChange={(e) => onAnalysisStepTextColorChange(e.target.value)}
+                      className="flex-1"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Título do Passo</Label>
+                <Input
+                  value={analysisStepTitle}
+                  onChange={(e) => onAnalysisStepTitleChange(e.target.value)}
+                  data-testid="input-analysis-step-title"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Descrição do Passo</Label>
+                <Textarea
+                  value={analysisStepDescription}
+                  onChange={(e) => onAnalysisStepDescriptionChange(e.target.value)}
+                  rows={2}
+                  data-testid="input-analysis-step-description"
+                />
+              </div>
+            </div>
+          )}
+
+          {verificationSubTab === 'resultado' && (
+            <div className="space-y-4" data-testid="section-resultado">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Cor de Fundo</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="color"
+                      value={resultStepBackgroundColor}
+                      onChange={(e) => onResultStepBackgroundColorChange(e.target.value)}
+                      className="w-12 h-10 p-1 cursor-pointer"
+                    />
+                    <Input
+                      value={resultStepBackgroundColor}
+                      onChange={(e) => onResultStepBackgroundColorChange(e.target.value)}
+                      className="flex-1"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label>Cor do Texto</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      type="color"
+                      value={resultStepTextColor}
+                      onChange={(e) => onResultStepTextColorChange(e.target.value)}
+                      className="w-12 h-10 p-1 cursor-pointer"
+                    />
+                    <Input
+                      value={resultStepTextColor}
+                      onChange={(e) => onResultStepTextColorChange(e.target.value)}
+                      className="flex-1"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Título do Passo</Label>
+                <Input
+                  value={resultStepTitle}
+                  onChange={(e) => onResultStepTitleChange(e.target.value)}
+                  data-testid="input-result-step-title"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Descrição do Passo</Label>
+                <Textarea
+                  value={resultStepDescription}
+                  onChange={(e) => onResultStepDescriptionChange(e.target.value)}
+                  rows={2}
+                  data-testid="input-result-step-description"
+                />
+              </div>
+            </div>
+          )}
+
+          <Accordion type="single" collapsible className="mt-4">
+            <AccordionItem value="configuracoes-avancadas" className="border rounded-lg px-4">
+              <AccordionTrigger className="text-sm font-semibold hover:no-underline" data-testid="accordion-configuracoes-avancadas">
+                Configurações Avançadas
               </AccordionTrigger>
               <AccordionContent className="space-y-4 pb-4">
-                <div className="space-y-2">
-                  <Label>Texto de Boas-vindas</Label>
-                  <Input
-                    value={verificationWelcomeText}
-                    onChange={(e) => onVerificationWelcomeTextChange(e.target.value)}
-                    placeholder="Verificação de Identidade"
-                    data-testid="input-verification-welcome"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Instruções</Label>
-                  <Textarea
-                    value={verificationInstructions}
-                    onChange={(e) => onVerificationInstructionsChange(e.target.value)}
-                    placeholder="Processo seguro e rápido..."
-                    rows={3}
-                    data-testid="input-verification-instructions"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Texto de Segurança</Label>
-                  <Input
-                    value={verificationSecurityText}
-                    onChange={(e) => onVerificationSecurityTextChange(e.target.value)}
-                    placeholder="Suas informações são processadas..."
-                    data-testid="input-verification-security"
-                  />
-                </div>
-                <Separator />
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Cor Principal</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        type="color"
-                        value={verificationPrimaryColor}
-                        onChange={(e) => onVerificationPrimaryColorChange(e.target.value)}
-                        className="w-12 h-10 p-1 cursor-pointer"
-                      />
-                      <Input
-                        value={verificationPrimaryColor}
-                        onChange={(e) => onVerificationPrimaryColorChange(e.target.value)}
-                        className="flex-1"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Cor do Texto</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        type="color"
-                        value={verificationTextColor}
-                        onChange={(e) => onVerificationTextColorChange(e.target.value)}
-                        className="w-12 h-10 p-1 cursor-pointer"
-                      />
-                      <Input
-                        value={verificationTextColor}
-                        onChange={(e) => onVerificationTextColorChange(e.target.value)}
-                        className="flex-1"
-                      />
-                    </div>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Cor de Fundo</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        type="color"
-                        value={verificationBackgroundColor}
-                        onChange={(e) => onVerificationBackgroundColorChange(e.target.value)}
-                        className="w-12 h-10 p-1 cursor-pointer"
-                      />
-                      <Input
-                        value={verificationBackgroundColor}
-                        onChange={(e) => onVerificationBackgroundColorChange(e.target.value)}
-                        className="flex-1"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Fonte</Label>
-                    <Select value={verificationFontFamily} onValueChange={onVerificationFontFamilyChange}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {fontOptions.map((font) => (
-                          <SelectItem key={font.value} value={font.value}>
-                            {font.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-
-            <AccordionItem value="documento" className="border rounded-lg px-4">
-              <AccordionTrigger className="text-base font-semibold hover:no-underline" data-testid="accordion-documento">
-                Passo: Documento
-              </AccordionTrigger>
-              <AccordionContent className="pt-0 pb-4 space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                  <div className="space-y-2">
-                    <Label>Cor de Fundo do Passo (Documento)</Label>
-                    <div className="flex gap-2">
-                      <Input 
-                        type="color" 
-                        value={documentStepBackgroundColor} 
-                        onChange={(e) => onDocumentStepBackgroundColorChange(e.target.value)}
-                        className="w-12 h-10 p-1"
-                      />
-                      <Input 
-                        value={documentStepBackgroundColor} 
-                        onChange={(e) => onDocumentStepBackgroundColorChange(e.target.value)}
-                        className="flex-1"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Cor do Texto do Passo (Documento)</Label>
-                    <div className="flex gap-2">
-                      <Input 
-                        type="color" 
-                        value={documentStepTextColor} 
-                        onChange={(e) => onDocumentStepTextColorChange(e.target.value)}
-                        className="w-12 h-10 p-1"
-                      />
-                      <Input 
-                        value={documentStepTextColor} 
-                        onChange={(e) => onDocumentStepTextColorChange(e.target.value)}
-                        className="flex-1"
-                      />
-                    </div>
-                  </div>
-                </div>
-                <div className="space-y-2 pt-2">
-                  <Label>Título do Passo de Documento</Label>
-                  <Input 
-                    value={documentStepTitle} 
-                    onChange={(e) => onDocumentStepTitleChange(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Descrição do Passo de Documento</Label>
-                  <Textarea 
-                    value={documentStepDescription} 
-                    onChange={(e) => onDocumentStepDescriptionChange(e.target.value)}
-                    rows={2}
-                  />
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-
-            <AccordionItem value="analise" className="border rounded-lg px-4">
-              <AccordionTrigger className="text-base font-semibold hover:no-underline" data-testid="accordion-analise">
-                Passo: Análise
-              </AccordionTrigger>
-              <AccordionContent className="pt-0 pb-4 space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                  <div className="space-y-2">
-                    <Label>Cor de Fundo do Passo (Análise)</Label>
-                    <div className="flex gap-2">
-                      <Input 
-                        type="color" 
-                        value={analysisStepBackgroundColor} 
-                        onChange={(e) => onAnalysisStepBackgroundColorChange(e.target.value)}
-                        className="w-12 h-10 p-1"
-                      />
-                      <Input 
-                        value={analysisStepBackgroundColor} 
-                        onChange={(e) => onAnalysisStepBackgroundColorChange(e.target.value)}
-                        className="flex-1"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Cor do Texto do Passo (Análise)</Label>
-                    <div className="flex gap-2">
-                      <Input 
-                        type="color" 
-                        value={analysisStepTextColor} 
-                        onChange={(e) => onAnalysisStepTextColorChange(e.target.value)}
-                        className="w-12 h-10 p-1"
-                      />
-                      <Input 
-                        value={analysisStepTextColor} 
-                        onChange={(e) => onAnalysisStepTextColorChange(e.target.value)}
-                        className="flex-1"
-                      />
-                    </div>
-                  </div>
-                </div>
-                <div className="space-y-2 pt-2">
-                  <Label>Título do Passo de Análise</Label>
-                  <Input 
-                    value={analysisStepTitle} 
-                    onChange={(e) => onAnalysisStepTitleChange(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Descrição do Passo de Análise</Label>
-                  <Textarea 
-                    value={analysisStepDescription} 
-                    onChange={(e) => onAnalysisStepDescriptionChange(e.target.value)}
-                    rows={2}
-                  />
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-
-            <AccordionItem value="resultado" className="border rounded-lg px-4">
-              <AccordionTrigger className="text-base font-semibold hover:no-underline" data-testid="accordion-resultado">
-                Passo: Resultado
-              </AccordionTrigger>
-              <AccordionContent className="pt-0 pb-4 space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
-                  <div className="space-y-2">
-                    <Label>Cor de Fundo do Passo (Resultado)</Label>
-                    <div className="flex gap-2">
-                      <Input 
-                        type="color" 
-                        value={resultStepBackgroundColor} 
-                        onChange={(e) => onResultStepBackgroundColorChange(e.target.value)}
-                        className="w-12 h-10 p-1"
-                      />
-                      <Input 
-                        value={resultStepBackgroundColor} 
-                        onChange={(e) => onResultStepBackgroundColorChange(e.target.value)}
-                        className="flex-1"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Cor do Texto do Passo (Resultado)</Label>
-                    <div className="flex gap-2">
-                      <Input 
-                        type="color" 
-                        value={resultStepTextColor} 
-                        onChange={(e) => onResultStepTextColorChange(e.target.value)}
-                        className="w-12 h-10 p-1"
-                      />
-                      <Input 
-                        value={resultStepTextColor} 
-                        onChange={(e) => onResultStepTextColorChange(e.target.value)}
-                        className="flex-1"
-                      />
-                    </div>
-                  </div>
-                </div>
-                <div className="space-y-2 pt-2">
-                  <Label>Título do Passo de Resultado</Label>
-                  <Input 
-                    value={resultStepTitle} 
-                    onChange={(e) => onResultStepTitleChange(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Descrição do Passo de Resultado</Label>
-                  <Textarea 
-                    value={resultStepDescription} 
-                    onChange={(e) => onResultStepDescriptionChange(e.target.value)}
-                    rows={2}
-                  />
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-
-            <AccordionItem value="etapas-fluxo" className="border rounded-lg px-4">
-              <AccordionTrigger className="text-base font-semibold hover:no-underline" data-testid="accordion-etapas-fluxo">
-                Etapas do Fluxo
-              </AccordionTrigger>
-              <AccordionContent className="space-y-4 pb-4">
-                <div className="space-y-3">
-                  <Label className="font-semibold">1. Selfie</Label>
-                  <Input
-                    value={selfieStepTitle}
-                    onChange={(e) => onSelfieStepTitleChange(e.target.value)}
-                    placeholder="Tire uma selfie"
-                    data-testid="input-selfie-step-title"
-                  />
-                  <Input
-                    value={selfieStepDescription}
-                    onChange={(e) => onSelfieStepDescriptionChange(e.target.value)}
-                    placeholder="Posicione seu rosto na área indicada"
-                    data-testid="input-selfie-step-description"
-                  />
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="space-y-1">
-                      <Label className="text-xs">Cor Fundo</Label>
-                      <Input
-                        type="color"
-                        value={selfieStepBackgroundColor || '#ffffff'}
-                        onChange={(e) => onSelfieStepBackgroundColorChange(e.target.value)}
-                        className="h-8 p-1"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs">Cor Texto</Label>
-                      <Input
-                        type="color"
-                        value={selfieStepTextColor || '#000000'}
-                        onChange={(e) => onSelfieStepTextColorChange(e.target.value)}
-                        className="h-8 p-1"
-                      />
-                    </div>
-                  </div>
-                </div>
-                <div className="space-y-3">
-                  <Label className="font-semibold">2. Documento</Label>
-                  <Input
-                    value={documentStepTitle}
-                    onChange={(e) => onDocumentStepTitleChange(e.target.value)}
-                    placeholder="Fotografe seu documento"
-                    data-testid="input-document-step-title"
-                  />
-                  <Input
-                    value={documentStepDescription}
-                    onChange={(e) => onDocumentStepDescriptionChange(e.target.value)}
-                    placeholder="CNH, RG ou outro documento com foto"
-                    data-testid="input-document-step-description"
-                  />
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="space-y-1">
-                      <Label className="text-xs">Cor Fundo</Label>
-                      <Input
-                        type="color"
-                        value={documentStepBackgroundColor || '#ffffff'}
-                        onChange={(e) => onDocumentStepBackgroundColorChange(e.target.value)}
-                        className="h-8 p-1"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs">Cor Texto</Label>
-                      <Input
-                        type="color"
-                        value={documentStepTextColor || '#000000'}
-                        onChange={(e) => onDocumentStepTextColorChange(e.target.value)}
-                        className="h-8 p-1"
-                      />
-                    </div>
-                  </div>
-                </div>
-                <div className="space-y-3">
-                  <Label className="font-semibold">3. Análise</Label>
-                  <Input
-                    value={analysisStepTitle}
-                    onChange={(e) => onAnalysisStepTitleChange(e.target.value)}
-                    placeholder="Verificação automática"
-                    data-testid="input-analysis-step-title"
-                  />
-                  <Input
-                    value={analysisStepDescription}
-                    onChange={(e) => onAnalysisStepDescriptionChange(e.target.value)}
-                    placeholder="Comparamos sua foto com o documento"
-                    data-testid="input-analysis-step-description"
-                  />
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="space-y-1">
-                      <Label className="text-xs">Cor Fundo</Label>
-                      <Input
-                        type="color"
-                        value={analysisStepBackgroundColor || '#ffffff'}
-                        onChange={(e) => onAnalysisStepBackgroundColorChange(e.target.value)}
-                        className="h-8 p-1"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs">Cor Texto</Label>
-                      <Input
-                        type="color"
-                        value={analysisStepTextColor || '#000000'}
-                        onChange={(e) => onAnalysisStepTextColorChange(e.target.value)}
-                        className="h-8 p-1"
-                      />
-                    </div>
-                  </div>
-                </div>
-                <div className="space-y-3">
-                  <Label className="font-semibold">4. Resultado</Label>
-                  <Input
-                    value={resultStepTitle}
-                    onChange={(e) => onResultStepTitleChange(e.target.value)}
-                    placeholder="Verificação concluída"
-                    data-testid="input-result-step-title"
-                  />
-                  <Input
-                    value={resultStepDescription}
-                    onChange={(e) => onResultStepDescriptionChange(e.target.value)}
-                    placeholder="Sua identidade foi verificada com sucesso"
-                    data-testid="input-result-step-description"
-                  />
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="space-y-1">
-                      <Label className="text-xs">Cor Fundo</Label>
-                      <Input
-                        type="color"
-                        value={resultStepBackgroundColor || '#ffffff'}
-                        onChange={(e) => onResultStepBackgroundColorChange(e.target.value)}
-                        className="h-8 p-1"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label className="text-xs">Cor Texto</Label>
-                      <Input
-                        type="color"
-                        value={resultStepTextColor || '#000000'}
-                        onChange={(e) => onResultStepTextColorChange(e.target.value)}
-                        className="h-8 p-1"
-                      />
-                    </div>
-                  </div>
-                </div>
-                <Separator />
-                <div className="space-y-2">
-                  <Label>Texto do Botão de Verificação</Label>
-                  <Input
-                    value={selfieButtonText}
-                    onChange={(e) => onSelfieButtonTextChange(e.target.value)}
-                    placeholder="Iniciar Verificação"
-                    data-testid="input-selfie-button-text"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Instruções da Captura</Label>
-                  <Input
-                    value={selfieInstructionText}
-                    onChange={(e) => onSelfieInstructionTextChange(e.target.value)}
-                    placeholder="Posicione seu rosto e aguarde a captura automática"
-                    data-testid="input-selfie-instruction-text"
-                  />
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-
-            <AccordionItem value="barra-navegacao" className="border rounded-lg px-4">
-              <AccordionTrigger className="text-base font-semibold hover:no-underline" data-testid="accordion-barra-navegacao">
-                Barra de Navegação
-              </AccordionTrigger>
-              <AccordionContent className="space-y-4 pb-4">
+                <Label className="font-semibold text-sm">Barra de Navegação</Label>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Rótulo - Selfie</Label>
@@ -1185,96 +1185,6 @@ export const SimplifiedSignatureWizard = ({
                       />
                     </div>
                   </div>
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-
-            <AccordionItem value="botoes-captura" className="border rounded-lg px-4">
-              <AccordionTrigger className="text-base font-semibold hover:no-underline" data-testid="accordion-botoes-captura">
-                Botões da Captura
-              </AccordionTrigger>
-              <AccordionContent className="space-y-4 pb-4">
-                <div className="space-y-2">
-                  <Label>Texto - Botão Capturar</Label>
-                  <Input
-                    value={selfieCaptureButtonText}
-                    onChange={(e) => onSelfieCaptureButtonTextChange(e.target.value)}
-                    placeholder="Capturar Agora"
-                    data-testid="input-selfie-capture-button-text"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Texto - Tirar Outra</Label>
-                    <Input
-                      value={selfieRetakeButtonText}
-                      onChange={(e) => onSelfieRetakeButtonTextChange(e.target.value)}
-                      placeholder="Tirar Outra"
-                      data-testid="input-selfie-retake-button-text"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Texto - Confirmar</Label>
-                    <Input
-                      value={selfieConfirmButtonText}
-                      onChange={(e) => onSelfieConfirmButtonTextChange(e.target.value)}
-                      placeholder="Confirmar"
-                      data-testid="input-selfie-confirm-button-text"
-                    />
-                  </div>
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-
-            <AccordionItem value="mensagens-deteccao" className="border rounded-lg px-4">
-              <AccordionTrigger className="text-base font-semibold hover:no-underline" data-testid="accordion-mensagens-deteccao">
-                Mensagens de Detecção
-              </AccordionTrigger>
-              <AccordionContent className="space-y-4 pb-4">
-                <div className="space-y-2">
-                  <Label>Mensagem Padrão (rosto não detectado)</Label>
-                  <Input
-                    value={detectionDefaultMessage}
-                    onChange={(e) => onDetectionDefaultMessageChange(e.target.value)}
-                    placeholder="Posicione seu rosto na área indicada"
-                    data-testid="input-detection-default-message"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Mensagem de Centralização</Label>
-                  <Input
-                    value={detectionCenterMessage}
-                    onChange={(e) => onDetectionCenterMessageChange(e.target.value)}
-                    placeholder="Centralize seu rosto"
-                    data-testid="input-detection-center-message"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Mensagem de Iluminação</Label>
-                  <Input
-                    value={detectionLightingMessage}
-                    onChange={(e) => onDetectionLightingMessageChange(e.target.value)}
-                    placeholder="Melhore a iluminação"
-                    data-testid="input-detection-lighting-message"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Mensagem de Qualidade/Distância</Label>
-                  <Input
-                    value={detectionQualityMessage}
-                    onChange={(e) => onDetectionQualityMessageChange(e.target.value)}
-                    placeholder="Aproxime seu rosto"
-                    data-testid="input-detection-quality-message"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Mensagem de Captura Perfeita</Label>
-                  <Input
-                    value={detectionPerfectMessage}
-                    onChange={(e) => onDetectionPerfectMessageChange(e.target.value)}
-                    placeholder="Perfeito! Capturando..."
-                    data-testid="input-detection-perfect-message"
-                  />
                 </div>
               </AccordionContent>
             </AccordionItem>

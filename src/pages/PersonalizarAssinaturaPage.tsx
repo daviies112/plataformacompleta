@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import * as React from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { SimplifiedSignatureWizard } from '@/components/assinatura/SimplifiedSignatureWizard';
@@ -547,25 +547,16 @@ const PersonalizarAssinaturaPage = () => {
           <ResizableHandle withHandle />
           
           <ResizablePanel defaultSize={50} minSize={30}>
-            <div className="h-full flex flex-col relative">
-              <ScrollArea className="flex-1">
-                <div className="p-4">
-                  <div className="sticky top-0 z-30 mb-4 pointer-events-none">
-                    <Card className="shadow-lg border-primary/20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 pointer-events-auto">
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-base flex items-center gap-2">
-                          <Eye className="w-4 h-4" />
-                          Preview em Tempo Real
-                        </CardTitle>
-                        <CardDescription>
-                          Visualização do contrato e etapas de assinatura
-                        </CardDescription>
-                      </CardHeader>
-                    </Card>
-                  </div>
-                  <Card>
-                    <CardContent className="pt-6">
-                      <SignaturePreview
+            <div className="h-full flex flex-col overflow-hidden">
+              <div className="p-3 border-b bg-muted/30 flex-shrink-0">
+                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                  <Eye className="w-4 h-4" />
+                  Preview em Tempo Real
+                </div>
+              </div>
+              <div className="flex-1 overflow-auto p-4 flex items-start justify-center">
+                <div className="w-full max-w-md">
+                  <SignaturePreview
                         clientName={clientName}
                         clientCpf={clientCpf}
                         clientEmail={clientEmail}
@@ -658,11 +649,10 @@ const PersonalizarAssinaturaPage = () => {
                         detectionQualityMessage={detectionQualityMessage}
                         detectionPerfectMessage={detectionPerfectMessage}
                         verificationPreviewMode={verificationPreviewMode as any}
+                        onVerificationPreviewModeChange={setVerificationPreviewMode}
                       />
-                    </CardContent>
-                  </Card>
                 </div>
-              </ScrollArea>
+              </div>
             </div>
           </ResizablePanel>
         </ResizablePanelGroup>
