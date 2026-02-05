@@ -111,22 +111,28 @@ function decryptSupabaseConfig(config: typeof supabaseConfig.$inferSelect): Supa
     let url: string;
     let anonKey: string;
     
+    // Verificamos se o dado parece estar criptografado (não começa com http/ey)
+    const isEncrypted = (str: string) => str && !str.startsWith('http') && !str.startsWith('ey') && !str.startsWith('https');
+
     try {
-      url = decrypt(config.supabaseUrl);
-      anonKey = decrypt(config.supabaseAnonKey);
-      console.log(`✅ [SUPABASE] Credenciais descriptografadas com sucesso (tenant: ${config.tenantId})`);
-    } catch (decryptError: any) {
-      // Fallback: dados podem estar em texto plano (formato legado)
-      if (config.supabaseUrl.startsWith('http')) {
-        console.log('⚠️ [SUPABASE] Usando credenciais em texto plano (formato legado)');
-        url = config.supabaseUrl;
-        anonKey = config.supabaseAnonKey;
+      if (isEncrypted(config.supabaseUrl)) {
+        url = decrypt(config.supabaseUrl);
       } else {
-        throw decryptError;
+        url = config.supabaseUrl;
       }
+
+      if (isEncrypted(config.supabaseAnonKey)) {
+        anonKey = decrypt(config.supabaseAnonKey);
+      } else {
+        anonKey = config.supabaseAnonKey;
+      }
+      
+      console.log(`✅ [SUPABASE] Credenciais processadas com sucesso (tenant: ${config.tenantId})`);
+    } catch (decryptError: any) {
+      // Fallback: dados podem estar em texto plano
+      url = config.supabaseUrl;
+      anonKey = config.supabaseAnonKey;
     }
-    
-    console.log(`✅ [SUPABASE] URL: ${url.substring(0, 30)}...`);
     
     return {
       url,
@@ -216,10 +222,10 @@ export async function getSupabaseCredentials(tenantId: string): Promise<Supabase
         `);
       }
     } catch (e: any) {
-      // Ignorar erro se tabela já existir ou erro de permissão
+      console.error('❌ [SupabaseCredentials] Erro ao garantir tabela supabase_config:', e.message);
     }
 
-    console.log(`🔍 [SUPABASE] Buscando credenciais do banco de dados (supabase_config)...`);
+    console.log(`🔍 [SUPABASE] Buscando credenciais para tenant ${tenantId}...`);
     
     let configs = [];
     try {

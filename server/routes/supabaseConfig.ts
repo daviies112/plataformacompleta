@@ -105,25 +105,40 @@ router.post('/supabase-setup', async (req, res) => {
         
         // Garantir tabelas
         try {
-          await pool.query(`
-            CREATE TABLE IF NOT EXISTS supabase_config (
-              id SERIAL PRIMARY KEY,
-              tenant_id TEXT NOT NULL,
-              supabase_url TEXT NOT NULL,
-              supabase_anon_key TEXT NOT NULL,
-              supabase_bucket TEXT,
-              created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-              updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-            );
-          `);
-        } catch (e) {}
+          if (pool) {
+            await pool.query(`
+              CREATE TABLE IF NOT EXISTS supabase_config (
+                id SERIAL PRIMARY KEY,
+                tenant_id TEXT NOT NULL,
+                supabase_url TEXT NOT NULL,
+                supabase_anon_key TEXT NOT NULL,
+                supabase_bucket TEXT,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+              );
+            `);
+          }
+        } catch (e: any) {
+          console.error('❌ [CONFIG] Erro ao criar/verificar tabela supabase_config:', e.message);
+        }
 
-        const tenantId = 'system'; 
-        const encryptedUrl = encrypt(supabaseUrl);
-        const encryptedAnonKey = encrypt(supabaseAnonKey);
+        // 🔐 MULTI-TENANT: Usar o tenantId real da sessão se disponível
+        const tenantId = req.user?.userId || 'system'; 
+        console.log(`🔐 [CONFIG] Sincronizando credenciais para tenant: ${tenantId}`);
+        
+        // No Replit, as credenciais salvas via UI não devem ser criptografadas 
+        // para manter compatibilidade com o leitor legado do arquivo
+        const encryptedUrl = supabaseUrl;
+        const encryptedAnonKey = supabaseAnonKey;
+
+        // Limpar cache antes de salvar para garantir que a próxima leitura pegue o novo valor
+        const { invalidateCredentialsCache } = await import('../lib/publicCache');
+        invalidateCredentialsCache(tenantId);
+        invalidateCredentialsCache('system'); // Também invalida o sistema caso haja confusão
 
         const existing = await db.select().from(supabaseConfig).where(eq(supabaseConfig.tenantId, tenantId)).limit(1);
         if (existing.length > 0) {
+          console.log(`📝 [CONFIG] Atualizando credenciais existentes para tenant: ${tenantId}`);
           await db.update(supabaseConfig).set({
             supabaseUrl: encryptedUrl,
             supabaseAnonKey: encryptedAnonKey,
@@ -131,6 +146,7 @@ router.post('/supabase-setup', async (req, res) => {
             updatedAt: new Date()
           }).where(eq(supabaseConfig.tenantId, tenantId));
         } else {
+          console.log(`🆕 [CONFIG] Inserindo novas credenciais para tenant: ${tenantId}`);
           await db.insert(supabaseConfig).values({
             tenantId,
             supabaseUrl: encryptedUrl,
@@ -138,7 +154,7 @@ router.post('/supabase-setup', async (req, res) => {
             supabaseBucket: 'receipts'
           });
         }
-        console.log('✅ Supabase credentials synced to local database');
+        console.log(`✅ [CONFIG] Credenciais sincronizadas com sucesso no banco local para ${tenantId}`);
       } catch (dbSyncError: any) {
         console.warn('⚠️ Could not sync credentials to database:', dbSyncError.message);
       }

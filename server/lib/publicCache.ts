@@ -80,44 +80,70 @@ export async function getCachedSupabaseCredentials(tenantId: string): Promise<Ca
   }
   
   try {
-    // Import at top level would cause circular dependency, so lazy import
-    const { db } = await import('../db');
-    const { supabaseConfig } = await import('../../shared/db-schema');
-    const { eq } = await import('drizzle-orm');
-    const { decrypt } = await import('./credentialsManager');
-    
-    const configs = await db.select()
-      .from(supabaseConfig)
-      .where(eq(supabaseConfig.tenantId, tenantId))
-      .limit(1)
-      .execute();
-    
-    if (configs.length === 0) {
-      // Cache negative result to avoid repeated DB hits
-      credentialsCache.set(cacheKey, null, 60); // Short TTL for negative cache
-      return null;
-    }
-    
-    const config = configs[0];
-    let url: string;
-    let anonKey: string;
-    
-    try {
-      url = decrypt(config.supabaseUrl);
-      anonKey = decrypt(config.supabaseAnonKey);
-    } catch {
-      // Fallback for plaintext credentials (legacy)
-      if (config.supabaseUrl.startsWith('http')) {
-        url = config.supabaseUrl;
-        anonKey = config.supabaseAnonKey;
-      } else {
-        return null;
+    // Usar query direta no pool para evitar problemas com Drizzle schema cache
+    const { pool } = await import('../db');
+    if (pool) {
+      // Tenta garantir que a tabela existe via SQL bruto se necessário
+      try {
+        await pool.query(`
+          CREATE TABLE IF NOT EXISTS supabase_config (
+            id SERIAL PRIMARY KEY,
+            tenant_id TEXT NOT NULL,
+            supabase_url TEXT NOT NULL,
+            supabase_anon_key TEXT NOT NULL,
+            supabase_bucket TEXT,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+          );
+        `);
+      } catch (e: any) {}
+
+      // 🔐 BUSCA PRIORITÁRIA: Tenta tenant específico, depois 'system'
+      let result = await pool.query('SELECT * FROM supabase_config WHERE tenant_id = $1 LIMIT 1', [tenantId]);
+      
+      if (result.rows.length === 0 && tenantId !== 'system') {
+        console.log(`ℹ️ [PUBLIC_CACHE] Credenciais não encontradas para ${tenantId}, tentando system...`);
+        result = await pool.query('SELECT * FROM supabase_config WHERE tenant_id = $1 LIMIT 1', ['system']);
+      }
+
+      if (result.rows.length > 0) {
+        const config = result.rows[0];
+        
+        // No Replit, as credenciais no banco podem não estar criptografadas
+        // Verificamos se o dado parece estar criptografado (não começa com http/ey)
+        const isEncrypted = (str: string) => str && !str.startsWith('http') && !str.startsWith('ey') && !str.startsWith('https');
+        const { decrypt } = await import('./credentialsManager');
+
+        let url = config.supabase_url;
+        let anonKey = config.supabase_anon_key;
+
+        try {
+          if (isEncrypted(url)) url = decrypt(url);
+          if (isEncrypted(anonKey)) anonKey = decrypt(anonKey);
+        } catch (e) {}
+
+        const dbCreds = {
+          url,
+          anonKey,
+          bucket: config.supabase_bucket || 'receipts'
+        };
+        
+        console.log(`✅ [PUBLIC_CACHE] Credenciais encontradas no banco para ${tenantId} (ou fallback)`);
+        credentialsCache.set(cacheKey, dbCreds);
+        return dbCreds;
       }
     }
     
-    const result = { url, anonKey };
-    credentialsCache.set(cacheKey, result);
-    return result;
+    // Fallback: tentar ler do arquivo/env se não achou no banco
+    const { getSupabaseCredentialsFromEnv } = await import('./credentialsDb');
+    const envCreds = await getSupabaseCredentialsFromEnv();
+    if (envCreds) {
+      const result = { url: envCreds.url, anonKey: envCreds.anonKey };
+      credentialsCache.set(cacheKey, result);
+      return result;
+    }
+    
+    return null;
   } catch (error) {
     console.error(`[PUBLIC_CACHE] Error getting credentials for ${tenantId}:`, error);
     return null;
