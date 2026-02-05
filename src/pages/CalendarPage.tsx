@@ -544,51 +544,6 @@ const CalendarPage = () => {
             </Card>
           )}
 
-          {calendarData && (
-            <Card className="glass-card border-border/20 hover:shadow-luxury transition-elegant" data-testid="card-status-integration" data-tour="calendar-stats">
-              <CardHeader className="p-4 md:p-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <Calendar className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                      <CardTitle className={cn(
-                        "font-black gradient-text",
-                        isMobile ? "text-base" : "text-xl"
-                      )} data-testid="text-status-title">
-                        Status da Integração
-                      </CardTitle>
-                      <CardDescription className={cn(isMobile && "text-xs")} data-testid="text-calendar-description">
-                        {isMobile ? "Status da conexão" : "Visualize todos os seus compromissos em tempo real"}
-                      </CardDescription>
-                    </div>
-                  </div>
-                  <Badge 
-                    variant={calendarData.source === 'google_calendar' || calendarData.source === 'google_calendar_and_ical' ? 'default' : 'secondary'}
-                    data-testid="badge-connection-status"
-                    className={cn(isMobile && "text-xs")}
-                  >
-                    {calendarData.source === 'google_calendar' || calendarData.source === 'google_calendar_and_ical' ? 'Conectado' : 'Teste'}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="p-4 md:p-6 pt-0">
-                <div className="space-y-2 text-sm">
-                  <p className="text-muted-foreground" data-testid="text-status-source">
-                    Fonte: {calendarData.source === 'google_calendar' || calendarData.source === 'google_calendar_and_ical' ? 'Google Calendar' : 'Dados mockados'}
-                  </p>
-                  <p className="text-muted-foreground" data-testid="text-status-total">
-                    Total de eventos: {calendarData.total || 0}
-                  </p>
-                  {calendarData.warning && (
-                    <p className="text-amber-600 dark:text-amber-400 text-xs md:text-sm" data-testid="text-status-warning">⚠️ {calendarData.warning}</p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
           {/* Calendário Visual */}
           <Card className="glass-card border-border/20 hover:shadow-luxury transition-elegant">
             <CardHeader className="p-4 md:p-6 pb-4">

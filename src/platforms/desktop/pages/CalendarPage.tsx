@@ -338,40 +338,7 @@ const CalendarPage = () => {
           </PremiumCard>
         )}
 
-        {calendarData && (
-          <PremiumCard variant="elevated" padding="lg" data-testid="card-status-integration">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                  <Calendar className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <h3 className="font-black text-xl bg-gradient-to-r from-primary via-foreground to-primary bg-clip-text text-transparent" data-testid="text-status-title">
-                    Status da Integração
-                  </h3>
-                  <p className="text-sm text-muted-foreground" data-testid="text-calendar-description">
-                    {calendarData.source === 'google_calendar' || calendarData.source === 'google_calendar_and_ical' ? 'Conectado ao Google Calendar' : 'Usando dados de demonstração'}
-                  </p>
-                </div>
-              </div>
-              <Badge 
-                variant={calendarData.source === 'google_calendar' || calendarData.source === 'google_calendar_and_ical' ? 'default' : 'secondary'}
-                data-testid="badge-connection-status"
-              >
-                {calendarData.source === 'google_calendar' || calendarData.source === 'google_calendar_and_ical' ? 'Conectado' : 'Teste'}
-              </Badge>
-            </div>
-            <div className="space-y-2 text-sm mt-4">
-              <p className="text-muted-foreground" data-testid="text-status-total">
-                Total de eventos: {calendarData.total || 0}
-              </p>
-              {calendarData.warning && (
-                <p className="text-amber-600 dark:text-amber-400 text-xs md:text-sm" data-testid="text-status-warning">⚠️ {calendarData.warning}</p>
-              )}
-            </div>
-          </PremiumCard>
-        )}
-
+        {/* Calendário Visual */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
             <PremiumCard variant="elevated" padding="lg">
