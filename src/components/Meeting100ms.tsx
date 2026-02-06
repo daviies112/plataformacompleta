@@ -660,7 +660,7 @@ export function Meeting100ms({
                     {config.branding.companyName}
                   </span>
                 )}
-                {isRecordingOn && (
+                {isRecording && (
                   <div className="flex items-center gap-1 mt-0.5 animate-pulse">
                     <Circle className="h-1.5 w-1.5 fill-red-500 text-red-500" />
                     <span className="text-[9px] text-red-500 font-bold uppercase tracking-wider">Gravando</span>
