@@ -1,15 +1,23 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { AssinaturaNav } from '@/components/assinatura/AssinaturaNav';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Upload, Palette, Save, Sparkles, Shuffle, X, Camera, FileText, CheckCircle2, Shield, Smartphone } from 'lucide-react';
+import { Upload, Palette, Save, Sparkles, Shuffle, X, Camera, FileText, CheckCircle2, Shield, Smartphone, Plus, Trash2, Eye } from 'lucide-react';
 import { extractColorsFromImage, generateColorVariations, hslToHex } from '@/lib/colorExtractor';
+
+interface ContractClause {
+  title: string;
+  content: string;
+}
 
 interface ColorVariation {
   name: string;
@@ -19,6 +27,39 @@ interface ColorVariation {
   text: string;
   button: string;
   buttonText: string;
+}
+
+function clausesToHtml(title: string, clauses: ContractClause[]): string {
+  if (!title && clauses.length === 0) return '';
+  let html = '';
+  if (title) html += `<h2 style="text-align:center;margin-bottom:24px;font-size:18px;font-weight:bold;">${title}</h2>`;
+  clauses.forEach((clause, i) => {
+    if (clause.title || clause.content) {
+      html += `<div style="margin-bottom:16px;">`;
+      if (clause.title) html += `<h3 style="font-size:14px;font-weight:bold;margin-bottom:6px;">${i + 1}. ${clause.title}</h3>`;
+      if (clause.content) html += `<p style="font-size:13px;line-height:1.6;">${clause.content.replace(/\n/g, '<br/>')}</p>`;
+      html += `</div>`;
+    }
+  });
+  return html;
+}
+
+function htmlToClauses(html: string): { title: string; clauses: ContractClause[] } {
+  if (!html) return { title: '', clauses: [] };
+  const titleMatch = html.match(/<h2[^>]*>(.*?)<\/h2>/);
+  const contractTitle = titleMatch ? titleMatch[1] : '';
+  const clauseRegex = /<div[^>]*>\s*(?:<h3[^>]*>\d+\.\s*(.*?)<\/h3>)?\s*(?:<p[^>]*>(.*?)<\/p>)?\s*<\/div>/gs;
+  const clauses: ContractClause[] = [];
+  let match;
+  while ((match = clauseRegex.exec(html)) !== null) {
+    const t = match[1] || '';
+    const c = (match[2] || '').replace(/<br\s*\/?>/g, '\n');
+    if (t || c) clauses.push({ title: t, content: c });
+  }
+  if (clauses.length === 0 && html && !titleMatch) {
+    clauses.push({ title: '', content: html.replace(/<[^>]*>/g, '') });
+  }
+  return { title: contractTitle, clauses };
 }
 
 function ensureHex(color: string): string {
@@ -39,6 +80,8 @@ const PersonalizarAssinaturaPage = () => {
   const [buttonTextColor, setButtonTextColor] = useState('#ffffff');
   const [iconColor, setIconColor] = useState('#2c3e50');
   const [contractHtml, setContractHtml] = useState('');
+  const [contractTitle, setContractTitle] = useState('');
+  const [clauses, setClauses] = useState<ContractClause[]>([]);
   const [appStoreUrl, setAppStoreUrl] = useState('');
   const [googlePlayUrl, setGooglePlayUrl] = useState('');
   const [extractedColors, setExtractedColors] = useState<string[]>([]);
@@ -64,7 +107,12 @@ const PersonalizarAssinaturaPage = () => {
         setButtonColor(globalConfig.button_color || globalConfig.verification_primary_color || globalConfig.primary_color);
       if (globalConfig.button_text_color) setButtonTextColor(globalConfig.button_text_color);
       if (globalConfig.icon_color) setIconColor(globalConfig.icon_color);
-      if (globalConfig.contract_html) setContractHtml(globalConfig.contract_html);
+      if (globalConfig.contract_html) {
+        setContractHtml(globalConfig.contract_html);
+        const parsed = htmlToClauses(globalConfig.contract_html);
+        setContractTitle(parsed.title);
+        setClauses(parsed.clauses.length > 0 ? parsed.clauses : []);
+      }
       if (globalConfig.app_store_url) setAppStoreUrl(globalConfig.app_store_url);
       if (globalConfig.google_play_url) setGooglePlayUrl(globalConfig.google_play_url);
     }
@@ -163,6 +211,45 @@ const PersonalizarAssinaturaPage = () => {
       verification_text_color: textColor,
       verification_background_color: backgroundColor,
     });
+  };
+
+  const addClause = () => {
+    setClauses([...clauses, { title: '', content: '' }]);
+  };
+
+  const removeClause = (index: number) => {
+    setClauses(clauses.filter((_, i) => i !== index));
+  };
+
+  const updateClause = (index: number, field: 'title' | 'content', value: string) => {
+    const updated = [...clauses];
+    updated[index] = { ...updated[index], [field]: value };
+    setClauses(updated);
+  };
+
+  const contractPreviewHtml = useMemo(() => clausesToHtml(contractTitle, clauses), [contractTitle, clauses]);
+
+  const handleSaveContract = () => {
+    const html = clausesToHtml(contractTitle, clauses);
+    setContractHtml(html);
+    saveConfigMutation.mutate({
+      logo_url: logoUrl,
+      logo_size: logoSize,
+      background_color: backgroundColor,
+      title_color: titleColor,
+      text_color: textColor,
+      button_color: buttonColor,
+      button_text_color: buttonTextColor,
+      icon_color: iconColor,
+      contract_html: html,
+      app_store_url: appStoreUrl,
+      google_play_url: googlePlayUrl,
+      primary_color: titleColor,
+      verification_primary_color: buttonColor,
+      verification_text_color: textColor,
+      verification_background_color: backgroundColor,
+    });
+    setContractDialogOpen(false);
   };
 
   const removeLogo = () => {
@@ -448,42 +535,118 @@ const PersonalizarAssinaturaPage = () => {
       </div>
 
       <Dialog open={contractDialogOpen} onOpenChange={setContractDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[80vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <FileText className="w-5 h-5" />
-              Personalizar Contrato
-            </DialogTitle>
-          </DialogHeader>
-          <div className="flex-1 min-h-0 space-y-3">
-            <label className="text-sm font-medium">HTML do Contrato</label>
-            <textarea
-              value={contractHtml}
-              onChange={(e) => setContractHtml(e.target.value)}
-              placeholder="Cole aqui o HTML do contrato..."
-              className="w-full min-h-[350px] rounded-md border bg-background px-3 py-2 text-sm font-mono resize-y"
-              data-testid="input-contract-html"
-            />
-            {contractHtml && (
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Pré-visualização</label>
-                <div
-                  className="rounded-md border p-4 max-h-48 overflow-auto text-sm bg-muted/30"
-                  dangerouslySetInnerHTML={{ __html: contractHtml }}
-                  data-testid="preview-contract-html"
-                />
+        <DialogContent className="max-w-5xl max-h-[85vh] flex flex-col p-0">
+          <DialogHeader className="px-6 pt-6 pb-3 border-b">
+            <div className="flex items-center justify-between">
+              <DialogTitle className="flex items-center gap-2">
+                <FileText className="w-5 h-5" />
+                Personalizar Contrato
+              </DialogTitle>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={() => setContractDialogOpen(false)} data-testid="button-contract-cancel">
+                  Fechar
+                </Button>
+                <Button size="sm" onClick={handleSaveContract} disabled={saveConfigMutation.isPending} data-testid="button-contract-save">
+                  <Save className="w-4 h-4 mr-1" />
+                  Salvar Contrato
+                </Button>
               </div>
-            )}
+            </div>
+          </DialogHeader>
+
+          <div className="flex-1 min-h-0 flex">
+            <div className="w-1/2 border-r overflow-y-auto p-6 space-y-4">
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <FileText className="w-4 h-4" />
+                    Informações do Contrato
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <Label htmlFor="contractTitle">Título do Contrato</Label>
+                    <Input
+                      id="contractTitle"
+                      value={contractTitle}
+                      onChange={(e) => setContractTitle(e.target.value)}
+                      placeholder="Contrato de Prestação de Serviços"
+                      data-testid="input-contract-title"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between gap-2 pb-3">
+                  <CardTitle className="text-base">Cláusulas do Contrato</CardTitle>
+                  <Button variant="outline" size="sm" onClick={addClause} data-testid="button-add-clause">
+                    <Plus className="w-4 h-4 mr-1" />
+                    Adicionar
+                  </Button>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {clauses.length === 0 ? (
+                    <p className="text-muted-foreground text-center py-6 text-sm">
+                      Nenhuma cláusula adicionada. Clique em "Adicionar" para começar.
+                    </p>
+                  ) : (
+                    clauses.map((clause, index) => (
+                      <div key={index} className="p-4 border rounded-lg space-y-3" data-testid={`clause-${index}`}>
+                        <div className="flex items-center justify-between">
+                          <Label className="font-semibold text-sm">Cláusula {index + 1}</Label>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => removeClause(index)}
+                            className="text-destructive"
+                            data-testid={`button-remove-clause-${index}`}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                        <Input
+                          placeholder="Título da cláusula"
+                          value={clause.title}
+                          onChange={(e) => updateClause(index, 'title', e.target.value)}
+                          data-testid={`input-clause-title-${index}`}
+                        />
+                        <Textarea
+                          placeholder="Conteúdo da cláusula"
+                          value={clause.content}
+                          onChange={(e) => updateClause(index, 'content', e.target.value)}
+                          rows={3}
+                          data-testid={`input-clause-content-${index}`}
+                        />
+                      </div>
+                    ))
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="w-1/2 overflow-y-auto p-6 bg-muted/30">
+              <div className="flex items-center gap-2 mb-4">
+                <Eye className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm font-medium text-muted-foreground">Pré-visualização do Contrato</span>
+              </div>
+              <div className="bg-background rounded-lg border shadow-sm p-8 min-h-[400px]">
+                {contractPreviewHtml ? (
+                  <div
+                    className="prose prose-sm max-w-none"
+                    style={{ color: textColor }}
+                    dangerouslySetInnerHTML={{ __html: contractPreviewHtml }}
+                    data-testid="preview-contract-html"
+                  />
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-64 text-muted-foreground text-sm">
+                    <FileText className="w-12 h-12 mb-3 opacity-30" />
+                    <p>Adicione um título e cláusulas para ver a pré-visualização</p>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setContractDialogOpen(false)} data-testid="button-contract-cancel">
-              Fechar
-            </Button>
-            <Button onClick={() => { handleSaveConfig(); setContractDialogOpen(false); }} data-testid="button-contract-save">
-              <Save className="w-4 h-4 mr-2" />
-              Salvar
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
 
