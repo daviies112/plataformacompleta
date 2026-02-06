@@ -16,7 +16,7 @@ import {
   HMSRoomState,
   HMSRoomProvider,
 } from "@100mslive/react-sdk";
-import { Mic, MicOff, Video, VideoOff, PhoneOff, Users, MonitorUp, MonitorOff, Circle, Copy, Check, Share2, FileSignature, AlertCircle } from "lucide-react";
+import { Mic, MicOff, Video, VideoOff, PhoneOff, MonitorUp, MonitorOff, Circle, Copy, Check, Share2, FileSignature, AlertCircle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
@@ -211,6 +211,8 @@ export function Meeting100ms({
   const [error, setError] = useState<string | null>(null);
   const [isJoining, setIsJoining] = useState(true);
   const [isCopied, setIsCopied] = useState(false);
+  const [showSharePopup, setShowSharePopup] = useState(false);
+  const sharePopupRef = useRef<HTMLDivElement>(null);
   const [connectionAttempts, setConnectionAttempts] = useState(0);
   const [canRetry, setCanRetry] = useState(false);
   const [sdkError, setSdkError] = useState<{ code: string; message: string } | null>(null);
@@ -507,12 +509,43 @@ export function Meeting100ms({
     }
   };
 
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (sharePopupRef.current && !sharePopupRef.current.contains(e.target as Node)) {
+        setShowSharePopup(false);
+      }
+    };
+    if (showSharePopup) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showSharePopup]);
+
   const copyLink = useCallback(() => {
     const url = window.location.href;
     navigator.clipboard.writeText(url);
     setIsCopied(true);
     toast.success("Link da reunião copiado!");
     setTimeout(() => setIsCopied(false), 2000);
+  }, []);
+
+  const shareToWhatsApp = useCallback(() => {
+    const url = encodeURIComponent(window.location.href);
+    window.open(`https://wa.me/?text=${url}`, "_blank");
+    setShowSharePopup(false);
+  }, []);
+
+  const shareToTelegram = useCallback(() => {
+    const url = encodeURIComponent(window.location.href);
+    window.open(`https://t.me/share/url?url=${url}`, "_blank");
+    setShowSharePopup(false);
+  }, []);
+
+  const nativeShare = useCallback(async () => {
+    try {
+      await navigator.share({ url: window.location.href, title: "Reunião" });
+    } catch {}
+    setShowSharePopup(false);
   }, []);
 
   const handleLeave = useCallback(async () => {
@@ -669,7 +702,7 @@ export function Meeting100ms({
       >
         {!isRecordingBot && (
           <header 
-            className="h-14 px-6 border-b flex items-center justify-between z-20"
+            className="h-14 px-3 sm:px-6 border-b flex items-center justify-between z-20"
             style={headerStyle}
           >
             <div className="flex items-center gap-3">
@@ -678,11 +711,11 @@ export function Meeting100ms({
                   src={config.branding.logo}
                   alt={config?.branding?.companyName || "Logo"}
                   loading="lazy"
-                  className="object-contain"
+                  className="object-contain sm:!max-w-[120px]"
                   data-testid="img-company-logo-meeting"
                   style={{ 
                     maxHeight: Math.min(config?.branding?.logoSize || 32, 40),
-                    maxWidth: "120px"
+                    maxWidth: "90px"
                   }}
                 />
               ) : (
@@ -708,29 +741,99 @@ export function Meeting100ms({
               </div>
             </div>
             
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 relative" ref={sharePopupRef}>
               <Button 
                 variant="ghost" 
                 size="sm" 
-                onClick={copyLink}
+                onClick={() => setShowSharePopup(!showSharePopup)}
                 className="px-3 py-1.5 h-8 rounded-full flex items-center gap-2 text-[10px] font-bold text-white transition-all"
                 style={{ backgroundColor: `${config?.colors?.controlsBackground || "#18181b"}66` }}
+                data-testid="button-share-meeting"
               >
-                {isCopied ? <Check className="h-3 w-3 text-green-500" /> : <Copy className="h-3 w-3" />}
-                <span>{isCopied ? "COPIADO" : "COPIAR LINK"}</span>
+                <Share2 className="h-3 w-3" />
+                <span className="hidden sm:inline">COMPARTILHAR</span>
               </Button>
-              
-              <div 
-                className="px-3 py-1.5 h-8 rounded-full flex items-center gap-2 text-[10px] font-bold border"
-                style={{ 
-                  backgroundColor: `${config?.colors?.controlsBackground || "#18181b"}66`,
-                  color: `${config?.colors?.controlsText || "#ffffff"}99`,
-                  borderColor: `${config?.colors?.controlsText || "#ffffff"}0d`
-                }}
-              >
-                <Users className="h-3 w-3" />
-                <span>{peers.length} PARTICIPANTES</span>
-              </div>
+
+              {showSharePopup && (
+                <div
+                  className="absolute top-12 right-0 w-64 rounded-2xl border p-4 shadow-2xl z-50"
+                  style={{
+                    backgroundColor: `${config?.colors?.controlsBackground || "#18181b"}f2`,
+                    borderColor: `${config?.colors?.controlsText || "#ffffff"}1a`,
+                    backdropFilter: "blur(24px)",
+                  }}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-xs font-bold" style={{ color: config?.colors?.controlsText || "#ffffff" }}>
+                      Compartilhar
+                    </span>
+                    <button
+                      onClick={() => setShowSharePopup(false)}
+                      className="rounded-full p-1 transition-colors"
+                      style={{ color: `${config?.colors?.controlsText || "#ffffff"}80` }}
+                      data-testid="button-close-share-popup"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+
+                  <div className="flex flex-col gap-2">
+                    <button
+                      onClick={() => { copyLink(); setShowSharePopup(false); }}
+                      className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-xs font-semibold transition-colors"
+                      style={{
+                        backgroundColor: `${config?.colors?.controlsText || "#ffffff"}0d`,
+                        color: config?.colors?.controlsText || "#ffffff",
+                      }}
+                      data-testid="button-share-copy-link"
+                    >
+                      {isCopied ? <Check className="h-4 w-4 text-green-500 shrink-0" /> : <Copy className="h-4 w-4 shrink-0" />}
+                      <span>{isCopied ? "Link copiado!" : "Copiar link"}</span>
+                    </button>
+
+                    <button
+                      onClick={shareToWhatsApp}
+                      className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-xs font-semibold transition-colors"
+                      style={{
+                        backgroundColor: `${config?.colors?.controlsText || "#ffffff"}0d`,
+                        color: config?.colors?.controlsText || "#ffffff",
+                      }}
+                      data-testid="button-share-whatsapp"
+                    >
+                      <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                      <span>WhatsApp</span>
+                    </button>
+
+                    <button
+                      onClick={shareToTelegram}
+                      className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-xs font-semibold transition-colors"
+                      style={{
+                        backgroundColor: `${config?.colors?.controlsText || "#ffffff"}0d`,
+                        color: config?.colors?.controlsText || "#ffffff",
+                      }}
+                      data-testid="button-share-telegram"
+                    >
+                      <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 000 12a12 12 0 0012 12 12 12 0 0012-12A12 12 0 0012 0h-.056zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 01.171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.479.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+                      <span>Telegram</span>
+                    </button>
+
+                    {typeof navigator !== "undefined" && "share" in navigator && (
+                      <button
+                        onClick={nativeShare}
+                        className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-xs font-semibold transition-colors"
+                        style={{
+                          backgroundColor: `${config?.colors?.controlsText || "#ffffff"}0d`,
+                          color: config?.colors?.controlsText || "#ffffff",
+                        }}
+                        data-testid="button-share-native"
+                      >
+                        <Share2 className="h-4 w-4 shrink-0" />
+                        <span>Mais opções</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </header>
         )}
@@ -747,36 +850,36 @@ export function Meeting100ms({
         </main>
 
         {!isRecordingBot && (
-          <footer className="h-24 px-6 flex items-center justify-center z-50">
+          <footer className="h-20 sm:h-24 px-2 sm:px-6 flex items-center justify-center z-50">
             <div 
-              className="px-6 py-3 rounded-3xl flex items-center gap-3 border shadow-2xl relative"
+              className="px-3 sm:px-6 py-2 sm:py-3 rounded-3xl flex items-center gap-1.5 sm:gap-3 border shadow-2xl relative"
               style={footerStyle}
             >
-              <div className="flex items-center gap-3 relative z-50">
+              <div className="flex items-center gap-1.5 sm:gap-3 relative z-50">
                 <Button
                   onClick={toggleAudio}
                   variant="ghost"
                   size="icon"
-                  className={cn("h-12 w-12 rounded-2xl transition-all duration-300 relative z-50")}
+                  className={cn("h-10 w-10 sm:h-12 sm:w-12 rounded-2xl transition-all duration-300 relative z-50")}
                   style={controlButtonStyle(isAudioEnabled, !isAudioEnabled)}
                   title={isAudioEnabled ? "Mudar áudio" : "Ativar áudio"}
                 >
-                  {isAudioEnabled ? <Mic className="h-5 w-5 pointer-events-none" /> : <MicOff className="h-5 w-5 pointer-events-none" />}
+                  {isAudioEnabled ? <Mic className="h-4 w-4 sm:h-5 sm:w-5 pointer-events-none" /> : <MicOff className="h-4 w-4 sm:h-5 sm:w-5 pointer-events-none" />}
                 </Button>
 
                 <Button
                   onClick={toggleVideo}
                   variant="ghost"
                   size="icon"
-                  className={cn("h-12 w-12 rounded-2xl transition-all duration-300 relative z-50")}
+                  className={cn("h-10 w-10 sm:h-12 sm:w-12 rounded-2xl transition-all duration-300 relative z-50")}
                   style={controlButtonStyle(isVideoEnabled, !isVideoEnabled)}
                   title={isVideoEnabled ? "Desligar câmera" : "Ligar câmera"}
                 >
-                  {isVideoEnabled ? <Video className="h-5 w-5 pointer-events-none" /> : <VideoOff className="h-5 w-5 pointer-events-none" />}
+                  {isVideoEnabled ? <Video className="h-4 w-4 sm:h-5 sm:w-5 pointer-events-none" /> : <VideoOff className="h-4 w-4 sm:h-5 sm:w-5 pointer-events-none" />}
                 </Button>
 
                 <div 
-                  className="h-8 w-[1px] mx-1" 
+                  className="h-6 sm:h-8 w-[1px] mx-0.5 sm:mx-1" 
                   style={{ backgroundColor: `${config?.colors?.controlsText || "#ffffff"}1a` }}
                 />
 
@@ -790,11 +893,11 @@ export function Meeting100ms({
                   }}
                   variant="ghost"
                   size="icon"
-                  className={cn("h-12 w-12 rounded-2xl transition-all duration-300 relative z-50")}
+                  className={cn("h-10 w-10 sm:h-12 sm:w-12 rounded-2xl transition-all duration-300 relative z-50")}
                   style={controlButtonStyle(isScreenShared)}
                   title={isScreenShared ? "Parar compartilhamento" : "Compartilhar tela"}
                 >
-                  {isScreenShared ? <MonitorOff className="h-5 w-5 pointer-events-none" /> : <MonitorUp className="h-5 w-5 pointer-events-none" />}
+                  {isScreenShared ? <MonitorOff className="h-4 w-4 sm:h-5 sm:w-5 pointer-events-none" /> : <MonitorUp className="h-4 w-4 sm:h-5 sm:w-5 pointer-events-none" />}
                 </Button>
 
                 {canRecord && (
@@ -803,19 +906,19 @@ export function Meeting100ms({
                     variant={isRecording ? "destructive" : "ghost"}
                     size="icon"
                     className={cn(
-                      "h-12 w-12 rounded-2xl transition-all duration-300 relative z-50", 
+                      "h-10 w-10 sm:h-12 sm:w-12 rounded-2xl transition-all duration-300 relative z-50", 
                       isRecording && "shadow-lg shadow-red-500/20"
                     )}
                     style={controlButtonStyle(isRecording, isRecording)}
                     title={isRecording ? "Parar gravação" : "Iniciar gravação"}
                   >
-                    <Circle className={cn("h-5 w-5 pointer-events-none", isRecording && "fill-white animate-pulse")} />
+                    <Circle className={cn("h-4 w-4 sm:h-5 sm:w-5 pointer-events-none", isRecording && "fill-white animate-pulse")} />
                   </Button>
                 )}
 
                 {/* Botão Assinar sempre visível - tenta encontrar formSubmissionId dinamicamente */}
                 <div 
-                  className="h-8 w-[1px] mx-1" 
+                  className="h-6 sm:h-8 w-[1px] mx-0.5 sm:mx-1" 
                   style={{ backgroundColor: `${config?.colors?.controlsText || "#ffffff"}1a` }}
                 />
 
@@ -907,7 +1010,7 @@ export function Meeting100ms({
                     }
                   }}
                   variant="ghost"
-                  className="h-12 px-4 rounded-2xl font-bold text-white shadow-lg hover:scale-105 transition-transform relative z-50 flex items-center gap-2"
+                  className="h-10 sm:h-12 px-3 sm:px-4 rounded-2xl font-bold text-white shadow-lg hover:scale-105 transition-transform relative z-50 flex items-center gap-2 text-xs sm:text-sm"
                   style={{ 
                     backgroundColor: config?.colors?.primaryButton || "#059669",
                     boxShadow: `0 10px 15px -3px ${config?.colors?.primaryButton}33`
@@ -926,7 +1029,7 @@ export function Meeting100ms({
                 <Button 
                   onClick={handleLeave}
                   variant="destructive" 
-                  className="h-12 px-6 rounded-2xl font-bold shadow-lg hover:scale-105 transition-transform relative z-50"
+                  className="h-10 sm:h-12 px-4 sm:px-6 rounded-2xl font-bold shadow-lg hover:scale-105 transition-transform relative z-50 text-xs sm:text-sm"
                   style={{ 
                     backgroundColor: config?.colors?.dangerButton || "#ef4444",
                     boxShadow: `0 10px 15px -3px ${config?.colors?.dangerButton || "#ef4444"}33`
