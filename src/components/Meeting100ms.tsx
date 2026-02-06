@@ -124,30 +124,77 @@ function PeerVideo({
   );
 }
 
-function ScreenShare({
+function ScreenShareFullView({
   peer,
   trackId,
 }: {
   peer: HMSPeer;
   trackId: string;
 }) {
-  const { videoRef } = useVideo({
-    trackId,
-  });
+  const { videoRef } = useVideo({ trackId });
 
   return (
-    <Card className="relative w-full aspect-video overflow-hidden bg-black border-blue-500/30 border-2 shadow-2xl col-span-full max-w-5xl mx-auto">
+    <div className="w-full h-full relative">
       <video
         ref={videoRef}
         autoPlay
         muted
         playsInline
-        className="absolute inset-0 w-full h-full object-contain z-10"
+        className="w-full h-full object-contain"
       />
       <div className="absolute bottom-3 left-3 px-3 py-1.5 rounded-lg text-xs font-bold bg-black/60 text-white backdrop-blur-md z-20">
         Tela de {peer.name}
       </div>
-    </Card>
+    </div>
+  );
+}
+
+function PeerVideoMini({
+  peer,
+  config,
+}: {
+  peer: HMSPeer;
+  config: RoomDesignConfig;
+}) {
+  const { videoRef } = useVideo({ trackId: peer.videoTrack });
+  const isVideoOff = !peer.videoTrack;
+
+  return (
+    <div 
+      className="w-40 h-28 sm:w-48 sm:h-32 rounded-xl overflow-hidden border-2 border-white/20 shadow-2xl relative"
+      style={{ backgroundColor: config?.colors?.controlsBackground || "#18181b" }}
+    >
+      {isVideoOff && (
+        <div 
+          className="absolute inset-0 flex items-center justify-center"
+          style={{ backgroundColor: config?.colors?.background || "#0f172a" }}
+        >
+          <div 
+            className="w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold"
+            style={{ 
+              backgroundColor: config?.colors?.avatarBackground || "#3b82f6",
+              color: config?.colors?.avatarText || "#ffffff" 
+            }}
+          >
+            {peer.name?.charAt(0).toUpperCase() || "?"}
+          </div>
+        </div>
+      )}
+      <video
+        ref={videoRef}
+        autoPlay
+        muted={peer.isLocal}
+        playsInline
+        className={cn(
+          "w-full h-full object-cover",
+          isVideoOff ? "opacity-0" : "opacity-100",
+          peer.isLocal && "transform scale-x-[-1]"
+        )}
+      />
+      <div className="absolute bottom-1 left-1 px-2 py-0.5 rounded text-[10px] font-bold bg-black/60 text-white z-10">
+        {peer.name} {peer.isLocal && "(Você)"}
+      </div>
+    </div>
   );
 }
 
@@ -277,7 +324,7 @@ export function Meeting100ms({
         await hmsActions.join({
           userName,
           authToken,
-          settings: { isAudioMuted: true, isVideoMuted: true },
+          settings: { isAudioMuted: false, isVideoMuted: false },
           rememberDeviceSelection: false // Desabilita para acelerar
         });
         
@@ -497,7 +544,7 @@ export function Meeting100ms({
       await hmsActions.join({
         userName,
         authToken,
-        settings: { isAudioMuted: true, isVideoMuted: true },
+        settings: { isAudioMuted: false, isVideoMuted: false },
         rememberDeviceSelection: false
       });
       clearTimeout(retryTimeout);
@@ -766,15 +813,27 @@ export function Meeting100ms({
           </header>
         )}
 
-        <main className={cn("flex-1 overflow-y-auto p-4 flex flex-col items-center justify-center gap-6", isRecordingBot && "p-0")}>
-          {screenSharePeer && screenShareTrackId && (
-            <ScreenShare peer={screenSharePeer} trackId={screenShareTrackId} />
+        <main className={cn("flex-1 overflow-hidden relative", isRecordingBot && "p-0")}>
+          {screenSharePeer && screenShareTrackId ? (
+            <>
+              <div className="absolute inset-0 flex items-center justify-center bg-black">
+                <ScreenShareFullView peer={screenSharePeer} trackId={screenShareTrackId} />
+              </div>
+              <div className="absolute bottom-24 right-4 z-30 flex flex-col gap-2">
+                {peers.map((peer) => (
+                  <PeerVideoMini key={peer.id} peer={peer} config={config} />
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className={cn("h-full p-4 flex flex-col items-center justify-center gap-6")}>
+              <div className={cn("grid gap-6 w-full h-fit mx-auto", gridClass, isRecordingBot && "gap-0 max-w-full h-full")}>
+                {peers.map((peer) => (
+                  <PeerVideo key={peer.id} peer={peer} config={config} totalPeers={peers.length} />
+                ))}
+              </div>
+            </div>
           )}
-          <div className={cn("grid gap-6 w-full h-fit mx-auto", gridClass, isRecordingBot && "gap-0 max-w-full h-full")}>
-            {peers.map((peer) => (
-              <PeerVideo key={peer.id} peer={peer} config={config} totalPeers={peers.length} />
-            ))}
-          </div>
         </main>
 
         {!isRecordingBot && (
