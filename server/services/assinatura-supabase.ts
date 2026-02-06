@@ -156,6 +156,13 @@ interface AssinaturaGlobalConfig {
   parabens_button_text?: string;
   app_store_url?: string | null;
   google_play_url?: string | null;
+  background_color?: string;
+  title_color?: string;
+  button_color?: string;
+  button_text_color?: string;
+  icon_color?: string;
+  app_url?: string;
+  contract_html?: string;
   contract_clauses?: any;
   created_at?: string;
   updated_at?: string;
@@ -1007,10 +1014,30 @@ export async function getTenantGlobalConfig(tenantId: string): Promise<Assinatur
 
     if (data) {
       console.log(`[AssinaturaSupabase] ✅ Config global carregada do Supabase do tenant`);
-      return {
-        ...data,
-        tenant_id: tenantId
-      } as AssinaturaGlobalConfig;
+      
+      let mergedData = { ...data, tenant_id: tenantId };
+      
+      const unifiedFields = ['background_color', 'title_color', 'button_color', 'button_text_color', 'icon_color', 'app_url', 'contract_html', 'app_store_url', 'google_play_url'];
+      const missingUnified = unifiedFields.some(f => !(data as any)[f]);
+      
+      if (missingUnified) {
+        try {
+          const localFilePath = path.join(process.cwd(), 'data', `assinatura_global_config_${tenantId}.json`);
+          if (fs.existsSync(localFilePath)) {
+            const localData = JSON.parse(fs.readFileSync(localFilePath, 'utf-8'));
+            for (const field of unifiedFields) {
+              if (!(mergedData as any)[field] && (localData as any)[field]) {
+                (mergedData as any)[field] = (localData as any)[field];
+              }
+            }
+            console.log(`[AssinaturaSupabase] Merged missing unified fields from local file`);
+          }
+        } catch (mergeErr: any) {
+          console.warn(`[AssinaturaSupabase] Could not merge local config:`, mergeErr.message);
+        }
+      }
+      
+      return mergedData as AssinaturaGlobalConfig;
     }
 
     console.log(`[AssinaturaSupabase] Nenhuma config encontrada no tenant - usando fallback`);
@@ -1118,6 +1145,13 @@ export async function saveTenantGlobalConfig(
       parabens_button_text: config.parabens_button_text,
       app_store_url: config.app_store_url,
       google_play_url: config.google_play_url,
+      background_color: config.background_color,
+      title_color: config.title_color,
+      button_color: config.button_color,
+      button_text_color: config.button_text_color,
+      icon_color: config.icon_color,
+      app_url: config.app_url,
+      contract_html: config.contract_html,
       updated_at: new Date().toISOString()
     };
 

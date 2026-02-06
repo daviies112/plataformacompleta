@@ -7,7 +7,8 @@ import { apiRequest, queryClient } from '@/lib/queryClient';
 import { AssinaturaNav } from '@/components/assinatura/AssinaturaNav';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Upload, Palette, Save, Sparkles, Shuffle, X, Camera, FileText, CheckCircle2, Shield } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Upload, Palette, Save, Sparkles, Shuffle, X, Camera, FileText, CheckCircle2, Shield, Smartphone } from 'lucide-react';
 import { extractColorsFromImage, generateColorVariations, hslToHex } from '@/lib/colorExtractor';
 
 interface ColorVariation {
@@ -38,10 +39,13 @@ const PersonalizarAssinaturaPage = () => {
   const [buttonTextColor, setButtonTextColor] = useState('#ffffff');
   const [iconColor, setIconColor] = useState('#2c3e50');
   const [contractHtml, setContractHtml] = useState('');
-  const [appUrl, setAppUrl] = useState('');
+  const [appStoreUrl, setAppStoreUrl] = useState('');
+  const [googlePlayUrl, setGooglePlayUrl] = useState('');
   const [extractedColors, setExtractedColors] = useState<string[]>([]);
   const [colorVariations, setColorVariations] = useState<ColorVariation[]>([]);
   const [extractingColors, setExtractingColors] = useState(false);
+  const [contractDialogOpen, setContractDialogOpen] = useState(false);
+  const [appDialogOpen, setAppDialogOpen] = useState(false);
 
   const { data: globalConfig } = useQuery<any>({
     queryKey: ['/api/assinatura/global-config'],
@@ -61,8 +65,8 @@ const PersonalizarAssinaturaPage = () => {
       if (globalConfig.button_text_color) setButtonTextColor(globalConfig.button_text_color);
       if (globalConfig.icon_color) setIconColor(globalConfig.icon_color);
       if (globalConfig.contract_html) setContractHtml(globalConfig.contract_html);
-      if (globalConfig.app_url || globalConfig.app_store_url) 
-        setAppUrl(globalConfig.app_url || globalConfig.app_store_url);
+      if (globalConfig.app_store_url) setAppStoreUrl(globalConfig.app_store_url);
+      if (globalConfig.google_play_url) setGooglePlayUrl(globalConfig.google_play_url);
     }
   }, [globalConfig]);
 
@@ -152,7 +156,8 @@ const PersonalizarAssinaturaPage = () => {
       button_text_color: buttonTextColor,
       icon_color: iconColor,
       contract_html: contractHtml,
-      app_url: appUrl,
+      app_store_url: appStoreUrl,
+      google_play_url: googlePlayUrl,
       primary_color: titleColor,
       verification_primary_color: buttonColor,
       verification_text_color: textColor,
@@ -326,30 +331,36 @@ const PersonalizarAssinaturaPage = () => {
                 <section>
                   <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">
                     <FileText className="w-5 h-5" />
-                    Textos
+                    Configurações Adicionais
                   </h2>
-                  <div className="space-y-4">
-                    <div className="space-y-1">
-                      <label className="text-sm font-medium">Contrato (HTML)</label>
-                      <textarea
-                        value={contractHtml}
-                        onChange={(e) => setContractHtml(e.target.value)}
-                        placeholder="Cole aqui o HTML do contrato..."
-                        className="w-full min-h-[120px] rounded-md border bg-background px-3 py-2 text-sm"
-                        data-testid="input-contract-html"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-sm font-medium">URL do Aplicativo</label>
-                      <input
-                        type="url"
-                        value={appUrl}
-                        onChange={(e) => setAppUrl(e.target.value)}
-                        placeholder="https://app.exemplo.com"
-                        className="w-full rounded-md border bg-background px-3 py-2 text-sm"
-                        data-testid="input-app-url"
-                      />
-                    </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Card
+                      className="cursor-pointer hover-elevate transition-all"
+                      onClick={() => setContractDialogOpen(true)}
+                      data-testid="button-open-contract-dialog"
+                    >
+                      <CardContent className="p-4 flex flex-col items-center gap-2 text-center">
+                        <FileText className="w-8 h-8 text-muted-foreground" />
+                        <span className="text-sm font-medium">Personalizar Contrato</span>
+                        <span className="text-xs text-muted-foreground">
+                          {contractHtml ? 'Contrato configurado' : 'Clique para configurar'}
+                        </span>
+                      </CardContent>
+                    </Card>
+
+                    <Card
+                      className="cursor-pointer hover-elevate transition-all"
+                      onClick={() => setAppDialogOpen(true)}
+                      data-testid="button-open-app-dialog"
+                    >
+                      <CardContent className="p-4 flex flex-col items-center gap-2 text-center">
+                        <Smartphone className="w-8 h-8 text-muted-foreground" />
+                        <span className="text-sm font-medium">App</span>
+                        <span className="text-xs text-muted-foreground">
+                          {appStoreUrl || googlePlayUrl ? 'URLs configuradas' : 'Clique para configurar'}
+                        </span>
+                      </CardContent>
+                    </Card>
                   </div>
                 </section>
 
@@ -429,6 +440,17 @@ const PersonalizarAssinaturaPage = () => {
                           <Shield className="w-3 h-3" style={{ color: iconColor }} />
                           Suas informações são processadas de forma segura
                         </p>
+
+                        {contractHtml && (
+                          <div className="w-full mt-4 pt-4 border-t" style={{ borderColor: `${textColor}20` }}>
+                            <p className="text-xs font-medium mb-2" style={{ color: titleColor }}>Contrato</p>
+                            <div
+                              className="text-xs text-left leading-relaxed max-h-24 overflow-hidden"
+                              style={{ color: textColor }}
+                              dangerouslySetInnerHTML={{ __html: contractHtml.substring(0, 300) + (contractHtml.length > 300 ? '...' : '') }}
+                            />
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -438,6 +460,90 @@ const PersonalizarAssinaturaPage = () => {
           </ResizablePanel>
         </ResizablePanelGroup>
       </div>
+
+      <Dialog open={contractDialogOpen} onOpenChange={setContractDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="w-5 h-5" />
+              Personalizar Contrato
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 min-h-0 space-y-3">
+            <label className="text-sm font-medium">HTML do Contrato</label>
+            <textarea
+              value={contractHtml}
+              onChange={(e) => setContractHtml(e.target.value)}
+              placeholder="Cole aqui o HTML do contrato..."
+              className="w-full min-h-[350px] rounded-md border bg-background px-3 py-2 text-sm font-mono resize-y"
+              data-testid="input-contract-html"
+            />
+            {contractHtml && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Pré-visualização</label>
+                <div
+                  className="rounded-md border p-4 max-h-48 overflow-auto text-sm bg-muted/30"
+                  dangerouslySetInnerHTML={{ __html: contractHtml }}
+                  data-testid="preview-contract-html"
+                />
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setContractDialogOpen(false)} data-testid="button-contract-cancel">
+              Fechar
+            </Button>
+            <Button onClick={() => { handleSaveConfig(); setContractDialogOpen(false); }} data-testid="button-contract-save">
+              <Save className="w-4 h-4 mr-2" />
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={appDialogOpen} onOpenChange={setAppDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Smartphone className="w-5 h-5" />
+              URLs do Aplicativo
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Apple Store URL</label>
+              <input
+                type="url"
+                value={appStoreUrl}
+                onChange={(e) => setAppStoreUrl(e.target.value)}
+                placeholder="https://apps.apple.com/app/..."
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                data-testid="input-app-store-url"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Google Play URL</label>
+              <input
+                type="url"
+                value={googlePlayUrl}
+                onChange={(e) => setGooglePlayUrl(e.target.value)}
+                placeholder="https://play.google.com/store/apps/..."
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                data-testid="input-google-play-url"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAppDialogOpen(false)} data-testid="button-app-cancel">
+              Fechar
+            </Button>
+            <Button onClick={() => { handleSaveConfig(); setAppDialogOpen(false); }} data-testid="button-app-save">
+              <Save className="w-4 h-4 mr-2" />
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
