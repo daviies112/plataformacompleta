@@ -387,10 +387,8 @@ const PublicMeetingApp = () => {
     return (lighter + 0.05) / (darker + 0.05);
   };
 
-  const resolvedButtonTextColor = (() => {
+  const resolvedButtonTextColor = colors.buttonTextColor || (() => {
     const bg = colors.primaryButton || '#3b82f6';
-    const configured = colors.buttonTextColor || '#ffffff';
-    if (getContrastRatio(bg, configured) >= 3) return configured;
     const bgLum = hexToLuminance(bg);
     return bgLum > 0.5 ? '#000000' : '#ffffff';
   })();
