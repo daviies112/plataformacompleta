@@ -955,8 +955,8 @@ export default function RoomDesignSettings() {
                             alt="Logo" 
                             className="object-contain"
                             style={{ 
-                              height: `${Math.min((config.branding.logoSize || 60) * 0.5, 40)}px`,
-                              maxWidth: "120px"
+                              height: `${(config.branding.logoSize || 60) * 0.5}px`,
+                              maxWidth: "150px"
                             }}
                           />
                           {config.branding.showCompanyName && (
@@ -970,12 +970,12 @@ export default function RoomDesignSettings() {
                       <div className="text-center space-y-2">
                         <h3 className="text-base font-bold leading-tight">{config.lobby.title || "Pronto para participar?"}</h3>
                       </div>
-                      <Button
-                        style={{ backgroundColor: config.colors.primaryButton, color: config.colors.buttonTextColor || '#ffffff' }}
-                        className="w-full max-w-xs hover:opacity-90 transition-opacity"
+                      <button
+                        style={{ backgroundColor: config.colors.primaryButton, color: config.colors.buttonTextColor || '#ffffff', padding: '8px 16px', borderRadius: '8px', border: 'none', fontWeight: 600, fontSize: '14px', cursor: 'pointer' }}
+                        className="w-full max-w-xs"
                       >
                         {config.lobby.buttonText || "Participar agora"}
-                      </Button>
+                      </button>
                     </div>
                   )}
 
@@ -999,7 +999,7 @@ export default function RoomDesignSettings() {
                               alt="Logo" 
                               className="object-contain"
                               style={{ 
-                                height: `${Math.min((config.branding.logoSize || 60) * 0.4, 32)}px`,
+                                height: `${(config.branding.logoSize || 60) * 0.4}px`,
                                 maxWidth: "100px"
                               }}
                             />

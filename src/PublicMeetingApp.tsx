@@ -397,8 +397,8 @@ const PublicMeetingApp = () => {
       padding: '12px 16px 8px 16px',
     },
     logo: {
-      maxHeight: Math.min(branding.logoSize || 60, 44),
-      maxWidth: '140px',
+      height: `${branding.logoSize || 60}px`,
+      maxWidth: '200px',
       objectFit: 'contain' as const,
     },
     videoSection: {
