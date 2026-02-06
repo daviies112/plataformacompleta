@@ -191,14 +191,19 @@ const ProgressTrackerDisplay = memo(({ currentStep, contract }: ProgressTrackerD
   const activeStepIndex = stepMapping[currentStep] || 0;
 
   return (
-    <div className="fixed bottom-4 left-4 z-50">
+    <div className={`fixed z-50 ${isExpanded ? 'inset-0 flex items-end sm:items-end sm:inset-auto sm:bottom-4 sm:left-4' : 'bottom-4 left-4'}`}>
+      {isExpanded && (
+        <div 
+          className="fixed inset-0 bg-black/40 sm:hidden z-[-1]" 
+          onClick={() => setIsExpanded(false)}
+        />
+      )}
       <div 
-        className="rounded-lg shadow-2xl overflow-hidden transition-all duration-300"
+        className={`shadow-2xl overflow-hidden transition-all duration-300 ${isExpanded ? 'w-full sm:w-80 rounded-t-xl sm:rounded-lg' : 'w-[200px] rounded-lg'}`}
         style={{ 
           backgroundColor: progressCardColor,
           fontFamily: progressFontFamily,
-          width: isExpanded ? '320px' : '200px',
-          maxHeight: isExpanded ? '400px' : '60px',
+          maxHeight: isExpanded ? '85vh' : '60px',
         }}
       >
         <button 
@@ -221,7 +226,7 @@ const ProgressTrackerDisplay = memo(({ currentStep, contract }: ProgressTrackerD
         </button>
 
         {isExpanded && (
-          <div className="px-3 pb-3 space-y-2">
+          <div className="px-3 pb-3 space-y-2 overflow-y-auto max-h-[70vh] sm:max-h-[320px]">
             {steps.map((step, index) => {
               const isComplete = index < activeStepIndex;
               const isActive = index === activeStepIndex;
@@ -246,13 +251,13 @@ const ProgressTrackerDisplay = memo(({ currentStep, contract }: ProgressTrackerD
                   </div>
                   <div className="flex-1 min-w-0">
                     <p 
-                      className={`text-sm font-medium ${isComplete ? 'line-through opacity-70' : ''}`}
+                      className={`text-xs sm:text-sm font-medium ${isComplete ? 'line-through opacity-70' : ''}`}
                       style={{ color: progressTextColor }}
                     >
                       {step.title}
                     </p>
                     <p 
-                      className="text-xs opacity-70 truncate"
+                      className="text-[11px] sm:text-xs opacity-70 truncate"
                       style={{ color: progressTextColor }}
                     >
                       {step.description}
