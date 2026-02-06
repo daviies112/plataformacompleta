@@ -367,10 +367,35 @@ const SettingsPage = () => {
     });
   };
 
-  const handleSaveCompany = () => {
+  const handleSaveCompany = async () => {
     updateClient(companyForm);
     localStorage.setItem('client-name', companyForm.name);
     localStorage.setItem('client-email', companyForm.email);
+    
+    if (companyForm.name.trim()) {
+      const autoSlug = companyForm.name.trim()
+        .toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '');
+      
+      if (autoSlug) {
+        try {
+          const res = await fetch('/api/config/company-slug', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ companySlug: autoSlug }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            queryClient.invalidateQueries({ queryKey: ['/api/config/company-slug'] });
+          }
+        } catch (e) {
+          console.warn('Não foi possível atualizar o slug automaticamente:', e);
+        }
+      }
+    }
     
     toast({
       title: "Empresa atualizada",
