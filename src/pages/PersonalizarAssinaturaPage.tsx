@@ -178,12 +178,34 @@ const PersonalizarAssinaturaPage = () => {
       <AssinaturaNav />
 
       <div className="flex items-center justify-between px-4 py-3 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div>
-          <h1 className="text-xl font-bold flex items-center gap-2" data-testid="text-page-title">
-            <Palette className="w-5 h-5" />
-            Personalizar Assinatura
-          </h1>
-          <p className="text-sm text-muted-foreground">Configure cores, logo e textos do fluxo de assinatura</p>
+        <div className="flex items-center gap-4">
+          <div>
+            <h1 className="text-xl font-bold flex items-center gap-2" data-testid="text-page-title">
+              <Palette className="w-5 h-5" />
+              Design
+            </h1>
+            <p className="text-sm text-muted-foreground">Configure cores, logo e textos do fluxo de assinatura</p>
+          </div>
+          <div className="flex items-center gap-2 ml-4">
+            <Button
+              variant={contractHtml ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setContractDialogOpen(true)}
+              data-testid="button-open-contract-dialog"
+            >
+              <FileText className="w-4 h-4 mr-1" />
+              Personalizar Contrato
+            </Button>
+            <Button
+              variant={appStoreUrl || googlePlayUrl ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setAppDialogOpen(true)}
+              data-testid="button-open-app-dialog"
+            >
+              <Smartphone className="w-4 h-4 mr-1" />
+              App
+            </Button>
+          </div>
         </div>
         <Button
           onClick={handleSaveConfig}
@@ -325,42 +347,6 @@ const PersonalizarAssinaturaPage = () => {
                         </div>
                       </div>
                     ))}
-                  </div>
-                </section>
-
-                <section>
-                  <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">
-                    <FileText className="w-5 h-5" />
-                    Configurações Adicionais
-                  </h2>
-                  <div className="grid grid-cols-2 gap-3">
-                    <Card
-                      className="cursor-pointer hover-elevate transition-all"
-                      onClick={() => setContractDialogOpen(true)}
-                      data-testid="button-open-contract-dialog"
-                    >
-                      <CardContent className="p-4 flex flex-col items-center gap-2 text-center">
-                        <FileText className="w-8 h-8 text-muted-foreground" />
-                        <span className="text-sm font-medium">Personalizar Contrato</span>
-                        <span className="text-xs text-muted-foreground">
-                          {contractHtml ? 'Contrato configurado' : 'Clique para configurar'}
-                        </span>
-                      </CardContent>
-                    </Card>
-
-                    <Card
-                      className="cursor-pointer hover-elevate transition-all"
-                      onClick={() => setAppDialogOpen(true)}
-                      data-testid="button-open-app-dialog"
-                    >
-                      <CardContent className="p-4 flex flex-col items-center gap-2 text-center">
-                        <Smartphone className="w-8 h-8 text-muted-foreground" />
-                        <span className="text-sm font-medium">App</span>
-                        <span className="text-xs text-muted-foreground">
-                          {appStoreUrl || googlePlayUrl ? 'URLs configuradas' : 'Clique para configurar'}
-                        </span>
-                      </CardContent>
-                    </Card>
                   </div>
                 </section>
 

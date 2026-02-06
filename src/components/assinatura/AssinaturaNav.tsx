@@ -3,7 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 
 const items = [
   { title: "Criar Assinatura", url: "/assinatura/criar", icon: PlusCircle },
-  { title: "Personalizar", url: "/assinatura/personalizar", icon: Palette },
+  { title: "Design", url: "/assinatura/personalizar", icon: Palette },
   { title: "Contratos", url: "/assinatura/contratos", icon: FileText },
 ];
 
