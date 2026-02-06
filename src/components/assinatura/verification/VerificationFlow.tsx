@@ -61,6 +61,7 @@ interface VerificationFlowProps {
   detectionQualityMessage?: string;
   detectionPerfectMessage?: string;
   iconColor?: string;
+  buttonTextColor?: string;
 }
 
 export const VerificationFlow = ({ 
@@ -98,7 +99,8 @@ export const VerificationFlow = ({
   detectionLightingMessage,
   detectionQualityMessage,
   detectionPerfectMessage,
-  iconColor = '#2c3e50'
+  iconColor = '#2c3e50',
+  buttonTextColor = '#ffffff'
 }: VerificationFlowProps & { textColor?: string }) => {
   const {
     session,
@@ -116,7 +118,7 @@ export const VerificationFlow = ({
   const [selfieImage, setSelfieImage] = useState<string | null>(null);
   const [documentImage, setDocumentImage] = useState<string | null>(null);
   const [verificationResult, setVerificationResult] = useState<VerificationResult | null>(null);
-  const [showBranding, setShowBranding] = useState(!!(logoUrl || backgroundImage));
+  const [showBranding, setShowBranding] = useState(false);
   const hasCompletedCallbackRef = useRef(false);
   const autoAdvanceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -310,6 +312,9 @@ export const VerificationFlow = ({
           logoSize={logoSize}
           logoPosition={logoPosition}
           backgroundImage={backgroundImage}
+          backgroundColor={backgroundColor}
+          primaryColor={primaryColor}
+          buttonTextColor={textColor}
           onContinue={handleBrandingContinue}
         />
       )}
@@ -347,23 +352,12 @@ export const VerificationFlow = ({
           <ProgressIndicator 
             currentStep={currentStep} 
             primaryColor={primaryColor}
+            textColor={textColor}
+            iconColor={iconColor}
             stepLabels={stepLabels}
             inactiveCircleColor={inactiveCircleColor}
             inactiveTextColor={inactiveTextColor}
           />
-          
-          {logoUrl && (
-            <div style={{
-              textAlign: logoPosition as any,
-              padding: '20px',
-              marginBottom: '20px'
-            }}>
-              <img src={logoUrl} alt="Logo" style={{
-                maxWidth: logoSize === 'small' ? '100px' : logoSize === 'large' ? '300px' : '200px',
-                height: 'auto'
-              }} />
-            </div>
-          )}
           
           <div className="flex-1 max-w-4xl mx-auto w-full">
             <AnimatePresence mode="wait">
@@ -379,6 +373,10 @@ export const VerificationFlow = ({
               instructionText={instructionText}
               securityText={securityText}
               companyName={companyName}
+              logoUrl={logoUrl}
+              logoSize={logoSize}
+              iconColor={iconColor}
+              buttonTextColor={buttonTextColor}
             />
           )}
           
@@ -388,6 +386,9 @@ export const VerificationFlow = ({
               onCapture={handleSelfieCapture}
               onBack={() => goToStep('welcome')}
               primaryColor={primaryColor}
+              backgroundColor={backgroundColor}
+              textColor={textColor}
+              iconColor={iconColor}
               logoUrl={logoUrl}
               logoSize={logoSize}
               captureButtonText={captureButtonText}

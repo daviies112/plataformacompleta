@@ -14,6 +14,8 @@ interface WelcomeScreenProps {
   logoUrl?: string;
   logoSize?: 'small' | 'medium' | 'large';
   companyName?: string;
+  iconColor?: string;
+  buttonTextColor?: string;
 }
 
 const steps = [
@@ -45,7 +47,9 @@ export const WelcomeScreen = ({
   securityText = 'Suas informações são processadas de forma segura e criptografada',
   logoUrl = '',
   logoSize = 'medium',
-  companyName = ''
+  companyName = '',
+  iconColor = '#2c3e50',
+  buttonTextColor = '#ffffff'
 }: WelcomeScreenProps) => {
   return (
     <motion.div
@@ -74,13 +78,22 @@ export const WelcomeScreen = ({
           </motion.div>
         )}
 
+        <motion.div
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ delay: 0.15 }}
+          className="w-16 h-16 rounded-full flex items-center justify-center mb-5"
+          style={{ backgroundColor: primaryColor }}
+        >
+          <Shield className="w-8 h-8" style={{ color: buttonTextColor }} />
+        </motion.div>
+
           <motion.h1
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.2 }}
             style={{ 
               color: textColor, 
-              textShadow: '0 2px 4px rgba(0,0,0,0.3)',
               fontSize: '32px',
               fontWeight: 'bold',
               textAlign: 'center',
@@ -96,7 +109,6 @@ export const WelcomeScreen = ({
             transition={{ delay: 0.3 }}
             style={{ 
               color: textColor, 
-              textShadow: '0 2px 4px rgba(0,0,0,0.3)',
               textAlign: 'center',
               maxWidth: '400px',
               marginBottom: '40px'
@@ -105,7 +117,7 @@ export const WelcomeScreen = ({
             {instructionText || 'Processo seguro e rápido para confirmar sua identidade através de reconhecimento facial.'}
           </motion.p>
 
-        <div className="w-full max-w-sm space-y-4 mb-10">
+        <div className="w-full max-w-sm space-y-3 mb-10">
           {steps.map((step, index) => {
             const Icon = step.icon;
             return (
@@ -114,14 +126,12 @@ export const WelcomeScreen = ({
                 initial={{ x: -20, opacity: 0 }}
                 animate={{ x: 0, opacity: 1 }}
                 transition={{ delay: 0.4 + index * 0.1 }}
-                className="flex items-start gap-4 p-4 rounded-xl bg-white/90 border border-white/20 shadow-sm"
+                className="flex items-center gap-3 p-3 rounded-lg"
+                style={{ backgroundColor: `${primaryColor}10` }}
               >
-                <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${primaryColor}20` }}>
-                  <Icon className="w-5 h-5" style={{ color: primaryColor }} />
-                </div>
+                <Icon className="w-5 h-5 flex-shrink-0" style={{ color: iconColor }} />
                 <div>
-                  <h3 style={{ fontWeight: 'bold', color: textColor, margin: '0' }}>{step.title}</h3>
-                  <p style={{ fontSize: '14px', color: textColor, opacity: 0.9, margin: '4px 0 0 0' }}>{step.description}</p>
+                  <span className="text-sm" style={{ color: textColor }}>{step.title}</span>
                 </div>
               </motion.div>
             );
@@ -137,20 +147,14 @@ export const WelcomeScreen = ({
           <Button
             onClick={onStart}
             size="lg"
-            className="h-20 px-12 text-xl font-bold shadow-2xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105"
+            className="w-full py-3 text-sm font-semibold rounded-lg transition-all"
             style={{
               backgroundColor: primaryColor,
-              color: 'white'
+              color: buttonTextColor,
             }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.opacity = '0.9';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.opacity = '1';
-            }}
+            data-testid="button-start-verification"
           >
             Iniciar Verificação
-            <ArrowRight className="ml-3 w-6 h-6" />
           </Button>
         </motion.div>
 
@@ -158,9 +162,10 @@ export const WelcomeScreen = ({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.8 }}
-          className="mt-6 text-xs text-center max-w-xs"
-          style={{ textShadow: '0 2px 4px rgba(0,0,0,0.3)', color: primaryColor }}
+          className="mt-6 text-xs text-center max-w-xs flex items-center gap-1 justify-center"
+          style={{ color: `${textColor}99` }}
         >
+          <Shield className="w-3 h-3" style={{ color: iconColor }} />
           {securityText}
         </motion.p>
       </div>

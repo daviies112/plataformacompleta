@@ -11,6 +11,9 @@ interface SelfieCaptureProps {
   onCapture: (imageData: string) => void;
   onBack: () => void;
   primaryColor?: string;
+  backgroundColor?: string;
+  textColor?: string;
+  iconColor?: string;
   logoUrl?: string;
   logoSize?: 'small' | 'medium' | 'large';
   captureButtonText?: string;
@@ -28,6 +31,9 @@ export const SelfieCapture = ({
   onCapture, 
   onBack, 
   primaryColor = '#2c3e50', 
+  backgroundColor,
+  textColor,
+  iconColor,
   logoUrl = '', 
   logoSize = 'medium',
   captureButtonText = 'Capturar Agora',
@@ -365,7 +371,8 @@ export const SelfieCapture = ({
                 size="lg"
                 onClick={handleCapture}
                 disabled={!isReady}
-                className="w-full h-14 bg-primary hover:bg-primary-light text-primary-foreground"
+                className="w-full h-14"
+                style={{ backgroundColor: primaryColor, color: textColor === '#000000' ? '#ffffff' : (textColor || undefined) }}
               >
                 <Camera className="w-5 h-5 mr-2" />
                 {isReady ? captureButtonText : 'Aguardando...'}

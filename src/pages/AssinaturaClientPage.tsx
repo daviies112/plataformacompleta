@@ -473,7 +473,7 @@ const AssinaturaClientContent = () => {
     }
   };
 
-  const primaryColor = contract?.primary_color || contract?.button_color || '#2c3e50';
+  const primaryColor = contract?.button_color || contract?.primary_color || '#2c3e50';
   const textColor = contract?.text_color || '#333333';
   const progressCardColor = contract?.progress_card_color || contract?.button_color || '#1e3a5f';
   const progressButtonColor = contract?.progress_button_color || contract?.button_color || '#22c55e';
@@ -527,7 +527,7 @@ const AssinaturaClientContent = () => {
 
   if (currentStep === 1) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen" style={{ backgroundColor: contract.background_color || '#ffffff' }}>
         <ProgressTrackerDisplay currentStep={currentStep} contract={contract} />
         <Suspense fallback={<StepLoader />}>
           <VerificationFlow 
@@ -540,6 +540,7 @@ const AssinaturaClientContent = () => {
             securityText={contract.verification_security_text || 'Suas informações são processadas de forma segura.'}
             backgroundColor={contract.background_color || '#ffffff'}
             iconColor={contract.icon_color || '#2c3e50'}
+            buttonTextColor={contract.button_text_color || '#ffffff'}
             headerBackgroundColor={contract.verification_header_background_color || primaryColor}
             logoUrl={contract.logo_url || undefined}
             stepLabels={contract.step_label_selfie || contract.step_label_document || contract.step_label_analysis || contract.step_label_result ? {
@@ -567,7 +568,7 @@ const AssinaturaClientContent = () => {
 
   if (currentStep === 2) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen" style={{ backgroundColor: contract.background_color || '#ffffff' }}>
         <ProgressTrackerDisplay currentStep={currentStep} contract={contract} />
         <Suspense fallback={<StepLoader />}>
           <ContractStep 
@@ -600,7 +601,7 @@ const AssinaturaClientContent = () => {
 
   if (currentStep === 3) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen" style={{ backgroundColor: contract.background_color || '#ffffff' }}>
         <ProgressTrackerDisplay currentStep={currentStep} contract={contract} />
         <Suspense fallback={<StepLoader />}>
           <ResellerWelcomeStep 
@@ -640,7 +641,7 @@ const AssinaturaClientContent = () => {
 
   if (currentStep === 4) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen" style={{ backgroundColor: contract.background_color || '#ffffff' }}>
         <ProgressTrackerDisplay currentStep={currentStep} contract={contract} />
         <Suspense fallback={<StepLoader />}>
           <ResidenceProofStep 
@@ -657,7 +658,7 @@ const AssinaturaClientContent = () => {
 
   if (currentStep === 5) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen" style={{ backgroundColor: contract.background_color || '#ffffff' }}>
         <ProgressTrackerDisplay currentStep={currentStep} contract={contract} />
         <Suspense fallback={<StepLoader />}>
           <AppPromotionStep />
@@ -668,7 +669,7 @@ const AssinaturaClientContent = () => {
 
   if (currentStep === 6) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen" style={{ backgroundColor: contract.background_color || '#ffffff' }}>
         <Suspense fallback={<StepLoader />}>
           <SuccessStep />
         </Suspense>
@@ -676,13 +677,22 @@ const AssinaturaClientContent = () => {
     );
   }
 
+  // Step 0 or unexpected step - show loading with background color while useEffect sets the correct step
+  if (currentStep === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: contract.background_color || '#ffffff' }} data-testid="step-fallback-container">
+        <Loader2 className="w-8 h-8 animate-spin" style={{ color: contract.button_color || contract.primary_color || '#2c3e50' }} data-testid="status-step-loading" />
+      </div>
+    );
+  }
+
   // Fallback for unexpected steps - prevents black screen
   console.warn('[AssinaturaClientPage] Unexpected step:', currentStep, '- showing loading fallback');
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background" data-testid="step-fallback-container">
+    <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: contract.background_color || '#ffffff' }} data-testid="step-fallback-unexpected">
       <Card className="w-full max-w-md">
         <CardContent className="pt-6 text-center">
-          <Loader2 className="w-12 h-12 mx-auto animate-spin text-muted-foreground" data-testid="status-step-loading" />
+          <Loader2 className="w-12 h-12 mx-auto animate-spin text-muted-foreground" data-testid="status-step-loading-unexpected" />
           <p className="mt-4 text-muted-foreground" data-testid="text-step-loading">
             Carregando...
           </p>

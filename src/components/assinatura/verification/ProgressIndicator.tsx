@@ -12,6 +12,8 @@ interface StepLabels {
 interface ProgressIndicatorProps {
   currentStep: VerificationStep;
   primaryColor?: string;
+  textColor?: string;
+  iconColor?: string;
   stepLabels?: StepLabels;
   inactiveCircleColor?: string;
   inactiveTextColor?: string;
@@ -35,6 +37,8 @@ const stepOrder: Record<VerificationStep, number> = {
 export const ProgressIndicator = ({ 
   currentStep, 
   primaryColor = '#2c3e50',
+  textColor,
+  iconColor,
   stepLabels = defaultStepLabels,
   inactiveCircleColor = '#e5e5e5',
   inactiveTextColor = '#666666'
@@ -87,7 +91,7 @@ export const ProgressIndicator = ({
                 </motion.div>
                 <span 
                   className="mt-2 text-xs font-medium transition-colors"
-                  style={{ color: isCurrent ? undefined : inactiveTextColor }}
+                  style={{ color: isCurrent ? (textColor || undefined) : inactiveTextColor }}
                 >
                   {step.label}
                 </span>

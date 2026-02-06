@@ -7,7 +7,7 @@
   "button_color": "#1f293d",
   "button_text_color": "#fafafa",
   "icon_color": "#4e3b3b",
-  "contract_html": "<h2 style=\"text-align:center;margin-bottom:24px;font-size:18px;font-weight:bold;\">CONTRATO DE PRESTAÇÃO DE SERVIÇOS</h2><div style=\"margin-bottom:16px;\"><h3 style=\"font-size:14px;font-weight:bold;margin-bottom:6px;\">1. tes</h3><p style=\"font-size:13px;line-height:1.6;\">tesdsasd</p></div><div style=\"margin-bottom:16px;\"><h3 style=\"font-size:14px;font-weight:bold;margin-bottom:6px;\">2. tegggd</h3><p style=\"font-size:13px;line-height:1.6;\">gfdfdfd</p></div>",
+  "contract_html": "",
   "app_store_url": "",
   "google_play_url": "",
   "primary_color": "#1f293d",
@@ -15,5 +15,5 @@
   "verification_text_color": "#fafafa",
   "verification_background_color": "#954728",
   "tenant_id": "dev-daviemericko_gmail_com",
-  "updated_at": "2026-02-06T14:52:38.592Z"
+  "updated_at": "2026-02-06T15:06:46.585Z"
 }

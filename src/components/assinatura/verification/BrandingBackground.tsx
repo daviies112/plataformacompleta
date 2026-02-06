@@ -8,6 +8,8 @@ interface BrandingBackgroundProps {
   logoPosition?: 'center' | 'left' | 'right';
   backgroundImage?: string;
   backgroundColor?: string;
+  primaryColor?: string;
+  buttonTextColor?: string;
   onContinue: () => void;
 }
 
@@ -17,6 +19,8 @@ export const BrandingBackground = ({
   logoPosition = 'center',
   backgroundImage = '',
   backgroundColor = '#ffffff',
+  primaryColor = '#2c3e50',
+  buttonTextColor = '#ffffff',
   onContinue,
 }: BrandingBackgroundProps) => {
   const getLogoSize = () => {
@@ -101,6 +105,10 @@ export const BrandingBackground = ({
             onClick={onContinue}
             size="lg"
             className="gap-2 px-8 py-6 text-lg font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all"
+            style={{
+              backgroundColor: primaryColor,
+              color: buttonTextColor,
+            }}
           >
             Continuar
             <ArrowRight className="w-5 h-5" />
