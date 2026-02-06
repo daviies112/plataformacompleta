@@ -44,6 +44,7 @@ interface RoomDesignConfig {
     controlsBackground: string;
     controlsText: string;
     primaryButton: string;
+    buttonTextColor?: string;
     dangerButton: string;
     avatarBackground: string;
     avatarText: string;
@@ -83,6 +84,7 @@ const DEFAULT_CONFIG: RoomDesignConfig = {
     controlsBackground: '#18181b',
     controlsText: '#ffffff',
     primaryButton: '#3b82f6',
+    buttonTextColor: '#ffffff',
     dangerButton: '#ef4444',
     avatarBackground: '#3b82f6',
     avatarText: '#ffffff',
@@ -392,8 +394,7 @@ const PublicMeetingApp = () => {
       display: 'flex',
       justifyContent: 'flex-start',
       alignItems: 'center',
-      padding: '4px 0 8px 0',
-      flexShrink: 0,
+      padding: '12px 16px 8px 16px',
     },
     logo: {
       maxHeight: Math.min(branding.logoSize || 60, 44),
@@ -501,7 +502,7 @@ const PublicMeetingApp = () => {
       borderRadius: '12px',
       border: 'none',
       backgroundColor: colors.primaryButton,
-      color: '#ffffff',
+      color: colors.buttonTextColor || '#ffffff',
       cursor: 'pointer',
       transition: 'transform 0.15s, opacity 0.15s',
     },
@@ -700,18 +701,17 @@ const PublicMeetingApp = () => {
   return (
     <div style={styles.fullPage}>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      {branding.showLogoInLobby && branding.logo && (
+        <div style={styles.logoRow}>
+          <img
+            src={branding.logo}
+            alt={branding.companyName || "Logo"}
+            style={styles.logo}
+            data-testid="img-company-logo-lobby"
+          />
+        </div>
+      )}
       <div style={styles.lobbyContent}>
-        {branding.showLogoInLobby && branding.logo && (
-          <div style={styles.logoRow}>
-            <img
-              src={branding.logo}
-              alt={branding.companyName || "Logo"}
-              style={styles.logo}
-              data-testid="img-company-logo-lobby"
-            />
-          </div>
-        )}
-
         {lobby.showCameraPreview !== false && (
           <div style={styles.videoSection}>
             <div style={styles.videoContainer}>

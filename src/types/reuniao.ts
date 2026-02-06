@@ -34,6 +34,7 @@ export interface RoomDesignConfig {
     controlsBackground: string;
     controlsText: string;
     primaryButton: string;
+    buttonTextColor?: string;
     dangerButton: string;
     avatarBackground: string;
     avatarText: string;
@@ -81,6 +82,7 @@ export const DEFAULT_ROOM_DESIGN_CONFIG: RoomDesignConfig = {
     controlsBackground: '#18181b',
     controlsText: '#ffffff',
     primaryButton: '#3b82f6',
+    buttonTextColor: '#ffffff',
     dangerButton: '#ef4444',
     avatarBackground: '#3b82f6',
     avatarText: '#ffffff',

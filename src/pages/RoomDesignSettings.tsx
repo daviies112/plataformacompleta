@@ -411,6 +411,7 @@ export default function RoomDesignSettings() {
         controlsText: hexText,
         avatarBackground: hexPrimary,
         avatarText: hexButtonText,
+        buttonTextColor: hexButtonText,
         dangerButton: prev.colors.dangerButton || "#ef4444",
         participantNameBackground: `rgba(0, 0, 0, 0.6)`,
         participantNameText: hexText,
@@ -742,6 +743,11 @@ export default function RoomDesignSettings() {
                       onChange={(v) => updateConfig("colors.primaryButton", v)}
                     />
                     <ColorInput
+                      label="Cor do Texto do Botão"
+                      value={config.colors.buttonTextColor || '#ffffff'}
+                      onChange={(v) => updateConfig("colors.buttonTextColor", v)}
+                    />
+                    <ColorInput
                       label="Botão Perigo"
                       value={config.colors.dangerButton}
                       onChange={(v) => updateConfig("colors.dangerButton", v)}
@@ -965,7 +971,7 @@ export default function RoomDesignSettings() {
                         <h3 className="text-base font-bold leading-tight">{config.lobby.title || "Pronto para participar?"}</h3>
                       </div>
                       <Button
-                        style={{ backgroundColor: config.colors.primaryButton }}
+                        style={{ backgroundColor: config.colors.primaryButton, color: config.colors.buttonTextColor || '#ffffff' }}
                         className="w-full max-w-xs hover:opacity-90 transition-opacity"
                       >
                         {config.lobby.buttonText || "Participar agora"}
