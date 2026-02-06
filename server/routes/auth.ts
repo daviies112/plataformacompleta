@@ -1,6 +1,7 @@
 import express, { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { adminAuthService } from '../services/adminAuth';
+import { saveCompanySlug } from '../lib/tenantSlug';
 
 const router = express.Router();
 
@@ -53,6 +54,18 @@ router.post('/login', async (req, res) => {
         success: false,
         error: result.error || 'Invalid credentials'
       });
+    }
+
+    // Auto-set company slug from company_name on login
+    if (result.user?.company_name && result.user?.tenant_id) {
+      const slug = result.user.company_name.trim()
+        .toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '');
+      if (slug) {
+        saveCompanySlug(result.user.tenant_id, slug).catch(() => {});
+      }
     }
 
     const credentials = {

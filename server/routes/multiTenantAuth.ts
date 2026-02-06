@@ -1,5 +1,43 @@
 import express, { Request, Response } from 'express';
 import { supabaseOwner, SUPABASE_CONFIGURED } from '../config/supabaseOwner';
+import { saveCompanySlug, invalidateSlugCache } from '../lib/tenantSlug';
+
+function normalizeSlug(name: string): string {
+  return name.trim()
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+}
+
+async function autoSetCompanySlug(tenantId: string, companyName: string | null | undefined) {
+  if (!companyName || !companyName.trim()) return;
+  const slug = normalizeSlug(companyName);
+  if (!slug) return;
+  try {
+    await saveCompanySlug(tenantId, slug);
+    console.log(`✅ [AutoSlug] Company slug set to "${slug}" for tenant ${tenantId} (from company_name: "${companyName}")`);
+  } catch (err) {
+    console.warn(`⚠️ [AutoSlug] Failed to set slug for ${tenantId}:`, err);
+  }
+}
+
+async function fetchCompanyNameFromOwner(adminId: string): Promise<string | null> {
+  if (!supabaseOwner) return null;
+  try {
+    const { data, error } = await supabaseOwner
+      .from('admin_users')
+      .select('company_name')
+      .eq('id', adminId)
+      .single();
+    if (!error && data?.company_name) {
+      return data.company_name;
+    }
+  } catch (e) {
+    console.warn('[AutoSlug] Could not fetch company_name:', e);
+  }
+  return null;
+}
 
 const router = express.Router();
 
@@ -66,7 +104,7 @@ router.post('/login', async (req: Request, res: Response) => {
       
       // Se a funcao verificar_login nao existe, usar modo de desenvolvimento
       if (error.code === 'PGRST202') {
-        console.log(`⚠️ [AUTH] Funcao verificar_login nao existe - usando modo desenvolvimento`);
+        console.log(`⚠️ [AUTH] Funcao verificar_login nao existe - tentando login direto via admin_users`);
         
         const tenantId = `dev-${email.replace(/[^a-z0-9]/gi, '_').toLowerCase()}`;
         
@@ -77,6 +115,24 @@ router.post('/login', async (req: Request, res: Response) => {
         req.session.userRole = 'admin';
         req.session.supabaseUrl = null;
         req.session.supabaseKey = null;
+        
+        // Fetch company_name from admin_users to auto-set slug
+        if (supabaseOwner) {
+          try {
+            const { data: adminData } = await supabaseOwner
+              .from('admin_users')
+              .select('company_name')
+              .eq('email', email)
+              .eq('is_active', true)
+              .single();
+            if (adminData?.company_name) {
+              req.session.userName = adminData.company_name;
+              await autoSetCompanySlug(tenantId, adminData.company_name);
+            }
+          } catch (e) {
+            console.warn('[AutoSlug] Could not fetch company_name in PGRST202 fallback:', e);
+          }
+        }
         
         console.log(`✅ [AUTH] Login de desenvolvimento para: ${email}`);
         
@@ -89,7 +145,7 @@ router.post('/login', async (req: Request, res: Response) => {
             success: true, 
             redirect: '/dashboard',
             user: {
-              nome: email.split('@')[0],
+              nome: req.session.userName || email.split('@')[0],
               email: email
             }
           });
@@ -122,6 +178,10 @@ router.post('/login', async (req: Request, res: Response) => {
     req.session.userRole = 'admin'; // Definir role como admin
     req.session.supabaseUrl = admin.supabase_url;
     req.session.supabaseKey = admin.supabase_anon_key;
+
+    // Auto-set company slug from admin_users.company_name
+    const companyName = admin.company_name || await fetchCompanyNameFromOwner(admin.id);
+    autoSetCompanySlug(admin.id, companyName).catch(() => {});
 
     // Registrar log de sucesso
     supabaseOwner.from('logs_acesso').insert({
