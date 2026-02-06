@@ -91,6 +91,62 @@ async function authenticateN8NByTenantKey(req: Request, res: Response, next: any
     }
 }
 
+async function authenticateN8NByTenantPath(req: Request, res: Response, next: any) {
+    const { tenantId } = req.params;
+
+    if (!tenantId) {
+        return res.status(400).json({ error: 'tenantId é obrigatório na URL' });
+    }
+
+    const apiKey = (
+        req.headers['x-n8n-api-key'] ||
+        req.headers['authorization']?.toString().replace('Bearer ', '') ||
+        req.query.apiKey
+    ) as string;
+
+    if (!apiKey) {
+        return res.status(401).json({
+            error: 'API Key não fornecida',
+            message: 'Use o header X-N8N-API-Key com sua chave de API'
+        });
+    }
+
+    try {
+        const [config] = await db.select().from(hms100msConfig)
+            .where(eq(hms100msConfig.tenantId, tenantId))
+            .limit(1);
+
+        if (!config) {
+            return res.status(404).json({
+                error: 'Tenant não encontrado',
+                message: `Nenhuma configuração encontrada para o tenant: ${tenantId}`
+            });
+        }
+
+        if (!config.n8nApiKey) {
+            return res.status(401).json({
+                error: 'API Key não configurada para este tenant',
+                message: 'Gere uma API Key em Configurações'
+            });
+        }
+
+        const decryptedKey = decrypt(config.n8nApiKey);
+        if (decryptedKey?.trim() !== apiKey?.trim()) {
+            return res.status(401).json({
+                error: 'API Key inválida para este tenant'
+            });
+        }
+
+        (req as any).tenantConfig = config;
+        (req as any).n8nAuthType = 'tenant';
+        console.log(`[N8N] Autenticado via URL path para tenant: ${tenantId}`);
+        next();
+    } catch (error: any) {
+        console.error('[N8N Auth Path] Erro:', error);
+        res.status(500).json({ error: 'Erro interno ao validar autenticação' });
+    }
+}
+
 n8nRouter.post('/api-key/generate', authenticateToken, async (req: Request, res: Response) => {
     try {
         const user = (req as any).user;
@@ -228,7 +284,7 @@ const createMeetingSchema = z.object({
     })).optional()
 });
 
-n8nRouter.post('/reunioes', authenticateN8NByTenantKey, async (req: Request, res: Response) => {
+const handleCreateMeeting = async (req: Request, res: Response) => {
     try {
         console.log('[N8N] Recebendo requisição para criar reunião');
         console.log('[N8N] Body recebido:', JSON.stringify(req.body, null, 2));
@@ -561,9 +617,9 @@ n8nRouter.post('/reunioes', authenticateN8NByTenantKey, async (req: Request, res
             message: error.message
         });
     }
-});
+};
 
-n8nRouter.get('/reunioes/:id', authenticateN8NByTenantKey, async (req: Request, res: Response) => {
+const handleGetMeeting = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
 
@@ -596,12 +652,12 @@ n8nRouter.get('/reunioes/:id', authenticateN8NByTenantKey, async (req: Request, 
             message: error.message
         });
     }
-});
+};
 
 // ============================================
 // CANCELAR REUNIÃO - DELETE /api/n8n/reunioes/:id
 // ============================================
-n8nRouter.delete('/reunioes/:id', authenticateN8NByTenantKey, async (req: Request, res: Response) => {
+const handleCancelMeeting = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
         console.log(`[N8N] Cancelando reunião: ${id}`);
@@ -721,7 +777,7 @@ n8nRouter.delete('/reunioes/:id', authenticateN8NByTenantKey, async (req: Reques
             message: error.message
         });
     }
-});
+};
 
 // ============================================
 // REAGENDAR REUNIÃO - PATCH /api/n8n/reunioes/:id
@@ -736,7 +792,7 @@ const rescheduleSchema = z.object({
     duracao: z.number().min(15).max(480).optional()
 });
 
-n8nRouter.patch('/reunioes/:id', authenticateN8NByTenantKey, async (req: Request, res: Response) => {
+const handleRescheduleMeeting = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
         console.log(`[N8N] Reagendando reunião: ${id}`);
@@ -868,7 +924,24 @@ n8nRouter.patch('/reunioes/:id', authenticateN8NByTenantKey, async (req: Request
             message: error.message
         });
     }
-});
+};
+
+// ============================================
+// REGISTER ROUTES - Original paths (backward compatible)
+// ============================================
+n8nRouter.post('/reunioes', authenticateN8NByTenantKey, handleCreateMeeting);
+n8nRouter.get('/reunioes/:id', authenticateN8NByTenantKey, handleGetMeeting);
+n8nRouter.delete('/reunioes/:id', authenticateN8NByTenantKey, handleCancelMeeting);
+n8nRouter.patch('/reunioes/:id', authenticateN8NByTenantKey, handleRescheduleMeeting);
+
+// ============================================
+// TENANT-SPECIFIC ROUTES - URLs únicas por plataforma
+// Cada tenant tem sua própria URL: /api/n8n/{tenantId}/reunioes
+// ============================================
+n8nRouter.post('/:tenantId/reunioes', authenticateN8NByTenantPath, handleCreateMeeting);
+n8nRouter.get('/:tenantId/reunioes/:id', authenticateN8NByTenantPath, handleGetMeeting);
+n8nRouter.delete('/:tenantId/reunioes/:id', authenticateN8NByTenantPath, handleCancelMeeting);
+n8nRouter.patch('/:tenantId/reunioes/:id', authenticateN8NByTenantPath, handleRescheduleMeeting);
 
 n8nRouter.get('/health', (req: Request, res: Response) => {
     console.log('[N8N] Health check accessed');
@@ -890,6 +963,13 @@ n8nRouter.get('/health', (req: Request, res: Response) => {
             checkApiKeyStatus: 'GET /api/n8n/api-key/status (autenticado)',
             health: 'GET /api/n8n/health',
             schema: 'GET /api/n8n/schema'
+        },
+        tenantSpecificEndpoints: {
+            description: 'URLs únicas por tenant - cada plataforma tem sua própria URL',
+            createMeeting: 'POST /api/n8n/:tenantId/reunioes',
+            getMeeting: 'GET /api/n8n/:tenantId/reunioes/:id',
+            cancelMeeting: 'DELETE /api/n8n/:tenantId/reunioes/:id',
+            rescheduleMeeting: 'PATCH /api/n8n/:tenantId/reunioes/:id'
         }
     });
 });
@@ -899,6 +979,13 @@ n8nRouter.get('/schema', (req: Request, res: Response) => {
         authentication: {
             header: 'X-N8N-API-Key',
             description: 'Use a API Key gerada pelo tenant. Gere em /configuracoes ou via POST /api/n8n/api-key/generate'
+        },
+        tenantSpecificRoutes: {
+            description: 'URLs únicas por tenant - recomendado para integrações multi-tenant',
+            createMeeting: 'POST /api/n8n/:tenantId/reunioes',
+            getMeeting: 'GET /api/n8n/:tenantId/reunioes/:id',
+            cancelMeeting: 'DELETE /api/n8n/:tenantId/reunioes/:id',
+            rescheduleMeeting: 'PATCH /api/n8n/:tenantId/reunioes/:id'
         },
         createMeeting: {
             endpoint: 'POST /api/n8n/reunioes',

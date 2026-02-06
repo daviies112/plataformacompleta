@@ -3560,7 +3560,7 @@ const SettingsPage = () => {
                     </p>
                     <ul className="text-sm text-blue-800 dark:text-blue-300 space-y-1 ml-4 list-disc">
                       <li>Use o nó <strong>HTTP Request</strong> com método <strong>POST</strong></li>
-                      <li>URL: <code className="bg-blue-200 dark:bg-blue-800 px-1 rounded text-xs break-all">{`${window.location.origin}/api/n8n/reunioes`}</code></li>
+                      <li>URL: <code className="bg-blue-200 dark:bg-blue-800 px-1 rounded text-xs break-all">{n8nMeetingApiStatus?.tenantId ? `${window.location.origin}/api/n8n/${n8nMeetingApiStatus.tenantId}/reunioes` : `${window.location.origin}/api/n8n/reunioes`}</code></li>
                       <li>Header: <code className="bg-blue-200 dark:bg-blue-800 px-1 rounded text-xs">X-N8N-API-Key: sua_chave_aqui</code></li>
                       <li>Body: <code className="bg-blue-200 dark:bg-blue-800 px-1 rounded text-xs">{`{"titulo": "Nome da Reunião", "nome": "Participante"}`}</code></li>
                     </ul>

@@ -1280,7 +1280,7 @@ export default function Configuracoes() {
                       </p>
                       <ul className="text-sm text-blue-800 space-y-1 ml-4 list-disc">
                         <li>Use o nó <strong>HTTP Request</strong> com método <strong>POST</strong></li>
-                        <li>URL: <code className="bg-blue-100 px-1 rounded">/api/n8n/reunioes</code></li>
+                        <li>URL: <code className="bg-blue-100 px-1 rounded">/api/n8n/{'{tenantId}'}/reunioes</code></li>
                         <li>Header: <code className="bg-blue-100 px-1 rounded">X-N8N-API-Key: sua_chave_aqui</code></li>
                         <li>Body (JSON): <code className="bg-blue-100 px-1 rounded">{`{"titulo": "Nome da Reunião", "nome": "Participante"}`}</code></li>
                       </ul>
