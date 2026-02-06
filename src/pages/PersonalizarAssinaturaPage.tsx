@@ -569,7 +569,7 @@ const PersonalizarAssinaturaPage = () => {
           <ResizablePanel defaultSize={50} minSize={30}>
             <ScrollArea className="h-full">
               <div className="p-6 flex items-start justify-center">
-                <div className="w-[320px]">
+                <div className={activeTab === 'design' ? 'w-full max-w-[600px]' : 'w-[320px]'}>
                   <p className="text-sm font-medium text-muted-foreground mb-3 text-center">Pré-visualização</p>
 
                   {activeTab === 'contract' ? (
