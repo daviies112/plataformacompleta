@@ -370,6 +370,31 @@ const PublicMeetingApp = () => {
   const branding = roomDesign.branding;
   const lobby = roomDesign.lobby;
 
+  const hexToLuminance = (hex: string): number => {
+    const h = hex.replace('#', '');
+    const r = parseInt(h.substring(0, 2), 16) / 255;
+    const g = parseInt(h.substring(2, 4), 16) / 255;
+    const b = parseInt(h.substring(4, 6), 16) / 255;
+    const toLinear = (c: number) => c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+    return 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
+  };
+
+  const getContrastRatio = (c1: string, c2: string): number => {
+    const l1 = hexToLuminance(c1);
+    const l2 = hexToLuminance(c2);
+    const lighter = Math.max(l1, l2);
+    const darker = Math.min(l1, l2);
+    return (lighter + 0.05) / (darker + 0.05);
+  };
+
+  const resolvedButtonTextColor = (() => {
+    const bg = colors.primaryButton || '#3b82f6';
+    const configured = colors.buttonTextColor || '#ffffff';
+    if (getContrastRatio(bg, configured) >= 3) return configured;
+    const bgLum = hexToLuminance(bg);
+    return bgLum > 0.5 ? '#000000' : '#ffffff';
+  })();
+
   const styles: Record<string, React.CSSProperties> = {
     fullPage: {
       minHeight: '100dvh',
@@ -384,6 +409,7 @@ const PublicMeetingApp = () => {
       flex: 1,
       display: 'flex',
       flexDirection: 'column',
+      alignItems: 'center',
       padding: '12px 16px',
       maxWidth: '560px',
       width: '100%',
@@ -392,7 +418,7 @@ const PublicMeetingApp = () => {
     },
     logoRow: {
       display: 'flex',
-      justifyContent: 'flex-start',
+      justifyContent: 'center',
       alignItems: 'center',
       padding: '12px 16px 8px 16px',
     },
@@ -407,6 +433,7 @@ const PublicMeetingApp = () => {
       flexDirection: 'column',
       justifyContent: 'center',
       minHeight: 0,
+      width: '100%',
     },
     videoContainer: {
       position: 'relative' as const,
@@ -464,6 +491,7 @@ const PublicMeetingApp = () => {
       flexShrink: 0,
       paddingTop: '16px',
       paddingBottom: 'max(16px, env(safe-area-inset-bottom))',
+      width: '100%',
     },
     welcomeText: {
       fontSize: '17px',
@@ -502,7 +530,7 @@ const PublicMeetingApp = () => {
       borderRadius: '12px',
       border: 'none',
       backgroundColor: colors.primaryButton,
-      color: colors.buttonTextColor || '#ffffff',
+      color: resolvedButtonTextColor,
       cursor: 'pointer',
       transition: 'transform 0.15s, opacity 0.15s',
     },
