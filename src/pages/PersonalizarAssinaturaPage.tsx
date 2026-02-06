@@ -1,229 +1,70 @@
-import { useState } from 'react';
-import * as React from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
-import { SimplifiedSignatureWizard } from '@/components/assinatura/SimplifiedSignatureWizard';
-import { SignaturePreview } from '@/components/assinatura/SignaturePreview';
 import { AssinaturaNav } from '@/components/assinatura/AssinaturaNav';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Eye, Palette } from 'lucide-react';
+import { Upload, Palette, Save, Sparkles, Shuffle, X, Camera, FileText, CheckCircle2, Shield } from 'lucide-react';
+import { extractColorsFromImage, generateColorVariations, hslToHex } from '@/lib/colorExtractor';
 
-interface ContractClause {
-  title: string;
-  content: string;
+interface ColorVariation {
+  name: string;
+  primary: string;
+  secondary: string;
+  background: string;
+  text: string;
+  button: string;
+  buttonText: string;
 }
 
-const defaultClauses: ContractClause[] = [
-  {
-    title: 'Objeto do Contrato',
-    content: 'O presente contrato tem por objeto estabelecer os termos e condições para a prestação de serviços entre as partes.'
-  },
-  {
-    title: 'Obrigações das Partes',
-    content: 'As partes comprometem-se a cumprir todas as disposições previstas neste instrumento, agindo sempre com boa-fé e transparência.'
-  },
-  {
-    title: 'Prazo de Vigência',
-    content: 'Este contrato terá vigência pelo prazo acordado entre as partes, podendo ser renovado mediante acordo mútuo.'
-  }
-];
+function ensureHex(color: string): string {
+  if (color.startsWith('#')) return color;
+  if (color.startsWith('hsl')) return hslToHex(color);
+  return color;
+}
 
 const PersonalizarAssinaturaPage = () => {
   const { toast } = useToast();
 
-  const [clientName] = useState('João da Silva');
-  const [clientCpf] = useState('123.456.789-00');
-  const [clientEmail] = useState('cliente@email.com');
-  const [clientPhone] = useState('');
-
-  const [contractTitle, setContractTitle] = useState('Contrato de Prestação de Serviços');
-  const [clauses, setClauses] = useState<ContractClause[]>(defaultClauses);
-  
   const [logoUrl, setLogoUrl] = useState('');
   const [logoSize, setLogoSize] = useState<'small' | 'medium' | 'large'>('medium');
-  const [logoPosition, setLogoPosition] = useState<'center' | 'left' | 'right'>('center');
-  const [primaryColor, setPrimaryColor] = useState('#2c3e50');
+  const [backgroundColor, setBackgroundColor] = useState('#ffffff');
+  const [titleColor, setTitleColor] = useState('#1a1a2e');
   const [textColor, setTextColor] = useState('#333333');
-  const [fontFamily, setFontFamily] = useState('Arial, sans-serif');
-  const [fontSize, setFontSize] = useState('16px');
-  const [companyName, setCompanyName] = useState('Sua Empresa');
-  const [footerText, setFooterText] = useState('Documento gerado eletronicamente');
-
-  const [maletaCardColor, setMaletaCardColor] = useState('#dbeafe');
-  const [maletaButtonColor, setMaletaButtonColor] = useState('#22c55e');
-  const [maletaTextColor, setMaletaTextColor] = useState('#1e40af');
-
-  const [parabensTitle, setParabensTitle] = useState('Parabéns!');
-  const [parabensSubtitle, setParabensSubtitle] = useState('Processo concluído com sucesso!');
-  const [parabensDescription, setParabensDescription] = useState('Sua documentação foi processada. Aguarde as próximas instruções.');
-  const [parabensCardColor, setParabensCardColor] = useState('#dbeafe');
-  const [parabensBackgroundColor, setParabensBackgroundColor] = useState('#f0fdf4');
-  const [parabensButtonColor, setParabensButtonColor] = useState('#22c55e');
-  const [parabensTextColor, setParabensTextColor] = useState('#1e40af');
-  const [parabensFontFamily, setParabensFontFamily] = useState('Arial, sans-serif');
-  const [parabensFormTitle, setParabensFormTitle] = useState('Endereço para Entrega');
-  const [parabensButtonText, setParabensButtonText] = useState('Confirmar e Continuar');
-
-  const [verificationPrimaryColor, setVerificationPrimaryColor] = useState('#2c3e50');
-  const [verificationTextColor, setVerificationTextColor] = useState('#000000');
-  const [verificationFontFamily, setVerificationFontFamily] = useState('Arial, sans-serif');
-  const [verificationFontSize, setVerificationFontSize] = useState('16px');
-  const [verificationLogoUrl, setVerificationLogoUrl] = useState('');
-  const [verificationLogoSize, setVerificationLogoSize] = useState<'small' | 'medium' | 'large'>('medium');
-  const [verificationLogoPosition, setVerificationLogoPosition] = useState<'center' | 'left' | 'right'>('center');
-  const [verificationFooterText, setVerificationFooterText] = useState('Verificação de Identidade Segura');
-  const [verificationWelcomeText, setVerificationWelcomeText] = useState('Verificação de Identidade');
-  const [verificationInstructions, setVerificationInstructions] = useState('Processo seguro e rápido para confirmar sua identidade através de reconhecimento facial.');
-  const [verificationSecurityText, setVerificationSecurityText] = useState('Suas informações são processadas de forma segura e criptografada');
-  const [verificationBackgroundColor, setVerificationBackgroundColor] = useState('#ffffff');
-  const [verificationHeaderBackgroundColor, setVerificationHeaderBackgroundColor] = useState('#2c3e50');
-  const [verificationHeaderCompanyName, setVerificationHeaderCompanyName] = useState('Sua Empresa');
-
-  const [selfieStepTitle, setSelfieStepTitle] = useState('Tire uma selfie');
-  const [selfieStepDescription, setSelfieStepDescription] = useState('Posicione seu rosto na área indicada');
-  const [documentStepTitle, setDocumentStepTitle] = useState('Fotografe seu documento');
-  const [documentStepDescription, setDocumentStepDescription] = useState('CNH, RG ou outro documento com foto');
-  const [analysisStepTitle, setAnalysisStepTitle] = useState('Verificação automática');
-  const [analysisStepDescription, setAnalysisStepDescription] = useState('Comparamos sua foto com o documento');
-  const [resultStepTitle, setResultStepTitle] = useState('Verificação concluída');
-  const [resultStepDescription, setResultStepDescription] = useState('Sua identidade foi verificada com sucesso');
-  const [selfieButtonText, setSelfieButtonText] = useState('Iniciar Verificação');
-  const [selfieInstructionText, setSelfieInstructionText] = useState('Posicione seu rosto e aguarde a captura automática');
-  
-  const [stepLabelSelfie, setStepLabelSelfie] = useState('Selfie');
-  const [stepLabelDocument, setStepLabelDocument] = useState('Documento');
-  const [stepLabelAnalysis, setStepLabelAnalysis] = useState('Análise');
-  const [stepLabelResult, setStepLabelResult] = useState('Resultado');
-  const [progressIndicatorInactiveCircleColor, setProgressIndicatorInactiveCircleColor] = useState('#e5e5e5');
-  const [progressIndicatorInactiveTextColor, setProgressIndicatorInactiveTextColor] = useState('#666666');
-  
-  const [selfieStepBackgroundColor, setSelfieStepBackgroundColor] = useState('#ffffff');
-  const [selfieStepTextColor, setSelfieStepTextColor] = useState('#000000');
-  const [documentStepBackgroundColor, setDocumentStepBackgroundColor] = useState('#ffffff');
-  const [documentStepTextColor, setDocumentStepTextColor] = useState('#000000');
-  const [analysisStepBackgroundColor, setAnalysisStepBackgroundColor] = useState('#ffffff');
-  const [analysisStepTextColor, setAnalysisStepTextColor] = useState('#000000');
-  const [resultStepBackgroundColor, setResultStepBackgroundColor] = useState('#ffffff');
-  const [resultStepTextColor, setResultStepTextColor] = useState('#000000');
-
-  const [selfieCaptureButtonText, setSelfieCaptureButtonText] = useState('Capturar Agora');
-  const [selfieRetakeButtonText, setSelfieRetakeButtonText] = useState('Tirar Outra');
-  const [selfieConfirmButtonText, setSelfieConfirmButtonText] = useState('Confirmar');
-  const [detectionDefaultMessage, setDetectionDefaultMessage] = useState('Posicione seu rosto na área indicada');
-  const [detectionCenterMessage, setDetectionCenterMessage] = useState('Centralize seu rosto');
-  const [detectionLightingMessage, setDetectionLightingMessage] = useState('Melhore a iluminação');
-  const [detectionQualityMessage, setDetectionQualityMessage] = useState('Aproxime seu rosto');
-  const [detectionPerfectMessage, setDetectionPerfectMessage] = useState('Perfeito! Capturando...');
-
-  const [progressCardColor, setProgressCardColor] = useState('#dbeafe');
-  const [progressButtonColor, setProgressButtonColor] = useState('#22c55e');
-  const [progressTextColor, setProgressTextColor] = useState('#1e40af');
-  const [progressTitle, setProgressTitle] = useState('Assinatura Digital');
-  const [progressSubtitle, setProgressSubtitle] = useState('Conclua os passos abaixo para finalizar o processo.');
-  const [progressStep1Title, setProgressStep1Title] = useState('1. Reconhecimento Facial');
-  const [progressStep1Description, setProgressStep1Description] = useState('Tire uma selfie para validar sua identidade');
-  const [progressStep2Title, setProgressStep2Title] = useState('2. Assinar Contrato');
-  const [progressStep2Description, setProgressStep2Description] = useState('Assine digitalmente o contrato');
-  const [progressStep3Title, setProgressStep3Title] = useState('3. Confirmação');
-  const [progressStep3Description, setProgressStep3Description] = useState('Confirme seus dados e finalize');
-  const [progressButtonText, setProgressButtonText] = useState('Complete os passos acima');
-  const [progressFontFamily, setProgressFontFamily] = useState('Arial, sans-serif');
-  const [progressActiveStepBg, setProgressActiveStepBg] = useState('rgba(255,255,255,0.2)');
-  const [progressCompleteStepBg, setProgressCompleteStepBg] = useState('rgba(34,197,94,0.2)');
-  const [progressInactiveStepBg, setProgressInactiveStepBg] = useState('rgba(255,255,255,0.05)');
-  const [progressCheckIconColor, setProgressCheckIconColor] = useState('#22c55e');
-  const [progressInactiveCircleBg, setProgressInactiveCircleBg] = useState('rgba(255,255,255,0.2)');
-
-  const [contractPrimaryColor, setContractPrimaryColor] = useState('#2c3e50');
-  const [contractTextColor, setContractTextColor] = useState('#333333');
-  const [contractBackgroundColor, setContractBackgroundColor] = useState('#ffffff');
-  const [contractFontFamily, setContractFontFamily] = useState('Arial, sans-serif');
-
-  const [appStoreUrl, setAppStoreUrl] = useState('');
-  const [googlePlayUrl, setGooglePlayUrl] = useState('');
-
-  const [verificationPreviewMode, setVerificationPreviewMode] = useState<string>('tela-inicial');
+  const [buttonColor, setButtonColor] = useState('#22c55e');
+  const [buttonTextColor, setButtonTextColor] = useState('#ffffff');
+  const [iconColor, setIconColor] = useState('#2c3e50');
+  const [contractHtml, setContractHtml] = useState('');
+  const [appUrl, setAppUrl] = useState('');
+  const [extractedColors, setExtractedColors] = useState<string[]>([]);
+  const [colorVariations, setColorVariations] = useState<ColorVariation[]>([]);
+  const [extractingColors, setExtractingColors] = useState(false);
 
   const { data: globalConfig } = useQuery<any>({
     queryKey: ['/api/assinatura/global-config'],
   });
-  
-  const { data: appPromotionConfig } = useQuery<{
-    app_store_url: string;
-    google_play_url: string;
-  }>({
-    queryKey: ['/api/assinatura/app-promotion'],
-  });
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (globalConfig) {
       if (globalConfig.logo_url) setLogoUrl(globalConfig.logo_url);
       if (globalConfig.logo_size) setLogoSize(globalConfig.logo_size);
-      if (globalConfig.logo_position) setLogoPosition(globalConfig.logo_position);
-      if (globalConfig.company_name) setCompanyName(globalConfig.company_name);
-      if (globalConfig.footer_text) setFooterText(globalConfig.footer_text);
-      if (globalConfig.primary_color) setPrimaryColor(globalConfig.primary_color);
+      if (globalConfig.background_color || globalConfig.verification_background_color) 
+        setBackgroundColor(globalConfig.background_color || globalConfig.verification_background_color);
+      if (globalConfig.title_color || globalConfig.primary_color) 
+        setTitleColor(globalConfig.title_color || globalConfig.primary_color);
       if (globalConfig.text_color) setTextColor(globalConfig.text_color);
-      if (globalConfig.font_family) setFontFamily(globalConfig.font_family);
-      if (globalConfig.font_size) setFontSize(globalConfig.font_size);
-      
-      if (globalConfig.verification_primary_color) setVerificationPrimaryColor(globalConfig.verification_primary_color);
-      if (globalConfig.verification_text_color) setVerificationTextColor(globalConfig.verification_text_color);
-      if (globalConfig.verification_font_family) setVerificationFontFamily(globalConfig.verification_font_family);
-      if (globalConfig.verification_font_size) setVerificationFontSize(globalConfig.verification_font_size);
-      if (globalConfig.verification_logo_url) setVerificationLogoUrl(globalConfig.verification_logo_url);
-      if (globalConfig.verification_logo_size) setVerificationLogoSize(globalConfig.verification_logo_size);
-      if (globalConfig.verification_logo_position) setVerificationLogoPosition(globalConfig.verification_logo_position);
-      if (globalConfig.verification_footer_text) setVerificationFooterText(globalConfig.verification_footer_text);
-      if (globalConfig.verification_welcome_text) setVerificationWelcomeText(globalConfig.verification_welcome_text);
-      if (globalConfig.verification_instructions) setVerificationInstructions(globalConfig.verification_instructions);
-      if (globalConfig.verification_security_text) setVerificationSecurityText(globalConfig.verification_security_text);
-      if (globalConfig.verification_background_color) setVerificationBackgroundColor(globalConfig.verification_background_color);
-      if (globalConfig.verification_header_background_color) setVerificationHeaderBackgroundColor(globalConfig.verification_header_background_color);
-      if (globalConfig.verification_header_company_name) setVerificationHeaderCompanyName(globalConfig.verification_header_company_name);
-      
-      if (globalConfig.selfie_step_background_color) setSelfieStepBackgroundColor(globalConfig.selfie_step_background_color);
-      if (globalConfig.selfie_step_text_color) setSelfieStepTextColor(globalConfig.selfie_step_text_color);
-      if (globalConfig.document_step_background_color) setDocumentStepBackgroundColor(globalConfig.document_step_background_color);
-      if (globalConfig.document_step_text_color) setDocumentStepTextColor(globalConfig.document_step_text_color);
-      if (globalConfig.analysis_step_background_color) setAnalysisStepBackgroundColor(globalConfig.analysis_step_background_color);
-      if (globalConfig.analysis_step_text_color) setAnalysisStepTextColor(globalConfig.analysis_step_text_color);
-      if (globalConfig.result_step_background_color) setResultStepBackgroundColor(globalConfig.result_step_background_color);
-      if (globalConfig.result_step_text_color) setResultStepTextColor(globalConfig.result_step_text_color);
-      
-      if (globalConfig.progress_card_color) setProgressCardColor(globalConfig.progress_card_color);
-      if (globalConfig.progress_button_color) setProgressButtonColor(globalConfig.progress_button_color);
-      if (globalConfig.progress_text_color) setProgressTextColor(globalConfig.progress_text_color);
-      if (globalConfig.progress_title) setProgressTitle(globalConfig.progress_title);
-      if (globalConfig.progress_subtitle) setProgressSubtitle(globalConfig.progress_subtitle);
-      if (globalConfig.progress_step1_title) setProgressStep1Title(globalConfig.progress_step1_title);
-      if (globalConfig.progress_step1_description) setProgressStep1Description(globalConfig.progress_step1_description);
-      if (globalConfig.progress_step2_title) setProgressStep2Title(globalConfig.progress_step2_title);
-      if (globalConfig.progress_step2_description) setProgressStep2Description(globalConfig.progress_step2_description);
-      if (globalConfig.progress_step3_title) setProgressStep3Title(globalConfig.progress_step3_title);
-      if (globalConfig.progress_step3_description) setProgressStep3Description(globalConfig.progress_step3_description);
-      if (globalConfig.progress_button_text) setProgressButtonText(globalConfig.progress_button_text);
-      if (globalConfig.progress_font_family) setProgressFontFamily(globalConfig.progress_font_family);
-      
-      if (globalConfig.contract_primary_color) setContractPrimaryColor(globalConfig.contract_primary_color);
-      if (globalConfig.contract_text_color) setContractTextColor(globalConfig.contract_text_color);
-      if (globalConfig.contract_background_color) setContractBackgroundColor(globalConfig.contract_background_color);
-      if (globalConfig.contract_font_family) setContractFontFamily(globalConfig.contract_font_family);
-      
-      if (globalConfig.app_store_url) setAppStoreUrl(globalConfig.app_store_url);
-      if (globalConfig.google_play_url) setGooglePlayUrl(globalConfig.google_play_url);
+      if (globalConfig.button_color || globalConfig.verification_primary_color || globalConfig.primary_color) 
+        setButtonColor(globalConfig.button_color || globalConfig.verification_primary_color || globalConfig.primary_color);
+      if (globalConfig.button_text_color) setButtonTextColor(globalConfig.button_text_color);
+      if (globalConfig.icon_color) setIconColor(globalConfig.icon_color);
+      if (globalConfig.contract_html) setContractHtml(globalConfig.contract_html);
+      if (globalConfig.app_url || globalConfig.app_store_url) 
+        setAppUrl(globalConfig.app_url || globalConfig.app_store_url);
     }
   }, [globalConfig]);
-
-  React.useEffect(() => {
-    if (appPromotionConfig) {
-      if (appPromotionConfig.app_store_url) setAppStoreUrl(appPromotionConfig.app_store_url);
-      if (appPromotionConfig.google_play_url) setGooglePlayUrl(appPromotionConfig.google_play_url);
-    }
-  }, [appPromotionConfig]);
 
   const saveConfigMutation = useMutation({
     mutationFn: async (configData: Record<string, unknown>) => {
@@ -250,72 +91,82 @@ const PersonalizarAssinaturaPage = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: 'Erro',
+        description: 'Por favor, selecione uma imagem válida.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     const reader = new FileReader();
-    reader.onload = (event) => {
-      setLogoUrl(event.target?.result as string);
+    reader.onload = async (event) => {
+      const dataUrl = event.target?.result as string;
+      setLogoUrl(dataUrl);
+
+      setExtractingColors(true);
+      try {
+        const colors = await extractColorsFromImage(dataUrl, 5);
+        setExtractedColors(colors);
+        const variations = generateColorVariations(colors);
+        setColorVariations(variations);
+        toast({
+          title: 'Cores extraídas!',
+          description: `${colors.length} cores encontradas. Escolha uma variação abaixo.`,
+        });
+      } catch (err) {
+        console.error('Error extracting colors:', err);
+        toast({
+          title: 'Aviso',
+          description: 'Logo carregada, mas não foi possível extrair cores.',
+        });
+      } finally {
+        setExtractingColors(false);
+      }
     };
     reader.readAsDataURL(file);
+  };
+
+  const applyVariation = (variation: ColorVariation) => {
+    setBackgroundColor(ensureHex(variation.background));
+    setTitleColor(ensureHex(variation.primary));
+    setTextColor(ensureHex(variation.text));
+    setButtonColor(ensureHex(variation.primary));
+    setButtonTextColor(ensureHex(variation.buttonText));
+    setIconColor(ensureHex(variation.secondary));
+    toast({
+      title: 'Variação aplicada',
+      description: `"${variation.name}" foi aplicada com sucesso.`,
+    });
   };
 
   const handleSaveConfig = () => {
     saveConfigMutation.mutate({
       logo_url: logoUrl,
       logo_size: logoSize,
-      logo_position: logoPosition,
-      primary_color: primaryColor,
+      background_color: backgroundColor,
+      title_color: titleColor,
       text_color: textColor,
-      font_family: fontFamily,
-      font_size: fontSize,
-      company_name: companyName,
-      footer_text: footerText,
-      
-      verification_primary_color: verificationPrimaryColor,
-      verification_text_color: verificationTextColor,
-      verification_font_family: verificationFontFamily,
-      verification_font_size: verificationFontSize,
-      verification_logo_url: verificationLogoUrl,
-      verification_logo_size: verificationLogoSize,
-      verification_logo_position: verificationLogoPosition,
-      verification_footer_text: verificationFooterText,
-      verification_welcome_text: verificationWelcomeText,
-      verification_instructions: verificationInstructions,
-      verification_security_text: verificationSecurityText,
-      verification_background_color: verificationBackgroundColor,
-      verification_header_background_color: verificationHeaderBackgroundColor,
-      verification_header_company_name: verificationHeaderCompanyName,
-      
-      selfie_step_background_color: selfieStepBackgroundColor,
-      selfie_step_text_color: selfieStepTextColor,
-      document_step_background_color: documentStepBackgroundColor,
-      document_step_text_color: documentStepTextColor,
-      analysis_step_background_color: analysisStepBackgroundColor,
-      analysis_step_text_color: analysisStepTextColor,
-      result_step_background_color: resultStepBackgroundColor,
-      result_step_text_color: resultStepTextColor,
-      
-      progress_card_color: progressCardColor,
-      progress_button_color: progressButtonColor,
-      progress_text_color: progressTextColor,
-      progress_title: progressTitle,
-      progress_subtitle: progressSubtitle,
-      progress_step1_title: progressStep1Title,
-      progress_step1_description: progressStep1Description,
-      progress_step2_title: progressStep2Title,
-      progress_step2_description: progressStep2Description,
-      progress_step3_title: progressStep3Title,
-      progress_step3_description: progressStep3Description,
-      progress_button_text: progressButtonText,
-      progress_font_family: progressFontFamily,
-      
-      contract_primary_color: contractPrimaryColor,
-      contract_text_color: contractTextColor,
-      contract_background_color: contractBackgroundColor,
-      contract_font_family: contractFontFamily,
-      
-      app_store_url: appStoreUrl,
-      google_play_url: googlePlayUrl,
+      button_color: buttonColor,
+      button_text_color: buttonTextColor,
+      icon_color: iconColor,
+      contract_html: contractHtml,
+      app_url: appUrl,
+      primary_color: titleColor,
+      verification_primary_color: buttonColor,
+      verification_text_color: textColor,
+      verification_background_color: backgroundColor,
     });
   };
+
+  const removeLogo = () => {
+    setLogoUrl('');
+    setExtractedColors([]);
+    setColorVariations([]);
+  };
+
+  const logoSizeMap = { small: 48, medium: 80, large: 120 };
 
   return (
     <div className="flex flex-col h-full">
@@ -327,333 +178,263 @@ const PersonalizarAssinaturaPage = () => {
             <Palette className="w-5 h-5" />
             Personalizar Assinatura
           </h1>
-          <p className="text-sm text-muted-foreground">Configure a aparência dos contratos e etapas de assinatura</p>
+          <p className="text-sm text-muted-foreground">Configure cores, logo e textos do fluxo de assinatura</p>
         </div>
+        <Button
+          onClick={handleSaveConfig}
+          disabled={saveConfigMutation.isPending}
+          data-testid="button-save-config"
+        >
+          <Save className="w-4 h-4 mr-2" />
+          {saveConfigMutation.isPending ? 'Salvando...' : 'Salvar Configurações'}
+        </Button>
       </div>
 
       <div className="flex-1 min-h-0 p-4">
         <ResizablePanelGroup direction="horizontal" className="h-full rounded-lg border">
           <ResizablePanel defaultSize={50} minSize={30}>
             <ScrollArea className="h-full">
-              <div className="p-4">
-                <SimplifiedSignatureWizard
-                  clientName={clientName}
-                  clientCpf={clientCpf}
-                  clientEmail={clientEmail}
-                  clientPhone={clientPhone}
-                  onClientNameChange={() => {}}
-                  onClientCpfChange={() => {}}
-                  onClientEmailChange={() => {}}
-                  onClientPhoneChange={() => {}}
-                  logoUrl={logoUrl}
-                  logoSize={logoSize}
-                  logoPosition={logoPosition}
-                  primaryColor={primaryColor}
-                  textColor={textColor}
-                  fontFamily={fontFamily}
-                  fontSize={fontSize}
-                  companyName={companyName}
-                  footerText={footerText}
-                  onLogoUrlChange={setLogoUrl}
-                  onLogoSizeChange={setLogoSize}
-                  onLogoPositionChange={setLogoPosition}
-                  onPrimaryColorChange={setPrimaryColor}
-                  onTextColorChange={setTextColor}
-                  onFontFamilyChange={setFontFamily}
-                  onFontSizeChange={setFontSize}
-                  onCompanyNameChange={setCompanyName}
-                  onFooterTextChange={setFooterText}
-                  onLogoUpload={handleLogoUpload}
-                  verificationPreviewMode={verificationPreviewMode}
-                  onVerificationPreviewModeChange={setVerificationPreviewMode}
-                  verificationPrimaryColor={verificationPrimaryColor}
-                  verificationTextColor={verificationTextColor}
-                  verificationFontFamily={verificationFontFamily}
-                  verificationFontSize={verificationFontSize}
-                  verificationLogoUrl={verificationLogoUrl}
-                  verificationLogoSize={verificationLogoSize}
-                  verificationLogoPosition={verificationLogoPosition}
-                  verificationFooterText={verificationFooterText}
-                  verificationWelcomeText={verificationWelcomeText}
-                  verificationInstructions={verificationInstructions}
-                  verificationSecurityText={verificationSecurityText}
-                  verificationBackgroundColor={verificationBackgroundColor}
-                  verificationHeaderBackgroundColor={verificationHeaderBackgroundColor}
-                  verificationHeaderCompanyName={verificationHeaderCompanyName}
-                  onVerificationPrimaryColorChange={setVerificationPrimaryColor}
-                  onVerificationTextColorChange={setVerificationTextColor}
-                  onVerificationFontFamilyChange={setVerificationFontFamily}
-                  onVerificationFontSizeChange={setVerificationFontSize}
-                  onVerificationLogoUrlChange={setVerificationLogoUrl}
-                  onVerificationLogoSizeChange={setVerificationLogoSize}
-                  onVerificationLogoPositionChange={setVerificationLogoPosition}
-                  onVerificationFooterTextChange={setVerificationFooterText}
-                  onVerificationWelcomeTextChange={setVerificationWelcomeText}
-                  onVerificationInstructionsChange={setVerificationInstructions}
-                  onVerificationSecurityTextChange={setVerificationSecurityText}
-                  onVerificationBackgroundColorChange={setVerificationBackgroundColor}
-                  onVerificationHeaderBackgroundColorChange={setVerificationHeaderBackgroundColor}
-                  onVerificationHeaderCompanyNameChange={setVerificationHeaderCompanyName}
-                  selfieStepTitle={selfieStepTitle}
-                  selfieStepDescription={selfieStepDescription}
-                  documentStepTitle={documentStepTitle}
-                  documentStepDescription={documentStepDescription}
-                  analysisStepTitle={analysisStepTitle}
-                  analysisStepDescription={analysisStepDescription}
-                  resultStepTitle={resultStepTitle}
-                  resultStepDescription={resultStepDescription}
-                  selfieButtonText={selfieButtonText}
-                  selfieInstructionText={selfieInstructionText}
-                  stepLabelSelfie={stepLabelSelfie}
-                  stepLabelDocument={stepLabelDocument}
-                  stepLabelAnalysis={stepLabelAnalysis}
-                  stepLabelResult={stepLabelResult}
-                  progressIndicatorInactiveCircleColor={progressIndicatorInactiveCircleColor}
-                  progressIndicatorInactiveTextColor={progressIndicatorInactiveTextColor}
-                  selfieCaptureButtonText={selfieCaptureButtonText}
-                  selfieRetakeButtonText={selfieRetakeButtonText}
-                  selfieConfirmButtonText={selfieConfirmButtonText}
-                  onStepLabelSelfieChange={setStepLabelSelfie}
-                  onStepLabelDocumentChange={setStepLabelDocument}
-                  onStepLabelAnalysisChange={setStepLabelAnalysis}
-                  onStepLabelResultChange={setStepLabelResult}
-                  onProgressIndicatorInactiveCircleColorChange={setProgressIndicatorInactiveCircleColor}
-                  onProgressIndicatorInactiveTextColorChange={setProgressIndicatorInactiveTextColor}
-                  onSelfieCaptureButtonTextChange={setSelfieCaptureButtonText}
-                  onSelfieRetakeButtonTextChange={setSelfieRetakeButtonText}
-                  onSelfieConfirmButtonTextChange={setSelfieConfirmButtonText}
-                  detectionDefaultMessage={detectionDefaultMessage}
-                  detectionCenterMessage={detectionCenterMessage}
-                  detectionLightingMessage={detectionLightingMessage}
-                  detectionQualityMessage={detectionQualityMessage}
-                  detectionPerfectMessage={detectionPerfectMessage}
-                  onDetectionDefaultMessageChange={setDetectionDefaultMessage}
-                  onDetectionCenterMessageChange={setDetectionCenterMessage}
-                  onDetectionLightingMessageChange={setDetectionLightingMessage}
-                  onDetectionQualityMessageChange={setDetectionQualityMessage}
-                  onDetectionPerfectMessageChange={setDetectionPerfectMessage}
-                  onSelfieStepTitleChange={setSelfieStepTitle}
-                  onSelfieStepDescriptionChange={setSelfieStepDescription}
-                  selfieStepBackgroundColor={selfieStepBackgroundColor}
-                  onSelfieStepBackgroundColorChange={setSelfieStepBackgroundColor}
-                  selfieStepTextColor={selfieStepTextColor}
-                  onSelfieStepTextColorChange={setSelfieStepTextColor}
-                  onDocumentStepTitleChange={setDocumentStepTitle}
-                  onDocumentStepDescriptionChange={setDocumentStepDescription}
-                  documentStepBackgroundColor={documentStepBackgroundColor}
-                  onDocumentStepBackgroundColorChange={setDocumentStepBackgroundColor}
-                  documentStepTextColor={documentStepTextColor}
-                  onDocumentStepTextColorChange={setDocumentStepTextColor}
-                  onAnalysisStepTitleChange={setAnalysisStepTitle}
-                  onAnalysisStepDescriptionChange={setAnalysisStepDescription}
-                  analysisStepBackgroundColor={analysisStepBackgroundColor}
-                  onAnalysisStepBackgroundColorChange={setAnalysisStepBackgroundColor}
-                  analysisStepTextColor={analysisStepTextColor}
-                  onAnalysisStepTextColorChange={setAnalysisStepTextColor}
-                  onResultStepTitleChange={setResultStepTitle}
-                  onResultStepDescriptionChange={setResultStepDescription}
-                  resultStepBackgroundColor={resultStepBackgroundColor}
-                  onResultStepBackgroundColorChange={setResultStepBackgroundColor}
-                  resultStepTextColor={resultStepTextColor}
-                  onResultStepTextColorChange={setResultStepTextColor}
-                  onDocumentStepTitleChange={setDocumentStepTitle}
-                  onDocumentStepDescriptionChange={setDocumentStepDescription}
-                  onAnalysisStepTitleChange={setAnalysisStepTitle}
-                  onAnalysisStepDescriptionChange={setAnalysisStepDescription}
-                  onResultStepTitleChange={setResultStepTitle}
-                  onResultStepDescriptionChange={setResultStepDescription}
-                  onSelfieButtonTextChange={setSelfieButtonText}
-                  onSelfieInstructionTextChange={setSelfieInstructionText}
-                  progressCardColor={progressCardColor}
-                  progressButtonColor={progressButtonColor}
-                  progressTextColor={progressTextColor}
-                  progressTitle={progressTitle}
-                  progressSubtitle={progressSubtitle}
-                  progressStep1Title={progressStep1Title}
-                  progressStep1Description={progressStep1Description}
-                  progressStep2Title={progressStep2Title}
-                  progressStep2Description={progressStep2Description}
-                  progressStep3Title={progressStep3Title}
-                  progressStep3Description={progressStep3Description}
-                  progressButtonText={progressButtonText}
-                  progressFontFamily={progressFontFamily}
-                  progressActiveStepBg={progressActiveStepBg}
-                  progressCompleteStepBg={progressCompleteStepBg}
-                  progressInactiveStepBg={progressInactiveStepBg}
-                  progressCheckIconColor={progressCheckIconColor}
-                  progressInactiveCircleBg={progressInactiveCircleBg}
-                  onProgressCardColorChange={setProgressCardColor}
-                  onProgressButtonColorChange={setProgressButtonColor}
-                  onProgressTextColorChange={setProgressTextColor}
-                  onProgressTitleChange={setProgressTitle}
-                  onProgressSubtitleChange={setProgressSubtitle}
-                  onProgressStep1TitleChange={setProgressStep1Title}
-                  onProgressStep1DescriptionChange={setProgressStep1Description}
-                  onProgressStep2TitleChange={setProgressStep2Title}
-                  onProgressStep2DescriptionChange={setProgressStep2Description}
-                  onProgressStep3TitleChange={setProgressStep3Title}
-                  onProgressStep3DescriptionChange={setProgressStep3Description}
-                  onProgressButtonTextChange={setProgressButtonText}
-                  onProgressFontFamilyChange={setProgressFontFamily}
-                  onProgressActiveStepBgChange={setProgressActiveStepBg}
-                  onProgressCompleteStepBgChange={setProgressCompleteStepBg}
-                  onProgressInactiveStepBgChange={setProgressInactiveStepBg}
-                  onProgressCheckIconColorChange={setProgressCheckIconColor}
-                  onProgressInactiveCircleBgChange={setProgressInactiveCircleBg}
-                  parabensTitle={parabensTitle}
-                  parabensSubtitle={parabensSubtitle}
-                  parabensDescription={parabensDescription}
-                  parabensCardColor={parabensCardColor}
-                  parabensBackgroundColor={parabensBackgroundColor}
-                  parabensButtonColor={parabensButtonColor}
-                  parabensTextColor={parabensTextColor}
-                  parabensFontFamily={parabensFontFamily}
-                  parabensFormTitle={parabensFormTitle}
-                  parabensButtonText={parabensButtonText}
-                  onParabensTitleChange={setParabensTitle}
-                  onParabensSubtitleChange={setParabensSubtitle}
-                  onParabensDescriptionChange={setParabensDescription}
-                  onParabensCardColorChange={setParabensCardColor}
-                  onParabensBackgroundColorChange={setParabensBackgroundColor}
-                  onParabensButtonColorChange={setParabensButtonColor}
-                  onParabensTextColorChange={setParabensTextColor}
-                  onParabensFontFamilyChange={setParabensFontFamily}
-                  onParabensFormTitleChange={setParabensFormTitle}
-                  onParabensButtonTextChange={setParabensButtonText}
-                  contractTitle={contractTitle}
-                  clauses={clauses}
-                  onContractTitleChange={setContractTitle}
-                  onClausesChange={setClauses}
-                  contractPrimaryColor={contractPrimaryColor}
-                  contractTextColor={contractTextColor}
-                  contractBackgroundColor={contractBackgroundColor}
-                  contractFontFamily={contractFontFamily}
-                  onContractPrimaryColorChange={setContractPrimaryColor}
-                  onContractTextColorChange={setContractTextColor}
-                  onContractBackgroundColorChange={setContractBackgroundColor}
-                  onContractFontFamilyChange={setContractFontFamily}
-                  appStoreUrl={appStoreUrl}
-                  googlePlayUrl={googlePlayUrl}
-                  onAppStoreUrlChange={setAppStoreUrl}
-                  onGooglePlayUrlChange={setGooglePlayUrl}
-                  onCreateContract={handleSaveConfig}
-                  isSaving={saveConfigMutation.isPending}
-                  onVerificationSubTabChange={setVerificationPreviewMode}
-                />
+              <div className="p-6 space-y-8">
+
+                <section>
+                  <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">
+                    <Upload className="w-5 h-5" />
+                    Logo da Empresa
+                  </h2>
+
+                  {logoUrl ? (
+                    <div className="space-y-4">
+                      <div className="relative inline-block">
+                        <img
+                          src={logoUrl}
+                          alt="Logo"
+                          style={{ height: logoSizeMap[logoSize], objectFit: 'contain' }}
+                          className="rounded-md border"
+                          data-testid="img-logo-preview"
+                        />
+                        <Button
+                          size="icon"
+                          variant="destructive"
+                          className="absolute -top-2 -right-2 h-6 w-6"
+                          onClick={removeLogo}
+                          data-testid="button-remove-logo"
+                        >
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <label className="text-sm font-medium">Tamanho:</label>
+                        {(['small', 'medium', 'large'] as const).map((size) => (
+                          <Button
+                            key={size}
+                            variant={logoSize === size ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => setLogoSize(size)}
+                            data-testid={`button-logo-size-${size}`}
+                          >
+                            {size === 'small' ? 'P' : size === 'medium' ? 'M' : 'G'}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer hover-elevate transition-all">
+                      <Upload className="w-8 h-8 text-muted-foreground mb-2" />
+                      <span className="text-sm text-muted-foreground">Clique para enviar logo</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleLogoUpload}
+                        data-testid="input-logo-upload"
+                      />
+                    </label>
+                  )}
+
+                  {extractingColors && (
+                    <div className="flex items-center gap-2 mt-3 text-sm text-muted-foreground">
+                      <Sparkles className="w-4 h-4 animate-spin" />
+                      Extraindo cores da logo...
+                    </div>
+                  )}
+
+                  {colorVariations.length > 0 && (
+                    <div className="mt-4">
+                      <h3 className="text-sm font-medium flex items-center gap-2 mb-3">
+                        <Shuffle className="w-4 h-4" />
+                        Variações de Cores
+                      </h3>
+                      <div className="grid grid-cols-2 gap-3">
+                        {colorVariations.map((variation, index) => (
+                          <Card
+                            key={index}
+                            className="cursor-pointer hover-elevate transition-all"
+                            onClick={() => applyVariation(variation)}
+                            data-testid={`card-variation-${index}`}
+                          >
+                            <CardContent className="p-3">
+                              <p className="text-xs font-medium mb-2">{variation.name}</p>
+                              <div className="flex gap-1">
+                                {[variation.primary, variation.secondary, variation.background, variation.text].map((color, ci) => (
+                                  <div
+                                    key={ci}
+                                    className="w-6 h-6 rounded-md border"
+                                    style={{ backgroundColor: ensureHex(color) }}
+                                  />
+                                ))}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </section>
+
+                <section>
+                  <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">
+                    <Palette className="w-5 h-5" />
+                    Paleta de Cores
+                  </h2>
+                  <div className="grid grid-cols-2 gap-4">
+                    {[
+                      { label: 'Cor de Fundo', value: backgroundColor, setter: setBackgroundColor, id: 'background' },
+                      { label: 'Cor do Título', value: titleColor, setter: setTitleColor, id: 'title' },
+                      { label: 'Cor do Texto', value: textColor, setter: setTextColor, id: 'text' },
+                      { label: 'Cor do Botão', value: buttonColor, setter: setButtonColor, id: 'button' },
+                      { label: 'Cor do Texto do Botão', value: buttonTextColor, setter: setButtonTextColor, id: 'button-text' },
+                      { label: 'Cor dos Ícones', value: iconColor, setter: setIconColor, id: 'icon' },
+                    ].map(({ label, value, setter, id }) => (
+                      <div key={id} className="space-y-1">
+                        <label className="text-sm font-medium">{label}</label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="color"
+                            value={value}
+                            onChange={(e) => setter(e.target.value)}
+                            className="w-9 h-9 rounded-md cursor-pointer border-0 p-0"
+                            data-testid={`input-color-${id}`}
+                          />
+                          <span className="text-xs font-mono text-muted-foreground">{value}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+
+                <section>
+                  <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">
+                    <FileText className="w-5 h-5" />
+                    Textos
+                  </h2>
+                  <div className="space-y-4">
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium">Contrato (HTML)</label>
+                      <textarea
+                        value={contractHtml}
+                        onChange={(e) => setContractHtml(e.target.value)}
+                        placeholder="Cole aqui o HTML do contrato..."
+                        className="w-full min-h-[120px] rounded-md border bg-background px-3 py-2 text-sm"
+                        data-testid="input-contract-html"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium">URL do Aplicativo</label>
+                      <input
+                        type="url"
+                        value={appUrl}
+                        onChange={(e) => setAppUrl(e.target.value)}
+                        placeholder="https://app.exemplo.com"
+                        className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                        data-testid="input-app-url"
+                      />
+                    </div>
+                  </div>
+                </section>
+
+                <Button
+                  onClick={handleSaveConfig}
+                  disabled={saveConfigMutation.isPending}
+                  className="w-full"
+                  data-testid="button-save-config-bottom"
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  {saveConfigMutation.isPending ? 'Salvando...' : 'Salvar Configurações'}
+                </Button>
               </div>
             </ScrollArea>
           </ResizablePanel>
-          
+
           <ResizableHandle withHandle />
-          
+
           <ResizablePanel defaultSize={50} minSize={30}>
-            <div className="h-full flex flex-col overflow-hidden">
-              <div className="p-3 border-b bg-muted/30 flex-shrink-0">
-                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                  <Eye className="w-4 h-4" />
-                  Preview em Tempo Real
+            <ScrollArea className="h-full">
+              <div className="p-6 flex items-start justify-center">
+                <div className="w-[320px]">
+                  <p className="text-sm font-medium text-muted-foreground mb-3 text-center">Pré-visualização</p>
+                  <div className="rounded-[2rem] border-4 border-foreground/20 overflow-hidden shadow-xl">
+                    <div className="bg-foreground/20 h-6 flex items-center justify-center">
+                      <div className="w-16 h-3 rounded-full bg-foreground/30" />
+                    </div>
+
+                    <div style={{ backgroundColor, minHeight: 480, fontFamily: 'Arial, sans-serif' }}>
+                      <div className="p-6 flex flex-col items-center text-center space-y-5">
+                        {logoUrl && (
+                          <img
+                            src={logoUrl}
+                            alt="Logo"
+                            style={{ height: logoSizeMap[logoSize], objectFit: 'contain' }}
+                            className="mx-auto"
+                            data-testid="preview-logo"
+                          />
+                        )}
+
+                        <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ backgroundColor: buttonColor }}>
+                          <Shield className="w-8 h-8" style={{ color: buttonTextColor }} />
+                        </div>
+
+                        <h2 className="text-xl font-bold" style={{ color: titleColor }} data-testid="preview-title">
+                          Verificação de Identidade
+                        </h2>
+
+                        <p className="text-sm leading-relaxed" style={{ color: textColor }} data-testid="preview-text">
+                          Processo seguro e rápido para confirmar sua identidade através de reconhecimento facial.
+                        </p>
+
+                        <div className="w-full space-y-3 pt-2">
+                          <div className="flex items-center gap-3 p-3 rounded-lg" style={{ backgroundColor: `${buttonColor}10` }}>
+                            <Camera className="w-5 h-5 flex-shrink-0" style={{ color: iconColor }} />
+                            <span className="text-sm text-left" style={{ color: textColor }}>Tire uma selfie rápida</span>
+                          </div>
+                          <div className="flex items-center gap-3 p-3 rounded-lg" style={{ backgroundColor: `${buttonColor}10` }}>
+                            <FileText className="w-5 h-5 flex-shrink-0" style={{ color: iconColor }} />
+                            <span className="text-sm text-left" style={{ color: textColor }}>Fotografe seu documento</span>
+                          </div>
+                          <div className="flex items-center gap-3 p-3 rounded-lg" style={{ backgroundColor: `${buttonColor}10` }}>
+                            <CheckCircle2 className="w-5 h-5 flex-shrink-0" style={{ color: iconColor }} />
+                            <span className="text-sm text-left" style={{ color: textColor }}>Verificação automática</span>
+                          </div>
+                        </div>
+
+                        <button
+                          className="w-full py-3 rounded-lg font-semibold text-sm transition-all mt-4"
+                          style={{ backgroundColor: buttonColor, color: buttonTextColor }}
+                          data-testid="preview-button"
+                        >
+                          Iniciar Verificação
+                        </button>
+
+                        <p className="text-xs flex items-center gap-1 pt-2" style={{ color: `${textColor}99` }}>
+                          <Shield className="w-3 h-3" style={{ color: iconColor }} />
+                          Suas informações são processadas de forma segura
+                        </p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div className="flex-1 overflow-auto p-4 flex items-start justify-center">
-                <div className="w-full max-w-md">
-                  <SignaturePreview
-                        clientName={clientName}
-                        clientCpf={clientCpf}
-                        clientEmail={clientEmail}
-                        clientPhone={clientPhone}
-                        primaryColor={primaryColor}
-                        textColor={textColor}
-                        fontFamily={fontFamily}
-                        fontSize={fontSize}
-                        logoUrl={logoUrl}
-                        logoSize={logoSize}
-                        logoPosition={logoPosition}
-                        companyName={companyName}
-                        footerText={footerText}
-                        verificationPrimaryColor={verificationPrimaryColor}
-                        verificationTextColor={verificationTextColor}
-                        verificationFontFamily={verificationFontFamily}
-                        verificationFontSize={verificationFontSize}
-                        verificationLogoUrl={verificationLogoUrl}
-                        verificationLogoSize={verificationLogoSize}
-                        verificationLogoPosition={verificationLogoPosition}
-                        verificationFooterText={verificationFooterText}
-                        welcomeText={verificationWelcomeText}
-                        instructions={verificationInstructions}
-                        securityText={verificationSecurityText}
-                        backgroundColor={verificationBackgroundColor}
-                        headerBackgroundColor={verificationHeaderBackgroundColor}
-                        selfieStepTitle={selfieStepTitle}
-                        selfieStepDescription={selfieStepDescription}
-                        selfieStepBackgroundColor={selfieStepBackgroundColor}
-                        selfieStepTextColor={selfieStepTextColor}
-                        documentStepTitle={documentStepTitle}
-                        documentStepDescription={documentStepDescription}
-                        documentStepBackgroundColor={documentStepBackgroundColor}
-                        documentStepTextColor={documentStepTextColor}
-                        analysisStepTitle={analysisStepTitle}
-                        analysisStepDescription={analysisStepDescription}
-                        analysisStepBackgroundColor={analysisStepBackgroundColor}
-                        analysisStepTextColor={analysisStepTextColor}
-                        resultStepTitle={resultStepTitle}
-                        resultStepDescription={resultStepDescription}
-                        resultStepBackgroundColor={resultStepBackgroundColor}
-                        resultStepTextColor={resultStepTextColor}
-                        selfieButtonText={selfieButtonText}
-                        selfieInstructionText={selfieInstructionText}
-                        selfieStepBackgroundColor={selfieStepBackgroundColor}
-                        selfieStepTextColor={selfieStepTextColor}
-                        documentStepBackgroundColor={documentStepBackgroundColor}
-                        documentStepTextColor={documentStepTextColor}
-                        analysisStepBackgroundColor={analysisStepBackgroundColor}
-                        analysisStepTextColor={analysisStepTextColor}
-                        resultStepBackgroundColor={resultStepBackgroundColor}
-                        resultStepTextColor={resultStepTextColor}
-                        contractTitle={contractTitle}
-                        clauses={clauses}
-                        contractPrimaryColor={contractPrimaryColor}
-                        contractTextColor={contractTextColor}
-                        contractBackgroundColor={contractBackgroundColor}
-                        contractFontFamily={contractFontFamily}
-                        parabensTitle={parabensTitle}
-                        parabensSubtitle={parabensSubtitle}
-                        parabensDescription={parabensDescription}
-                        parabensCardColor={parabensCardColor}
-                        parabensBackgroundColor={parabensBackgroundColor}
-                        parabensButtonColor={parabensButtonColor}
-                        parabensTextColor={parabensTextColor}
-                        parabensFontFamily={parabensFontFamily}
-                        parabensButtonText={parabensButtonText}
-                        progressCardColor={progressCardColor}
-                        progressButtonColor={progressButtonColor}
-                        progressTextColor={progressTextColor}
-                        progressTitle={progressTitle}
-                        progressSubtitle={progressSubtitle}
-                        progressActiveStepBg={progressActiveStepBg}
-                        progressCompleteStepBg={progressCompleteStepBg}
-                        progressInactiveStepBg={progressInactiveStepBg}
-                        progressCheckIconColor={progressCheckIconColor}
-                        progressInactiveCircleBg={progressInactiveCircleBg}
-                        stepLabelSelfie={stepLabelSelfie}
-                        stepLabelDocument={stepLabelDocument}
-                        stepLabelAnalysis={stepLabelAnalysis}
-                        stepLabelResult={stepLabelResult}
-                        progressIndicatorInactiveCircleColor={progressIndicatorInactiveCircleColor}
-                        progressIndicatorInactiveTextColor={progressIndicatorInactiveTextColor}
-                        selfieCaptureButtonText={selfieCaptureButtonText}
-                        selfieRetakeButtonText={selfieRetakeButtonText}
-                        selfieConfirmButtonText={selfieConfirmButtonText}
-                        detectionDefaultMessage={detectionDefaultMessage}
-                        detectionCenterMessage={detectionCenterMessage}
-                        detectionLightingMessage={detectionLightingMessage}
-                        detectionQualityMessage={detectionQualityMessage}
-                        detectionPerfectMessage={detectionPerfectMessage}
-                        verificationPreviewMode={verificationPreviewMode as any}
-                        onVerificationPreviewModeChange={setVerificationPreviewMode}
-                      />
-                </div>
-              </div>
-            </div>
+            </ScrollArea>
           </ResizablePanel>
         </ResizablePanelGroup>
       </div>

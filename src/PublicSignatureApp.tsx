@@ -38,6 +38,12 @@ interface ContractData {
   verification_security_text?: string;
   verification_header_company_name?: string;
   verification_header_background_color?: string;
+  verification_background_color?: string;
+  background_color?: string;
+  title_color?: string;
+  button_color?: string;
+  button_text_color?: string;
+  icon_color?: string;
 }
 
 const PublicSignatureApp = () => {
@@ -113,13 +119,17 @@ const PublicSignatureApp = () => {
     }
   };
 
-  const primaryColor = contractData?.verification_primary_color || contractData?.primary_color || '#1e3a5f';
-  const textColor = contractData?.verification_text_color || contractData?.text_color || '#ffffff';
+  const buttonColor = contractData?.button_color || contractData?.verification_primary_color || contractData?.primary_color || '#1e3a5f';
+  const buttonTextColor = contractData?.button_text_color || '#ffffff';
+  const titleColor = contractData?.title_color || contractData?.primary_color || '#1a1a1a';
+  const pageTextColor = contractData?.text_color || contractData?.verification_text_color || '#64748b';
+  const bgColor = contractData?.background_color || contractData?.verification_background_color || '#f8fafc';
+  const iconBgColor = contractData?.icon_color || buttonColor;
   const companyName = contractData?.verification_header_company_name || contractData?.company_name || 'Empresa';
   const logoUrl = contractData?.logo_url;
   const clientName = contractData?.client_name || 'Cliente';
   const welcomeText = contractData?.verification_welcome_text || `Olá ${clientName}, estamos prontos para iniciar sua assinatura digital.`;
-  const headerBgColor = contractData?.verification_header_background_color || primaryColor;
+  const headerBgColor = contractData?.verification_header_background_color || buttonColor;
   const fontFamily = contractData?.font_family || 'Arial, sans-serif';
 
   if (loading) {
@@ -172,7 +182,7 @@ const PublicSignatureApp = () => {
   }
 
   return (
-    <div style={{ ...styles.welcomeContainer, fontFamily }}>
+    <div style={{ ...styles.welcomeContainer, fontFamily, backgroundColor: bgColor }}>
       <div style={{ ...styles.header, backgroundColor: headerBgColor }}>
         {logoUrl && (
           <img 
@@ -184,12 +194,12 @@ const PublicSignatureApp = () => {
             }}
           />
         )}
-        <h1 style={{ ...styles.companyName, color: textColor }}>{companyName}</h1>
+        <h1 style={{ ...styles.companyName, color: buttonTextColor }}>{companyName}</h1>
       </div>
 
       <div style={styles.welcomeContent}>
         <div style={styles.welcomeCard}>
-          <div style={{ ...styles.iconCircle, backgroundColor: primaryColor }}>
+          <div style={{ ...styles.iconCircle, backgroundColor: iconBgColor }}>
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2">
               <path d="M12 19l7-7 3 3-7 7-3-3z"/>
               <path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/>
@@ -198,14 +208,14 @@ const PublicSignatureApp = () => {
             </svg>
           </div>
           
-          <h2 style={styles.welcomeTitle}>Assinatura Digital</h2>
+          <h2 style={{ ...styles.welcomeTitle, color: titleColor }}>Assinatura Digital</h2>
           
           <div style={styles.clientInfo}>
             <p style={styles.clientLabel}>Cliente</p>
             <p style={styles.clientName}>{clientName}</p>
           </div>
           
-          <p style={styles.welcomeText}>{welcomeText}</p>
+          <p style={{ ...styles.welcomeText, color: pageTextColor }}>{welcomeText}</p>
           
           {contractData?.protocol_number && (
             <div style={styles.protocolBox}>
@@ -215,7 +225,7 @@ const PublicSignatureApp = () => {
           )}
           
           <button
-            style={{ ...styles.startButton, backgroundColor: primaryColor }}
+            style={{ ...styles.startButton, backgroundColor: buttonColor, color: buttonTextColor }}
             onClick={handleStartSigning}
             onMouseOver={(e) => {
               (e.target as HTMLButtonElement).style.opacity = '0.9';

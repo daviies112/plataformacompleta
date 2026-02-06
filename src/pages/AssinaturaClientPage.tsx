@@ -146,6 +146,12 @@ interface ContractData {
   detection_lighting_message?: string | null;
   detection_quality_message?: string | null;
   detection_perfect_message?: string | null;
+  background_color?: string | null;
+  title_color?: string | null;
+  button_color?: string | null;
+  button_text_color?: string | null;
+  icon_color?: string | null;
+  app_url?: string | null;
 }
 
 interface ProgressTrackerDisplayProps {
@@ -156,9 +162,9 @@ interface ProgressTrackerDisplayProps {
 const ProgressTrackerDisplay = memo(({ currentStep, contract }: ProgressTrackerDisplayProps) => {
   const [isExpanded, setIsExpanded] = useState(true);
   
-  const progressCardColor = contract?.progress_card_color || '#1e3a5f';
-  const progressButtonColor = contract?.progress_button_color || '#22c55e';
-  const progressTextColor = contract?.progress_text_color || '#ffffff';
+  const progressCardColor = contract?.progress_card_color || contract?.button_color || '#1e3a5f';
+  const progressButtonColor = contract?.progress_button_color || contract?.button_color || '#22c55e';
+  const progressTextColor = contract?.progress_text_color || contract?.button_text_color || '#ffffff';
   const progressFontFamily = contract?.progress_font_family || 'Arial, sans-serif';
   const progressActiveStepBg = contract?.progress_active_step_bg || 'rgba(255,255,255,0.2)';
   const progressCompleteStepBg = contract?.progress_complete_step_bg || 'rgba(34,197,94,0.2)';
@@ -467,11 +473,11 @@ const AssinaturaClientContent = () => {
     }
   };
 
-  const primaryColor = contract?.primary_color || '#2c3e50';
+  const primaryColor = contract?.primary_color || contract?.button_color || '#2c3e50';
   const textColor = contract?.text_color || '#333333';
-  const progressCardColor = contract?.progress_card_color || '#1e3a5f';
-  const progressButtonColor = contract?.progress_button_color || '#22c55e';
-  const progressTextColor = contract?.progress_text_color || '#ffffff';
+  const progressCardColor = contract?.progress_card_color || contract?.button_color || '#1e3a5f';
+  const progressButtonColor = contract?.progress_button_color || contract?.button_color || '#22c55e';
+  const progressTextColor = contract?.progress_text_color || contract?.button_text_color || '#ffffff';
 
   if (isLoading) {
     return <LightweightLoadingSkeleton />;
@@ -526,12 +532,14 @@ const AssinaturaClientContent = () => {
         <Suspense fallback={<StepLoader />}>
           <VerificationFlow 
             onComplete={handleVerificationComplete}
-            primaryColor={contract.verification_primary_color || primaryColor}
-            textColor={contract.verification_text_color || textColor}
+            primaryColor={contract.button_color || contract.verification_primary_color || primaryColor}
+            textColor={contract.text_color || contract.verification_text_color || textColor}
             welcomeText={contract.verification_welcome_text || 'Verificação de Identidade'}
             instructionText={contract.verification_instructions || 'Processo seguro e rápido para confirmar sua identidade.'}
             footerText={contract.verification_footer_text || 'Verificação Segura'}
             securityText={contract.verification_security_text || 'Suas informações são processadas de forma segura.'}
+            backgroundColor={contract.background_color || '#ffffff'}
+            iconColor={contract.icon_color || '#2c3e50'}
             headerBackgroundColor={contract.verification_header_background_color || primaryColor}
             logoUrl={contract.logo_url || undefined}
             stepLabels={contract.step_label_selfie || contract.step_label_document || contract.step_label_analysis || contract.step_label_result ? {

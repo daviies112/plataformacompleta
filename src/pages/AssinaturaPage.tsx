@@ -9,8 +9,6 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { ContractDetailsModal } from '@/components/assinatura/modals/ContractDetailsModal';
-import { SimplifiedSignatureWizard } from '@/components/assinatura/SimplifiedSignatureWizard';
-import { SignaturePreview } from '@/components/assinatura/SignaturePreview';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -612,128 +610,42 @@ const AssinaturaPage = () => {
         <ResizablePanelGroup direction="horizontal" className="h-full rounded-lg border">
           <ResizablePanel defaultSize={50} minSize={30}>
             <ScrollArea className="h-full">
-              <div className="p-4">
-                <SimplifiedSignatureWizard
-                  clientName={clientName}
-                  clientCpf={clientCpf}
-                  clientEmail={clientEmail}
-                  clientPhone={clientPhone}
-                  onClientNameChange={setClientName}
-                  onClientCpfChange={handleCpfChange}
-                  onClientEmailChange={setClientEmail}
-                  onClientPhoneChange={handlePhoneChange}
-                  logoUrl={logoUrl}
-                  logoSize={logoSize}
-                  logoPosition={logoPosition}
-                  primaryColor={primaryColor}
-                  textColor={textColor}
-                  fontFamily={fontFamily}
-                  fontSize={fontSize}
-                  companyName={companyName}
-                  footerText={footerText}
-                  onLogoUrlChange={setLogoUrl}
-                  onLogoSizeChange={setLogoSize}
-                  onLogoPositionChange={setLogoPosition}
-                  onPrimaryColorChange={setPrimaryColor}
-                  onTextColorChange={setTextColor}
-                  onFontFamilyChange={setFontFamily}
-                  onFontSizeChange={setFontSize}
-                  onCompanyNameChange={setCompanyName}
-                  onFooterTextChange={setFooterText}
-                  onLogoUpload={handleLogoUpload}
-                  verificationPrimaryColor={verificationPrimaryColor}
-                  verificationTextColor={verificationTextColor}
-                  verificationFontFamily={verificationFontFamily}
-                  verificationFontSize={verificationFontSize}
-                  verificationLogoUrl={verificationLogoUrl}
-                  verificationLogoSize={verificationLogoSize}
-                  verificationLogoPosition={verificationLogoPosition}
-                  verificationFooterText={verificationFooterText}
-                  verificationWelcomeText={verificationWelcomeText}
-                  verificationInstructions={verificationInstructions}
-                  verificationSecurityText={verificationSecurityText}
-                  verificationBackgroundColor={verificationBackgroundColor}
-                  verificationHeaderBackgroundColor={verificationHeaderBackgroundColor}
-                  verificationHeaderCompanyName={verificationHeaderCompanyName}
-                  onVerificationPrimaryColorChange={setVerificationPrimaryColor}
-                  onVerificationTextColorChange={setVerificationTextColor}
-                  onVerificationFontFamilyChange={setVerificationFontFamily}
-                  onVerificationFontSizeChange={setVerificationFontSize}
-                  onVerificationLogoUrlChange={setVerificationLogoUrl}
-                  onVerificationLogoSizeChange={setVerificationLogoSize}
-                  onVerificationLogoPositionChange={setVerificationLogoPosition}
-                  onVerificationFooterTextChange={setVerificationFooterText}
-                  onVerificationWelcomeTextChange={setVerificationWelcomeText}
-                  onVerificationInstructionsChange={setVerificationInstructions}
-                  onVerificationSecurityTextChange={setVerificationSecurityText}
-                  onVerificationBackgroundColorChange={setVerificationBackgroundColor}
-                  onVerificationHeaderBackgroundColorChange={setVerificationHeaderBackgroundColor}
-                  onVerificationHeaderCompanyNameChange={setVerificationHeaderCompanyName}
-                  progressCardColor={progressCardColor}
-                  progressButtonColor={progressButtonColor}
-                  progressTextColor={progressTextColor}
-                  progressTitle={progressTitle}
-                  progressSubtitle={progressSubtitle}
-                  progressStep1Title={progressStep1Title}
-                  progressStep1Description={progressStep1Description}
-                  progressStep2Title={progressStep2Title}
-                  progressStep2Description={progressStep2Description}
-                  progressStep3Title={progressStep3Title}
-                  progressStep3Description={progressStep3Description}
-                  progressButtonText={progressButtonText}
-                  progressFontFamily={progressFontFamily}
-                  onProgressCardColorChange={setProgressCardColor}
-                  onProgressButtonColorChange={setProgressButtonColor}
-                  onProgressTextColorChange={setProgressTextColor}
-                  onProgressTitleChange={setProgressTitle}
-                  onProgressSubtitleChange={setProgressSubtitle}
-                  onProgressStep1TitleChange={setProgressStep1Title}
-                  onProgressStep1DescriptionChange={setProgressStep1Description}
-                  onProgressStep2TitleChange={setProgressStep2Title}
-                  onProgressStep2DescriptionChange={setProgressStep2Description}
-                  onProgressStep3TitleChange={setProgressStep3Title}
-                  onProgressStep3DescriptionChange={setProgressStep3Description}
-                  onProgressButtonTextChange={setProgressButtonText}
-                  onProgressFontFamilyChange={setProgressFontFamily}
-                  parabensTitle={parabensTitle}
-                  parabensSubtitle={parabensSubtitle}
-                  parabensDescription={parabensDescription}
-                  parabensCardColor={parabensCardColor}
-                  parabensBackgroundColor={parabensBackgroundColor}
-                  parabensButtonColor={parabensButtonColor}
-                  parabensTextColor={parabensTextColor}
-                  parabensFontFamily={parabensFontFamily}
-                  parabensFormTitle={parabensFormTitle}
-                  parabensButtonText={parabensButtonText}
-                  onParabensTitleChange={setParabensTitle}
-                  onParabensSubtitleChange={setParabensSubtitle}
-                  onParabensDescriptionChange={setParabensDescription}
-                  onParabensCardColorChange={setParabensCardColor}
-                  onParabensBackgroundColorChange={setParabensBackgroundColor}
-                  onParabensButtonColorChange={setParabensButtonColor}
-                  onParabensTextColorChange={setParabensTextColor}
-                  onParabensFontFamilyChange={setParabensFontFamily}
-                  onParabensFormTitleChange={setParabensFormTitle}
-                  onParabensButtonTextChange={setParabensButtonText}
-                  contractTitle={contractTitle}
-                  clauses={clauses}
-                  onContractTitleChange={setContractTitle}
-                  onClausesChange={setClauses}
-                  contractPrimaryColor={contractPrimaryColor}
-                  contractTextColor={contractTextColor}
-                  contractBackgroundColor={contractBackgroundColor}
-                  contractFontFamily={contractFontFamily}
-                  onContractPrimaryColorChange={setContractPrimaryColor}
-                  onContractTextColorChange={setContractTextColor}
-                  onContractBackgroundColorChange={setContractBackgroundColor}
-                  onContractFontFamilyChange={setContractFontFamily}
-                  appStoreUrl={appStoreUrl}
-                  googlePlayUrl={googlePlayUrl}
-                  onAppStoreUrlChange={setAppStoreUrl}
-                  onGooglePlayUrlChange={setGooglePlayUrl}
-                  onCreateContract={handleCreateContract}
-                  isSaving={createContractMutation.isPending}
-                />
+              <div className="p-4 space-y-4">
+                <Card>
+                  <CardContent className="pt-6 space-y-4">
+                    <CardTitle className="text-lg">Dados do Cliente</CardTitle>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <label className="text-sm font-medium">Nome</label>
+                        <Input value={clientName} onChange={(e) => setClientName(e.target.value)} placeholder="Nome do cliente" data-testid="input-client-name" />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-sm font-medium">CPF</label>
+                        <Input value={clientCpf} onChange={handleCpfChange} placeholder="000.000.000-00" data-testid="input-client-cpf" />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-sm font-medium">Email</label>
+                        <Input value={clientEmail} onChange={(e) => setClientEmail(e.target.value)} placeholder="email@exemplo.com" data-testid="input-client-email" />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-sm font-medium">Telefone</label>
+                        <Input value={clientPhone} onChange={handlePhoneChange} placeholder="(00) 00000-0000" data-testid="input-client-phone" />
+                      </div>
+                    </div>
+                    <Button
+                      onClick={handleCreateContract}
+                      disabled={createContractMutation.isPending}
+                      className="w-full"
+                      data-testid="button-create-contract"
+                    >
+                      {createContractMutation.isPending ? (
+                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Criando...</>
+                      ) : (
+                        <><Plus className="w-4 h-4 mr-2" /> Criar Contrato</>
+                      )}
+                    </Button>
+                  </CardContent>
+                </Card>
               </div>
             </ScrollArea>
           </ResizablePanel>
@@ -744,88 +656,30 @@ const AssinaturaPage = () => {
             <div className="h-full flex flex-col relative">
               <ScrollArea className="flex-1">
                 <div className="p-4">
-                  <div className="sticky top-0 z-30 mb-4 pointer-events-none">
-                    <Card className="shadow-lg border-primary/20 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 pointer-events-auto">
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-base flex items-center gap-2">
-                          <Eye className="w-4 h-4" />
-                          Preview em Tempo Real
-                        </CardTitle>
-                        <CardDescription>
-                          Visualização do contrato e etapas de assinatura
-                        </CardDescription>
-                      </CardHeader>
-                    </Card>
-                  </div>
                   <Card>
-                    <CardContent className="pt-6">
-                      <SignaturePreview
-                        clientName={clientName || 'João da Silva'}
-                        clientCpf={clientCpf || '123.456.789-00'}
-                        clientEmail={clientEmail || 'cliente@email.com'}
-                        clientPhone={clientPhone}
-                        primaryColor={primaryColor}
-                        textColor={textColor}
-                        fontFamily={fontFamily}
-                        fontSize={fontSize}
-                        logoUrl={logoUrl}
-                        logoSize={logoSize}
-                        logoPosition={logoPosition}
-                        companyName={companyName}
-                        footerText={footerText}
-                        verificationPrimaryColor={verificationPrimaryColor}
-                        verificationTextColor={verificationTextColor}
-                        verificationFontFamily={verificationFontFamily}
-                        verificationFontSize={verificationFontSize}
-                        verificationLogoUrl={verificationLogoUrl}
-                        verificationLogoSize={verificationLogoSize}
-                        verificationLogoPosition={verificationLogoPosition}
-                        verificationFooterText={verificationFooterText}
-                        welcomeText={verificationWelcomeText}
-                        instructions={verificationInstructions}
-                        securityText={verificationSecurityText}
-                        backgroundColor={verificationBackgroundColor}
-                        headerBackgroundColor={verificationHeaderBackgroundColor}
-                        contractTitle={contractTitle}
-                        clauses={clauses}
-                        contractPrimaryColor={contractPrimaryColor}
-                        contractTextColor={contractTextColor}
-                        contractBackgroundColor={contractBackgroundColor}
-                        contractFontFamily={contractFontFamily}
-                        parabensTitle={parabensTitle}
-                        parabensSubtitle={parabensSubtitle}
-                        parabensDescription={parabensDescription}
-                        parabensCardColor={parabensCardColor}
-                        parabensBackgroundColor={parabensBackgroundColor}
-                        parabensButtonColor={parabensButtonColor}
-                        parabensTextColor={parabensTextColor}
-                        parabensFontFamily={parabensFontFamily}
-                        parabensButtonText={parabensButtonText}
-                        progressCardColor={progressCardColor}
-                        progressButtonColor={progressButtonColor}
-                        progressTextColor={progressTextColor}
-                        progressTitle={progressTitle}
-                        progressSubtitle={progressSubtitle}
-                        progressActiveStepBg=""
-                        progressCompleteStepBg=""
-                        progressInactiveStepBg=""
-                        progressCheckIconColor=""
-                        progressInactiveCircleBg=""
-                        stepLabelSelfie=""
-                        stepLabelDocument=""
-                        stepLabelAnalysis=""
-                        stepLabelResult=""
-                        progressIndicatorInactiveCircleColor=""
-                        progressIndicatorInactiveTextColor=""
-                        selfieCaptureButtonText=""
-                        selfieRetakeButtonText=""
-                        selfieConfirmButtonText=""
-                        detectionDefaultMessage=""
-                        detectionCenterMessage=""
-                        detectionLightingMessage=""
-                        detectionQualityMessage=""
-                        detectionPerfectMessage=""
-                      />
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <Eye className="w-4 h-4" />
+                        URL Gerada
+                      </CardTitle>
+                      <CardDescription>
+                        Crie um contrato e a URL aparecerá aqui
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {generatedUrl ? (
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2">
+                            <Input value={generatedUrl} readOnly className="font-mono text-xs" data-testid="input-generated-url" />
+                            <Button size="icon" variant="outline" onClick={() => { navigator.clipboard.writeText(generatedUrl); setCopied(true); setTimeout(() => setCopied(false), 2000); }} data-testid="button-copy-url">
+                              {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                            </Button>
+                          </div>
+                          <p className="text-xs text-muted-foreground">Envie esta URL para o cliente assinar o contrato.</p>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">Preencha os dados do cliente e clique em "Criar Contrato" para gerar a URL de assinatura.</p>
+                      )}
                     </CardContent>
                   </Card>
                 </div>

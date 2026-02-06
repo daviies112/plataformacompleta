@@ -60,6 +60,7 @@ interface VerificationFlowProps {
   detectionLightingMessage?: string;
   detectionQualityMessage?: string;
   detectionPerfectMessage?: string;
+  iconColor?: string;
 }
 
 export const VerificationFlow = ({ 
@@ -96,7 +97,8 @@ export const VerificationFlow = ({
   detectionCenterMessage,
   detectionLightingMessage,
   detectionQualityMessage,
-  detectionPerfectMessage
+  detectionPerfectMessage,
+  iconColor = '#2c3e50'
 }: VerificationFlowProps & { textColor?: string }) => {
   const {
     session,

@@ -1009,6 +1009,14 @@ router.get('/contracts/:token/full', async (req: Request, res: Response) => {
       parabens_font_family: contract.parabens_font_family || globalConfig.parabens_font_family,
       parabens_form_title: contract.parabens_form_title || globalConfig.parabens_form_title,
       parabens_button_text: contract.parabens_button_text || globalConfig.parabens_button_text,
+      // Unified color palette (new simplified system)
+      background_color: contract.background_color || globalConfig.background_color || '#ffffff',
+      title_color: contract.title_color || globalConfig.title_color || '#1a1a2e',
+      button_color: contract.button_color || globalConfig.button_color || '#22c55e',
+      button_text_color: contract.button_text_color || globalConfig.button_text_color || '#ffffff',
+      icon_color: contract.icon_color || globalConfig.icon_color || '#2c3e50',
+      app_url: contract.app_url || globalConfig.app_url || '',
+      contract_html: contract.contract_html || globalConfig.contract_html || '',
     };
 
     res.set('Cache-Control', 'private, max-age=300');
@@ -1190,6 +1198,13 @@ router.post('/contracts', async (req: Request, res: Response) => {
       parabens_font_family: customizations.parabens_font_family ?? globalConfig.parabens_font_family,
       parabens_form_title: customizations.parabens_form_title ?? globalConfig.parabens_form_title,
       parabens_button_text: customizations.parabens_button_text ?? globalConfig.parabens_button_text,
+      background_color: customizations.background_color ?? globalConfig.background_color ?? '#ffffff',
+      title_color: customizations.title_color ?? globalConfig.title_color ?? '#1a1a2e',
+      button_color: customizations.button_color ?? globalConfig.button_color ?? '#22c55e',
+      button_text_color: customizations.button_text_color ?? globalConfig.button_text_color ?? '#ffffff',
+      icon_color: customizations.icon_color ?? globalConfig.icon_color ?? '#2c3e50',
+      app_url: customizations.app_url ?? globalConfig.app_url ?? '',
+      contract_html: customizations.contract_html ?? globalConfig.contract_html ?? '',
       app_store_url: customizations.app_store_url ?? globalConfig.app_store_url,
       google_play_url: customizations.google_play_url ?? globalConfig.google_play_url,
       address: finalAddress ? {
@@ -2333,23 +2348,25 @@ router.get('/public/contract/:token', async (req: Request, res: Response) => {
 
     console.log(`[Assinatura/Public] Buscando contrato por token: ${token}`);
 
+    let contract: any = null;
+
     // Primeiro buscar no Supabase
     if (assinaturaSupabaseService.isConnected()) {
-      let contract = await assinaturaSupabaseService.getContractByToken(token);
+      contract = await assinaturaSupabaseService.getContractByToken(token);
       if (contract) {
         console.log(`[Assinatura/Public] Contrato encontrado no Supabase`);
-        res.set('Cache-Control', 'private, max-age=300');
-        return res.json(contract);
       }
     }
 
-    // Fallback: buscar no store local
-    let contract = Array.from(localContractsStore.values()).find(
-      (c) => c.access_token === token
-    );
-
     if (!contract) {
-      contract = localContractsStore.get(token);
+      // Fallback: buscar no store local
+      contract = Array.from(localContractsStore.values()).find(
+        (c) => c.access_token === token
+      );
+
+      if (!contract) {
+        contract = localContractsStore.get(token);
+      }
     }
 
     if (!contract) {
@@ -2357,9 +2374,45 @@ router.get('/public/contract/:token', async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'Contrato não encontrado' });
     }
 
-    console.log(`[Assinatura/Public] Contrato encontrado no local storage: ${contract.id}`);
+    console.log(`[Assinatura/Public] Contrato encontrado: ${contract.id}`);
+
+    // Merge with global config to ensure customized colors reach the client
+    const globalConfig = await getGlobalConfigForContract(contract) || getGlobalConfigCached();
+
+    const mergedContract = {
+      ...contract,
+      primary_color: contract.primary_color || globalConfig.primary_color,
+      text_color: contract.text_color || globalConfig.text_color,
+      font_family: contract.font_family || globalConfig.font_family,
+      font_size: contract.font_size || globalConfig.font_size,
+      logo_url: contract.logo_url || globalConfig.logo_url,
+      logo_size: contract.logo_size || globalConfig.logo_size,
+      logo_position: contract.logo_position || globalConfig.logo_position,
+      company_name: contract.company_name || globalConfig.company_name,
+      footer_text: contract.footer_text || globalConfig.footer_text,
+      verification_primary_color: contract.verification_primary_color || globalConfig.verification_primary_color || globalConfig.primary_color,
+      verification_text_color: contract.verification_text_color || globalConfig.verification_text_color,
+      verification_background_color: contract.verification_background_color || globalConfig.verification_background_color,
+      verification_welcome_text: contract.verification_welcome_text || globalConfig.verification_welcome_text,
+      verification_instructions: contract.verification_instructions || globalConfig.verification_instructions,
+      verification_footer_text: contract.verification_footer_text || globalConfig.verification_footer_text,
+      verification_security_text: contract.verification_security_text || globalConfig.verification_security_text,
+      verification_header_background_color: contract.verification_header_background_color || globalConfig.verification_header_background_color,
+      verification_header_company_name: contract.verification_header_company_name || globalConfig.verification_header_company_name,
+      progress_card_color: contract.progress_card_color || globalConfig.progress_card_color,
+      progress_button_color: contract.progress_button_color || globalConfig.progress_button_color,
+      progress_text_color: contract.progress_text_color || globalConfig.progress_text_color,
+      background_color: contract.background_color || globalConfig.background_color || '#ffffff',
+      title_color: contract.title_color || globalConfig.title_color || '#1a1a2e',
+      button_color: contract.button_color || globalConfig.button_color || '#22c55e',
+      button_text_color: contract.button_text_color || globalConfig.button_text_color || '#ffffff',
+      icon_color: contract.icon_color || globalConfig.icon_color || '#2c3e50',
+      app_url: contract.app_url || globalConfig.app_url || '',
+      contract_html: contract.contract_html || globalConfig.contract_html || '',
+    };
+
     res.set('Cache-Control', 'private, max-age=300');
-    res.json(contract);
+    res.json(mergedContract);
   } catch (error) {
     console.error('[Assinatura/Public] Erro ao buscar contrato:', error);
     res.status(500).json({ error: 'Falha ao buscar contrato' });
