@@ -1864,11 +1864,16 @@ export function setupConfigRoutes(app: Express) {
       if (configFromDb[0]) {
         const { getSupabaseCredentialsStrict } = await import('../lib/credentialsDb.js');
         const decrypted = await getSupabaseCredentialsStrict(tenantId);
+        const resolvedUrl = decrypted?.url || configFromDb[0].supabaseUrl;
+        const resolvedBucket = configFromDb[0].supabaseBucket || 'receipts';
         
         return res.json({
           configured: true,
-          supabaseUrl: decrypted?.url || configFromDb[0].supabaseUrl,
-          supabaseBucket: configFromDb[0].supabaseBucket || 'receipts',
+          url: resolvedUrl,
+          supabaseUrl: resolvedUrl,
+          bucket: resolvedBucket,
+          supabaseBucket: resolvedBucket,
+          source: 'database',
           createdAt: configFromDb[0].createdAt,
           updatedAt: configFromDb[0].updatedAt,
         });
@@ -1912,8 +1917,11 @@ export function setupConfigRoutes(app: Express) {
           return res.json({
             success: true,
             credentials: {
+              url: credentials.url,
               supabaseUrl: credentials.url,
+              anonKey: credentials.anonKey,
               supabaseAnonKey: credentials.anonKey,
+              bucket: credentials.bucket || 'receipts',
               supabaseBucket: credentials.bucket || 'receipts',
             },
             source: 'database'
