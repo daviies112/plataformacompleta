@@ -395,6 +395,35 @@ const PublicMeetingApp = () => {
     return bgLum > 0.5 ? '#000000' : '#ffffff';
   })();
 
+  const normalizeHex = (hex: string): string => {
+    let h = hex.replace('#', '');
+    if (h.length === 3) h = h[0]+h[0]+h[1]+h[1]+h[2]+h[2];
+    if (!/^[0-9a-fA-F]{6}$/.test(h)) return '3b82f6';
+    return h;
+  };
+
+  const hexToRgb = (hex: string) => {
+    const h = normalizeHex(hex);
+    return {
+      r: parseInt(h.substring(0, 2), 16),
+      g: parseInt(h.substring(2, 4), 16),
+      b: parseInt(h.substring(4, 6), 16),
+    };
+  };
+
+  const bgLum = hexToLuminance(colors.background || '#0f172a');
+  const isLightBg = bgLum > 0.4;
+  const inputBg = isLightBg ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.1)';
+  const inputBorder = isLightBg ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.13)';
+  const inputTextColor = isLightBg ? '#1a1a1a' : '#fafafa';
+  const placeholderColor = isLightBg ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.4)';
+  const labelColor = isLightBg ? 'rgba(0,0,0,0.7)' : 'rgba(250,250,250,0.8)';
+
+  const disabledButtonBg = (() => {
+    const { r, g, b } = hexToRgb(colors.primaryButton || '#3b82f6');
+    return `rgba(${r},${g},${b},0.35)`;
+  })();
+
   const styles: Record<string, React.CSSProperties> = {
     fullPage: {
       minHeight: '100dvh',
@@ -506,8 +535,7 @@ const PublicMeetingApp = () => {
       display: 'block',
       fontSize: '14px',
       fontWeight: 500,
-      color: colors.controlsText,
-      opacity: 0.8,
+      color: labelColor,
       marginBottom: '6px',
     },
     input: {
@@ -515,9 +543,9 @@ const PublicMeetingApp = () => {
       padding: '14px 16px',
       fontSize: '16px',
       borderRadius: '12px',
-      border: `1px solid ${colors.controlsText}22`,
-      backgroundColor: colors.controlsBackground,
-      color: colors.controlsText,
+      border: `1px solid ${inputBorder}`,
+      backgroundColor: inputBg,
+      color: inputTextColor,
       outline: 'none',
       boxSizing: 'border-box' as const,
     },
@@ -729,6 +757,7 @@ const PublicMeetingApp = () => {
     <div style={styles.fullPage}>
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
+        [data-testid="input-participant-name"]::placeholder { color: ${placeholderColor}; opacity: 1; }
         @media (max-width: 640px) {
           .meeting-logo-row { justify-content: center !important; }
           .meeting-lobby-content { align-items: center !important; }
@@ -850,7 +879,8 @@ const PublicMeetingApp = () => {
           <button
             style={{
               ...styles.primaryButton,
-              opacity: !userName.trim() ? 0.5 : 1,
+              backgroundColor: !userName.trim() ? disabledButtonBg : colors.primaryButton,
+              cursor: !userName.trim() ? 'default' : 'pointer',
             }}
             onClick={handleJoin}
             disabled={!userName.trim()}
