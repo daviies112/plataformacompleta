@@ -409,7 +409,6 @@ const PublicMeetingApp = () => {
       flex: 1,
       display: 'flex',
       flexDirection: 'column',
-      alignItems: 'center',
       padding: '12px 16px',
       maxWidth: '560px',
       width: '100%',
@@ -418,7 +417,7 @@ const PublicMeetingApp = () => {
     },
     logoRow: {
       display: 'flex',
-      justifyContent: 'center',
+      justifyContent: 'flex-start',
       alignItems: 'center',
       padding: '12px 16px 8px 16px',
     },
@@ -728,9 +727,15 @@ const PublicMeetingApp = () => {
 
   return (
     <div style={styles.fullPage}>
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @media (max-width: 640px) {
+          .meeting-logo-row { justify-content: center !important; }
+          .meeting-lobby-content { align-items: center !important; }
+        }
+      `}</style>
       {branding.showLogoInLobby && branding.logo && (
-        <div style={styles.logoRow}>
+        <div className="meeting-logo-row" style={styles.logoRow}>
           <img
             src={branding.logo}
             alt={branding.companyName || "Logo"}
@@ -739,7 +744,7 @@ const PublicMeetingApp = () => {
           />
         </div>
       )}
-      <div style={styles.lobbyContent}>
+      <div className="meeting-lobby-content" style={styles.lobbyContent}>
         {lobby.showCameraPreview !== false && (
           <div style={styles.videoSection}>
             <div style={styles.videoContainer}>
