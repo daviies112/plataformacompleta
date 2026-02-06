@@ -26,7 +26,7 @@ import { getClientSupabaseClient, getClientSupabaseClientStrict } from "../lib/m
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { cache } from "../lib/cache";
-import { getCachedMeeting, setCachedMeeting, getCachedRoomDesign, setCachedRoomDesign, getCachedMeetingFull, setCachedMeetingFull } from "../lib/publicCache";
+import { getCachedMeeting, setCachedMeeting, getCachedRoomDesign, setCachedRoomDesign, getCachedMeetingFull, setCachedMeetingFull, invalidateAllMeetingDesignCaches } from "../lib/publicCache";
 
 export const meetingsRouter = Router();
 export const publicRoomDesignRouter = Router();
@@ -1530,6 +1530,9 @@ meetingsRouter.patch('/room-design', authenticateToken, async (req: Request, res
     }
 
     console.log(`[RoomDesign] Salvo no DB local para tenant ${user.tenantId}`);
+
+    invalidateAllMeetingDesignCaches();
+    console.log(`[RoomDesign] Cache de design público invalidado`);
 
     // Tentar sincronizar com Supabase do cliente
     let supabaseSyncSuccess = false;

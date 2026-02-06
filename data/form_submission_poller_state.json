@@ -1,9 +1,9 @@
 {
   "lastSyncedAt": null,
   "lastSyncedId": null,
-  "lastRunAt": "2026-02-05T23:58:14.711Z",
+  "lastRunAt": "2026-02-06T00:09:51.808Z",
   "totalSubmissionsProcessed": 1,
-  "totalErrors": 69,
+  "totalErrors": 75,
   "lastError": null,
   "tenantStates": {
     "system": {

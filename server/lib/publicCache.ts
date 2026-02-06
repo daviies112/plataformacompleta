@@ -314,6 +314,17 @@ export function invalidateFormCache(formIdOrSlug: string): void {
  */
 export function invalidateMeetingCache(meetingId: string): void {
   meetingCache.del(`meeting:data:${meetingId}`);
+  meetingCache.del(`meeting:design:${meetingId}`);
+  meetingCache.del(`meeting:full:${meetingId}`);
+}
+
+export function invalidateAllMeetingDesignCaches(): void {
+  const keys = meetingCache.keys();
+  for (const key of keys) {
+    if (key.startsWith('meeting:design:') || key.startsWith('meeting:full:')) {
+      meetingCache.del(key);
+    }
+  }
 }
 
 /**
