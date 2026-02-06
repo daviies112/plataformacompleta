@@ -4,6 +4,7 @@ import { eq } from 'drizzle-orm';
 import { detectNewClients, processNewClients } from './clientMonitor';
 import { pollFormSubmissions } from './formSubmissionPoller.js';
 import { pollCPFCompliance, getCPFPollerState, checkApprovedSubmissionsWithoutCPF } from './cpfCompliancePoller.js';
+import { getCompanySlug } from './tenantSlug';
 
 // Configurações da automação via environment variables
 export const AUTOMATION_CONFIG = {
@@ -582,24 +583,25 @@ async function syncFormsToMappingTable(): Promise<void> {
         
         console.log(`📋 [FormMappingSync] Encontrados ${forms.length} formulário(s) no tenant ${tenantId}`);
         
-        // Buscar companySlug do app_settings do tenant
-        // Tenta company_slug primeiro, depois companySlug, depois company_name como fallback
         let companySlug = 'empresa';
         try {
-          const { data: settings } = await supabase
-            .from('app_settings')
-            .select('company_slug, company_name')
-            .single();
-          if (settings?.company_slug) {
-            companySlug = settings.company_slug;
-          } else if (settings?.company_name) {
-            // Gerar slug a partir do nome da empresa
-            companySlug = settings.company_name.toLowerCase().trim().replace(/\s+/g, '-');
-            console.log(`📋 [FormMappingSync] Gerando slug a partir do company_name: ${companySlug}`);
+          companySlug = await getCompanySlug(tenantId);
+          console.log(`📋 [FormMappingSync] CompanySlug para tenant ${tenantId}: ${companySlug} (from hms100msConfig)`);
+        } catch (e) {
+          try {
+            const { data: settings } = await supabase
+              .from('app_settings')
+              .select('company_slug, company_name')
+              .single();
+            if (settings?.company_slug) {
+              companySlug = settings.company_slug;
+            } else if (settings?.company_name) {
+              companySlug = settings.company_name.toLowerCase().trim().replace(/\s+/g, '-');
+            }
+            console.log(`📋 [FormMappingSync] CompanySlug para tenant ${tenantId}: ${companySlug} (from Supabase fallback)`);
+          } catch (settingsError) {
+            console.log(`⚠️ [FormMappingSync] Não foi possível obter companySlug do tenant ${tenantId}, usando padrão: empresa`);
           }
-          console.log(`📋 [FormMappingSync] CompanySlug para tenant ${tenantId}: ${companySlug}`);
-        } catch (settingsError) {
-          console.log(`⚠️ [FormMappingSync] Não foi possível obter companySlug do tenant ${tenantId}, usando padrão: empresa`);
         }
         
         // Sincronizar cada formulário

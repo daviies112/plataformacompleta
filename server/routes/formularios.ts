@@ -8,6 +8,7 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { STANDARD_REGISTRATION_FIELDS, DEFAULT_REGISTRATION_DESIGN_CONFIG, getStandardFields, removeDuplicateCpfCnpj, type QuestionField } from '../formularios/services/standardFields.js';
 import { requireTenant } from '../middleware/requireTenant';
 import { generateCompanySlug } from '../formularios/utils/slugGenerator';
+import { getCompanySlug } from '../lib/tenantSlug';
 
 const router = Router();
 
@@ -176,9 +177,22 @@ router.get('/ativo', async (req, res) => {
       let formSlug = settings.activeFormId;
       let companySlug = settings.companySlug || 'empresa';
 
+      // PRIORIDADE: Usar getCompanySlug (hms100msConfig) quando tenantId disponível
+      // Garante consistência com meetings/signatures
+      if (req.session?.tenantId) {
+        try {
+          companySlug = await getCompanySlug(req.session.tenantId);
+          console.log(`✅ [FORMS/ativo] Company slug from tenantSlug: ${companySlug}`);
+        } catch (e) {
+          console.warn('⚠️ [FORMS/ativo] Fallback to settings/mapping slug');
+        }
+      }
+
       if (mappingResult.length > 0) {
         formSlug = mappingResult[0].slug || settings.activeFormId;
-        companySlug = mappingResult[0].companySlug || companySlug;
+        if (!req.session?.tenantId) {
+          companySlug = mappingResult[0].companySlug || companySlug;
+        }
       }
 
       // Gerar URL dinâmica baseada no domínio atual
@@ -248,11 +262,18 @@ router.get('/ativo', async (req, res) => {
             .single();
 
           if (!error && data) {
-            // Obter slug da empresa
+            // Obter slug da empresa - priorizar hms100msConfig via getCompanySlug
             let companySlug = 'empresa';
-            try {
-              companySlug = await getCompanySlugFromSupabase(supabase);
-            } catch (e) { }
+            if (req.session?.tenantId) {
+              try {
+                companySlug = await getCompanySlug(req.session.tenantId);
+              } catch (e) { }
+            }
+            if (companySlug === 'empresa') {
+              try {
+                companySlug = await getCompanySlugFromSupabase(supabase);
+              } catch (e) { }
+            }
 
             const formSlug = data.slug || data.id;
             const dynamicUrl = generateDynamicFormUrl(companySlug, formSlug);
@@ -322,9 +343,17 @@ router.put('/config/ativo', async (req, res) => {
       console.log(`📝 [FORMS] Company slug recebido do frontend: ${requestedCompanySlug}`);
     }
 
-    // 🔐 PRIORIDADE 0: Se companySlug foi passado no body, usar ele diretamente
-    // Isso garante que o mapeamento seja criado com o slug CORRETO
+    // 🔐 PRIORIDADE 0: Usar getCompanySlug (hms100msConfig) para consistência com meetings/signatures
+    // Se companySlug foi passado no body, usar como override; senão, buscar de hms100msConfig
     let companySlug = requestedCompanySlug || 'empresa';
+    if (!requestedCompanySlug && req.session?.tenantId) {
+      try {
+        companySlug = await getCompanySlug(req.session.tenantId);
+        console.log(`✅ [FORMS] Company slug from tenantSlug (hms100msConfig): ${companySlug}`);
+      } catch (e) {
+        console.warn('⚠️ [FORMS] Fallback to default slug');
+      }
+    }
     let formSlug = formId; // Fallback: usar ID como slug
     let formTitle = 'Formulário';
     let formFound = false;
@@ -605,9 +634,22 @@ router.get('/config/ativo', async (req, res) => {
       let formSlug = settings.activeFormId;
       let companySlug = settings.companySlug || 'empresa';
 
+      // PRIORIDADE: Usar getCompanySlug (hms100msConfig) quando tenantId disponível
+      // Garante consistência com meetings/signatures
+      if (req.session?.tenantId) {
+        try {
+          companySlug = await getCompanySlug(req.session.tenantId);
+          console.log(`✅ [FORMS/config/ativo] Company slug from tenantSlug: ${companySlug}`);
+        } catch (e) {
+          console.warn('⚠️ [FORMS/config/ativo] Fallback to settings/mapping slug');
+        }
+      }
+
       if (mappingResult.length > 0) {
         formSlug = mappingResult[0].slug || settings.activeFormId;
-        companySlug = mappingResult[0].companySlug || companySlug;
+        if (!req.session?.tenantId) {
+          companySlug = mappingResult[0].companySlug || companySlug;
+        }
       }
 
       // Gerar URL dinâmica baseada no domínio atual
@@ -630,7 +672,7 @@ router.get('/config/ativo', async (req, res) => {
           designConfig: form.designConfig,
           createdAt: form.createdAt,
           updatedAt: form.updatedAt,
-          url: dynamicUrl, // URL dinâmica
+          url: dynamicUrl,
           companySlug,
           formSlug
         });
@@ -677,11 +719,18 @@ router.get('/config/ativo', async (req, res) => {
             .single();
 
           if (!error && data) {
-            // Obter slug da empresa
+            // Obter slug da empresa - priorizar hms100msConfig via getCompanySlug
             let companySlug = 'empresa';
-            try {
-              companySlug = await getCompanySlugFromSupabase(supabase);
-            } catch (e) { }
+            if (req.session?.tenantId) {
+              try {
+                companySlug = await getCompanySlug(req.session.tenantId);
+              } catch (e) { }
+            }
+            if (companySlug === 'empresa') {
+              try {
+                companySlug = await getCompanySlugFromSupabase(supabase);
+              } catch (e) { }
+            }
 
             const formSlug = data.slug || data.id;
             const dynamicUrl = generateDynamicFormUrl(companySlug, formSlug);
