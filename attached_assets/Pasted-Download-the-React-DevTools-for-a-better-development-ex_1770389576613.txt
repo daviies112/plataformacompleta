@@ -1,0 +1,45 @@
+Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+6f9ee364-1e33-4abd-aff6-d5b156217a8a:1 Error while trying to use the following icon from the Manifest: https://02d16a0c-fa6f-4963-9f61-2edaa63b0764-00-36enijynk45y7.spock.replit.dev/icons/icon-192x192.png (Download error or resource isn't a valid image)Understand this warning
+AssinaturaClientPage.tsx:680 [AssinaturaClientPage] Unexpected step: 0 - showing loading fallback
+AssinaturaClientContent @ AssinaturaClientPage.tsx:680
+renderWithHooks @ chunk-NFC5BX5N.js?v=61e19b0d:11548
+updateFunctionComponent @ chunk-NFC5BX5N.js?v=61e19b0d:14582
+beginWork @ chunk-NFC5BX5N.js?v=61e19b0d:15924
+beginWork$1 @ chunk-NFC5BX5N.js?v=61e19b0d:19753
+performUnitOfWork @ chunk-NFC5BX5N.js?v=61e19b0d:19198
+workLoopSync @ chunk-NFC5BX5N.js?v=61e19b0d:19137
+renderRootSync @ chunk-NFC5BX5N.js?v=61e19b0d:19116
+performSyncWorkOnRoot @ chunk-NFC5BX5N.js?v=61e19b0d:18874
+flushSyncCallbacks @ chunk-NFC5BX5N.js?v=61e19b0d:9119
+(anonymous) @ chunk-NFC5BX5N.js?v=61e19b0d:18627
+setTimeout
+systemSetTimeoutZero @ @tanstack_react-query.js?v=bb35a414:103
+flush @ @tanstack_react-query.js?v=bb35a414:615
+batch @ @tanstack_react-query.js?v=bb35a414:633
+dispatch_fn @ @tanstack_react-query.js?v=bb35a414:1260
+setData @ @tanstack_react-query.js?v=bb35a414:935
+fetch @ @tanstack_react-query.js?v=bb35a414:1157
+await in fetch
+executeFetch_fn @ @tanstack_react-query.js?v=bb35a414:1651
+onSubscribe @ @tanstack_react-query.js?v=bb35a414:1344
+subscribe @ @tanstack_react-query.js?v=bb35a414:24
+(anonymous) @ @tanstack_react-query.js?v=bb35a414:3313
+subscribeToStore @ chunk-NFC5BX5N.js?v=61e19b0d:11984
+commitHookEffectListMount @ chunk-NFC5BX5N.js?v=61e19b0d:16915
+commitPassiveMountOnFiber @ chunk-NFC5BX5N.js?v=61e19b0d:18156
+commitPassiveMountEffects_complete @ chunk-NFC5BX5N.js?v=61e19b0d:18129
+commitPassiveMountEffects_begin @ chunk-NFC5BX5N.js?v=61e19b0d:18119
+commitPassiveMountEffects @ chunk-NFC5BX5N.js?v=61e19b0d:18109
+flushPassiveEffectsImpl @ chunk-NFC5BX5N.js?v=61e19b0d:19490
+flushPassiveEffects @ chunk-NFC5BX5N.js?v=61e19b0d:19447
+performSyncWorkOnRoot @ chunk-NFC5BX5N.js?v=61e19b0d:18868
+flushSyncCallbacks @ chunk-NFC5BX5N.js?v=61e19b0d:9119
+commitRootImpl @ chunk-NFC5BX5N.js?v=61e19b0d:19432
+commitRoot @ chunk-NFC5BX5N.js?v=61e19b0d:19277
+finishConcurrentRender @ chunk-NFC5BX5N.js?v=61e19b0d:18805
+performConcurrentWorkOnRoot @ chunk-NFC5BX5N.js?v=61e19b0d:18718
+workLoop @ chunk-NFC5BX5N.js?v=61e19b0d:197
+flushWork @ chunk-NFC5BX5N.js?v=61e19b0d:176
+performWorkUntilDeadline @ chunk-NFC5BX5N.js?v=61e19b0d:384Understand this warning
+AssinaturaClientPage.tsx:362 [AssinaturaClientPage] Contract address data: {address_street: 'Rua Seringueira', address_number: '350', address_city: 'Belo Horizonte', address_state: 'MG', address_zipcode: '30510-690', …}
+useFaceDetection.ts:68 Face detection models loaded successfully

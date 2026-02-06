@@ -582,10 +582,36 @@ function saveLocalContracts(store: Map<string, LocalContract>): void {
 function loadLocalGlobalConfig(): AssinaturaGlobalConfig {
   try {
     ensureDataDir();
+    let config = getDefaultGlobalConfig();
+    
     if (fs.existsSync(GLOBAL_CONFIG_FILE)) {
       const data = fs.readFileSync(GLOBAL_CONFIG_FILE, 'utf-8');
-      return JSON.parse(data);
+      config = { ...config, ...JSON.parse(data) };
     }
+    
+    const dataDir = path.join(process.cwd(), 'data');
+    const tenantFiles = fs.readdirSync(dataDir).filter(f => f.startsWith('assinatura_global_config_') && f.endsWith('.json'));
+    for (const file of tenantFiles) {
+      try {
+        const tenantData = JSON.parse(fs.readFileSync(path.join(dataDir, file), 'utf-8'));
+        const unifiedFields = ['background_color', 'title_color', 'button_color', 'button_text_color', 'icon_color', 'app_url', 'contract_html', 'app_store_url', 'google_play_url'];
+        for (const field of unifiedFields) {
+          if (!config[field] && tenantData[field]) {
+            config[field] = tenantData[field];
+          }
+        }
+        if (!config.logo_url && tenantData.logo_url) config.logo_url = tenantData.logo_url;
+        if (!config.logo_size && tenantData.logo_size) config.logo_size = tenantData.logo_size;
+        if (tenantData.primary_color) config.primary_color = tenantData.primary_color;
+        if (tenantData.verification_primary_color) config.verification_primary_color = tenantData.verification_primary_color;
+        if (tenantData.verification_background_color) config.verification_background_color = tenantData.verification_background_color;
+        if (tenantData.verification_text_color) config.verification_text_color = tenantData.verification_text_color;
+      } catch (err) {
+        // Skip invalid tenant config files
+      }
+    }
+    
+    return config;
   } catch (error) {
     console.error('[Assinatura] Erro ao carregar config global local:', error);
   }
@@ -724,8 +750,9 @@ router.put('/global-config', async (req: Request, res: Response) => {
       const result = await saveTenantGlobalConfig(updates, tenantId);
 
       if (result.success) {
-        // Também atualiza o cache local como backup
+        // Também atualiza o cache local como backup E persiste no arquivo genérico
         localGlobalConfig = { ...localGlobalConfig, ...updates };
+        saveLocalGlobalConfig(localGlobalConfig);
         invalidateGlobalConfigCache();
 
         return res.json({
@@ -943,6 +970,18 @@ router.get('/contracts/:token/full', async (req: Request, res: Response) => {
     // Usa o tenant_id do contrato para buscar a config do Supabase do tenant
     const globalConfig = await getGlobalConfigForContract(contract) || getGlobalConfigCached();
     console.log(`[Assinatura/Full] Config global carregada para tenant: ${contract.tenant_id || 'fallback'}`);
+    console.log(`[Assinatura/Full] Global config unified fields:`, {
+      tenant_id: contract.tenant_id,
+      bg: globalConfig.background_color,
+      title: globalConfig.title_color,
+      button: globalConfig.button_color,
+      icon: globalConfig.icon_color,
+      hasContractHtml: !!globalConfig.contract_html,
+      source: contract.tenant_id ? 'tenant' : 'cached',
+      localBg: localGlobalConfig?.background_color,
+      localTitle: localGlobalConfig?.title_color,
+      localButton: localGlobalConfig?.button_color,
+    });
 
 
     // Mapear campos de endereço do formato aninhado (local) para campos individuais (esperado pelo frontend)
@@ -980,8 +1019,8 @@ router.get('/contracts/:token/full', async (req: Request, res: Response) => {
       maleta_card_color: contract.maleta_card_color || globalConfig.maleta_card_color,
       maleta_button_color: contract.maleta_button_color || globalConfig.maleta_button_color,
       maleta_text_color: contract.maleta_text_color || globalConfig.maleta_text_color,
-      verification_primary_color: contract.verification_primary_color || globalConfig.verification_primary_color || globalConfig.primary_color,
-      verification_text_color: contract.verification_text_color || globalConfig.verification_text_color,
+      verification_primary_color: contract.verification_primary_color || globalConfig.verification_primary_color || localGlobalConfig?.verification_primary_color || globalConfig.primary_color,
+      verification_text_color: contract.verification_text_color || globalConfig.verification_text_color || localGlobalConfig?.verification_text_color,
       verification_font_family: contract.verification_font_family || globalConfig.verification_font_family,
       verification_font_size: contract.verification_font_size || globalConfig.verification_font_size,
       verification_logo_url: contract.verification_logo_url || globalConfig.verification_logo_url,
@@ -991,7 +1030,7 @@ router.get('/contracts/:token/full', async (req: Request, res: Response) => {
       verification_welcome_text: contract.verification_welcome_text || globalConfig.verification_welcome_text,
       verification_instructions: contract.verification_instructions || globalConfig.verification_instructions,
       verification_security_text: contract.verification_security_text || globalConfig.verification_security_text,
-      verification_background_color: contract.verification_background_color || globalConfig.verification_background_color,
+      verification_background_color: contract.verification_background_color || globalConfig.verification_background_color || localGlobalConfig?.verification_background_color,
       verification_header_background_color: contract.verification_header_background_color || globalConfig.verification_header_background_color,
       verification_header_company_name: contract.verification_header_company_name || globalConfig.verification_header_company_name,
       progress_card_color: contract.progress_card_color || globalConfig.progress_card_color,
@@ -1009,21 +1048,23 @@ router.get('/contracts/:token/full', async (req: Request, res: Response) => {
       parabens_font_family: contract.parabens_font_family || globalConfig.parabens_font_family,
       parabens_form_title: contract.parabens_form_title || globalConfig.parabens_form_title,
       parabens_button_text: contract.parabens_button_text || globalConfig.parabens_button_text,
-      // Unified color palette (new simplified system)
-      background_color: contract.background_color || globalConfig.background_color || '#ffffff',
-      title_color: contract.title_color || globalConfig.title_color || '#1a1a2e',
-      button_color: contract.button_color || globalConfig.button_color || '#22c55e',
-      button_text_color: contract.button_text_color || globalConfig.button_text_color || '#ffffff',
-      icon_color: contract.icon_color || globalConfig.icon_color || '#2c3e50',
-      app_url: contract.app_url || globalConfig.app_url || '',
-      contract_html: contract.contract_html || globalConfig.contract_html || '',
+      // Unified color palette (new simplified system) with localGlobalConfig safety net
+      background_color: contract.background_color || globalConfig.background_color || localGlobalConfig?.background_color || '#ffffff',
+      title_color: contract.title_color || globalConfig.title_color || localGlobalConfig?.title_color || '#1a1a2e',
+      button_color: contract.button_color || globalConfig.button_color || localGlobalConfig?.button_color || '#22c55e',
+      button_text_color: contract.button_text_color || globalConfig.button_text_color || localGlobalConfig?.button_text_color || '#ffffff',
+      icon_color: contract.icon_color || globalConfig.icon_color || localGlobalConfig?.icon_color || '#2c3e50',
+      app_url: contract.app_url || globalConfig.app_url || localGlobalConfig?.app_url || '',
+      contract_html: contract.contract_html || globalConfig.contract_html || localGlobalConfig?.contract_html || '',
+      app_store_url: contract.app_store_url || globalConfig.app_store_url || localGlobalConfig?.app_store_url || '',
+      google_play_url: contract.google_play_url || globalConfig.google_play_url || localGlobalConfig?.google_play_url || '',
     };
 
     res.set('Cache-Control', 'private, max-age=300');
     return res.json({
       contract: mergedContract,
       participantData,
-      globalConfig // Incluir para debug/referência
+      globalConfig
     });
   } catch (error: any) {
     console.error('[Assinatura/Full] Error:', error);
@@ -2378,6 +2419,16 @@ router.get('/public/contract/:token', async (req: Request, res: Response) => {
 
     // Merge with global config to ensure customized colors reach the client
     const globalConfig = await getGlobalConfigForContract(contract) || getGlobalConfigCached();
+    console.log(`[Assinatura/Public] Global config unified fields:`, {
+      tenant_id: contract.tenant_id,
+      bg: globalConfig.background_color,
+      title: globalConfig.title_color,
+      button: globalConfig.button_color,
+      icon: globalConfig.icon_color,
+      source: contract.tenant_id ? 'tenant' : 'cached',
+      localBg: localGlobalConfig?.background_color,
+      localButton: localGlobalConfig?.button_color,
+    });
 
     const mergedContract = {
       ...contract,
@@ -2390,9 +2441,9 @@ router.get('/public/contract/:token', async (req: Request, res: Response) => {
       logo_position: contract.logo_position || globalConfig.logo_position,
       company_name: contract.company_name || globalConfig.company_name,
       footer_text: contract.footer_text || globalConfig.footer_text,
-      verification_primary_color: contract.verification_primary_color || globalConfig.verification_primary_color || globalConfig.primary_color,
-      verification_text_color: contract.verification_text_color || globalConfig.verification_text_color,
-      verification_background_color: contract.verification_background_color || globalConfig.verification_background_color,
+      verification_primary_color: contract.verification_primary_color || globalConfig.verification_primary_color || localGlobalConfig?.verification_primary_color || globalConfig.primary_color,
+      verification_text_color: contract.verification_text_color || globalConfig.verification_text_color || localGlobalConfig?.verification_text_color,
+      verification_background_color: contract.verification_background_color || globalConfig.verification_background_color || localGlobalConfig?.verification_background_color,
       verification_welcome_text: contract.verification_welcome_text || globalConfig.verification_welcome_text,
       verification_instructions: contract.verification_instructions || globalConfig.verification_instructions,
       verification_footer_text: contract.verification_footer_text || globalConfig.verification_footer_text,
@@ -2402,13 +2453,15 @@ router.get('/public/contract/:token', async (req: Request, res: Response) => {
       progress_card_color: contract.progress_card_color || globalConfig.progress_card_color,
       progress_button_color: contract.progress_button_color || globalConfig.progress_button_color,
       progress_text_color: contract.progress_text_color || globalConfig.progress_text_color,
-      background_color: contract.background_color || globalConfig.background_color || '#ffffff',
-      title_color: contract.title_color || globalConfig.title_color || '#1a1a2e',
-      button_color: contract.button_color || globalConfig.button_color || '#22c55e',
-      button_text_color: contract.button_text_color || globalConfig.button_text_color || '#ffffff',
-      icon_color: contract.icon_color || globalConfig.icon_color || '#2c3e50',
-      app_url: contract.app_url || globalConfig.app_url || '',
-      contract_html: contract.contract_html || globalConfig.contract_html || '',
+      background_color: contract.background_color || globalConfig.background_color || localGlobalConfig?.background_color || '#ffffff',
+      title_color: contract.title_color || globalConfig.title_color || localGlobalConfig?.title_color || '#1a1a2e',
+      button_color: contract.button_color || globalConfig.button_color || localGlobalConfig?.button_color || '#22c55e',
+      button_text_color: contract.button_text_color || globalConfig.button_text_color || localGlobalConfig?.button_text_color || '#ffffff',
+      icon_color: contract.icon_color || globalConfig.icon_color || localGlobalConfig?.icon_color || '#2c3e50',
+      app_url: contract.app_url || globalConfig.app_url || localGlobalConfig?.app_url || '',
+      contract_html: contract.contract_html || globalConfig.contract_html || localGlobalConfig?.contract_html || '',
+      app_store_url: contract.app_store_url || globalConfig.app_store_url || localGlobalConfig?.app_store_url || '',
+      google_play_url: contract.google_play_url || globalConfig.google_play_url || localGlobalConfig?.google_play_url || '',
     };
 
     res.set('Cache-Control', 'private, max-age=300');
