@@ -134,7 +134,6 @@ export const ContractStep = ({ clientData, selfiePhoto, documentPhoto, currentSt
       html: `
         <div style="font-family: ${fontFamily} !important; padding: 40px !important; max-width: 800px !important; margin: 0 auto !important; color: ${textColor} !important;">
           <header style="text-align: center !important; margin-bottom: 40px !important; border-bottom: 3px solid ${primaryColor} !important; padding-bottom: 20px !important;">
-            ${logoUrl ? `<div style="${getLogoPositionStyle(logoPosition)} margin-bottom: 20px !important;"><img src="${logoUrl}" alt="${companyName}" style="${getLogoSizeStyle(logoSize)} height: auto !important;" /></div>` : ''}
             <h1 style="color: ${primaryColor} !important; margin: 0 !important; font-family: ${fontFamily} !important; font-size: 28px !important;">${contractConfig.title}</h1>
             <p style="color: ${textColor} !important; margin-top: 10px !important; font-family: ${fontFamily} !important;">Protocolo: <strong>${protocol}</strong></p>
           </header>
@@ -254,7 +253,8 @@ export const ContractStep = ({ clientData, selfiePhoto, documentPhoto, currentSt
         <div
           ref={scrollRef}
           onScroll={handleScroll}
-          className="h-96 overflow-y-auto p-4 bg-white"
+          className="h-96 overflow-y-auto p-4"
+          style={{ backgroundColor: background_color || '#ffffff' }}
           dangerouslySetInnerHTML={{ __html: html }}
           data-testid="contract-viewer"
         />

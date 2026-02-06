@@ -334,7 +334,7 @@ export const VerificationFlow = ({
               }} />
             </div>
           )}
-          {(headerLogoUrl || headerCompanyName) && (
+          {((headerLogoUrl && headerLogoUrl.trim() !== '') || (headerCompanyName && headerCompanyName.trim() !== '')) && (
             <div style={{
               backgroundColor: headerBackgroundColor,
               padding: '20px',

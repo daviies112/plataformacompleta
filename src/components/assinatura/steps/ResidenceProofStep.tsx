@@ -11,6 +11,9 @@ interface ResidenceProofStepProps {
   parabens_text_color?: string;
   parabens_font_family?: string;
   button_text_color?: string;
+  logo_url?: string;
+  logo_size?: string;
+  logo_position?: string;
 }
 
 export const ResidenceProofStep = (props: ResidenceProofStepProps = {}) => {
@@ -279,13 +282,20 @@ export const ResidenceProofStep = (props: ResidenceProofStepProps = {}) => {
       style={{ fontFamily, backgroundColor }}
     >
       <div className="max-w-lg mx-auto w-full flex-1 flex flex-col">
-        <div className="text-center mb-6">
-          <div 
-            className="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center"
-            style={{ backgroundColor: cardColor }}
-          >
-            <FileText className="w-8 h-8" style={{ color: buttonColor }} />
+        {props.logo_url && (
+          <div style={{ textAlign: (props.logo_position || 'center') as any, marginBottom: '24px' }}>
+            <img 
+              src={props.logo_url} 
+              alt="Logo" 
+              style={{
+                maxWidth: props.logo_size === 'small' ? '100px' : props.logo_size === 'large' ? '300px' : '200px',
+                height: 'auto',
+                display: props.logo_position === 'center' ? 'inline-block' : undefined
+              }} 
+            />
           </div>
+        )}
+        <div className="text-center mb-6">
           <h1 className="text-2xl font-bold mb-2" style={{ color: textColor }}>
             Comprovante de Residência
           </h1>

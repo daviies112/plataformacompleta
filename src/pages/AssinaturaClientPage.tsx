@@ -163,13 +163,20 @@ const ProgressTrackerDisplay = memo(({ currentStep, contract }: ProgressTrackerD
   const [isExpanded, setIsExpanded] = useState(true);
   
   const progressCardColor = contract?.progress_card_color || contract?.button_color || '#1e3a5f';
-  const progressButtonColor = contract?.progress_button_color || contract?.button_color || '#22c55e';
+  const progressButtonColor = contract?.progress_button_color || contract?.button_color || '#1e3a5f';
   const progressTextColor = contract?.progress_text_color || contract?.button_text_color || '#ffffff';
   const progressFontFamily = contract?.progress_font_family || 'Arial, sans-serif';
   const progressActiveStepBg = contract?.progress_active_step_bg || 'rgba(255,255,255,0.2)';
-  const progressCompleteStepBg = contract?.progress_complete_step_bg || 'rgba(34,197,94,0.2)';
+  const btnColor = contract?.button_color || '#1e3a5f';
+  const progressCompleteStepBg = contract?.progress_complete_step_bg || (() => {
+    const hex = btnColor.replace('#', '');
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    return `rgba(${r},${g},${b},0.2)`;
+  })();
   const progressInactiveStepBg = contract?.progress_inactive_step_bg || 'rgba(255,255,255,0.05)';
-  const progressCheckIconColor = contract?.progress_check_icon_color || '#22c55e';
+  const progressCheckIconColor = contract?.progress_check_icon_color || contract?.button_color || '#1e3a5f';
   const progressInactiveCircleBg = contract?.progress_inactive_circle_bg || 'rgba(255,255,255,0.2)';
 
   const steps = useMemo(() => [
@@ -476,7 +483,7 @@ const AssinaturaClientContent = () => {
   const primaryColor = contract?.button_color || contract?.primary_color || '#2c3e50';
   const textColor = contract?.text_color || '#333333';
   const progressCardColor = contract?.progress_card_color || contract?.button_color || '#1e3a5f';
-  const progressButtonColor = contract?.progress_button_color || contract?.button_color || '#22c55e';
+  const progressButtonColor = contract?.progress_button_color || contract?.button_color || '#1e3a5f';
   const progressTextColor = contract?.progress_text_color || contract?.button_text_color || '#ffffff';
 
   if (isLoading) {
@@ -657,6 +664,9 @@ const AssinaturaClientContent = () => {
             parabens_text_color={contract.text_color || contract.parabens_text_color || undefined}
             parabens_font_family={contract.parabens_font_family || undefined}
             button_text_color={contract.button_text_color || '#ffffff'}
+            logo_url={contract.logo_url || undefined}
+            logo_size={contract.logo_size || undefined}
+            logo_position={contract.logo_position || undefined}
           />
         </Suspense>
       </div>
