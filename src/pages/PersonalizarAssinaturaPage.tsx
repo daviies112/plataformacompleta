@@ -12,6 +12,7 @@ import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/componen
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Upload, Palette, Save, Sparkles, Shuffle, X, Camera, FileText, CheckCircle2, Shield, Smartphone, Plus, Trash2 } from 'lucide-react';
 import { extractColorsFromImage, generateColorVariations, hslToHex } from '@/lib/colorExtractor';
+import { SignatureFlowPreview } from '@/components/assinatura/SignatureFlowPreview';
 
 interface ContractClause {
   title: string;
@@ -654,65 +655,17 @@ const PersonalizarAssinaturaPage = () => {
                       </div>
                     </div>
                   ) : (
-                    <div className="rounded-[2rem] border-4 border-foreground/20 overflow-hidden shadow-xl">
-                      <div className="bg-foreground/20 h-6 flex items-center justify-center">
-                        <div className="w-16 h-3 rounded-full bg-foreground/30" />
-                      </div>
-
-                      <div style={{ backgroundColor, minHeight: 480, fontFamily: 'Arial, sans-serif' }}>
-                        <div className="p-6 flex flex-col items-center text-center space-y-5">
-                          {logoUrl && (
-                            <img
-                              src={logoUrl}
-                              alt="Logo"
-                              style={{ height: logoSizeMap[logoSize], objectFit: 'contain' }}
-                              className="mx-auto"
-                              data-testid="preview-logo"
-                            />
-                          )}
-
-                          <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ backgroundColor: buttonColor }}>
-                            <Shield className="w-8 h-8" style={{ color: buttonTextColor }} />
-                          </div>
-
-                          <h2 className="text-xl font-bold" style={{ color: titleColor }} data-testid="preview-title">
-                            Verificação de Identidade
-                          </h2>
-
-                          <p className="text-sm leading-relaxed" style={{ color: textColor }} data-testid="preview-text">
-                            Processo seguro e rápido para confirmar sua identidade através de reconhecimento facial.
-                          </p>
-
-                          <div className="w-full space-y-3 pt-2">
-                            <div className="flex items-center gap-3 p-3 rounded-lg" style={{ backgroundColor: `${buttonColor}10` }}>
-                              <Camera className="w-5 h-5 flex-shrink-0" style={{ color: iconColor }} />
-                              <span className="text-sm text-left" style={{ color: textColor }}>Tire uma selfie rápida</span>
-                            </div>
-                            <div className="flex items-center gap-3 p-3 rounded-lg" style={{ backgroundColor: `${buttonColor}10` }}>
-                              <FileText className="w-5 h-5 flex-shrink-0" style={{ color: iconColor }} />
-                              <span className="text-sm text-left" style={{ color: textColor }}>Fotografe seu documento</span>
-                            </div>
-                            <div className="flex items-center gap-3 p-3 rounded-lg" style={{ backgroundColor: `${buttonColor}10` }}>
-                              <CheckCircle2 className="w-5 h-5 flex-shrink-0" style={{ color: iconColor }} />
-                              <span className="text-sm text-left" style={{ color: textColor }}>Verificação automática</span>
-                            </div>
-                          </div>
-
-                          <button
-                            className="w-full py-3 rounded-lg font-semibold text-sm transition-all mt-4"
-                            style={{ backgroundColor: buttonColor, color: buttonTextColor }}
-                            data-testid="preview-button"
-                          >
-                            Iniciar Verificação
-                          </button>
-
-                          <p className="text-xs flex items-center gap-1 pt-2" style={{ color: `${textColor}99` }}>
-                            <Shield className="w-3 h-3" style={{ color: iconColor }} />
-                            Suas informações são processadas de forma segura
-                          </p>
-                        </div>
-                      </div>
-                    </div>
+                    <SignatureFlowPreview
+                      backgroundColor={backgroundColor}
+                      titleColor={titleColor}
+                      textColor={textColor}
+                      buttonColor={buttonColor}
+                      buttonTextColor={buttonTextColor}
+                      iconColor={iconColor}
+                      logoUrl={logoUrl}
+                      logoSize={logoSize}
+                      contractPreviewHtml={contractPreviewHtml}
+                    />
                   )}
                 </div>
               </div>
