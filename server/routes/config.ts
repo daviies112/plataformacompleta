@@ -2768,4 +2768,43 @@ export function setupConfigRoutes(app: Express) {
       });
     }
   });
+
+  app.get("/api/config/company-slug", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const tenantId = (req as any).user?.tenantId;
+      if (!tenantId) return res.status(401).json({ error: 'Tenant não identificado' });
+      
+      const { getCompanySlug } = await import('../lib/tenantSlug');
+      const slug = await getCompanySlug(tenantId);
+      
+      res.json({ success: true, companySlug: slug, tenantId });
+    } catch (err: any) {
+      res.status(500).json({ error: 'Erro ao buscar slug', message: err.message });
+    }
+  });
+
+  app.post("/api/config/company-slug", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const tenantId = (req as any).user?.tenantId;
+      if (!tenantId) return res.status(401).json({ error: 'Tenant não identificado' });
+      
+      const { companySlug } = req.body;
+      if (!companySlug || typeof companySlug !== 'string') {
+        return res.status(400).json({ error: 'companySlug é obrigatório' });
+      }
+      
+      const { saveCompanySlug } = await import('../lib/tenantSlug');
+      const saved = await saveCompanySlug(tenantId, companySlug);
+      
+      if (saved) {
+        const { getCompanySlug } = await import('../lib/tenantSlug');
+        const normalizedSlug = await getCompanySlug(tenantId);
+        res.json({ success: true, companySlug: normalizedSlug });
+      } else {
+        res.status(500).json({ error: 'Erro ao salvar slug' });
+      }
+    } catch (err: any) {
+      res.status(500).json({ error: 'Erro ao salvar slug', message: err.message });
+    }
+  });
 }

@@ -13,6 +13,7 @@ function generateParticipantId(): string {
     return `pid_${nanoid(10)}`;
 }
 import { authenticateToken } from '../middleware/auth';
+import { getCompanySlug } from '../lib/tenantSlug';
 
 const n8nRouter = Router();
 
@@ -516,18 +517,17 @@ const handleCreateMeeting = async (req: Request, res: Response) => {
         }).returning();
 
         const baseUrl = process.env.APP_DOMAIN || process.env.REPLIT_DOMAINS?.split(',')[0] || req.get('host') || 'localhost:5000';
-        // PRIORITY: Use fsid (form_submission_id) for unique identification - works when multiple participants share same meeting
-        // fsid is more reliable than pid because it's generated when the form is submitted, not when the meeting is created
+        const companySlug = await getCompanySlug(tenantId);
         const linkReuniao = formSubmissionId
-            ? `https://${baseUrl}/reuniao/${newMeeting.id}?fsid=${formSubmissionId}`
+            ? `https://${baseUrl}/reuniao/${companySlug}/${newMeeting.id}?fsid=${formSubmissionId}`
             : participantId
-                ? `https://${baseUrl}/reuniao/${newMeeting.id}?pid=${participantId}`
-                : `https://${baseUrl}/reuniao/${newMeeting.id}`;
+                ? `https://${baseUrl}/reuniao/${companySlug}/${newMeeting.id}?pid=${participantId}`
+                : `https://${baseUrl}/reuniao/${companySlug}/${newMeeting.id}`;
         const linkPublico = formSubmissionId
-            ? `https://${baseUrl}/reuniao-publica/${newMeeting.id}?fsid=${formSubmissionId}`
+            ? `https://${baseUrl}/reuniao-publica/${companySlug}/${newMeeting.id}?fsid=${formSubmissionId}`
             : participantId
-                ? `https://${baseUrl}/reuniao-publica/${newMeeting.id}?pid=${participantId}`
-                : `https://${baseUrl}/reuniao-publica/${newMeeting.id}`;
+                ? `https://${baseUrl}/reuniao-publica/${companySlug}/${newMeeting.id}?pid=${participantId}`
+                : `https://${baseUrl}/reuniao-publica/${companySlug}/${newMeeting.id}`;
 
         await db.update(reunioes).set({ linkReuniao }).where(eq(reunioes.id, newMeeting.id));
 

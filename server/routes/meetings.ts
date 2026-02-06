@@ -27,6 +27,7 @@ import { nanoid } from "nanoid";
 import { z } from "zod";
 import { cache } from "../lib/cache";
 import { getCachedMeeting, setCachedMeeting, getCachedRoomDesign, setCachedRoomDesign, getCachedMeetingFull, setCachedMeetingFull, invalidateAllMeetingDesignCaches } from "../lib/publicCache";
+import { getCompanySlug } from '../lib/tenantSlug';
 
 export const meetingsRouter = Router();
 export const publicRoomDesignRouter = Router();
@@ -1208,8 +1209,9 @@ meetingsRouter.post('/', authenticateToken, async (req: Request, res: Response) 
     }).returning();
 
     const baseUrl = process.env.APP_DOMAIN || process.env.REPLIT_DOMAINS?.split(',')[0] || req.get('host') || 'localhost:5000';
-    const linkReuniao = `https://${baseUrl}/reuniao/${newMeeting.id}`;
-    const linkPublico = `https://${baseUrl}/reuniao-publica/${newMeeting.id}`;
+    const companySlug = await getCompanySlug(user.tenantId);
+    const linkReuniao = `https://${baseUrl}/reuniao/${companySlug}/${newMeeting.id}`;
+    const linkPublico = `https://${baseUrl}/reuniao-publica/${companySlug}/${newMeeting.id}`;
 
     await db.update(reunioes)
       .set({ linkReuniao, linkPublico })
@@ -1334,8 +1336,9 @@ meetingsRouter.post('/instantanea', authenticateToken, async (req: Request, res:
 
     // Generate meeting links
     const baseUrl = process.env.APP_DOMAIN || process.env.REPLIT_DOMAINS?.split(',')[0] || req.get('host') || 'localhost:5000';
-    const linkReuniao = `https://${baseUrl}/reuniao/${newMeeting.id}`;
-    const linkPublico = `https://${baseUrl}/reuniao-publica/${newMeeting.id}`;
+    const companySlug = await getCompanySlug(user.tenantId);
+    const linkReuniao = `https://${baseUrl}/reuniao/${companySlug}/${newMeeting.id}`;
+    const linkPublico = `https://${baseUrl}/reuniao-publica/${companySlug}/${newMeeting.id}`;
 
     await db.update(reunioes)
       .set({ linkReuniao, linkPublico })

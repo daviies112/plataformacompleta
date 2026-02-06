@@ -15,6 +15,7 @@ import { supabaseOwner, SUPABASE_CONFIGURED } from '../config/supabaseOwner';
 import { assinaturaLogger } from '../lib/logger';
 import { validateDocument, quickValidate } from '../lib/document-validator';
 import { getClientSupabaseClient } from '../lib/multiTenantSupabase';
+import { getCompanySlug } from '../lib/tenantSlug';
 
 const router = Router();
 
@@ -1101,7 +1102,7 @@ router.post('/contracts', async (req: Request, res: Response) => {
     // Gerar URL completa para o fluxo de assinatura (para envio via WhatsApp/N8N)
     const domain = process.env.APP_DOMAIN || process.env.REPLIT_DOMAINS?.split(',')[0] || process.env.REPLIT_DEV_DOMAIN || 'localhost:5000';
     const protocolScheme = domain.includes('localhost') ? 'http' : 'https';
-    const signature_url = `${protocolScheme}://${domain}/assinar/${access_token}`;
+    let signature_url = `${protocolScheme}://${domain}/assinar/${access_token}`;
 
     console.log(`[Assinatura] Criando novo contrato para ${client_name}, telefone: ${client_phone}, email: ${client_email}, cpf: ${client_cpf ? 'presente' : 'ausente'}, endereço: ${client_address ? 'presente' : 'ausente'}, access_token: ${access_token}`);
 
@@ -1304,6 +1305,15 @@ router.post('/contracts', async (req: Request, res: Response) => {
     }
 
     console.log(`[Assinatura] TenantId final: ${tenantId || 'nenhum'}`);
+
+    if (tenantId) {
+      try {
+        const companySlug = await getCompanySlug(tenantId);
+        signature_url = `${protocolScheme}://${domain}/assinar/${companySlug}/${access_token}`;
+      } catch (err) {
+        console.log('[Assinatura] Erro ao obter companySlug, usando URL sem slug');
+      }
+    }
 
     let supabaseContractSaved = false;
     let supabaseContractId: string | null = null;
@@ -2611,7 +2621,13 @@ router.post('/public/contracts/from-meeting', async (req: Request, res: Response
       const protocolNum = `CONT-${Date.now()}-${nanoid(9).toUpperCase()}`;
       const domain = process.env.APP_DOMAIN || process.env.REPLIT_DOMAINS?.split(',')[0] || process.env.REPLIT_DEV_DOMAIN || 'localhost:5000';
       const protocolScheme = domain.includes('localhost') ? 'http' : 'https';
-      const signature_url = `${protocolScheme}://${domain}/assinar/${access_token}`;
+      let signature_url = `${protocolScheme}://${domain}/assinar/${access_token}`;
+      if (tenantId) {
+        try {
+          const companySlug = await getCompanySlug(tenantId);
+          signature_url = `${protocolScheme}://${domain}/assinar/${companySlug}/${access_token}`;
+        } catch (err) {}
+      }
 
       // IMPORTANTE: Priorizar dados do form_submission sobre dados da reunião
       const contractClientName = addressData?.name || finalName;
@@ -2880,7 +2896,13 @@ router.post('/public/contracts/from-meeting', async (req: Request, res: Response
     // Gerar URL de assinatura
     const domain = process.env.APP_DOMAIN || process.env.REPLIT_DOMAINS?.split(',')[0] || process.env.REPLIT_DEV_DOMAIN || 'localhost:5000';
     const protocolScheme = domain.includes('localhost') ? 'http' : 'https';
-    const signatureUrl = `${protocolScheme}://${domain}/assinar/${accessToken}`;
+    let signatureUrl = `${protocolScheme}://${domain}/assinar/${accessToken}`;
+    if (formSubmission.tenant_id) {
+      try {
+        const companySlug = await getCompanySlug(formSubmission.tenant_id);
+        signatureUrl = `${protocolScheme}://${domain}/assinar/${companySlug}/${accessToken}`;
+      } catch (err) {}
+    }
 
     // 4. Preparar dados do contrato
     const contractData = {

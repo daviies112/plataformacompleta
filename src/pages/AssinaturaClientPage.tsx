@@ -307,8 +307,11 @@ const AssinaturaClientContent = () => {
   // Extract token from pathname directly since we render outside React Router's Route
   const token = useMemo(() => {
     const pathname = window.location.pathname;
-    const match = pathname.match(/^\/assinar\/([^/]+)/);
-    return match ? match[1] : undefined;
+    const parts = pathname.split('/').filter(Boolean);
+    if (parts[0] === 'assinar' && parts.length >= 2) {
+      return parts[parts.length - 1];
+    }
+    return undefined;
   }, []);
   
   const { toast } = useToast();

@@ -270,6 +270,7 @@ export const hms100msConfig = pgTable('hms_100ms_config', {
   }),
   n8nApiKey: text('n8n_api_key'),
   n8nApiKeyCreatedAt: timestamp('n8n_api_key_created_at'),
+  companySlug: text('company_slug'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow()
 }, (table) => ({

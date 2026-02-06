@@ -80,6 +80,137 @@ const CollapsibleSection = ({
   </Collapsible>
 );
 
+const CompanySlugSection = () => {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [slugInput, setSlugInput] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+
+  const { data: slugData, isLoading: slugLoading } = useQuery({
+    queryKey: ['/api/config/company-slug'],
+    queryFn: async () => {
+      const res = await fetch('/api/config/company-slug', { credentials: 'include' });
+      if (!res.ok) throw new Error('Erro ao buscar slug');
+      return res.json();
+    },
+  });
+
+  useEffect(() => {
+    if (slugData?.companySlug && !slugInput) {
+      setSlugInput(slugData.companySlug);
+    }
+  }, [slugData?.companySlug]);
+
+  const handleSaveSlug = async () => {
+    if (!slugInput.trim()) {
+      toast({ title: 'Erro', description: 'Informe um identificador', variant: 'destructive' });
+      return;
+    }
+    setIsSaving(true);
+    try {
+      const res = await fetch('/api/config/company-slug', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ companySlug: slugInput.trim() }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSlugInput(data.companySlug);
+        queryClient.invalidateQueries({ queryKey: ['/api/config/company-slug'] });
+        toast({ title: 'Salvo!', description: 'Identificador da empresa atualizado' });
+      } else {
+        toast({ title: 'Erro', description: data.error || 'Erro ao salvar', variant: 'destructive' });
+      }
+    } catch {
+      toast({ title: 'Erro', description: 'Erro ao salvar identificador', variant: 'destructive' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const domain = window.location.host;
+  const currentSlug = slugInput || slugData?.companySlug || '...';
+  const normalizedPreview = currentSlug.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+
+  const urlPreviews = [
+    { label: 'Reuniões', url: `${domain}/reuniao/${normalizedPreview}/ID_REUNIAO` },
+    { label: 'Assinaturas', url: `${domain}/assinar/${normalizedPreview}/TOKEN` },
+    { label: 'Formulários', url: `${domain}/formulario/${normalizedPreview}/form/ID_FORM` },
+  ];
+
+  return (
+    <div className="space-y-4">
+      {slugLoading ? (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <RefreshCw className="h-4 w-4 animate-spin" />
+          Carregando...
+        </div>
+      ) : (
+        <>
+          <div className="space-y-2">
+            <Label htmlFor="company-slug-input">Identificador da empresa</Label>
+            <p className="text-xs text-muted-foreground">
+              Usado nas URLs públicas de reuniões, assinaturas e formulários. Apenas letras minúsculas, números e hífens.
+            </p>
+            <div className="flex gap-2">
+              <PremiumInput
+                id="company-slug-input"
+                value={slugInput}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSlugInput(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-'))}
+                placeholder="minha-empresa"
+                data-testid="input-company-slug"
+              />
+              <PremiumButton
+                onClick={handleSaveSlug}
+                isLoading={isSaving}
+                variant="primary"
+                data-testid="button-save-company-slug"
+              >
+                Salvar
+              </PremiumButton>
+            </div>
+          </div>
+
+          {slugData?.tenantId && (
+            <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+              <span className="text-sm font-medium">Tenant ID:</span>
+              <div className="flex items-center gap-2">
+                <code className="text-xs bg-muted px-2 py-1 rounded font-mono" data-testid="text-tenant-id-slug">
+                  {slugData.tenantId}
+                </code>
+                <PremiumButton
+                  size="icon"
+                  variant="ghost"
+                  onClick={async () => {
+                    await navigator.clipboard.writeText(slugData.tenantId);
+                    toast({ title: 'Copiado!', description: 'Tenant ID copiado' });
+                  }}
+                  data-testid="button-copy-tenant-id-slug"
+                >
+                  <Copy className="h-3 w-3" />
+                </PremiumButton>
+              </div>
+            </div>
+          )}
+
+          <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+            <span className="text-sm font-medium">Preview das URLs:</span>
+            {urlPreviews.map((item) => (
+              <div key={item.label} className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground">{item.label}:</span>
+                <code className="text-xs bg-muted px-2 py-1 rounded font-mono break-all" data-testid={`text-url-preview-${item.label.toLowerCase()}`}>
+                  {item.url}
+                </code>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
 const SettingsPage = () => {
   const { user, client, updateClient, updateUser, isAuthenticated, isLoading, logout } = useAuth();
   const { toast } = useToast();
@@ -102,6 +233,7 @@ const SettingsPage = () => {
     supabase: false,
     googleCalendar: false,
     pluggy: false,
+    companySlug: false,
     n8n: false,
     n8nMeetingApi: false,
     evolutionApi: false,
@@ -2558,6 +2690,18 @@ const SettingsPage = () => {
                 </PremiumButton>
               </div>
             </div>
+          </CollapsibleSection>
+
+          {/* Company Slug Section */}
+          <CollapsibleSection
+            openSections={openSections}
+            setOpenSections={setOpenSections}
+            id="companySlug"
+            title="Identificador da Empresa (URL)"
+            description="Personalizar URLs públicas"
+            icon={Link2}
+          >
+            <CompanySlugSection />
           </CollapsibleSection>
 
           {/* N8N Section */}
