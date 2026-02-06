@@ -17,11 +17,11 @@
     "dev-daviemericko_gmail_com-dev-daviemericko_gmail_com": {
       "clientId": "dev-daviemericko_gmail_com",
       "tenantId": "dev-daviemericko_gmail_com",
-      "lastRun": "2026-02-06T21:41:14.749Z",
+      "lastRun": "2026-02-06T21:43:14.751Z",
       "lastSuccess": "2026-02-06T20:24:49.124Z",
       "lastError": null,
       "consecutiveErrors": 0,
-      "totalExecutions": 289,
+      "totalExecutions": 290,
       "totalNewClientsDetected": 0,
       "totalEventsCreated": 0,
       "status": "running"
@@ -29,22 +29,22 @@
     "dev-teste_empresa_com-dev-teste_empresa_com": {
       "clientId": "dev-teste_empresa_com",
       "tenantId": "dev-teste_empresa_com",
-      "lastRun": "2026-02-06T21:41:14.751Z",
-      "lastSuccess": "2026-02-06T21:41:14.751Z",
+      "lastRun": "2026-02-06T21:43:14.752Z",
+      "lastSuccess": "2026-02-06T21:43:14.752Z",
       "lastError": null,
       "consecutiveErrors": 0,
-      "totalExecutions": 32,
+      "totalExecutions": 33,
       "totalNewClientsDetected": 0,
       "totalEventsCreated": 0,
       "status": "running"
     }
   },
   "globalStats": {
-    "totalExecutions": 324,
+    "totalExecutions": 326,
     "totalNewClientsDetected": 0,
     "totalEventsCreated": 0,
     "totalErrors": 0,
-    "uptime": 0
+    "uptime": 120
   },
   "settings": {
     "detectionIntervalMinutes": 2,
