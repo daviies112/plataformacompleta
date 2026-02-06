@@ -215,9 +215,9 @@ export function setupBillingRoutes(app: Express) {
         .limit(1);
 
       if (configFromDb[0]) {
-        // Descriptografar as credenciais
-        const decryptedUrl = decrypt(configFromDb[0].supabaseUrl);
-        const decryptedKey = decrypt(configFromDb[0].supabaseAnonKey);
+        const isEnc = (s: string) => s && !s.startsWith('http') && !s.startsWith('ey');
+        const decryptedUrl = isEnc(configFromDb[0].supabaseUrl) ? decrypt(configFromDb[0].supabaseUrl) : configFromDb[0].supabaseUrl;
+        const decryptedKey = isEnc(configFromDb[0].supabaseAnonKey) ? decrypt(configFromDb[0].supabaseAnonKey) : configFromDb[0].supabaseAnonKey;
 
         return res.json({
           success: true,

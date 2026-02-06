@@ -1,14 +1,14 @@
 {
   "lastSyncedAt": null,
   "lastSyncedId": null,
-  "lastRunAt": "2026-02-06T19:37:27.094Z",
-  "totalSubmissionsProcessed": 1,
-  "totalErrors": 312,
+  "lastRunAt": "2026-02-06T20:22:49.065Z",
+  "totalSubmissionsProcessed": 2,
+  "totalErrors": 328,
   "lastError": null,
   "tenantStates": {
     "system": {
-      "lastSyncedAt": "2026-02-03T17:46:12.241857+00:00",
-      "lastSyncedId": "c1c8896e-ad12-4c88-aea6-53d2c8ecf995"
+      "lastSyncedAt": "2026-02-06T19:14:42.279572+00:00",
+      "lastSyncedId": "e3f0fdcd-6972-4348-b26e-d68959d0ee45"
     }
   }
 }

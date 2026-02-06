@@ -1,9 +1,10 @@
 /**
  * Middleware de autenticação para endpoints de configuração
  * 
- * Aceita DUAS formas de autenticação:
+ * Aceita TRÊS formas de autenticação:
  * 1. Token JWT (via header Authorization)
  * 2. Config Master Key (via header X-Config-Key) - apenas para configuração inicial
+ * 3. Sessão Express (via cookie de sessão) - com suporte a x-tenant-id como suplemento
  */
 
 import { Request, Response, NextFunction } from 'express';
@@ -48,7 +49,6 @@ export function authenticateConfig(req: AuthRequest, res: Response, next: NextFu
   const masterKey = process.env.CONFIG_MASTER_KEY;
   
   if (configKey && masterKey && configKey === masterKey) {
-    // Autenticação bem-sucedida com Master Key
     req.user = {
       userId: 'system',
       email: 'system@config',
@@ -61,17 +61,20 @@ export function authenticateConfig(req: AuthRequest, res: Response, next: NextFu
   }
   
   // Método 3: Usar sessão para obter tenantId (se autenticado via sessão)
-  const sessionTenantId = req.session?.tenantId;
   const sessionUserId = req.session?.userId;
   const sessionEmail = req.session?.userEmail;
   
-  if (sessionTenantId && sessionUserId) {
-    console.log(`🔐 [CONFIG] Usando sessão para tenant: ${sessionTenantId}`);
+  if (sessionUserId) {
+    const sessionTenantId = req.session?.tenantId;
+    const headerTenantId = req.headers['x-tenant-id'] as string;
+    const tenantId = sessionTenantId || headerTenantId || sessionUserId;
+    
+    console.log(`🔐 [CONFIG] Usando sessão para tenant: ${tenantId}`);
     req.user = {
       userId: sessionUserId,
       email: sessionEmail || 'user@example.com',
-      clientId: sessionTenantId,
-      tenantId: sessionTenantId
+      clientId: tenantId,
+      tenantId: tenantId
     };
     req.authMethod = 'jwt';
     return next();

@@ -641,9 +641,10 @@ async function fetchFormFromSupabaseDirect(companySlug: string, formSlug: string
       let url: string;
       let anonKey: string;
       
+      const isEnc = (s: string) => s && !s.startsWith('http') && !s.startsWith('ey');
       try {
-        url = decrypt(config.supabaseUrl);
-        anonKey = decrypt(config.supabaseAnonKey);
+        url = isEnc(config.supabaseUrl) ? decrypt(config.supabaseUrl) : config.supabaseUrl;
+        anonKey = isEnc(config.supabaseAnonKey) ? decrypt(config.supabaseAnonKey) : config.supabaseAnonKey;
       } catch {
         if (config.supabaseUrl.startsWith('http')) {
           url = config.supabaseUrl;

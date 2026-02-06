@@ -654,136 +654,8 @@ export function setupConfigRoutes(app: Express) {
   // para suportar todas as 5 credenciais: appAccessKey, appSecret, managementToken, templateId, apiBaseUrl
 
   // ===== SUPABASE CONFIGURATION =====
-  
-  app.get("/api/config/supabase", authenticateToken, async (req: AuthRequest, res) => {
-    try {
-      const tenantId = req.user!.tenantId;
-      const configFromDb = await db.select().from(supabaseConfig)
-        .where(eq(supabaseConfig.tenantId, tenantId))
-        .limit(1);
-      
-      if (configFromDb[0]) {
-        return res.json({
-          configured: true,
-          supabaseUrl: configFromDb[0].supabaseUrl,
-          supabaseBucket: configFromDb[0].supabaseBucket || 'receipts',
-          createdAt: configFromDb[0].createdAt,
-          updatedAt: configFromDb[0].updatedAt,
-        });
-      }
-      
-      return res.json({
-        configured: false,
-      });
-    } catch (error) {
-      console.error("Erro ao buscar configuração do Supabase:", error);
-      return res.json({
-        configured: false,
-      });
-    }
-  });
-
-  app.get("/api/config/supabase/credentials", authenticateConfig, async (req: AuthRequest, res) => {
-    try {
-      const tenantId = req.user!.tenantId;
-      const configFromDb = await db.select().from(supabaseConfig)
-        .where(eq(supabaseConfig.tenantId, tenantId))
-        .limit(1);
-      
-      if (configFromDb[0]) {
-        return res.json({
-          success: true,
-          credentials: {
-            supabaseUrl: configFromDb[0].supabaseUrl,
-            supabaseAnonKey: decrypt(configFromDb[0].supabaseAnonKey),
-            supabaseBucket: configFromDb[0].supabaseBucket || 'receipts',
-          }
-        });
-      }
-      
-      return res.status(404).json({
-        success: false,
-        error: "Credenciais não encontradas"
-      });
-    } catch (error) {
-      console.error("Erro ao buscar credenciais do Supabase:", error);
-      return res.status(500).json({
-        success: false,
-        error: "Erro ao buscar credenciais",
-      });
-    }
-  });
-
-  app.post("/api/config/supabase", authenticateConfig, async (req: AuthRequest, res) => {
-    try {
-      const { supabaseUrl, supabaseAnonKey, supabaseBucket } = req.body;
-      const tenantId = req.user!.tenantId;
-      
-      if (!supabaseUrl || !supabaseAnonKey) {
-        return res.status(400).json({
-          error: "URL e Chave Anon são obrigatórios",
-        });
-      }
-      
-      const encryptedKey = encrypt(supabaseAnonKey);
-      
-      // Tentar verificar se a tabela existe antes de prosseguir
-      try {
-        const existingConfig = await db.select().from(supabaseConfig)
-          .where(eq(supabaseConfig.tenantId, tenantId))
-          .limit(1);
-        
-        if (existingConfig[0]) {
-          await db
-            .update(supabaseConfig)
-            .set({
-              supabaseUrl,
-              supabaseAnonKey: encryptedKey,
-              supabaseBucket: supabaseBucket || 'receipts',
-              updatedAt: new Date(),
-            })
-            .where(and(
-              eq(supabaseConfig.id, existingConfig[0].id),
-              eq(supabaseConfig.tenantId, tenantId)
-            ));
-        } else {
-          await db.insert(supabaseConfig).values({
-            tenantId,
-            supabaseUrl,
-            supabaseAnonKey: encryptedKey,
-            supabaseBucket: supabaseBucket || 'receipts',
-          });
-        }
-      } catch (dbError: any) {
-        // Se a tabela não existir, tentamos forçar a criação (embora db:push deva cuidar disso)
-        if (dbError.message.includes('relation "supabase_config" does not exist')) {
-          console.error("⚠️ Tabela supabase_config não encontrada. Tentando sincronizar banco...");
-          // Em um ambiente real, poderíamos tentar rodar o push aqui, 
-          // mas por agora vamos retornar um erro claro instruindo a reinicialização
-          return res.status(500).json({
-            error: "Banco de dados em manutenção. Por favor, tente novamente em alguns segundos.",
-            message: "Tabela de configuração não encontrada no banco de dados."
-          });
-        }
-        throw dbError;
-      }
-
-      // Invalida o cache
-      invalidateCredentialsCache(tenantId);
-      
-      console.log(`✅ Configuração do Supabase salva para tenant ${tenantId}`);
-      return res.json({
-        success: true,
-        message: "Credenciais salvas com sucesso",
-      });
-    } catch (error) {
-      console.error("Erro ao salvar configuração do Supabase:", error);
-      return res.status(500).json({
-        error: "Erro ao salvar configuração",
-        message: error instanceof Error ? error.message : "Erro desconhecido"
-      });
-    }
-  });
+  // NOTE: Duplicate routes removed - canonical Supabase routes are defined later in this file
+  // with comprehensive cache invalidation and proper encryption of both URL and anonKey
 
   app.post("/api/config/supabase/test", async (req, res) => {
     try {
@@ -1981,73 +1853,34 @@ export function setupConfigRoutes(app: Express) {
   });
 
   // ===== SUPABASE CONFIGURATION =====
-  // IMPORTANTE: Endpoint NÃO-autenticado para permitir acesso de forms públicos
-  // Anon key é credencial pública (seguro expor), NUNCA expor service_role_key
   
-  app.get("/api/config/supabase", configLimiter, async (req, res) => {
-    const startTime = Date.now();
-    
+  app.get("/api/config/supabase", authenticateConfig, async (req: AuthRequest, res) => {
     try {
-      // Audit log - registrar requisição
-      console.log(`[AUDIT] GET /api/config/supabase - IP: ${req.ip} - ${new Date().toISOString()}`);
+      const tenantId = req.user!.tenantId;
+      const configFromDb = await db.select().from(supabaseConfig)
+        .where(eq(supabaseConfig.tenantId, tenantId))
+        .limit(1);
       
-      // PUBLIC ENDPOINT: Priority order - env vars > database
-      const urlFromEnv = process.env.REACT_APP_SUPABASE_URL || process.env.SUPABASE_URL;
-      const keyFromEnv = process.env.REACT_APP_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
-      
-      if (urlFromEnv && keyFromEnv) {
-        const responseTime = Date.now() - startTime;
-        console.log(`[AUDIT] ✅ Supabase config fornecido de environment variables - ${responseTime}ms`);
+      if (configFromDb[0]) {
+        const { getSupabaseCredentialsStrict } = await import('../lib/credentialsDb.js');
+        const decrypted = await getSupabaseCredentialsStrict(tenantId);
         
         return res.json({
-          url: urlFromEnv,
-          anonKey: keyFromEnv,
+          configured: true,
+          supabaseUrl: decrypted?.url || configFromDb[0].supabaseUrl,
+          supabaseBucket: configFromDb[0].supabaseBucket || 'receipts',
+          createdAt: configFromDb[0].createdAt,
+          updatedAt: configFromDb[0].updatedAt,
         });
       }
       
-      // 🔐 MULTI-TENANT SECURITY: Try to get tenantId from session or header - NO HARDCODED FALLBACKS
-      const tenantId = (req.session as any)?.tenantId || 
-                       (req.session as any)?.userId || 
-                       req.headers['x-tenant-id'] as string;
-      
-      if (tenantId) {
-        // Fallback para Database usando tenantId da sessão
-        try {
-          const { getSupabaseCredentials } = await import('../lib/credentialsDb.js');
-          const credentials = await getSupabaseCredentials(tenantId);
-          
-          if (credentials) {
-            const responseTime = Date.now() - startTime;
-            console.log(`[AUDIT] ✅ Supabase config fornecido do banco de dados (tenant: ${tenantId}) - ${responseTime}ms`);
-            
-            return res.json({
-              url: credentials.url,
-              anonKey: credentials.anonKey,
-            });
-          }
-        } catch (dbError) {
-          console.error(`[AUDIT] ⚠️ Erro ao buscar do DB para tenant ${tenantId}:`, dbError);
-        }
-      } else {
-        console.log(`[AUDIT] ⚠️ Nenhum tenantId disponível na sessão ou header - retornando vazio`);
-      }
-      
-      // Não configurado - retornar objeto vazio (frontend deve lidar gracefully)
-      const responseTime = Date.now() - startTime;
-      console.log(`[AUDIT] ⚠️ Supabase NÃO configurado em environment variables nem database - ${responseTime}ms`);
-      
       return res.json({
-        url: '',
-        anonKey: '',
+        configured: false,
       });
     } catch (error) {
-      const responseTime = Date.now() - startTime;
-      console.error(`[AUDIT] ❌ Erro ao buscar config Supabase - ${responseTime}ms:`, error);
-      
-      // Retornar vazio em caso de erro (frontend deve funcionar sem Supabase)
+      console.error("Erro ao buscar configuração do Supabase:", error);
       return res.json({
-        url: '',
-        anonKey: '',
+        configured: false,
       });
     }
   });
@@ -2079,9 +1912,9 @@ export function setupConfigRoutes(app: Express) {
           return res.json({
             success: true,
             credentials: {
-              url: credentials.url,
-              anonKey: credentials.anonKey,
-              bucket: credentials.bucket || 'receipts',
+              supabaseUrl: credentials.url,
+              supabaseAnonKey: credentials.anonKey,
+              supabaseBucket: credentials.bucket || 'receipts',
             },
             source: 'database'
           });

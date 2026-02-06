@@ -85,20 +85,14 @@ async function getSupabaseCredentialsFromDatabase(): Promise<SupabaseCredentials
       let url: string;
       let anonKey: string;
       
-      try {
-        url = decrypt(config.supabaseUrl);
-        anonKey = decrypt(config.supabaseAnonKey);
-        console.log(`✅ [SUPABASE] Credenciais descriptografadas com sucesso (tenant: ${config.tenantId})`);
-      } catch (decryptError: any) {
-        // Fallback: dados podem estar em texto plano (formato legado)
-        if (config.supabaseUrl.startsWith('http')) {
-          console.log('⚠️ [SUPABASE] Usando credenciais em texto plano (formato legado)');
-          url = config.supabaseUrl;
-          anonKey = config.supabaseAnonKey;
-        } else {
-          throw decryptError;
-        }
-      }
+      const isEncrypted = (str: string) => {
+        if (!str) return false;
+        if (str.startsWith('http') || str.startsWith('ey')) return false;
+        return true;
+      };
+      url = isEncrypted(config.supabaseUrl) ? decrypt(config.supabaseUrl) : config.supabaseUrl;
+      anonKey = isEncrypted(config.supabaseAnonKey) ? decrypt(config.supabaseAnonKey) : config.supabaseAnonKey;
+      console.log(`✅ [SUPABASE] Credenciais processadas com sucesso (tenant: ${config.tenantId})`);
       
       return {
         url,
@@ -237,17 +231,9 @@ export async function getAllSupabaseConfigs(): Promise<SupabaseCredentialsFromDb
         let url: string;
         let anonKey: string;
         
-        try {
-          url = decrypt(config.supabaseUrl);
-          anonKey = decrypt(config.supabaseAnonKey);
-        } catch (decryptError: any) {
-          if (config.supabaseUrl.startsWith('http')) {
-            url = config.supabaseUrl;
-            anonKey = config.supabaseAnonKey;
-          } else {
-            throw decryptError;
-          }
-        }
+        const isEnc = (s: string) => s && !s.startsWith('http') && !s.startsWith('ey');
+        url = isEnc(config.supabaseUrl) ? decrypt(config.supabaseUrl) : config.supabaseUrl;
+        anonKey = isEnc(config.supabaseAnonKey) ? decrypt(config.supabaseAnonKey) : config.supabaseAnonKey;
         
         results.push({
           url,

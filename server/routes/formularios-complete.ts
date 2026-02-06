@@ -2226,9 +2226,9 @@ export function registerFormulariosCompleteRoutes(app: Express) {
           .limit(1);
         
         if (tenantConfig[0]) {
-          // Descriptografar credenciais
-          supabaseUrl = decrypt(tenantConfig[0].supabaseUrl);
-          supabaseAnonKey = decrypt(tenantConfig[0].supabaseAnonKey);
+          const isEnc = (s: string) => s && !s.startsWith('http') && !s.startsWith('ey');
+          supabaseUrl = isEnc(tenantConfig[0].supabaseUrl) ? decrypt(tenantConfig[0].supabaseUrl) : tenantConfig[0].supabaseUrl;
+          supabaseAnonKey = isEnc(tenantConfig[0].supabaseAnonKey) ? decrypt(tenantConfig[0].supabaseAnonKey) : tenantConfig[0].supabaseAnonKey;
           console.log(`[GET /api/settings] ✅ Usando credenciais do tenant ${tenantId} (supabase_config)`);
         }
       } catch (err: any) {

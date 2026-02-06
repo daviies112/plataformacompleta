@@ -84,7 +84,8 @@ async function fetchSupabaseConfig() {
       
       try {
         const response = await fetch('/api/config/supabase/credentials', {
-          signal: controller.signal
+          signal: controller.signal,
+          credentials: 'include'
         });
         clearTimeout(timeoutId);
         

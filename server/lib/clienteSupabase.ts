@@ -49,11 +49,15 @@ async function getClienteCredentials(): Promise<{ url: string; anonKey: string }
     if (configs.length > 0) {
       const config = configs[0];
       try {
-        const url = decrypt(config.supabaseUrl);
-        const anonKey = decrypt(config.supabaseAnonKey);
+        const isEncrypted = (str: string) => {
+          if (!str) return false;
+          if (str.startsWith('http') || str.startsWith('ey')) return false;
+          return true;
+        };
+        const url = isEncrypted(config.supabaseUrl) ? decrypt(config.supabaseUrl) : config.supabaseUrl;
+        const anonKey = isEncrypted(config.supabaseAnonKey) ? decrypt(config.supabaseAnonKey) : config.supabaseAnonKey;
         
         if (url && anonKey) {
-          // Validar formato da URL
           if (!url.startsWith('http')) {
             log('❌ SUPABASE_URL do banco inválida - deve começar com http:// ou https://');
           } else if (anonKey.length < 20) {

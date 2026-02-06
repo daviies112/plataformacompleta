@@ -330,6 +330,7 @@ const SettingsPage = () => {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({
           supabaseUrl: credentials.url,
           supabaseAnonKey: credentials.anon_key,
@@ -411,6 +412,7 @@ const SettingsPage = () => {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({
           clientId: credentials.client_id,
           clientSecret: credentials.client_secret,
@@ -447,6 +449,7 @@ const SettingsPage = () => {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({
           webhookUrl: credentials.webhook_url,
         }),
@@ -642,6 +645,7 @@ const SettingsPage = () => {
       const response = await fetch('/api/config/redis', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           redisUrl: credentials.redis_url,
           redisToken: credentials.redis_token,
@@ -663,6 +667,7 @@ const SettingsPage = () => {
       const response = await fetch('/api/config/sentry', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           dsn: credentials.dsn,
           authToken: credentials.auth_token,
@@ -688,6 +693,7 @@ const SettingsPage = () => {
       const response = await fetch('/api/config/cloudflare', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           zoneId: credentials.zone_id,
           apiToken: credentials.api_token,
@@ -709,6 +715,7 @@ const SettingsPage = () => {
       const response = await fetch('/api/config/better-stack', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           sourceToken: credentials.source_token,
           ingestingHost: credentials.ingesting_host || undefined,
@@ -730,6 +737,7 @@ const SettingsPage = () => {
       const response = await fetch('/api/config/bigdatacorp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           tokenId: credentials.token_id,
           chaveToken: credentials.chave_token,
@@ -755,6 +763,7 @@ const SettingsPage = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
+        credentials: 'include',
         body: JSON.stringify({
           user: credentials.user,
           password: credentials.password || undefined,
@@ -788,6 +797,7 @@ const SettingsPage = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
+        credentials: 'include',
         body: JSON.stringify({
           user: credentials.user,
           password: credentials.password || undefined,
@@ -813,6 +823,7 @@ const SettingsPage = () => {
         headers: { 
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
+        credentials: 'include',
       });
       if (!response.ok) throw new Error((await response.json()).error);
       return response.json();
@@ -835,6 +846,7 @@ const SettingsPage = () => {
       const response = await fetch('/api/config/supabase-master', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           supabaseMasterUrl: credentials.url,
           supabaseMasterServiceRoleKey: credentials.service_role_key,
@@ -857,6 +869,7 @@ const SettingsPage = () => {
       const response = await fetch('/api/config/cache', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(settings),
       });
       if (!response.ok) throw new Error((await response.json()).error);
@@ -875,6 +888,7 @@ const SettingsPage = () => {
       const response = await fetch('/api/config/optimizer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(settings),
       });
       if (!response.ok) throw new Error((await response.json()).error);
@@ -893,6 +907,7 @@ const SettingsPage = () => {
       const response = await fetch('/api/config/hms100ms', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           appAccessKey: credentials.app_access_key,
           appSecret: credentials.app_secret,
@@ -919,6 +934,7 @@ const SettingsPage = () => {
       const response = await fetch('/api/config/hms100ms/test', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify({
           appAccessKey: credentials.app_access_key,
           appSecret: credentials.app_secret,
@@ -943,6 +959,7 @@ const SettingsPage = () => {
       const response = await fetch('/api/config/monitoring', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(settings),
       });
       if (!response.ok) throw new Error((await response.json()).error);
