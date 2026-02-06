@@ -13,6 +13,8 @@ interface SupabaseConfig {
 interface AssinaturaContract {
   id?: string;
   tenant_id?: string;
+  form_submission_id?: string | null;
+  meeting_id?: string | null;
   client_name: string;
   client_cpf?: string | null;
   client_email?: string | null;
@@ -636,21 +638,42 @@ class AssinaturaSupabaseService {
         google_play_url: contract.google_play_url ?? globalConfig?.google_play_url ?? null,
         
         // WhatsApp
-        whatsapp_enviado: false
+        whatsapp_enviado: false,
       };
+
+      // Tentar incluir colunas extras se existirem na tabela
+      const extraFields: any = {};
+      if ((contract as any).form_submission_id) extraFields.form_submission_id = (contract as any).form_submission_id;
+      if ((contract as any).meeting_id) extraFields.meeting_id = (contract as any).meeting_id;
       
       console.log('[AssinaturaSupabase] Creating contract in Supabase contracts table:', {
         client_name: contractData.client_name,
         access_token: contractData.access_token,
         protocol_number: contractData.protocol_number,
+        form_submission_id: extraFields.form_submission_id || 'ausente',
+        meeting_id: extraFields.meeting_id || 'ausente',
         address: contractData.address_street ? `${contractData.address_street}, ${contractData.address_number} - ${contractData.address_city}/${contractData.address_state}` : 'ausente'
       });
       
-      const { data, error } = await this.supabase
+      // Primeira tentativa: com colunas extras (form_submission_id, meeting_id)
+      let insertData = Object.keys(extraFields).length > 0 ? { ...contractData, ...extraFields } : contractData;
+      let { data, error } = await this.supabase
         .from('contracts')
-        .insert(contractData)
+        .insert(insertData)
         .select()
         .single();
+      
+      // Se falhou por coluna inexistente, tentar sem as colunas extras
+      if (error && (error.code === 'PGRST204' || error.message?.includes('column'))) {
+        console.log('[AssinaturaSupabase] Colunas extras não existem, tentando sem form_submission_id/meeting_id...');
+        const retryResult = await this.supabase
+          .from('contracts')
+          .insert(contractData)
+          .select()
+          .single();
+        data = retryResult.data;
+        error = retryResult.error;
+      }
       
       if (error) {
         console.error('[AssinaturaSupabase] Error creating contract:', error);

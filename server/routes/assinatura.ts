@@ -2653,31 +2653,57 @@ router.post('/public/contracts/from-meeting', async (req: Request, res: Response
       localContractsStore.set(id, contractData);
       saveLocalContracts(localContractsStore);
 
-      // Salvar no Supabase se configurado e tiver tenantId
-      if (tenantId && SUPABASE_CONFIGURED && supabaseOwner) {
-        try {
-          const supabaseContractData = {
-            client_name: contractClientName,
-            client_cpf: addressData?.cpf || '',
-            client_email: contractClientEmail,
-            client_phone: finalPhone || null,
-            protocol_number: protocolNum,
-            status: 'sem preencher',
-            access_token,
-            contract_html: '<p>Contrato gerado automaticamente a partir da reunião</p>',
-            address_street: addressData?.street || null,
-            address_number: addressData?.number || null,
-            address_complement: addressData?.complement || null,
-            address_city: addressData?.city || null,
-            address_state: addressData?.state || null,
-            address_zipcode: addressData?.zipcode || null,
-          };
+      // Salvar no Supabase via assinaturaSupabaseService (lazy init via ensureInitialized)
+      try {
+        const supabaseContractData: any = {
+          client_name: contractClientName,
+          client_cpf: addressData?.cpf || '',
+          client_email: contractClientEmail,
+          client_phone: finalPhone || null,
+          protocol_number: protocolNum,
+          status: 'sem preencher',
+          access_token,
+          contract_html: '<p>Contrato gerado automaticamente a partir da reunião</p>',
+          address_street: addressData?.street || null,
+          address_number: addressData?.number || null,
+          address_complement: addressData?.complement || null,
+          address_city: addressData?.city || null,
+          address_state: addressData?.state || null,
+          address_zipcode: addressData?.zipcode || null,
+          meeting_id: meetingId || null,
+          tenant_id: tenantId || null,
+        };
 
-          const supabaseContract = await assinaturaSupabaseService.createContract(supabaseContractData);
-          console.log(`[Assinatura] ✅ Contrato salvo no Supabase: ${supabaseContract?.id || 'sem id'}, nome: ${contractClientName}`);
-        } catch (err) {
-          console.log('[Assinatura] Erro ao salvar no Supabase (contrato local mantido):', err);
+        const supabaseContract = await assinaturaSupabaseService.createContract(supabaseContractData);
+        if (supabaseContract) {
+          console.log(`[Assinatura] ✅ Contrato salvo no Supabase: ${supabaseContract.id}, nome: ${contractClientName}`);
+          contractData.id = supabaseContract.id;
+          localContractsStore.set(supabaseContract.id, { ...contractData, id: supabaseContract.id });
+          saveLocalContracts(localContractsStore);
+        } else {
+          console.log('[Assinatura] ⚠️ assinaturaSupabaseService retornou null, tentando tenant direto...');
+          if (tenantId) {
+            const tenantSupabase = await getClientSupabaseClient(tenantId);
+            if (tenantSupabase) {
+              const { meeting_id: _mid, tenant_id: _tid, ...coreData } = supabaseContractData;
+              const { data, error: insertErr } = await tenantSupabase
+                .from('contracts')
+                .insert(coreData)
+                .select()
+                .single();
+              if (!insertErr && data) {
+                console.log(`[Assinatura] ✅ Contrato salvo via tenant direto: ${data.id}`);
+                contractData.id = data.id;
+                localContractsStore.set(data.id, { ...contractData, id: data.id });
+                saveLocalContracts(localContractsStore);
+              } else if (insertErr) {
+                console.error('[Assinatura] Erro tenant direto:', insertErr);
+              }
+            }
+          }
         }
+      } catch (err) {
+        console.log('[Assinatura] Erro ao salvar no Supabase (contrato local mantido):', err);
       }
 
       console.log(`[Assinatura] ✅ Contrato criado: ${id}, cliente: ${contractClientName}`);
@@ -2881,13 +2907,11 @@ router.post('/public/contracts/from-meeting', async (req: Request, res: Response
 
     console.log(`[Assinatura] Criando contrato para: ${contractData.client_name}, protocol: ${protocolNumber}`);
 
-    // 5. Tentar criar no Supabase do tenant específico se disponível
+    // 5. Tentar criar no Supabase - usando assinaturaSupabaseService como caminho primário
     let createdContract = null;
     let supabaseContractId: string | null = null;
 
-    // Dados para o Supabase (sem colunas extras que não existem na tabela)
-    // A tabela contracts NÃO tem: form_submission_id, meeting_id, tenant_id
-    const supabaseContractData = {
+    const supabaseContractData: any = {
       client_name: contractData.client_name,
       client_cpf: contractData.client_cpf,
       client_email: contractData.client_email,
@@ -2903,16 +2927,34 @@ router.post('/public/contracts/from-meeting', async (req: Request, res: Response
       access_token: contractData.access_token,
       signature_url: contractData.signature_url,
       contract_html: contractData.contract_html,
-      created_at: contractData.created_at
+      created_at: contractData.created_at,
+      form_submission_id: submissionId || null,
+      meeting_id: meetingId || null,
+      tenant_id: formSubmission.tenant_id || null,
     };
 
-    if (formSubmission.tenant_id) {
+    // 5a. Caminho primário: usar assinaturaSupabaseService (com lazy init via ensureInitialized)
+    try {
+      console.log('[Assinatura] Tentando criar contrato via assinaturaSupabaseService...');
+      const supabaseContract = await assinaturaSupabaseService.createContract(supabaseContractData);
+      if (supabaseContract) {
+        createdContract = supabaseContract;
+        supabaseContractId = supabaseContract.id || null;
+        console.log(`[Assinatura] ✅ Contrato criado via assinaturaSupabaseService: ${supabaseContractId}`);
+      }
+    } catch (err) {
+      console.error('[Assinatura] Erro no assinaturaSupabaseService:', err);
+    }
+
+    // 5b. Fallback: tentar via getClientSupabaseClient do tenant (sem colunas extras)
+    if (!createdContract && formSubmission.tenant_id) {
       try {
         const tenantSupabase = await getClientSupabaseClient(formSubmission.tenant_id);
         if (tenantSupabase) {
+          const { form_submission_id: _fsid, meeting_id: _mid, tenant_id: _tid, ...coreData } = supabaseContractData;
           const { data, error: insertError } = await tenantSupabase
             .from('contracts')
-            .insert(supabaseContractData)
+            .insert(coreData)
             .select()
             .single();
 
@@ -2926,18 +2968,6 @@ router.post('/public/contracts/from-meeting', async (req: Request, res: Response
         }
       } catch (err) {
         console.error('[Assinatura] Erro ao criar contrato via tenant:', err);
-      }
-    }
-
-    // 6. Fallback: usar assinaturaSupabaseService
-    if (!createdContract && assinaturaSupabaseService.isConnected()) {
-      console.log('[Assinatura] Tentando fallback via assinaturaSupabaseService...');
-      const supabaseContract = await assinaturaSupabaseService.createContract(supabaseContractData);
-
-      if (supabaseContract) {
-        createdContract = supabaseContract;
-        supabaseContractId = supabaseContract.id || null;
-        console.log(`[Assinatura] ✅ Contrato criado via fallback: ${supabaseContractId}`);
       }
     }
 
