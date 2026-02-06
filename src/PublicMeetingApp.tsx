@@ -13,7 +13,7 @@
  * ║  - Any authentication/context providers                                   ║
  * ║                                                                           ║
  * ║  🟢 ALLOWED:                                                               ║
- * ║  - React core (useState, useEffect, useCallback, useMemo, lazy, Suspense) ║
+ * ║  - React core (useState, useEffect, useCallback, useMemo, useRef, lazy, Suspense) ║
  * ║  - Native fetch() for API calls                                           ║
  * ║  - Inline CSS (no external CSS imports)                                   ║
  * ║  - 100ms SDK (lazy loaded only when needed)                               ║
@@ -23,9 +23,9 @@
  * ║  - Camera initialization delayed 100ms for UI to render first             ║
  * ║  - Uses combined /full-public endpoint (1 request vs 2)                   ║
  * ║  - Backend cache: 2 min TTL for meeting data                              ║
+ * ║  - Auto-fetches participant name from URL params (fsid/pid)               ║
  * ║                                                                           ║
  * ║  📖 Full documentation: docs/PUBLIC_FORM_PERFORMANCE_FIX.md               ║
- * ║  💰 Cost to discover this fix: $30+ in debugging time                     ║
  * ╚═══════════════════════════════════════════════════════════════════════════╝
  */
 import { useState, useEffect, useCallback, useRef, lazy, Suspense } from "react";
@@ -104,7 +104,6 @@ const Meeting100msWithProvider = lazy(() =>
   import("@/components/Meeting100ms").then(m => ({ default: m.Meeting100msWithProvider }))
 );
 
-// Preload function - triggers SDK loading early while user is in lobby
 const preloadMeeting100ms = () => {
   import("@/components/Meeting100ms");
 };
@@ -115,6 +114,7 @@ const PublicMeetingApp = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [userName, setUserName] = useState('');
+  const [participantNameFromServer, setParticipantNameFromServer] = useState<string | null>(null);
   const [step, setStep] = useState<'lobby' | 'joining' | 'meeting' | 'ended'>('lobby');
   const [token100ms, setToken100ms] = useState<string | null>(null);
   const [tokenError, setTokenError] = useState<string | null>(null);
@@ -128,26 +128,19 @@ const PublicMeetingApp = () => {
   const extractMeetingId = useCallback(() => {
     const path = window.location.pathname;
     
-    // URL patterns:
-    // /reuniao/:companySlug/:meetingId -> extract meetingId (last segment)
-    // /reuniao-publica/:meetingId -> extract meetingId
+    const twoSegmentPattern = /^\/reuniao\/[^/?]+\/([^/?]+)/;
+    const oneSegmentPattern = /^\/reuniao-publica\/([^/?]+)/;
     
-    const twoSegmentPattern = /^\/reuniao\/[^/?]+\/([^/?]+)/;  // /reuniao/company/meetingId
-    const oneSegmentPattern = /^\/reuniao-publica\/([^/?]+)/;  // /reuniao-publica/meetingId
-    
-    // Try two-segment pattern first (new URL format with company slug)
     let match = path.match(twoSegmentPattern);
     if (match) {
       return match[1].split('?')[0].split('%3F')[0];
     }
     
-    // Try one-segment pattern (legacy format)
     match = path.match(oneSegmentPattern);
     if (match) {
       return match[1].split('?')[0].split('%3F')[0];
     }
     
-    // Fallback: try to find a UUID pattern anywhere in the path
     const uuidPattern = /([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i;
     match = path.match(uuidPattern);
     if (match) {
@@ -168,7 +161,6 @@ const PublicMeetingApp = () => {
 
     const fetchData = async () => {
       try {
-        // Use combined endpoint for single request (faster than 2 parallel requests)
         const response = await fetch(`/api/public/reunioes/${meetingId}/full-public`);
 
         if (!response.ok) {
@@ -177,10 +169,8 @@ const PublicMeetingApp = () => {
 
         const data = await response.json();
         
-        // Set meeting data
         setMeetingData(data.meeting);
 
-        // Set design config if available
         if (data.roomDesignConfig) {
           setRoomDesign({
             branding: { ...DEFAULT_CONFIG.branding, ...data.roomDesignConfig.branding },
@@ -189,6 +179,42 @@ const PublicMeetingApp = () => {
             endScreen: { ...DEFAULT_CONFIG.endScreen, ...data.roomDesignConfig.endScreen },
           });
         }
+
+        const searchParams = new URLSearchParams(window.location.search);
+        const fsid = searchParams.get('fsid');
+        const pid = searchParams.get('pid');
+
+        if (fsid || pid) {
+          try {
+            const params = new URLSearchParams();
+            if (fsid) params.set('fsid', fsid);
+            if (pid) params.set('pid', pid);
+
+            const participantRes = await fetch(
+              `/api/public/reunioes/${meetingId}/participant-data?${params.toString()}`
+            );
+
+            if (participantRes.ok) {
+              const participantData = await participantRes.json();
+              if (participantData.found && participantData.data?.nome) {
+                const name = participantData.data.nome;
+                setUserName(name);
+                setParticipantNameFromServer(name);
+              }
+            }
+          } catch (err) {
+            console.log('[Lobby] Could not fetch participant data:', err);
+          }
+        }
+
+        const autoJoin = searchParams.get('autoJoin');
+        const botName = searchParams.get('botName');
+        const isRecordingBot = searchParams.get('isRecordingBot') === 'true';
+
+        if (isRecordingBot && botName) {
+          setUserName(botName);
+        }
+
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Erro ao carregar reunião');
       } finally {
@@ -199,11 +225,8 @@ const PublicMeetingApp = () => {
     fetchData();
   }, [meetingId]);
 
-  // Preload 100ms SDK while user is in lobby (before they click join)
-  // This dramatically reduces perceived join time
   useEffect(() => {
     if (step === 'lobby' && meetingData && !loading) {
-      // Start preloading the 100ms SDK bundle in the background
       preloadMeeting100ms();
     }
   }, [step, meetingData, loading]);
@@ -240,7 +263,6 @@ const PublicMeetingApp = () => {
       }
     };
 
-    // Defer camera initialization to let UI render first (100ms delay)
     const timeoutId = setTimeout(initMedia, 100);
 
     return () => {
@@ -296,12 +318,10 @@ const PublicMeetingApp = () => {
     setStep('joining');
     setTokenError(null);
 
-    // Load global CSS before entering meeting room (Meeting100ms uses shadcn components)
     const CSS_STYLE_ID = 'meeting-global-css';
     if (!document.getElementById(CSS_STYLE_ID)) {
       try {
         await import('./index.css');
-        // Mark as loaded to prevent duplicate imports
         const marker = document.createElement('meta');
         marker.id = CSS_STYLE_ID;
         document.head.appendChild(marker);
@@ -349,63 +369,52 @@ const PublicMeetingApp = () => {
   const lobby = roomDesign.lobby;
 
   const styles: Record<string, React.CSSProperties> = {
-    container: {
-      minHeight: '100vh',
+    fullPage: {
+      minHeight: '100dvh',
+      width: '100%',
       display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '16px',
+      flexDirection: 'column',
       backgroundColor: colors.background,
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      overflow: 'hidden',
     },
-    card: {
-      width: '100%',
-      maxWidth: '600px',
-      padding: '32px',
-      borderRadius: '16px',
-      backgroundColor: colors.controlsBackground,
-      boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
-    },
-    logoContainer: {
+    lobbyContent: {
+      flex: 1,
       display: 'flex',
-      justifyContent: branding.logoPosition === 'left' ? 'flex-start' : 
-                     branding.logoPosition === 'right' ? 'flex-end' : 'center',
-      marginBottom: '16px',
+      flexDirection: 'column',
+      padding: '12px 16px',
+      maxWidth: '560px',
+      width: '100%',
+      margin: '0 auto',
+      boxSizing: 'border-box' as const,
+    },
+    logoRow: {
+      display: 'flex',
+      justifyContent: 'flex-start',
+      alignItems: 'center',
+      padding: '4px 0 8px 0',
+      flexShrink: 0,
     },
     logo: {
-      maxHeight: branding.logoSize || 60,
-      maxWidth: '200px',
+      maxHeight: Math.min(branding.logoSize || 60, 44),
+      maxWidth: '140px',
       objectFit: 'contain' as const,
     },
-    companyName: {
-      fontSize: '18px',
-      fontWeight: 600,
-      color: colors.controlsText,
-      textAlign: 'center' as const,
-      marginBottom: '8px',
-    },
-    title: {
-      fontSize: '24px',
-      fontWeight: 700,
-      color: colors.controlsText,
-      textAlign: 'center' as const,
-      marginBottom: '8px',
-    },
-    meetingTitle: {
-      fontSize: '14px',
-      color: colors.controlsText,
-      opacity: 0.7,
-      textAlign: 'center' as const,
-      marginBottom: '24px',
+    videoSection: {
+      flex: 1,
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center',
+      minHeight: 0,
     },
     videoContainer: {
       position: 'relative' as const,
       width: '100%',
-      aspectRatio: '16/9',
-      borderRadius: '12px',
+      aspectRatio: '3/4',
+      maxHeight: 'calc(100dvh - 280px)',
+      borderRadius: '16px',
       overflow: 'hidden',
-      backgroundColor: colors.avatarBackground,
-      marginBottom: '16px',
+      backgroundColor: colors.controlsBackground,
     },
     video: {
       width: '100%',
@@ -419,28 +428,24 @@ const PublicMeetingApp = () => {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
+      backgroundColor: colors.avatarBackground + '33',
     },
     avatarCircle: {
-      width: '96px',
-      height: '96px',
+      width: '80px',
+      height: '80px',
       borderRadius: '50%',
       backgroundColor: colors.primaryButton,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
     },
-    avatarIcon: {
-      width: '48px',
-      height: '48px',
-      color: colors.avatarText,
-    },
     controlsRow: {
       position: 'absolute' as const,
-      bottom: '16px',
+      bottom: '12px',
       left: '50%',
       transform: 'translateX(-50%)',
       display: 'flex',
-      gap: '8px',
+      gap: '12px',
     },
     controlButton: {
       width: '48px',
@@ -451,46 +456,85 @@ const PublicMeetingApp = () => {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      transition: 'transform 0.2s',
+      transition: 'transform 0.15s',
+      backdropFilter: 'blur(8px)',
+    },
+    bottomSection: {
+      flexShrink: 0,
+      paddingTop: '16px',
+      paddingBottom: 'max(16px, env(safe-area-inset-bottom))',
+    },
+    welcomeText: {
+      fontSize: '17px',
+      fontWeight: 600,
+      color: colors.controlsText,
+      marginBottom: '16px',
+      textAlign: 'center' as const,
     },
     formGroup: {
-      marginBottom: '16px',
+      marginBottom: '12px',
     },
     label: {
       display: 'block',
       fontSize: '14px',
       fontWeight: 500,
       color: colors.controlsText,
+      opacity: 0.8,
       marginBottom: '6px',
     },
     input: {
       width: '100%',
-      padding: '12px 16px',
+      padding: '14px 16px',
       fontSize: '16px',
-      borderRadius: '8px',
-      border: `1px solid ${colors.controlsText}33`,
-      backgroundColor: `${colors.background}88`,
+      borderRadius: '12px',
+      border: `1px solid ${colors.controlsText}22`,
+      backgroundColor: colors.controlsBackground,
       color: colors.controlsText,
       outline: 'none',
       boxSizing: 'border-box' as const,
     },
     primaryButton: {
       width: '100%',
-      padding: '14px 24px',
-      fontSize: '16px',
+      padding: '16px 24px',
+      fontSize: '17px',
       fontWeight: 600,
-      borderRadius: '8px',
+      borderRadius: '12px',
       border: 'none',
       backgroundColor: colors.primaryButton,
       color: '#ffffff',
       cursor: 'pointer',
-      transition: 'transform 0.2s, opacity 0.2s',
+      transition: 'transform 0.15s, opacity 0.15s',
     },
     errorText: {
       color: colors.dangerButton,
       fontSize: '14px',
       marginTop: '8px',
+      marginBottom: '8px',
       textAlign: 'center' as const,
+    },
+    centeredCard: {
+      minHeight: '100vh',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '16px',
+      backgroundColor: colors.background,
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    },
+    card: {
+      width: '100%',
+      maxWidth: '440px',
+      padding: '32px',
+      borderRadius: '16px',
+      backgroundColor: colors.controlsBackground,
+      boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
+    },
+    title: {
+      fontSize: '20px',
+      fontWeight: 700,
+      color: colors.controlsText,
+      textAlign: 'center' as const,
+      marginBottom: '8px',
     },
     skeleton: {
       height: '24px',
@@ -510,15 +554,20 @@ const PublicMeetingApp = () => {
 
   if (loading) {
     return (
-      <div style={styles.container}>
+      <div style={styles.fullPage}>
         <style>{`
           @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
           @keyframes spin { to { transform: rotate(360deg); } }
         `}</style>
-        <div style={styles.card}>
-          <div style={{ ...styles.skeleton, width: '60%', margin: '0 auto 16px' }} />
-          <div style={{ ...styles.skeleton, height: '200px', marginBottom: '16px' }} />
-          <div style={{ ...styles.skeleton, height: '48px' }} />
+        <div style={styles.lobbyContent}>
+          <div style={{ ...styles.skeleton, width: '100px', height: '36px', marginBottom: '16px' }} />
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
+            <div style={{ ...styles.skeleton, width: '100%', height: '60%', borderRadius: '16px' }} />
+          </div>
+          <div style={{ paddingTop: '16px' }}>
+            <div style={{ ...styles.skeleton, height: '48px', marginBottom: '12px', borderRadius: '12px' }} />
+            <div style={{ ...styles.skeleton, height: '52px', borderRadius: '12px' }} />
+          </div>
         </div>
       </div>
     );
@@ -526,7 +575,7 @@ const PublicMeetingApp = () => {
 
   if (error) {
     return (
-      <div style={styles.container}>
+      <div style={styles.centeredCard}>
         <div style={styles.card}>
           <div style={{ textAlign: 'center' }}>
             <div style={{ 
@@ -555,7 +604,7 @@ const PublicMeetingApp = () => {
 
   if (step === 'joining') {
     return (
-      <div style={styles.container}>
+      <div style={styles.centeredCard}>
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         <div style={styles.card}>
           <div style={{ textAlign: 'center' }}>
@@ -584,7 +633,7 @@ const PublicMeetingApp = () => {
   if (step === 'meeting' && token100ms && meetingData?.roomId100ms) {
     return (
       <Suspense fallback={
-        <div style={styles.container}>
+        <div style={styles.centeredCard}>
           <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
           <div style={styles.card}>
             <div style={{ textAlign: 'center' }}>
@@ -612,7 +661,7 @@ const PublicMeetingApp = () => {
       (fsid ? `/assinatura/from-meeting?meetingId=${meetingId}&fsid=${fsid}` : null);
 
     return (
-      <div style={styles.container}>
+      <div style={styles.centeredCard}>
         <div style={styles.card}>
           <div style={{ textAlign: 'center' }}>
             <div style={{ 
@@ -649,11 +698,11 @@ const PublicMeetingApp = () => {
   }
 
   return (
-    <div style={styles.container}>
+    <div style={styles.fullPage}>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      <div style={styles.card}>
+      <div style={styles.lobbyContent}>
         {branding.showLogoInLobby && branding.logo && (
-          <div style={styles.logoContainer}>
+          <div style={styles.logoRow}>
             <img
               src={branding.logo}
               alt={branding.companyName || "Logo"}
@@ -663,120 +712,120 @@ const PublicMeetingApp = () => {
           </div>
         )}
 
-        {branding.showCompanyName && branding.companyName && (
-          <p style={styles.companyName} data-testid="text-company-name-lobby">
-            {branding.companyName}
-          </p>
-        )}
-
-        <h1 style={styles.title} data-testid="text-lobby-title">
-          {lobby.title}
-        </h1>
-
-        <p style={styles.meetingTitle} data-testid="text-meeting-title">
-          {meetingData?.titulo || 'Reunião'}
-        </p>
-
         {lobby.showCameraPreview !== false && (
-          <div style={styles.videoContainer}>
-            {stream && isVideoEnabled ? (
-              <video
-                ref={videoRef}
-                autoPlay
-                muted
-                playsInline
-                style={styles.video}
-              />
-            ) : (
-              <div style={styles.videoPlaceholder}>
-                <div style={styles.avatarCircle}>
-                  <svg style={styles.avatarIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-                    <circle cx="12" cy="13" r="4"/>
-                  </svg>
+          <div style={styles.videoSection}>
+            <div style={styles.videoContainer}>
+              {stream && isVideoEnabled ? (
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  muted
+                  playsInline
+                  style={styles.video}
+                />
+              ) : (
+                <div style={styles.videoPlaceholder}>
+                  <div style={styles.avatarCircle}>
+                    <svg style={{ width: '40px', height: '40px', color: colors.avatarText }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                      <circle cx="12" cy="13" r="4"/>
+                    </svg>
+                  </div>
                 </div>
+              )}
+
+              <div style={styles.controlsRow}>
+                <button
+                  style={{
+                    ...styles.controlButton,
+                    backgroundColor: isVideoEnabled 
+                      ? colors.controlsBackground + 'cc' 
+                      : colors.dangerButton,
+                  }}
+                  onClick={() => setIsVideoEnabled(!isVideoEnabled)}
+                  data-testid="button-toggle-video"
+                >
+                  {isVideoEnabled ? (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={colors.controlsText} strokeWidth="2">
+                      <path d="M23 7l-7 5 7 5V7z"/>
+                      <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+                    </svg>
+                  ) : (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={colors.controlsText} strokeWidth="2">
+                      <path d="M16 16v1a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2m5.66 0H14a2 2 0 0 1 2 2v3.34l1 1L23 7v10"/>
+                      <line x1="1" y1="1" x2="23" y2="23"/>
+                    </svg>
+                  )}
+                </button>
+
+                <button
+                  style={{
+                    ...styles.controlButton,
+                    backgroundColor: isAudioEnabled 
+                      ? colors.controlsBackground + 'cc' 
+                      : colors.dangerButton,
+                  }}
+                  onClick={() => setIsAudioEnabled(!isAudioEnabled)}
+                  data-testid="button-toggle-audio"
+                >
+                  {isAudioEnabled ? (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={colors.controlsText} strokeWidth="2">
+                      <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                      <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                      <line x1="12" y1="19" x2="12" y2="23"/>
+                      <line x1="8" y1="23" x2="16" y2="23"/>
+                    </svg>
+                  ) : (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={colors.controlsText} strokeWidth="2">
+                      <line x1="1" y1="1" x2="23" y2="23"/>
+                      <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"/>
+                      <path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"/>
+                      <line x1="12" y1="19" x2="12" y2="23"/>
+                      <line x1="8" y1="23" x2="16" y2="23"/>
+                    </svg>
+                  )}
+                </button>
               </div>
-            )}
-
-            <div style={styles.controlsRow}>
-              <button
-                style={{
-                  ...styles.controlButton,
-                  backgroundColor: isVideoEnabled ? colors.controlsBackground : colors.dangerButton,
-                }}
-                onClick={() => setIsVideoEnabled(!isVideoEnabled)}
-                data-testid="button-toggle-video"
-              >
-                {isVideoEnabled ? (
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={colors.controlsText} strokeWidth="2">
-                    <path d="M23 7l-7 5 7 5V7z"/>
-                    <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
-                  </svg>
-                ) : (
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={colors.controlsText} strokeWidth="2">
-                    <path d="M16 16v1a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2m5.66 0H14a2 2 0 0 1 2 2v3.34l1 1L23 7v10"/>
-                    <line x1="1" y1="1" x2="23" y2="23"/>
-                  </svg>
-                )}
-              </button>
-
-              <button
-                style={{
-                  ...styles.controlButton,
-                  backgroundColor: isAudioEnabled ? colors.controlsBackground : colors.dangerButton,
-                }}
-                onClick={() => setIsAudioEnabled(!isAudioEnabled)}
-                data-testid="button-toggle-audio"
-              >
-                {isAudioEnabled ? (
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={colors.controlsText} strokeWidth="2">
-                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                    <line x1="12" y1="19" x2="12" y2="23"/>
-                    <line x1="8" y1="23" x2="16" y2="23"/>
-                  </svg>
-                ) : (
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={colors.controlsText} strokeWidth="2">
-                    <line x1="1" y1="1" x2="23" y2="23"/>
-                    <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"/>
-                    <path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"/>
-                    <line x1="12" y1="19" x2="12" y2="23"/>
-                    <line x1="8" y1="23" x2="16" y2="23"/>
-                  </svg>
-                )}
-              </button>
             </div>
           </div>
         )}
 
-        <div style={styles.formGroup}>
-          <label style={styles.label}>Seu nome</label>
-          <input
-            type="text"
-            style={styles.input}
-            value={userName}
-            onChange={(e) => setUserName(e.target.value)}
-            placeholder="Digite seu nome..."
-            onKeyDown={(e) => e.key === 'Enter' && handleJoin()}
-            data-testid="input-participant-name"
-          />
+        <div style={styles.bottomSection}>
+          {participantNameFromServer ? (
+            <p style={styles.welcomeText} data-testid="text-welcome-participant">
+              Bem-vindo(a), {participantNameFromServer}
+            </p>
+          ) : (
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Seu nome</label>
+              <input
+                type="text"
+                style={styles.input}
+                value={userName}
+                onChange={(e) => setUserName(e.target.value)}
+                placeholder="Digite seu nome..."
+                onKeyDown={(e) => e.key === 'Enter' && handleJoin()}
+                data-testid="input-participant-name"
+              />
+            </div>
+          )}
+
+          {tokenError && (
+            <p style={styles.errorText}>{tokenError}</p>
+          )}
+
+          <button
+            style={{
+              ...styles.primaryButton,
+              opacity: !userName.trim() ? 0.5 : 1,
+            }}
+            onClick={handleJoin}
+            disabled={!userName.trim()}
+            data-testid="button-join-meeting"
+          >
+            {lobby.buttonText || 'Participar agora'}
+          </button>
         </div>
-
-        {tokenError && (
-          <p style={styles.errorText}>{tokenError}</p>
-        )}
-
-        <button
-          style={{
-            ...styles.primaryButton,
-            opacity: !userName.trim() ? 0.6 : 1,
-          }}
-          onClick={handleJoin}
-          disabled={!userName.trim()}
-          data-testid="button-join-meeting"
-        >
-          {lobby.buttonText || 'Participar agora'}
-        </button>
       </div>
     </div>
   );
