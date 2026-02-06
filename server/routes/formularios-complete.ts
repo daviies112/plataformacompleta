@@ -826,9 +826,32 @@ export function registerFormulariosCompleteRoutes(app: Express) {
             }
             console.log(`✅ [SLUG FALLBACK 1] Formulário encontrado via storage:`, storageForm.title);
             console.log(`🔐 [SECURITY] Form verified as public via assertPublicFormAccess`);
-            // CORREÇÃO: Reconstruir welcomeConfig para dados do storage também
             const reconstructedForm = reconstructFormDataFromSupabase(storageForm);
             return res.json(reconstructedForm);
+          }
+          
+          // 🔗 FALLBACK 1.5: Buscar no Supabase se não encontrou localmente
+          const supabaseFallback = await getSupabaseClient(foundMapping.tenantId);
+          if (supabaseFallback) {
+            console.log('🌐 [SLUG FALLBACK 1] Não encontrado localmente, buscando no Supabase...');
+            const { data: sbData, error: sbError } = await supabaseFallback
+              .from('forms')
+              .select('*')
+              .eq('id', foundMapping.formId)
+              .single();
+            
+            if (!sbError && sbData) {
+              console.log(`✅ [SLUG FALLBACK 1] Formulário encontrado no Supabase:`, sbData.title);
+              const camelForm = convertKeysToCamelCase(sbData);
+              const parsedForm = parseJsonbFields(camelForm, ['questions', 'designConfig', 'scoreTiers', 'tags']);
+              const reconstructedForm = reconstructFormDataFromSupabase(parsedForm);
+              
+              setCachedForm(`${foundMapping.companySlug}:${formSlug}`, reconstructedForm);
+              
+              res.set('Cache-Control', 'max-age=300, s-maxage=600, stale-while-revalidate=300, public');
+              console.log(`📦 CF Cache-Control: max-age=300, s-maxage=600, stale-while-revalidate=300, public`);
+              return res.json(reconstructedForm);
+            }
           }
         }
         
@@ -1509,12 +1532,11 @@ export function registerFormulariosCompleteRoutes(app: Express) {
             tenantId: tenantId,
             slug: uniqueSlug,
             companySlug: companySlug,
-            isPublic: req.body.isPublic || false
+            isPublic: req.body.isPublic !== undefined ? req.body.isPublic : true
           });
           console.log(`✅ [MAPPING] Form ${data.id} registrado com slug "${uniqueSlug}" e companySlug "${companySlug}"`);
         } catch (error) {
           console.error('[MAPPING] Erro ao salvar metadata:', error);
-          // Não bloqueia resposta, mas loga erro
         }
         
         const camelData = convertKeysToCamelCase(data);
@@ -1552,12 +1574,11 @@ export function registerFormulariosCompleteRoutes(app: Express) {
           tenantId: tenantId,
           slug: uniqueSlug,
           companySlug: companySlug,
-          isPublic: req.body.isPublic || false
+          isPublic: req.body.isPublic !== undefined ? req.body.isPublic : true
         });
         console.log(`✅ [MAPPING] Form ${form.id} registrado com slug "${uniqueSlug}" e companySlug "${companySlug}"`);
       } catch (error) {
         console.error('[MAPPING] Erro ao salvar metadata:', error);
-        // Não bloqueia resposta, mas loga erro
       }
       
       res.status(201).json(form);
@@ -1683,7 +1704,7 @@ export function registerFormulariosCompleteRoutes(app: Express) {
         // 🔐 ISOLAMENTO MULTI-TENANT: UPSERT metadata na tabela de mapeamento global
         // 🔗 SLUG: Garantir que o mapeamento existe (fix para formulários sem mapeamento)
         const finalSlug = newSlug || data.slug || req.params.id;
-        const isPublic = req.body.isPublic !== undefined ? req.body.isPublic : (data.is_public ?? false);
+        const isPublic = req.body.isPublic !== undefined ? req.body.isPublic : (data.is_public ?? true);
         
         try {
           await db.insert(formTenantMapping)
@@ -1725,7 +1746,7 @@ export function registerFormulariosCompleteRoutes(app: Express) {
       // 🔐 ISOLAMENTO MULTI-TENANT: UPSERT metadata na tabela de mapeamento global
       // 🔗 SLUG: Garantir que o mapeamento existe (fix para formulários sem mapeamento)
       const finalSlugLocal = newSlug || form.slug || req.params.id;
-      const isPublicLocal = req.body.isPublic !== undefined ? req.body.isPublic : (form.isPublic ?? false);
+      const isPublicLocal = req.body.isPublic !== undefined ? req.body.isPublic : (form.isPublic ?? true);
       
       try {
         await db.insert(formTenantMapping)
