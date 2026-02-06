@@ -62,6 +62,7 @@ interface VerificationFlowProps {
   detectionPerfectMessage?: string;
   iconColor?: string;
   buttonTextColor?: string;
+  titleColor?: string;
 }
 
 export const VerificationFlow = ({ 
@@ -100,7 +101,8 @@ export const VerificationFlow = ({
   detectionQualityMessage,
   detectionPerfectMessage,
   iconColor = '#2c3e50',
-  buttonTextColor = '#ffffff'
+  buttonTextColor = '#ffffff',
+  titleColor
 }: VerificationFlowProps & { textColor?: string }) => {
   const {
     session,
@@ -136,7 +138,6 @@ export const VerificationFlow = ({
     console.log('[VerificationFlow] Selfie captured, advancing to document step');
     setSelfieImage(imageData);
     saveSelfie(imageData);
-    // Images are kept in React state only - no sessionStorage to avoid mobile quota issues
     goToStep('document');
   }, [saveSelfie, goToStep]);
 
@@ -144,7 +145,6 @@ export const VerificationFlow = ({
     console.log('[VerificationFlow] Document captured, advancing to processing step');
     setDocumentImage(imageData);
     saveDocument(imageData, documentType);
-    // Images are kept in React state only - no sessionStorage to avoid mobile quota issues
     goToStep('processing');
   }, [saveDocument, goToStep]);
 
@@ -200,14 +200,11 @@ export const VerificationFlow = ({
       completeVerification(result.similarity, result.passed, verificationResult);
       goToStep('result');
       
-      // Auto-advance after 2 seconds if passed (user can also click "Concluir" button)
       if (onComplete && result.passed) {
-        // Clear any existing timeout
         if (autoAdvanceTimeoutRef.current) {
           clearTimeout(autoAdvanceTimeoutRef.current);
         }
         autoAdvanceTimeoutRef.current = setTimeout(() => {
-          // Use ref to check current value (not stale closure)
           if (!hasCompletedCallbackRef.current) {
             hasCompletedCallbackRef.current = true;
             onComplete({
@@ -228,7 +225,6 @@ export const VerificationFlow = ({
   }, [selfieImage, documentImage, compareFacesAdvanced, completeVerification, goToStep, saveVerification]);
 
   const handleRetry = useCallback(() => {
-    // Reset refs for new attempt
     hasCompletedCallbackRef.current = false;
     if (autoAdvanceTimeoutRef.current) {
       clearTimeout(autoAdvanceTimeoutRef.current);
@@ -248,7 +244,6 @@ export const VerificationFlow = ({
     }
   }, [startAtSelfie, currentStep, handleStart]);
 
-  // Cleanup timeout on unmount
   useEffect(() => {
     return () => {
       if (autoAdvanceTimeoutRef.current) {
@@ -258,28 +253,21 @@ export const VerificationFlow = ({
   }, []);
 
   const handleComplete = useCallback(() => {
-    // When user clicks "Concluir" after approval, call parent onComplete
-    // Don't reset session - let parent handle the navigation
     if (verificationResult && verificationResult.passed && onComplete && !hasCompletedCallbackRef.current) {
-      // Set flag BEFORE calling callback to prevent race conditions
       hasCompletedCallbackRef.current = true;
       
-      // Cancel auto-advance timeout if it exists
       if (autoAdvanceTimeoutRef.current) {
         clearTimeout(autoAdvanceTimeoutRef.current);
         autoAdvanceTimeoutRef.current = null;
       }
       
-      // Store images for parent before clearing
       const selfie = selfieImage;
       const document = documentImage;
       
-      // Clear local state
       setSelfieImage(null);
       setDocumentImage(null);
       setVerificationResult(null);
       
-      // Call parent with success and images
       onComplete({
         success: true,
         selfie,
@@ -287,21 +275,17 @@ export const VerificationFlow = ({
         result: verificationResult
       });
     } else if (verificationResult && verificationResult.passed && !onComplete) {
-      // Fallback: if onComplete not provided but verification passed, reset to allow retry
-      // This prevents dead-end state when session is cleared
       toast.success('Verificação concluída com sucesso!');
       setSelfieImage(null);
       setDocumentImage(null);
       setVerificationResult(null);
       resetSession();
     } else if (!verificationResult?.passed) {
-      // Failed or cancelled - reset session
       setSelfieImage(null);
       setDocumentImage(null);
       setVerificationResult(null);
       resetSession();
     }
-    // If already completed callback, do nothing (prevents double calls)
   }, [resetSession, verificationResult, selfieImage, documentImage, onComplete]);
 
   return (
@@ -389,6 +373,8 @@ export const VerificationFlow = ({
               backgroundColor={backgroundColor}
               textColor={textColor}
               iconColor={iconColor}
+              buttonColor={primaryColor}
+              buttonTextColor={buttonTextColor}
               logoUrl={logoUrl}
               logoSize={logoSize}
               captureButtonText={captureButtonText}
@@ -409,6 +395,12 @@ export const VerificationFlow = ({
               onCapture={handleDocumentCapture}
               onBack={() => goToStep('selfie')}
               primaryColor={primaryColor}
+              buttonColor={primaryColor}
+              buttonTextColor={buttonTextColor}
+              iconColor={iconColor}
+              titleColor={titleColor}
+              textColor={textColor}
+              backgroundColor={backgroundColor}
               logoUrl={logoUrl}
               logoSize={logoSize}
             />
@@ -421,6 +413,12 @@ export const VerificationFlow = ({
               documentImage={documentImage}
               onComplete={handleProcessingComplete}
               primaryColor={primaryColor}
+              buttonColor={primaryColor}
+              buttonTextColor={buttonTextColor}
+              iconColor={iconColor}
+              textColor={textColor}
+              titleColor={titleColor}
+              backgroundColor={backgroundColor}
               logoUrl={logoUrl}
               logoSize={logoSize}
             />
@@ -434,6 +432,9 @@ export const VerificationFlow = ({
               onRetry={handleRetry}
               onComplete={handleComplete}
               primaryColor={primaryColor}
+              buttonColor={primaryColor}
+              buttonTextColor={buttonTextColor}
+              iconColor={iconColor}
               textColor={textColor}
               logoUrl={logoUrl}
               logoSize={logoSize}
@@ -449,18 +450,22 @@ export const VerificationFlow = ({
             >
               {verificationResult?.passed ? (
                 <>
-                  <div className="w-28 h-28 rounded-full flex items-center justify-center mb-8 bg-accent/10" data-testid="status-verification-passed">
-                    <CheckCircle className="w-16 h-16 text-accent" />
+                  <div 
+                    className="w-28 h-28 rounded-full flex items-center justify-center mb-8" 
+                    style={{ backgroundColor: `${primaryColor}1A` }}
+                    data-testid="status-verification-passed"
+                  >
+                    <CheckCircle className="w-16 h-16" style={{ color: primaryColor }} />
                   </div>
-                  <h1 className="text-2xl font-bold mb-2 text-accent" data-testid="text-verification-title">
+                  <h1 className="text-2xl font-bold mb-2" style={{ color: primaryColor }} data-testid="text-verification-title">
                     Verificação Aprovada!
                   </h1>
-                  <p className="text-muted-foreground text-center max-w-md mb-8" data-testid="text-verification-message">
+                  <p className="text-center max-w-md mb-8" style={{ color: textColor, opacity: 0.7 }} data-testid="text-verification-message">
                     Sua identidade foi verificada com sucesso.
                   </p>
                   <Button 
                     onClick={handleComplete} 
-                    className="bg-accent text-accent-foreground"
+                    style={{ backgroundColor: primaryColor, color: buttonTextColor }}
                     data-testid="button-continue-verification"
                   >
                     <CheckCircle className="w-4 h-4 mr-2" />
@@ -475,7 +480,7 @@ export const VerificationFlow = ({
                   <h1 className="text-2xl font-bold mb-2 text-destructive" data-testid="text-verification-failed-title">
                     Verificação Não Aprovada
                   </h1>
-                  <p className="text-muted-foreground text-center max-w-md mb-8" data-testid="text-verification-failed-message">
+                  <p className="text-center max-w-md mb-8" style={{ color: textColor, opacity: 0.7 }} data-testid="text-verification-failed-message">
                     Não foi possível verificar sua identidade. Tente novamente com melhor iluminação.
                   </p>
                   <Button onClick={handleRetry} data-testid="button-retry-verification">
@@ -484,11 +489,15 @@ export const VerificationFlow = ({
                 </>
               ) : (
                 <>
-                  <div className="w-16 h-16 border-4 border-muted-foreground border-t-primary rounded-full animate-spin mb-8" data-testid="status-verification-processing" />
-                  <h1 className="text-xl font-semibold mb-2 text-foreground" data-testid="text-processing-title">
+                  <div 
+                    className="w-16 h-16 border-4 border-muted-foreground rounded-full animate-spin mb-8" 
+                    style={{ borderTopColor: primaryColor }}
+                    data-testid="status-verification-processing" 
+                  />
+                  <h1 className="text-xl font-semibold mb-2" style={{ color: textColor }} data-testid="text-processing-title">
                     Processando resultado...
                   </h1>
-                  <p className="text-muted-foreground text-center max-w-md mb-6" data-testid="text-processing-message">
+                  <p className="text-center max-w-md mb-6" style={{ color: textColor, opacity: 0.7 }} data-testid="text-processing-message">
                     Aguarde enquanto finalizamos a verificação.
                   </p>
                   <Button variant="outline" onClick={handleRetry} data-testid="button-retry-processing">

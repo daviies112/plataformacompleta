@@ -83,7 +83,8 @@ export const ProgressIndicator = ({
                   )}
                   {isCurrent && (
                     <motion.div
-                      className="absolute inset-0 rounded-full bg-primary/30"
+                      className="absolute inset-0 rounded-full"
+                      style={{ backgroundColor: `${primaryColor}4D` }}
                       animate={{ scale: [1, 1.2, 1] }}
                       transition={{ duration: 2, repeat: Infinity }}
                     />
@@ -105,7 +106,8 @@ export const ProgressIndicator = ({
                     animate={{ opacity: 1 }}
                   >
                     <motion.div
-                      className="h-full bg-accent"
+                      className="h-full rounded-full"
+                      style={{ backgroundColor: primaryColor }}
                       initial={{ width: 0 }}
                       animate={{ width: isCompleted ? '100%' : '0%' }}
                       transition={{ duration: 0.5, delay: 0.2 }}

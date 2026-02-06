@@ -14,6 +14,8 @@ interface SelfieCaptureProps {
   backgroundColor?: string;
   textColor?: string;
   iconColor?: string;
+  buttonColor?: string;
+  buttonTextColor?: string;
   logoUrl?: string;
   logoSize?: 'small' | 'medium' | 'large';
   captureButtonText?: string;
@@ -34,6 +36,8 @@ export const SelfieCapture = ({
   backgroundColor,
   textColor,
   iconColor,
+  buttonColor,
+  buttonTextColor = '#ffffff',
   logoUrl = '', 
   logoSize = 'medium',
   captureButtonText = 'Capturar Agora',
@@ -46,6 +50,8 @@ export const SelfieCapture = ({
   detectionQualityMessage = 'Aproxime seu rosto',
   detectionPerfectMessage = 'Perfeito! Capturando...'
 }: SelfieCaptureProps) => {
+  const effectiveButtonColor = buttonColor || primaryColor;
+
   const { 
     videoRef, 
     isReady, 
@@ -250,9 +256,10 @@ export const SelfieCapture = ({
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ type: 'spring', delay: 0.2 }}
-                  className="w-20 h-20 rounded-full bg-accent flex items-center justify-center shadow-lg"
+                  className="w-20 h-20 rounded-full flex items-center justify-center shadow-lg"
+                  style={{ backgroundColor: effectiveButtonColor }}
                 >
-                  <Check className="w-10 h-10 text-accent-foreground" />
+                  <Check className="w-10 h-10" style={{ color: buttonTextColor }} />
                 </motion.div>
               </div>
             </motion.div>
@@ -279,7 +286,7 @@ export const SelfieCapture = ({
               {showLoading && (
                 <div className="absolute inset-0 flex items-center justify-center bg-background">
                   <div className="flex flex-col items-center gap-4">
-                    <Loader2 className="w-10 h-10 text-primary animate-spin" />
+                    <Loader2 className="w-10 h-10 animate-spin" style={{ color: effectiveButtonColor }} />
                     <div className="text-center">
                       <p className="text-sm font-medium text-foreground mb-1">
                         {isInitializing ? 'Acessando câmera...' : 'Iniciando câmera...'}
@@ -306,7 +313,7 @@ export const SelfieCapture = ({
               {isReady && modelLoading && (
                 <div className="absolute inset-0 flex items-center justify-center bg-background/80">
                   <div className="flex flex-col items-center gap-3">
-                    <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                    <Loader2 className="w-8 h-8 animate-spin" style={{ color: effectiveButtonColor }} />
                     <p className="text-sm text-muted-foreground">
                       Carregando detecção facial...
                     </p>
@@ -318,6 +325,8 @@ export const SelfieCapture = ({
                 <FaceGuideOverlay 
                   detectionResult={detectionResult} 
                   isCapturing={isCapturing}
+                  buttonColor={effectiveButtonColor}
+                  textColor={textColor}
                 />
               )}
             </motion.div>
@@ -347,7 +356,8 @@ export const SelfieCapture = ({
               <Button
                 size="lg"
                 onClick={handleConfirm}
-                className="flex-1 h-14 bg-accent hover:bg-accent-light text-accent-foreground"
+                className="flex-1 h-14"
+                style={{ backgroundColor: effectiveButtonColor, color: buttonTextColor }}
               >
                 <Check className="w-5 h-5 mr-2" />
                 {confirmButtonText}
@@ -372,7 +382,7 @@ export const SelfieCapture = ({
                 onClick={handleCapture}
                 disabled={!isReady}
                 className="w-full h-14"
-                style={{ backgroundColor: primaryColor, color: textColor === '#000000' ? '#ffffff' : (textColor || undefined) }}
+                style={{ backgroundColor: effectiveButtonColor, color: buttonTextColor }}
               >
                 <Camera className="w-5 h-5 mr-2" />
                 {isReady ? captureButtonText : 'Aguardando...'}

@@ -10,6 +10,9 @@ interface ResultScreenProps {
   onRetry: () => void;
   onComplete: () => void;
   primaryColor?: string;
+  buttonColor?: string;
+  buttonTextColor?: string;
+  iconColor?: string;
   logoUrl?: string;
   logoSize?: 'small' | 'medium' | 'large';
 }
@@ -18,7 +21,22 @@ interface ResultScreenWithTextColorProps extends ResultScreenProps {
   textColor?: string;
 }
 
-export const ResultScreen = ({ session, verificationResult, onRetry, onComplete, primaryColor = '#2c3e50', textColor = '#000000', logoUrl = '', logoSize = 'medium' }: ResultScreenWithTextColorProps) => {
+export const ResultScreen = ({ 
+  session, 
+  verificationResult, 
+  onRetry, 
+  onComplete, 
+  primaryColor = '#2c3e50', 
+  buttonColor,
+  buttonTextColor = '#ffffff',
+  iconColor,
+  textColor = '#000000', 
+  logoUrl = '', 
+  logoSize = 'medium' 
+}: ResultScreenWithTextColorProps) => {
+  const effectiveButtonColor = buttonColor || primaryColor;
+  const effectiveIconColor = iconColor || primaryColor;
+
   const passed = session.status === 'approved';
   const score = session.similarityScore || 0;
   const requiredScore = verificationResult?.requiredScore || 55;
@@ -76,25 +94,25 @@ export const ResultScreen = ({ session, verificationResult, onRetry, onComplete,
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
         transition={{ type: 'spring', delay: 0.2 }}
-        className={`
-          relative w-28 h-28 rounded-full flex items-center justify-center mb-8
-          ${passed ? 'bg-accent/10' : 'bg-destructive/10'}
-        `}
+        className={`relative w-28 h-28 rounded-full flex items-center justify-center mb-8 ${!passed ? 'bg-destructive/10' : ''}`}
+        style={passed ? { backgroundColor: `${primaryColor}1A` } : undefined}
       >
         {passed ? (
-          <CheckCircle className="w-16 h-16 text-accent" />
+          <CheckCircle className="w-16 h-16" style={{ color: primaryColor }} />
         ) : (
           <XCircle className="w-16 h-16 text-destructive" />
         )}
         <motion.div
-          className={`absolute inset-0 rounded-full border-4 ${passed ? 'border-accent' : 'border-destructive'}`}
+          className={`absolute inset-0 rounded-full border-4 ${!passed ? 'border-destructive' : ''}`}
+          style={passed ? { borderColor: primaryColor } : undefined}
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ delay: 0.4 }}
         />
         {passed && (
           <motion.div
-            className="absolute -inset-2 rounded-full border-2 border-accent"
+            className="absolute -inset-2 rounded-full border-2"
+            style={{ borderColor: primaryColor }}
             animate={{ scale: [1, 1.2], opacity: [0.5, 0] }}
             transition={{ duration: 2, repeat: Infinity }}
           />
@@ -136,27 +154,28 @@ export const ResultScreen = ({ session, verificationResult, onRetry, onComplete,
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.55 }}
-        className="w-full max-w-2xl bg-primary/5 rounded-xl border border-primary/20 p-6 mb-6"
+        className="w-full max-w-2xl rounded-xl p-6 mb-6"
+        style={{ backgroundColor: `${primaryColor}0D`, borderWidth: '1px', borderColor: `${primaryColor}33` }}
       >
         <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-          <Shield className="w-5 h-5 text-primary" />
+          <Shield className="w-5 h-5" style={{ color: effectiveIconColor }} />
           O que foi Analisado
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="p-3 bg-background rounded-lg text-center">
-            <div className="text-2xl font-bold text-accent mb-1">✓</div>
+            <div className="text-2xl font-bold mb-1" style={{ color: primaryColor }}>✓</div>
             <p className="text-sm font-medium text-foreground">Características Faciais</p>
           </div>
           <div className="p-3 bg-background rounded-lg text-center">
-            <div className="text-2xl font-bold text-accent mb-1">✓</div>
+            <div className="text-2xl font-bold mb-1" style={{ color: primaryColor }}>✓</div>
             <p className="text-sm font-medium text-foreground">Pontos de Referência</p>
           </div>
           <div className="p-3 bg-background rounded-lg text-center">
-            <div className="text-2xl font-bold text-accent mb-1">✓</div>
+            <div className="text-2xl font-bold mb-1" style={{ color: primaryColor }}>✓</div>
             <p className="text-sm font-medium text-foreground">Estrutura Facial</p>
           </div>
           <div className="p-3 bg-background rounded-lg text-center">
-            <div className="text-2xl font-bold text-accent mb-1">✓</div>
+            <div className="text-2xl font-bold mb-1" style={{ color: primaryColor }}>✓</div>
             <p className="text-sm font-medium text-foreground">Textura Facial</p>
           </div>
         </div>
@@ -212,7 +231,8 @@ export const ResultScreen = ({ session, verificationResult, onRetry, onComplete,
             <Button
               size="lg"
               onClick={onComplete}
-              className="w-full h-14 bg-accent hover:bg-accent-light text-accent-foreground"
+              className="w-full h-14"
+              style={{ backgroundColor: effectiveButtonColor, color: buttonTextColor }}
             >
               <CheckCircle className="w-5 h-5 mr-2" />
               Concluir
@@ -232,7 +252,8 @@ export const ResultScreen = ({ session, verificationResult, onRetry, onComplete,
             <Button
               size="lg"
               onClick={onRetry}
-              className="w-full h-14 bg-primary hover:bg-primary-light text-primary-foreground"
+              className="w-full h-14"
+              style={{ backgroundColor: effectiveButtonColor, color: buttonTextColor }}
             >
               <RotateCcw className="w-5 h-5 mr-2" />
               Tentar Novamente

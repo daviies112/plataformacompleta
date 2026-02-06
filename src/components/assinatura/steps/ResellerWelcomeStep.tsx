@@ -126,8 +126,8 @@ export const ResellerWelcomeStep = (props: ResellerWelcomeStepProps = {}) => {
     <div className="min-h-screen flex flex-col items-center justify-center px-4 py-8" style={{ fontFamily: parabensFontFamily, backgroundColor: parabensBackgroundColor }}>
       <div className="max-w-2xl w-full">
         <div className="text-center mb-12">
-          <div className="w-24 h-24 mx-auto mb-6 bg-green-100 rounded-full flex items-center justify-center">
-            <Gift className="w-14 h-14 text-green-600" />
+          <div className="w-24 h-24 mx-auto mb-6 rounded-full flex items-center justify-center" style={{ backgroundColor: `${parabensButtonColor}1A` }}>
+            <Gift className="w-14 h-14" style={{ color: parabensButtonColor }} />
           </div>
           <h1 className="text-4xl font-bold mb-4" style={{ color: parabensTextColor }}>{parabensTitle}</h1>
           <p className="text-xl mb-2" style={{ color: parabensTextColor }}>{parabensSubtitle}</p>
@@ -135,34 +135,34 @@ export const ResellerWelcomeStep = (props: ResellerWelcomeStepProps = {}) => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-          <div className="bg-white rounded-lg p-6 shadow-sm border border-green-200">
+          <div className="rounded-lg p-6 shadow-sm border" style={{ backgroundColor: `${parabensCardColor}`, borderColor: `${parabensButtonColor}33` }}>
             <div className="flex items-start gap-3">
-              <Truck className="w-6 h-6 text-green-600 mt-1 flex-shrink-0" />
+              <Truck className="w-6 h-6 mt-1 flex-shrink-0" style={{ color: parabensButtonColor }} />
               <div>
-                <h3 className="font-semibold text-gray-900 mb-1">Entrega Gratuita</h3>
-                <p className="text-sm text-gray-600">Sua maleta será entregue sem custos adicionais no endereço informado.</p>
+                <h3 className="font-semibold mb-1" style={{ color: parabensTextColor }}>Entrega Gratuita</h3>
+                <p className="text-sm" style={{ color: parabensTextColor, opacity: 0.7 }}>Sua maleta será entregue sem custos adicionais no endereço informado.</p>
               </div>
             </div>
           </div>
 
-          <div className="bg-white rounded-lg p-6 shadow-sm border border-blue-200">
+          <div className="rounded-lg p-6 shadow-sm border" style={{ backgroundColor: `${parabensCardColor}`, borderColor: `${parabensButtonColor}33` }}>
             <div className="flex items-start gap-3">
-              <MapPin className="w-6 h-6 text-blue-600 mt-1 flex-shrink-0" />
+              <MapPin className="w-6 h-6 mt-1 flex-shrink-0" style={{ color: parabensButtonColor }} />
               <div>
-                <h3 className="font-semibold text-gray-900 mb-1">Receba em Casa</h3>
-                <p className="text-sm text-gray-600">Você receberá um rastreamento de entrega por email.</p>
+                <h3 className="font-semibold mb-1" style={{ color: parabensTextColor }}>Receba em Casa</h3>
+                <p className="text-sm" style={{ color: parabensTextColor, opacity: 0.7 }}>Você receberá um rastreamento de entrega por email.</p>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-lg p-8" style={{ backgroundColor: parabensCardColor }}>
+        <div className="rounded-lg shadow-lg p-8" style={{ backgroundColor: parabensCardColor }}>
           <h2 className="text-2xl font-bold mb-6" style={{ color: parabensTextColor }}>{parabensFormTitle}</h2>
           
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Rua *</label>
+                <label className="block text-sm font-medium mb-2" style={{ color: parabensTextColor, opacity: 0.8 }}>Rua *</label>
                 <Input
                   type="text"
                   name="street"
@@ -173,7 +173,7 @@ export const ResellerWelcomeStep = (props: ResellerWelcomeStepProps = {}) => {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Número *</label>
+                <label className="block text-sm font-medium mb-2" style={{ color: parabensTextColor, opacity: 0.8 }}>Número *</label>
                 <Input
                   type="text"
                   name="number"
@@ -186,7 +186,7 @@ export const ResellerWelcomeStep = (props: ResellerWelcomeStepProps = {}) => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Complemento</label>
+              <label className="block text-sm font-medium mb-2" style={{ color: parabensTextColor, opacity: 0.8 }}>Complemento</label>
               <Input
                 type="text"
                 name="complement"
@@ -198,7 +198,7 @@ export const ResellerWelcomeStep = (props: ResellerWelcomeStepProps = {}) => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Cidade *</label>
+              <label className="block text-sm font-medium mb-2" style={{ color: parabensTextColor, opacity: 0.8 }}>Cidade *</label>
               <Input
                 type="text"
                 name="city"
@@ -210,13 +210,13 @@ export const ResellerWelcomeStep = (props: ResellerWelcomeStepProps = {}) => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Estado *</label>
+              <label className="block text-sm font-medium mb-2" style={{ color: parabensTextColor, opacity: 0.8 }}>Estado *</label>
               <select
                 name="state"
                 value={formData.state}
                 onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 bg-white text-gray-900 appearance-none"
-                style={{ backgroundColor: '#ffffff' }}
+                className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 bg-white text-gray-900 appearance-none"
+                style={{ borderColor: `${parabensButtonColor}40`, outlineColor: parabensButtonColor }}
               >
                 <option value="" className="bg-white text-gray-900">Selecione</option>
                 {brazilianStates.map(state => (
@@ -226,7 +226,7 @@ export const ResellerWelcomeStep = (props: ResellerWelcomeStepProps = {}) => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">CEP *</label>
+              <label className="block text-sm font-medium mb-2" style={{ color: parabensTextColor, opacity: 0.8 }}>CEP *</label>
               <Input
                 type="text"
                 name="zipcode"
@@ -240,15 +240,15 @@ export const ResellerWelcomeStep = (props: ResellerWelcomeStepProps = {}) => {
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="w-full h-12 text-white font-bold text-lg mt-6"
-              style={{ backgroundColor: parabensButtonColor }}
+              className="w-full h-12 font-bold text-lg mt-6"
+              style={{ backgroundColor: parabensButtonColor, color: '#ffffff' }}
             >
               {isSubmitting ? 'Salvando...' : parabensButtonText}
             </Button>
           </form>
         </div>
 
-        <div className="mt-8 text-center text-gray-600 text-sm">
+        <div className="mt-8 text-center text-sm" style={{ color: parabensTextColor, opacity: 0.6 }}>
           <p>Dados do cliente: <strong>{govbrData?.nome}</strong></p>
           <p>Você poderá atualizar este endereço a qualquer momento no painel de revendedora.</p>
         </div>

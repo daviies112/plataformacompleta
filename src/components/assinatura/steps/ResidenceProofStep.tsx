@@ -10,6 +10,7 @@ interface ResidenceProofStepProps {
   parabens_button_color?: string;
   parabens_text_color?: string;
   parabens_font_family?: string;
+  button_text_color?: string;
 }
 
 export const ResidenceProofStep = (props: ResidenceProofStepProps = {}) => {
@@ -32,6 +33,7 @@ export const ResidenceProofStep = (props: ResidenceProofStepProps = {}) => {
   const buttonColor = props.parabens_button_color || '#22c55e';
   const textColor = props.parabens_text_color || '#1e40af';
   const fontFamily = props.parabens_font_family || 'Arial, sans-serif';
+  const buttonTextColor = props.button_text_color || '#ffffff';
 
   const saveAndProceed = useCallback(async (imageData: string) => {
     if (isSaving || isSaved) return;
@@ -255,7 +257,7 @@ export const ResidenceProofStep = (props: ResidenceProofStepProps = {}) => {
             className="w-20 h-20 mx-auto mb-4 rounded-full flex items-center justify-center"
             style={{ backgroundColor: buttonColor }}
           >
-            <Check className="w-10 h-10 text-white" />
+            <Check className="w-10 h-10" style={{ color: buttonTextColor }} />
           </div>
           <h2 className="text-xl font-bold mb-2" style={{ color: textColor }}>
             Comprovante Salvo!
@@ -342,7 +344,7 @@ export const ResidenceProofStep = (props: ResidenceProofStepProps = {}) => {
               </div>
 
               {cameraError && (
-                <div className="text-center p-3 rounded-lg bg-amber-100 text-amber-800 text-sm">
+                <div className="text-center p-3 rounded-lg text-sm" style={{ backgroundColor: `${buttonColor}1A`, color: textColor }}>
                   {cameraError}
                 </div>
               )}
@@ -350,8 +352,8 @@ export const ResidenceProofStep = (props: ResidenceProofStepProps = {}) => {
               <div className="w-full space-y-3">
                 <Button
                   onClick={startCamera}
-                  className="w-full h-14 text-lg font-bold text-white gap-2"
-                  style={{ backgroundColor: buttonColor }}
+                  className="w-full h-14 text-lg font-bold gap-2"
+                  style={{ backgroundColor: buttonColor, color: buttonTextColor }}
                   data-testid="button-start-camera"
                 >
                   <Camera className="w-6 h-6" />
@@ -394,8 +396,8 @@ export const ResidenceProofStep = (props: ResidenceProofStepProps = {}) => {
                 </Button>
                 <Button
                   onClick={capturePhoto}
-                  className="flex-1 h-12 text-white font-bold gap-2"
-                  style={{ backgroundColor: buttonColor }}
+                  className="flex-1 h-12 font-bold gap-2"
+                  style={{ backgroundColor: buttonColor, color: buttonTextColor }}
                   data-testid="button-capture"
                 >
                   <Camera className="w-5 h-5" />

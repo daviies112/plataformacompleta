@@ -8,6 +8,12 @@ interface ProcessingScreenProps {
   documentImage: string;
   onComplete: (result: VerificationResult | null, error?: string) => void;
   primaryColor?: string;
+  buttonColor?: string;
+  buttonTextColor?: string;
+  iconColor?: string;
+  textColor?: string;
+  titleColor?: string;
+  backgroundColor?: string;
   logoUrl?: string;
   logoSize?: 'small' | 'medium' | 'large';
 }
@@ -18,7 +24,24 @@ const processingSteps = [
   { id: 'compare', label: 'Comparando características...', icon: CheckCircle },
 ];
 
-export const ProcessingScreen = ({ selfieImage, documentImage, onComplete, primaryColor = '#2c3e50', logoUrl = '', logoSize = 'medium' }: ProcessingScreenProps) => {
+export const ProcessingScreen = ({ 
+  selfieImage, 
+  documentImage, 
+  onComplete, 
+  primaryColor = '#2c3e50', 
+  buttonColor,
+  buttonTextColor = '#ffffff',
+  iconColor,
+  textColor,
+  titleColor,
+  backgroundColor,
+  logoUrl = '', 
+  logoSize = 'medium' 
+}: ProcessingScreenProps) => {
+  const effectiveButtonColor = buttonColor || primaryColor;
+  const effectiveIconColor = iconColor || primaryColor;
+  const effectiveTextColor = textColor || undefined;
+
   const [currentStep, setCurrentStep] = useState(0);
   const [progress, setProgress] = useState(0);
   const [statusMessage, setStatusMessage] = useState('Iniciando análise...');
@@ -99,7 +122,8 @@ export const ProcessingScreen = ({ selfieImage, documentImage, onComplete, prima
             />
           </div>
           <motion.div
-            className="absolute -inset-1 rounded-full border-2 border-accent"
+            className="absolute -inset-1 rounded-full border-2"
+            style={{ borderColor: effectiveButtonColor }}
             animate={{ scale: [1, 1.2], opacity: [0.5, 0] }}
             transition={{ duration: 1.5, repeat: Infinity }}
           />
@@ -111,9 +135,9 @@ export const ProcessingScreen = ({ selfieImage, documentImage, onComplete, prima
           transition={{ delay: 0.2 }}
           className="flex flex-col items-center gap-1"
         >
-          <div className="w-12 h-0.5 bg-accent" />
-          <Scan className="w-6 h-6 text-accent animate-pulse" />
-          <div className="w-12 h-0.5 bg-accent" />
+          <div className="w-12 h-0.5" style={{ backgroundColor: effectiveButtonColor }} />
+          <Scan className="w-6 h-6 animate-pulse" style={{ color: effectiveIconColor }} />
+          <div className="w-12 h-0.5" style={{ backgroundColor: effectiveButtonColor }} />
         </motion.div>
 
         <motion.div
@@ -129,7 +153,8 @@ export const ProcessingScreen = ({ selfieImage, documentImage, onComplete, prima
             />
           </div>
           <motion.div
-            className="absolute -inset-1 rounded-lg border-2 border-accent"
+            className="absolute -inset-1 rounded-lg border-2"
+            style={{ borderColor: effectiveButtonColor }}
             animate={{ scale: [1, 1.1], opacity: [0.5, 0] }}
             transition={{ duration: 1.5, repeat: Infinity, delay: 0.5 }}
           />
@@ -142,14 +167,15 @@ export const ProcessingScreen = ({ selfieImage, documentImage, onComplete, prima
         transition={{ delay: 0.3 }}
         className="relative mb-8"
       >
-        <div className="w-32 h-32 rounded-full bg-primary/10 flex items-center justify-center">
+        <div className="w-32 h-32 rounded-full flex items-center justify-center" style={{ backgroundColor: `${effectiveButtonColor}1A` }}>
           <motion.div
             animate={{ rotate: 360 }}
             transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
-            className="w-24 h-24 rounded-full border-4 border-transparent border-t-accent border-r-accent/50"
+            className="w-24 h-24 rounded-full border-4 border-transparent"
+            style={{ borderTopColor: effectiveButtonColor, borderRightColor: `${effectiveButtonColor}80` }}
           />
           <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-2xl font-bold text-foreground">{progress}%</span>
+            <span className="text-2xl font-bold" style={{ color: effectiveTextColor }}>{progress}%</span>
           </div>
         </div>
       </motion.div>
@@ -158,7 +184,8 @@ export const ProcessingScreen = ({ selfieImage, documentImage, onComplete, prima
         key={statusMessage}
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="text-sm text-muted-foreground text-center mb-6 max-w-xs"
+        className="text-sm text-center mb-6 max-w-xs"
+        style={{ color: effectiveTextColor, opacity: 0.7 }}
       >
         {statusMessage}
       </motion.p>
@@ -177,28 +204,25 @@ export const ProcessingScreen = ({ selfieImage, documentImage, onComplete, prima
               transition={{ delay: 0.4 + index * 0.1 }}
               className={`
                 flex items-center gap-3 p-3 rounded-lg transition-all duration-300
-                ${isActive ? 'bg-accent/10' : isComplete ? 'bg-muted/50' : 'bg-transparent'}
+                ${!isActive && !isComplete ? 'bg-transparent' : ''}
+                ${isComplete ? 'bg-muted/50' : ''}
               `}
+              style={isActive ? { backgroundColor: `${effectiveButtonColor}1A` } : undefined}
             >
-              <div className={`
-                w-8 h-8 rounded-full flex items-center justify-center transition-colors
-                ${isComplete 
-                  ? 'bg-accent text-accent-foreground' 
-                  : isActive 
-                    ? 'bg-primary text-primary-foreground' 
-                    : 'bg-muted text-muted-foreground'
-                }
-              `}>
+              <div 
+                className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${!isComplete && !isActive ? 'bg-muted text-muted-foreground' : ''}`}
+                style={isComplete ? { backgroundColor: effectiveButtonColor, color: buttonTextColor } : isActive ? { backgroundColor: effectiveButtonColor, color: buttonTextColor } : undefined}
+              >
                 {isComplete ? (
                   <CheckCircle className="w-4 h-4" />
                 ) : (
                   <Icon className={`w-4 h-4 ${isActive ? 'animate-pulse' : ''}`} />
                 )}
               </div>
-              <span className={`
-                text-sm transition-colors
-                ${isActive ? 'text-foreground font-medium' : 'text-muted-foreground'}
-              `}>
+              <span 
+                className={`text-sm transition-colors ${isActive ? 'font-medium' : 'text-muted-foreground'}`}
+                style={{ color: isActive ? effectiveTextColor : undefined }}
+              >
                 {step.label}
               </span>
             </motion.div>

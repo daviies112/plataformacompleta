@@ -32,15 +32,27 @@ interface ContractStepProps {
   selfiePhoto?: string | null;
   documentPhoto?: string | null;
   currentStep?: number;
+  button_color?: string;
+  button_text_color?: string;
+  icon_color?: string;
+  title_color?: string;
+  text_color?: string;
+  background_color?: string;
 }
 
-export const ContractStep = ({ clientData, selfiePhoto, documentPhoto, currentStep = 2 }: ContractStepProps) => {
+export const ContractStep = ({ clientData, selfiePhoto, documentPhoto, currentStep = 2, button_color, button_text_color, icon_color, title_color, text_color, background_color }: ContractStepProps) => {
   const { contractData, setContractData, setCurrentStep } = useContract();
   const { toast } = useToast();
   const [hasScrolled, setHasScrolled] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [isSigning, setIsSigning] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const resolvedButtonColor = button_color || clientData?.primary_color || undefined;
+  const resolvedButtonTextColor = button_text_color || '#ffffff';
+  const resolvedIconColor = icon_color || clientData?.primary_color || undefined;
+  const resolvedTitleColor = title_color || clientData?.text_color || undefined;
+  const resolvedTextColor = text_color || clientData?.text_color || undefined;
 
   if (!clientData) {
     return (
@@ -225,18 +237,18 @@ export const ContractStep = ({ clientData, selfiePhoto, documentPhoto, currentSt
         </div>
       )}
       <div className="text-center mb-6">
-        <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-2" data-testid="text-contract-title">
+        <h2 className="text-2xl sm:text-3xl font-bold mb-2" style={resolvedTitleColor ? { color: resolvedTitleColor } : undefined} data-testid="text-contract-title">
           {contractConfig.pageTitle}
         </h2>
-        <p className="text-muted-foreground">
-          Protocolo: <span className="font-mono font-semibold text-primary" data-testid="text-protocol">{protocol}</span>
+        <p style={resolvedTextColor ? { color: resolvedTextColor } : undefined} className={resolvedTextColor ? undefined : 'text-muted-foreground'}>
+          Protocolo: <span className="font-mono font-semibold" style={resolvedButtonColor ? { color: resolvedButtonColor } : undefined} data-testid="text-protocol">{protocol}</span>
         </p>
       </div>
 
       <div className="glass-card mb-6">
         <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
-          <FileText className="w-5 h-5 text-primary" />
-          <span className="font-medium text-foreground">{contractConfig.title}</span>
+          <FileText className="w-5 h-5" style={resolvedIconColor ? { color: resolvedIconColor } : undefined} />
+          <span className="font-medium" style={resolvedTextColor ? { color: resolvedTextColor } : undefined}>{contractConfig.title}</span>
         </div>
         
         <div
@@ -248,9 +260,9 @@ export const ContractStep = ({ clientData, selfiePhoto, documentPhoto, currentSt
         />
         
         {!hasScrolled && (
-          <div className="flex items-center gap-2 px-4 py-3 bg-warning/10 border-t border-warning/20">
-            <AlertCircle className="w-4 h-4 text-warning" />
-            <span className="text-sm text-warning">{contractConfig.scrollWarning}</span>
+          <div className={resolvedButtonColor ? "flex items-center gap-2 px-4 py-3 border-t" : "flex items-center gap-2 px-4 py-3 bg-warning/10 border-t border-warning/20"} style={resolvedButtonColor ? { backgroundColor: `${resolvedButtonColor}1A`, borderColor: `${resolvedButtonColor}33` } : undefined}>
+            <AlertCircle className="w-4 h-4" style={resolvedButtonColor ? { color: resolvedButtonColor } : undefined} />
+            <span className="text-sm" style={resolvedButtonColor ? { color: resolvedButtonColor } : undefined}>{contractConfig.scrollWarning}</span>
           </div>
         )}
       </div>
@@ -267,7 +279,8 @@ export const ContractStep = ({ clientData, selfiePhoto, documentPhoto, currentSt
           />
           <label
             htmlFor="agreement"
-            className={`text-sm ${hasScrolled ? 'text-foreground cursor-pointer' : 'text-muted-foreground'}`}
+            className={`text-sm ${hasScrolled ? 'cursor-pointer' : ''}`}
+            style={resolvedTextColor ? { color: resolvedTextColor, opacity: hasScrolled ? 1 : 0.6 } : undefined}
           >
             {contractConfig.agreementText}
           </label>
@@ -289,11 +302,12 @@ export const ContractStep = ({ clientData, selfiePhoto, documentPhoto, currentSt
           onClick={handleSign}
           disabled={!hasScrolled || !agreed || isSigning}
           className="gap-2 h-12 px-6"
+          style={resolvedButtonColor ? { backgroundColor: resolvedButtonColor, color: resolvedButtonTextColor } : undefined}
           data-testid="button-sign"
         >
           {isSigning ? (
             <>
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 className="w-4 h-4 animate-spin" style={resolvedButtonColor && !resolvedButtonTextColor ? { color: resolvedButtonColor } : undefined} />
               {contractConfig.signButtonLoading}
             </>
           ) : (

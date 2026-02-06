@@ -504,7 +504,7 @@ const AssinaturaClientContent = () => {
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <Card className="w-full max-w-md">
           <CardContent className="pt-6 text-center">
-            <CheckCircle2 className="w-12 h-12 mx-auto text-green-600" />
+            <CheckCircle2 className="w-12 h-12 mx-auto" style={{ color: contract.button_color || contract.primary_color || '#2c3e50' }} />
             <h2 className="mt-4 text-xl font-semibold">Contrato já assinado</h2>
             <p className="mt-2 text-muted-foreground">
               Este contrato já foi assinado anteriormente.
@@ -593,6 +593,12 @@ const AssinaturaClientContent = () => {
             selfiePhoto={selfiePhoto}
             documentPhoto={documentPhoto}
             currentStep={currentStep}
+            button_color={contract.button_color || contract.primary_color || primaryColor}
+            button_text_color={contract.button_text_color || '#ffffff'}
+            icon_color={contract.icon_color || contract.button_color || primaryColor}
+            title_color={contract.title_color || contract.text_color || textColor}
+            text_color={contract.text_color || textColor}
+            background_color={contract.background_color || '#ffffff'}
           />
         </Suspense>
       </div>
@@ -609,10 +615,10 @@ const AssinaturaClientContent = () => {
             parabens_title={contract.parabens_title || undefined}
             parabens_subtitle={contract.parabens_subtitle || undefined}
             parabens_description={contract.parabens_description || undefined}
-            parabens_card_color={contract.parabens_card_color || undefined}
-            parabens_background_color={contract.parabens_background_color || undefined}
-            parabens_button_color={contract.parabens_button_color || undefined}
-            parabens_text_color={contract.parabens_text_color || undefined}
+            parabens_card_color={contract.parabens_card_color || contract.background_color || undefined}
+            parabens_background_color={contract.parabens_background_color || contract.background_color || undefined}
+            parabens_button_color={contract.parabens_button_color || contract.button_color || undefined}
+            parabens_text_color={contract.parabens_text_color || contract.title_color || contract.text_color || undefined}
             parabens_font_family={contract.parabens_font_family || undefined}
             parabens_form_title={contract.parabens_form_title || undefined}
             parabens_button_text={contract.parabens_button_text || undefined}
@@ -645,11 +651,12 @@ const AssinaturaClientContent = () => {
         <ProgressTrackerDisplay currentStep={currentStep} contract={contract} />
         <Suspense fallback={<StepLoader />}>
           <ResidenceProofStep 
-            parabens_card_color={contract.parabens_card_color || undefined}
-            parabens_background_color={contract.parabens_background_color || undefined}
-            parabens_button_color={contract.parabens_button_color || undefined}
-            parabens_text_color={contract.parabens_text_color || undefined}
+            parabens_card_color={contract.parabens_card_color || contract.background_color || undefined}
+            parabens_background_color={contract.parabens_background_color || contract.background_color || undefined}
+            parabens_button_color={contract.parabens_button_color || contract.button_color || undefined}
+            parabens_text_color={contract.parabens_text_color || contract.title_color || contract.text_color || undefined}
             parabens_font_family={contract.parabens_font_family || undefined}
+            button_text_color={contract.button_text_color || '#ffffff'}
           />
         </Suspense>
       </div>
@@ -661,7 +668,14 @@ const AssinaturaClientContent = () => {
       <div className="min-h-screen" style={{ backgroundColor: contract.background_color || '#ffffff' }}>
         <ProgressTrackerDisplay currentStep={currentStep} contract={contract} />
         <Suspense fallback={<StepLoader />}>
-          <AppPromotionStep />
+          <AppPromotionStep 
+            button_color={contract.button_color || contract.primary_color || primaryColor}
+            button_text_color={contract.button_text_color || '#ffffff'}
+            icon_color={contract.icon_color || contract.button_color || primaryColor}
+            title_color={contract.title_color || contract.text_color || textColor}
+            text_color={contract.text_color || textColor}
+            background_color={contract.background_color || '#fafafa'}
+          />
         </Suspense>
       </div>
     );

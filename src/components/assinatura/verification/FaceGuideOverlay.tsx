@@ -4,9 +4,11 @@ import type { FaceDetectionResult } from '@/types/verification';
 interface FaceGuideOverlayProps {
   detectionResult: FaceDetectionResult | null;
   isCapturing: boolean;
+  buttonColor?: string;
+  textColor?: string;
 }
 
-export const FaceGuideOverlay = ({ detectionResult, isCapturing }: FaceGuideOverlayProps) => {
+export const FaceGuideOverlay = ({ detectionResult, isCapturing, buttonColor = '#2c3e50', textColor }: FaceGuideOverlayProps) => {
   const isReady = detectionResult?.detected && 
     detectionResult?.centered && 
     detectionResult?.goodLighting &&
@@ -16,22 +18,18 @@ export const FaceGuideOverlay = ({ detectionResult, isCapturing }: FaceGuideOver
     <div className="absolute inset-0 pointer-events-none">
       <div className="absolute inset-0 flex items-center justify-center" style={{ paddingBottom: '10%' }}>
         <motion.div
-          className={`
-            relative w-56 h-72 sm:w-64 sm:h-80
-            rounded-[50%] border-4 transition-colors duration-300
-            ${isReady 
-              ? 'border-accent shadow-[0_0_40px_rgba(20,184,166,0.4)]' 
-              : detectionResult?.detected 
-                ? 'border-warning' 
-                : 'border-muted-foreground/50'
-            }
-          `}
+          className="relative w-56 h-72 sm:w-64 sm:h-80 rounded-[50%] border-4 transition-colors duration-300"
+          style={{
+            borderColor: isReady ? buttonColor : detectionResult?.detected ? `${buttonColor}80` : '#9ca3af80',
+            boxShadow: isReady ? `0 0 40px ${buttonColor}40` : 'none'
+          }}
           animate={isReady ? { scale: [1, 1.02, 1] } : {}}
           transition={{ duration: 1, repeat: Infinity }}
         >
           {isReady && (
             <motion.div
-              className="absolute -inset-2 rounded-[50%] border-2 border-accent"
+              className="absolute -inset-2 rounded-[50%] border-2"
+              style={{ borderColor: buttonColor }}
               animate={{ scale: [1, 1.1], opacity: [0.8, 0] }}
               transition={{ duration: 1.5, repeat: Infinity }}
             />
@@ -39,7 +37,8 @@ export const FaceGuideOverlay = ({ detectionResult, isCapturing }: FaceGuideOver
 
           {!isReady && (
             <motion.div
-              className="absolute inset-x-0 h-1 bg-gradient-to-r from-transparent via-accent to-transparent rounded-full"
+              className="absolute inset-x-0 h-1 rounded-full"
+              style={{ background: `linear-gradient(to right, transparent, ${buttonColor}, transparent)` }}
               animate={{ top: ['0%', '100%', '0%'] }}
               transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
             />
@@ -52,13 +51,8 @@ export const FaceGuideOverlay = ({ detectionResult, isCapturing }: FaceGuideOver
           key={detectionResult?.message}
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className={`
-            px-6 py-3 rounded-full backdrop-blur-md
-            ${isReady 
-              ? 'bg-accent/90 text-accent-foreground' 
-              : 'bg-card/90 text-foreground'
-            }
-          `}
+          className="px-6 py-3 rounded-full backdrop-blur-md"
+          style={isReady ? { backgroundColor: `${buttonColor}E6`, color: 'white' } : { backgroundColor: 'rgba(255,255,255,0.9)', color: textColor || '#333' }}
         >
           <p className="text-sm font-medium text-center">
             {detectionResult?.message || 'Posicione seu rosto na área indicada'}
@@ -69,24 +63,22 @@ export const FaceGuideOverlay = ({ detectionResult, isCapturing }: FaceGuideOver
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="flex items-center gap-2 px-4 py-2 rounded-full bg-card/80 backdrop-blur-sm"
+            className="flex items-center gap-2 px-4 py-2 rounded-full backdrop-blur-sm"
+            style={{ backgroundColor: 'rgba(255,255,255,0.8)' }}
           >
-            <span className="text-xs text-muted-foreground">Qualidade:</span>
-            <div className="w-20 h-2 rounded-full bg-muted overflow-hidden">
+            <span className="text-xs" style={{ color: textColor || '#666' }}>Qualidade:</span>
+            <div className="w-20 h-2 rounded-full overflow-hidden" style={{ backgroundColor: '#e5e7eb' }}>
               <motion.div
-                className={`h-full rounded-full ${
-                  detectionResult.quality >= 70 
-                    ? 'bg-accent' 
-                    : detectionResult.quality >= 40 
-                      ? 'bg-warning' 
-                      : 'bg-destructive'
-                }`}
+                className="h-full rounded-full"
+                style={{
+                  backgroundColor: detectionResult.quality >= 70 ? buttonColor : detectionResult.quality >= 40 ? `${buttonColor}99` : '#ef4444'
+                }}
                 initial={{ width: 0 }}
                 animate={{ width: `${detectionResult.quality}%` }}
                 transition={{ duration: 0.3 }}
               />
             </div>
-            <span className="text-xs font-medium text-foreground">
+            <span className="text-xs font-medium" style={{ color: textColor || '#333' }}>
               {Math.round(detectionResult.quality)}%
             </span>
           </motion.div>
@@ -98,7 +90,8 @@ export const FaceGuideOverlay = ({ detectionResult, isCapturing }: FaceGuideOver
           initial={{ opacity: 0 }}
           animate={{ opacity: [0, 1, 0] }}
           transition={{ duration: 0.3 }}
-          className="absolute inset-0 bg-accent/20"
+          className="absolute inset-0"
+          style={{ backgroundColor: `${buttonColor}33` }}
         />
       )}
     </div>

@@ -10,6 +10,12 @@ interface DocumentCaptureProps {
   onCapture: (imageData: string, documentType: DocumentType) => void;
   onBack: () => void;
   primaryColor?: string;
+  buttonColor?: string;
+  buttonTextColor?: string;
+  iconColor?: string;
+  titleColor?: string;
+  textColor?: string;
+  backgroundColor?: string;
   logoUrl?: string;
   logoSize?: 'small' | 'medium' | 'large';
 }
@@ -21,7 +27,24 @@ const documentTypes: { type: DocumentType; label: string; icon: typeof CreditCar
   { type: 'PASSPORT', label: 'Passaporte', icon: FileText },
 ];
 
-export const DocumentCapture = ({ onCapture, onBack, primaryColor = '#2c3e50', logoUrl = '', logoSize = 'medium' }: DocumentCaptureProps) => {
+export const DocumentCapture = ({ 
+  onCapture, 
+  onBack, 
+  primaryColor = '#2c3e50', 
+  buttonColor,
+  buttonTextColor = '#ffffff',
+  iconColor,
+  titleColor,
+  textColor,
+  backgroundColor,
+  logoUrl = '', 
+  logoSize = 'medium' 
+}: DocumentCaptureProps) => {
+  const effectiveButtonColor = buttonColor || primaryColor;
+  const effectiveIconColor = iconColor || primaryColor;
+  const effectiveTextColor = textColor || undefined;
+  const effectiveTitleColor = titleColor || undefined;
+
   const { 
     videoRef, 
     isReady, 
@@ -166,15 +189,16 @@ export const DocumentCapture = ({ onCapture, onBack, primaryColor = '#2c3e50', l
         <motion.div
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-6"
+          className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6"
+          style={{ backgroundColor: `${effectiveButtonColor}1A` }}
         >
-          <FileText className="w-8 h-8 text-primary" />
+          <FileText className="w-8 h-8" style={{ color: effectiveIconColor }} />
         </motion.div>
 
-        <h2 className="text-xl font-semibold text-foreground mb-2">
+        <h2 className="text-xl font-semibold mb-2" style={{ color: effectiveTitleColor }}>
           Selecione o Documento
         </h2>
-        <p className="text-muted-foreground text-center mb-8">
+        <p className="text-center mb-8" style={{ color: effectiveTextColor, opacity: 0.7 }}>
           Escolha o tipo de documento que você vai fotografar
         </p>
 
@@ -188,12 +212,15 @@ export const DocumentCapture = ({ onCapture, onBack, primaryColor = '#2c3e50', l
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
                 onClick={() => setSelectedDocType(doc.type)}
-                className="flex flex-col items-center gap-3 p-6 rounded-xl bg-card border border-border hover:border-primary hover:bg-primary/5 transition-all duration-200"
+                className="flex flex-col items-center gap-3 p-6 rounded-xl bg-card border border-border transition-all duration-200"
+                style={{ 
+                  ['--hover-border' as string]: effectiveButtonColor 
+                }}
               >
-                <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center">
-                  <Icon className="w-6 h-6 text-muted-foreground" />
+                <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${effectiveButtonColor}1A` }}>
+                  <Icon className="w-6 h-6" style={{ color: effectiveIconColor }} />
                 </div>
-                <span className="font-medium text-foreground">{doc.label}</span>
+                <span className="font-medium" style={{ color: effectiveTextColor }}>{doc.label}</span>
               </motion.button>
             );
           })}
@@ -216,8 +243,8 @@ export const DocumentCapture = ({ onCapture, onBack, primaryColor = '#2c3e50', l
         <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mb-6">
           <AlertCircle className="w-8 h-8 text-destructive" />
         </div>
-        <h2 className="text-xl font-semibold text-foreground mb-2">Erro na Câmera</h2>
-        <p className="text-muted-foreground text-center mb-6 max-w-sm">{cameraError}</p>
+        <h2 className="text-xl font-semibold mb-2" style={{ color: effectiveTitleColor }}>Erro na Câmera</h2>
+        <p className="text-center mb-6 max-w-sm" style={{ color: effectiveTextColor, opacity: 0.7 }}>{cameraError}</p>
         <div className="flex gap-3">
           <Button onClick={() => setSelectedDocType(null)} variant="outline">
             Voltar
@@ -288,9 +315,10 @@ export const DocumentCapture = ({ onCapture, onBack, primaryColor = '#2c3e50', l
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ type: 'spring', delay: 0.2 }}
-                  className="w-20 h-20 rounded-full bg-accent flex items-center justify-center shadow-lg"
+                  className="w-20 h-20 rounded-full flex items-center justify-center shadow-lg"
+                  style={{ backgroundColor: effectiveButtonColor }}
                 >
-                  <Check className="w-10 h-10 text-accent-foreground" />
+                  <Check className="w-10 h-10" style={{ color: buttonTextColor }} />
                 </motion.div>
               </div>
             </motion.div>
@@ -317,7 +345,7 @@ export const DocumentCapture = ({ onCapture, onBack, primaryColor = '#2c3e50', l
               {showLoading && (
                 <div className="absolute inset-0 flex items-center justify-center bg-background">
                   <div className="flex flex-col items-center gap-4">
-                    <Loader2 className="w-10 h-10 text-primary animate-spin" />
+                    <Loader2 className="w-10 h-10 animate-spin" style={{ color: effectiveButtonColor }} />
                     <div className="text-center">
                       <p className="text-sm font-medium text-foreground mb-1">
                         {isInitializing ? 'Acessando câmera traseira...' : 'Iniciando câmera...'}
@@ -345,6 +373,8 @@ export const DocumentCapture = ({ onCapture, onBack, primaryColor = '#2c3e50', l
                 <DocumentGuideOverlay 
                   detectionResult={detectionResult} 
                   isCapturing={isCapturing}
+                  buttonColor={effectiveButtonColor}
+                  textColor={effectiveTextColor}
                 />
               )}
             </motion.div>
@@ -374,7 +404,8 @@ export const DocumentCapture = ({ onCapture, onBack, primaryColor = '#2c3e50', l
               <Button
                 size="lg"
                 onClick={handleConfirm}
-                className="flex-1 h-14 bg-accent hover:bg-accent-light text-accent-foreground"
+                className="flex-1 h-14"
+                style={{ backgroundColor: effectiveButtonColor, color: buttonTextColor }}
               >
                 <Check className="w-5 h-5 mr-2" />
                 Confirmar
@@ -399,7 +430,8 @@ export const DocumentCapture = ({ onCapture, onBack, primaryColor = '#2c3e50', l
                   size="lg"
                   onClick={handleCapture}
                   disabled={!isReady}
-                  className="flex-1 h-14 bg-primary hover:bg-primary-light text-primary-foreground"
+                  className="flex-1 h-14"
+                  style={{ backgroundColor: effectiveButtonColor, color: buttonTextColor }}
                 >
                   <Camera className="w-5 h-5 mr-2" />
                   {isReady ? 'Capturar Documento' : 'Aguardando...'}
@@ -410,10 +442,11 @@ export const DocumentCapture = ({ onCapture, onBack, primaryColor = '#2c3e50', l
                     variant="outline"
                     size="icon"
                     onClick={switchCamera}
-                    className="h-14 w-14 border-primary/20 hover:bg-primary/5 hover:border-primary/40 flex-shrink-0"
+                    className="h-14 w-14 flex-shrink-0"
+                    style={{ borderColor: `${effectiveButtonColor}33` }}
                     title="Virar Câmera"
                   >
-                    <RefreshCw className="w-6 h-6 text-primary" />
+                    <RefreshCw className="w-6 h-6" style={{ color: effectiveIconColor }} />
                   </Button>
                 )}
               </div>
