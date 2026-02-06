@@ -9,11 +9,11 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { Save, Eye, EyeOff, CheckCircle, XCircle, Loader2, Database, Webhook, Zap, Search, Activity, Settings as SettingsIcon, Server, AlertCircle, LogOut } from "lucide-react";
+import { Save, Eye, EyeOff, CheckCircle, XCircle, Loader2, Database, Webhook, Zap, Search, Activity, Settings as SettingsIcon, Server, AlertCircle, LogOut, Copy } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function Settings() {
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const [clientId, setClientId] = useState("");
   const [clientSecret, setClientSecret] = useState("");
   const [showSecret, setShowSecret] = useState(false);
@@ -1144,6 +1144,33 @@ export default function Settings() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {user?.tenantId && (
+            <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <span className="text-sm font-medium">Seu Tenant ID:</span>
+                <div className="flex items-center gap-2">
+                  <code className="text-xs bg-muted px-2 py-1 rounded font-mono" data-testid="text-tenant-id-settings">
+                    {user.tenantId}
+                  </code>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={async () => {
+                      await navigator.clipboard.writeText(user.tenantId!);
+                      toast({ title: 'Copiado!', description: 'Tenant ID copiado' });
+                    }}
+                    data-testid="button-copy-tenant-id-settings"
+                  >
+                    <Copy className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Este é o identificador único da sua plataforma.
+              </p>
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="n8nWebhookUrl">URL do Webhook N8N</Label>
             <Input

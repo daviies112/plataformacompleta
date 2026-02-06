@@ -181,14 +181,16 @@ n8nRouter.get('/api-key/status', authenticateToken, async (req: Request, res: Re
             return res.json({
                 hasApiKey: false,
                 hasConfig: false,
-                message: 'Configure primeiro as credenciais do 100ms'
+                message: 'Configure primeiro as credenciais do 100ms',
+                tenantId: user.tenantId
             });
         }
 
         res.json({
             hasApiKey: !!config.n8nApiKey,
             hasConfig: true,
-            createdAt: config.n8nApiKeyCreatedAt?.toISOString() || null
+            createdAt: config.n8nApiKeyCreatedAt?.toISOString() || null,
+            tenantId: user.tenantId
         });
 
     } catch (error: any) {

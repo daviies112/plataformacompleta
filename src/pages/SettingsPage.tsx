@@ -2577,6 +2577,33 @@ const SettingsPage = () => {
                   </Badge>
                 )}
               </div>
+
+              {n8nMeetingApiStatus?.tenantId && (
+                <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <span className="text-sm font-medium">Seu Tenant ID:</span>
+                    <div className="flex items-center gap-2">
+                      <code className="text-xs bg-muted px-2 py-1 rounded font-mono" data-testid="text-tenant-id-n8n-docs">
+                        {n8nMeetingApiStatus.tenantId}
+                      </code>
+                      <PremiumButton
+                        size="icon"
+                        variant="ghost"
+                        onClick={async () => {
+                          await navigator.clipboard.writeText(n8nMeetingApiStatus.tenantId);
+                          toast({ title: 'Copiado!', description: 'Tenant ID copiado' });
+                        }}
+                        data-testid="button-copy-tenant-id-n8n-docs"
+                      >
+                        <Copy className="h-3 w-3" />
+                      </PremiumButton>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Este é o identificador único da sua plataforma.
+                  </p>
+                </div>
+              )}
               
               <PremiumInput
                 label="URL do Webhook"
@@ -3428,6 +3455,33 @@ const SettingsPage = () => {
                 )}
               </div>
 
+              {n8nMeetingApiStatus?.tenantId && (
+                <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <span className="text-sm font-medium">Seu Tenant ID:</span>
+                    <div className="flex items-center gap-2">
+                      <code className="text-xs bg-muted px-2 py-1 rounded font-mono" data-testid="text-tenant-id">
+                        {n8nMeetingApiStatus.tenantId}
+                      </code>
+                      <PremiumButton
+                        size="icon"
+                        variant="ghost"
+                        onClick={async () => {
+                          await navigator.clipboard.writeText(n8nMeetingApiStatus.tenantId);
+                          toast({ title: 'Copiado!', description: 'Tenant ID copiado' });
+                        }}
+                        data-testid="button-copy-tenant-id"
+                      >
+                        <Copy className="h-3 w-3" />
+                      </PremiumButton>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Este é o identificador único da sua plataforma. Use-o para configurar integrações com o N8N.
+                  </p>
+                </div>
+              )}
+
               {!n8nMeetingApiStatus?.hasConfig && (
                 <div className="bg-amber-100 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-lg p-4">
                   <p className="text-sm text-amber-900 dark:text-amber-200">
@@ -3506,10 +3560,15 @@ const SettingsPage = () => {
                     </p>
                     <ul className="text-sm text-blue-800 dark:text-blue-300 space-y-1 ml-4 list-disc">
                       <li>Use o nó <strong>HTTP Request</strong> com método <strong>POST</strong></li>
-                      <li>URL: <code className="bg-blue-200 dark:bg-blue-800 px-1 rounded text-xs">/api/n8n/reunioes</code></li>
+                      <li>URL: <code className="bg-blue-200 dark:bg-blue-800 px-1 rounded text-xs break-all">{`${window.location.origin}/api/n8n/reunioes`}</code></li>
                       <li>Header: <code className="bg-blue-200 dark:bg-blue-800 px-1 rounded text-xs">X-N8N-API-Key: sua_chave_aqui</code></li>
                       <li>Body: <code className="bg-blue-200 dark:bg-blue-800 px-1 rounded text-xs">{`{"titulo": "Nome da Reunião", "nome": "Participante"}`}</code></li>
                     </ul>
+                    {n8nMeetingApiStatus?.tenantId && (
+                      <p className="text-xs text-blue-700 dark:text-blue-400 mt-2">
+                        Seu Tenant ID: <code className="bg-blue-200 dark:bg-blue-800 px-1 rounded">{n8nMeetingApiStatus.tenantId}</code> — A API Key identifica automaticamente qual tenant está fazendo a requisição.
+                      </p>
+                    )}
                     <p className="text-xs text-blue-700 dark:text-blue-400 mt-2">
                       As reuniões criadas herdam automaticamente o design e cores da sua configuração.
                     </p>
