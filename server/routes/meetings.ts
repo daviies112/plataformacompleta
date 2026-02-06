@@ -31,6 +31,10 @@ import { getCachedMeeting, setCachedMeeting, getCachedRoomDesign, setCachedRoomD
 export const meetingsRouter = Router();
 export const publicRoomDesignRouter = Router();
 
+function isValidUUID(str: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
+}
+
 // Helper function to sync recording to Supabase
 async function syncRecordingToSupabase(tenantId: string, recording: any) {
   try {
@@ -789,31 +793,40 @@ publicRoomDesignRouter.post('/reunioes/:meetingId/token-public', async (req: Req
 // The 100ms template already restricts browserRecording to specific roles (host, guest)
 publicRoomDesignRouter.post('/100ms/recording/start', async (req: Request, res: Response) => {
   try {
-    const { roomId, meetingUrl, tenantSlug } = req.body;
+    const { roomId, meetingUrl, tenantSlug, meetingId } = req.body;
 
-    console.log('[Recording Public] Iniciando gravação:', { roomId, tenantSlug });
+    console.log('[Recording Public] Iniciando gravação:', { roomId, meetingId, tenantSlug });
 
     if (!roomId) {
       return res.status(400).json({ error: 'roomId é obrigatório' });
     }
 
-    // Find meeting by roomId (which is actually the meeting ID from URL)
-    let meeting = await db.select().from(reunioes)
-      .where(eq(reunioes.id, roomId))
-      .limit(1)
-      .then(rows => rows[0]);
+    let meeting: any = null;
+
+    if (meetingId && isValidUUID(meetingId)) {
+      meeting = await db.select().from(reunioes)
+        .where(eq(reunioes.id, meetingId))
+        .limit(1)
+        .then(rows => rows[0]);
+    }
+
+    if (!meeting && isValidUUID(roomId)) {
+      meeting = await db.select().from(reunioes)
+        .where(eq(reunioes.id, roomId))
+        .limit(1)
+        .then(rows => rows[0]);
+    }
 
     if (!meeting) {
-      console.log('[Recording Public] Reunião não encontrada, tentando por room_id_100ms:', roomId);
-      // Try finding by room_id_100ms
+      console.log('[Recording Public] Tentando por room_id_100ms:', roomId);
       meeting = await db.select().from(reunioes)
         .where(eq(reunioes.roomId100ms, roomId))
         .limit(1)
         .then(rows => rows[0]);
+    }
 
-      if (!meeting) {
-        return res.status(404).json({ error: 'Reunião não encontrada' });
-      }
+    if (!meeting) {
+      return res.status(404).json({ error: 'Reunião não encontrada' });
     }
 
     const tenantId = meeting.tenantId;
@@ -872,9 +885,9 @@ publicRoomDesignRouter.post('/100ms/recording/start', async (req: Request, res: 
 // Stop recording (public - for public meetings)
 publicRoomDesignRouter.post('/100ms/recording/stop', async (req: Request, res: Response) => {
   try {
-    const { roomId, recordingId } = req.body;
+    const { roomId, recordingId, meetingId } = req.body;
 
-    console.log('[Recording Public] Parando gravação:', { roomId, recordingId });
+    console.log('[Recording Public] Parando gravação:', { roomId, meetingId, recordingId });
 
     if (!roomId) {
       return res.status(400).json({ error: 'roomId é obrigatório' });
@@ -893,11 +906,21 @@ publicRoomDesignRouter.post('/100ms/recording/stop', async (req: Request, res: R
 
     // If no recording found by ID, find by roomId
     if (!recording) {
-      // First find meeting by ID or room_id_100ms
-      let meeting = await db.select().from(reunioes)
-        .where(eq(reunioes.id, roomId))
-        .limit(1)
-        .then(rows => rows[0]);
+      let meeting: any = null;
+
+      if (meetingId && isValidUUID(meetingId)) {
+        meeting = await db.select().from(reunioes)
+          .where(eq(reunioes.id, meetingId))
+          .limit(1)
+          .then(rows => rows[0]);
+      }
+
+      if (!meeting && isValidUUID(roomId)) {
+        meeting = await db.select().from(reunioes)
+          .where(eq(reunioes.id, roomId))
+          .limit(1)
+          .then(rows => rows[0]);
+      }
 
       if (!meeting) {
         meeting = await db.select().from(reunioes)
@@ -979,14 +1002,16 @@ publicRoomDesignRouter.get('/100ms/recording/:roomId', async (req: Request, res:
   try {
     const { roomId } = req.params;
 
-    // Find meeting
-    let meeting = await db.select().from(reunioes)
-      .where(eq(reunioes.id, roomId))
-      .limit(1)
-      .then(rows => rows[0]);
+    let meeting: any = null;
+
+    if (isValidUUID(roomId)) {
+      meeting = await db.select().from(reunioes)
+        .where(eq(reunioes.id, roomId))
+        .limit(1)
+        .then(rows => rows[0]);
+    }
 
     if (!meeting) {
-      // Try by room_id_100ms
       meeting = await db.select().from(reunioes)
         .where(eq(reunioes.roomId100ms, roomId))
         .limit(1)
@@ -994,7 +1019,7 @@ publicRoomDesignRouter.get('/100ms/recording/:roomId', async (req: Request, res:
     }
 
     if (!meeting) {
-      return res.json([]); // Return empty list if meeting not found
+      return res.json([]);
     }
 
     // Get recordings for this meeting

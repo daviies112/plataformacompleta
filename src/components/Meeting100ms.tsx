@@ -12,6 +12,7 @@ import {
   selectIsLocalScreenShared,
   selectRoom,
   selectRoomState,
+  selectLocalPeer,
   HMSPeer,
   HMSRoomState,
   HMSRoomProvider,
@@ -170,12 +171,10 @@ export function Meeting100ms({
   // CRÍTICO: Capturar notificações/erros do SDK 100ms
   const notification = useHMSNotifications();
 
-  const localPeer = useHMSStore((store) => store.localPeer);
+  const localPeer = useHMSStore(selectLocalPeer);
   const isHost = localPeer?.roleName === 'host';
-  // Permitir gravação para todos (host e guest têm browserRecording: true no template 100ms)
-  // O botão de gravação estará disponível para todos os participantes
   const canRecord = true;
-  const canShare = isHost || config.meeting?.enableScreenShare;
+  const canShare = isHost || localPeer?.roleName === 'guest' || config.meeting?.enableScreenShare !== false;
   
   // Usar cores da configuração para os controles
   const controlStyles = {
@@ -184,24 +183,6 @@ export function Meeting100ms({
     borderColor: `${config.colors.controlsText}20`
   };
 
-  const [localRecordingStatus, setLocalRecordingStatus] = useState<boolean | 'loading'>(false);
-
-  // No SDK v0.11.0, o estado de gravação pode estar em outro lugar ou ser nulo
-  // Vamos usar uma verificação segura para evitar o erro de tipagem
-  const sdkRecordingOn = (room as any)?.recording?.browser?.running || 
-                        (room as any)?.browserRecordingState?.running || 
-                        (room as any)?.recording?.server?.running || 
-                        (room as any)?.recording?.hls?.running || 
-                        ['starting', 'started', 'recording'].includes((room as any)?.recording?.status) ||
-                        false;
-  
-  // Sincronizar o estado local com o SDK quando o SDK mudar
-  useEffect(() => {
-    setLocalRecordingStatus(sdkRecordingOn);
-  }, [sdkRecordingOn]);
-
-  const isRecordingOn = localRecordingStatus === 'loading' ? sdkRecordingOn : localRecordingStatus;
-  
   const tenantId = (room as any)?.tenantId;
   
   // Encontrar o track de compartilhamento de tela
@@ -394,59 +375,6 @@ export function Meeting100ms({
     }
   }, [config]);
 
-  const toggleRecording = useCallback(async () => {
-    if (localRecordingStatus === 'loading') return;
-
-    try {
-      const isCurrentlyRecording = isRecordingOn;
-      const currentRoomId = roomId || window.location.pathname.split('/').pop();
-      const currentUrl = window.location.href;
-
-      setLocalRecordingStatus('loading');
-
-      if (isCurrentlyRecording) {
-        const response = await fetch('/api/100ms/recording/stop', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            roomId: currentRoomId
-          }),
-        });
-
-        if (!response.ok) {
-          const errData = await response.json();
-          setLocalRecordingStatus(true);
-          throw new Error(errData.message || errData.error || 'Erro ao parar gravação');
-        }
-
-        toast.success("Gravação parada! O vídeo será processado em breve.");
-        setLocalRecordingStatus(false);
-      } else {
-        const response = await fetch('/api/100ms/recording/start', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            roomId: currentRoomId,
-            meetingUrl: currentUrl,
-            tenantSlug: companySlug
-          }),
-        });
-
-        if (!response.ok) {
-          const errData = await response.json();
-          setLocalRecordingStatus(false);
-          throw new Error(errData.message || errData.error || 'Erro ao iniciar gravação');
-        }
-
-        toast.success("Gravação iniciada!");
-        setLocalRecordingStatus(true);
-      }
-    } catch (err: any) {
-      console.error('[Meeting] Erro exaustivo na gravação:', err);
-      toast.error(err.message || 'Erro ao controlar gravação');
-    }
-  }, [isRecordingOn, localRecordingStatus, roomId, companySlug]);
-
   const [isRecording, setIsRecording] = useState(false);
   const [recordingId, setRecordingId] = useState<string | null>(null);
 
@@ -480,7 +408,7 @@ export function Meeting100ms({
         const response = await fetch('/api/100ms/recording/start', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ roomId: currentRoomId }),
+          body: JSON.stringify({ roomId: currentRoomId, meetingId }),
         });
 
         if (!response.ok) {
@@ -490,22 +418,22 @@ export function Meeting100ms({
 
         const data = await response.json();
         setRecordingId(data.recordingId);
-        toast.success("✅ Gravação iniciada!");
+        toast.success("Gravação iniciada!");
       } else {
         const response = await fetch('/api/100ms/recording/stop', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ roomId: currentRoomId }),
+          body: JSON.stringify({ roomId: currentRoomId, meetingId }),
         });
 
         if (!response.ok) throw new Error('Erro ao parar gravação');
 
         setIsRecording(false);
         setRecordingId(null);
-        toast.success("⏸️ Gravação parada! O vídeo será processado em breve.");
+        toast.success("Gravação parada! O video sera processado em breve.");
       }
     } catch (err: any) {
-      toast.error("❌ " + err.message);
+      toast.error(err.message);
     }
   };
 

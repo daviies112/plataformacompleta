@@ -66,14 +66,17 @@ export async function criarSala(
 
   console.log(`[100ms] Criando sala com nome: ${safeName}`);
 
+  const body: any = {
+    name: safeName,
+    description: `Sala de reunião: ${nome}`,
+  };
+  if (templateId) {
+    body.template_id = templateId;
+  }
+
   const response = await axios.post(
     `${HMS_API_URL}/rooms`,
-    {
-      name: safeName,
-      description: `Sala de reunião: ${nome}`,
-      // Removendo template_id para que o 100ms use o template padrão da conta
-      // Isso evita erro 400 se o template "default" não existir ou for inválido na região
-    },
+    body,
     {
       headers: {
         Authorization: `Bearer ${token}`,
