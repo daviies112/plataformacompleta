@@ -7,7 +7,7 @@
   "button_color": "#1f293d",
   "button_text_color": "#fafafa",
   "icon_color": "#4e3b3b",
-  "contract_html": "",
+  "contract_html": "<div style=\"margin-bottom:16px;\"><h3 style=\"font-size:14px;font-weight:bold;margin-bottom:6px;\">1. teste</h3><p style=\"font-size:13px;line-height:1.6;\">testesda</p></div><div style=\"margin-bottom:16px;\"><h3 style=\"font-size:14px;font-weight:bold;margin-bottom:6px;\">2. teste</h3><p style=\"font-size:13px;line-height:1.6;\">teste</p></div>",
   "app_store_url": "",
   "google_play_url": "",
   "primary_color": "#1f293d",
@@ -15,5 +15,5 @@
   "verification_text_color": "#fafafa",
   "verification_background_color": "#954728",
   "tenant_id": "dev-daviemericko_gmail_com",
-  "updated_at": "2026-02-06T15:25:21.033Z"
+  "updated_at": "2026-02-06T16:15:59.456Z"
 }

@@ -218,23 +218,6 @@ export const SelfieCapture = ({
       exit={{ opacity: 0 }}
       className="flex flex-col h-full min-h-[80vh]"
     >
-      {logoUrl && (
-        <motion.div
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ delay: 0.1 }}
-          className="flex justify-center py-4"
-        >
-          <img 
-            src={logoUrl} 
-            alt="Logo" 
-            style={{
-              maxWidth: logoSize === 'small' ? '80px' : logoSize === 'large' ? '150px' : '120px',
-              height: 'auto'
-            }} 
-          />
-        </motion.div>
-      )}
       <div className="flex-1 relative bg-foreground/5 overflow-hidden min-h-[400px]">
         <AnimatePresence mode="wait">
           {capturedImage ? (

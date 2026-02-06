@@ -186,15 +186,6 @@ export const DocumentCapture = ({
         exit={{ opacity: 0 }}
         className="flex flex-col items-center justify-center min-h-[80vh] px-6 py-8"
       >
-        <motion.div
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6"
-          style={{ backgroundColor: `${effectiveButtonColor}1A` }}
-        >
-          <FileText className="w-8 h-8" style={{ color: effectiveIconColor }} />
-        </motion.div>
-
         <h2 className="text-xl font-semibold mb-2" style={{ color: effectiveTitleColor }}>
           Selecione o Documento
         </h2>
@@ -212,15 +203,16 @@ export const DocumentCapture = ({
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
                 onClick={() => setSelectedDocType(doc.type)}
-                className="flex flex-col items-center gap-3 p-6 rounded-xl bg-card border border-border transition-all duration-200"
+                className="flex flex-col items-center gap-3 p-6 rounded-xl transition-all duration-200"
                 style={{ 
-                  ['--hover-border' as string]: effectiveButtonColor 
+                  backgroundColor: effectiveButtonColor,
+                  border: `1px solid ${effectiveButtonColor}`
                 }}
               >
-                <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${effectiveButtonColor}1A` }}>
-                  <Icon className="w-6 h-6" style={{ color: effectiveIconColor }} />
+                <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${backgroundColor || '#954728'}33` }}>
+                  <Icon className="w-6 h-6" style={{ color: backgroundColor || '#954728' }} />
                 </div>
-                <span className="font-medium" style={{ color: effectiveTextColor }}>{doc.label}</span>
+                <span className="font-medium" style={{ color: '#ffffff' }}>{doc.label}</span>
               </motion.button>
             );
           })}
@@ -267,23 +259,6 @@ export const DocumentCapture = ({
       exit={{ opacity: 0 }}
       className="flex flex-col h-full min-h-[80vh]"
     >
-      {logoUrl && selectedDocType && (
-        <motion.div
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ delay: 0.1 }}
-          className="flex justify-center py-4"
-        >
-          <img 
-            src={logoUrl} 
-            alt="Logo" 
-            style={{
-              maxWidth: logoSize === 'small' ? '80px' : logoSize === 'large' ? '150px' : '120px',
-              height: 'auto'
-            }} 
-          />
-        </motion.div>
-      )}
       <div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
         <motion.div
           initial={{ opacity: 0, x: -20 }}

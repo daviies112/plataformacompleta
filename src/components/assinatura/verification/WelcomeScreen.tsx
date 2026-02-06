@@ -60,33 +60,6 @@ export const WelcomeScreen = ({
       style={{ backgroundColor }}
     >
       <div className="flex flex-col items-center w-full">
-        {logoUrl && (
-          <motion.div
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.1 }}
-            className="mb-8"
-          >
-            <img 
-              src={logoUrl} 
-              alt="Logo" 
-              style={{
-                maxWidth: logoSize === 'small' ? '80px' : logoSize === 'large' ? '150px' : '120px',
-                height: 'auto'
-              }} 
-            />
-          </motion.div>
-        )}
-
-        <motion.div
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ delay: 0.15 }}
-          className="w-16 h-16 rounded-full flex items-center justify-center mb-5"
-          style={{ backgroundColor: primaryColor }}
-        >
-          <Shield className="w-8 h-8" style={{ color: buttonTextColor }} />
-        </motion.div>
 
           <motion.h1
             initial={{ y: 20, opacity: 0 }}

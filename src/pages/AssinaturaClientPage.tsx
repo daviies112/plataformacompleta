@@ -615,10 +615,10 @@ const AssinaturaClientContent = () => {
             parabens_title={contract.parabens_title || undefined}
             parabens_subtitle={contract.parabens_subtitle || undefined}
             parabens_description={contract.parabens_description || undefined}
-            parabens_card_color={contract.parabens_card_color || contract.background_color || undefined}
-            parabens_background_color={contract.parabens_background_color || contract.background_color || undefined}
-            parabens_button_color={contract.parabens_button_color || contract.button_color || undefined}
-            parabens_text_color={contract.parabens_text_color || contract.title_color || contract.text_color || undefined}
+            parabens_card_color={contract.button_color || contract.parabens_card_color || undefined}
+            parabens_background_color={contract.background_color || contract.parabens_background_color || undefined}
+            parabens_button_color={contract.button_color || contract.parabens_button_color || undefined}
+            parabens_text_color={contract.text_color || contract.parabens_text_color || undefined}
             parabens_font_family={contract.parabens_font_family || undefined}
             parabens_form_title={contract.parabens_form_title || undefined}
             parabens_button_text={contract.parabens_button_text || undefined}
@@ -651,10 +651,10 @@ const AssinaturaClientContent = () => {
         <ProgressTrackerDisplay currentStep={currentStep} contract={contract} />
         <Suspense fallback={<StepLoader />}>
           <ResidenceProofStep 
-            parabens_card_color={contract.parabens_card_color || contract.background_color || undefined}
-            parabens_background_color={contract.parabens_background_color || contract.background_color || undefined}
-            parabens_button_color={contract.parabens_button_color || contract.button_color || undefined}
-            parabens_text_color={contract.parabens_text_color || contract.title_color || contract.text_color || undefined}
+            parabens_card_color={contract.button_color || contract.parabens_card_color || undefined}
+            parabens_background_color={contract.background_color || contract.parabens_background_color || undefined}
+            parabens_button_color={contract.button_color || contract.parabens_button_color || undefined}
+            parabens_text_color={contract.text_color || contract.parabens_text_color || undefined}
             parabens_font_family={contract.parabens_font_family || undefined}
             button_text_color={contract.button_text_color || '#ffffff'}
           />

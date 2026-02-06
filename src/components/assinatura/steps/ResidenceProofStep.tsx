@@ -28,10 +28,10 @@ export const ResidenceProofStep = (props: ResidenceProofStepProps = {}) => {
   const streamRef = useRef<MediaStream | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const cardColor = props.parabens_card_color || '#dbeafe';
-  const backgroundColor = props.parabens_background_color || '#f0fdf4';
-  const buttonColor = props.parabens_button_color || '#22c55e';
-  const textColor = props.parabens_text_color || '#1e40af';
+  const cardColor = props.parabens_card_color || '#1f293d';
+  const backgroundColor = props.parabens_background_color || '#ffffff';
+  const buttonColor = props.parabens_button_color || '#2c3e50';
+  const textColor = props.parabens_text_color || '#ffffff';
   const fontFamily = props.parabens_font_family || 'Arial, sans-serif';
   const buttonTextColor = props.button_text_color || '#ffffff';
 

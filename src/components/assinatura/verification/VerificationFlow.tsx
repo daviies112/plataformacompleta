@@ -305,6 +305,35 @@ export const VerificationFlow = ({
       
       {!showBranding && (
         <div className="min-h-screen flex flex-col" style={{fontFamily, fontSize, color: textColor, backgroundColor}}>
+          {logoUrl && (
+            <div style={{
+              position: 'fixed',
+              top: '12px',
+              left: '12px',
+              zIndex: 50,
+              pointerEvents: 'none'
+            }} className="hidden md:block">
+              <img src={logoUrl} alt="Logo" style={{
+                height: logoSize === 'small' ? '36px' : logoSize === 'large' ? '56px' : '44px',
+                width: 'auto',
+                objectFit: 'contain'
+              }} />
+            </div>
+          )}
+          {logoUrl && (
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              padding: '8px 0',
+              pointerEvents: 'none'
+            }} className="md:hidden">
+              <img src={logoUrl} alt="Logo" style={{
+                height: logoSize === 'small' ? '32px' : logoSize === 'large' ? '48px' : '40px',
+                width: 'auto',
+                objectFit: 'contain'
+              }} />
+            </div>
+          )}
           {(headerLogoUrl || headerCompanyName) && (
             <div style={{
               backgroundColor: headerBackgroundColor,

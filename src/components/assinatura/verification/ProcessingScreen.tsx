@@ -90,23 +90,6 @@ export const ProcessingScreen = ({
       exit={{ opacity: 0 }}
       className="flex flex-col items-center justify-center min-h-[80vh] px-6 py-8"
     >
-      {logoUrl && (
-        <motion.div
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ delay: 0.1 }}
-          className="mb-8"
-        >
-          <img 
-            src={logoUrl} 
-            alt="Logo" 
-            style={{
-              maxWidth: logoSize === 'small' ? '80px' : logoSize === 'large' ? '150px' : '120px',
-              height: 'auto'
-            }} 
-          />
-        </motion.div>
-      )}
       <div className="flex items-center gap-4 mb-10">
         <motion.div
           initial={{ opacity: 0, x: -20 }}

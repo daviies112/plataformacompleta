@@ -68,10 +68,10 @@ export const ResellerWelcomeStep = (props: ResellerWelcomeStepProps = {}) => {
   const parabensTitle = props.parabens_title || `Parabéns, ${clientName}!`;
   const parabensSubtitle = props.parabens_subtitle || 'Bem-vinda à família de revendedoras!';
   const parabensDescription = props.parabens_description || 'Sua maleta de produtos chegará em breve. Preencha seu endereço para recebê-la.';
-  const parabensCardColor = props.parabens_card_color || '#dbeafe';
-  const parabensBackgroundColor = props.parabens_background_color || '#f0fdf4';
-  const parabensButtonColor = props.parabens_button_color || '#22c55e';
-  const parabensTextColor = props.parabens_text_color || '#1e40af';
+  const parabensCardColor = props.parabens_card_color || '#1f293d';
+  const parabensBackgroundColor = props.parabens_background_color || '#ffffff';
+  const parabensButtonColor = props.parabens_button_color || '#2c3e50';
+  const parabensTextColor = props.parabens_text_color || '#ffffff';
   const parabensFontFamily = props.parabens_font_family || 'Arial, sans-serif';
   const parabensFormTitle = props.parabens_form_title || 'Endereço para Entrega';
   const parabensButtonText = props.parabens_button_text || 'Confirmar Endereço e Continuar';
