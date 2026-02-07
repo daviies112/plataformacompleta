@@ -47,16 +47,23 @@ export default function VerFormularios() {
 
   // Mutation para marcar formulário como ativo
   const setActiveFormMutation = useMutation({
-    mutationFn: (formId: string) => 
-      fetch("/api/formularios/config/ativo", {
+    mutationFn: (formId: string) => {
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      try {
+        const userData = localStorage.getItem('user_data');
+        const tid = userData ? JSON.parse(userData)?.tenantId : (localStorage.getItem('tenantId') || localStorage.getItem('tenant_id'));
+        if (tid) headers["x-tenant-id"] = tid;
+      } catch {}
+      return fetch("/api/formularios/config/ativo", {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify({ formId }),
         credentials: "include",
       }).then((res) => {
         if (!res.ok) throw new Error("Erro ao marcar formulário como ativo");
         return res.json();
-      }),
+      });
+    },
     onSuccess: (_data, formId) => {
       queryClient.invalidateQueries({ queryKey: ["/api/formularios/ativo"] });
       toast.success("Formulário marcado como ativo!");

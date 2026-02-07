@@ -54,11 +54,11 @@ async function getOrCreateLocalAppSettings() {
  * 2. Variáveis de ambiente (fallback)
  */
 async function getSupabaseClientForFormularios(req?: Request): Promise<SupabaseClient | null> {
-  // Se tem tenantId na sessão, usar credenciais específicas do tenant
-  if (req?.session?.tenantId) {
-    const tenantClient = await getClientSupabaseClient(req.session.tenantId);
+  const tenantId = req?.session?.tenantId || (req?.headers?.['x-tenant-id'] as string);
+  if (tenantId) {
+    const tenantClient = await getClientSupabaseClient(tenantId);
     if (tenantClient) {
-      console.log(`✅ [FORMS] Usando Supabase do tenant: ${req.session.tenantId}`);
+      console.log(`✅ [FORMS] Usando Supabase do tenant: ${tenantId}`);
       return tenantClient;
     }
   }
@@ -190,11 +190,10 @@ router.get('/ativo', async (req, res) => {
       let formSlug = settings.activeFormId;
       let companySlug = settings.companySlug || 'empresa';
 
-      // PRIORIDADE: Usar getCompanySlug (hms100msConfig) quando tenantId disponível
-      // Garante consistência com meetings/signatures
-      if (req.session?.tenantId) {
+      const resolvedTenantId = req.session?.tenantId || (req.headers['x-tenant-id'] as string);
+      if (resolvedTenantId) {
         try {
-          const hmsSlug = await getCompanySlugFromDb(req.session.tenantId);
+          const hmsSlug = await getCompanySlugFromDb(resolvedTenantId);
           if (hmsSlug) {
             companySlug = hmsSlug;
             console.log(`✅ [FORMS/ativo] Company slug from tenantSlug: ${companySlug}`);
@@ -214,12 +213,16 @@ router.get('/ativo', async (req, res) => {
       // Gerar URL dinâmica baseada no domínio atual
       const dynamicUrl = generateDynamicFormUrl(companySlug, formSlug);
 
-      // Buscar dados do form no PostgreSQL local
-      const localFormResult = await db
-        .select()
-        .from(forms)
-        .where(eq(forms.id, settings.activeFormId))
-        .limit(1);
+      let localFormResult: any[] = [];
+      try {
+        localFormResult = await db
+          .select()
+          .from(forms)
+          .where(eq(forms.id, settings.activeFormId))
+          .limit(1);
+      } catch (localFormErr) {
+        console.warn('⚠️ [FORMS/ativo] Tabela forms local não disponível, usando Supabase fallback:', localFormErr instanceof Error ? localFormErr.message : localFormErr);
+      }
 
       if (localFormResult.length > 0) {
         const form = localFormResult[0];
@@ -363,7 +366,7 @@ router.put('/config/ativo', async (req, res) => {
     // 🔐 PRIORIDADE 0: Usar getCompanySlug (hms100msConfig) para consistência com meetings/signatures
     // Se companySlug foi passado no body, usar como override; senão, buscar de hms100msConfig
     let companySlug = requestedCompanySlug || 'empresa';
-    const tenantId = (req as any).tenantId || (req as any).user?.tenantId || req.session?.tenantId;
+    const tenantId = (req as any).tenantId || (req as any).user?.tenantId || req.session?.tenantId || (req.headers['x-tenant-id'] as string);
     if (!requestedCompanySlug && tenantId) {
       try {
         const hmsSlug = await getCompanySlugFromDb(tenantId);
@@ -405,18 +408,22 @@ router.put('/config/ativo', async (req, res) => {
 
     // PRIORIDADE 2: Buscar direto na tabela forms local
     if (!formFound) {
-      const localFormResult = await db
-        .select({ id: forms.id, title: forms.title, slug: forms.slug })
-        .from(forms)
-        .where(eq(forms.id, formId))
-        .limit(1);
+      try {
+        const localFormResult = await db
+          .select({ id: forms.id, title: forms.title, slug: forms.slug })
+          .from(forms)
+          .where(eq(forms.id, formId))
+          .limit(1);
 
-      if (localFormResult.length > 0) {
-        const localForm = localFormResult[0];
-        formTitle = localForm.title || 'Formulário';
-        formSlug = localForm.slug || formId;
-        formFound = true;
-        console.log(`✅ [FORMS] Formulário encontrado no PostgreSQL local: ${formTitle}`);
+        if (localFormResult.length > 0) {
+          const localForm = localFormResult[0];
+          formTitle = localForm.title || 'Formulário';
+          formSlug = localForm.slug || formId;
+          formFound = true;
+          console.log(`✅ [FORMS] Formulário encontrado no PostgreSQL local: ${formTitle}`);
+        }
+      } catch (localFormErr) {
+        console.warn('⚠️ [FORMS] Tabela forms local não disponível, tentando Supabase:', localFormErr instanceof Error ? localFormErr.message : localFormErr);
       }
     }
 
@@ -573,21 +580,25 @@ router.put('/config/ativo', async (req, res) => {
       }
 
       // Também atualizar is_public na tabela forms se existir localmente
-      const localFormExists = await db
-        .select({ id: forms.id })
-        .from(forms)
-        .where(eq(forms.id, formId))
-        .limit(1);
+      try {
+        const localFormExists = await db
+          .select({ id: forms.id })
+          .from(forms)
+          .where(eq(forms.id, formId))
+          .limit(1);
 
-      if (localFormExists.length > 0) {
-        await db.update(forms)
-          .set({
-            isPublic: true,
-            slug: formSlug,
-            updatedAt: new Date()
-          })
-          .where(eq(forms.id, formId));
-        console.log('✅ [FORMS] Tabela forms atualizada com is_public=true');
+        if (localFormExists.length > 0) {
+          await db.update(forms)
+            .set({
+              isPublic: true,
+              slug: formSlug,
+              updatedAt: new Date()
+            })
+            .where(eq(forms.id, formId));
+          console.log('✅ [FORMS] Tabela forms atualizada com is_public=true');
+        }
+      } catch (formsTableErr) {
+        console.warn('⚠️ [FORMS] Tabela forms local não disponível para atualizar is_public:', formsTableErr instanceof Error ? formsTableErr.message : formsTableErr);
       }
     } catch (mappingError) {
       console.error('⚠️ [FORMS] Erro ao atualizar formTenantMapping:', mappingError);
@@ -655,11 +666,10 @@ router.get('/config/ativo', async (req, res) => {
       let formSlug = settings.activeFormId;
       let companySlug = settings.companySlug || 'empresa';
 
-      // PRIORIDADE: Usar getCompanySlug (hms100msConfig) quando tenantId disponível
-      // Garante consistência com meetings/signatures
-      if (req.session?.tenantId) {
+      const resolvedTenantId2 = req.session?.tenantId || (req.headers['x-tenant-id'] as string);
+      if (resolvedTenantId2) {
         try {
-          const hmsSlug = await getCompanySlugFromDb(req.session.tenantId);
+          const hmsSlug = await getCompanySlugFromDb(resolvedTenantId2);
           if (hmsSlug) {
             companySlug = hmsSlug;
             console.log(`✅ [FORMS/config/ativo] Company slug from tenantSlug: ${companySlug}`);
@@ -679,12 +689,16 @@ router.get('/config/ativo', async (req, res) => {
       // Gerar URL dinâmica baseada no domínio atual
       const dynamicUrl = generateDynamicFormUrl(companySlug, formSlug);
 
-      // Buscar dados do form local
-      const localFormResult = await db
-        .select()
-        .from(forms)
-        .where(eq(forms.id, settings.activeFormId))
-        .limit(1);
+      let localFormResult: any[] = [];
+      try {
+        localFormResult = await db
+          .select()
+          .from(forms)
+          .where(eq(forms.id, settings.activeFormId))
+          .limit(1);
+      } catch (localFormErr) {
+        console.warn('⚠️ [FORMS/config/ativo] Tabela forms local não disponível, usando Supabase fallback:', localFormErr instanceof Error ? localFormErr.message : localFormErr);
+      }
 
       if (localFormResult.length > 0) {
         const form = localFormResult[0];
