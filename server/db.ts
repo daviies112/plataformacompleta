@@ -69,9 +69,33 @@ function initializeDatabase(): void {
       
       db = drizzle(pool, { schema });
       
-      // Teste de conexão imediato (em background para não bloquear o startup)
-      pool.query('SELECT NOW()').then(() => {
+      pool.query('SELECT NOW()').then(async () => {
         console.log('✅ Database connection established and verified');
+        try {
+          await pool!.query(`
+            CREATE TABLE IF NOT EXISTS bigdatacorp_config (
+              id SERIAL PRIMARY KEY, tenant_id TEXT NOT NULL, token_id TEXT NOT NULL, chave_token TEXT NOT NULL,
+              supabase_master_url TEXT, supabase_master_service_role_key TEXT,
+              created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW()
+            );
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_bigdatacorp_tenant_unique ON bigdatacorp_config (tenant_id);
+            CREATE TABLE IF NOT EXISTS supabase_master_config (
+              id SERIAL PRIMARY KEY, tenant_id TEXT NOT NULL, supabase_master_url TEXT NOT NULL,
+              supabase_master_service_role_key TEXT NOT NULL,
+              created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW()
+            );
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_supabase_master_tenant_unique ON supabase_master_config (tenant_id);
+            CREATE TABLE IF NOT EXISTS total_express_config (
+              id SERIAL PRIMARY KEY, tenant_id TEXT NOT NULL, "user" TEXT NOT NULL, password TEXT NOT NULL,
+              reid TEXT NOT NULL, service TEXT DEFAULT 'EXP', test_mode BOOLEAN DEFAULT TRUE,
+              profit_margin REAL DEFAULT 1.40,
+              created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW()
+            );
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_total_express_tenant_unique ON total_express_config (tenant_id);
+          `);
+        } catch (migrationErr) {
+          console.warn('⚠️ Auto-migration warning:', migrationErr instanceof Error ? migrationErr.message : migrationErr);
+        }
       }).catch(err => {
         console.error('❌ Database connection verification failed:', err);
       });

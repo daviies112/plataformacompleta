@@ -2646,7 +2646,8 @@ export function setupConfigRoutes(app: Express) {
   
   app.post("/api/config/total-express", authenticateToken, async (req: AuthRequest, res) => {
     try {
-      const { user, password, reid, service, testMode, profitMargin } = req.body;
+      const { user, password, reid, service, serviceType, testMode, profitMargin } = req.body;
+      const resolvedService = service || serviceType;
       const tenantId = req.user!.tenantId;
       
       if (!user || !password || !reid) {
@@ -2657,7 +2658,7 @@ export function setupConfigRoutes(app: Express) {
       
       // Validate service type
       const validServices = ['EXP', 'ESP', 'PRM', 'STD'];
-      const serviceType = validServices.includes(service) ? service : 'EXP';
+      const validatedService = validServices.includes(resolvedService) ? resolvedService : 'EXP';
       
       const encryptedUser = encrypt(user);
       const encryptedPassword = encrypt(password);
@@ -2674,7 +2675,7 @@ export function setupConfigRoutes(app: Express) {
             user: encryptedUser,
             password: encryptedPassword,
             reid: encryptedReid,
-            service: serviceType,
+            service: validatedService,
             testMode: testMode ?? true,
             profitMargin: profitMargin || 1.40,
             updatedAt: new Date(),
@@ -2686,7 +2687,7 @@ export function setupConfigRoutes(app: Express) {
           user: encryptedUser,
           password: encryptedPassword,
           reid: encryptedReid,
-          service: serviceType,
+          service: validatedService,
           testMode: testMode ?? true,
           profitMargin: profitMargin || 1.40,
         });
