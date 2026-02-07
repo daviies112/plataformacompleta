@@ -131,9 +131,15 @@ const PublicMeetingApp = () => {
     const path = window.location.pathname;
     
     const twoSegmentPattern = /^\/reuniao\/[^/?]+\/([^/?]+)/;
+    const twoSegmentPublicaPattern = /^\/reuniao-publica\/[^/?]+\/([^/?]+)/;
     const oneSegmentPattern = /^\/reuniao-publica\/([^/?]+)/;
     
     let match = path.match(twoSegmentPattern);
+    if (match) {
+      return match[1].split('?')[0].split('%3F')[0];
+    }
+    
+    match = path.match(twoSegmentPublicaPattern);
     if (match) {
       return match[1].split('?')[0].split('%3F')[0];
     }

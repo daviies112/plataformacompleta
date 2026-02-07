@@ -1523,4 +1523,42 @@ function validateCredentials(type: string, credentials: any): { valid: boolean; 
   return { valid: true };
 }
 
+router.post('/cache-cleanup', authenticateToken, async (req, res) => {
+  try {
+    const { runCacheCleanup, getCleanupStatus } = await import('../lib/cacheCleanup');
+    const status = getCleanupStatus();
+    
+    if (status.isRunning) {
+      return res.status(409).json({ 
+        success: false, 
+        message: 'Limpeza já em execução. Aguarde a conclusão.' 
+      });
+    }
+    
+    const results = await runCacheCleanup();
+    
+    const summary = {
+      totalDeleted: results.reduce((sum, r) => sum + r.deleted, 0),
+      totalSkipped: results.reduce((sum, r) => sum + r.skipped, 0),
+      totalErrors: results.filter(r => r.error).length,
+      details: results.filter(r => r.deleted > 0 || r.error),
+    };
+    
+    res.json({ success: true, message: 'Limpeza concluída', ...summary });
+  } catch (error: any) {
+    console.error('[CacheCleanup] Erro manual:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+router.get('/cache-cleanup/status', authenticateToken, async (req, res) => {
+  try {
+    const { getCleanupStatus } = await import('../lib/cacheCleanup');
+    const status = getCleanupStatus();
+    res.json({ success: true, ...status });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 export { router as credentialsRoutes };

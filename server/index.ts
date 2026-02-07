@@ -251,6 +251,11 @@ app.use((req, res, next) => {
         // Start contract sync poller (Master-Client sync)
         startContractSyncPoller();
         log('✅ Contract sync poller started');
+        
+        // Start cache cleanup scheduler (daily cleanup of local cache tables)
+        const { startCacheCleanupScheduler } = await import('./lib/cacheCleanup');
+        startCacheCleanupScheduler(24);
+        log('✅ Cache cleanup scheduler started (every 24h)');
       } catch (error) {
         console.error('❌ Failed to start background services:', error);
       }
@@ -264,6 +269,7 @@ app.use((req, res, next) => {
     stopAutomation();
     stopAutomaticAlerting();
     stopContractSyncPoller();
+    import('./lib/cacheCleanup').then(m => m.stopCacheCleanupScheduler()).catch(() => {});
     shutdownQueues();
     server.close(() => {
       log('HTTP server closed');
