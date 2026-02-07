@@ -148,11 +148,16 @@ async function assertPublicFormAccess(formId: string): Promise<boolean> {
     }
     
     // 2. If not in mapping, check the forms table
-    const formCheck = await db
-      .select({ isPublic: forms.isPublic })
-      .from(forms)
-      .where(eq(forms.id, formId))
-      .limit(1);
+    let formCheck: any[] = [];
+    try {
+      formCheck = await db
+        .select({ isPublic: forms.isPublic })
+        .from(forms)
+        .where(eq(forms.id, formId))
+        .limit(1);
+    } catch (localDbError) {
+      console.log('⚠️ [SECURITY] Local forms table not available, skipping forms table check');
+    }
     
     if (formCheck.length > 0) {
       // Form exists - isPublic: null/undefined = public (legacy), false = private, true = public
@@ -358,19 +363,23 @@ export function registerFormulariosCompleteRoutes(app: Express) {
         }
         
         // Also check local PostgreSQL for owner's forms
-        let localOwnerForm;
-        if (isUUID) {
-          localOwnerForm = await db
-            .select()
-            .from(forms)
-            .where(and(eq(forms.id, formIdOrSlug), eq(forms.tenantId, sessionTenantId)))
-            .limit(1);
-        } else {
-          localOwnerForm = await db
-            .select()
-            .from(forms)
-            .where(and(eq(forms.slug, formIdOrSlug), eq(forms.tenantId, sessionTenantId)))
-            .limit(1);
+        let localOwnerForm: any[] = [];
+        try {
+          if (isUUID) {
+            localOwnerForm = await db
+              .select()
+              .from(forms)
+              .where(and(eq(forms.id, formIdOrSlug), eq(forms.tenantId, sessionTenantId)))
+              .limit(1);
+          } else {
+            localOwnerForm = await db
+              .select()
+              .from(forms)
+              .where(and(eq(forms.slug, formIdOrSlug), eq(forms.tenantId, sessionTenantId)))
+              .limit(1);
+          }
+        } catch (e) {
+          console.log('⚠️ [PREVIEW] Local forms table not available, skipping owner preview check');
         }
         
         if (localOwnerForm.length > 0) {
@@ -400,14 +409,18 @@ export function registerFormulariosCompleteRoutes(app: Express) {
         
         // Também verificar colisão na tabela forms
         if (!hasSlugCollision) {
-          const allFormMatches = await db
-            .select({ id: forms.id, tenantId: forms.tenantId })
-            .from(forms)
-            .where(eq(forms.slug, formIdOrSlug));
-          
-          if (allFormMatches.length > 1) {
-            console.warn(`[SECURITY] Multiple forms have slug "${formIdOrSlug}" - collision detected`);
-            hasSlugCollision = true;
+          try {
+            const allFormMatches = await db
+              .select({ id: forms.id, tenantId: forms.tenantId })
+              .from(forms)
+              .where(eq(forms.slug, formIdOrSlug));
+            
+            if (allFormMatches.length > 1) {
+              console.warn(`[SECURITY] Multiple forms have slug "${formIdOrSlug}" - collision detected`);
+              hasSlugCollision = true;
+            }
+          } catch (e) {
+            console.log('⚠️ [PUBLIC] Local forms table not available, skipping slug collision check');
           }
         }
         
@@ -431,22 +444,26 @@ export function registerFormulariosCompleteRoutes(app: Express) {
         console.log(`🔍 [PUBLIC FALLBACK] Tenant não encontrado, buscando formulário ${formIdOrSlug} diretamente no banco local...`);
         
         // Buscar formulário diretamente na tabela forms (sem exigir tenant/mapping)
-        let localFormResult;
-        if (isUUID) {
-          // UUID é único, pode usar limit(1) - seguro por natureza
-          localFormResult = await db
-            .select()
-            .from(forms)
-            .where(eq(forms.id, formIdOrSlug))
-            .limit(1);
-        } else {
-          // 🔐 SEGURANÇA: Para slugs, colisões já foram verificadas acima
-          // Se chegou aqui, sabemos que não há colisão
-          localFormResult = await db
-            .select()
-            .from(forms)
-            .where(eq(forms.slug, formIdOrSlug))
-            .limit(1);
+        let localFormResult: any[] = [];
+        try {
+          if (isUUID) {
+            // UUID é único, pode usar limit(1) - seguro por natureza
+            localFormResult = await db
+              .select()
+              .from(forms)
+              .where(eq(forms.id, formIdOrSlug))
+              .limit(1);
+          } else {
+            // 🔐 SEGURANÇA: Para slugs, colisões já foram verificadas acima
+            // Se chegou aqui, sabemos que não há colisão
+            localFormResult = await db
+              .select()
+              .from(forms)
+              .where(eq(forms.slug, formIdOrSlug))
+              .limit(1);
+          }
+        } catch (e) {
+          console.log('⚠️ [PUBLIC FALLBACK] Local forms table not available, skipping local lookup');
         }
         
         if (localFormResult.length > 0) {
@@ -471,22 +488,26 @@ export function registerFormulariosCompleteRoutes(app: Express) {
         // Também tentar via storage como último recurso (apenas para UUID)
         // 🔐 SEGURANÇA: Storage fallback só é permitido para UUID (que são únicos globalmente)
         if (isUUID) {
-          const storageForm = await storage.getFormById(formIdOrSlug);
-          if (storageForm) {
-            // 🔐 SECURITY: Verify form is public before returning via storage fallback
-            const isFormPublic = await assertPublicFormAccess(formIdOrSlug);
-            if (!isFormPublic) {
-              console.log(`🔒 [PUBLIC FALLBACK] Formulário ${formIdOrSlug} encontrado via storage mas não é público`);
-              return res.status(404).json({
-                success: false,
-                error: 'Form not found or not public'
-              });
+          try {
+            const storageForm = await storage.getFormById(formIdOrSlug);
+            if (storageForm) {
+              // 🔐 SECURITY: Verify form is public before returning via storage fallback
+              const isFormPublic = await assertPublicFormAccess(formIdOrSlug);
+              if (!isFormPublic) {
+                console.log(`🔒 [PUBLIC FALLBACK] Formulário ${formIdOrSlug} encontrado via storage mas não é público`);
+                return res.status(404).json({
+                  success: false,
+                  error: 'Form not found or not public'
+                });
+              }
+              const reconstructedForm = reconstructFormDataFromSupabase(storageForm);
+              // 🚀 PERFORMANCE: Cache the form for future requests
+              setCachedForm(formIdOrSlug, reconstructedForm);
+              res.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
+              return res.json(reconstructedForm);
             }
-            const reconstructedForm = reconstructFormDataFromSupabase(storageForm);
-            // 🚀 PERFORMANCE: Cache the form for future requests
-            setCachedForm(formIdOrSlug, reconstructedForm);
-            res.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=300');
-            return res.json(reconstructedForm);
+          } catch (e) {
+            console.log('⚠️ [PUBLIC FALLBACK] Storage/local forms table not available, skipping');
           }
         }
         
@@ -537,24 +558,33 @@ export function registerFormulariosCompleteRoutes(app: Express) {
         // 🔐 SEGURANÇA MULTI-TENANT: Busca por UUID é segura pois UUIDs são únicos globalmente.
         // storage.getFormById() retorna apenas UM resultado por UUID, impossibilitando
         // colisões entre tenants. Mas ainda precisamos verificar se é público.
-        form = await storage.getFormById(formIdOrSlug);
-        if (form) {
-          // 🔐 SECURITY: Verify form is public before returning via storage
-          const isFormPublic = await assertPublicFormAccess(formIdOrSlug);
-          if (!isFormPublic) {
-            console.log(`🔒 [PUBLIC] Formulário ${formIdOrSlug} encontrado via storage mas não é público`);
-            return res.status(404).json({
-              success: false,
-              error: 'Form not found or not public'
-            });
+        try {
+          form = await storage.getFormById(formIdOrSlug);
+          if (form) {
+            // 🔐 SECURITY: Verify form is public before returning via storage
+            const isFormPublic = await assertPublicFormAccess(formIdOrSlug);
+            if (!isFormPublic) {
+              console.log(`🔒 [PUBLIC] Formulário ${formIdOrSlug} encontrado via storage mas não é público`);
+              return res.status(404).json({
+                success: false,
+                error: 'Form not found or not public'
+              });
+            }
           }
+        } catch (e) {
+          console.log('⚠️ [PUBLIC] Storage/local forms table not available, skipping storage lookup');
         }
       } else {
         // 🔐 SEGURANÇA: Buscar TODOS os resultados para detectar colisões de slug
-        const formBySlug = await db
-          .select()
-          .from(forms)
-          .where(eq(forms.slug, formIdOrSlug));
+        let formBySlug: any[] = [];
+        try {
+          formBySlug = await db
+            .select()
+            .from(forms)
+            .where(eq(forms.slug, formIdOrSlug));
+        } catch (e) {
+          console.log('⚠️ [PUBLIC] Local forms table not available, skipping slug lookup');
+        }
         
         // 🔐 SEGURANÇA: Se houver mais de um resultado, há colisão de slugs entre tenants
         if (formBySlug.length > 1) {
@@ -649,21 +679,30 @@ export function registerFormulariosCompleteRoutes(app: Express) {
       let formData = null;
       
       // Try local PostgreSQL first
-      const localFormResult = await db
-        .select()
-        .from(forms)
-        .where(eq(forms.id, formularioId))
-        .limit(1);
+      let localFormResult: any[] = [];
+      try {
+        localFormResult = await db
+          .select()
+          .from(forms)
+          .where(eq(forms.id, formularioId))
+          .limit(1);
+      } catch (e) {
+        console.log('⚠️ [WITH-TOKEN] Local forms table not available, skipping local lookup');
+      }
       
       if (localFormResult.length > 0) {
         console.log(`✅ [WITH-TOKEN] Formulário encontrado no banco local`);
         formData = reconstructFormDataFromSupabase(localFormResult[0]);
       } else {
         // Try storage fallback
-        const storageForm = await storage.getFormById(formularioId);
-        if (storageForm) {
-          console.log(`✅ [WITH-TOKEN] Formulário encontrado via storage`);
-          formData = reconstructFormDataFromSupabase(storageForm);
+        try {
+          const storageForm = await storage.getFormById(formularioId);
+          if (storageForm) {
+            console.log(`✅ [WITH-TOKEN] Formulário encontrado via storage`);
+            formData = reconstructFormDataFromSupabase(storageForm);
+          }
+        } catch (e) {
+          console.log('⚠️ [WITH-TOKEN] Storage/local forms table not available, skipping');
         }
       }
       
@@ -797,11 +836,16 @@ export function registerFormulariosCompleteRoutes(app: Express) {
           }
           
           // Buscar formulário no PostgreSQL local
-          const localFormById = await db
-            .select()
-            .from(forms)
-            .where(eq(forms.id, foundMapping.formId))
-            .limit(1);
+          let localFormById: any[] = [];
+          try {
+            localFormById = await db
+              .select()
+              .from(forms)
+              .where(eq(forms.id, foundMapping.formId))
+              .limit(1);
+          } catch (localDbError) {
+            console.log('⚠️ [SLUG] Local forms table not available, skipping local lookup');
+          }
           
           if (localFormById.length > 0) {
             console.log(`✅ [SLUG FALLBACK 1] Formulário encontrado no banco local:`, localFormById[0].title);
@@ -810,25 +854,23 @@ export function registerFormulariosCompleteRoutes(app: Express) {
             return res.json(reconstructedForm);
           }
           
-          // 🔐 SEGURANÇA MULTI-TENANT: Busca por UUID (foundMapping.formId) é segura pois 
-          // UUIDs são únicos globalmente. storage.getFormById() retorna apenas UM resultado,
-          // impossibilitando colisões entre tenants.
-          const storageForm = await storage.getFormById(foundMapping.formId);
-          if (storageForm) {
-            // 🔐 SECURITY: Double-check form is public via assertPublicFormAccess
-            // Even though mapping.isPublic was checked, verify again for defense in depth
-            const isFormPublic = await assertPublicFormAccess(foundMapping.formId);
-            if (!isFormPublic) {
-              console.log(`🔒 [SLUG FALLBACK 1] Formulário ${foundMapping.formId} encontrado via storage mas não é público`);
-              return res.status(404).json({
-                success: false,
-                error: 'Formulário não encontrado'
-              });
+          try {
+            const storageForm = await storage.getFormById(foundMapping.formId);
+            if (storageForm) {
+              const isFormPublic = await assertPublicFormAccess(foundMapping.formId);
+              if (!isFormPublic) {
+                console.log(`🔒 [SLUG FALLBACK 1] Formulário ${foundMapping.formId} encontrado via storage mas não é público`);
+                return res.status(404).json({
+                  success: false,
+                  error: 'Formulário não encontrado'
+                });
+              }
+              console.log(`✅ [SLUG FALLBACK 1] Formulário encontrado via storage:`, storageForm.title);
+              const reconstructedForm = reconstructFormDataFromSupabase(storageForm);
+              return res.json(reconstructedForm);
             }
-            console.log(`✅ [SLUG FALLBACK 1] Formulário encontrado via storage:`, storageForm.title);
-            console.log(`🔐 [SECURITY] Form verified as public via assertPublicFormAccess`);
-            const reconstructedForm = reconstructFormDataFromSupabase(storageForm);
-            return res.json(reconstructedForm);
+          } catch (storageError) {
+            console.log('⚠️ [SLUG FALLBACK 1] Storage lookup failed (forms table not available), trying Supabase');
           }
           
           // 🔗 FALLBACK 1.5: Buscar no Supabase se não encontrou localmente
@@ -860,10 +902,15 @@ export function registerFormulariosCompleteRoutes(app: Express) {
         console.log(`🔍 [SLUG FALLBACK 2] Mapping não encontrado, buscando diretamente na tabela forms...`);
         
         // 🔐 SEGURANÇA: Buscar TODOS os resultados para detectar colisões
-        const localFormBySlug = await db
-          .select()
-          .from(forms)
-          .where(eq(forms.slug, formSlug));
+        let localFormBySlug: any[] = [];
+        try {
+          localFormBySlug = await db
+            .select()
+            .from(forms)
+            .where(eq(forms.slug, formSlug));
+        } catch (localDbError) {
+          console.log('⚠️ [SLUG] Local forms table not available, skipping local lookup');
+        }
         
         // 🔐 SEGURANÇA: Se houver mais de um resultado, há colisão de slugs entre tenants
         if (localFormBySlug.length > 1) {
@@ -897,11 +944,16 @@ export function registerFormulariosCompleteRoutes(app: Express) {
         if (uuidRegex.test(formSlug)) {
           console.log(`🔍 [SLUG FALLBACK 3] formSlug parece UUID, buscando por ID="${formSlug}"...`);
           
-          const formById = await db
-            .select()
-            .from(forms)
-            .where(eq(forms.id, formSlug))
-            .limit(1);
+          let formById: any[] = [];
+          try {
+            formById = await db
+              .select()
+              .from(forms)
+              .where(eq(forms.id, formSlug))
+              .limit(1);
+          } catch (localDbError) {
+            console.log('⚠️ [SLUG] Local forms table not available, skipping local lookup');
+          }
           
           if (formById.length > 0) {
             const form = formById[0];
@@ -948,11 +1000,16 @@ export function registerFormulariosCompleteRoutes(app: Express) {
       // 🔗 PRIORIDADE 1: Buscar no PostgreSQL LOCAL primeiro (funciona sem Supabase)
       console.log('🌐 [SLUG] Buscando dados do PostgreSQL local PRIMEIRO...');
       
-      const localFormResult = await db
-        .select()
-        .from(forms)
-        .where(eq(forms.id, mapping.formId))
-        .limit(1);
+      let localFormResult: any[] = [];
+      try {
+        localFormResult = await db
+          .select()
+          .from(forms)
+          .where(eq(forms.id, mapping.formId))
+          .limit(1);
+      } catch (localDbError) {
+        console.log('⚠️ [SLUG] Local forms table not available, skipping local lookup');
+      }
       
       if (localFormResult.length > 0) {
         const localForm = localFormResult[0];
@@ -963,21 +1020,23 @@ export function registerFormulariosCompleteRoutes(app: Express) {
       }
       
       // 🔗 PRIORIDADE 2: Tentar storage como fallback
-      const storageForm = await storage.getFormById(mapping.formId);
-      if (storageForm) {
-        // 🔐 SECURITY: Double-check form is public via assertPublicFormAccess
-        const isFormPublic = await assertPublicFormAccess(mapping.formId);
-        if (!isFormPublic) {
-          console.log(`🔒 [SLUG] Formulário ${mapping.formId} encontrado via storage mas não é público`);
-          return res.status(404).json({
-            success: false,
-            error: 'Formulário não encontrado'
-          });
+      try {
+        const storageForm = await storage.getFormById(mapping.formId);
+        if (storageForm) {
+          const isFormPublic = await assertPublicFormAccess(mapping.formId);
+          if (!isFormPublic) {
+            console.log(`🔒 [SLUG] Formulário ${mapping.formId} encontrado via storage mas não é público`);
+            return res.status(404).json({
+              success: false,
+              error: 'Formulário não encontrado'
+            });
+          }
+          console.log(`✅ [SLUG] Formulário encontrado via storage:`, storageForm.title);
+          const reconstructedForm = reconstructFormDataFromSupabase(storageForm);
+          return res.json(reconstructedForm);
         }
-        console.log(`✅ [SLUG] Formulário encontrado via storage:`, storageForm.title);
-        // CORREÇÃO: Reconstruir welcomeConfig para dados do storage também
-        const reconstructedForm = reconstructFormDataFromSupabase(storageForm);
-        return res.json(reconstructedForm);
+      } catch (storageError) {
+        console.log('⚠️ [SLUG] Storage lookup failed (forms table not available), skipping to Supabase');
       }
       
       // 🔗 PRIORIDADE 3: Buscar no Supabase se não encontrou localmente
@@ -1072,11 +1131,16 @@ export function registerFormulariosCompleteRoutes(app: Express) {
         }
         
         // Buscar no PostgreSQL local
-        const localFormResult = await db
-          .select()
-          .from(forms)
-          .where(eq(forms.id, mapping.formId))
-          .limit(1);
+        let localFormResult: any[] = [];
+        try {
+          localFormResult = await db
+            .select()
+            .from(forms)
+            .where(eq(forms.id, mapping.formId))
+            .limit(1);
+        } catch (e) {
+          console.log('⚠️ [FORM-SLUG] Local forms table not available, skipping local lookup');
+        }
         
         if (localFormResult.length > 0) {
           console.log(`✅ [FORM-SLUG] Formulário encontrado no banco local:`, localFormResult[0].title);
@@ -1086,30 +1150,39 @@ export function registerFormulariosCompleteRoutes(app: Express) {
         }
         
         // Tentar via storage
-        const storageForm = await storage.getFormById(mapping.formId);
-        if (storageForm) {
-          // 🔐 SECURITY: Double-check form is public via assertPublicFormAccess
-          const isFormPublic = await assertPublicFormAccess(mapping.formId);
-          if (!isFormPublic) {
-            console.log(`🔒 [FORM-SLUG] Formulário ${mapping.formId} encontrado via storage mas não é público`);
-            return res.status(404).json({
-              success: false,
-              error: 'Formulário não encontrado'
-            });
+        try {
+          const storageForm = await storage.getFormById(mapping.formId);
+          if (storageForm) {
+            // 🔐 SECURITY: Double-check form is public via assertPublicFormAccess
+            const isFormPublic = await assertPublicFormAccess(mapping.formId);
+            if (!isFormPublic) {
+              console.log(`🔒 [FORM-SLUG] Formulário ${mapping.formId} encontrado via storage mas não é público`);
+              return res.status(404).json({
+                success: false,
+                error: 'Formulário não encontrado'
+              });
+            }
+            console.log(`✅ [FORM-SLUG] Formulário encontrado via storage:`, storageForm.title);
+            // CORREÇÃO: Reconstruir welcomeConfig para dados do storage
+            const reconstructedForm = reconstructFormDataFromSupabase(storageForm);
+            return res.json(reconstructedForm);
           }
-          console.log(`✅ [FORM-SLUG] Formulário encontrado via storage:`, storageForm.title);
-          // CORREÇÃO: Reconstruir welcomeConfig para dados do storage
-          const reconstructedForm = reconstructFormDataFromSupabase(storageForm);
-          return res.json(reconstructedForm);
+        } catch (e) {
+          console.log('⚠️ [FORM-SLUG] Storage/local forms table not available, skipping storage lookup');
         }
       }
       
       // 🔐 ESTRATÉGIA 2: Buscar TODOS os resultados na tabela forms pelo slug para detectar colisões
       console.log(`🔍 [FORM-SLUG] Buscando diretamente na tabela forms...`);
-      const localFormBySlug = await db
-        .select()
-        .from(forms)
-        .where(eq(forms.slug, formSlug));
+      let localFormBySlug: any[] = [];
+      try {
+        localFormBySlug = await db
+          .select()
+          .from(forms)
+          .where(eq(forms.slug, formSlug));
+      } catch (e) {
+        console.log('⚠️ [FORM-SLUG] Local forms table not available, skipping slug lookup');
+      }
       
       // 🔐 SEGURANÇA: Se houver mais de um resultado, há colisão de slugs entre tenants
       if (localFormBySlug.length > 1) {

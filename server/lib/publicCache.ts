@@ -608,11 +608,16 @@ async function fetchFormFromLocalDB(companySlug: string, formSlug: string): Prom
     .limit(1);
   
   if (mappingResult.length > 0 && mappingResult[0].isPublic) {
-    const formResult = await db
-      .select()
-      .from(forms)
-      .where(eq(forms.id, mappingResult[0].formId))
-      .limit(1);
+    let formResult: any[] = [];
+    try {
+      formResult = await db
+        .select()
+        .from(forms)
+        .where(eq(forms.id, mappingResult[0].formId))
+        .limit(1);
+    } catch (localDbError) {
+      console.log('⚠️ [PUBLIC_CACHE] Local forms table not available, skipping local lookup');
+    }
     
     if (formResult.length > 0) {
       return formResult[0];
@@ -620,11 +625,16 @@ async function fetchFormFromLocalDB(companySlug: string, formSlug: string): Prom
   }
   
   // Fallback: search by slug directly
-  const directResult = await db
-    .select()
-    .from(forms)
-    .where(eq(forms.slug, formSlug))
-    .limit(1);
+  let directResult: any[] = [];
+  try {
+    directResult = await db
+      .select()
+      .from(forms)
+      .where(eq(forms.slug, formSlug))
+      .limit(1);
+  } catch (localDbError) {
+    console.log('⚠️ [PUBLIC_CACHE] Local forms table not available, skipping slug lookup');
+  }
   
   if (directResult.length > 0 && directResult[0].isPublic !== false) {
     return directResult[0];
