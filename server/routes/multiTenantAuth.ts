@@ -71,6 +71,7 @@ async function handleDirectLogin(req: Request, res: Response, adminData: any, em
   req.session.userRole = adminData.role || 'admin';
   req.session.supabaseUrl = adminData.supabase_url || null;
   req.session.supabaseKey = adminData.supabase_anon_key || null;
+  req.session.companyName = adminData.company_name || userName;
 
   if (adminData.company_name) {
     await autoSetCompanySlug(tenantId, adminData.company_name);
@@ -95,7 +96,7 @@ async function handleDirectLogin(req: Request, res: Response, adminData: any, em
     return res.json({
       success: true,
       redirect: '/dashboard',
-      user: { nome: userName, email }
+      user: { nome: userName, email, company_name: adminData.company_name || userName, tenant_id: tenantId }
     });
   });
 }
@@ -235,6 +236,7 @@ router.post('/login', async (req: Request, res: Response) => {
     req.session.userRole = 'admin'; // Definir role como admin
     req.session.supabaseUrl = admin.supabase_url;
     req.session.supabaseKey = admin.supabase_anon_key;
+    req.session.companyName = admin.company_name || admin.nome;
 
     // Auto-set company slug from admin_users.company_name
     const companyName = admin.company_name || await fetchCompanyNameFromOwner(admin.id);
@@ -262,7 +264,9 @@ router.post('/login', async (req: Request, res: Response) => {
         redirect: '/',
         user: {
           nome: admin.nome,
-          email: admin.email
+          email: admin.email,
+          company_name: admin.company_name || admin.nome,
+          tenant_id: admin.id
         }
       });
     });
@@ -293,7 +297,8 @@ router.get('/check-session', (req: Request, res: Response) => {
         nome: req.session.userName,
         email: req.session.userEmail,
         tenant_id: req.session.tenantId,
-        role: req.session.userRole || 'admin'
+        role: req.session.userRole || 'admin',
+        company_name: req.session.companyName || req.session.userName
       }
     });
   } else {
@@ -310,6 +315,7 @@ router.get('/user-info', (req: Request, res: Response) => {
   res.json({
     nome: req.session.userName,
     email: req.session.userEmail,
+    company_name: req.session.companyName || req.session.userName,
     hasSupabaseConfig: !!(req.session.supabaseUrl && req.session.supabaseKey)
   });
 });

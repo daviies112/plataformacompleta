@@ -6,6 +6,7 @@ declare module 'express-session' {
     userId?: string;
     userEmail?: string;
     userName?: string;
+    companyName?: string;
     tenantId?: string;  // Tenant ID para isolamento completo de credenciais
     supabaseUrl?: string;
     supabaseKey?: string;
