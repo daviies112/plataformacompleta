@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Upload, Palette, Save, Sparkles, Shuffle, X } from "lucide-react";
-import { useSupabase } from "@/features/revendedora/contexts/SupabaseContext";
+import { useAdminSupabase } from "@/features/revendedora/contexts/AdminSupabaseContext";
 import { extractColorsFromImage, generateColorVariations, hslToHex } from "@/lib/colorExtractor";
 import { PlatformPreview } from "@/features/revendedora/components/PlatformPreview";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
@@ -41,7 +41,7 @@ function ensureHex(color: string): string {
 }
 
 export default function Branding() {
-  const { client: supabase, loading: supabaseLoading, configured } = useSupabase();
+  const { client: supabase, loading: supabaseLoading, configured } = useAdminSupabase();
   const [company, setCompany] = useState<CompanyData | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 

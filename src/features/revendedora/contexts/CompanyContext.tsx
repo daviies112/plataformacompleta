@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
 import { useSupabase } from './SupabaseContext';
+import { useAdminSupabase } from './AdminSupabaseContext';
 import type { Tables } from '@/features/revendedora/integrations/supabase/types';
 
 type Reseller = Tables<'resellers'>;
@@ -99,12 +100,13 @@ function applyBrandingToCSS(branding: BrandingConfig) {
 }
 
 export function CompanyProvider({ children }: { children: ReactNode }) {
-  let supabaseContext: { client: any; loading: boolean; configured: boolean } = { client: null, loading: false, configured: false };
-  try {
-    supabaseContext = useSupabase();
-  } catch {
-    // SupabaseProvider not available, use defaults
-  }
+  const resellerSupabase = useSupabase();
+  const adminSupabase = useAdminSupabase();
+
+  const supabaseContext = adminSupabase.configured ? adminSupabase : 
+                          resellerSupabase.configured ? resellerSupabase :
+                          { client: null, loading: resellerSupabase.loading || adminSupabase.loading, configured: false, error: null, refresh: async () => {} };
+
   const { client: supabase, loading: supabaseLoading, configured } = supabaseContext;
   const [reseller, setReseller] = useState<Reseller | null>(null);
   const [branding, setBranding] = useState<BrandingConfig>(DEFAULT_BRANDING);

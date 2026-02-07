@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { CompanyProvider } from "@/features/revendedora/contexts/CompanyContext";
+import { AdminSupabaseProvider } from "@/features/revendedora/contexts/AdminSupabaseContext";
 
 import Login from "@/features/revendedora/pages/Login";
 import NotFound from "@/features/revendedora/pages/NotFound";
@@ -58,18 +59,18 @@ const RevendedoraApp = () => {
       
       {/* ===== ROTAS ADMIN (Gestao de Revendedoras) ===== */}
       <Route path="/revendedora/admin" element={<Navigate to="/revendedora" replace />} />
-      <Route path="/revendedora/admin/dashboard" element={<AdminLayout><AdminDashboard /></AdminLayout>} />
-      <Route path="/revendedora/admin/resellers" element={<AdminLayout><AdminResellers /></AdminLayout>} />
-      <Route path="/revendedora/admin/resellers/:id" element={<AdminLayout><AdminResellerDetails /></AdminLayout>} />
-      <Route path="/revendedora/admin/products" element={<AdminLayout><AdminProducts /></AdminLayout>} />
-      <Route path="/revendedora/admin/orders" element={<AdminLayout><AdminOrders /></AdminLayout>} />
-      <Route path="/revendedora/admin/commissions" element={<AdminLayout><AdminCommissions /></AdminLayout>} />
-      <Route path="/revendedora/admin/commission-config" element={<AdminLayout><AdminCommissionConfiguration /></AdminLayout>} />
-      <Route path="/revendedora/admin/product-requests" element={<AdminLayout><AdminProductRequests /></AdminLayout>} />
-      <Route path="/revendedora/admin/settings" element={<AdminLayout><AdminSettings /></AdminLayout>} />
-      <Route path="/revendedora/admin/branding" element={<AdminLayout><AdminBranding /></AdminLayout>} />
-      <Route path="/revendedora/admin/gamification" element={<AdminLayout><AdminGamification /></AdminLayout>} />
-      <Route path="/revendedora/admin/split-test" element={<AdminLayout><AdminSplitTest /></AdminLayout>} />
+      <Route path="/revendedora/admin/dashboard" element={<AdminSupabaseProvider><AdminLayout><AdminDashboard /></AdminLayout></AdminSupabaseProvider>} />
+      <Route path="/revendedora/admin/resellers" element={<AdminSupabaseProvider><AdminLayout><AdminResellers /></AdminLayout></AdminSupabaseProvider>} />
+      <Route path="/revendedora/admin/resellers/:id" element={<AdminSupabaseProvider><AdminLayout><AdminResellerDetails /></AdminLayout></AdminSupabaseProvider>} />
+      <Route path="/revendedora/admin/products" element={<AdminSupabaseProvider><AdminLayout><AdminProducts /></AdminLayout></AdminSupabaseProvider>} />
+      <Route path="/revendedora/admin/orders" element={<AdminSupabaseProvider><AdminLayout><AdminOrders /></AdminLayout></AdminSupabaseProvider>} />
+      <Route path="/revendedora/admin/commissions" element={<AdminSupabaseProvider><AdminLayout><AdminCommissions /></AdminLayout></AdminSupabaseProvider>} />
+      <Route path="/revendedora/admin/commission-config" element={<AdminSupabaseProvider><AdminLayout><AdminCommissionConfiguration /></AdminLayout></AdminSupabaseProvider>} />
+      <Route path="/revendedora/admin/product-requests" element={<AdminSupabaseProvider><AdminLayout><AdminProductRequests /></AdminLayout></AdminSupabaseProvider>} />
+      <Route path="/revendedora/admin/settings" element={<AdminSupabaseProvider><AdminLayout><AdminSettings /></AdminLayout></AdminSupabaseProvider>} />
+      <Route path="/revendedora/admin/branding" element={<AdminSupabaseProvider><AdminLayout><AdminBranding /></AdminLayout></AdminSupabaseProvider>} />
+      <Route path="/revendedora/admin/gamification" element={<AdminSupabaseProvider><AdminLayout><AdminGamification /></AdminLayout></AdminSupabaseProvider>} />
+      <Route path="/revendedora/admin/split-test" element={<AdminSupabaseProvider><AdminLayout><AdminSplitTest /></AdminLayout></AdminSupabaseProvider>} />
       
       {/* ===== ROTAS REVENDEDORA (apos login) ===== */}
       <Route path="/revendedora/reseller/dashboard" element={<ResellerLayout><ResellerDashboard /></ResellerLayout>} />
