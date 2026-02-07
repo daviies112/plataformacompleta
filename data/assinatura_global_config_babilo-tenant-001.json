@@ -1,0 +1,19 @@
+{
+  "logo_url": "",
+  "logo_size": "medium",
+  "background_color": "#000000",
+  "title_color": "#27ae60",
+  "text_color": "#2c3e50",
+  "button_color": "#ff8800",
+  "button_text_color": "#ffffff",
+  "icon_color": "#2c3e50",
+  "contract_html": "",
+  "app_store_url": "https://apps.apple.com/br/app/notion-notas-tarefas-e-ia/id1232780281",
+  "google_play_url": "https://play.google.com/store/apps/details?id=notion.id&hl=pt_BR",
+  "primary_color": "#27ae60",
+  "verification_primary_color": "#ff8800",
+  "verification_text_color": "#2c3e50",
+  "verification_background_color": "#000000",
+  "tenant_id": "babilo-tenant-001",
+  "updated_at": "2026-02-07T14:26:59.597Z"
+}

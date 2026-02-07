@@ -6,10 +6,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { LogIn } from 'lucide-react';
+import { LogIn, Shield } from 'lucide-react';
 import { saveResellerToken, saveProjectName, saveResellerId, saveResellerEmail } from '../lib/resellerAuth';
+import { useCompany } from '../contexts/CompanyContext';
 
-// Função para formatar CPF enquanto digita
 function formatCPF(value: string): string {
   const numbers = value.replace(/\D/g, '').slice(0, 11);
   if (numbers.length <= 3) return numbers;
@@ -21,8 +21,9 @@ function formatCPF(value: string): string {
 export default function Login() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [email, setEmail] = useState('teste@upvendas.com');
-  const [cpf, setCpf] = useState('123.456.789-00');
+  const { branding, brandingLoading } = useCompany();
+  const [email, setEmail] = useState('');
+  const [cpf, setCpf] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleCpfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -33,7 +34,6 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
 
-    // Remove formatação do CPF para enviar apenas números
     const cpfNumbers = cpf.replace(/\D/g, '');
 
     try {
@@ -66,7 +66,6 @@ export default function Login() {
         if (data.user?.email) {
           saveResellerEmail(data.user.email);
         }
-        // Invalidar cache do React Query após login para forçar refetch
         await queryClient.invalidateQueries({ queryKey: ['/api/reseller/supabase-config'] });
         await queryClient.invalidateQueries({ queryKey: ['/api/reseller/settings'] });
         toast.success('Login realizado com sucesso!');
@@ -79,63 +78,127 @@ export default function Login() {
     }
   };
 
+  const hasCustomBranding = branding.button_color !== '#9b87f5';
+
+  if (brandingLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" data-testid="login-loading">
+        <div className="animate-pulse space-y-4 w-full max-w-md">
+          <div className="h-16 bg-muted rounded-md mx-auto w-32" />
+          <div className="h-64 bg-muted rounded-lg" />
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-muted/20 to-background p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-            UP Vendas
-          </CardTitle>
-          <CardDescription>
-            Faça login para acessar a plataforma
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="seu@email.com"
-                required
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="cpf">CPF</Label>
-              <Input
-                id="cpf"
-                type="text"
-                value={cpf}
-                onChange={handleCpfChange}
-                placeholder="000.000.000-00"
-                maxLength={14}
-                required
-                data-testid="input-cpf"
-              />
-            </div>
+    <div
+      className="min-h-screen flex items-center justify-center p-4"
+      style={{
+        background: hasCustomBranding
+          ? `linear-gradient(135deg, ${branding.background_color} 0%, ${branding.sidebar_background}15 50%, ${branding.background_color} 100%)`
+          : undefined,
+      }}
+      data-testid="login-page"
+    >
+      <div className="w-full max-w-md space-y-6">
+        {branding.logo_url && (
+          <div className="flex justify-center" data-testid="login-logo-container">
+            <img
+              src={branding.logo_url}
+              alt={branding.company_name || 'Logo'}
+              className="object-contain"
+              style={{
+                height: branding.logo_size === 'small' ? 48 : branding.logo_size === 'large' ? 120 : 80,
+              }}
+              data-testid="img-login-logo"
+            />
+          </div>
+        )}
 
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={loading}
-              data-testid="button-login"
+        <Card className="w-full">
+          <CardHeader className="text-center">
+            {!branding.logo_url && (
+              <div className="flex justify-center mb-3">
+                <div
+                  className="w-14 h-14 rounded-full flex items-center justify-center"
+                  style={{ backgroundColor: branding.button_color }}
+                  data-testid="login-icon-container"
+                >
+                  <Shield className="w-7 h-7" style={{ color: branding.button_text_color }} />
+                </div>
+              </div>
+            )}
+            <CardTitle
+              className="text-2xl font-bold"
+              style={hasCustomBranding ? { color: branding.heading_color } : undefined}
+              data-testid="text-login-title"
             >
-              <LogIn className="h-4 w-4 mr-2" />
-              {loading ? 'Entrando...' : 'Entrar'}
-            </Button>
+              {branding.company_name || 'Plataforma de Revendedores'}
+            </CardTitle>
+            <CardDescription
+              style={hasCustomBranding ? { color: `${branding.text_color}99` } : undefined}
+            >
+              Faça login para acessar a plataforma
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div className="space-y-2">
+                <Label
+                  htmlFor="email"
+                  style={hasCustomBranding ? { color: branding.text_color } : undefined}
+                >
+                  Email
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="seu@email.com"
+                  required
+                  data-testid="input-email"
+                />
+              </div>
 
-            <div className="mt-4 p-3 bg-muted/50 rounded text-sm">
-              <p className="font-medium mb-1">Credenciais de Teste:</p>
-              <p className="text-muted-foreground">Email: teste@upvendas.com</p>
-              <p className="text-muted-foreground">CPF: 123.456.789-00</p>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+              <div className="space-y-2">
+                <Label
+                  htmlFor="cpf"
+                  style={hasCustomBranding ? { color: branding.text_color } : undefined}
+                >
+                  CPF
+                </Label>
+                <Input
+                  id="cpf"
+                  type="text"
+                  value={cpf}
+                  onChange={handleCpfChange}
+                  placeholder="000.000.000-00"
+                  maxLength={14}
+                  required
+                  data-testid="input-cpf"
+                />
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={loading}
+                style={hasCustomBranding ? {
+                  backgroundColor: branding.button_color,
+                  color: branding.button_text_color,
+                  borderColor: branding.button_color,
+                } : undefined}
+                data-testid="button-login"
+              >
+                <LogIn className="h-4 w-4 mr-2" />
+                {loading ? 'Entrando...' : 'Entrar'}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

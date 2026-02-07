@@ -1,60 +1,61 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { BrandingLogoUploader } from "@/features/revendedora/components/BrandingLogoUploader";
-import { ColorPicker } from "@/features/revendedora/components/ColorPicker";
-import { PaletteSuggestions } from "@/features/revendedora/components/PaletteSuggestions";
-import BrandingPreview from "@/features/revendedora/components/BrandingPreview";
-import { Save, RotateCcw, Eye } from "lucide-react";
+import { Upload, Palette, Save, Sparkles, Shuffle, X } from "lucide-react";
 import { supabase } from "@/features/revendedora/integrations/supabase/client";
-import { hexToHSL, type ColorPalette, type PaletteVariation, generatePaletteVariations } from "@/features/revendedora/utils/colorExtractor";
-import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
+import { extractColorsFromImage, generateColorVariations, hslToHex } from "@/lib/colorExtractor";
+import { PlatformPreview } from "@/features/revendedora/components/PlatformPreview";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
+import { ScrollArea } from "@/components/ui/scroll-area";
+
+interface ColorVariation {
+  name: string;
+  primary: string;
+  secondary: string;
+  background: string;
+  text: string;
+  button: string;
+  buttonText: string;
+}
 
 interface CompanyData {
   id: string;
   primary_color: string;
   secondary_color: string;
-  accent_color?: string;
   logo_url?: string;
   logo_size?: string;
-  logo_position?: string;
   color_palette?: string[];
-  branding_updated_at?: string;
   background_color?: string;
   sidebar_background?: string;
-  sidebar_text?: string;
   button_color?: string;
   button_text_color?: string;
   text_color?: string;
   heading_color?: string;
-  selected_item_color?: string;
+}
+
+function ensureHex(color: string): string {
+  if (color.startsWith('#')) return color;
+  if (color.startsWith('hsl')) return hslToHex(color);
+  return color;
 }
 
 export default function Branding() {
   const [company, setCompany] = useState<CompanyData | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [hasChanges, setHasChanges] = useState(false);
-  
-  const [primaryColor, setPrimaryColor] = useState("#9b87f5");
-  const [secondaryColor, setSecondaryColor] = useState("#7e69ab");
-  const [accentColor, setAccentColor] = useState("#d946ef");
+
   const [backgroundColor, setBackgroundColor] = useState("#ffffff");
-  const [sidebarBackground, setSidebarBackground] = useState("#1a1a1a");
-  const [sidebarText, setSidebarText] = useState("#ffffff");
+  const [headingColor, setHeadingColor] = useState("#1a1a2e");
+  const [textColor, setTextColor] = useState("#333333");
   const [buttonColor, setButtonColor] = useState("#9b87f5");
   const [buttonTextColor, setButtonTextColor] = useState("#ffffff");
-  const [textColor, setTextColor] = useState("#000000");
-  const [headingColor, setHeadingColor] = useState("#1a1a1a");
-  const [selectedItemColor, setSelectedItemColor] = useState("#9b87f5");
-  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [sidebarColor, setSidebarColor] = useState("#1a1a1a");
+
   const [logoUrl, setLogoUrl] = useState("");
-  const [logoSize, setLogoSize] = useState("medium");
-  const [logoPosition, setLogoPosition] = useState("left");
+  const [logoSize, setLogoSize] = useState<'small' | 'medium' | 'large'>('medium');
   const [colorPalette, setColorPalette] = useState<string[]>([]);
-  const [paletteVariations, setPaletteVariations] = useState<PaletteVariation[]>([]);
+  const [colorVariations, setColorVariations] = useState<ColorVariation[]>([]);
+  const [extractingColors, setExtractingColors] = useState(false);
 
   const fetchCompany = async () => {
     if (!supabase) {
@@ -63,12 +64,9 @@ export default function Branding() {
       return;
     }
 
-    console.log('[Branding] Fetching company data...');
-    
-    // Busca a primeira empresa da tabela (já que não temos autenticação)
     const { data, error } = await supabase
       .from('companies' as any)
-      .select('id, primary_color, secondary_color, accent_color, logo_url, logo_size, logo_position, color_palette, branding_updated_at, background_color, sidebar_background, sidebar_text, button_color, button_text_color, text_color, heading_color, selected_item_color')
+      .select('id, primary_color, secondary_color, logo_url, logo_size, color_palette, background_color, sidebar_background, button_color, button_text_color, text_color, heading_color')
       .limit(1)
       .maybeSingle();
 
@@ -79,37 +77,27 @@ export default function Branding() {
     }
 
     if (data) {
-      console.log('[Branding] Company found:', data);
-      const companyData = data as any as CompanyData;
-      setCompany(companyData);
-      setPrimaryColor(companyData.primary_color || "#9b87f5");
-      setSecondaryColor(companyData.secondary_color || "#7e69ab");
-      setAccentColor(companyData.accent_color || "#d946ef");
-      setBackgroundColor(companyData.background_color || "#ffffff");
-      setSidebarBackground(companyData.sidebar_background || "#1a1a1a");
-      setSidebarText(companyData.sidebar_text || "#ffffff");
-      setButtonColor(companyData.button_color || "#9b87f5");
-      setButtonTextColor(companyData.button_text_color || "#ffffff");
-      setTextColor(companyData.text_color || "#000000");
-      setHeadingColor(companyData.heading_color || "#1a1a1a");
-      setSelectedItemColor(companyData.selected_item_color || "#9b87f5");
-      setLogoUrl(companyData.logo_url || "");
-      setLogoSize(companyData.logo_size || "medium");
-      setLogoPosition(companyData.logo_position || "left");
-      setColorPalette(companyData.color_palette || []);
+      const d = data as any as CompanyData;
+      setCompany(d);
+      setBackgroundColor(d.background_color || "#ffffff");
+      setHeadingColor(d.heading_color || "#1a1a2e");
+      setTextColor(d.text_color || "#333333");
+      setButtonColor(d.button_color || "#9b87f5");
+      setButtonTextColor(d.button_text_color || "#ffffff");
+      setSidebarColor(d.sidebar_background || "#1a1a1a");
+      setLogoUrl(d.logo_url || "");
+      setLogoSize((d.logo_size as 'small' | 'medium' | 'large') || "medium");
+      setColorPalette(d.color_palette || []);
       toast.success("Dados da empresa carregados!");
     } else {
-      console.log('[Branding] No company found, creating new one...');
-      
       const { data: newCompany, error: createError } = await supabase
         .from('companies' as any)
         .insert({
           company_name: 'Minha Empresa',
           primary_color: "#9b87f5",
-          secondary_color: "#7e69ab",
-          accent_color: "#d946ef",
+          secondary_color: "#1a1a1a",
         })
-        .select('id, primary_color, secondary_color, accent_color, logo_url, color_palette, branding_updated_at')
+        .select('id, primary_color, secondary_color, logo_url, color_palette')
         .single();
 
       if (createError) {
@@ -119,9 +107,8 @@ export default function Branding() {
       }
 
       if (newCompany) {
-        console.log('[Branding] Company created successfully:', newCompany);
-        const companyData = newCompany as any as CompanyData;
-        setCompany(companyData);
+        const d = newCompany as any as CompanyData;
+        setCompany(d);
         toast.success("Empresa criada com sucesso!");
       }
     }
@@ -131,136 +118,71 @@ export default function Branding() {
     fetchCompany();
   }, []);
 
-  const handleColorsExtracted = (colors: ColorPalette) => {
-    setPrimaryColor(colors.primary);
-    setSecondaryColor(colors.secondary);
-    setAccentColor(colors.accent);
-    setColorPalette(colors.palette);
-    setHasChanges(true);
-    
-    const variations = generatePaletteVariations(colors);
-    setPaletteVariations(variations);
-    
-    applyColorsToPreview(colors.primary, colors.secondary, colors.accent);
-  };
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-  const handleSelectVariation = (variation: PaletteVariation) => {
-    setPrimaryColor(variation.primary);
-    setSecondaryColor(variation.secondary);
-    setAccentColor(variation.accent);
-    setColorPalette(variation.colors);
-    setHasChanges(true);
-    
-    applyColorsToPreview(variation.primary, variation.secondary, variation.accent);
-    
-    toast.success(`${variation.name} aplicada!`, {
-      description: "Cores atualizadas com sucesso"
-    });
-  };
-
-  const handleLogoUpload = (file: File, url: string) => {
-    setLogoFile(file);
-    setLogoUrl(url);
-    setHasChanges(true);
-  };
-
-  const handleLogoRemove = () => {
-    setLogoFile(null);
-    setLogoUrl("");
-    setHasChanges(true);
-  };
-
-  const applyColorsToPreview = (primary: string, secondary: string, accent: string) => {
-    const root = document.documentElement;
-    root.style.setProperty('--primary', hexToHSL(primary));
-    root.style.setProperty('--secondary', hexToHSL(secondary));
-    root.style.setProperty('--accent', hexToHSL(accent));
-  };
-
-  const handleColorChange = (type: string, value: string) => {
-    switch(type) {
-      case 'primary': setPrimaryColor(value); break;
-      case 'secondary': setSecondaryColor(value); break;
-      case 'accent': setAccentColor(value); break;
-      case 'background': setBackgroundColor(value); break;
-      case 'sidebar_background': setSidebarBackground(value); break;
-      case 'sidebar_text': setSidebarText(value); break;
-      case 'button': setButtonColor(value); break;
-      case 'button_text': setButtonTextColor(value); break;
-      case 'text': setTextColor(value); break;
-      case 'heading': setHeadingColor(value); break;
-      case 'selected': setSelectedItemColor(value); break;
+    if (!file.type.startsWith('image/')) {
+      toast.error("Por favor, selecione uma imagem válida.");
+      return;
     }
-    
-    setHasChanges(true);
-    applyColorsToPreview(
-      type === 'primary' ? value : primaryColor,
-      type === 'secondary' ? value : secondaryColor,
-      type === 'accent' ? value : accentColor
-    );
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const dataUrl = event.target?.result as string;
+      setLogoUrl(dataUrl);
+
+      setExtractingColors(true);
+      try {
+        const colors = await extractColorsFromImage(dataUrl, 5);
+        setColorPalette(colors.map(c => ensureHex(c)));
+        const variations = generateColorVariations(colors);
+        setColorVariations(variations);
+        toast.success(`${colors.length} cores extraídas! Escolha uma variação abaixo.`);
+      } catch (err) {
+        console.error('Error extracting colors:', err);
+        toast.info("Logo carregada, mas não foi possível extrair cores.");
+      } finally {
+        setExtractingColors(false);
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
-  const handlePreview = () => {
-    applyColorsToPreview(primaryColor, secondaryColor, accentColor);
-    toast.success("Preview atualizado!", {
-      description: "As cores estão sendo aplicadas em tempo real"
-    });
+  const applyVariation = (variation: ColorVariation) => {
+    setBackgroundColor(ensureHex(variation.background));
+    setHeadingColor(ensureHex(variation.primary));
+    setTextColor(ensureHex(variation.text));
+    setButtonColor(ensureHex(variation.button));
+    setButtonTextColor(ensureHex(variation.buttonText));
+    setSidebarColor(ensureHex(variation.secondary));
+    toast.success(`"${variation.name}" aplicada com sucesso.`);
   };
 
-  const handleReset = () => {
-    const defaultPrimary = company?.primary_color || "#9b87f5";
-    const defaultSecondary = company?.secondary_color || "#7e69ab";
-    const defaultAccent = company?.accent_color || "#d946ef";
-    
-    setPrimaryColor(defaultPrimary);
-    setSecondaryColor(defaultSecondary);
-    setAccentColor(defaultAccent);
-    setBackgroundColor(company?.background_color || "#ffffff");
-    setSidebarBackground(company?.sidebar_background || "#1a1a1a");
-    setSidebarText(company?.sidebar_text || "#ffffff");
-    setButtonColor(company?.button_color || "#9b87f5");
-    setButtonTextColor(company?.button_text_color || "#ffffff");
-    setTextColor(company?.text_color || "#000000");
-    setHeadingColor(company?.heading_color || "#1a1a1a");
-    setSelectedItemColor(company?.selected_item_color || "#9b87f5");
-    setLogoUrl(company?.logo_url || "");
-    setLogoSize(company?.logo_size || "medium");
-    setLogoPosition(company?.logo_position || "left");
-    setLogoFile(null);
-    setColorPalette(company?.color_palette || []);
-    setHasChanges(false);
-    
-    applyColorsToPreview(defaultPrimary, defaultSecondary, defaultAccent);
-    toast.info("Configurações resetadas");
+  const removeLogo = () => {
+    setLogoUrl("");
+    setColorVariations([]);
+    setColorPalette([]);
   };
 
   const handleSave = async () => {
     if (!company) {
-      console.error('[Branding] Cannot save: company not found');
       toast.error("Empresa não encontrada. Recarregue a página.");
       return;
     }
-
-    console.log('[Branding] Starting save process...');
-    console.log('[Branding] Company ID:', company.id);
-    console.log('[Branding] Colors:', { primaryColor, secondaryColor, accentColor });
-    console.log('[Branding] Has logo file:', !!logoFile);
 
     setIsSaving(true);
     try {
       let finalLogoUrl = logoUrl;
 
-      if (logoFile) {
-        console.log('[Branding] Uploading logo...');
-        const fileExt = logoFile.name.split('.').pop();
+      if (logoUrl && logoUrl.startsWith('data:') && supabase) {
+        const blob = await fetch(logoUrl).then(r => r.blob());
+        const fileExt = 'png';
         const fileName = `${company.id}-logo-${Date.now()}.${fileExt}`;
-        
-        const { error: uploadError, data } = await supabase.storage
+
+        const { error: uploadError } = await supabase.storage
           .from('company-logos')
-          .upload(fileName, logoFile, {
-            cacheControl: '3600',
-            upsert: true
-          });
+          .upload(fileName, blob, { cacheControl: '3600', upsert: true });
 
         if (uploadError) {
           console.error('[Branding] Upload error:', uploadError);
@@ -268,38 +190,33 @@ export default function Branding() {
           return;
         }
 
-        console.log('[Branding] Logo uploaded successfully');
         const { data: { publicUrl } } = supabase.storage
           .from('company-logos')
           .getPublicUrl(fileName);
-        
+
         finalLogoUrl = publicUrl;
-        console.log('[Branding] Logo URL:', finalLogoUrl);
       }
 
-      console.log('[Branding] Updating company data in Supabase...');
       const updateData = {
-        primary_color: primaryColor,
-        secondary_color: secondaryColor,
-        accent_color: accentColor,
         background_color: backgroundColor,
-        sidebar_background: sidebarBackground,
-        sidebar_text: sidebarText,
+        heading_color: headingColor,
+        text_color: textColor,
         button_color: buttonColor,
         button_text_color: buttonTextColor,
-        text_color: textColor,
-        heading_color: headingColor,
-        selected_item_color: selectedItemColor,
-        logo_size: logoSize,
-        logo_position: logoPosition,
-        color_palette: colorPalette,
+        sidebar_background: sidebarColor,
+        sidebar_text: '#ffffff',
+        selected_item_color: buttonColor,
+        accent_color: buttonColor,
+        primary_color: buttonColor,
+        secondary_color: sidebarColor,
         logo_url: finalLogoUrl || null,
+        logo_size: logoSize,
+        color_palette: colorPalette,
         branding_updated_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
-      console.log('[Branding] Update data:', updateData);
 
-      const { error: updateError, data: updateResult } = await supabase
+      const { error: updateError } = await supabase
         .from('companies' as any)
         .update(updateData)
         .eq('id', company.id)
@@ -311,12 +228,7 @@ export default function Branding() {
         return;
       }
 
-      console.log('[Branding] Update successful:', updateResult);
-
       await fetchCompany();
-      setHasChanges(false);
-      setLogoFile(null);
-      
       toast.success("Personalização salva com sucesso!", {
         description: "As alterações foram aplicadas à plataforma"
       });
@@ -328,284 +240,182 @@ export default function Branding() {
     }
   };
 
+  const logoSizeMap = { small: 48, medium: 80, large: 120 };
+
+  const colorFields = [
+    { label: 'Cor de Fundo', value: backgroundColor, setter: setBackgroundColor, id: 'background' },
+    { label: 'Cor dos Títulos', value: headingColor, setter: setHeadingColor, id: 'heading' },
+    { label: 'Cor do Texto', value: textColor, setter: setTextColor, id: 'text' },
+    { label: 'Cor do Botão', value: buttonColor, setter: setButtonColor, id: 'button' },
+    { label: 'Cor do Texto do Botão', value: buttonTextColor, setter: setButtonTextColor, id: 'button-text' },
+    { label: 'Cor da Barra Lateral', value: sidebarColor, setter: setSidebarColor, id: 'sidebar' },
+  ];
+
   return (
-    <div className="flex flex-col p-6 h-[calc(100vh-4rem)]">
-      <div className="flex-shrink-0 mb-6">
+    <div className="flex flex-col h-full">
+      <div className="flex items-center justify-between px-4 py-3 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div>
-          <h1 className="text-3xl font-bold">Personalização da Plataforma</h1>
-          <p className="text-muted-foreground mt-1">
-            Customize as cores e a logo da plataforma para seus revendedores
-          </p>
+          <h1 className="text-xl font-bold flex items-center gap-2" data-testid="text-page-title">
+            <Palette className="w-5 h-5" />
+            Design da Plataforma
+          </h1>
+          <p className="text-sm text-muted-foreground">Configure cores e logo para personalizar login, plataforma e loja</p>
         </div>
+        <Button
+          onClick={handleSave}
+          disabled={isSaving}
+          data-testid="button-save-config"
+        >
+          <Save className="w-4 h-4 mr-2" />
+          {isSaving ? 'Salvando...' : 'Salvar Configurações'}
+        </Button>
       </div>
 
-      <div className="flex-1 flex flex-col lg:flex-row gap-0 lg:overflow-hidden lg:min-h-0">
-        <PanelGroup 
-          direction="horizontal" 
-          autoSaveId="branding-layout"
-          className="flex-1"
-        >
-          <Panel 
-            defaultSize={65} 
-            minSize={30}
-          >
-            <div className="h-full p-4 lg:pr-2">
-              <BrandingPreview
+      <div className="flex-1 min-h-0 p-4">
+        <ResizablePanelGroup direction="horizontal" className="h-full rounded-lg border">
+          <ResizablePanel defaultSize={50} minSize={30}>
+            <div className="h-full flex items-center justify-center p-4">
+              <PlatformPreview
                 backgroundColor={backgroundColor}
-                sidebarBackground={sidebarBackground}
-                sidebarText={sidebarText}
+                headingColor={headingColor}
+                textColor={textColor}
                 buttonColor={buttonColor}
                 buttonTextColor={buttonTextColor}
-                textColor={textColor}
-                headingColor={headingColor}
-                selectedItemColor={selectedItemColor}
+                sidebarColor={sidebarColor}
                 logoUrl={logoUrl}
                 logoSize={logoSize}
-                logoPosition={logoPosition}
               />
             </div>
-          </Panel>
+          </ResizablePanel>
 
-          <PanelResizeHandle className="w-2 bg-border hover:bg-primary transition-colors duration-200 cursor-col-resize hidden lg:block" />
+          <ResizableHandle withHandle />
 
-          <Panel 
-            defaultSize={35} 
-            minSize={25}
-          >
-            <div className="h-full overflow-y-auto p-4 space-y-6">
-              <div className="flex gap-2 justify-end">
-                <Button
-                  variant="outline"
-                  onClick={handlePreview}
-                  disabled={!hasChanges}
-                >
-                  <Eye className="h-4 w-4 mr-2" />
-                  Pré-visualizar
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={handleReset}
-                  disabled={!hasChanges || isSaving}
-                >
-                  <RotateCcw className="h-4 w-4 mr-2" />
-                  Resetar
-                </Button>
-                <Button
-                  onClick={handleSave}
-                  disabled={!hasChanges || isSaving}
-                >
-                  <Save className="h-4 w-4 mr-2" />
-                  {isSaving ? "Salvando..." : "Salvar Alterações"}
-                </Button>
+          <ResizablePanel defaultSize={50} minSize={30}>
+            <ScrollArea className="h-full">
+              <div className="p-6 space-y-8">
+                <section>
+                  <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">
+                    <Upload className="w-5 h-5" />
+                    Logo da Empresa
+                  </h2>
+
+                  {logoUrl ? (
+                    <div className="space-y-4">
+                      <div className="relative inline-block">
+                        <img
+                          src={logoUrl}
+                          alt="Logo"
+                          style={{ height: logoSizeMap[logoSize], objectFit: 'contain' }}
+                          className="rounded-md border"
+                          data-testid="img-logo-preview"
+                        />
+                        <Button
+                          size="icon"
+                          variant="destructive"
+                          className="absolute -top-2 -right-2 h-6 w-6"
+                          onClick={removeLogo}
+                          data-testid="button-remove-logo"
+                        >
+                          <X className="w-3 h-3" />
+                        </Button>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <label className="text-sm font-medium">Tamanho:</label>
+                        {(['small', 'medium', 'large'] as const).map((size) => (
+                          <Button
+                            key={size}
+                            variant={logoSize === size ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => setLogoSize(size)}
+                            data-testid={`button-logo-size-${size}`}
+                          >
+                            {size === 'small' ? 'P' : size === 'medium' ? 'M' : 'G'}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer hover-elevate transition-all">
+                      <Upload className="w-8 h-8 text-muted-foreground mb-2" />
+                      <span className="text-sm text-muted-foreground">Clique para enviar logo</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleLogoUpload}
+                        data-testid="input-logo-upload"
+                      />
+                    </label>
+                  )}
+
+                  {extractingColors && (
+                    <div className="flex items-center gap-2 mt-3 text-sm text-muted-foreground">
+                      <Sparkles className="w-4 h-4 animate-spin" />
+                      Extraindo cores da logo...
+                    </div>
+                  )}
+
+                  {colorVariations.length > 0 && (
+                    <div className="mt-4">
+                      <h3 className="text-sm font-medium flex items-center gap-2 mb-3">
+                        <Shuffle className="w-4 h-4" />
+                        Variações de Cores
+                      </h3>
+                      <div className="grid grid-cols-2 gap-3">
+                        {colorVariations.map((variation, index) => (
+                          <Card
+                            key={index}
+                            className="cursor-pointer hover-elevate transition-all"
+                            onClick={() => applyVariation(variation)}
+                            data-testid={`card-variation-${index}`}
+                          >
+                            <CardContent className="p-3">
+                              <p className="text-xs font-medium mb-2">{variation.name}</p>
+                              <div className="flex gap-1">
+                                {[variation.primary, variation.secondary, variation.background, variation.text, variation.button, variation.buttonText].map((color, ci) => (
+                                  <div
+                                    key={ci}
+                                    className="w-5 h-5 rounded-md border"
+                                    style={{ backgroundColor: ensureHex(color) }}
+                                  />
+                                ))}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </section>
+
+                <section>
+                  <h2 className="text-lg font-semibold flex items-center gap-2 mb-4">
+                    <Palette className="w-5 h-5" />
+                    Paleta de Cores
+                  </h2>
+                  <div className="grid grid-cols-2 gap-4">
+                    {colorFields.map(({ label, value, setter, id }) => (
+                      <div key={id} className="space-y-1">
+                        <label className="text-sm font-medium">{label}</label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="color"
+                            value={value}
+                            onChange={(e) => setter(e.target.value)}
+                            className="w-9 h-9 rounded-md cursor-pointer border-0 p-0"
+                            data-testid={`input-color-${id}`}
+                          />
+                          <span className="text-xs font-mono text-muted-foreground">{value}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
               </div>
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle>Logo da Empresa</CardTitle>
-                  <CardDescription>
-                    Envie a logo da sua empresa. As cores serão extraídas automaticamente para personalizar a plataforma.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <BrandingLogoUploader
-                    currentLogo={logoUrl}
-                    onLogoUpload={handleLogoUpload}
-                    onColorsExtracted={handleColorsExtracted}
-                    onRemove={handleLogoRemove}
-                  />
-                  
-                  {logoUrl && (
-                    <>
-                      <div className="space-y-3">
-                        <Label>Tamanho da Logo</Label>
-                        <RadioGroup 
-                          value={logoSize} 
-                          onValueChange={(value) => {
-                            setLogoSize(value);
-                            setHasChanges(true);
-                          }}
-                        >
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="small" id="small" />
-                            <Label htmlFor="small" className="cursor-pointer font-normal">
-                              Pequeno (32px)
-                            </Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="medium" id="medium" />
-                            <Label htmlFor="medium" className="cursor-pointer font-normal">
-                              Médio (48px)
-                            </Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="large" id="large" />
-                            <Label htmlFor="large" className="cursor-pointer font-normal">
-                              Grande (64px)
-                            </Label>
-                          </div>
-                        </RadioGroup>
-                      </div>
-
-                      <div className="space-y-3">
-                        <Label>Posição da Logo</Label>
-                        <RadioGroup 
-                          value={logoPosition} 
-                          onValueChange={(value) => {
-                            setLogoPosition(value);
-                            setHasChanges(true);
-                          }}
-                        >
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="left" id="left" />
-                            <Label htmlFor="left" className="cursor-pointer font-normal">
-                              Esquerda
-                            </Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="center" id="center" />
-                            <Label htmlFor="center" className="cursor-pointer font-normal">
-                              Centro
-                            </Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="right" id="right" />
-                            <Label htmlFor="right" className="cursor-pointer font-normal">
-                              Direita
-                            </Label>
-                          </div>
-                        </RadioGroup>
-                      </div>
-                    </>
-                  )}
-                  
-                  {paletteVariations.length > 0 && (
-                    <PaletteSuggestions
-                      variations={paletteVariations}
-                      onSelectVariation={handleSelectVariation}
-                    />
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Cores Principais</CardTitle>
-                  <CardDescription>
-                    Cores principais da plataforma
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <ColorPicker
-                    label="Cor Primária"
-                    value={primaryColor}
-                    onChange={(value) => handleColorChange('primary', value)}
-                    description="Cor principal da marca"
-                  />
-                  
-                  <ColorPicker
-                    label="Cor Secundária"
-                    value={secondaryColor}
-                    onChange={(value) => handleColorChange('secondary', value)}
-                    description="Cor de suporte"
-                  />
-                  
-                  <ColorPicker
-                    label="Cor de Destaque"
-                    value={accentColor}
-                    onChange={(value) => handleColorChange('accent', value)}
-                    description="Chamadas de atenção e destaques"
-                  />
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Cores de Fundo e Superfícies</CardTitle>
-                  <CardDescription>
-                    Defina as cores de fundo da aplicação
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <ColorPicker
-                    label="Fundo Geral"
-                    value={backgroundColor}
-                    onChange={(value) => handleColorChange('background', value)}
-                    description="Cor de fundo principal da aplicação"
-                  />
-                  
-                  <ColorPicker
-                    label="Fundo da Barra Lateral"
-                    value={sidebarBackground}
-                    onChange={(value) => handleColorChange('sidebar_background', value)}
-                    description="Cor de fundo do menu lateral"
-                  />
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Cores de Texto</CardTitle>
-                  <CardDescription>
-                    Personalize as cores dos textos
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <ColorPicker
-                    label="Texto Geral"
-                    value={textColor}
-                    onChange={(value) => handleColorChange('text', value)}
-                    description="Cor do texto comum da aplicação"
-                  />
-                  
-                  <ColorPicker
-                    label="Títulos"
-                    value={headingColor}
-                    onChange={(value) => handleColorChange('heading', value)}
-                    description="Cor dos títulos e cabeçalhos"
-                  />
-                  
-                  <ColorPicker
-                    label="Texto da Barra Lateral"
-                    value={sidebarText}
-                    onChange={(value) => handleColorChange('sidebar_text', value)}
-                    description="Cor do texto no menu lateral"
-                  />
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Cores de Botões e Seleção</CardTitle>
-                  <CardDescription>
-                    Cores para botões e itens selecionados
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <ColorPicker
-                    label="Cor dos Botões"
-                    value={buttonColor}
-                    onChange={(value) => handleColorChange('button', value)}
-                    description="Cor de fundo dos botões principais"
-                  />
-                  
-                  <ColorPicker
-                    label="Texto dos Botões"
-                    value={buttonTextColor}
-                    onChange={(value) => handleColorChange('button_text', value)}
-                    description="Cor do texto dentro dos botões"
-                  />
-                  
-                  <ColorPicker
-                    label="Itens Selecionados"
-                    value={selectedItemColor}
-                    onChange={(value) => handleColorChange('selected', value)}
-                    description="Cor para itens selecionados no menu"
-                  />
-                </CardContent>
-              </Card>
-            </div>
-          </Panel>
-        </PanelGroup>
+            </ScrollArea>
+          </ResizablePanel>
+        </ResizablePanelGroup>
       </div>
     </div>
   );
