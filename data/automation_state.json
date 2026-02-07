@@ -1,6 +1,6 @@
 {
   "isRunning": true,
-  "startedAt": "2026-02-07T01:53:31.409Z",
+  "startedAt": "2026-02-07T12:15:19.812Z",
   "lastExecutions": {
     "system-system": {
       "clientId": "system",
@@ -17,11 +17,11 @@
     "dev-daviemericko_gmail_com-dev-daviemericko_gmail_com": {
       "clientId": "dev-daviemericko_gmail_com",
       "tenantId": "dev-daviemericko_gmail_com",
-      "lastRun": "2026-02-07T01:53:31.577Z",
+      "lastRun": "2026-02-07T12:21:19.915Z",
       "lastSuccess": "2026-02-06T20:24:49.124Z",
       "lastError": null,
       "consecutiveErrors": 0,
-      "totalExecutions": 360,
+      "totalExecutions": 370,
       "totalNewClientsDetected": 0,
       "totalEventsCreated": 0,
       "status": "running"
@@ -29,11 +29,11 @@
     "dev-teste_empresa_com-dev-teste_empresa_com": {
       "clientId": "dev-teste_empresa_com",
       "tenantId": "dev-teste_empresa_com",
-      "lastRun": "2026-02-07T01:53:31.575Z",
-      "lastSuccess": "2026-02-07T01:53:31.575Z",
+      "lastRun": "2026-02-07T12:21:19.913Z",
+      "lastSuccess": "2026-02-07T12:21:19.913Z",
       "lastError": null,
       "consecutiveErrors": 0,
-      "totalExecutions": 103,
+      "totalExecutions": 113,
       "totalNewClientsDetected": 0,
       "totalEventsCreated": 0,
       "status": "running"
@@ -41,22 +41,22 @@
     "emerick-sj-001-emerick-sj-001": {
       "clientId": "emerick-sj-001",
       "tenantId": "emerick-sj-001",
-      "lastRun": "2026-02-07T01:53:31.577Z",
-      "lastSuccess": "2026-02-07T01:53:31.577Z",
+      "lastRun": "2026-02-07T12:21:19.916Z",
+      "lastSuccess": "2026-02-07T12:21:19.916Z",
       "lastError": null,
       "consecutiveErrors": 0,
-      "totalExecutions": 9,
+      "totalExecutions": 19,
       "totalNewClientsDetected": 0,
       "totalEventsCreated": 0,
       "status": "running"
     }
   },
   "globalStats": {
-    "totalExecutions": 475,
+    "totalExecutions": 505,
     "totalNewClientsDetected": 0,
     "totalEventsCreated": 0,
     "totalErrors": 0,
-    "uptime": 1
+    "uptime": 360
   },
   "settings": {
     "detectionIntervalMinutes": 2,
