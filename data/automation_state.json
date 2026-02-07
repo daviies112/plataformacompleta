@@ -1,6 +1,6 @@
 {
   "isRunning": true,
-  "startedAt": "2026-02-07T01:29:55.798Z",
+  "startedAt": "2026-02-07T01:53:31.409Z",
   "lastExecutions": {
     "system-system": {
       "clientId": "system",
@@ -17,11 +17,11 @@
     "dev-daviemericko_gmail_com-dev-daviemericko_gmail_com": {
       "clientId": "dev-daviemericko_gmail_com",
       "tenantId": "dev-daviemericko_gmail_com",
-      "lastRun": "2026-02-07T01:29:55.869Z",
+      "lastRun": "2026-02-07T01:53:31.577Z",
       "lastSuccess": "2026-02-06T20:24:49.124Z",
       "lastError": null,
       "consecutiveErrors": 0,
-      "totalExecutions": 345,
+      "totalExecutions": 360,
       "totalNewClientsDetected": 0,
       "totalEventsCreated": 0,
       "status": "running"
@@ -29,22 +29,34 @@
     "dev-teste_empresa_com-dev-teste_empresa_com": {
       "clientId": "dev-teste_empresa_com",
       "tenantId": "dev-teste_empresa_com",
-      "lastRun": "2026-02-07T01:29:55.868Z",
-      "lastSuccess": "2026-02-07T01:29:55.868Z",
+      "lastRun": "2026-02-07T01:53:31.575Z",
+      "lastSuccess": "2026-02-07T01:53:31.575Z",
       "lastError": null,
       "consecutiveErrors": 0,
-      "totalExecutions": 88,
+      "totalExecutions": 103,
+      "totalNewClientsDetected": 0,
+      "totalEventsCreated": 0,
+      "status": "running"
+    },
+    "emerick-sj-001-emerick-sj-001": {
+      "clientId": "emerick-sj-001",
+      "tenantId": "emerick-sj-001",
+      "lastRun": "2026-02-07T01:53:31.577Z",
+      "lastSuccess": "2026-02-07T01:53:31.577Z",
+      "lastError": null,
+      "consecutiveErrors": 0,
+      "totalExecutions": 9,
       "totalNewClientsDetected": 0,
       "totalEventsCreated": 0,
       "status": "running"
     }
   },
   "globalStats": {
-    "totalExecutions": 436,
+    "totalExecutions": 475,
     "totalNewClientsDetected": 0,
     "totalEventsCreated": 0,
     "totalErrors": 0,
-    "uptime": 0
+    "uptime": 1
   },
   "settings": {
     "detectionIntervalMinutes": 2,

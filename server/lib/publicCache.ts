@@ -445,6 +445,19 @@ export function setPersistentFormMapping(
 }
 
 /**
+ * Remove persistent form mapping (invalidate disk cache)
+ */
+export function removePersistentFormMapping(companySlug: string, formSlug: string): void {
+  const key = `${companySlug}:${formSlug}`;
+  const mapping = persistentFormMappings.get(key);
+  persistentFormMappings.delete(key);
+  if (mapping?.formId) {
+    persistentFormMappings.delete(mapping.formId);
+  }
+  setImmediate(savePersistentFormMappings);
+}
+
+/**
  * Get persistent form mapping (from disk cache)
  */
 export function getPersistentFormMapping(
@@ -624,19 +637,38 @@ async function fetchFormFromLocalDB(companySlug: string, formSlug: string): Prom
  * Fetch form directly from Supabase (bypasses local DB entirely)
  */
 async function fetchFormFromSupabaseDirect(companySlug: string, formSlug: string): Promise<any | null> {
-  // Get all configured Supabase tenants
   const { db } = await import('../db');
-  const { supabaseConfig } = await import('../../shared/db-schema');
+  const { supabaseConfig, hms100msConfig } = await import('../../shared/db-schema');
   const { decrypt } = await import('./credentialsManager');
-  
-  // Try to get from cached Supabase config first
+  const { eq } = await import('drizzle-orm');
+
   const configs = await withTimeout(
     db.select().from(supabaseConfig).execute(),
-    500, // 500ms timeout
+    500,
     []
   );
-  
-  for (const config of configs) {
+
+  const tenantSlugs = await withTimeout(
+    db.select({ tenantId: hms100msConfig.tenantId, companySlug: hms100msConfig.companySlug })
+      .from(hms100msConfig)
+      .execute(),
+    500,
+    []
+  );
+  const slugMap = new Map(tenantSlugs.map(t => [t.tenantId, t.companySlug]));
+
+  const prioritized = [...configs].sort((a, b) => {
+    const aMatch = slugMap.get(a.tenantId) === companySlug ? 0 : 1;
+    const bMatch = slugMap.get(b.tenantId) === companySlug ? 0 : 1;
+    return aMatch - bMatch;
+  });
+
+  for (const config of prioritized) {
+    const tenantSlug = slugMap.get(config.tenantId);
+    if (tenantSlug && tenantSlug !== companySlug) {
+      continue;
+    }
+
     try {
       let url: string;
       let anonKey: string;
@@ -658,7 +690,6 @@ async function fetchFormFromSupabaseDirect(companySlug: string, formSlug: string
         auth: { autoRefreshToken: false, persistSession: false }
       });
       
-      // Search by slug
       const { data, error } = await supabase
         .from('forms')
         .select('*')
@@ -668,7 +699,6 @@ async function fetchFormFromSupabaseDirect(companySlug: string, formSlug: string
         .maybeSingle();
       
       if (!error && data) {
-        // Convert from snake_case to camelCase
         const { convertKeysToCamelCase, parseJsonbFields, reconstructFormDataFromSupabase } = await import('../formularios/utils/caseConverter');
         const camelForm = convertKeysToCamelCase(data);
         const parsedForm = parseJsonbFields(camelForm, ['questions', 'designConfig', 'scoreTiers', 'tags']);

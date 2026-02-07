@@ -30,7 +30,8 @@ import {
   getCachedFormTenantMapping,
   setCachedFormTenantMapping,
   invalidateFormCache,
-  getPublicFormUltraFast
+  getPublicFormUltraFast,
+  removePersistentFormMapping
 } from '../lib/publicCache';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -1663,6 +1664,15 @@ export function registerFormulariosCompleteRoutes(app: Express) {
         console.log(`🔗 [SLUG] Novo slug gerado: "${newSlug}"`);
       }
       
+      const currentMapping = await db
+        .select({ slug: formTenantMapping.slug })
+        .from(formTenantMapping)
+        .where(eq(formTenantMapping.formId, req.params.id))
+        .limit(1);
+      if (currentMapping.length > 0) {
+        currentSlug = currentMapping[0].slug;
+      }
+      
       if (supabase) {
         console.log('📝 [PATCH /api/forms/:id] Atualizando no Supabase...');
         console.log('📦 [PATCH] Dados recebidos do frontend:', JSON.stringify(req.body, null, 2));
@@ -1729,12 +1739,18 @@ export function registerFormulariosCompleteRoutes(app: Express) {
           console.log(`✅ [MAPPING] Form ${req.params.id} upserted com slug "${finalSlug}" e companySlug "${companySlug}"`);
         } catch (error) {
           console.error('[MAPPING] Erro ao upsert metadata:', error);
-          // Não bloqueia resposta, mas loga erro
         }
         
         const camelData = convertKeysToCamelCase(data);
         const parsedData = parseJsonbFields(camelData, ['questions', 'designConfig', 'scoreTiers', 'tags']);
         const reconstructedData = reconstructFormDataFromSupabase(parsedData);
+        
+        invalidateFormCache(`${companySlug}:${finalSlug}`);
+        invalidateFormCache(req.params.id);
+        if (currentSlug && currentSlug !== finalSlug) {
+          invalidateFormCache(`${companySlug}:${currentSlug}`);
+        }
+        removePersistentFormMapping(companySlug, finalSlug);
         
         return res.json(reconstructedData);
       }
@@ -1771,8 +1787,14 @@ export function registerFormulariosCompleteRoutes(app: Express) {
         console.log(`✅ [MAPPING] Form ${req.params.id} upserted com slug "${finalSlugLocal}" e companySlug "${companySlug}"`);
       } catch (error) {
         console.error('[MAPPING] Erro ao upsert metadata:', error);
-        // Não bloqueia resposta, mas loga erro
       }
+      
+      invalidateFormCache(`${companySlug}:${finalSlugLocal}`);
+      invalidateFormCache(req.params.id);
+      if (currentSlug && currentSlug !== finalSlugLocal) {
+        invalidateFormCache(`${companySlug}:${currentSlug}`);
+      }
+      removePersistentFormMapping(companySlug, finalSlugLocal);
       
       res.json(form);
     } catch (error: any) {
