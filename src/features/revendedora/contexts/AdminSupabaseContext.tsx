@@ -1,6 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { resellerFetch } from '../lib/resellerAuth';
 
 interface AdminSupabaseContextType {
   client: SupabaseClient | null;
@@ -28,6 +27,24 @@ function createSupabaseClient(url: string, anonKey: string): SupabaseClient {
   });
 }
 
+function getAuthHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {};
+  const adminToken = localStorage.getItem('authToken');
+  if (adminToken) {
+    headers['Authorization'] = `Bearer ${adminToken}`;
+  }
+  const resellerToken = localStorage.getItem('reseller_auth_token');
+  if (!adminToken && resellerToken) {
+    headers['Authorization'] = `Bearer ${resellerToken}`;
+  }
+  const tenantId = localStorage.getItem('tenantId') || 
+    (() => { try { const u = localStorage.getItem('user_data'); return u ? JSON.parse(u)?.tenantId : null; } catch { return null; } })();
+  if (tenantId) {
+    headers['x-tenant-id'] = tenantId;
+  }
+  return headers;
+}
+
 export function AdminSupabaseProvider({ children }: { children: ReactNode }) {
   const [client, setClient] = useState<SupabaseClient | null>(null);
   const [loading, setLoading] = useState(true);
@@ -39,37 +56,75 @@ export function AdminSupabaseProvider({ children }: { children: ReactNode }) {
       setLoading(true);
       let url: string | null = null;
       let anonKey: string | null = null;
+      const authHeaders = getAuthHeaders();
 
       try {
-        const response = await resellerFetch('/api/reseller/supabase-config');
+        console.log('[AdminSupabaseProvider] Fetching credentials with auth headers...');
+        const response = await fetch('/api/config/supabase/credentials', {
+          credentials: 'include',
+          headers: authHeaders,
+        });
         if (response.ok) {
           const data = await response.json();
-          url = data.supabase_url || null;
-          anonKey = data.supabase_anon_key || null;
-          if (url && anonKey) {
-            console.log('[AdminSupabaseProvider] Got credentials from reseller endpoint');
+          if (data.success && data.credentials) {
+            const creds = data.credentials;
+            url = creds.url || creds.supabaseUrl || creds.supabase_url || null;
+            anonKey = creds.anonKey || creds.anon_key || creds.supabaseAnonKey || creds.supabase_anon_key || null;
+          } else if (data.url || data.supabase_url) {
+            url = data.url || data.supabase_url || null;
+            anonKey = data.anonKey || data.anon_key || data.supabase_anon_key || null;
           }
+          if (url && anonKey) {
+            console.log('[AdminSupabaseProvider] Got credentials from config endpoint');
+          }
+        } else {
+          console.log('[AdminSupabaseProvider] Config endpoint returned status:', response.status);
         }
       } catch (e) {
-        console.log('[AdminSupabaseProvider] Reseller endpoint failed, trying config endpoint...');
+        console.log('[AdminSupabaseProvider] Config endpoint failed:', e);
       }
 
       if (!url || !anonKey) {
         try {
-          const response = await fetch('/api/config/supabase/credentials', {
+          console.log('[AdminSupabaseProvider] Trying fallback /api/config/supabase...');
+          const response = await fetch('/api/config/supabase', {
             credentials: 'include',
+            headers: authHeaders,
           });
           if (response.ok) {
             const data = await response.json();
-            const creds = data.credentials;
-            url = creds?.url || creds?.supabaseUrl || null;
-            anonKey = creds?.anonKey || creds?.anon_key || creds?.supabaseAnonKey || null;
+            const configData = data.config || data.credentials || data;
+            url = configData.url || configData.supabaseUrl || configData.supabase_url || null;
+            anonKey = configData.anonKey || configData.anon_key || configData.supabaseAnonKey || configData.supabase_anon_key || null;
             if (url && anonKey) {
-              console.log('[AdminSupabaseProvider] Got credentials from config endpoint');
+              console.log('[AdminSupabaseProvider] Got credentials from fallback endpoint');
             }
           }
         } catch (e) {
-          console.log('[AdminSupabaseProvider] Config endpoint also failed');
+          console.log('[AdminSupabaseProvider] Fallback endpoint also failed:', e);
+        }
+      }
+
+      if (!url || !anonKey) {
+        try {
+          console.log('[AdminSupabaseProvider] Trying reseller endpoint...');
+          const resellerToken = localStorage.getItem('reseller_auth_token');
+          if (resellerToken) {
+            const response = await fetch('/api/reseller/supabase-config', {
+              credentials: 'include',
+              headers: { 'Authorization': `Bearer ${resellerToken}`, 'Content-Type': 'application/json' },
+            });
+            if (response.ok) {
+              const data = await response.json();
+              url = data.supabase_url || null;
+              anonKey = data.supabase_anon_key || null;
+              if (url && anonKey) {
+                console.log('[AdminSupabaseProvider] Got credentials from reseller endpoint');
+              }
+            }
+          }
+        } catch (e) {
+          console.log('[AdminSupabaseProvider] Reseller endpoint failed:', e);
         }
       }
 

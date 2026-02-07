@@ -30,7 +30,7 @@ class AdminAuthService {
   private jwtSecret: string;
 
   constructor() {
-    this.jwtSecret = process.env.JWT_SECRET || 'demo-secret-key-for-development-only';
+    this.jwtSecret = process.env.JWT_SECRET || process.env.SESSION_SECRET || 'demo-secret-key-for-development-only';
   }
 
   isConfigured(): boolean {

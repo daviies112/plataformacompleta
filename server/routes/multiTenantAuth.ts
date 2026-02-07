@@ -1,7 +1,16 @@
 import express, { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 import { supabaseOwner, SUPABASE_CONFIGURED } from '../config/supabaseOwner';
 import { saveCompanySlug, invalidateSlugCache } from '../lib/tenantSlug';
+
+function getJwtSecret(): string {
+  return process.env.JWT_SECRET || process.env.SESSION_SECRET || 'demo-secret-key-for-development-only';
+}
+
+function generateToken(payload: Record<string, any>): string {
+  return jwt.sign(payload, getJwtSecret(), { expiresIn: '24h' });
+}
 
 function normalizeSlug(name: string): string {
   return name.trim()
@@ -93,9 +102,19 @@ async function handleDirectLogin(req: Request, res: Response, adminData: any, em
       console.error('[Session] Erro ao salvar sessão:', err);
       return res.status(500).json({ error: 'Erro ao criar sessão' });
     }
+    const token = generateToken({
+      userId: adminData.id || tenantId,
+      email: email,
+      name: userName,
+      clientId: tenantId,
+      tenantId: tenantId,
+      role: adminData.role || 'admin',
+      companyName: adminData.company_name || userName
+    });
     return res.json({
       success: true,
       redirect: '/dashboard',
+      token,
       user: { nome: userName, email, company_name: adminData.company_name || userName, tenant_id: tenantId }
     });
   });
@@ -137,9 +156,18 @@ router.post('/login', async (req: Request, res: Response) => {
           return res.status(500).json({ error: 'Erro ao criar sessão' });
         }
         console.log(`✅ [Session] Sessão salva para tenant: ${tenantId}`);
+        const token = generateToken({
+          userId: tenantId,
+          email: email,
+          name: `Dev User (${email})`,
+          clientId: tenantId,
+          tenantId: tenantId,
+          role: 'admin'
+        });
         return res.json({ 
           success: true, 
           redirect: '/dashboard',
+          token,
           user: {
             nome: `Dev User (${email})`,
             email: email
@@ -259,9 +287,19 @@ router.post('/login', async (req: Request, res: Response) => {
         return res.status(500).json({ error: 'Erro ao criar sessão' });
       }
       console.log(`✅ [Session] Sessão salva para tenant: ${admin.id}`);
+      const token = generateToken({
+        userId: admin.id,
+        email: admin.email,
+        name: admin.nome,
+        clientId: admin.id,
+        tenantId: admin.id,
+        role: 'admin',
+        companyName: admin.company_name || admin.nome
+      });
       res.json({ 
         success: true, 
         redirect: '/',
+        token,
         user: {
           nome: admin.nome,
           email: admin.email,

@@ -354,9 +354,11 @@ const DesktopApp = () => {
         element={
           <ProtectedRoute>
             <DesktopLayout>
-              <CompanyProvider>
-                <AdminLayout><AdminBranding /></AdminLayout>
-              </CompanyProvider>
+              <AdminSupabaseProvider>
+                <CompanyProvider>
+                  <AdminLayout><AdminBranding /></AdminLayout>
+                </CompanyProvider>
+              </AdminSupabaseProvider>
             </DesktopLayout>
           </ProtectedRoute>
         } 
@@ -516,9 +518,11 @@ const DesktopApp = () => {
         element={
           <ProtectedRoute>
             <DesktopLayout>
-              <CompanyProvider>
-                <AdminLayout basePath="/vendas"><AdminBranding /></AdminLayout>
-              </CompanyProvider>
+              <AdminSupabaseProvider>
+                <CompanyProvider>
+                  <AdminLayout basePath="/vendas"><AdminBranding /></AdminLayout>
+                </CompanyProvider>
+              </AdminSupabaseProvider>
             </DesktopLayout>
           </ProtectedRoute>
         } 

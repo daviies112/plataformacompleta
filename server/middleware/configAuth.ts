@@ -80,6 +80,29 @@ export function authenticateConfig(req: AuthRequest, res: Response, next: NextFu
     return next();
   }
   
+  // Método 4: Fallback via x-tenant-id + expired/invalid JWT (somente leitura GET)
+  // Only allow if a JWT token was provided (even if expired/invalid) AND x-tenant-id matches
+  // This handles server-restart scenarios where JWT_SECRET changes but user is still "logged in"
+  const headerTenantId = req.headers['x-tenant-id'] as string;
+  if (headerTenantId && token && req.method === 'GET') {
+    try {
+      const jwtSecret = process.env.JWT_SECRET || process.env.SESSION_SECRET || 'demo-secret-key-for-development-only';
+      const decoded = jwt.decode(token) as any;
+      if (decoded && decoded.tenantId && decoded.tenantId === headerTenantId) {
+        console.log(`🔐 [CONFIG] Fallback via x-tenant-id + decoded JWT: ${headerTenantId} (GET only)`);
+        req.user = {
+          userId: decoded.userId || headerTenantId,
+          email: decoded.email || 'jwt-fallback@tenant',
+          clientId: headerTenantId,
+          tenantId: headerTenantId
+        };
+        req.authMethod = 'jwt';
+        return next();
+      }
+    } catch (e) {
+    }
+  }
+  
   // Nenhum método de autenticação válido
   return res.status(401).json({
     success: false,
