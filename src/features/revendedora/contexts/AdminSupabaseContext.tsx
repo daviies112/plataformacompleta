@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { apiRequest } from '@/lib/queryClient';
+import { resellerFetch } from '../lib/resellerAuth';
 
 interface AdminSupabaseContextType {
   client: SupabaseClient | null;
@@ -18,6 +18,16 @@ const AdminSupabaseContext = createContext<AdminSupabaseContextType>({
   refresh: async () => {},
 });
 
+function createSupabaseClient(url: string, anonKey: string): SupabaseClient {
+  return createClient(url, anonKey, {
+    auth: {
+      storage: localStorage,
+      persistSession: false,
+      autoRefreshToken: false,
+    }
+  });
+}
+
 export function AdminSupabaseProvider({ children }: { children: ReactNode }) {
   const [client, setClient] = useState<SupabaseClient | null>(null);
   const [loading, setLoading] = useState(true);
@@ -27,23 +37,49 @@ export function AdminSupabaseProvider({ children }: { children: ReactNode }) {
   const fetchConfig = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await apiRequest('GET', '/api/config/supabase/credentials');
-      const data = await response.json();
-      
-      if (data.success && data.credentials?.url && data.credentials?.anonKey) {
-        const newClient = createClient(data.credentials.url, data.credentials.anonKey, {
-          auth: {
-            storage: localStorage,
-            persistSession: false,
-            autoRefreshToken: false,
+      let url: string | null = null;
+      let anonKey: string | null = null;
+
+      try {
+        const response = await resellerFetch('/api/reseller/supabase-config');
+        if (response.ok) {
+          const data = await response.json();
+          url = data.supabase_url || null;
+          anonKey = data.supabase_anon_key || null;
+          if (url && anonKey) {
+            console.log('[AdminSupabaseProvider] Got credentials from reseller endpoint');
           }
-        });
-        setClient(newClient);
+        }
+      } catch (e) {
+        console.log('[AdminSupabaseProvider] Reseller endpoint failed, trying config endpoint...');
+      }
+
+      if (!url || !anonKey) {
+        try {
+          const response = await fetch('/api/config/supabase/credentials', {
+            credentials: 'include',
+          });
+          if (response.ok) {
+            const data = await response.json();
+            const creds = data.credentials;
+            url = creds?.url || creds?.supabaseUrl || null;
+            anonKey = creds?.anonKey || creds?.anon_key || creds?.supabaseAnonKey || null;
+            if (url && anonKey) {
+              console.log('[AdminSupabaseProvider] Got credentials from config endpoint');
+            }
+          }
+        } catch (e) {
+          console.log('[AdminSupabaseProvider] Config endpoint also failed');
+        }
+      }
+
+      if (url && anonKey) {
+        setClient(createSupabaseClient(url, anonKey));
         setConfigured(true);
         setError(null);
-        console.log('[AdminSupabaseProvider] Client created for:', data.credentials.url);
+        console.log('[AdminSupabaseProvider] Client created for:', url);
       } else {
-        console.log('[AdminSupabaseProvider] No credentials configured');
+        console.log('[AdminSupabaseProvider] No credentials found from any endpoint');
         setConfigured(false);
         setClient(null);
       }
