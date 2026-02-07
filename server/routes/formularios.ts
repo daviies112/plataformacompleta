@@ -8,7 +8,7 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { STANDARD_REGISTRATION_FIELDS, DEFAULT_REGISTRATION_DESIGN_CONFIG, getStandardFields, removeDuplicateCpfCnpj, type QuestionField } from '../formularios/services/standardFields.js';
 import { requireTenant } from '../middleware/requireTenant';
 import { generateCompanySlug } from '../formularios/utils/slugGenerator';
-import { getCompanySlug } from '../lib/tenantSlug';
+import { getCompanySlug, getCompanySlugFromDb } from '../lib/tenantSlug';
 
 const router = Router();
 
@@ -121,11 +121,24 @@ async function getOrCreateAppSettingsInSupabase(supabase: SupabaseClient) {
 }
 
 /**
- * Obtém o slug da empresa do Supabase ou banco local
+ * Obtém o slug da empresa do hms_100ms_config, Supabase ou banco local
  * Usado para construir URLs profissionais: /formulario/{companySlug}/form/{formId}
+ * Prioridade: hms_100ms_config > Supabase company_settings > fallback
  */
-async function getCompanySlugFromSupabase(supabase: SupabaseClient): Promise<string> {
+async function getCompanySlugFromSupabase(supabase: SupabaseClient, tenantId?: string): Promise<string> {
   try {
+    if (tenantId) {
+      try {
+        const hmsSlug = await getCompanySlugFromDb(tenantId);
+        if (hmsSlug) {
+          console.log(`✅ [FORMS] Company slug from hms_100ms_config: ${hmsSlug}`);
+          return hmsSlug;
+        }
+      } catch (e) {
+        console.warn('⚠️ [FORMS] hms_100ms_config check failed, trying Supabase');
+      }
+    }
+
     const { data: companySettings, error } = await supabase
       .from('company_settings')
       .select('company_name, company_slug')
@@ -181,8 +194,11 @@ router.get('/ativo', async (req, res) => {
       // Garante consistência com meetings/signatures
       if (req.session?.tenantId) {
         try {
-          companySlug = await getCompanySlug(req.session.tenantId);
-          console.log(`✅ [FORMS/ativo] Company slug from tenantSlug: ${companySlug}`);
+          const hmsSlug = await getCompanySlugFromDb(req.session.tenantId);
+          if (hmsSlug) {
+            companySlug = hmsSlug;
+            console.log(`✅ [FORMS/ativo] Company slug from tenantSlug: ${companySlug}`);
+          }
         } catch (e) {
           console.warn('⚠️ [FORMS/ativo] Fallback to settings/mapping slug');
         }
@@ -266,12 +282,13 @@ router.get('/ativo', async (req, res) => {
             let companySlug = 'empresa';
             if (req.session?.tenantId) {
               try {
-                companySlug = await getCompanySlug(req.session.tenantId);
+                const hmsSlug = await getCompanySlugFromDb(req.session.tenantId);
+                if (hmsSlug) companySlug = hmsSlug;
               } catch (e) { }
             }
-            if (companySlug === 'empresa') {
+            if (!companySlug || companySlug === 'empresa') {
               try {
-                companySlug = await getCompanySlugFromSupabase(supabase);
+                companySlug = await getCompanySlugFromSupabase(supabase, req.session?.tenantId);
               } catch (e) { }
             }
 
@@ -346,10 +363,14 @@ router.put('/config/ativo', async (req, res) => {
     // 🔐 PRIORIDADE 0: Usar getCompanySlug (hms100msConfig) para consistência com meetings/signatures
     // Se companySlug foi passado no body, usar como override; senão, buscar de hms100msConfig
     let companySlug = requestedCompanySlug || 'empresa';
-    if (!requestedCompanySlug && req.session?.tenantId) {
+    const tenantId = (req as any).tenantId || (req as any).user?.tenantId || req.session?.tenantId;
+    if (!requestedCompanySlug && tenantId) {
       try {
-        companySlug = await getCompanySlug(req.session.tenantId);
-        console.log(`✅ [FORMS] Company slug from tenantSlug (hms100msConfig): ${companySlug}`);
+        const hmsSlug = await getCompanySlugFromDb(tenantId);
+        if (hmsSlug) {
+          companySlug = hmsSlug;
+          console.log(`✅ [FORMS] Company slug from tenantSlug (hms100msConfig): ${companySlug}`);
+        }
       } catch (e) {
         console.warn('⚠️ [FORMS] Fallback to default slug');
       }
@@ -421,7 +442,7 @@ router.put('/config/ativo', async (req, res) => {
           // Se requestedCompanySlug foi passado, ele já está em companySlug e deve ser usado
           if (!requestedCompanySlug) {
             try {
-              companySlug = await getCompanySlugFromSupabase(supabase);
+              companySlug = await getCompanySlugFromSupabase(supabase, tenantId);
             } catch (e) {
               console.warn('⚠️ [FORMS] Não foi possível obter company_slug do Supabase');
             }
@@ -452,7 +473,7 @@ router.put('/config/ativo', async (req, res) => {
                 tags: formData.tags || [],
                 slug: formData.slug || formId,
                 isPublic: true,
-                tenantId: req.session?.tenantId || 'default',
+                tenantId: tenantId || 'default',
                 createdAt: new Date(formData.created_at || Date.now()),
                 updatedAt: new Date()
               });
@@ -523,7 +544,7 @@ router.put('/config/ativo', async (req, res) => {
         .where(eq(formTenantMapping.formId, formId))
         .limit(1);
 
-      const tenantId = req.session?.tenantId || 'default';
+      const effectiveTenantId = tenantId || 'default';
 
       if (existingMapping.length > 0) {
         // Atualizar mapping existente para marcar como público
@@ -638,8 +659,11 @@ router.get('/config/ativo', async (req, res) => {
       // Garante consistência com meetings/signatures
       if (req.session?.tenantId) {
         try {
-          companySlug = await getCompanySlug(req.session.tenantId);
-          console.log(`✅ [FORMS/config/ativo] Company slug from tenantSlug: ${companySlug}`);
+          const hmsSlug = await getCompanySlugFromDb(req.session.tenantId);
+          if (hmsSlug) {
+            companySlug = hmsSlug;
+            console.log(`✅ [FORMS/config/ativo] Company slug from tenantSlug: ${companySlug}`);
+          }
         } catch (e) {
           console.warn('⚠️ [FORMS/config/ativo] Fallback to settings/mapping slug');
         }
@@ -719,16 +743,16 @@ router.get('/config/ativo', async (req, res) => {
             .single();
 
           if (!error && data) {
-            // Obter slug da empresa - priorizar hms100msConfig via getCompanySlug
             let companySlug = 'empresa';
             if (req.session?.tenantId) {
               try {
-                companySlug = await getCompanySlug(req.session.tenantId);
+                const hmsSlug = await getCompanySlugFromDb(req.session.tenantId);
+                if (hmsSlug) companySlug = hmsSlug;
               } catch (e) { }
             }
-            if (companySlug === 'empresa') {
+            if (!companySlug || companySlug === 'empresa') {
               try {
-                companySlug = await getCompanySlugFromSupabase(supabase);
+                companySlug = await getCompanySlugFromSupabase(supabase, req.session?.tenantId);
               } catch (e) { }
             }
 

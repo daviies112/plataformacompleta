@@ -2491,65 +2491,78 @@ export function registerFormulariosCompleteRoutes(app: Express) {
       let companyName = null;
       let companySlug = 'empresa';
       
-      // First, try to get from Supabase using multi-tenant credentials
-      try {
-        // 🔐 SECURITY FIX: Usar getSupabaseCredentialsStrict - previne vazamento cross-tenant
-        const { getSupabaseCredentialsStrict } = await import('../lib/credentialsDb.js');
-        const { createClient } = await import('@supabase/supabase-js');
-        
-        // 🔐 MULTI-TENANT SECURITY: Require tenantId from header or session - NO FALLBACKS
-        const tenantId = req.headers['x-tenant-id'] as string || 
-                         (req.session as any)?.tenantId || 
-                         (req.session as any)?.userId;
-        
-        if (!tenantId) {
-          // 🔐 SECURITY: No tenantId available - use local database only (no cross-tenant access)
-          console.log('[GET /api/company-slug] No tenantId available - using local database only');
-          const localSettings = await storage.getAppSettings();
-          companyName = localSettings?.companyName || null;
-          companySlug = localSettings?.companySlug || 'empresa';
-        } else {
-          // 🔐 SECURITY FIX: Usar strict - se tenant não tem credenciais, não usar de outro tenant
-          const credentials = await getSupabaseCredentialsStrict(tenantId);
+      const tenantId = req.headers['x-tenant-id'] as string || 
+                       (req.session as any)?.tenantId || 
+                       (req.session as any)?.userId;
+
+      if (tenantId) {
+        try {
+          const { getCompanySlugFromDb } = await import('../lib/tenantSlug.js');
+          const hmsSlug = await getCompanySlugFromDb(tenantId);
+          if (hmsSlug) {
+            companySlug = hmsSlug;
+            companyName = companySlug.charAt(0).toUpperCase() + companySlug.slice(1);
+            console.log('[GET /api/company-slug] Found in hms_100ms_config:', { companyName, companySlug });
+          }
+        } catch (hmsErr: any) {
+          console.warn('[GET /api/company-slug] hms_100ms_config check failed:', hmsErr.message);
+        }
+      }
+
+      // PRIORITY 1: If still default, try Supabase
+      if (companySlug === 'empresa' || !companyName) {
+        try {
+          const { getSupabaseCredentialsStrict } = await import('../lib/credentialsDb.js');
+          const { createClient } = await import('@supabase/supabase-js');
           
-          if (credentials?.url && credentials?.anonKey) {
-            console.log('[GET /api/company-slug] Fetching from Supabase (tenant: ' + tenantId + ')...');
-            const supabase = createClient(credentials.url, credentials.anonKey);
+          if (!tenantId) {
+            console.log('[GET /api/company-slug] No tenantId available - using local database only');
+            const localSettings = await storage.getAppSettings();
+            companyName = companyName || localSettings?.companyName || null;
+            companySlug = (companySlug !== 'empresa' ? companySlug : localSettings?.companySlug) || 'empresa';
+          } else {
+            const credentials = await getSupabaseCredentialsStrict(tenantId);
             
-            const { data: supabaseSettings, error } = await supabase
-              .from('company_settings')
-              .select('company_name, company_slug')
-              .limit(1)
-              .single();
-            
-            if (!error && supabaseSettings) {
-              companyName = supabaseSettings.company_name;
-              companySlug = supabaseSettings.company_slug || 'empresa';
-              console.log('[GET /api/company-slug] Found in Supabase:', { companyName, companySlug });
-            } else {
-              console.log('[GET /api/company-slug] Not found in Supabase company_settings:', error?.message);
-              // Fallback to local database
+            if (credentials?.url && credentials?.anonKey) {
+              console.log('[GET /api/company-slug] Fetching from Supabase (tenant: ' + tenantId + ')...');
+              const supabase = createClient(credentials.url, credentials.anonKey);
+              
+              const { data: supabaseSettings, error } = await supabase
+                .from('company_settings')
+                .select('company_name, company_slug')
+                .limit(1)
+                .single();
+              
+              if (!error && supabaseSettings) {
+                companyName = supabaseSettings.company_name || companyName;
+                companySlug = supabaseSettings.company_slug || companySlug;
+                console.log('[GET /api/company-slug] Found in Supabase:', { companyName, companySlug });
+              } else {
+                console.log('[GET /api/company-slug] Not found in Supabase company_settings:', error?.message);
+                if (companySlug === 'empresa') {
+                  const localSettings = await storage.getAppSettings();
+                  companyName = companyName || localSettings?.companyName || null;
+                  companySlug = localSettings?.companySlug || 'empresa';
+                }
+              }
+            } else if (companySlug === 'empresa') {
+              console.log('[GET /api/company-slug] No Supabase credentials for tenant, using local database');
               const localSettings = await storage.getAppSettings();
-              companyName = localSettings?.companyName || null;
+              companyName = companyName || localSettings?.companyName || null;
               companySlug = localSettings?.companySlug || 'empresa';
             }
-          } else {
-            // No Supabase configured for this tenant, use local database
-            console.log('[GET /api/company-slug] No Supabase credentials for tenant, using local database');
-            const localSettings = await storage.getAppSettings();
-            companyName = localSettings?.companyName || null;
-            companySlug = localSettings?.companySlug || 'empresa';
           }
-        }
-      } catch (err: any) {
-        console.warn('[GET /api/company-slug] Database error:', err.message);
-        // Final fallback to local
-        try {
-          const localSettings = await storage.getAppSettings();
-          companyName = localSettings?.companyName || null;
-          companySlug = localSettings?.companySlug || 'empresa';
-        } catch (localErr: any) {
-          console.warn('[GET /api/company-slug] Local DB error:', localErr.message);
+        } catch (err: any) {
+          console.warn('[GET /api/company-slug] Database error:', err.message);
+          if (companySlug === 'empresa') {
+            try {
+              const localSettings = await storage.getAppSettings();
+              companyName = companyName || localSettings?.companyName || null;
+              companySlug = localSettings?.companySlug || 'empresa';
+            } catch (localErr: any) {
+              console.warn('[GET /api/company-slug] Local DB error:', localErr.message);
+            }
+          }
         }
       }
       

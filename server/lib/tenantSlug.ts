@@ -25,6 +25,19 @@ export async function getCompanySlug(tenantId: string): Promise<string> {
   }
 }
 
+export async function getCompanySlugFromDb(tenantId: string): Promise<string | null> {
+  try {
+    const [config] = await db.select({ companySlug: hms100msConfig.companySlug })
+      .from(hms100msConfig)
+      .where(eq(hms100msConfig.tenantId, tenantId))
+      .limit(1);
+    
+    return config?.companySlug || null;
+  } catch {
+    return null;
+  }
+}
+
 export function invalidateSlugCache(tenantId: string) {
   slugCache.delete(tenantId);
 }

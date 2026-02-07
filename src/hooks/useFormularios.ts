@@ -84,6 +84,7 @@ const API_URL = '/api';
 async function apiFetch(url: string, options?: RequestInit) {
   const response = await fetch(url, {
     ...options,
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
       ...options?.headers,
@@ -91,8 +92,8 @@ async function apiFetch(url: string, options?: RequestInit) {
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'An error occurred');
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.error || error.message || 'An error occurred');
   }
 
   return response.json();

@@ -14,11 +14,32 @@ interface FormWithSlug {
 
 let cachedSlug: string | null = null;
 
+function getTenantId(): string | null {
+  try {
+    const userData = localStorage.getItem('user_data');
+    if (userData) {
+      const parsed = JSON.parse(userData);
+      return parsed?.tenantId || null;
+    }
+    return localStorage.getItem('tenantId') || localStorage.getItem('tenant_id') || null;
+  } catch {
+    return null;
+  }
+}
+
 export function useCompanySlug() {
   const { data, isLoading, error } = useQuery<CompanySlugData>({
     queryKey: ['/api/company-slug'],
     queryFn: async () => {
-      const response = await fetch('/api/company-slug');
+      const headers: Record<string, string> = {};
+      const tenantId = getTenantId();
+      if (tenantId) {
+        headers['x-tenant-id'] = tenantId;
+      }
+      const response = await fetch('/api/company-slug', { 
+        credentials: 'include',
+        headers 
+      });
       if (!response.ok) {
         throw new Error('Failed to fetch company slug');
       }

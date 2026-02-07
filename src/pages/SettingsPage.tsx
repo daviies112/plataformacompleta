@@ -1855,10 +1855,17 @@ const SettingsPage = () => {
       let testPayload = {};
       
       if (integrationType === 'supabase') {
-        testPayload = {
+        const sbRes = await apiRequest('POST', '/api/config/supabase/test', {
           supabaseUrl: integrationForms.supabase.url,
           supabaseAnonKey: integrationForms.supabase.anon_key,
-        };
+        });
+        const sbResponse = await sbRes.json();
+        toast({
+          title: sbResponse.success ? "Sucesso!" : "Erro no teste",
+          description: sbResponse.message || sbResponse.error || "Conexão com Supabase testada!",
+          variant: sbResponse.success ? "default" : "destructive",
+        });
+        return;
       } else if (integrationType === 'google_calendar') {
         testPayload = {
           clientId: integrationForms.google_calendar.client_id,
@@ -1881,29 +1888,32 @@ const SettingsPage = () => {
           instance: integrationForms.evolution_api.instance || 'nexus-whatsapp'
         });
       } else if (integrationType === 'bigdatacorp') {
-        const response = await apiRequest('POST', '/api/config/bigdatacorp/test', {
+        const bdcRes = await apiRequest('POST', '/api/config/bigdatacorp/test', {
           tokenId: integrationForms.bigdatacorp.token_id,
           chaveToken: integrationForms.bigdatacorp.chave_token,
         });
+        const bdcResponse = await bdcRes.json();
         toast({
           title: "Sucesso!",
-          description: response.message || "Conexão com BigDataCorp testada com sucesso!",
+          description: bdcResponse.message || "Conexão com BigDataCorp testada com sucesso!",
         });
         return;
       } else if (integrationType === 'supabase_master') {
-        const response = await apiRequest('POST', '/api/config/supabase-master/test', {
+        const smRes = await apiRequest('POST', '/api/config/supabase-master/test', {
           supabaseMasterUrl: integrationForms.supabase_master.url,
           supabaseMasterServiceRoleKey: integrationForms.supabase_master.service_role_key,
         });
+        const smResponse = await smRes.json();
         toast({
           title: "Sucesso!",
-          description: response.message || "Conexão com Supabase Master testada com sucesso!",
+          description: smResponse.message || "Conexão com Supabase Master testada com sucesso!",
         });
         return;
       }
       
       console.log(`🚀 [TEST] Enviando teste para ${integrationType}:`, testPayload);
-      const response = await apiRequest('POST', `/api/credentials/test/${integrationType}`, testPayload);
+      const res = await apiRequest('POST', `/api/credentials/test/${integrationType}`, testPayload);
+      const response = await res.json();
       toast({
         title: "Sucesso!",
         description: response.message || "Conexão testada com sucesso!",
