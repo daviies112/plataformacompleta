@@ -92,6 +92,93 @@ function initializeDatabase(): void {
               created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW()
             );
             CREATE UNIQUE INDEX IF NOT EXISTS idx_total_express_tenant_unique ON total_express_config (tenant_id);
+            CREATE TABLE IF NOT EXISTS leads (
+              id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+              tenant_id TEXT NOT NULL,
+              telefone TEXT NOT NULL,
+              telefone_normalizado TEXT NOT NULL,
+              nome TEXT,
+              email TEXT,
+              cpf TEXT,
+              cpf_normalizado TEXT,
+              form_status TEXT DEFAULT 'not_sent',
+              cpf_check_id UUID,
+              cpf_status TEXT,
+              cpf_checked_at TIMESTAMPTZ,
+              pipeline_status TEXT DEFAULT 'contato-inicial',
+              submission_id UUID,
+              whatsapp_label_id UUID,
+              created_at TIMESTAMPTZ DEFAULT NOW(),
+              updated_at TIMESTAMPTZ DEFAULT NOW()
+            );
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_leads_telefone_norm_unique ON leads (telefone_normalizado);
+            CREATE INDEX IF NOT EXISTS idx_leads_tenant ON leads (tenant_id);
+            CREATE INDEX IF NOT EXISTS idx_leads_cpf_norm ON leads (cpf_normalizado);
+            CREATE TABLE IF NOT EXISTS wallets (
+              id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+              tenant_id TEXT NOT NULL UNIQUE,
+              balance NUMERIC(10,2) NOT NULL DEFAULT 0.00,
+              currency VARCHAR(3) NOT NULL DEFAULT 'BRL',
+              is_frozen BOOLEAN NOT NULL DEFAULT FALSE,
+              created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+              updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+            );
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_wallets_tenant ON wallets (tenant_id);
+            CREATE TABLE IF NOT EXISTS forms (
+              id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+              title TEXT NOT NULL,
+              slug TEXT,
+              description TEXT,
+              welcome_title TEXT,
+              welcome_message TEXT,
+              welcome_config JSONB,
+              questions JSONB NOT NULL DEFAULT '[]'::jsonb,
+              elements JSONB,
+              passing_score INTEGER NOT NULL DEFAULT 0,
+              score_tiers JSONB,
+              design_config JSONB,
+              completion_page_id UUID,
+              tenant_id TEXT NOT NULL,
+              is_public BOOLEAN DEFAULT FALSE,
+              created_at TIMESTAMPTZ DEFAULT NOW(),
+              updated_at TIMESTAMPTZ DEFAULT NOW()
+            );
+            CREATE INDEX IF NOT EXISTS idx_forms_tenant_id ON forms (tenant_id);
+            CREATE INDEX IF NOT EXISTS idx_forms_slug_tenant ON forms (slug, tenant_id);
+            CREATE TABLE IF NOT EXISTS form_submissions (
+              id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+              tenant_id TEXT,
+              form_id UUID NOT NULL,
+              answers JSONB NOT NULL DEFAULT '{}'::jsonb,
+              total_score INTEGER NOT NULL DEFAULT 0,
+              passed BOOLEAN NOT NULL DEFAULT TRUE,
+              participant_id TEXT,
+              contact_name TEXT,
+              contact_email TEXT,
+              contact_phone TEXT,
+              contact_cpf TEXT,
+              instagram_handle TEXT,
+              birth_date DATE,
+              address_cep TEXT,
+              address_street TEXT,
+              address_number TEXT,
+              address_complement TEXT,
+              address_neighborhood TEXT,
+              address_city TEXT,
+              address_state TEXT,
+              processado_whatsapp BOOLEAN DEFAULT FALSE,
+              agendou_reuniao BOOLEAN DEFAULT FALSE,
+              data_agendamento TIMESTAMPTZ,
+              follow_up_count INTEGER DEFAULT 0,
+              ultimo_follow_up TIMESTAMPTZ,
+              follow_up_encerrado BOOLEAN DEFAULT FALSE,
+              created_at TIMESTAMPTZ DEFAULT NOW(),
+              updated_at TIMESTAMPTZ DEFAULT NOW()
+            );
+            CREATE INDEX IF NOT EXISTS idx_submissions_form_id ON form_submissions (form_id);
+            CREATE INDEX IF NOT EXISTS idx_submissions_tenant ON form_submissions (tenant_id);
+            CREATE INDEX IF NOT EXISTS idx_submissions_cpf ON form_submissions (contact_cpf);
+            CREATE INDEX IF NOT EXISTS idx_submissions_phone ON form_submissions (contact_phone);
           `);
         } catch (migrationErr) {
           console.warn('⚠️ Auto-migration warning:', migrationErr instanceof Error ? migrationErr.message : migrationErr);

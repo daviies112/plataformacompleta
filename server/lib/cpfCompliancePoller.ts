@@ -1383,6 +1383,58 @@ export async function checkApprovedSubmissionsWithoutCPF(): Promise<{
             console.log(`   💾 Resultado: ${cacheStatus}`);
             console.log(`   🏷️ Check ID: ${result.checkId}`);
             
+            // UPDATE TENANT's form_submissions_compliance_tracking
+            try {
+              const now = new Date().toISOString();
+              const trackingUpdate: any = {
+                status: 'completed',
+                check_id: result.checkId,
+                processed_at: now,
+                updated_at: now,
+                nome: submission.contact_name || null,
+              };
+
+              // Try matching by submission id directly
+              const { error: updateByIdErr } = await supabase
+                .from('form_submissions_compliance_tracking')
+                .update(trackingUpdate)
+                .eq('submission_id', submission.id);
+
+              if (updateByIdErr && updateByIdErr.code !== 'PGRST205' && !updateByIdErr.message?.includes('does not exist')) {
+                console.log(`⚠️ [CPFAutoCheck] Tenant tracking update by ID warning: ${updateByIdErr.message}`);
+              }
+
+              // Also try matching by phone number (submission_id may be WhatsApp format)
+              if (submission.contact_phone) {
+                const phoneClean = submission.contact_phone.replace(/\D/g, '');
+                if (phoneClean) {
+                  const whatsappId = `${phoneClean}@s.whatsapp.net`;
+                  const { error: updateByPhoneErr } = await supabase
+                    .from('form_submissions_compliance_tracking')
+                    .update(trackingUpdate)
+                    .eq('submission_id', whatsappId);
+
+                  if (updateByPhoneErr && updateByPhoneErr.code !== 'PGRST205' && !updateByPhoneErr.message?.includes('does not exist')) {
+                    console.log(`⚠️ [CPFAutoCheck] Tenant tracking update by phone warning: ${updateByPhoneErr.message}`);
+                  }
+
+                  // Also try with raw phone number
+                  const { error: updateByRawPhoneErr } = await supabase
+                    .from('form_submissions_compliance_tracking')
+                    .update(trackingUpdate)
+                    .eq('submission_id', phoneClean);
+
+                  if (updateByRawPhoneErr && updateByRawPhoneErr.code !== 'PGRST205' && !updateByRawPhoneErr.message?.includes('does not exist')) {
+                    console.log(`⚠️ [CPFAutoCheck] Tenant tracking update by raw phone warning: ${updateByRawPhoneErr.message}`);
+                  }
+                }
+              }
+
+              console.log(`✅ [CPFAutoCheck] Tenant tracking updated for submission ${submission.id}`);
+            } catch (trackingErr: any) {
+              console.log(`⚠️ [CPFAutoCheck] Non-critical: Could not update tenant tracking: ${trackingErr.message}`);
+            }
+            
             // Marcar como processado
             cpfAutoCheckState.processedSubmissionIds.push(submission.id);
             cpfAutoCheckState.totalProcessed++;
@@ -1397,6 +1449,88 @@ export async function checkApprovedSubmissionsWithoutCPF(): Promise<{
             cpfAutoCheckState.totalErrors++;
             cpfAutoCheckState.processedSubmissionIds.push(submission.id);
           }
+        }
+        
+        // SECONDARY PATH: Process pending records in tenant's form_submissions_compliance_tracking
+        try {
+          const { data: pendingTracking, error: pendingErr } = await supabase
+            .from('form_submissions_compliance_tracking')
+            .select('*')
+            .eq('status', 'pending')
+            .limit(50);
+
+          if (!pendingErr && pendingTracking && pendingTracking.length > 0) {
+            console.log(`📋 [CPFAutoCheck] Tenant ${tenantId}: ${pendingTracking.length} pending tracking records found`);
+
+            for (const trackingRecord of pendingTracking) {
+              try {
+                // Extract phone from submission_id (may be "553192267220@s.whatsapp.net" format)
+                let phoneToMatch = trackingRecord.submission_id || '';
+                phoneToMatch = phoneToMatch.replace(/@s\.whatsapp\.net$/, '').replace(/\D/g, '');
+
+                if (!phoneToMatch) {
+                  // Try telefone field
+                  phoneToMatch = (trackingRecord.telefone || '').replace(/\D/g, '');
+                }
+
+                if (!phoneToMatch) continue;
+
+                // Look up matching submission in form_submissions
+                const { data: matchingSubs, error: matchErr } = await supabase
+                  .from('form_submissions')
+                  .select('*')
+                  .or(`contact_phone.ilike.%${phoneToMatch}%,id.eq.${trackingRecord.submission_id}`)
+                  .eq('status', 'approved')
+                  .limit(1);
+
+                if (matchErr || !matchingSubs || matchingSubs.length === 0) continue;
+
+                const matchedSub = matchingSubs[0];
+                const cpf = matchedSub.contact_cpf;
+                if (!cpf) continue;
+
+                // Check if already processed
+                if (cpfAutoCheckState.processedSubmissionIds.includes(matchedSub.id)) continue;
+
+                const normalizedCPF = normalizeCPF(cpf);
+                console.log(`🔍 [CPFAutoCheck] Processing pending tracking for phone ${phoneToMatch.substring(0, 4)}...`);
+
+                const result = await checkCompliance(cpf, {
+                  tenantId: tenantId,
+                  submissionId: matchedSub.id,
+                  personName: matchedSub.contact_name || undefined,
+                  personPhone: matchedSub.contact_phone || undefined,
+                  createdBy: 'system-cpfautocheck-pending',
+                });
+
+                // Update the tenant tracking record
+                const now = new Date().toISOString();
+                await supabase
+                  .from('form_submissions_compliance_tracking')
+                  .update({
+                    status: 'completed',
+                    check_id: result.checkId,
+                    processed_at: now,
+                    updated_at: now,
+                    nome: matchedSub.contact_name || null,
+                  })
+                  .eq('id', trackingRecord.id);
+
+                console.log(`✅ [CPFAutoCheck] Pending tracking record ${trackingRecord.id} updated to completed`);
+
+                cpfAutoCheckState.processedSubmissionIds.push(matchedSub.id);
+                cpfAutoCheckState.totalProcessed++;
+                totalProcessedCount++;
+
+                await new Promise(resolve => setTimeout(resolve, 1000));
+              } catch (pendingItemErr: any) {
+                console.log(`⚠️ [CPFAutoCheck] Error processing pending tracking record: ${pendingItemErr.message}`);
+                totalErrors++;
+              }
+            }
+          }
+        } catch (pendingPathErr: any) {
+          console.log(`⚠️ [CPFAutoCheck] Non-critical: Could not process pending tracking records: ${pendingPathErr.message}`);
         }
         
       } catch (tenantError: any) {

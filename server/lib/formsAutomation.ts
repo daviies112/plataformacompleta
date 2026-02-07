@@ -1,5 +1,6 @@
 import { getClienteSupabase, getSubmissionById, fetchApprovedSubmissions, type FormSubmission } from './clienteSupabase';
 import { getSupabaseMaster, isSupabaseMasterConfigured } from './supabaseMaster';
+import { getClientSupabaseClient } from './multiTenantSupabase';
 import { checkCompliance } from './datacorpCompliance';
 import { validateCPF, normalizeCPF } from './crypto';
 import { log } from '../production';
@@ -249,13 +250,55 @@ export async function processApprovedSubmission(
     log(`   💾 Resultado: ${cacheStatus}`);
     log(`   🏷️ Check ID: ${complianceResult.checkId}`);
 
-    // Salvar tracking de sucesso
+    // Salvar tracking de sucesso (Master Supabase)
     await createTrackingRecord(
       submissionId,
       tenantId,
       'completed',
       complianceResult.checkId
     );
+
+    // Also update TENANT Supabase's form_submissions_compliance_tracking
+    try {
+      const tenantSupabase = await getClientSupabaseClient(tenantId);
+      if (tenantSupabase) {
+        const now = new Date().toISOString();
+        const tenantTrackingUpdate: any = {
+          status: 'completed',
+          check_id: complianceResult.checkId,
+          processed_at: now,
+          updated_at: now,
+          nome: submission.contact_name || null,
+        };
+
+        // Try matching by submission id
+        await tenantSupabase
+          .from('form_submissions_compliance_tracking')
+          .update(tenantTrackingUpdate)
+          .eq('submission_id', submissionId);
+
+        // Also try matching by phone number variants
+        if (submission.contact_phone) {
+          const phoneClean = submission.contact_phone.replace(/\D/g, '');
+          if (phoneClean) {
+            const whatsappId = `${phoneClean}@s.whatsapp.net`;
+            await tenantSupabase
+              .from('form_submissions_compliance_tracking')
+              .update(tenantTrackingUpdate)
+              .eq('submission_id', whatsappId);
+
+            await tenantSupabase
+              .from('form_submissions_compliance_tracking')
+              .update(tenantTrackingUpdate)
+              .eq('submission_id', phoneClean);
+          }
+        }
+
+        log(`✅ Tenant tracking also updated for submission ${submissionId}`);
+      }
+    } catch (tenantTrackingErr: any) {
+      log(`⚠️ Non-critical: Could not update tenant tracking: ${tenantTrackingErr.message}`);
+    }
 
     log(`✅ Submission processada com sucesso: ${submissionId} - Status: ${complianceResult.status}`);
     return {

@@ -414,48 +414,57 @@ const handleCreateMeeting = async (req: Request, res: Response) => {
             }
         }
 
-        // Fallback: buscar por telefone se não foi passado form_submission_id
         if (!formSubmissionId && telefone) {
-            const normalizedPhone = telefone.replace(/\D/g, '');
-            console.log(`[N8N] Buscando form_submission por telefone: ${normalizedPhone}`);
-            const [sub] = await db.select({
-                id: formSubmissions.id,
-                participantId: formSubmissions.participantId
-            }).from(formSubmissions)
-                .where(sql`REPLACE(REPLACE(REPLACE(REPLACE(${formSubmissions.contactPhone}, '-', ''), ' ', ''), '(', ''), ')', '') LIKE '%' || ${normalizedPhone} || '%'`)
-                .orderBy(desc(formSubmissions.createdAt))
-                .limit(1);
-            if (sub) {
-                formSubmissionId = sub.id;
-                participantId = sub.participantId;
-                console.log(`[N8N] Form submission encontrado por telefone: ${formSubmissionId}, participantId: ${participantId}`);
+            try {
+                const normalizedPhone = telefone.replace(/\D/g, '');
+                console.log(`[N8N] Buscando form_submission por telefone: ${normalizedPhone}`);
+                const [sub] = await db.select({
+                    id: formSubmissions.id,
+                    participantId: formSubmissions.participantId
+                }).from(formSubmissions)
+                    .where(sql`REPLACE(REPLACE(REPLACE(REPLACE(${formSubmissions.contactPhone}, '-', ''), ' ', ''), '(', ''), ')', '') LIKE '%' || ${normalizedPhone} || '%'`)
+                    .orderBy(desc(formSubmissions.createdAt))
+                    .limit(1);
+                if (sub) {
+                    formSubmissionId = sub.id;
+                    participantId = sub.participantId;
+                    console.log(`[N8N] Form submission encontrado por telefone: ${formSubmissionId}, participantId: ${participantId}`);
+                }
+            } catch (err) {
+                console.log(`[N8N] Erro ao buscar form_submission por telefone (não-crítico): ${(err as Error).message}`);
             }
         }
 
-        // Fallback: buscar por email se não encontrou por telefone
         if (!formSubmissionId && email) {
-            console.log(`[N8N] Buscando form_submission por email: ${email}`);
-            const [sub] = await db.select({
-                id: formSubmissions.id,
-                participantId: formSubmissions.participantId
-            }).from(formSubmissions)
-                .where(sql`LOWER(${formSubmissions.contactEmail}) = LOWER(${email})`)
-                .orderBy(desc(formSubmissions.createdAt))
-                .limit(1);
-            if (sub) {
-                formSubmissionId = sub.id;
-                participantId = sub.participantId;
-                console.log(`[N8N] Form submission encontrado por email: ${formSubmissionId}, participantId: ${participantId}`);
+            try {
+                console.log(`[N8N] Buscando form_submission por email: ${email}`);
+                const [sub] = await db.select({
+                    id: formSubmissions.id,
+                    participantId: formSubmissions.participantId
+                }).from(formSubmissions)
+                    .where(sql`LOWER(${formSubmissions.contactEmail}) = LOWER(${email})`)
+                    .orderBy(desc(formSubmissions.createdAt))
+                    .limit(1);
+                if (sub) {
+                    formSubmissionId = sub.id;
+                    participantId = sub.participantId;
+                    console.log(`[N8N] Form submission encontrado por email: ${formSubmissionId}, participantId: ${participantId}`);
+                }
+            } catch (err) {
+                console.log(`[N8N] Erro ao buscar form_submission por email (não-crítico): ${(err as Error).message}`);
             }
         }
 
-        // Generate participant_id if form_submission found but has no participant_id yet
         if (formSubmissionId && !participantId) {
             participantId = generateParticipantId();
             console.log(`[N8N] Gerando novo participant_id: ${participantId}`);
-            await db.update(formSubmissions)
-                .set({ participantId })
-                .where(eq(formSubmissions.id, formSubmissionId));
+            try {
+                await db.update(formSubmissions)
+                    .set({ participantId })
+                    .where(eq(formSubmissions.id, formSubmissionId));
+            } catch (updateErr: any) {
+                console.warn(`[N8N] ⚠️ Erro ao atualizar participant_id (não-crítico): ${updateErr.message}`);
+            }
         }
 
         const metadata: any = {

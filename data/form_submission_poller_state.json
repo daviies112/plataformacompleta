@@ -1,8 +1,8 @@
 {
   "lastSyncedAt": null,
   "lastSyncedId": null,
-  "lastRunAt": "2026-02-07T16:42:37.267Z",
-  "totalSubmissionsProcessed": 3,
+  "lastRunAt": "2026-02-07T18:25:48.665Z",
+  "totalSubmissionsProcessed": 4,
   "totalErrors": 328,
   "lastError": null,
   "tenantStates": {
@@ -13,6 +13,10 @@
     "dev-daviemericko_gmail_com": {
       "lastSyncedAt": "2026-02-06T19:14:42.279572+00:00",
       "lastSyncedId": "e3f0fdcd-6972-4348-b26e-d68959d0ee45"
+    },
+    "babilo-tenant-001": {
+      "lastSyncedAt": "2026-02-07T18:07:49.686948+00:00",
+      "lastSyncedId": "df216572-444e-4955-88d0-6e0012ea2818"
     }
   }
 }
