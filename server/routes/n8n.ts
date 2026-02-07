@@ -389,11 +389,10 @@ const handleCreateMeeting = async (req: Request, res: Response) => {
             console.log(`[N8N] ⚠️ roomDesignConfig NÃO foi encontrado - reunião usará cores padrão`);
         }
 
-        // PRIORIDADE: Usar form_submission_id passado pelo N8N (mais confiável)
         let formSubmissionId: string | null = passedFormSubmissionId || null;
         let participantId: string | null = null;
+        let foundInLocalDb = false;
 
-        // Se o N8N passou o form_submission_id, buscar o participantId (se existir no banco local)
         if (formSubmissionId) {
             console.log(`[N8N] Usando form_submission_id passado pelo N8N: ${formSubmissionId}`);
             try {
@@ -404,13 +403,13 @@ const handleCreateMeeting = async (req: Request, res: Response) => {
                     .limit(1);
                 if (sub) {
                     participantId = sub.participantId;
-                    console.log(`[N8N] Form submission encontrado, participantId: ${participantId}`);
+                    foundInLocalDb = true;
+                    console.log(`[N8N] Form submission encontrado no banco local, participantId: ${participantId}`);
                 } else {
                     console.log(`[N8N] Form submission não encontrado no banco local, mas ID será usado para rastreamento`);
                 }
             } catch (err) {
-                console.log(`[N8N] Erro ao buscar form_submission (provavelmente não existe no banco local): ${(err as Error).message}`);
-                // Continua com o form_submission_id passado mesmo que não exista no banco local
+                console.log(`[N8N] Banco local indisponível para form_submissions (não-crítico): ${(err as Error).message}`);
             }
         }
 
@@ -428,6 +427,7 @@ const handleCreateMeeting = async (req: Request, res: Response) => {
                 if (sub) {
                     formSubmissionId = sub.id;
                     participantId = sub.participantId;
+                    foundInLocalDb = true;
                     console.log(`[N8N] Form submission encontrado por telefone: ${formSubmissionId}, participantId: ${participantId}`);
                 }
             } catch (err) {
@@ -448,6 +448,7 @@ const handleCreateMeeting = async (req: Request, res: Response) => {
                 if (sub) {
                     formSubmissionId = sub.id;
                     participantId = sub.participantId;
+                    foundInLocalDb = true;
                     console.log(`[N8N] Form submission encontrado por email: ${formSubmissionId}, participantId: ${participantId}`);
                 }
             } catch (err) {
@@ -458,12 +459,17 @@ const handleCreateMeeting = async (req: Request, res: Response) => {
         if (formSubmissionId && !participantId) {
             participantId = generateParticipantId();
             console.log(`[N8N] Gerando novo participant_id: ${participantId}`);
-            try {
-                await db.update(formSubmissions)
-                    .set({ participantId })
-                    .where(eq(formSubmissions.id, formSubmissionId));
-            } catch (updateErr: any) {
-                console.warn(`[N8N] ⚠️ Erro ao atualizar participant_id (não-crítico): ${updateErr.message}`);
+            if (foundInLocalDb) {
+                try {
+                    await db.update(formSubmissions)
+                        .set({ participantId })
+                        .where(eq(formSubmissions.id, formSubmissionId));
+                    console.log(`[N8N] participant_id atualizado no banco local`);
+                } catch (updateErr: any) {
+                    console.warn(`[N8N] ⚠️ Erro ao atualizar participant_id no banco local (não-crítico): ${updateErr.message}`);
+                }
+            } else {
+                console.log(`[N8N] Registro não existe no banco local, pulando update local (dados estão no Supabase)`);
             }
         }
 

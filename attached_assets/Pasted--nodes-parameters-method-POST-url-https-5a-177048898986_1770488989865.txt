@@ -1,0 +1,47 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://5ad6172b-3745-4599-9d51-0df3d3cc5474-00-560e97frszky.spock.replit.dev/api/n8n/babilo-tenant-001/reunioes",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-N8N-API-Key",
+              "value": "n8n_c63b26158e7b209720e716e5f65285d431d34758497798a7e0f8c05934ab4f19"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"titulo\": \"{{ $node['Extrair Dados e Operação1'].json.titulo }}\",\n  \"nome\": \"{{ $json.nome }}\",\n  \"email\": \"{{ $json.email }}\",\n  \"telefone\": \"{{ $node['Extrair Dados e Operação1'].json.telefone }}\",\n  \"dataInicio\": \"{{ $node['Extrair Dados e Operação1'].json.data_inicio }}\",\n  \"duracao\": 60,\n  \"tipo_reuniao\": \"{{ $node['Extrair Dados e Operação1'].json.query.tipo_reuniao }}\",\n  \"form_submission_id\": \"{{ $json.form_submission_id }}\",\n  \"participantes\": [\n    {\n      \"nome\": \"{{ $json.nome }}\",\n      \"email\": \"{{ $json.email }}\",\n      \"telefone\": \"{{ $node['Extrair Dados e Operação1'].json.telefone }}\",\n      \"telefone_formatado\": \"{{ $json.telefone_formatado }}\",\n      \"cpf\": \"{{ $json.cpf }}\",\n      \"instagram\": \"{{ $json.instagram }}\",\n      \"form_submission_id\": \"{{ $json.form_submission_id }}\",\n      \"adicionado_em\": \"{{ new Date().toISOString() }}\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "82290b04-7585-4aa6-8482-3e70d499f02e",
+      "name": "Criar Reunião via Plataforma2",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1184,
+        4608
+      ]
+    }
+  ],
+  "connections": {
+    "Criar Reunião via Plataforma2": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "041fc3787017e7278f042d7c91fc560a5875bc5f4b072032b9b3ee5905f18f43"
+  }
+}

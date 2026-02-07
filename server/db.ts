@@ -120,10 +120,18 @@ function initializeDatabase(): void {
               balance NUMERIC(10,2) NOT NULL DEFAULT 0.00,
               currency VARCHAR(3) NOT NULL DEFAULT 'BRL',
               is_frozen BOOLEAN NOT NULL DEFAULT FALSE,
+              auto_recharge BOOLEAN NOT NULL DEFAULT FALSE,
+              auto_recharge_trigger NUMERIC(10,2),
+              auto_recharge_amount NUMERIC(10,2),
+              saved_card_token TEXT,
               created_at TIMESTAMP NOT NULL DEFAULT NOW(),
               updated_at TIMESTAMP NOT NULL DEFAULT NOW()
             );
             CREATE UNIQUE INDEX IF NOT EXISTS idx_wallets_tenant ON wallets (tenant_id);
+            ALTER TABLE wallets ADD COLUMN IF NOT EXISTS auto_recharge BOOLEAN NOT NULL DEFAULT FALSE;
+            ALTER TABLE wallets ADD COLUMN IF NOT EXISTS auto_recharge_trigger NUMERIC(10,2);
+            ALTER TABLE wallets ADD COLUMN IF NOT EXISTS auto_recharge_amount NUMERIC(10,2);
+            ALTER TABLE wallets ADD COLUMN IF NOT EXISTS saved_card_token TEXT;
             CREATE TABLE IF NOT EXISTS forms (
               id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
               title TEXT NOT NULL,
@@ -179,6 +187,58 @@ function initializeDatabase(): void {
             CREATE INDEX IF NOT EXISTS idx_submissions_tenant ON form_submissions (tenant_id);
             CREATE INDEX IF NOT EXISTS idx_submissions_cpf ON form_submissions (contact_cpf);
             CREATE INDEX IF NOT EXISTS idx_submissions_phone ON form_submissions (contact_phone);
+            CREATE TABLE IF NOT EXISTS reunioes (
+              id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+              tenant_id TEXT NOT NULL,
+              usuario_id TEXT,
+              nome TEXT,
+              email TEXT,
+              telefone TEXT,
+              titulo TEXT,
+              descricao TEXT,
+              data_inicio TIMESTAMPTZ NOT NULL,
+              data_fim TIMESTAMPTZ NOT NULL,
+              duracao INTEGER,
+              room_id_100ms TEXT,
+              room_code_100ms TEXT,
+              link_reuniao TEXT,
+              link_publico TEXT,
+              status TEXT DEFAULT 'agendada',
+              participantes JSONB DEFAULT '[]'::jsonb,
+              gravacao_url TEXT,
+              metadata JSONB DEFAULT '{}'::jsonb,
+              compareceu BOOLEAN DEFAULT FALSE,
+              participant_id TEXT,
+              form_submission_id TEXT,
+              tipo_reuniao TEXT,
+              created_at TIMESTAMPTZ DEFAULT NOW(),
+              updated_at TIMESTAMPTZ
+            );
+            CREATE INDEX IF NOT EXISTS idx_reunioes_tenant ON reunioes (tenant_id);
+            CREATE INDEX IF NOT EXISTS idx_reunioes_usuario ON reunioes (usuario_id);
+            CREATE INDEX IF NOT EXISTS idx_reunioes_data_inicio ON reunioes (data_inicio);
+            CREATE INDEX IF NOT EXISTS idx_reunioes_status ON reunioes (status);
+            CREATE INDEX IF NOT EXISTS idx_reunioes_room_id ON reunioes (room_id_100ms);
+            CREATE INDEX IF NOT EXISTS idx_reunioes_compareceu ON reunioes (compareceu);
+            CREATE INDEX IF NOT EXISTS idx_reunioes_participant_id ON reunioes (participant_id);
+            CREATE INDEX IF NOT EXISTS idx_reunioes_form_submission_id ON reunioes (form_submission_id);
+            CREATE TABLE IF NOT EXISTS notification_history (
+              id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+              tenant_id TEXT NOT NULL,
+              user_id TEXT NOT NULL,
+              type TEXT NOT NULL,
+              title TEXT NOT NULL,
+              body TEXT,
+              data JSONB,
+              devices_sent INTEGER DEFAULT 0,
+              success BOOLEAN DEFAULT TRUE,
+              read BOOLEAN DEFAULT FALSE,
+              read_at TIMESTAMPTZ,
+              sent_at TIMESTAMPTZ DEFAULT NOW(),
+              device_tokens JSONB
+            );
+            CREATE INDEX IF NOT EXISTS idx_notification_history_user ON notification_history (user_id);
+            CREATE INDEX IF NOT EXISTS idx_notification_history_tenant ON notification_history (tenant_id);
           `);
         } catch (migrationErr) {
           console.warn('⚠️ Auto-migration warning:', migrationErr instanceof Error ? migrationErr.message : migrationErr);
