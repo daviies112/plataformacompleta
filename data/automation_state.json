@@ -53,22 +53,22 @@
     "babilo-tenant-001-babilo-tenant-001": {
       "clientId": "babilo-tenant-001",
       "tenantId": "babilo-tenant-001",
-      "lastRun": "2026-02-07T14:48:49.241Z",
-      "lastSuccess": "2026-02-07T14:48:49.241Z",
+      "lastRun": "2026-02-07T14:52:49.242Z",
+      "lastSuccess": "2026-02-07T14:52:49.242Z",
       "lastError": null,
       "consecutiveErrors": 0,
-      "totalExecutions": 41,
+      "totalExecutions": 43,
       "totalNewClientsDetected": 0,
       "totalEventsCreated": 0,
       "status": "running"
     }
   },
   "globalStats": {
-    "totalExecutions": 570,
+    "totalExecutions": 572,
     "totalNewClientsDetected": 0,
     "totalEventsCreated": 0,
     "totalErrors": 0,
-    "uptime": 360
+    "uptime": 600
   },
   "settings": {
     "detectionIntervalMinutes": 2,
