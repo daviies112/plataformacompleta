@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Upload, Palette, Save, Sparkles, Shuffle, X } from "lucide-react";
 import { useAdminSupabase } from "@/features/revendedora/contexts/AdminSupabaseContext";
+import { useBranding } from "@/features/revendedora/contexts/CompanyContext";
 import { extractColorsFromImage, generateColorVariations, hslToHex } from "@/lib/colorExtractor";
 import { PlatformPreview } from "@/features/revendedora/components/PlatformPreview";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
@@ -42,6 +43,7 @@ function ensureHex(color: string): string {
 
 export default function Branding() {
   const { client: supabase, loading: supabaseLoading, configured } = useAdminSupabase();
+  const { refetch: refetchBranding } = useBranding();
   const [company, setCompany] = useState<CompanyData | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -236,8 +238,10 @@ export default function Branding() {
         updated_at: new Date().toISOString(),
       };
 
+      console.log('[Branding] Saving branding data:', JSON.stringify(saveData, null, 2));
+
       if (company) {
-        const { error: updateError } = await supabase
+        const { data: updateResult, error: updateError } = await supabase
           .from('companies' as any)
           .update(saveData)
           .eq('id', company.id)
@@ -248,6 +252,7 @@ export default function Branding() {
           toast.error(`Erro ao salvar configurações: ${updateError.message}`);
           return;
         }
+        console.log('[Branding] Update successful, result:', updateResult);
       } else {
         const { data: newCompany, error: insertError } = await supabase
           .from('companies' as any)
@@ -262,6 +267,7 @@ export default function Branding() {
         }
 
         if (newCompany) {
+          console.log('[Branding] Insert successful, new company:', newCompany);
           setCompany(newCompany as any);
         }
       }
@@ -270,6 +276,14 @@ export default function Branding() {
       toast.success("Personalização salva com sucesso!", {
         description: "As alterações foram aplicadas à plataforma"
       });
+
+      try {
+        console.log('[Branding] Triggering global branding refetch...');
+        await refetchBranding();
+        console.log('[Branding] Global branding refetch completed successfully');
+      } catch (refetchErr) {
+        console.warn('[Branding] Branding refetch warning (non-critical):', refetchErr);
+      }
     } catch (error: any) {
       console.error('[Branding] Save error:', error);
       toast.error(`Erro ao salvar personalização: ${error.message || 'Erro desconhecido'}`);

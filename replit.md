@@ -108,6 +108,29 @@ create table public.app_settings (
 | `null value in column "tenant_id"` | `getOrCreateLocalAppSettings()` called without tenantId | Always pass tenantId parameter |
 | `active_form_id` not saving to Supabase | Update payload included `active: true` but column doesn't exist in Supabase, causing silent rejection | Removed `active: true` from all Supabase payloads |
 | `DEFAULT_SETTINGS_ID = 1` used everywhere | Constant assumed integer ID in Supabase | Removed constant entirely |
+| Meeting design not persisting | Supabase SELECT had no tenant filter, ambiguous results | Added `.eq('tenant_id', user.tenantId)` with fallback for single-tenant setups |
+| Reseller branding not applying after save | `refetchBranding()` not called after save in Branding.tsx | Added `useBranding()` hook and call `refetchBranding()` post-save |
+
+### Customization Persistence - Multi-Tenant Architecture
+
+All customizations MUST persist to Supabase (not just locally) because new admin logins need to see the same data.
+
+#### Meeting (100ms) Room Design
+- **Save endpoint:** `PATCH /api/reunioes/room-design` in `server/routes/meetings.ts`
+- **Saves to:** Local `hms_100ms_config` table + Supabase `hms_100ms_config` table (sync)
+- **Supabase column:** `room_design_config` (JSONB)
+- **Read path:** GET from local DB, with Supabase fallback if local is empty
+- **Key pattern:** Uses tenant-scoped queries with fallback for single-tenant Supabase setups
+
+#### Reseller Platform Branding (NEXUS)
+- **Save:** Frontend `Branding.tsx` saves directly to Supabase `companies` table
+- **Read:** `CompanyContext.tsx` reads from Supabase `companies` table + applies CSS variables
+- **Post-save:** Must call `refetchBranding()` to update UI immediately
+- **Key columns:** `background_color`, `heading_color`, `text_color`, `button_color`, `button_text_color`, `sidebar_background`, `logo_url`, `primary_color`, `secondary_color`
+
+#### Signature Customization
+- **Status:** Working correctly - saves to Supabase and shows on public URLs
+- **Table:** Contract-specific data in Supabase tenant database
 
 ## External Dependencies
 

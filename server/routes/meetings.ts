@@ -1506,13 +1506,51 @@ meetingsRouter.get('/room-design', authenticateToken, async (req: Request, res: 
       .where(eq(hms100msConfig.tenantId, user.tenantId))
       .limit(1);
 
-    if (!config) {
-      return res.json({ roomDesignConfig: null });
+    if (config?.roomDesignConfig) {
+      return res.json({
+        roomDesignConfig: config.roomDesignConfig,
+        tenantId: config.tenantId
+      });
+    }
+
+    let supabaseDesign = null;
+    try {
+      const supabase = await getClientSupabaseClient(user.tenantId);
+      if (supabase) {
+        console.log(`[RoomDesign GET] Dados locais ausentes, tentando Supabase para tenant: ${user.tenantId}`);
+
+        const { data, error } = await supabase
+          .from('hms_100ms_config')
+          .select('room_design_config')
+          .eq('tenant_id', user.tenantId)
+          .maybeSingle();
+
+        if (error) {
+          console.warn(`[RoomDesign GET] Erro ao buscar do Supabase com tenant filter:`, error.message, error.code);
+          if (error.code === 'PGRST116' || error.code === '42P01') {
+            const { data: fallbackData, error: fallbackError } = await supabase
+              .from('hms_100ms_config')
+              .select('room_design_config')
+              .limit(1)
+              .maybeSingle();
+
+            if (!fallbackError && fallbackData?.room_design_config) {
+              supabaseDesign = fallbackData.room_design_config;
+              console.log(`[RoomDesign GET] roomDesignConfig encontrado no Supabase (fallback sem tenant)`);
+            }
+          }
+        } else if (data?.room_design_config) {
+          supabaseDesign = data.room_design_config;
+          console.log(`[RoomDesign GET] roomDesignConfig encontrado no Supabase para tenant: ${user.tenantId}`);
+        }
+      }
+    } catch (sbErr: any) {
+      console.error('[RoomDesign GET] Erro ao buscar do Supabase:', sbErr?.message || sbErr);
     }
 
     res.json({
-      roomDesignConfig: config.roomDesignConfig,
-      tenantId: config.tenantId
+      roomDesignConfig: supabaseDesign || (config?.roomDesignConfig ?? null),
+      tenantId: user.tenantId
     });
 
   } catch (error: any) {
@@ -1562,36 +1600,78 @@ meetingsRouter.patch('/room-design', authenticateToken, async (req: Request, res
     invalidateAllMeetingDesignCaches();
     console.log(`[RoomDesign] Cache de design público invalidado`);
 
-    // Tentar sincronizar com Supabase do cliente
     let supabaseSyncSuccess = false;
     try {
       const supabase = await getClientSupabaseClient(user.tenantId);
       if (supabase) {
-        console.log(`[RoomDesign] 🔄 Sincronizando com Supabase para tenant: ${user.tenantId}`);
+        console.log(`[RoomDesign] Sincronizando com Supabase para tenant: ${user.tenantId}`);
 
-        // Primeiro verificar se existe registro no Supabase
         const { data: existingData, error: selectError } = await supabase
           .from('hms_100ms_config')
-          .select('room_design_config')
+          .select('id, room_design_config')
+          .eq('tenant_id', user.tenantId)
           .maybeSingle();
 
         if (selectError) {
-          console.warn('[RoomDesign] ⚠️ Erro ao verificar Supabase:', selectError.message);
-        }
+          console.warn(`[RoomDesign] Erro ao verificar Supabase (table may not exist):`, selectError.message, selectError.code);
+          if (selectError.code === 'PGRST116' || selectError.code === '42P01') {
+            console.log(`[RoomDesign] Tentando sem filtro de tenant...`);
+            const { data: fallbackData, error: fallbackError } = await supabase
+              .from('hms_100ms_config')
+              .select('id, room_design_config')
+              .limit(1)
+              .maybeSingle();
 
-        let error;
-        if (existingData) {
-          console.log(`[RoomDesign] 📝 Atualizando registro existente no Supabase para tenant: ${user.tenantId}`);
+            if (!fallbackError && fallbackData) {
+              const { error: updateError } = await supabase
+                .from('hms_100ms_config')
+                .update({
+                  room_design_config: roomDesignConfig,
+                  updated_at: new Date().toISOString()
+                })
+                .eq('id', fallbackData.id);
+
+              if (updateError) {
+                console.error(`[RoomDesign] Erro ao atualizar no Supabase (fallback):`, updateError.message);
+              } else {
+                console.log(`[RoomDesign] Sucesso ao sincronizar com Supabase (fallback, sem tenant_id)`);
+                supabaseSyncSuccess = true;
+              }
+            } else if (!fallbackError && !fallbackData) {
+              const { error: insertError } = await supabase
+                .from('hms_100ms_config')
+                .insert({
+                  room_design_config: roomDesignConfig,
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString()
+                });
+
+              if (insertError) {
+                console.error(`[RoomDesign] Erro ao inserir no Supabase (fallback):`, insertError.message);
+              } else {
+                console.log(`[RoomDesign] Inserido no Supabase (fallback, sem tenant_id)`);
+                supabaseSyncSuccess = true;
+              }
+            }
+          }
+        } else if (existingData) {
+          console.log(`[RoomDesign] Atualizando registro existente no Supabase para tenant: ${user.tenantId}`);
           const { error: updateError } = await supabase
             .from('hms_100ms_config')
             .update({
               room_design_config: roomDesignConfig,
               updated_at: new Date().toISOString()
             })
-            .eq('tenant_id', user.tenantId);
-          error = updateError;
+            .eq('id', existingData.id);
+
+          if (updateError) {
+            console.error(`[RoomDesign] Erro ao atualizar no Supabase:`, updateError.message);
+          } else {
+            console.log(`[RoomDesign] Sucesso ao sincronizar com Supabase para tenant: ${user.tenantId}`);
+            supabaseSyncSuccess = true;
+          }
         } else {
-          console.log(`[RoomDesign] ➕ Criando novo registro no Supabase para tenant: ${user.tenantId}`);
+          console.log(`[RoomDesign] Criando novo registro no Supabase para tenant: ${user.tenantId}`);
           const { error: insertError } = await supabase
             .from('hms_100ms_config')
             .insert({
@@ -1600,18 +1680,35 @@ meetingsRouter.patch('/room-design', authenticateToken, async (req: Request, res
               created_at: new Date().toISOString(),
               updated_at: new Date().toISOString()
             });
-          error = insertError;
-        }
 
-        if (error) {
-          console.error(`[RoomDesign] ❌ Erro ao salvar no Supabase:`, error.message);
-        } else {
-          console.log(`[RoomDesign] ✅ Sucesso ao sincronizar com Supabase para tenant: ${user.tenantId}`);
-          supabaseSyncSuccess = true;
+          if (insertError) {
+            console.error(`[RoomDesign] Erro ao inserir no Supabase:`, insertError.message, insertError.code);
+            if (insertError.code === '42703' || insertError.message?.includes('tenant_id')) {
+              console.log(`[RoomDesign] Tentando inserir sem tenant_id...`);
+              const { error: retryError } = await supabase
+                .from('hms_100ms_config')
+                .insert({
+                  room_design_config: roomDesignConfig,
+                  created_at: new Date().toISOString(),
+                  updated_at: new Date().toISOString()
+                });
+              if (!retryError) {
+                console.log(`[RoomDesign] Inserido no Supabase sem tenant_id`);
+                supabaseSyncSuccess = true;
+              } else {
+                console.error(`[RoomDesign] Falhou novamente:`, retryError.message);
+              }
+            }
+          } else {
+            console.log(`[RoomDesign] Sucesso ao inserir no Supabase para tenant: ${user.tenantId}`);
+            supabaseSyncSuccess = true;
+          }
         }
+      } else {
+        console.warn(`[RoomDesign] Supabase client nao disponivel para tenant: ${user.tenantId}`);
       }
     } catch (sbErr: any) {
-      console.error('[RoomDesign] ❌ Erro crítico ao sincronizar com Supabase:', sbErr?.message || sbErr);
+      console.error('[RoomDesign] Erro critico ao sincronizar com Supabase:', sbErr?.message || sbErr);
     }
 
     res.json({
