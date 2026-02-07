@@ -1,0 +1,47 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://02d16a0c-fa6f-4963-9f61-2edaa63b0764-00-36enijynk45y7.spock.replit.dev/api/n8n/reunioes",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-N8N-API-Key",
+              "value": "n8n_61cd238eb4aa6c50aebce8117cfcc55b69f75aba6753ae0424112f7ffe2748cc"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"titulo\": \"{{ $node['Extrair Dados e Operação1'].json.titulo }}\",\n  \"nome\": \"{{ $json.nome }}\",\n  \"email\": \"{{ $json.email }}\",\n  \"telefone\": \"{{ $node['Extrair Dados e Operação1'].json.telefone }}\",\n  \"dataInicio\": \"{{ $node['Extrair Dados e Operação1'].json.data_inicio }}\",\n  \"duracao\": 60,\n  \"tipo_reuniao\": \"{{ $node['Extrair Dados e Operação1'].json.query.tipo_reuniao }}\",\n  \"form_submission_id\": \"{{ $json.form_submission_id }}\",\n  \"participantes\": [\n    {\n      \"nome\": \"{{ $json.nome }}\",\n      \"email\": \"{{ $json.email }}\",\n      \"telefone\": \"{{ $node['Extrair Dados e Operação1'].json.telefone }}\",\n      \"telefone_formatado\": \"{{ $json.telefone_formatado }}\",\n      \"cpf\": \"{{ $json.cpf }}\",\n      \"instagram\": \"{{ $json.instagram }}\",\n      \"form_submission_id\": \"{{ $json.form_submission_id }}\",\n      \"adicionado_em\": \"{{ new Date().toISOString() }}\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "82290b04-7585-4aa6-8482-3e70d499f02e",
+      "name": "Criar Reunião via Plataforma2",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1184,
+        4608
+      ]
+    }
+  ],
+  "connections": {
+    "Criar Reunião via Plataforma2": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "041fc3787017e7278f042d7c91fc560a5875bc5f4b072032b9b3ee5905f18f43"
+  }
+}
