@@ -30,14 +30,16 @@ function generateDynamicFormUrl(companySlug: string, formSlug: string): string {
 /**
  * Helper: Busca ou cria configurações no PostgreSQL LOCAL
  */
-async function getOrCreateLocalAppSettings() {
+async function getOrCreateLocalAppSettings(tenantId?: string) {
   const existing = await db.select().from(appSettings).limit(1);
 
   if (existing.length > 0) {
     return existing[0];
   }
 
+  const effectiveTenantId = tenantId || 'default';
   const newSettings = await db.insert(appSettings).values({
+    tenantId: effectiveTenantId,
     companyName: 'Minha Empresa',
     companySlug: 'empresa',
   }).returning();
@@ -85,14 +87,15 @@ async function getSupabaseClientForFormularios(req?: Request): Promise<SupabaseC
  * Busca ou cria configurações no SUPABASE (não PostgreSQL local)
  */
 async function getOrCreateAppSettingsInSupabase(supabase: SupabaseClient) {
-  // Buscar configuração existente no Supabase
+  // Buscar primeira configuração existente no Supabase (sem depender de ID específico)
   const { data, error } = await supabase
     .from('app_settings')
     .select('*')
-    .eq('id', DEFAULT_SETTINGS_ID)
-    .single();
+    .limit(1)
+    .maybeSingle();
 
-  if (error && error.code !== 'PGRST116') {
+  if (error) {
+    console.warn('⚠️ [FORMS/ativo] Erro ao buscar do Supabase:', error);
     throw error;
   }
 
@@ -101,7 +104,6 @@ async function getOrCreateAppSettingsInSupabase(supabase: SupabaseClient) {
     const { data: newData, error: insertError } = await supabase
       .from('app_settings')
       .insert({
-        id: DEFAULT_SETTINGS_ID,
         active: true,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
@@ -298,7 +300,7 @@ router.get('/ativo', async (req, res) => {
             const dynamicUrl = generateDynamicFormUrl(companySlug, formSlug);
 
             // Sincronizar com PostgreSQL local
-            const localSettingsSync = await getOrCreateLocalAppSettings();
+            const localSettingsSync = await getOrCreateLocalAppSettings(req.session?.tenantId);
             await db.update(appSettings)
               .set({
                 activeFormId: supabaseSettings.active_form_id,
@@ -523,7 +525,7 @@ router.put('/config/ativo', async (req, res) => {
     console.log(`📍 [FORMS] URL dinâmica gerada: ${formUrl}`);
 
     // Buscar ou criar app_settings no PostgreSQL LOCAL
-    const settings = await getOrCreateLocalAppSettings();
+    const settings = await getOrCreateLocalAppSettings(tenantId);
 
     // Atualizar no PostgreSQL LOCAL
     await db.update(appSettings)
@@ -774,7 +776,7 @@ router.get('/config/ativo', async (req, res) => {
             const dynamicUrl = generateDynamicFormUrl(companySlug, formSlug);
 
             // Sincronizar com PostgreSQL local
-            const localSettings = await getOrCreateLocalAppSettings();
+            const localSettings = await getOrCreateLocalAppSettings(req.session?.tenantId);
             await db.update(appSettings)
               .set({
                 activeFormId: supabaseSettings.active_form_id,
