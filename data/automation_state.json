@@ -1,15 +1,15 @@
 {
   "isRunning": true,
-  "startedAt": "2026-02-07T12:53:48.833Z",
+  "startedAt": "2026-02-07T12:59:36.171Z",
   "lastExecutions": {
     "system-system": {
       "clientId": "system",
       "tenantId": "system",
-      "lastRun": "2026-02-05T21:56:32.109Z",
+      "lastRun": "2026-02-07T12:57:48.914Z",
       "lastSuccess": null,
       "lastError": null,
       "consecutiveErrors": 0,
-      "totalExecutions": 3,
+      "totalExecutions": 6,
       "totalNewClientsDetected": 0,
       "totalEventsCreated": 0,
       "status": "running"
@@ -52,7 +52,7 @@
     }
   },
   "globalStats": {
-    "totalExecutions": 508,
+    "totalExecutions": 511,
     "totalNewClientsDetected": 0,
     "totalEventsCreated": 0,
     "totalErrors": 0,
