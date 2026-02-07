@@ -389,9 +389,41 @@ router.put('/:integrationType', authenticateToken, async (req, res) => {
         }).execute();
         console.log(`✅ Configuração do Pluggy salva no banco (tenant: ${tenantId})`);
       } else if (integrationType === 'supabase') {
-        // ... (existing supabase logic)
+        await db.delete(supabaseConfig)
+          .where(eq(supabaseConfig.tenantId, tenantId))
+          .execute();
+        await db.insert(supabaseConfig).values({
+          tenantId,
+          supabaseUrl: encrypt(credentials.url),
+          supabaseAnonKey: encrypt(credentials.anon_key),
+          bucket: credentials.bucket || ''
+        }).execute();
+        console.log(`✅ Configuração do Supabase salva no banco (tenant: ${tenantId})`);
+
+        const adminId = req.user!.userId || tenantId;
+        syncAdminCredentialsToOwner(adminId, {
+          supabase_url: credentials.url,
+          supabase_anon_key: credentials.anon_key,
+          supabase_service_role_key: credentials.service_role_key || undefined,
+          project_name: tenantId
+        }).then(synced => {
+          if (synced) {
+            console.log(`✅ [MasterSync] Credenciais sincronizadas para admin_supabase_credentials (admin: ${adminId})`);
+          } else {
+            console.warn(`⚠️ [MasterSync] Falha ao sincronizar credenciais para admin_supabase_credentials`);
+          }
+        }).catch(err => {
+          console.error(`❌ [MasterSync] Erro ao sincronizar credenciais:`, err);
+        });
       } else if (integrationType === 'n8n') {
-        // ... (existing n8n logic)
+        await db.delete(n8nConfig)
+          .where(eq(n8nConfig.tenantId, tenantId))
+          .execute();
+        await db.insert(n8nConfig).values({
+          tenantId,
+          webhookUrl: encrypt(credentials.webhook_url)
+        }).execute();
+        console.log(`✅ Configuração do N8N salva no banco (tenant: ${tenantId})`);
       } else if (integrationType === 'evolution_api') {
         // 🔐 Deletar configuração anterior APENAS deste tenant
         await db.delete(evolutionApiConfig)

@@ -2152,8 +2152,18 @@ router.post('/save-residence-proof', async (req: Request, res: Response) => {
 
     if (result) {
       console.log(`[Assinatura] ✅ Supabase atualizado: status=${result.status}, virou_revendedora=${result.virou_revendedora}`);
+
+      createRevendedoraFromContract(result).catch(err => {
+        console.error('[NEXUS] Erro ao criar revendedora após save-residence-proof (fire-and-forget):', err);
+      });
     } else {
       console.warn(`[Assinatura] ⚠️ Supabase não atualizado - contrato não encontrado ou credenciais não configuradas: ${contractId}`);
+
+      if (localContract) {
+        createRevendedoraFromContract({ ...localContract, ...updates }).catch(err => {
+          console.error('[NEXUS] Erro ao criar revendedora após save-residence-proof local (fire-and-forget):', err);
+        });
+      }
     }
 
     return res.json({ success: true, message: 'Comprovante salvo com sucesso' });

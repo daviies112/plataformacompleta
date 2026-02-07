@@ -2123,6 +2123,26 @@ export function setupConfigRoutes(app: Express) {
         console.warn("⚠️ Could not reinitialize assinaturaSupabaseService:", assinaturaError);
       }
       
+      try {
+        const { syncAdminCredentialsToOwner } = await import('../lib/masterSyncService.js');
+        const adminId = req.user!.userId || tenantId;
+        syncAdminCredentialsToOwner(adminId, {
+          supabase_url: supabaseUrl,
+          supabase_anon_key: supabaseAnonKey,
+          project_name: tenantId
+        }).then(synced => {
+          if (synced) {
+            console.log(`✅ [MasterSync] Credenciais sincronizadas para admin_supabase_credentials (admin: ${adminId})`);
+          } else {
+            console.warn(`⚠️ [MasterSync] Falha ao sincronizar credenciais para admin_supabase_credentials`);
+          }
+        }).catch(err => {
+          console.error(`❌ [MasterSync] Erro ao sincronizar credenciais:`, err);
+        });
+      } catch (syncError) {
+        console.warn("⚠️ Could not sync admin credentials to Owner:", syncError);
+      }
+      
       const storageMethod = savedToDatabase ? 'database' : 'file';
       const needsRestart = !!databaseUrl;
       return res.json({
