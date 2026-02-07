@@ -1,6 +1,6 @@
 {
   "isRunning": true,
-  "startedAt": "2026-02-07T14:42:49.192Z",
+  "startedAt": "2026-02-07T14:59:19.884Z",
   "lastExecutions": {
     "system-system": {
       "clientId": "system",
@@ -53,22 +53,22 @@
     "babilo-tenant-001-babilo-tenant-001": {
       "clientId": "babilo-tenant-001",
       "tenantId": "babilo-tenant-001",
-      "lastRun": "2026-02-07T14:52:49.242Z",
-      "lastSuccess": "2026-02-07T14:52:49.242Z",
+      "lastRun": "2026-02-07T14:59:19.938Z",
+      "lastSuccess": "2026-02-07T14:59:19.938Z",
       "lastError": null,
       "consecutiveErrors": 0,
-      "totalExecutions": 43,
+      "totalExecutions": 47,
       "totalNewClientsDetected": 0,
       "totalEventsCreated": 0,
       "status": "running"
     }
   },
   "globalStats": {
-    "totalExecutions": 572,
+    "totalExecutions": 576,
     "totalNewClientsDetected": 0,
     "totalEventsCreated": 0,
     "totalErrors": 0,
-    "uptime": 600
+    "uptime": 0
   },
   "settings": {
     "detectionIntervalMinutes": 2,

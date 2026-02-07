@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Upload, Palette, Save, Sparkles, Shuffle, X } from "lucide-react";
-import { supabase } from "@/features/revendedora/integrations/supabase/client";
+import { useSupabase } from "@/features/revendedora/contexts/SupabaseContext";
 import { extractColorsFromImage, generateColorVariations, hslToHex } from "@/lib/colorExtractor";
 import { PlatformPreview } from "@/features/revendedora/components/PlatformPreview";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
@@ -41,6 +41,7 @@ function ensureHex(color: string): string {
 }
 
 export default function Branding() {
+  const { client: supabase, loading: supabaseLoading, configured } = useSupabase();
   const [company, setCompany] = useState<CompanyData | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -58,65 +59,81 @@ export default function Branding() {
   const [extractingColors, setExtractingColors] = useState(false);
 
   const fetchCompany = async () => {
-    if (!supabase) {
-      console.log('[Branding] Supabase not configured');
-      toast.info("Configure as credenciais do Supabase para salvar as personalizações");
+    if (!supabase || !configured) {
+      console.log('[Branding] Supabase not configured or not ready');
       return;
     }
 
-    const { data, error } = await supabase
-      .from('companies' as any)
-      .select('id, primary_color, secondary_color, logo_url, logo_size, color_palette, background_color, sidebar_background, button_color, button_text_color, text_color, heading_color')
-      .limit(1)
-      .maybeSingle();
-
-    if (error) {
-      console.error('[Branding] Error fetching company:', error);
-      toast.error(`Erro ao buscar empresa: ${error.message}`);
-      return;
-    }
-
-    if (data) {
-      const d = data as any as CompanyData;
-      setCompany(d);
-      setBackgroundColor(d.background_color || "#ffffff");
-      setHeadingColor(d.heading_color || "#1a1a2e");
-      setTextColor(d.text_color || "#333333");
-      setButtonColor(d.button_color || "#9b87f5");
-      setButtonTextColor(d.button_text_color || "#ffffff");
-      setSidebarColor(d.sidebar_background || "#1a1a1a");
-      setLogoUrl(d.logo_url || "");
-      setLogoSize((d.logo_size as 'small' | 'medium' | 'large') || "medium");
-      setColorPalette(d.color_palette || []);
-      toast.success("Dados da empresa carregados!");
-    } else {
-      const { data: newCompany, error: createError } = await supabase
+    try {
+      const { data, error } = await supabase
         .from('companies' as any)
-        .insert({
-          company_name: 'Minha Empresa',
-          primary_color: "#9b87f5",
-          secondary_color: "#1a1a1a",
-        })
-        .select('id, primary_color, secondary_color, logo_url, color_palette')
-        .single();
+        .select('id, company_name, primary_color, secondary_color, logo_url, logo_size, color_palette, background_color, sidebar_background, button_color, button_text_color, text_color, heading_color')
+        .limit(1)
+        .maybeSingle();
 
-      if (createError) {
-        console.error('[Branding] Error creating company:', createError);
-        toast.error(`Erro ao criar empresa: ${createError.message}`);
+      if (error) {
+        console.error('[Branding] Error fetching company:', error);
+        toast.error(`Erro ao buscar empresa: ${error.message}`);
         return;
       }
 
-      if (newCompany) {
-        const d = newCompany as any as CompanyData;
+      if (data) {
+        const d = data as any as CompanyData;
         setCompany(d);
-        toast.success("Empresa criada com sucesso!");
+        setBackgroundColor(d.background_color || "#ffffff");
+        setHeadingColor(d.heading_color || "#1a1a2e");
+        setTextColor(d.text_color || "#333333");
+        setButtonColor(d.button_color || "#9b87f5");
+        setButtonTextColor(d.button_text_color || "#ffffff");
+        setSidebarColor(d.sidebar_background || "#1a1a1a");
+        setLogoUrl(d.logo_url || "");
+        setLogoSize((d.logo_size as 'small' | 'medium' | 'large') || "medium");
+        setColorPalette(d.color_palette || []);
+        console.log('[Branding] Company loaded:', d.id);
+      } else {
+        console.log('[Branding] No company found, creating one...');
+        const { data: newCompany, error: createError } = await supabase
+          .from('companies' as any)
+          .insert({
+            company_name: 'Minha Empresa',
+            primary_color: "#9b87f5",
+            secondary_color: "#1a1a1a",
+            background_color: "#ffffff",
+            heading_color: "#1a1a2e",
+            text_color: "#333333",
+            button_color: "#9b87f5",
+            button_text_color: "#ffffff",
+            sidebar_background: "#1a1a1a",
+            sidebar_text: "#ffffff",
+            accent_color: "#9b87f5",
+            selected_item_color: "#9b87f5",
+          })
+          .select('id, company_name, primary_color, secondary_color, logo_url, logo_size, color_palette, background_color, sidebar_background, button_color, button_text_color, text_color, heading_color')
+          .single();
+
+        if (createError) {
+          console.error('[Branding] Error creating company:', createError);
+          toast.error(`Erro ao criar empresa: ${createError.message}`);
+          return;
+        }
+
+        if (newCompany) {
+          const d = newCompany as any as CompanyData;
+          setCompany(d);
+          toast.success("Empresa criada com sucesso!");
+        }
       }
+    } catch (err: any) {
+      console.error('[Branding] Unexpected error:', err);
+      toast.error(`Erro inesperado: ${err.message}`);
     }
   };
 
   useEffect(() => {
-    fetchCompany();
-  }, []);
+    if (!supabaseLoading && configured && supabase) {
+      fetchCompany();
+    }
+  }, [supabaseLoading, configured, supabase]);
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -166,8 +183,8 @@ export default function Branding() {
   };
 
   const handleSave = async () => {
-    if (!company) {
-      toast.error("Empresa não encontrada. Recarregue a página.");
+    if (!supabase || !configured) {
+      toast.error("Supabase não configurado. Verifique as credenciais nas Configurações.");
       return;
     }
 
@@ -175,29 +192,32 @@ export default function Branding() {
     try {
       let finalLogoUrl = logoUrl;
 
-      if (logoUrl && logoUrl.startsWith('data:') && supabase) {
-        const blob = await fetch(logoUrl).then(r => r.blob());
-        const fileExt = 'png';
-        const fileName = `${company.id}-logo-${Date.now()}.${fileExt}`;
+      if (logoUrl && logoUrl.startsWith('data:')) {
+        try {
+          const blob = await fetch(logoUrl).then(r => r.blob());
+          const fileExt = 'png';
+          const fileName = `logo-${Date.now()}.${fileExt}`;
 
-        const { error: uploadError } = await supabase.storage
-          .from('company-logos')
-          .upload(fileName, blob, { cacheControl: '3600', upsert: true });
+          const { error: uploadError } = await supabase.storage
+            .from('company-logos')
+            .upload(fileName, blob, { cacheControl: '3600', upsert: true });
 
-        if (uploadError) {
-          console.error('[Branding] Upload error:', uploadError);
-          toast.error(`Erro ao fazer upload da logo: ${uploadError.message}`);
-          return;
+          if (uploadError) {
+            console.warn('[Branding] Logo upload failed (storage may not be configured):', uploadError.message);
+            finalLogoUrl = logoUrl;
+          } else {
+            const { data: { publicUrl } } = supabase.storage
+              .from('company-logos')
+              .getPublicUrl(fileName);
+            finalLogoUrl = publicUrl;
+          }
+        } catch (uploadErr: any) {
+          console.warn('[Branding] Logo upload skipped:', uploadErr.message);
         }
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('company-logos')
-          .getPublicUrl(fileName);
-
-        finalLogoUrl = publicUrl;
       }
 
-      const updateData = {
+      const saveData = {
+        company_name: 'Minha Empresa',
         background_color: backgroundColor,
         heading_color: headingColor,
         text_color: textColor,
@@ -216,16 +236,34 @@ export default function Branding() {
         updated_at: new Date().toISOString(),
       };
 
-      const { error: updateError } = await supabase
-        .from('companies' as any)
-        .update(updateData)
-        .eq('id', company.id)
-        .select();
+      if (company) {
+        const { error: updateError } = await supabase
+          .from('companies' as any)
+          .update(saveData)
+          .eq('id', company.id)
+          .select();
 
-      if (updateError) {
-        console.error('[Branding] Update error:', updateError);
-        toast.error(`Erro ao salvar configurações: ${updateError.message}`);
-        return;
+        if (updateError) {
+          console.error('[Branding] Update error:', updateError);
+          toast.error(`Erro ao salvar configurações: ${updateError.message}`);
+          return;
+        }
+      } else {
+        const { data: newCompany, error: insertError } = await supabase
+          .from('companies' as any)
+          .insert(saveData)
+          .select('id')
+          .single();
+
+        if (insertError) {
+          console.error('[Branding] Insert error:', insertError);
+          toast.error(`Erro ao criar empresa: ${insertError.message}`);
+          return;
+        }
+
+        if (newCompany) {
+          setCompany(newCompany as any);
+        }
       }
 
       await fetchCompany();
