@@ -53,26 +53,61 @@ ExecutiveAI Pro utilizes a modern web stack with a multi-tenant, API-driven arch
 ## Critical Architecture Rules (DO NOT VIOLATE)
 
 ### app_settings Table - Dual Database Pattern
-The `app_settings` table exists in TWO databases with DIFFERENT id types:
-- **Local PostgreSQL (Replit):** `id` is `SERIAL` (integer, auto-increment). Drizzle ORM schema uses `serial("id")`.
-- **Supabase:** `id` is `UUID` (e.g., `00000000-0000-0000-0000-000000000001`).
 
-**RULES:**
-1. **NEVER** use hardcoded integer IDs (like `1` or `DEFAULT_SETTINGS_ID`) when querying Supabase app_settings.
-2. **NEVER** use `.eq('id', 1)` or `.eq('id', someInteger)` for Supabase queries on app_settings.
-3. **ALWAYS** use `.limit(1).maybeSingle()` or `.select().limit(1).single()` to fetch the first row from Supabase app_settings.
-4. For updates in Supabase, first fetch the row to get its actual UUID `id`, then use `.eq('id', fetchedRow.id)` for the update.
-5. For local PostgreSQL via raw SQL, use `LIMIT 1` instead of `WHERE id = 1`.
-6. For local PostgreSQL via Drizzle ORM, always fetch with `.limit(1)` first, then use `existing.id` for updates.
-7. The `tenant_id` column in local PostgreSQL is `NOT NULL` - always pass it when inserting.
-8. The `getOrCreateLocalAppSettings(tenantId)` function requires a tenantId parameter.
-9. The `getOrCreateAppSettingsInSupabase(supabase)` function uses `.limit(1).maybeSingle()` (no hardcoded IDs).
+The `app_settings` table exists in TWO databases with DIFFERENT schemas. Violating these rules breaks form activation and Supabase sync.
 
-### Recent Changes (Feb 2026)
-- Fixed all hardcoded `id=1` references across server/routes/formularios.ts, server/routes/config.ts, server/lib/cache.ts
-- Removed `DEFAULT_SETTINGS_ID` constant entirely
-- Fixed Supabase sync to properly update `active`, `active_form_id`, `active_form_url`, `company_slug` when activating forms
-- Added `tenantId` parameter to `getOrCreateLocalAppSettings()` to satisfy NOT NULL constraint
+#### Supabase app_settings Schema (AUTHORITATIVE - DO NOT ADD COLUMNS THAT DON'T EXIST)
+```sql
+create table public.app_settings (
+  id uuid not null default gen_random_uuid(),
+  company_name text null,
+  company_slug text null,
+  supabase_url text null,
+  supabase_anon_key text null,
+  active_form_id uuid null,
+  redis_commands_today integer null default 0,
+  redis_commands_date date null,
+  created_at timestamp with time zone null default now(),
+  updated_at timestamp with time zone null default now(),
+  active_form_url text null
+);
+```
+
+#### Local PostgreSQL (Replit) app_settings
+- `id` is `SERIAL` (integer, auto-increment). Drizzle ORM schema uses `serial("id")`.
+- Has additional columns like `tenant_id`, `redis_commands_month`, etc.
+
+#### MANDATORY RULES FOR SUPABASE app_settings:
+1. **NEVER** send columns that don't exist in Supabase. The Supabase table does NOT have: `active`, `tenant_id`, `redis_commands_month`, `redis_commands_month_start`. Sending these causes silent failures.
+2. **NEVER** use hardcoded integer IDs (like `1` or `DEFAULT_SETTINGS_ID`). Supabase uses UUID.
+3. **NEVER** use `.eq('id', 1)` or `.eq('id', someInteger)` for Supabase queries.
+4. **ALWAYS** use `.limit(1).maybeSingle()` to fetch the first row from Supabase app_settings.
+5. For updates, first fetch the row to get its UUID `id`, then use `.eq('id', fetchedRow.id)`.
+6. **ONLY** send these columns in Supabase insert/update: `company_name`, `company_slug`, `supabase_url`, `supabase_anon_key`, `active_form_id`, `active_form_url`, `redis_commands_today`, `redis_commands_date`, `created_at`, `updated_at`.
+
+#### MANDATORY RULES FOR LOCAL PostgreSQL app_settings:
+7. For raw SQL, use `LIMIT 1` instead of `WHERE id = 1`.
+8. For Drizzle ORM, fetch with `.limit(1)` first, then use `existing.id` for updates.
+9. The `tenant_id` column is `NOT NULL` - always pass it when inserting.
+
+#### Helper Functions:
+- `getOrCreateLocalAppSettings(tenantId)` - for LOCAL PostgreSQL. Requires tenantId.
+- `getOrCreateAppSettingsInSupabase(supabase)` - for SUPABASE. Uses `.limit(1).maybeSingle()`.
+
+#### Files that touch Supabase app_settings (audit these if issues arise):
+- `server/routes/formularios.ts` - Form activation (PUT /config/ativo) syncs to Supabase
+- `server/routes/config.ts` - Public settings update syncs company_slug to Supabase
+- `server/lib/automationManager.ts` - Reads company_slug from Supabase (read-only)
+- `server/lib/cache.ts` - LOCAL only (redis command counters)
+- `server/routes/auth.ts` - LOCAL only (slug sync on login)
+
+### Errors Fixed (Feb 2026) - Reference for Debugging
+| Error | Cause | Fix |
+|-------|-------|-----|
+| `invalid input syntax for type uuid: "1"` | Code used `.eq('id', 1)` on Supabase (UUID column) | Use `.limit(1).maybeSingle()` instead |
+| `null value in column "tenant_id"` | `getOrCreateLocalAppSettings()` called without tenantId | Always pass tenantId parameter |
+| `active_form_id` not saving to Supabase | Update payload included `active: true` but column doesn't exist in Supabase, causing silent rejection | Removed `active: true` from all Supabase payloads |
+| `DEFAULT_SETTINGS_ID = 1` used everywhere | Constant assumed integer ID in Supabase | Removed constant entirely |
 
 ## External Dependencies
 

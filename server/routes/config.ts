@@ -2217,7 +2217,12 @@ export function setupConfigRoutes(app: Express) {
       
       const results: any = { updated: false, companySlugUpdated: false, formsUpdated: 0 };
       
-      // Update company_slug in app_settings
+      // Update company_slug in Supabase app_settings
+      // REGRA: Supabase NÃO tem coluna 'active'. Enviar apenas colunas válidas.
+      // Colunas válidas: company_name, company_slug, active_form_id, active_form_url,
+      //   supabase_url, supabase_anon_key, redis_commands_today, redis_commands_date,
+      //   created_at, updated_at
+      // PROIBIDO: active, tenant_id, redis_commands_month, redis_commands_month_start
       if (companySlug) {
         const normalizedSlug = companySlug.toLowerCase().trim().replace(/\s+/g, '-');
         console.log(`📋 [PublicSettings] Atualizando company_slug para: ${normalizedSlug}`);

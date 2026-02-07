@@ -13,6 +13,26 @@ import { getCompanySlug, getCompanySlugFromDb } from '../lib/tenantSlug';
 const router = Router();
 
 /**
+ * ╔══════════════════════════════════════════════════════════════════════════╗
+ * ║ SUPABASE app_settings - REGRAS OBRIGATÓRIAS (ver replit.md)            ║
+ * ║                                                                        ║
+ * ║ Schema Supabase: id(UUID), company_name, company_slug, supabase_url,   ║
+ * ║   supabase_anon_key, active_form_id(UUID), active_form_url,            ║
+ * ║   redis_commands_today, redis_commands_date, created_at, updated_at    ║
+ * ║                                                                        ║
+ * ║ PROIBIDO enviar colunas que NÃO EXISTEM no Supabase:                   ║
+ * ║   - active (NÃO EXISTE)                                                ║
+ * ║   - tenant_id (NÃO EXISTE)                                             ║
+ * ║   - redis_commands_month (NÃO EXISTE)                                  ║
+ * ║   - redis_commands_month_start (NÃO EXISTE)                            ║
+ * ║                                                                        ║
+ * ║ PROIBIDO usar .eq('id', 1) ou .eq('id', integer) no Supabase.          ║
+ * ║ SEMPRE usar .limit(1).maybeSingle() para buscar a primeira row.        ║
+ * ║ Para updates: buscar row primeiro, usar .eq('id', row.id) (UUID).      ║
+ * ╚══════════════════════════════════════════════════════════════════════════╝
+ */
+
+/**
  * Helper: Gera URL dinâmica do formulário baseada no domínio atual
  * NÃO armazena URL estática - sempre gera baseado no ambiente atual
  */
