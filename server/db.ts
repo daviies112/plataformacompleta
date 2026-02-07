@@ -239,6 +239,29 @@ function initializeDatabase(): void {
             );
             CREATE INDEX IF NOT EXISTS idx_notification_history_user ON notification_history (user_id);
             CREATE INDEX IF NOT EXISTS idx_notification_history_tenant ON notification_history (tenant_id);
+            CREATE TABLE IF NOT EXISTS hms_100ms_config (
+              id SERIAL PRIMARY KEY, tenant_id TEXT NOT NULL, app_access_key TEXT, app_secret TEXT,
+              template_id TEXT, room_id TEXT, management_token TEXT, subdomain TEXT, company_slug TEXT,
+              is_owner BOOLEAN DEFAULT FALSE, created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW()
+            );
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_hms_100ms_tenant_unique ON hms_100ms_config (tenant_id);
+            CREATE TABLE IF NOT EXISTS reseller_supabase_configs (
+              id SERIAL PRIMARY KEY, tenant_id TEXT NOT NULL, supabase_url TEXT NOT NULL,
+              supabase_anon_key TEXT NOT NULL, supabase_bucket TEXT DEFAULT 'uploads',
+              created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW()
+            );
+            CREATE TABLE IF NOT EXISTS app_settings (
+              id SERIAL PRIMARY KEY, tenant_id TEXT NOT NULL, whatsapp_instance TEXT,
+              whatsapp_api_url TEXT, whatsapp_api_key TEXT, evolution_api_url TEXT,
+              evolution_api_key TEXT, evolution_instance TEXT, n8n_webhook_url TEXT,
+              created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW()
+            );
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_app_settings_tenant_unique ON app_settings (tenant_id);
+            CREATE TABLE IF NOT EXISTS form_tenant_mapping (
+              id SERIAL PRIMARY KEY, form_id TEXT NOT NULL, tenant_id TEXT NOT NULL,
+              supabase_url TEXT, is_public BOOLEAN DEFAULT TRUE, company_slug TEXT,
+              created_at TIMESTAMP DEFAULT NOW()
+            );
           `);
         } catch (migrationErr) {
           console.warn('⚠️ Auto-migration warning:', migrationErr instanceof Error ? migrationErr.message : migrationErr);
