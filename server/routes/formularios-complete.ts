@@ -1536,15 +1536,12 @@ export function registerFormulariosCompleteRoutes(app: Express) {
       // 🔗 SLUG: Buscar slugs existentes do tenant para garantir unicidade
       let existingSlugs: string[] = [];
       
-      // Buscar companySlug das configurações
       let companySlug = 'empresa';
       try {
-        const appSettingsResult = await storage.getAppSettings();
-        if (appSettingsResult?.companySlug) {
-          companySlug = appSettingsResult.companySlug;
-        }
+        const { getCompanySlug } = await import('../lib/tenantSlug.js');
+        companySlug = await getCompanySlug(tenantId);
       } catch (e) {
-        console.log('⚠️ [SLUG] Erro ao buscar companySlug, usando default');
+        console.log('⚠️ [SLUG] Erro ao buscar companySlug do hms100msConfig, usando default');
       }
       
       if (supabase) {
@@ -1682,15 +1679,12 @@ export function registerFormulariosCompleteRoutes(app: Express) {
       }
       const supabase = await getSupabaseClient(tenantId);
       
-      // 🔗 SLUG: Buscar companySlug para mapeamento
       let companySlug = 'empresa';
       try {
-        const appSettingsResult = await storage.getAppSettings();
-        if (appSettingsResult?.companySlug) {
-          companySlug = appSettingsResult.companySlug;
-        }
+        const { getCompanySlug } = await import('../lib/tenantSlug.js');
+        companySlug = await getCompanySlug(tenantId);
       } catch (e) {
-        console.log('⚠️ [PATCH] Erro ao buscar companySlug, usando default');
+        console.log('⚠️ [PATCH] Erro ao buscar companySlug do hms100msConfig, usando default');
       }
       
       // 🔗 SLUG: Variável para armazenar novo slug se título mudar

@@ -49,6 +49,8 @@ export async function saveCompanySlug(tenantId: string, slug: string): Promise<b
     const [existing] = await db.select().from(hms100msConfig)
       .where(eq(hms100msConfig.tenantId, tenantId)).limit(1);
     
+    const oldSlug = existing?.companySlug;
+    
     if (existing) {
       await db.update(hms100msConfig)
         .set({ companySlug: normalized, updatedAt: new Date() })
@@ -60,6 +62,24 @@ export async function saveCompanySlug(tenantId: string, slug: string): Promise<b
         appSecret: '',
         companySlug: normalized,
       });
+    }
+    
+    if (oldSlug && oldSlug !== normalized) {
+      try {
+        const { meetingTenants } = await import('../../shared/db-schema.js');
+        const [mt] = await db.select()
+          .from(meetingTenants)
+          .where(eq(meetingTenants.slug, oldSlug))
+          .limit(1);
+        
+        if (mt) {
+          await db.update(meetingTenants)
+            .set({ slug: normalized, nome: normalized })
+            .where(eq(meetingTenants.id, mt.id));
+          console.log(`[TenantSlug] Updated meeting_tenants slug from "${oldSlug}" to "${normalized}"`);
+        }
+      } catch (mtErr) {
+      }
     }
     
     invalidateSlugCache(tenantId);

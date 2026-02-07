@@ -2233,6 +2233,28 @@ export function setupConfigRoutes(app: Express) {
           console.log(`✅ [PublicSettings] company_slug atualizado para: ${normalizedSlug}`);
           results.companySlugUpdated = true;
           results.companySlug = normalizedSlug;
+          
+          try {
+            const { saveCompanySlug } = await import('../lib/tenantSlug.js');
+            await saveCompanySlug(tenantId, normalizedSlug);
+            
+            const { db: localDb } = await import('../db.js');
+            const { formTenantMapping, appSettings: appSettingsTable } = await import('../../shared/db-schema.js');
+            const { eq: eqOp } = await import('drizzle-orm');
+            
+            await localDb.update(formTenantMapping)
+              .set({ companySlug: normalizedSlug })
+              .where(eqOp(formTenantMapping.tenantId, tenantId));
+            
+            const [existingSettings] = await localDb.select().from(appSettingsTable).limit(1);
+            if (existingSettings) {
+              await localDb.update(appSettingsTable).set({ companySlug: normalizedSlug }).where(eqOp(appSettingsTable.id, existingSettings.id));
+            }
+            
+            console.log(`✅ [PublicSettings] Synced slug to hms100ms_config, app_settings, and form_tenant_mapping`);
+          } catch (syncErr) {
+            console.warn(`⚠️ [PublicSettings] Error syncing slug to local tables:`, syncErr);
+          }
         }
       }
       

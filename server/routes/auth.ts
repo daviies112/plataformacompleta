@@ -56,7 +56,6 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // Auto-set company slug from company_name on login
     if (result.user?.company_name && result.user?.tenant_id) {
       const slug = result.user.company_name.trim()
         .toLowerCase()
@@ -64,12 +63,29 @@ router.post('/login', async (req, res) => {
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-|-$/g, '');
       if (slug) {
-        saveCompanySlug(result.user.tenant_id, slug).catch(() => {});
+        const tid = result.user.tenant_id;
+        saveCompanySlug(tid, slug).catch(() => {});
         
-        // Ensure settings are also updated in the tenant's own database if needed
-        // This is handled by automationManager but we can trigger it here or 
-        // rely on the saveCompanySlug to persist it to hms100msConfig which 
-        // is the source of truth for public routes
+        (async () => {
+          try {
+            const { db } = await import('../db.js');
+            const { appSettings, formTenantMapping } = await import('../../shared/db-schema.js');
+            const { eq, isNull } = await import('drizzle-orm');
+            
+            const [existing] = await db.select().from(appSettings).limit(1);
+            if (existing) {
+              await db.update(appSettings).set({ companySlug: slug }).where(eq(appSettings.id, existing.id));
+            }
+            
+            await db.update(formTenantMapping)
+              .set({ companySlug: slug })
+              .where(eq(formTenantMapping.tenantId, tid));
+            
+            console.log(`[Auth] Synced companySlug "${slug}" to app_settings and form_tenant_mapping for tenant ${tid}`);
+          } catch (err) {
+            console.warn('[Auth] Error syncing companySlug on login:', err);
+          }
+        })();
       }
     }
 
