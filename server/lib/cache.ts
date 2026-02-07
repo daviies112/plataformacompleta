@@ -147,23 +147,26 @@ async function trackRedisCommand(): Promise<void> {
       await redis.expire(monthKey, getTTLUntilMonthEnd());
     } else {
       // Database fallback - track both daily and monthly
-      await db.execute(sql`
-        INSERT INTO app_settings (id, redis_commands_today, redis_commands_date, redis_commands_month, redis_commands_month_start)
-        VALUES (1, 1, CURRENT_DATE, 1, DATE_TRUNC('month', CURRENT_DATE))
-        ON CONFLICT (id) DO UPDATE SET
-          redis_commands_today = CASE 
-            WHEN app_settings.redis_commands_date = CURRENT_DATE 
-            THEN app_settings.redis_commands_today + 1
-            ELSE 1
-          END,
-          redis_commands_date = CURRENT_DATE,
-          redis_commands_month = CASE
-            WHEN app_settings.redis_commands_month_start = DATE_TRUNC('month', CURRENT_DATE)
-            THEN app_settings.redis_commands_month + 1
-            ELSE 1
-          END,
-          redis_commands_month_start = DATE_TRUNC('month', CURRENT_DATE)
-      `);
+      const existingRow = await db.execute(sql`SELECT id FROM app_settings LIMIT 1`);
+      if (existingRow.rows.length > 0) {
+        const rowId = (existingRow.rows[0] as any).id;
+        await db.execute(sql`
+          UPDATE app_settings SET
+            redis_commands_today = CASE 
+              WHEN redis_commands_date = CURRENT_DATE 
+              THEN redis_commands_today + 1
+              ELSE 1
+            END,
+            redis_commands_date = CURRENT_DATE,
+            redis_commands_month = CASE
+              WHEN redis_commands_month_start = DATE_TRUNC('month', CURRENT_DATE)
+              THEN redis_commands_month + 1
+              ELSE 1
+            END,
+            redis_commands_month_start = DATE_TRUNC('month', CURRENT_DATE)
+          WHERE id = ${rowId}
+        `);
+      }
     }
   } catch (error) {
     // Silent fail - don't block cache operations
@@ -190,7 +193,7 @@ async function getCommandCount(): Promise<{ count: number; date: string }> {
           COALESCE(redis_commands_today, 0) as count,
           COALESCE(redis_commands_date::text, CURRENT_DATE::text) as date
         FROM app_settings 
-        WHERE id = 1
+        LIMIT 1
       `);
       
       const row = result.rows[0] as any;
@@ -226,7 +229,7 @@ async function getMonthlyCommandCount(): Promise<{ count: number; month: string 
           COALESCE(redis_commands_month, 0) as count,
           COALESCE(TO_CHAR(redis_commands_month_start, 'YYYY-MM'), ${monthId}) as month
         FROM app_settings 
-        WHERE id = 1
+        LIMIT 1
       `);
       
       const row = result.rows[0] as any;

@@ -12,8 +12,6 @@ import { getCompanySlug, getCompanySlugFromDb } from '../lib/tenantSlug';
 
 const router = Router();
 
-const DEFAULT_SETTINGS_ID = 1;
-
 /**
  * Helper: Gera URL dinâmica do formulário baseada no domínio atual
  * NÃO armazena URL estática - sempre gera baseado no ambiente atual

@@ -2222,10 +2222,20 @@ export function setupConfigRoutes(app: Express) {
         const normalizedSlug = companySlug.toLowerCase().trim().replace(/\s+/g, '-');
         console.log(`📋 [PublicSettings] Atualizando company_slug para: ${normalizedSlug}`);
         
-        const { error: updateError } = await supabase
+        const { data: existingRow } = await supabase
           .from('app_settings')
-          .update({ company_slug: normalizedSlug, active: true, updated_at: new Date().toISOString() })
-          .eq('id', 1);
+          .select('id')
+          .limit(1)
+          .maybeSingle();
+        
+        const { error: updateError } = existingRow
+          ? await supabase
+              .from('app_settings')
+              .update({ company_slug: normalizedSlug, active: true, updated_at: new Date().toISOString() })
+              .eq('id', existingRow.id)
+          : await supabase
+              .from('app_settings')
+              .insert({ company_slug: normalizedSlug, active: true, updated_at: new Date().toISOString() });
         
         if (updateError) {
           console.error(`❌ [PublicSettings] Erro ao atualizar company_slug:`, updateError);

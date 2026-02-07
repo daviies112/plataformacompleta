@@ -65,22 +65,22 @@
     "dev-davipiano_gmail_com-dev-davipiano_gmail_com": {
       "clientId": "dev-davipiano_gmail_com",
       "tenantId": "dev-davipiano_gmail_com",
-      "lastRun": "2026-02-07T22:43:01.205Z",
+      "lastRun": "2026-02-07T22:53:54.398Z",
       "lastSuccess": null,
       "lastError": null,
       "consecutiveErrors": 0,
-      "totalExecutions": 14,
+      "totalExecutions": 17,
       "totalNewClientsDetected": 0,
       "totalEventsCreated": 0,
       "status": "running"
     }
   },
   "globalStats": {
-    "totalExecutions": 717,
+    "totalExecutions": 720,
     "totalNewClientsDetected": 0,
     "totalEventsCreated": 0,
     "totalErrors": 0,
-    "uptime": 0
+    "uptime": 299
   },
   "settings": {
     "detectionIntervalMinutes": 2,

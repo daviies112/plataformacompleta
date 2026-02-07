@@ -50,6 +50,30 @@ ExecutiveAI Pro utilizes a modern web stack with a multi-tenant, API-driven arch
 - **CPF Compliance Score System:** Evaluates reseller risk based on legal processes, debts, and CPF status, with race condition and duplicate protection.
 - **Local Database Cache Management:** Implemented automatic cleanup for local PostgreSQL tables that duplicate Supabase data (e.g., forms, submissions, leads, meetings) and a robust caching system for credentials and public data.
 
+## Critical Architecture Rules (DO NOT VIOLATE)
+
+### app_settings Table - Dual Database Pattern
+The `app_settings` table exists in TWO databases with DIFFERENT id types:
+- **Local PostgreSQL (Replit):** `id` is `SERIAL` (integer, auto-increment). Drizzle ORM schema uses `serial("id")`.
+- **Supabase:** `id` is `UUID` (e.g., `00000000-0000-0000-0000-000000000001`).
+
+**RULES:**
+1. **NEVER** use hardcoded integer IDs (like `1` or `DEFAULT_SETTINGS_ID`) when querying Supabase app_settings.
+2. **NEVER** use `.eq('id', 1)` or `.eq('id', someInteger)` for Supabase queries on app_settings.
+3. **ALWAYS** use `.limit(1).maybeSingle()` or `.select().limit(1).single()` to fetch the first row from Supabase app_settings.
+4. For updates in Supabase, first fetch the row to get its actual UUID `id`, then use `.eq('id', fetchedRow.id)` for the update.
+5. For local PostgreSQL via raw SQL, use `LIMIT 1` instead of `WHERE id = 1`.
+6. For local PostgreSQL via Drizzle ORM, always fetch with `.limit(1)` first, then use `existing.id` for updates.
+7. The `tenant_id` column in local PostgreSQL is `NOT NULL` - always pass it when inserting.
+8. The `getOrCreateLocalAppSettings(tenantId)` function requires a tenantId parameter.
+9. The `getOrCreateAppSettingsInSupabase(supabase)` function uses `.limit(1).maybeSingle()` (no hardcoded IDs).
+
+### Recent Changes (Feb 2026)
+- Fixed all hardcoded `id=1` references across server/routes/formularios.ts, server/routes/config.ts, server/lib/cache.ts
+- Removed `DEFAULT_SETTINGS_ID` constant entirely
+- Fixed Supabase sync to properly update `active`, `active_form_id`, `active_form_url`, `company_slug` when activating forms
+- Added `tenantId` parameter to `getOrCreateLocalAppSettings()` to satisfy NOT NULL constraint
+
 ## External Dependencies
 
 - **PostgreSQL:** Primary relational database.
