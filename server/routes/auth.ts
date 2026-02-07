@@ -65,6 +65,11 @@ router.post('/login', async (req, res) => {
         .replace(/^-|-$/g, '');
       if (slug) {
         saveCompanySlug(result.user.tenant_id, slug).catch(() => {});
+        
+        // Ensure settings are also updated in the tenant's own database if needed
+        // This is handled by automationManager but we can trigger it here or 
+        // rely on the saveCompanySlug to persist it to hms100msConfig which 
+        // is the source of truth for public routes
       }
     }
 
