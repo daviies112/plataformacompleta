@@ -196,8 +196,8 @@ function initializeDatabase(): void {
               telefone TEXT,
               titulo TEXT,
               descricao TEXT,
-              data_inicio TIMESTAMPTZ NOT NULL,
-              data_fim TIMESTAMPTZ NOT NULL,
+              data_inicio TIMESTAMP NOT NULL,
+              data_fim TIMESTAMP NOT NULL,
               duracao INTEGER,
               room_id_100ms TEXT,
               room_code_100ms TEXT,
@@ -211,8 +211,8 @@ function initializeDatabase(): void {
               participant_id TEXT,
               form_submission_id TEXT,
               tipo_reuniao TEXT,
-              created_at TIMESTAMPTZ DEFAULT NOW(),
-              updated_at TIMESTAMPTZ
+              created_at TIMESTAMP DEFAULT NOW(),
+              updated_at TIMESTAMP
             );
             CREATE INDEX IF NOT EXISTS idx_reunioes_tenant ON reunioes (tenant_id);
             CREATE INDEX IF NOT EXISTS idx_reunioes_usuario ON reunioes (usuario_id);
@@ -233,8 +233,8 @@ function initializeDatabase(): void {
               devices_sent INTEGER DEFAULT 0,
               success BOOLEAN DEFAULT TRUE,
               read BOOLEAN DEFAULT FALSE,
-              read_at TIMESTAMPTZ,
-              sent_at TIMESTAMPTZ DEFAULT NOW(),
+              read_at TIMESTAMP,
+              sent_at TIMESTAMP DEFAULT NOW(),
               device_tokens JSONB
             );
             CREATE INDEX IF NOT EXISTS idx_notification_history_user ON notification_history (user_id);
