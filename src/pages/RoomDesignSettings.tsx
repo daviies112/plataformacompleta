@@ -130,27 +130,6 @@ export default function RoomDesignSettings() {
   const { data: designData, isLoading, refetch } = useQuery({
     queryKey: ["/api/reunioes/room-design"],
     queryFn: async () => {
-      // Prioridade: Supabase direto para garantir sincronização
-      try {
-        const supabase = await getSupabaseClient();
-        if (supabase) {
-          console.log('[Design] Buscando configurações do Supabase (hms_100ms_config)...');
-          const { data, error } = await supabase
-            .from('hms_100ms_config')
-            .select('room_design_config')
-            .maybeSingle();
-
-          if (!error && data?.room_design_config) {
-            console.log('[Design] Configurações carregadas do Supabase');
-            return { roomDesignConfig: data.room_design_config };
-          }
-          console.log('[Design] Nenhuma config no Supabase ou erro:', error?.message);
-        }
-      } catch (sbErr) {
-        console.warn('[Design] Erro ao acessar Supabase:', sbErr);
-      }
-
-      // Fallback para API local
       try {
         const response = await api.get("/api/reunioes/room-design");
         return response.data;

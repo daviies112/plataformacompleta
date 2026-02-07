@@ -111,11 +111,44 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
   const [reseller, setReseller] = useState<Reseller | null>(null);
   const [branding, setBranding] = useState<BrandingConfig>(DEFAULT_BRANDING);
   const [loading, setLoading] = useState(false);
-  const [brandingLoading, setBrandingLoading] = useState(false);
+  const [brandingLoading, setBrandingLoading] = useState(true);
 
   const fetchBrandingData = useCallback(async () => {
     if (!supabase || !configured) {
-      console.log('[CompanyContext] Supabase not configured, using default branding');
+      console.log('[CompanyContext] Supabase not configured, trying backend API...');
+      setBrandingLoading(true);
+      try {
+        const response = await fetch('/api/public/branding');
+        if (response.ok) {
+          const data = await response.json();
+          if (data && data.button_color) {
+            console.log('[CompanyContext] Branding loaded from backend API');
+            const newBranding: BrandingConfig = {
+              primary_color: data.primary_color || DEFAULT_BRANDING.primary_color,
+              secondary_color: data.secondary_color || DEFAULT_BRANDING.secondary_color,
+              accent_color: data.accent_color || DEFAULT_BRANDING.accent_color,
+              background_color: data.background_color || DEFAULT_BRANDING.background_color,
+              sidebar_background: data.sidebar_background || DEFAULT_BRANDING.sidebar_background,
+              sidebar_text: data.sidebar_text || DEFAULT_BRANDING.sidebar_text,
+              button_color: data.button_color || DEFAULT_BRANDING.button_color,
+              button_text_color: data.button_text_color || DEFAULT_BRANDING.button_text_color,
+              text_color: data.text_color || DEFAULT_BRANDING.text_color,
+              heading_color: data.heading_color || DEFAULT_BRANDING.heading_color,
+              selected_item_color: data.selected_item_color || DEFAULT_BRANDING.selected_item_color,
+              logo_url: data.logo_url || null,
+              logo_size: data.logo_size || DEFAULT_BRANDING.logo_size,
+              logo_position: data.logo_position || DEFAULT_BRANDING.logo_position,
+              company_name: data.company_name || DEFAULT_BRANDING.company_name,
+            };
+            setBranding(newBranding);
+            applyBrandingToCSS(newBranding);
+            setBrandingLoading(false);
+            return;
+          }
+        }
+      } catch (err) {
+        console.warn('[CompanyContext] Backend API fallback failed:', err);
+      }
       applyBrandingToCSS(DEFAULT_BRANDING);
       setBrandingLoading(false);
       return;

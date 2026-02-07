@@ -119,14 +119,16 @@ All customizations MUST persist to Supabase (not just locally) because new admin
 - **Save endpoint:** `PATCH /api/reunioes/room-design` in `server/routes/meetings.ts`
 - **Saves to:** Local `hms_100ms_config` table + Supabase `hms_100ms_config` table (sync)
 - **Supabase column:** `room_design_config` (JSONB)
-- **Read path:** GET from local DB, with Supabase fallback if local is empty
+- **Read path (frontend):** `RoomDesignSettings.tsx` reads ONLY from backend API `/api/reunioes/room-design` (NOT directly from Supabase - this was a bug that caused stale data)
+- **Read path (backend):** GET from local DB first, with Supabase fallback if local is empty
 - **Key pattern:** Uses tenant-scoped queries with fallback for single-tenant Supabase setups
 
 #### Reseller Platform Branding (NEXUS)
-- **Save:** Frontend `Branding.tsx` saves directly to Supabase `companies` table
-- **Read:** `CompanyContext.tsx` reads from Supabase `companies` table + applies CSS variables
-- **Post-save:** Must call `refetchBranding()` to update UI immediately
+- **Save:** Frontend `Branding.tsx` saves directly to Supabase `companies` table + calls `refetchBranding()` post-save
+- **Read (authenticated pages):** `CompanyContext.tsx` reads from Supabase `companies` table via AdminSupabaseContext + applies CSS variables
+- **Read (login/public pages):** `CompanyContext.tsx` falls back to `GET /api/public/branding` endpoint (in `server/routes/publicStore.ts`) when no Supabase client is available. This endpoint fetches from Supabase server-side with 60s cache.
 - **Key columns:** `background_color`, `heading_color`, `text_color`, `button_color`, `button_text_color`, `sidebar_background`, `logo_url`, `primary_color`, `secondary_color`
+- **Important:** Login page is NOT inside AdminSupabaseProvider, so it relies on the public branding API endpoint
 
 #### Signature Customization
 - **Status:** Working correctly - saves to Supabase and shows on public URLs

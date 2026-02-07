@@ -490,4 +490,80 @@ router.get('/reseller/store/:resellerId', async (req: Request, res: Response) =>
   }
 });
 
+const DEFAULT_BRANDING = {
+  primary_color: '#9b87f5',
+  secondary_color: '#7e69ab',
+  accent_color: '#d946ef',
+  background_color: '#ffffff',
+  sidebar_background: '#1a1a1a',
+  sidebar_text: '#ffffff',
+  button_color: '#9b87f5',
+  button_text_color: '#ffffff',
+  text_color: '#000000',
+  heading_color: '#1a1a1a',
+  selected_item_color: '#9b87f5',
+  logo_url: null as string | null,
+  logo_size: 'medium',
+  logo_position: 'left',
+  company_name: 'NEXUS',
+};
+
+let brandingCache: { data: typeof DEFAULT_BRANDING; timestamp: number } | null = null;
+const BRANDING_CACHE_TTL = 60000;
+
+router.get('/branding', async (_req: Request, res: Response) => {
+  try {
+    if (brandingCache && Date.now() - brandingCache.timestamp < BRANDING_CACHE_TTL) {
+      return res.json(brandingCache.data);
+    }
+
+    const supabase = getPublicSupabaseClient();
+    if (!supabase) {
+      console.error('[PublicBranding] Supabase not configured');
+      return res.json(DEFAULT_BRANDING);
+    }
+
+    const { data, error } = await supabase
+      .from('companies')
+      .select('company_name, primary_color, secondary_color, accent_color, background_color, sidebar_background, sidebar_text, button_color, button_text_color, text_color, heading_color, selected_item_color, logo_url, logo_size, logo_position')
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      console.error('[PublicBranding] Error fetching branding:', error);
+      return res.json(DEFAULT_BRANDING);
+    }
+
+    if (!data) {
+      console.log('[PublicBranding] No branding data found, using defaults');
+      return res.json(DEFAULT_BRANDING);
+    }
+
+    const branding = {
+      primary_color: data.primary_color || DEFAULT_BRANDING.primary_color,
+      secondary_color: data.secondary_color || DEFAULT_BRANDING.secondary_color,
+      accent_color: data.accent_color || DEFAULT_BRANDING.accent_color,
+      background_color: data.background_color || DEFAULT_BRANDING.background_color,
+      sidebar_background: data.sidebar_background || DEFAULT_BRANDING.sidebar_background,
+      sidebar_text: data.sidebar_text || DEFAULT_BRANDING.sidebar_text,
+      button_color: data.button_color || DEFAULT_BRANDING.button_color,
+      button_text_color: data.button_text_color || DEFAULT_BRANDING.button_text_color,
+      text_color: data.text_color || DEFAULT_BRANDING.text_color,
+      heading_color: data.heading_color || DEFAULT_BRANDING.heading_color,
+      selected_item_color: data.selected_item_color || DEFAULT_BRANDING.selected_item_color,
+      logo_url: data.logo_url || null,
+      logo_size: data.logo_size || DEFAULT_BRANDING.logo_size,
+      logo_position: data.logo_position || DEFAULT_BRANDING.logo_position,
+      company_name: data.company_name || DEFAULT_BRANDING.company_name,
+    };
+
+    brandingCache = { data: branding, timestamp: Date.now() };
+    console.log('[PublicBranding] Branding loaded and cached');
+    return res.json(branding);
+  } catch (error: any) {
+    console.error('[PublicBranding] Error:', error);
+    return res.json(DEFAULT_BRANDING);
+  }
+});
+
 export default router;
