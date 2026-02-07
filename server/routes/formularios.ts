@@ -104,6 +104,7 @@ async function getOrCreateAppSettingsInSupabase(supabase: SupabaseClient) {
       .from('app_settings')
       .insert({
         id: DEFAULT_SETTINGS_ID,
+        active: true,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       })
@@ -613,12 +614,13 @@ router.put('/config/ativo', async (req, res) => {
         await supabase
           .from('app_settings')
           .update({
+            active: true,
             active_form_id: formId,
             active_form_url: formUrl,
             updated_at: new Date().toISOString()
           })
           .eq('id', supabaseSettings.id);
-        console.log('✅ Também sincronizado com Supabase');
+        console.log('✅ Também sincronizado com Supabase (active=true)');
       } catch (e) {
         console.warn('⚠️ [FORMS] Não foi possível sincronizar com Supabase:', e);
       }

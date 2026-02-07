@@ -2224,7 +2224,7 @@ export function setupConfigRoutes(app: Express) {
         
         const { error: updateError } = await supabase
           .from('app_settings')
-          .update({ company_slug: normalizedSlug })
+          .update({ company_slug: normalizedSlug, active: true, updated_at: new Date().toISOString() })
           .eq('id', 1);
         
         if (updateError) {
