@@ -27,6 +27,7 @@ interface ResellerTokenPayload {
   userRole: 'reseller';
   resellerId: string; // ID da revendedora para endpoints de pagamento
   tenantId: string | null;
+  companySlug?: string;
   comissao: number;
   projectName?: string;
 }
@@ -419,7 +420,7 @@ router.post('/login', async (req: Request, res: Response) => {
     
     const { data: revendedoras, error: queryError } = await supabaseOwner
       .from('revendedoras')
-      .select('*')
+      .select('*, admin_users(company_name)')
       .eq('email', email);
     
     console.log('[NEXUS] Query result:', { 
@@ -453,6 +454,15 @@ router.post('/login', async (req: Request, res: Response) => {
     console.log('[NEXUS] Revendedora encontrada:', revendedora.email, 'status:', revendedora.status);
 
     const adminId = revendedora.admin_id;
+
+    // 1.5. Buscar Company Slug do Admin
+    let companySlug = '';
+    try {
+      const { getCompanySlug } = await import('../lib/tenantSlug');
+      companySlug = await getCompanySlug(adminId);
+    } catch (slugErr) {
+      console.warn('[NEXUS] Erro ao buscar company slug no login:', slugErr);
+    }
 
     // 2. Buscar credenciais do Supabase do Admin (para plataforma separada)
     const adminCredentials = await getAdminCredentials(adminId);
@@ -503,6 +513,7 @@ router.post('/login', async (req: Request, res: Response) => {
     req.session.userRole = 'reseller';
     req.session.resellerId = revendedora.id; // ID da revendedora para endpoints de pagamento
     req.session.tenantId = adminId; // CRUCIAL: Tenant é o Admin
+    req.session.companySlug = companySlug; // Adicionado para isolamento de URL
     req.session.comissao = Number(revendedora.comissao_padrao);
     req.session.projectName = projectName;
     
@@ -532,6 +543,7 @@ router.post('/login', async (req: Request, res: Response) => {
       userRole: 'reseller',
       resellerId: revendedora.id, // ID da revendedora para endpoints de pagamento
       tenantId: adminId,
+      companySlug: companySlug,
       comissao: Number(revendedora.comissao_padrao) || 0,
       projectName: projectName
     });
@@ -618,7 +630,8 @@ router.post('/register', async (req: Request, res: Response) => {
         email: email.toLowerCase().trim(),
         cpf: cpfNormalizado,
         telefone: telefone || null,
-        status: 'pendente'
+        status: 'pendente',
+        company_slug: req.session.companySlug || null
       })
       .select()
       .single();
