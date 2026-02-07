@@ -102,7 +102,6 @@ async function getOrCreateAppSettingsInSupabase(supabase: SupabaseClient) {
     const { data: newData, error: insertError } = await supabase
       .from('app_settings')
       .insert({
-        active: true,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       })
@@ -610,7 +609,6 @@ router.put('/config/ativo', async (req, res) => {
       try {
         const supabaseSettings = await getOrCreateAppSettingsInSupabase(supabase);
         const supabaseUpdatePayload: Record<string, any> = {
-          active: true,
           active_form_id: formId,
           active_form_url: formUrl,
           company_slug: companySlug,
@@ -626,7 +624,7 @@ router.put('/config/ativo', async (req, res) => {
         if (supabaseUpdateError) {
           console.warn('⚠️ [FORMS] Erro ao atualizar Supabase app_settings:', supabaseUpdateError);
         } else {
-          console.log('✅ Também sincronizado com Supabase (active=true, company_slug=' + companySlug + ')');
+          console.log(`✅ [FORMS] Supabase app_settings sincronizado com active_form_id=${formId}, active_form_url=${formUrl}, company_slug=${companySlug}`);
         }
       } catch (e) {
         console.warn('⚠️ [FORMS] Não foi possível sincronizar com Supabase:', e);

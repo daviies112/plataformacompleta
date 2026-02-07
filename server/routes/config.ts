@@ -2231,11 +2231,11 @@ export function setupConfigRoutes(app: Express) {
         const { error: updateError } = existingRow
           ? await supabase
               .from('app_settings')
-              .update({ company_slug: normalizedSlug, active: true, updated_at: new Date().toISOString() })
+              .update({ company_slug: normalizedSlug, updated_at: new Date().toISOString() })
               .eq('id', existingRow.id)
           : await supabase
               .from('app_settings')
-              .insert({ company_slug: normalizedSlug, active: true, updated_at: new Date().toISOString() });
+              .insert({ company_slug: normalizedSlug, updated_at: new Date().toISOString() });
         
         if (updateError) {
           console.error(`❌ [PublicSettings] Erro ao atualizar company_slug:`, updateError);
