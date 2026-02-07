@@ -1,6 +1,6 @@
 {
   "isRunning": true,
-  "startedAt": "2026-02-07T12:59:36.171Z",
+  "startedAt": "2026-02-07T13:13:09.304Z",
   "lastExecutions": {
     "system-system": {
       "clientId": "system",
@@ -56,7 +56,7 @@
     "totalNewClientsDetected": 0,
     "totalEventsCreated": 0,
     "totalErrors": 0,
-    "uptime": 598
+    "uptime": 0
   },
   "settings": {
     "detectionIntervalMinutes": 2,
