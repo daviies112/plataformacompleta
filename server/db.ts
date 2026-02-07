@@ -251,9 +251,15 @@ function initializeDatabase(): void {
               created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW()
             );
             CREATE TABLE IF NOT EXISTS app_settings (
-              id SERIAL PRIMARY KEY, tenant_id TEXT NOT NULL, whatsapp_instance TEXT,
-              whatsapp_api_url TEXT, whatsapp_api_key TEXT, evolution_api_url TEXT,
-              evolution_api_key TEXT, evolution_instance TEXT, n8n_webhook_url TEXT,
+              id SERIAL PRIMARY KEY, tenant_id TEXT,
+              company_name TEXT, company_slug TEXT,
+              supabase_url TEXT, supabase_anon_key TEXT,
+              active_form_id TEXT, active_form_url TEXT,
+              redis_commands_today INTEGER DEFAULT 0, redis_commands_date DATE,
+              redis_commands_month INTEGER DEFAULT 0, redis_commands_month_start DATE,
+              whatsapp_instance TEXT, whatsapp_api_url TEXT, whatsapp_api_key TEXT,
+              evolution_api_url TEXT, evolution_api_key TEXT, evolution_instance TEXT,
+              n8n_webhook_url TEXT,
               created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW()
             );
             CREATE UNIQUE INDEX IF NOT EXISTS idx_app_settings_tenant_unique ON app_settings (tenant_id);

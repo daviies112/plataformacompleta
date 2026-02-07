@@ -12,7 +12,7 @@ import { getCompanySlug, getCompanySlugFromDb } from '../lib/tenantSlug';
 
 const router = Router();
 
-const DEFAULT_SETTINGS_ID = '00000000-0000-0000-0000-000000000001';
+const DEFAULT_SETTINGS_ID = 1;
 
 /**
  * Helper: Gera URL dinâmica do formulário baseada no domínio atual
@@ -37,9 +37,7 @@ async function getOrCreateLocalAppSettings() {
     return existing[0];
   }
 
-  // Criar configuração padrão
   const newSettings = await db.insert(appSettings).values({
-    id: DEFAULT_SETTINGS_ID,
     companyName: 'Minha Empresa',
     companySlug: 'empresa',
   }).returning();

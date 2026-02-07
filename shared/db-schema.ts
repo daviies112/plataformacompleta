@@ -850,17 +850,20 @@ export const formTemplates = pgTable("form_templates", {
 
 // App Settings Table - Application-wide settings
 export const appSettings = pgTable("app_settings", {
-  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: serial("id").primaryKey(),
+  tenantId: text("tenant_id"),
   companyName: text("company_name"),
   companySlug: text("company_slug"),
   supabaseUrl: text("supabase_url"),
   supabaseAnonKey: text("supabase_anon_key"),
-  activeFormId: uuid("active_form_id"),
+  activeFormId: text("active_form_id"),
   activeFormUrl: text("active_form_url"),
   redisCommandsToday: integer("redis_commands_today").default(0),
   redisCommandsDate: date("redis_commands_date"),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+  redisCommandsMonth: integer("redis_commands_month").default(0),
+  redisCommandsMonthStart: date("redis_commands_month_start"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // WhatsApp Configuration Table - Evolution API credentials per tenant

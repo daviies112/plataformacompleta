@@ -283,7 +283,6 @@ export async function autoSelectActiveForm(): Promise<void> {
     // Criar ou atualizar app_settings
     if (existingSettings.length === 0) {
       await db.insert(appSettings).values({
-        id: '00000000-0000-0000-0000-000000000001',
         activeFormId: mapping.formId,
         activeFormUrl: formUrl,
         companySlug: companySlug,
