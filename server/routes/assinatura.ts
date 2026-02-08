@@ -113,7 +113,6 @@ async function createEnvioFromContract(contract: any): Promise<void> {
   try {
     const { envioService } = await import('../services/envioService.js');
 
-    // Encontrar tenant_id do contrato
     let adminId = contract.tenant_id || null;
 
     if (!adminId && (contract.client_email || contract.client_cpf || contract.client_phone)) {
@@ -125,8 +124,9 @@ async function createEnvioFromContract(contract: any): Promise<void> {
       return;
     }
 
-    // Verificar se já existe envio para este contrato
-    const existingEnvios = await envioService.getEnvios(adminId);
+    const tenantId = contract.tenant_id || adminId;
+
+    const existingEnvios = await envioService.getEnvios(adminId, tenantId);
     const jaTemEnvio = existingEnvios.some((e: any) => e.contract_id === contract.id);
 
     if (jaTemEnvio) {
@@ -134,7 +134,6 @@ async function createEnvioFromContract(contract: any): Promise<void> {
       return;
     }
 
-    // Criar envio automaticamente
     const envio = await envioService.createEnvio({
       admin_id: adminId,
       contract_id: contract.id,
@@ -149,9 +148,9 @@ async function createEnvioFromContract(contract: any): Promise<void> {
       destinatario_cidade: contract.address_city,
       destinatario_uf: contract.address_state,
       descricao_conteudo: 'Produtos do contrato'
-    });
+    }, tenantId);
 
-    console.log(`[ENVIO] ✅ Envio criado automaticamente: ${envio.id}, código: ${envio.codigo_rastreio}`);
+    console.log(`[ENVIO] Envio criado automaticamente: ${envio.id}, código: ${envio.codigo_rastreio}`);
   } catch (error) {
     console.error('[ENVIO] Erro ao criar envio automático:', error);
   }

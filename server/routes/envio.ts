@@ -6,9 +6,7 @@ import { isPagarmeConfigured } from '../middleware/checkBalance';
 
 const router = Router();
 
-// Shipping uses dynamic pricing: carrier cost + 35% margin
-// No fixed price - calculated per shipment based on TotalExpress quote
-const SHIPPING_MARGIN = 0.35; // 35% margin on carrier cost
+const SHIPPING_MARGIN = 0.35;
 
 function getAdminId(req: Request): string {
   const session = (req as any).session;
@@ -22,7 +20,6 @@ function getTenantId(req: Request): string {
   return session?.tenantId || session?.userId || 'system';
 }
 
-// HTML escape helper to prevent XSS
 function escapeHtml(text: string): string {
   if (!text) return '';
   const map: Record<string, string> = {
@@ -54,7 +51,8 @@ router.get('/contratos-pendentes', async (req: Request, res: Response) => {
 router.get('/transportadoras', async (req: Request, res: Response) => {
   try {
     const adminId = getAdminId(req);
-    const transportadoras = await envioService.getTransportadoras(adminId);
+    const tenantId = getTenantId(req);
+    const transportadoras = await envioService.getTransportadoras(adminId, tenantId);
     res.json(transportadoras);
   } catch (error: any) {
     console.error('[Envio] Erro ao buscar transportadoras:', error);
@@ -67,8 +65,9 @@ router.get('/transportadoras', async (req: Request, res: Response) => {
 router.get('/cotacoes', async (req: Request, res: Response) => {
   try {
     const adminId = getAdminId(req);
+    const tenantId = getTenantId(req);
     const limit = parseInt(req.query.limit as string) || 50;
-    const cotacoes = await envioService.getCotacoes(adminId, limit);
+    const cotacoes = await envioService.getCotacoes(adminId, tenantId, limit);
     res.json(cotacoes);
   } catch (error: any) {
     console.error('[Envio] Erro ao buscar cotações:', error);
@@ -79,13 +78,14 @@ router.get('/cotacoes', async (req: Request, res: Response) => {
 router.post('/cotacoes/calcular', async (req: Request, res: Response) => {
   try {
     const adminId = getAdminId(req);
+    const tenantId = getTenantId(req);
     const { cepOrigem, cepDestino, peso, altura, largura, comprimento, valorDeclarado } = req.body;
 
     if (!cepOrigem || !cepDestino || !peso) {
       return res.status(400).json({ error: 'CEP de origem, destino e peso são obrigatórios' });
     }
 
-    const cotacoes = await envioService.calcularFrete(adminId, {
+    const cotacoes = await envioService.calcularFrete(adminId, tenantId, {
       cepOrigem: cepOrigem.replace(/\D/g, ''),
       cepDestino: cepDestino.replace(/\D/g, ''),
       peso: parseFloat(peso),
@@ -107,9 +107,10 @@ router.post('/cotacoes/calcular', async (req: Request, res: Response) => {
 router.get('/envios', async (req: Request, res: Response) => {
   try {
     const adminId = getAdminId(req);
+    const tenantId = getTenantId(req);
     const status = req.query.status as string;
     const limit = parseInt(req.query.limit as string) || 100;
-    const envios = await envioService.getEnvios(adminId, status, limit);
+    const envios = await envioService.getEnvios(adminId, tenantId, status, limit);
     res.json(envios);
   } catch (error: any) {
     console.error('[Envio] Erro ao buscar envios:', error);
@@ -120,7 +121,8 @@ router.get('/envios', async (req: Request, res: Response) => {
 router.get('/envios/stats', async (req: Request, res: Response) => {
   try {
     const adminId = getAdminId(req);
-    const stats = await envioService.getEnvioStats(adminId);
+    const tenantId = getTenantId(req);
+    const stats = await envioService.getEnvioStats(adminId, tenantId);
     res.json(stats);
   } catch (error: any) {
     console.error('[Envio] Erro ao buscar estatísticas:', error);
@@ -131,10 +133,11 @@ router.get('/envios/stats', async (req: Request, res: Response) => {
 router.get('/envios/destinatarios', async (req: Request, res: Response) => {
   try {
     const adminId = getAdminId(req);
+    const tenantId = getTenantId(req);
     const search = (req.query.search as string) || '';
     const limit = parseInt(req.query.limit as string) || 10;
     
-    const destinatarios = await envioService.searchDestinatarios(adminId, search, limit);
+    const destinatarios = await envioService.searchDestinatarios(adminId, tenantId, search, limit);
     res.json(destinatarios);
   } catch (error: any) {
     console.error('[Envio] Erro ao buscar destinatários:', error);
@@ -142,7 +145,6 @@ router.get('/envios/destinatarios', async (req: Request, res: Response) => {
   }
 });
 
-// Diagnostic endpoint to test TotalExpress credentials
 router.get('/total-express/diagnostico', async (req: Request, res: Response) => {
   try {
     const user = process.env.TOTAL_EXPRESS_USER;
@@ -159,13 +161,12 @@ router.get('/total-express/diagnostico', async (req: Request, res: Response) => 
     
     const isConfigured = !!(user && pass && reid);
     
-    // Test a simple cotação to see if API responds
     let apiTest = null;
     if (isConfigured) {
       try {
         const testResult = await totalExpressService.cotarFrete({
-          cepOrigem: '01310100', // CEP São Paulo
-          cepDestino: '22041080', // CEP Rio de Janeiro
+          cepOrigem: '01310100',
+          cepDestino: '22041080',
           peso: 1,
           altura: 10,
           largura: 10,
@@ -198,7 +199,8 @@ router.get('/total-express/diagnostico', async (req: Request, res: Response) => 
 router.get('/envios/:id', async (req: Request, res: Response) => {
   try {
     const adminId = getAdminId(req);
-    const envio = await envioService.getEnvioById(req.params.id, adminId);
+    const tenantId = getTenantId(req);
+    const envio = await envioService.getEnvioById(req.params.id, adminId, tenantId);
     if (!envio) {
       return res.status(404).json({ error: 'Envio não encontrado' });
     }
@@ -212,10 +214,11 @@ router.get('/envios/:id', async (req: Request, res: Response) => {
 router.post('/envios', async (req: Request, res: Response) => {
   try {
     const adminId = getAdminId(req);
+    const tenantId = getTenantId(req);
     const envio = await envioService.createEnvio({
       admin_id: adminId,
       ...req.body
-    });
+    }, tenantId);
     res.status(201).json(envio);
   } catch (error: any) {
     console.error('[Envio] Erro ao criar envio:', error);
@@ -226,7 +229,8 @@ router.post('/envios', async (req: Request, res: Response) => {
 router.patch('/envios/:id', async (req: Request, res: Response) => {
   try {
     const adminId = getAdminId(req);
-    const envio = await envioService.updateEnvio(req.params.id, adminId, req.body);
+    const tenantId = getTenantId(req);
+    const envio = await envioService.updateEnvio(req.params.id, adminId, tenantId, req.body);
     res.json(envio);
   } catch (error: any) {
     console.error('[Envio] Erro ao atualizar envio:', error);
@@ -237,11 +241,12 @@ router.patch('/envios/:id', async (req: Request, res: Response) => {
 router.post('/envios/:id/status', async (req: Request, res: Response) => {
   try {
     const adminId = getAdminId(req);
+    const tenantId = getTenantId(req);
     const { status, descricao } = req.body;
     if (!status) {
       return res.status(400).json({ error: 'Status é obrigatório' });
     }
-    const envio = await envioService.updateEnvioStatus(req.params.id, adminId, status, descricao);
+    const envio = await envioService.updateEnvioStatus(req.params.id, adminId, tenantId, status, descricao);
     res.json(envio);
   } catch (error: any) {
     console.error('[Envio] Erro ao atualizar status:', error);
@@ -254,8 +259,9 @@ router.post('/envios/:id/status', async (req: Request, res: Response) => {
 router.get('/rastreamento/:codigo', async (req: Request, res: Response) => {
   try {
     const adminId = getAdminId(req);
+    const tenantId = getTenantId(req);
     const codigo = req.params.codigo.toUpperCase();
-    const resultado = await envioService.getRastreamentoByCodigo(codigo, adminId);
+    const resultado = await envioService.getRastreamentoByCodigo(codigo, tenantId, adminId);
     
     if (!resultado.envio) {
       return res.status(404).json({ error: 'Código de rastreamento não encontrado' });
@@ -271,11 +277,12 @@ router.get('/rastreamento/:codigo', async (req: Request, res: Response) => {
 router.get('/envios/:id/rastreamento', async (req: Request, res: Response) => {
   try {
     const adminId = getAdminId(req);
-    const envio = await envioService.getEnvioById(req.params.id, adminId);
+    const tenantId = getTenantId(req);
+    const envio = await envioService.getEnvioById(req.params.id, adminId, tenantId);
     if (!envio) {
       return res.status(404).json({ error: 'Envio não encontrado' });
     }
-    const eventos = await envioService.getRastreamentoEventos(req.params.id);
+    const eventos = await envioService.getRastreamentoEventos(req.params.id, tenantId);
     res.json(eventos);
   } catch (error: any) {
     console.error('[Envio] Erro ao buscar eventos de rastreamento:', error);
@@ -286,9 +293,10 @@ router.get('/envios/:id/rastreamento', async (req: Request, res: Response) => {
 router.post('/envios/:id/rastreamento', async (req: Request, res: Response) => {
   try {
     const adminId = getAdminId(req);
+    const tenantId = getTenantId(req);
     const { status, descricao, local, cidade, uf } = req.body;
     
-    const envio = await envioService.getEnvioById(req.params.id, adminId);
+    const envio = await envioService.getEnvioById(req.params.id, adminId, tenantId);
     if (!envio) {
       return res.status(404).json({ error: 'Envio não encontrado' });
     }
@@ -303,7 +311,7 @@ router.post('/envios/:id/rastreamento', async (req: Request, res: Response) => {
       cidade,
       uf,
       origem_api: false
-    });
+    }, tenantId);
 
     res.status(201).json(evento);
   } catch (error: any) {
@@ -317,7 +325,8 @@ router.post('/envios/:id/rastreamento', async (req: Request, res: Response) => {
 router.get('/config', async (req: Request, res: Response) => {
   try {
     const adminId = getAdminId(req);
-    const config = await envioService.getConfigFrete(adminId);
+    const tenantId = getTenantId(req);
+    const config = await envioService.getConfigFrete(adminId, tenantId);
     res.json(config || {});
   } catch (error: any) {
     console.error('[Envio] Erro ao buscar configuração:', error);
@@ -328,10 +337,11 @@ router.get('/config', async (req: Request, res: Response) => {
 router.post('/config', async (req: Request, res: Response) => {
   try {
     const adminId = getAdminId(req);
+    const tenantId = getTenantId(req);
     const config = await envioService.saveConfigFrete({
       admin_id: adminId,
       ...req.body
-    });
+    }, tenantId);
     res.json(config);
   } catch (error: any) {
     console.error('[Envio] Erro ao salvar configuração:', error);
@@ -384,8 +394,7 @@ router.post('/total-express/cotar', async (req: Request, res: Response) => {
 router.post('/total-express/registrar', async (req: Request, res: Response) => {
   try {
     const adminId = getAdminId(req);
-    const session = (req as any).session;
-    const tenantId = session?.tenantId || session?.userId;
+    const tenantId = getTenantId(req);
     
     const {
       envio_id,
@@ -407,19 +416,17 @@ router.post('/total-express/registrar', async (req: Request, res: Response) => {
       comprimento,
       valorDeclarado,
       descricaoConteudo,
-      custoFrete // Cost from carrier quote (passed from frontend)
+      custoFrete
     } = req.body;
 
     if (!pedido || !destinatarioNome || !destinatarioCep) {
       return res.status(400).json({ error: 'Pedido, nome e CEP do destinatário são obrigatórios' });
     }
 
-    // Calculate shipping price with 35% margin
     const carrierCost = parseFloat(custoFrete) || 0;
     const shippingPrice = carrierCost > 0 ? walletService.calculateShippingPrice(carrierCost) : 0;
     const walletSystemEnabled = isPagarmeConfigured();
     
-    // WALLET: Verificar saldo antes de registrar envio (apenas se Pagar.me configurado)
     if (walletSystemEnabled && tenantId && shippingPrice > 0) {
       const balanceCheck = await walletService.checkBalance(tenantId, shippingPrice);
       if (!balanceCheck.sufficient) {
@@ -455,7 +462,6 @@ router.post('/total-express/registrar', async (req: Request, res: Response) => {
       descricaoConteudo
     });
 
-    // WALLET: Debitar saldo APÓS registro bem-sucedido (apenas se Pagar.me configurado)
     if (walletSystemEnabled && resultado.success && tenantId && shippingPrice > 0) {
       const debitResult = await walletService.debitFunds(
         tenantId,
@@ -484,14 +490,12 @@ router.post('/total-express/registrar', async (req: Request, res: Response) => {
       let finalEnvioId = envio_id;
       
       if (envio_id) {
-        // Update existing envio
-        await envioService.updateEnvio(envio_id, adminId, {
+        await envioService.updateEnvio(envio_id, adminId, tenantId, {
           codigo_rastreio: resultado.codigoRastreio,
           transportadora_nome: 'Total Express',
           status: 'aguardando_coleta'
         });
       } else {
-        // Create new envio record for tracking
         const novoEnvio = await envioService.createEnvio({
           admin_id: adminId,
           contract_id: null,
@@ -514,7 +518,7 @@ router.post('/total-express/registrar', async (req: Request, res: Response) => {
           largura_cm: parseFloat(largura) || 10,
           comprimento_cm: parseFloat(comprimento) || 10,
           valor_declarado: parseFloat(valorDeclarado) || 0
-        });
+        }, tenantId);
         finalEnvioId = novoEnvio?.id;
       }
 
@@ -526,7 +530,7 @@ router.post('/total-express/registrar', async (req: Request, res: Response) => {
           status: 'Registrado na Total Express',
           descricao: `AWB: ${resultado.awb}`,
           origem_api: true
-        });
+        }, tenantId);
       }
     }
 
@@ -553,7 +557,8 @@ router.get('/total-express/rastrear/:codigo', async (req: Request, res: Response
 router.get('/envios/:id/etiqueta', async (req: Request, res: Response) => {
   try {
     const adminId = getAdminId(req);
-    const envio = await envioService.getEnvioById(req.params.id, adminId);
+    const tenantId = getTenantId(req);
+    const envio = await envioService.getEnvioById(req.params.id, adminId, tenantId);
     
     if (!envio) {
       return res.status(404).json({ error: 'Envio não encontrado' });
@@ -563,9 +568,7 @@ router.get('/envios/:id/etiqueta', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Envio não possui código de rastreio' });
     }
 
-    // Check if it's a test mode tracking code
     if (totalExpressService.isTestMode() || envio.codigo_rastreio.startsWith('TE')) {
-      // Return a simple HTML label for test mode with escaped content
       const htmlLabel = `
 <!DOCTYPE html>
 <html>
@@ -629,7 +632,6 @@ router.get('/envios/:id/etiqueta', async (req: Request, res: Response) => {
       return res.send(htmlLabel);
     }
 
-    // Get real label from TotalExpress
     const etiquetaResult = await totalExpressService.obterEtiqueta(envio.codigo_rastreio);
     
     if (!etiquetaResult.success) {
@@ -659,14 +661,13 @@ router.get('/total-express/etiqueta/:awb', async (req: Request, res: Response) =
   try {
     const { awb } = req.params;
     const adminId = getAdminId(req);
+    const tenantId = getTenantId(req);
     
-    // Security: Always verify the AWB belongs to this admin's shipments
-    const resultado = await envioService.getRastreamentoByCodigo(awb, adminId);
+    const resultado = await envioService.getRastreamentoByCodigo(awb, tenantId, adminId);
     if (!resultado.envio) {
       return res.status(404).json({ error: 'Envio não encontrado ou não autorizado' });
     }
     
-    // Test mode - generate HTML label (only if AWB verified above)
     if (totalExpressService.isTestMode() || awb.startsWith('TE')) {
       const envio = resultado.envio;
       const htmlLabel = `
@@ -754,11 +755,8 @@ router.get('/total-express/test-mode', async (req: Request, res: Response) => {
   });
 });
 
-// Webhook para receber atualizações de status da Total Express
-// Autenticado via secret header para segurança
 router.post('/webhooks/total-express', async (req: Request, res: Response) => {
   try {
-    // Validar secret para autenticação do webhook
     const webhookSecret = req.headers['x-totalexpress-secret'] || req.headers['authorization'];
     const expectedSecret = process.env.TOTAL_EXPRESS_WEBHOOK_SECRET || process.env.TOTAL_EXPRESS_PASS;
     
@@ -767,7 +765,6 @@ router.post('/webhooks/total-express', async (req: Request, res: Response) => {
       return res.status(503).json({ error: 'Webhook não configurado' });
     }
     
-    // Aceitar tanto header customizado quanto Bearer token
     const receivedSecret = typeof webhookSecret === 'string' 
       ? webhookSecret.replace('Bearer ', '') 
       : null;
@@ -777,7 +774,7 @@ router.post('/webhooks/total-express', async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Não autorizado' });
     }
 
-    const { awb, status, dataEvento, descricao, local } = req.body;
+    const { awb, status, dataEvento, descricao, local, tenant_id } = req.body;
     
     console.log('[TotalExpress Webhook] Recebido:', { awb, status });
 
@@ -785,14 +782,18 @@ router.post('/webhooks/total-express', async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'AWB é obrigatório' });
     }
 
-    // Validar status permitidos
     const validStatuses = ['COLETADO', 'EM_TRANSITO', 'SAIU_ENTREGA', 'ENTREGUE', 'DEVOLVIDO', 'PENDENTE', 'CANCELADO'];
     if (status && !validStatuses.includes(status.toUpperCase())) {
       console.warn('[TotalExpress Webhook] Status inválido:', status);
       return res.status(400).json({ error: 'Status inválido' });
     }
 
-    const resultado = await envioService.getRastreamentoByCodigo(awb);
+    if (!tenant_id) {
+      console.warn('[TotalExpress Webhook] tenant_id não fornecido no payload do webhook');
+      return res.status(400).json({ error: 'tenant_id é obrigatório no payload do webhook' });
+    }
+
+    const resultado = await envioService.getRastreamentoByCodigo(awb, tenant_id);
     
     if (resultado.envio) {
       await envioService.addRastreamentoEvento({
@@ -803,7 +804,7 @@ router.post('/webhooks/total-express', async (req: Request, res: Response) => {
         descricao: descricao || '',
         local: local || '',
         origem_api: true
-      });
+      }, tenant_id);
 
       const statusMap: Record<string, string> = {
         'COLETADO': 'coletado',
@@ -814,7 +815,7 @@ router.post('/webhooks/total-express', async (req: Request, res: Response) => {
       };
 
       if (statusMap[status?.toUpperCase()]) {
-        await envioService.updateEnvio(resultado.envio.id, resultado.envio.admin_id, {
+        await envioService.updateEnvio(resultado.envio.id, resultado.envio.admin_id, tenant_id, {
           status: statusMap[status.toUpperCase()] as any
         });
       }

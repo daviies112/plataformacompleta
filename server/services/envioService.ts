@@ -1,8 +1,5 @@
-import { supabaseOwner } from '../config/supabaseOwner';
 import { totalExpressService } from './totalExpressService';
-import { assinaturaSupabaseService } from './assinatura-supabase';
 import { getClientSupabaseClientStrict } from '../lib/multiTenantSupabase';
-// Usando supabaseOwner para envios/transportadoras e multi-tenant client para contracts
 
 export interface Transportadora {
   id: string;
@@ -132,17 +129,18 @@ export interface ContratoPendenteEnvio {
 }
 
 class EnvioService {
-  private getClient() {
-    if (!supabaseOwner) {
-      throw new Error('Supabase Owner não configurado');
+  private async getClientForTenant(tenantId: string) {
+    const client = await getClientSupabaseClientStrict(tenantId);
+    if (!client) {
+      throw new Error(`Supabase client não configurado para tenant: ${tenantId}`);
     }
-    return supabaseOwner;
+    return client;
   }
 
   // ==================== TRANSPORTADORAS ====================
   
-  async getTransportadoras(adminId: string): Promise<Transportadora[]> {
-    const client = this.getClient();
+  async getTransportadoras(adminId: string, tenantId: string): Promise<Transportadora[]> {
+    const client = await this.getClientForTenant(tenantId);
     const { data, error } = await client
       .from('transportadoras')
       .select('*')
@@ -154,8 +152,8 @@ class EnvioService {
     return data || [];
   }
 
-  async createTransportadora(transportadora: Partial<Transportadora>): Promise<Transportadora> {
-    const client = this.getClient();
+  async createTransportadora(transportadora: Partial<Transportadora>, tenantId: string): Promise<Transportadora> {
+    const client = await this.getClientForTenant(tenantId);
     const { data, error } = await client
       .from('transportadoras')
       .insert(transportadora)
@@ -168,8 +166,8 @@ class EnvioService {
 
   // ==================== COTACOES ====================
 
-  async getCotacoes(adminId: string, limit = 50): Promise<CotacaoFrete[]> {
-    const client = this.getClient();
+  async getCotacoes(adminId: string, tenantId: string, limit = 50): Promise<CotacaoFrete[]> {
+    const client = await this.getClientForTenant(tenantId);
     const { data, error } = await client
       .from('cotacoes_frete')
       .select('*')
@@ -181,8 +179,8 @@ class EnvioService {
     return data || [];
   }
 
-  async createCotacao(cotacao: Partial<CotacaoFrete>): Promise<CotacaoFrete> {
-    const client = this.getClient();
+  async createCotacao(cotacao: Partial<CotacaoFrete>, tenantId: string): Promise<CotacaoFrete> {
+    const client = await this.getClientForTenant(tenantId);
     const { data, error } = await client
       .from('cotacoes_frete')
       .insert(cotacao)
@@ -193,7 +191,7 @@ class EnvioService {
     return data;
   }
 
-  async calcularFrete(adminId: string, dados: {
+  async calcularFrete(adminId: string, tenantId: string, dados: {
     cepOrigem: string;
     cepDestino: string;
     peso: number;
@@ -202,7 +200,7 @@ class EnvioService {
     comprimento: number;
     valorDeclarado: number;
   }): Promise<CotacaoFrete[]> {
-    const transportadoras = await this.getTransportadoras(adminId);
+    const transportadoras = await this.getTransportadoras(adminId, tenantId);
     const cotacoes: CotacaoFrete[] = [];
 
     for (const transp of transportadoras) {
@@ -229,11 +227,10 @@ class EnvioService {
         selecionado: false
       };
 
-      const created = await this.createCotacao(cotacao);
+      const created = await this.createCotacao(cotacao, tenantId);
       cotacoes.push(created);
     }
 
-    // Adicionar cotação Total Express se configurado (tenant ou env vars)
     const hasTenantConfig = await totalExpressService.isConfiguredForTenant(adminId);
     if (hasTenantConfig || totalExpressService.isConfigured()) {
       try {
@@ -264,7 +261,7 @@ class EnvioService {
             selecionado: false
           };
 
-          const createdTE = await this.createCotacao(cotacaoTE);
+          const createdTE = await this.createCotacao(cotacaoTE, tenantId);
           cotacoes.push(createdTE);
           console.log('[EnvioService] Cotação Total Express adicionada:', cotacaoTotalExpress.valor_frete);
         }
@@ -322,8 +319,8 @@ class EnvioService {
 
   // ==================== ENVIOS ====================
 
-  async getEnvios(adminId: string, status?: string, limit = 100): Promise<Envio[]> {
-    const client = this.getClient();
+  async getEnvios(adminId: string, tenantId: string, status?: string, limit = 100): Promise<Envio[]> {
+    const client = await this.getClientForTenant(tenantId);
     let query = client
       .from('envios')
       .select('*')
@@ -340,8 +337,8 @@ class EnvioService {
     return data || [];
   }
 
-  async getEnvioById(id: string, adminId: string): Promise<Envio | null> {
-    const client = this.getClient();
+  async getEnvioById(id: string, adminId: string, tenantId: string): Promise<Envio | null> {
+    const client = await this.getClientForTenant(tenantId);
     const { data, error } = await client
       .from('envios')
       .select('*')
@@ -356,7 +353,7 @@ class EnvioService {
     return data;
   }
 
-  async searchDestinatarios(adminId: string, search: string, limit = 10): Promise<{
+  async searchDestinatarios(adminId: string, tenantId: string, search: string, limit = 10): Promise<{
     id: string;
     destinatario_nome: string;
     destinatario_cpf_cnpj?: string;
@@ -371,7 +368,7 @@ class EnvioService {
     destinatario_uf?: string;
     ultimo_envio?: string;
   }[]> {
-    const client = this.getClient();
+    const client = await this.getClientForTenant(tenantId);
     
     let query = client
       .from('envios')
@@ -402,10 +399,9 @@ class EnvioService {
     return Array.from(uniqueDestinatarios.values());
   }
 
-  async createEnvio(envio: Partial<Envio>): Promise<Envio> {
-    const client = this.getClient();
+  async createEnvio(envio: Partial<Envio>, tenantId: string): Promise<Envio> {
+    const client = await this.getClientForTenant(tenantId);
     
-    // Use provided tracking code or generate a new one
     const codigoRastreio = envio.codigo_rastreio || this.gerarCodigoRastreio();
     
     const { data, error } = await client
@@ -428,13 +424,13 @@ class EnvioService {
       descricao: 'Envio registrado no sistema',
       local: 'Sistema',
       origem_api: false
-    });
+    }, tenantId);
 
     return data;
   }
 
-  async updateEnvio(id: string, adminId: string, updates: Partial<Envio>): Promise<Envio> {
-    const client = this.getClient();
+  async updateEnvio(id: string, adminId: string, tenantId: string, updates: Partial<Envio>): Promise<Envio> {
+    const client = await this.getClientForTenant(tenantId);
     const { data, error } = await client
       .from('envios')
       .update(updates)
@@ -447,8 +443,8 @@ class EnvioService {
     return data;
   }
 
-  async updateEnvioStatus(id: string, adminId: string, status: Envio['status'], descricao?: string): Promise<Envio> {
-    const envio = await this.updateEnvio(id, adminId, { status });
+  async updateEnvioStatus(id: string, adminId: string, tenantId: string, status: Envio['status'], descricao?: string): Promise<Envio> {
+    const envio = await this.updateEnvio(id, adminId, tenantId, { status });
     
     await this.addRastreamentoEvento({
       envio_id: id,
@@ -457,7 +453,7 @@ class EnvioService {
       status: this.getStatusLabel(status),
       descricao: descricao || `Status atualizado para: ${this.getStatusLabel(status)}`,
       origem_api: false
-    });
+    }, tenantId);
 
     return envio;
   }
@@ -483,14 +479,14 @@ class EnvioService {
     return `${prefixo}${numeros}${sufixo}`;
   }
 
-  async getEnvioStats(adminId: string): Promise<{
+  async getEnvioStats(adminId: string, tenantId: string): Promise<{
     total: number;
     pendentes: number;
     em_transito: number;
     entregues: number;
     cancelados: number;
   }> {
-    const client = this.getClient();
+    const client = await this.getClientForTenant(tenantId);
     const { data, error } = await client
       .from('envios')
       .select('status')
@@ -510,8 +506,8 @@ class EnvioService {
 
   // ==================== RASTREAMENTO ====================
 
-  async getRastreamentoEventos(envioId: string): Promise<RastreamentoEvento[]> {
-    const client = this.getClient();
+  async getRastreamentoEventos(envioId: string, tenantId: string): Promise<RastreamentoEvento[]> {
+    const client = await this.getClientForTenant(tenantId);
     const { data, error } = await client
       .from('rastreamento_eventos')
       .select('*')
@@ -522,11 +518,11 @@ class EnvioService {
     return data || [];
   }
 
-  async getRastreamentoByCodigo(codigoRastreio: string, adminId?: string): Promise<{
+  async getRastreamentoByCodigo(codigoRastreio: string, tenantId: string, adminId?: string): Promise<{
     envio: Envio | null;
     eventos: RastreamentoEvento[];
   }> {
-    const client = this.getClient();
+    const client = await this.getClientForTenant(tenantId);
     
     let query = client
       .from('envios')
@@ -543,12 +539,12 @@ class EnvioService {
       return { envio: null, eventos: [] };
     }
 
-    const eventos = await this.getRastreamentoEventos(envio.id);
+    const eventos = await this.getRastreamentoEventos(envio.id, tenantId);
     return { envio, eventos };
   }
 
-  async addRastreamentoEvento(evento: Partial<RastreamentoEvento>): Promise<RastreamentoEvento> {
-    const client = this.getClient();
+  async addRastreamentoEvento(evento: Partial<RastreamentoEvento>, tenantId: string): Promise<RastreamentoEvento> {
+    const client = await this.getClientForTenant(tenantId);
     const { data, error } = await client
       .from('rastreamento_eventos')
       .insert(evento)
@@ -561,8 +557,8 @@ class EnvioService {
 
   // ==================== CONFIGURACOES ====================
 
-  async getConfigFrete(adminId: string): Promise<ConfigFrete | null> {
-    const client = this.getClient();
+  async getConfigFrete(adminId: string, tenantId: string): Promise<ConfigFrete | null> {
+    const client = await this.getClientForTenant(tenantId);
     const { data, error } = await client
       .from('config_frete')
       .select('*')
@@ -576,8 +572,8 @@ class EnvioService {
     return data;
   }
 
-  async saveConfigFrete(config: Partial<ConfigFrete>): Promise<ConfigFrete> {
-    const client = this.getClient();
+  async saveConfigFrete(config: Partial<ConfigFrete>, tenantId: string): Promise<ConfigFrete> {
+    const client = await this.getClientForTenant(tenantId);
     const { data, error } = await client
       .from('config_frete')
       .upsert(config, { onConflict: 'admin_id' })
@@ -590,21 +586,13 @@ class EnvioService {
 
   // ==================== CONTRATOS PENDENTES ====================
 
-  async getContratosPendentesEnvio(adminId: string, tenantId?: string): Promise<ContratoPendenteEnvio[]> {
+  async getContratosPendentesEnvio(adminId: string, tenantId: string): Promise<ContratoPendenteEnvio[]> {
     console.log('[EnvioService] Buscando contratos pendentes para adminId:', adminId, 'tenantId:', tenantId);
-    const client = this.getClient();
+    
+    const effectiveTenantId = tenantId || adminId;
+    const client = await getClientSupabaseClientStrict(effectiveTenantId);
     
     if (!client) {
-      console.error('[EnvioService] Cliente Supabase Owner não disponível!');
-      return [];
-    }
-    
-    // Use tenant-specific Supabase client (strict mode - no fallback)
-    // This ensures each tenant sees only their own contracts
-    const effectiveTenantId = tenantId || adminId;
-    const clienteSupabase = await getClientSupabaseClientStrict(effectiveTenantId);
-    
-    if (!clienteSupabase) {
       console.log('[EnvioService] Tenant', effectiveTenantId, 'não tem credenciais Supabase configuradas');
       console.log('[EnvioService] Admin deve configurar credenciais em /configuracoes para ver contratos');
       return [];
@@ -613,7 +601,6 @@ class EnvioService {
     let contractIdsComEnvio: string[] = [];
     
     try {
-      // Buscar envios existentes do supabaseOwner (onde está a tabela envios)
       const { data: enviosExistentes, error: enviosError } = await client
         .from('envios')
         .select('contract_id')
@@ -630,10 +617,9 @@ class EnvioService {
       console.error('[EnvioService] Erro ao buscar contract_ids dos envios:', err);
     }
 
-    // Buscar contratos do Supabase do tenant (onde está a tabela contracts)
     console.log('[EnvioService] Buscando contratos do Supabase para tenant:', effectiveTenantId);
     
-    const { data: allContracts, error: contractsError } = await clienteSupabase
+    const { data: allContracts, error: contractsError } = await client
       .from('contracts')
       .select('id, client_name, client_cpf, client_email, client_phone, address_street, address_number, address_complement, address_city, address_state, address_zipcode, signed_at, status')
       .eq('status', 'signed')
@@ -647,7 +633,6 @@ class EnvioService {
     
     console.log('[EnvioService] Total de contratos assinados (status=signed) encontrados:', allContracts?.length || 0);
     
-    // Filtrar contratos que já têm envio criado
     const pendingContracts = (allContracts || []).filter((contract: any) => {
       if (contractIdsComEnvio.includes(contract.id)) {
         console.log('[EnvioService] Contrato', contract.id, 'já tem envio, excluindo');
