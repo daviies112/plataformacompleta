@@ -144,7 +144,7 @@ class EnvioService {
     const { data, error } = await client
       .from('transportadoras')
       .select('*')
-      .or(`admin_id.eq.${adminId},admin_id.eq.system`)
+      .or(`admin_id.eq.${adminId},admin_id.eq.system,admin_id.eq.sistema,admin_id.eq.${tenantId}`)
       .eq('ativo', true)
       .order('nome');
     
@@ -324,7 +324,7 @@ class EnvioService {
     let query = client
       .from('envios')
       .select('*')
-      .eq('admin_id', adminId)
+      .or(`admin_id.eq.${adminId},admin_id.eq.sistema,admin_id.eq.${tenantId}`)
       .order('created_at', { ascending: false })
       .limit(limit);
     
@@ -343,7 +343,7 @@ class EnvioService {
       .from('envios')
       .select('*')
       .eq('id', id)
-      .eq('admin_id', adminId)
+      .or(`admin_id.eq.${adminId},admin_id.eq.sistema,admin_id.eq.${tenantId}`)
       .single();
     
     if (error) {
@@ -373,7 +373,7 @@ class EnvioService {
     let query = client
       .from('envios')
       .select('id, destinatario_nome, destinatario_cpf_cnpj, destinatario_telefone, destinatario_email, destinatario_cep, destinatario_logradouro, destinatario_numero, destinatario_complemento, destinatario_bairro, destinatario_cidade, destinatario_uf, created_at')
-      .eq('admin_id', adminId)
+      .or(`admin_id.eq.${adminId},admin_id.eq.sistema,admin_id.eq.${tenantId}`)
       .order('created_at', { ascending: false });
     
     if (search && search.trim().length > 0) {
@@ -435,7 +435,7 @@ class EnvioService {
       .from('envios')
       .update(updates)
       .eq('id', id)
-      .eq('admin_id', adminId)
+      .or(`admin_id.eq.${adminId},admin_id.eq.sistema,admin_id.eq.${tenantId}`)
       .select()
       .single();
     
@@ -490,7 +490,7 @@ class EnvioService {
     const { data, error } = await client
       .from('envios')
       .select('status')
-      .eq('admin_id', adminId);
+      .or(`admin_id.eq.${adminId},admin_id.eq.sistema,admin_id.eq.${tenantId}`);
     
     if (error) throw error;
 
@@ -562,8 +562,8 @@ class EnvioService {
     const { data, error } = await client
       .from('config_frete')
       .select('*')
-      .eq('admin_id', adminId)
-      .single();
+      .or(`admin_id.eq.${adminId},admin_id.eq.sistema,admin_id.eq.${tenantId}`)
+      .maybeSingle();
     
     if (error) {
       if (error.code === 'PGRST116') return null;
@@ -604,7 +604,7 @@ class EnvioService {
       const { data: enviosExistentes, error: enviosError } = await client
         .from('envios')
         .select('contract_id')
-        .eq('admin_id', adminId)
+        .or(`admin_id.eq.${adminId},admin_id.eq.sistema,admin_id.eq.${tenantId}`)
         .not('contract_id', 'is', null);
       
       if (!enviosError && enviosExistentes) {
