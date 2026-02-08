@@ -1,8 +1,8 @@
 {
   "lastSyncedAt": null,
   "lastSyncedId": null,
-  "lastRunAt": "2026-02-07T23:42:32.732Z",
-  "totalSubmissionsProcessed": 5,
+  "lastRunAt": "2026-02-08T00:12:49.022Z",
+  "totalSubmissionsProcessed": 6,
   "totalErrors": 328,
   "lastError": null,
   "tenantStates": {
@@ -19,8 +19,8 @@
       "lastSyncedId": "df216572-444e-4955-88d0-6e0012ea2818"
     },
     "dev-davipiano_gmail_com": {
-      "lastSyncedAt": "2026-02-06T19:14:42.279572+00:00",
-      "lastSyncedId": "e3f0fdcd-6972-4348-b26e-d68959d0ee45"
+      "lastSyncedAt": "2026-02-08T00:06:01.491117+00:00",
+      "lastSyncedId": "c4110bc3-2be8-4b06-8eec-525fcc0b0005"
     }
   }
 }
