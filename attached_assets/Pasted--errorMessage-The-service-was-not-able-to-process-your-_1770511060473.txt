@@ -1,0 +1,28 @@
+{
+  "errorMessage": "The service was not able to process your request",
+  "errorDescription": "Erro interno ao processar requisição",
+  "errorDetails": {
+    "rawErrorMessage": [
+      "500 - \"{\\\"error\\\":\\\"Erro interno ao processar requisição\\\",\\\"message\\\":\\\"Request failed with status code 401\\\"}\""
+    ],
+    "httpCode": "500"
+  },
+  "n8nDetails": {
+    "nodeName": "Criar Reunião via Plataforma2",
+    "nodeType": "n8n-nodes-base.httpRequest",
+    "nodeVersion": 4,
+    "itemIndex": 0,
+    "time": "07/02/2026, 21:32:52",
+    "n8nVersion": "1.121.1 (Self Hosted)",
+    "binaryDataMode": "default",
+    "stackTrace": [
+      "NodeApiError: The service was not able to process your request",
+      "    at ExecuteContext.execute (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-nodes-base@file+packages+nodes-base_@aws-sdk+credential-providers@3.808.0_asn1.js@5_8da18263ca0574b0db58d4fefd8173ce/node_modules/n8n-nodes-base/nodes/HttpRequest/V3/HttpRequestV3.node.ts:858:16)",
+      "    at processTicksAndRejections (node:internal/process/task_queues:105:5)",
+      "    at WorkflowExecute.executeNode (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-core@file+packages+core_@opentelemetry+api@1.9.0_@opentelemetry+sdk-trace-base@1.30_08b575bec2313d5d8a4cc75358971443/node_modules/n8n-core/src/execution-engine/workflow-execute.ts:1074:8)",
+      "    at WorkflowExecute.runNode (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-core@file+packages+core_@opentelemetry+api@1.9.0_@opentelemetry+sdk-trace-base@1.30_08b575bec2313d5d8a4cc75358971443/node_modules/n8n-core/src/execution-engine/workflow-execute.ts:1255:11)",
+      "    at /usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-core@file+packages+core_@opentelemetry+api@1.9.0_@opentelemetry+sdk-trace-base@1.30_08b575bec2313d5d8a4cc75358971443/node_modules/n8n-core/src/execution-engine/workflow-execute.ts:1691:27",
+      "    at /usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-core@file+packages+core_@opentelemetry+api@1.9.0_@opentelemetry+sdk-trace-base@1.30_08b575bec2313d5d8a4cc75358971443/node_modules/n8n-core/src/execution-engine/workflow-execute.ts:2307:11"
+    ]
+  }
+}
