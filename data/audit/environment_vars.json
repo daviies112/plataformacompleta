@@ -1,0 +1,690 @@
+{
+  "audit_date": "2026-01-27",
+  "platform": "ExecutiveAI Pro",
+  "description": "Auditoria completa de todas as variáveis de ambiente e secrets da plataforma",
+  
+  "required": [
+    {
+      "name": "DATABASE_URL",
+      "category": "Database",
+      "description": "URL de conexão PostgreSQL do Replit. Auto-configurada quando se cria banco no painel Database do Replit.",
+      "example": "postgresql://user:password@host:5432/database",
+      "auto_configured": true,
+      "used_in": ["server/db.ts", "drizzle.config.ts", "reuniao/server/db.ts", "assinatura/server/db.ts"]
+    },
+    {
+      "name": "SESSION_SECRET",
+      "category": "Autenticação",
+      "description": "Chave secreta para criptografia de sessões Express. Crítico para segurança de cookies.",
+      "example": "uma-chave-secreta-aleatoria-de-32-caracteres",
+      "auto_configured": false,
+      "used_in": ["server/index.ts", "reuniao/server/middlewares/auth.ts"]
+    },
+    {
+      "name": "JWT_SECRET",
+      "category": "Autenticação",
+      "description": "Chave secreta para geração e validação de tokens JWT. Obrigatório em produção.",
+      "example": "jwt-secret-key-muito-segura-32chars",
+      "auto_configured": false,
+      "used_in": ["server/routes/resellerAuth.ts", "server/middleware/auth.ts", "server/middleware/configAuth.ts", "server/routes/multitenantLogin.ts"]
+    }
+  ],
+
+  "required_for_cpf_consultation": [
+    {
+      "name": "TOKEN_ID",
+      "category": "BigDataCorp",
+      "description": "ID do token de autenticação da API BigDataCorp para consultas de CPF.",
+      "example": "12345678-1234-1234-1234-123456789012",
+      "auto_configured": false,
+      "used_in": ["server/lib/bigdatacorpClient.ts", "start.sh"]
+    },
+    {
+      "name": "CHAVE_TOKEN",
+      "category": "BigDataCorp",
+      "description": "Chave de acesso da API BigDataCorp para consultas de CPF.",
+      "example": "sua-chave-token-bigdatacorp",
+      "auto_configured": false,
+      "used_in": ["server/lib/bigdatacorpClient.ts", "start.sh"]
+    }
+  ],
+
+  "required_for_multitenant": [
+    {
+      "name": "SUPABASE_OWNER_URL",
+      "category": "Supabase Owner",
+      "description": "URL do projeto Supabase do Owner principal do sistema. Usado para autenticação centralizada multi-tenant.",
+      "example": "https://seu-projeto.supabase.co",
+      "auto_configured": false,
+      "used_in": ["server/config/supabaseOwner.ts", "server/routes/split.ts", "server/lib/masterSyncService.ts"]
+    },
+    {
+      "name": "SUPABASE_OWNER_SERVICE_KEY",
+      "category": "Supabase Owner",
+      "description": "Service Role Key do Supabase Owner. NUNCA expor no frontend. Bypassa RLS.",
+      "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+      "auto_configured": false,
+      "used_in": ["server/config/supabaseOwner.ts", "server/routes/split.ts", "server/lib/masterSyncService.ts"]
+    }
+  ],
+
+  "required_for_cache_global": [
+    {
+      "name": "SUPABASE_MASTER_URL",
+      "category": "Supabase Master",
+      "description": "URL do projeto Supabase Master para cache global de consultas CPF entre tenants.",
+      "example": "https://master-projeto.supabase.co",
+      "auto_configured": false,
+      "used_in": ["server/lib/supabaseMaster.ts", "server/lib/bigdatacorpClient.ts", "scripts/migrate_tenant.mjs"]
+    },
+    {
+      "name": "SUPABASE_MASTER_SERVICE_ROLE_KEY",
+      "category": "Supabase Master",
+      "description": "Service Role Key do Supabase Master. DEVE ser service_role (não anon). Bypassa RLS.",
+      "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+      "auto_configured": false,
+      "used_in": ["server/lib/supabaseMaster.ts", "server/lib/bigdatacorpClient.ts", "scripts/migrate_tenant.mjs"]
+    }
+  ],
+
+  "required_for_payments": [
+    {
+      "name": "CHAVE_SECRETA_PRODUCAO",
+      "category": "Pagar.me",
+      "description": "Chave secreta de PRODUÇÃO da API Pagar.me V5. Tem prioridade sobre chave de teste.",
+      "example": "sk_live_xxxxxxxxxxxxxxxx",
+      "auto_configured": false,
+      "used_in": ["server/services/pagarme.ts", "server/routes/split.ts"]
+    },
+    {
+      "name": "CHAVE_PUBLICA_PRODUCAO",
+      "category": "Pagar.me",
+      "description": "Chave pública de PRODUÇÃO da API Pagar.me V5 para tokenização de cartões.",
+      "example": "pk_live_xxxxxxxxxxxxxxxx",
+      "auto_configured": false,
+      "used_in": ["server/services/pagarme.ts"]
+    },
+    {
+      "name": "CHAVE_ID_PRODUCAO",
+      "category": "Pagar.me",
+      "description": "Account ID da conta Pagar.me de PRODUÇÃO.",
+      "example": "acc_xxxxxxxxxxxxxxxx",
+      "auto_configured": false,
+      "used_in": ["server/services/pagarme.ts"]
+    }
+  ],
+
+  "optional_payments_test": [
+    {
+      "name": "CHAVE_SECRETA_TESTE",
+      "category": "Pagar.me",
+      "description": "Chave secreta de TESTE da API Pagar.me V5. Usado se produção não configurada.",
+      "example": "sk_test_xxxxxxxxxxxxxxxx",
+      "auto_configured": false,
+      "used_in": ["server/services/pagarme.ts", "server/routes/split.ts", "server/middleware/checkBalance.ts"]
+    },
+    {
+      "name": "CHAVE_PUBLICA_TESTE",
+      "category": "Pagar.me",
+      "description": "Chave pública de TESTE da API Pagar.me V5.",
+      "example": "pk_test_xxxxxxxxxxxxxxxx",
+      "auto_configured": false,
+      "used_in": ["server/services/pagarme.ts", "server/middleware/checkBalance.ts"]
+    },
+    {
+      "name": "CHAVE_ID_TESTE",
+      "category": "Pagar.me",
+      "description": "Account ID da conta Pagar.me de TESTE.",
+      "example": "acc_xxxxxxxxxxxxxxxx",
+      "auto_configured": false,
+      "used_in": ["server/services/pagarme.ts"]
+    },
+    {
+      "name": "CHAVE_SECRETA",
+      "category": "Pagar.me",
+      "description": "Fallback genérico para chave secreta Pagar.me (legado).",
+      "example": "sk_xxxxxxxxxxxxxxxx",
+      "auto_configured": false,
+      "deprecated": true,
+      "used_in": ["server/services/pagarme.ts"]
+    },
+    {
+      "name": "CHAVE_PUBLICA",
+      "category": "Pagar.me",
+      "description": "Fallback genérico para chave pública Pagar.me (legado).",
+      "example": "pk_xxxxxxxxxxxxxxxx",
+      "auto_configured": false,
+      "deprecated": true,
+      "used_in": ["server/services/pagarme.ts"]
+    },
+    {
+      "name": "CHAVE_ID",
+      "category": "Pagar.me",
+      "description": "Fallback genérico para Account ID Pagar.me (legado).",
+      "example": "acc_xxxxxxxxxxxxxxxx",
+      "auto_configured": false,
+      "deprecated": true,
+      "used_in": ["server/services/pagarme.ts"]
+    }
+  ],
+
+  "optional_stripe": [
+    {
+      "name": "STRIPE_WEBHOOK_SECRET",
+      "category": "Stripe",
+      "description": "Secret para validação de webhooks do Stripe.",
+      "example": "whsec_xxxxxxxxxxxxxxxx",
+      "auto_configured": false,
+      "used_in": ["server/routes/stripePayment.ts"]
+    }
+  ],
+
+  "optional_100ms_videoconference": [
+    {
+      "name": "HMS_APP_ACCESS_KEY",
+      "category": "100ms (Videoconferência)",
+      "description": "Access Key da API 100ms para criação de salas de videoconferência.",
+      "example": "xxxxxxxxxxxxxxxxxxxxxxxx",
+      "auto_configured": false,
+      "used_in": ["reuniao/server/routes.ts", "reuniao/server/services/init.ts", "server/services/init.ts", "server/routes/config.ts"]
+    },
+    {
+      "name": "HMS_APP_SECRET",
+      "category": "100ms (Videoconferência)",
+      "description": "Secret Key da API 100ms para geração de tokens de autenticação.",
+      "example": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "auto_configured": false,
+      "used_in": ["reuniao/server/routes.ts", "reuniao/server/services/init.ts", "server/services/init.ts", "server/routes/config.ts"]
+    },
+    {
+      "name": "HMS_MANAGEMENT_TOKEN",
+      "category": "100ms (Videoconferência)",
+      "description": "Token de management pré-gerado da 100ms. Alternativa ao access_key + secret.",
+      "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+      "auto_configured": false,
+      "used_in": ["reuniao/server/routes.ts", "reuniao/server/services/init.ts", "server/services/init.ts", "server/routes/config.ts"]
+    },
+    {
+      "name": "HMS_TEMPLATE_ID",
+      "category": "100ms (Videoconferência)",
+      "description": "ID do template de sala 100ms a ser usado para criação de salas.",
+      "example": "template_xxxxxxxxxx",
+      "auto_configured": false,
+      "used_in": ["reuniao/server/routes.ts", "reuniao/server/services/init.ts", "server/services/init.ts", "server/routes/config.ts"]
+    },
+    {
+      "name": "HMS_API_BASE_URL",
+      "category": "100ms (Videoconferência)",
+      "description": "URL base da API 100ms. Padrão: https://api.100ms.live/v2",
+      "example": "https://api.100ms.live/v2",
+      "auto_configured": false,
+      "default": "https://api.100ms.live/v2",
+      "used_in": ["server/routes/config.ts"]
+    }
+  ],
+
+  "optional_n8n_automation": [
+    {
+      "name": "N8N_WEBHOOK_URL",
+      "category": "N8N (Automação)",
+      "description": "URL base de webhooks N8N para automações.",
+      "example": "https://seu-n8n.app.n8n.cloud/webhook",
+      "auto_configured": false,
+      "used_in": ["server/services/n8n.ts", "reuniao/server/services/n8n.ts"]
+    },
+    {
+      "name": "N8N_WEBHOOK_REUNIAO_INICIADA",
+      "category": "N8N (Automação)",
+      "description": "Webhook N8N disparado quando uma reunião é iniciada.",
+      "example": "https://seu-n8n.app.n8n.cloud/webhook/reuniao-iniciada",
+      "auto_configured": false,
+      "used_in": ["server/services/n8n.ts", "reuniao/server/services/n8n.ts"]
+    },
+    {
+      "name": "N8N_WEBHOOK_REUNIAO_FINALIZADA",
+      "category": "N8N (Automação)",
+      "description": "Webhook N8N disparado quando uma reunião é finalizada.",
+      "example": "https://seu-n8n.app.n8n.cloud/webhook/reuniao-finalizada",
+      "auto_configured": false,
+      "used_in": ["server/services/n8n.ts", "reuniao/server/services/n8n.ts"]
+    }
+  ],
+
+  "optional_total_express_shipping": [
+    {
+      "name": "TOTAL_EXPRESS_USER",
+      "category": "Total Express (Frete)",
+      "description": "Usuário de acesso à API Total Express para cálculo e geração de fretes.",
+      "example": "seu-usuario",
+      "auto_configured": false,
+      "used_in": ["server/services/totalExpressService.ts"]
+    },
+    {
+      "name": "TOTAL_EXPRESS_PASS",
+      "category": "Total Express (Frete)",
+      "description": "Senha de acesso à API Total Express.",
+      "example": "sua-senha",
+      "auto_configured": false,
+      "used_in": ["server/services/totalExpressService.ts"]
+    },
+    {
+      "name": "TOTAL_EXPRESS_REID",
+      "category": "Total Express (Frete)",
+      "description": "Código Reid da empresa na Total Express.",
+      "example": "12345",
+      "auto_configured": false,
+      "used_in": ["server/services/totalExpressService.ts"]
+    },
+    {
+      "name": "TOTAL_EXPRESS_SERVICE",
+      "category": "Total Express (Frete)",
+      "description": "Tipo de serviço Total Express. Padrão: EXP (Expresso).",
+      "example": "EXP",
+      "auto_configured": false,
+      "default": "EXP",
+      "used_in": ["server/services/totalExpressService.ts"]
+    },
+    {
+      "name": "TOTAL_EXPRESS_TEST_MODE",
+      "category": "Total Express (Frete)",
+      "description": "Se true, usa ambiente de teste da Total Express.",
+      "example": "true",
+      "auto_configured": false,
+      "default": "false",
+      "used_in": ["server/services/totalExpressService.ts"]
+    }
+  ],
+
+  "optional_openai_ai": [
+    {
+      "name": "OPENAI_API_KEY",
+      "category": "OpenAI (IA)",
+      "description": "Chave de API da OpenAI para recursos de IA.",
+      "example": "sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "auto_configured": false,
+      "used_in": ["server/routes/assinatura.ts"]
+    },
+    {
+      "name": "OPENAI_BASE_URL",
+      "category": "OpenAI (IA)",
+      "description": "URL base customizada para API OpenAI (ex: Azure OpenAI).",
+      "example": "https://api.openai.com/v1",
+      "auto_configured": false,
+      "used_in": ["server/routes/assinatura.ts"]
+    },
+    {
+      "name": "AI_INTEGRATIONS_OPENAI_API_KEY",
+      "category": "OpenAI (IA)",
+      "description": "Alternativa para chave OpenAI via integração Replit.",
+      "example": "sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "auto_configured": true,
+      "replit_integration": true,
+      "used_in": ["server/routes/assinatura.ts"]
+    },
+    {
+      "name": "AI_INTEGRATIONS_OPENAI_BASE_URL",
+      "category": "OpenAI (IA)",
+      "description": "URL base via integração Replit OpenAI.",
+      "example": "https://api.openai.com/v1",
+      "auto_configured": true,
+      "replit_integration": true,
+      "used_in": ["server/routes/assinatura.ts"]
+    }
+  ],
+
+  "optional_redis_cache": [
+    {
+      "name": "REDIS_URL",
+      "category": "Redis (Cache)",
+      "description": "URL de conexão Redis para cache em memória de alta performance.",
+      "example": "redis://default:password@host:6379",
+      "auto_configured": false,
+      "used_in": ["server/lib/cache.ts", "start.sh"]
+    },
+    {
+      "name": "REDIS_TOKEN",
+      "category": "Redis (Cache)",
+      "description": "Token de autenticação Redis (para Upstash).",
+      "example": "AxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxE=",
+      "auto_configured": false,
+      "used_in": ["server/lib/cache.ts"]
+    },
+    {
+      "name": "UPSTASH_REDIS_URL",
+      "category": "Redis (Cache)",
+      "description": "URL Redis do Upstash (alternativa a REDIS_URL).",
+      "example": "https://xxxxxxxx.upstash.io",
+      "auto_configured": false,
+      "used_in": ["server/lib/cache.ts"]
+    },
+    {
+      "name": "UPSTASH_REDIS_TOKEN",
+      "category": "Redis (Cache)",
+      "description": "Token Redis do Upstash (alternativa a REDIS_TOKEN).",
+      "example": "AxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxE=",
+      "auto_configured": false,
+      "used_in": ["server/lib/cache.ts"]
+    }
+  ],
+
+  "optional_sentry_monitoring": [
+    {
+      "name": "SENTRY_ENABLE_DEV",
+      "category": "Sentry (Monitoramento)",
+      "description": "Se definido, habilita envio de erros para Sentry em desenvolvimento.",
+      "example": "true",
+      "auto_configured": false,
+      "used_in": ["server/lib/sentry.ts"]
+    }
+  ],
+
+  "optional_security": [
+    {
+      "name": "CREDENTIALS_ENCRYPTION_KEY_BASE64",
+      "category": "Segurança",
+      "description": "Chave de criptografia AES-256-GCM para credenciais salvas (32 bytes em base64). Obrigatório em produção.",
+      "example": "gerar com: openssl rand -base64 32",
+      "auto_configured": false,
+      "used_in": ["server/lib/credentialsManager.ts"]
+    },
+    {
+      "name": "CONFIG_MASTER_KEY",
+      "category": "Segurança",
+      "description": "Chave master para acesso a endpoints de configuração protegidos.",
+      "example": "chave-mestra-muito-segura",
+      "auto_configured": false,
+      "used_in": ["server/middleware/configAuth.ts"]
+    }
+  ],
+
+  "optional_bigdatacorp": [
+    {
+      "name": "BIGDATACORP_API_URL",
+      "category": "BigDataCorp",
+      "description": "URL base da API BigDataCorp. Normalmente não precisa alterar.",
+      "example": "https://plataforma.bigdatacorp.com.br/pessoas",
+      "auto_configured": false,
+      "default": "https://plataforma.bigdatacorp.com.br/pessoas",
+      "used_in": ["server/lib/bigdatacorpClient.ts"]
+    }
+  ],
+
+  "optional_client_config": [
+    {
+      "name": "CLIENT_LOGIN_EMAIL",
+      "category": "Usuário Inicial",
+      "description": "Email do administrador inicial do sistema.",
+      "example": "admin@suaempresa.com",
+      "auto_configured": false,
+      "default": "admin@example.com",
+      "used_in": ["server/routes/multitenantLogin.ts", "start.sh"]
+    },
+    {
+      "name": "CLIENT_LOGIN_PASSWORD_HASH",
+      "category": "Usuário Inicial",
+      "description": "Hash bcrypt da senha do administrador inicial.",
+      "example": "$2b$10$...",
+      "auto_configured": false,
+      "used_in": ["server/routes/multitenantLogin.ts", "start.sh"]
+    },
+    {
+      "name": "CLIENT_USER_NAME",
+      "category": "Usuário Inicial",
+      "description": "Nome do usuário administrador inicial.",
+      "example": "João Silva",
+      "auto_configured": false,
+      "default": "Administrador",
+      "used_in": ["server/routes/multitenantLogin.ts", "start.sh"]
+    },
+    {
+      "name": "CLIENT_COMPANY_NAME",
+      "category": "Empresa",
+      "description": "Nome da empresa cliente.",
+      "example": "Minha Empresa LTDA",
+      "auto_configured": false,
+      "default": "Sua Empresa",
+      "used_in": ["server/routes/multitenantLogin.ts", "start.sh"]
+    },
+    {
+      "name": "CLIENT_COMPANY_EMAIL",
+      "category": "Empresa",
+      "description": "Email de contato da empresa.",
+      "example": "contato@empresa.com",
+      "auto_configured": false,
+      "default": "contato@empresa.com",
+      "used_in": ["server/routes/multitenantLogin.ts"]
+    },
+    {
+      "name": "CLIENT_PLAN_TYPE",
+      "category": "Empresa",
+      "description": "Tipo de plano da empresa: starter, pro, enterprise.",
+      "example": "pro",
+      "auto_configured": false,
+      "default": "pro",
+      "used_in": ["server/routes/multitenantLogin.ts", "start.sh"]
+    }
+  ],
+
+  "frontend_vite_env": [
+    {
+      "name": "VITE_SUPABASE_URL",
+      "category": "Frontend - Supabase",
+      "description": "URL do Supabase para o frontend. Configurado dinamicamente via API /api/config/supabase.",
+      "example": "https://seu-projeto.supabase.co",
+      "auto_configured": true,
+      "used_in": ["src/features/revendedora/integrations/supabase/client.ts", "src/features/formularios-platform/integrations/supabase/client.ts", "assinatura/client/src/integrations/supabase/client.ts"]
+    },
+    {
+      "name": "VITE_SUPABASE_PUBLISHABLE_KEY",
+      "category": "Frontend - Supabase",
+      "description": "Anon Key do Supabase para o frontend. Chave pública segura para uso no browser.",
+      "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+      "auto_configured": true,
+      "used_in": ["src/features/revendedora/integrations/supabase/client.ts"]
+    },
+    {
+      "name": "VITE_SUPABASE_ANON_KEY",
+      "category": "Frontend - Supabase",
+      "description": "Alias para VITE_SUPABASE_PUBLISHABLE_KEY.",
+      "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+      "auto_configured": true,
+      "used_in": ["src/features/formularios-platform/integrations/supabase/client.ts", "src/features/formularios-platform/lib/supabase-helpers.ts"]
+    },
+    {
+      "name": "VITE_STRIPE_PUBLISHABLE_KEY",
+      "category": "Frontend - Stripe",
+      "description": "Chave pública do Stripe para o frontend.",
+      "example": "pk_live_xxxxxxxxxxxxxxxx",
+      "auto_configured": false,
+      "used_in": ["src/features/revendedora/services/StripeService.ts"]
+    },
+    {
+      "name": "VITE_DEFAULT_TENANT_ID",
+      "category": "Frontend - Multi-tenant",
+      "description": "ID do tenant padrão quando não especificado.",
+      "example": "default-tenant",
+      "auto_configured": false,
+      "default": "default-tenant",
+      "used_in": ["src/features/kanban/pages/KanbanPage.tsx"]
+    }
+  ],
+
+  "server_supabase_legacy": [
+    {
+      "name": "REACT_APP_SUPABASE_URL",
+      "category": "Supabase (Legado)",
+      "description": "URL do Supabase - formato legado React. Use VITE_SUPABASE_URL preferencialmente.",
+      "example": "https://seu-projeto.supabase.co",
+      "auto_configured": false,
+      "deprecated": true,
+      "used_in": ["server/lib/supabaseTablesVerification.ts", "server/lib/supabaseSecretsCheck.ts", "server/formularios/routes.ts", "scripts/export-supabase-data.ts"]
+    },
+    {
+      "name": "REACT_APP_SUPABASE_ANON_KEY",
+      "category": "Supabase (Legado)",
+      "description": "Anon Key do Supabase - formato legado React.",
+      "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+      "auto_configured": false,
+      "deprecated": true,
+      "used_in": ["server/lib/supabaseTablesVerification.ts", "server/lib/supabaseSecretsCheck.ts", "server/formularios/routes.ts", "scripts/export-supabase-data.ts"]
+    },
+    {
+      "name": "SUPABASE_URL",
+      "category": "Supabase (Legado)",
+      "description": "URL do Supabase - formato alternativo.",
+      "example": "https://seu-projeto.supabase.co",
+      "auto_configured": false,
+      "used_in": ["server/lib/supabaseTablesVerification.ts", "server/lib/supabaseSecretsCheck.ts", "server/formularios/routes.ts"]
+    },
+    {
+      "name": "SUPABASE_ANON_KEY",
+      "category": "Supabase (Legado)",
+      "description": "Anon Key do Supabase - formato alternativo.",
+      "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+      "auto_configured": false,
+      "used_in": ["server/lib/supabaseTablesVerification.ts", "server/lib/supabaseSecretsCheck.ts", "server/formularios/routes.ts"]
+    }
+  ],
+
+  "replit_auto_configured": [
+    {
+      "name": "PORT",
+      "category": "Replit",
+      "description": "Porta do servidor. Auto-configurada pelo Replit. Padrão: 5000.",
+      "example": "5000",
+      "auto_configured": true,
+      "used_in": ["server/index.ts", "reuniao/server/index.ts"]
+    },
+    {
+      "name": "NODE_ENV",
+      "category": "Replit",
+      "description": "Ambiente de execução: development ou production.",
+      "example": "production",
+      "auto_configured": true,
+      "used_in": ["múltiplos arquivos"]
+    },
+    {
+      "name": "REPL_ID",
+      "category": "Replit",
+      "description": "ID único do Repl. Usado para detectar ambiente Replit.",
+      "example": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+      "auto_configured": true,
+      "used_in": ["server/index.ts", "server/vite.ts"]
+    },
+    {
+      "name": "REPLIT_DEV_DOMAIN",
+      "category": "Replit",
+      "description": "Domínio de desenvolvimento do Replit.",
+      "example": "seu-repl.username.repl.co",
+      "auto_configured": true,
+      "used_in": ["server/vite.ts", "server/routes/stripePayment.ts", "reuniao/server/routes.ts"]
+    },
+    {
+      "name": "REPLIT_DOMAINS",
+      "category": "Replit",
+      "description": "Lista de domínios do Replit separados por vírgula.",
+      "example": "seu-repl.replit.app,seu-repl.repl.co",
+      "auto_configured": true,
+      "used_in": ["server/routes/assinatura.ts", "reuniao/server/routes.ts"]
+    },
+    {
+      "name": "REPLIT_INTERNAL_APP_DOMAIN",
+      "category": "Replit",
+      "description": "Domínio interno do app Replit.",
+      "example": "internal-app-domain",
+      "auto_configured": true,
+      "used_in": ["reuniao/vite-plugin-meta-images.ts"]
+    },
+    {
+      "name": "REPL_SLUG",
+      "category": "Replit",
+      "description": "Slug do Repl (nome do projeto).",
+      "example": "meu-projeto",
+      "auto_configured": true,
+      "used_in": ["server/routes/split.ts"]
+    },
+    {
+      "name": "PGHOST",
+      "category": "Replit Database",
+      "description": "Host do PostgreSQL. Auto-configurado com banco Replit.",
+      "example": "host.db.replit.com",
+      "auto_configured": true,
+      "used_in": ["banco de dados interno"]
+    },
+    {
+      "name": "PGPORT",
+      "category": "Replit Database",
+      "description": "Porta do PostgreSQL. Auto-configurado com banco Replit.",
+      "example": "5432",
+      "auto_configured": true,
+      "used_in": ["banco de dados interno"]
+    },
+    {
+      "name": "PGUSER",
+      "category": "Replit Database",
+      "description": "Usuário do PostgreSQL. Auto-configurado com banco Replit.",
+      "example": "user",
+      "auto_configured": true,
+      "used_in": ["banco de dados interno"]
+    },
+    {
+      "name": "PGPASSWORD",
+      "category": "Replit Database",
+      "description": "Senha do PostgreSQL. Auto-configurado com banco Replit.",
+      "example": "password",
+      "auto_configured": true,
+      "used_in": ["banco de dados interno"]
+    },
+    {
+      "name": "PGDATABASE",
+      "category": "Replit Database",
+      "description": "Nome do banco PostgreSQL. Auto-configurado com banco Replit.",
+      "example": "database",
+      "auto_configured": true,
+      "used_in": ["banco de dados interno"]
+    }
+  ],
+
+  "summary": {
+    "total_variables": 67,
+    "categories": {
+      "autenticacao": 3,
+      "bigdatacorp": 3,
+      "supabase_owner": 2,
+      "supabase_master": 2,
+      "pagarme": 9,
+      "stripe": 1,
+      "100ms_video": 5,
+      "n8n_automation": 3,
+      "total_express": 5,
+      "openai": 4,
+      "redis": 4,
+      "sentry": 1,
+      "seguranca": 2,
+      "usuario_inicial": 6,
+      "frontend_vite": 5,
+      "supabase_legado": 4,
+      "replit_auto": 13
+    },
+    "critical_for_production": [
+      "DATABASE_URL",
+      "SESSION_SECRET",
+      "JWT_SECRET",
+      "CREDENTIALS_ENCRYPTION_KEY_BASE64"
+    ],
+    "critical_for_cpf_consultation": [
+      "TOKEN_ID",
+      "CHAVE_TOKEN",
+      "SUPABASE_MASTER_URL",
+      "SUPABASE_MASTER_SERVICE_ROLE_KEY"
+    ],
+    "critical_for_payments": [
+      "CHAVE_SECRETA_PRODUCAO",
+      "CHAVE_PUBLICA_PRODUCAO"
+    ],
+    "critical_for_multitenant": [
+      "SUPABASE_OWNER_URL",
+      "SUPABASE_OWNER_SERVICE_KEY"
+    ]
+  }
+}

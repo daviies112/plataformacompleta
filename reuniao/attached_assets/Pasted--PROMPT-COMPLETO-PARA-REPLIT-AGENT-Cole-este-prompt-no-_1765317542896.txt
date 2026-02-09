@@ -1,0 +1,653 @@
+# 🎯 PROMPT COMPLETO PARA REPLIT AGENT
+
+
+Cole este prompt no Replit Agent:
+
+
+---
+
+
+```
+Crie uma plataforma completa de gestão de reuniões online com as seguintes especificações:
+
+
+# 📋 VISÃO GERAL
+Uma plataforma SaaS multitenant para agendamento e realização de reuniões online usando 100ms, com dashboard administrativo, integração com n8n e WhatsApp.
+
+
+# 🛠️ STACK TECNOLÓGICO
+- Backend: Node.js + Express.js
+- Frontend: React 18 + Vite + TailwindCSS
+- Banco de Dados: Supabase (PostgreSQL)
+- Reuniões: 100ms SDK
+- Autenticação: Supabase Auth
+- Deploy: Replit
+
+
+# 📂 ESTRUTURA DE PASTAS
+```
+/
+├── server/
+│   ├── index.js (servidor Express)
+│   ├── routes/
+│   │   ├── auth.js
+│   │   ├── reunioes.js
+│   │   ├── tenants.js
+│   │   └── webhooks.js
+│   ├── middlewares/
+│   │   ├── auth.js
+│   │   └── tenant.js
+│   ├── services/
+│   │   ├── supabase.js
+│   │   ├── 100ms.js
+│   │   └── n8n.js
+│   └── utils/
+│       ├── config.js
+│       └── validators.js
+├── client/
+│   ├── src/
+│   │   ├── pages/
+│   │   │   ├── Login.jsx
+│   │   │   ├── Dashboard.jsx
+│   │   │   ├── Calendario.jsx
+│   │   │   ├── Reuniao.jsx
+│   │   │   └── Configuracoes.jsx
+│   │   ├── components/
+│   │   │   ├── Layout.jsx
+│   │   │   ├── Sidebar.jsx
+│   │   │   ├── Calendar.jsx
+│   │   │   ├── ReuniaoCard.jsx
+│   │   │   └── Meeting100ms.jsx
+│   │   ├── hooks/
+│   │   │   ├── useAuth.js
+│   │   │   ├── useReuniao.js
+│   │   │   └── use100ms.js
+│   │   ├── services/
+│   │   │   └── api.js
+│   │   ├── App.jsx
+│   │   └── main.jsx
+│   ├── index.html
+│   └── package.json
+├── .env
+├── package.json
+└── README.md
+```
+
+
+# 🗄️ BANCO DE DADOS (Supabase)
+
+
+## Tabela: tenants
+```sql
+CREATE TABLE tenants (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  nome TEXT NOT NULL,
+  slug TEXT UNIQUE NOT NULL,
+  email TEXT,
+  telefone TEXT,
+  logo_url TEXT,
+  configuracoes JSONB DEFAULT '{
+    "horario_comercial": {
+      "inicio": "08:00",
+      "fim": "18:00"
+    },
+    "duracao_padrao": 60,
+    "cores": {
+      "primaria": "#3B82F6",
+      "secundaria": "#10B981"
+    }
+  }'::jsonb,
+  token_100ms TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
+
+## Tabela: usuarios_tenant
+```sql
+CREATE TABLE usuarios_tenant (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,
+  nome TEXT NOT NULL,
+  email TEXT NOT NULL UNIQUE,
+  telefone TEXT,
+  role TEXT DEFAULT 'user',
+  avatar_url TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(tenant_id, email)
+);
+```
+
+
+## Tabela: reunioes
+```sql
+CREATE TABLE reunioes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,
+  usuario_id UUID REFERENCES usuarios_tenant(id),
+  nome TEXT NOT NULL,
+  email TEXT NOT NULL,
+  telefone TEXT,
+  titulo TEXT,
+  descricao TEXT,
+  data_inicio TIMESTAMPTZ NOT NULL,
+  data_fim TIMESTAMPTZ NOT NULL,
+  duracao INTEGER,
+  room_id_100ms TEXT UNIQUE,
+  room_code_100ms TEXT,
+  link_reuniao TEXT,
+  status TEXT DEFAULT 'agendada',
+  participantes JSONB DEFAULT '[]'::jsonb,
+  gravacao_url TEXT,
+  transcricao_id UUID,
+  metadata JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
+
+## Tabela: transcricoes
+```sql
+CREATE TABLE transcricoes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  reuniao_id UUID REFERENCES reunioes(id) ON DELETE CASCADE,
+  tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,
+  transcricao_completa TEXT,
+  resumo TEXT,
+  topicos JSONB,
+  acoes JSONB,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+```
+
+
+Crie índices para otimização:
+```sql
+CREATE INDEX idx_reunioes_tenant_id ON reunioes(tenant_id);
+CREATE INDEX idx_reunioes_status ON reunioes(status);
+CREATE INDEX idx_reunioes_data_inicio ON reunioes(data_inicio);
+CREATE INDEX idx_usuarios_tenant_id ON usuarios_tenant(tenant_id);
+```
+
+
+# 🔐 VARIÁVEIS DE AMBIENTE (.env)
+```env
+# Supabase
+SUPABASE_URL=sua_url_supabase
+SUPABASE_ANON_KEY=sua_key_supabase
+SUPABASE_SERVICE_KEY=sua_service_key
+
+
+# 100ms
+HMS_TOKEN_100MS=seu_token_100ms
+HMS_TEMPLATE_ID=seu_template_id
+
+
+# n8n
+N8N_WEBHOOK_URL=https://n8n.webmastery.com.br/webhook
+
+
+# App
+PORT=3000
+NODE_ENV=production
+```
+
+
+# 🚀 BACKEND - API ENDPOINTS
+
+
+## 1. server/index.js
+Crie servidor Express com:
+- CORS habilitado
+- Body parser JSON
+- Rate limiting
+- Rotas organizadas
+- Error handling global
+- Middleware de autenticação
+
+
+## 2. server/routes/auth.js
+```javascript
+POST /api/auth/login - Login (email/senha)
+POST /api/auth/register - Registro novo tenant
+POST /api/auth/logout - Logout
+GET /api/auth/me - Dados do usuário logado
+```
+
+
+## 3. server/routes/reunioes.js
+```javascript
+GET /api/reunioes - Listar reuniões do tenant
+  Query params: ?status=agendada&data_inicio=2025-12-10
+  
+POST /api/reunioes - Criar nova reunião
+  Body: { nome, email, telefone, data_inicio, data_fim, titulo }
+  - Verifica disponibilidade
+  - Cria sala no 100ms
+  - Salva no Supabase
+  - Envia webhook para n8n
+  
+GET /api/reunioes/:id - Detalhes de uma reunião
+
+
+PATCH /api/reunioes/:id - Atualizar reunião
+  Body: { data_inicio, data_fim, status }
+  - Atualiza sala no 100ms se necessário
+  
+DELETE /api/reunioes/:id - Cancelar reunião
+  - Cancela sala no 100ms
+  - Atualiza status para 'cancelada'
+  - Envia webhook para n8n
+
+
+POST /api/reunioes/verificar-disponibilidade
+  Body: { data_inicio, data_fim }
+  Response: { disponivel: boolean, conflitos: [] }
+
+
+GET /api/reunioes/:id/token-100ms - Gerar token para participante entrar na reunião
+```
+
+
+## 4. server/routes/tenants.js
+```javascript
+GET /api/tenants/me - Dados do tenant atual
+PATCH /api/tenants/me - Atualizar configurações
+GET /api/tenants/usuarios - Listar usuários do tenant
+POST /api/tenants/usuarios - Adicionar usuário
+```
+
+
+## 5. server/routes/webhooks.js (para n8n chamar)
+```javascript
+POST /api/webhooks/reuniao-iniciada
+  Body: { room_id_100ms, gravar }
+  - Inicia gravação se necessário
+  
+POST /api/webhooks/reuniao-finalizada
+  Body: { room_id_100ms, gravou, recording_url }
+  - Salva URL da gravação
+  - Notifica n8n para transcrição
+  
+POST /api/webhooks/transcricao-completa
+  Body: { reuniao_id, transcricao, resumo }
+  - Salva transcrição no banco
+```
+
+
+# 🎨 FRONTEND - PÁGINAS E COMPONENTES
+
+
+## 1. client/src/pages/Login.jsx
+Página de login com:
+- Formulário email/senha
+- Integração com Supabase Auth
+- Redirecionamento para Dashboard após login
+- Design moderno com Tailwind
+
+
+## 2. client/src/pages/Dashboard.jsx
+Dashboard principal com:
+- Cards de estatísticas:
+  - Total de reuniões (hoje, semana, mês)
+  - Próximas reuniões
+  - Reuniões em andamento
+- Lista de reuniões próximas (próximas 24h)
+- Botão "Agendar Nova Reunião"
+
+
+## 3. client/src/pages/Calendario.jsx
+Calendário de reuniões com:
+- Visualização mensal (react-big-calendar ou similar)
+- Filtros por status
+- Clique no dia para agendar
+- Clique na reunião para ver detalhes
+- Modal de criação/edição de reunião
+
+
+## 4. client/src/pages/Reuniao.jsx
+Página da reunião online com:
+- Integração com 100ms SDK
+- Vídeo + Áudio
+- Chat
+- Compartilhamento de tela
+- Botão "Iniciar Gravação" (opcional)
+- Timer de duração
+- Botão "Encerrar Reunião"
+
+
+## 5. client/src/pages/Configuracoes.jsx
+Configurações do tenant:
+- Dados da empresa
+- Logo
+- Horário comercial
+- Duração padrão de reuniões
+- Token 100ms
+- Cores do tema
+
+
+## 6. client/src/components/Meeting100ms.jsx
+Componente de reunião 100ms com:
+```jsx
+import { HMSRoomProvider, useHMSActions, useHMSStore } from '@100mslive/react-sdk';
+
+
+- Join room com token
+- Preview antes de entrar
+- Controles de vídeo/áudio/tela
+- Lista de participantes
+- Chat em tempo real
+- Gravação
+```
+
+
+## 7. client/src/components/Calendar.jsx
+Componente de calendário com:
+- Visualização de reuniões
+- Drag & drop para reagendar
+- Indicadores de disponibilidade
+- Cores por status
+
+
+# 🔌 INTEGRAÇÕES
+
+
+## 1. Integração 100ms (server/services/100ms.js)
+```javascript
+const HMS = require('@100mslive/server-sdk');
+
+
+class HMS100msService {
+  async criarSala(nome, descricao, tenant_id) {
+    // Criar room na API do 100ms
+    // Retornar: { room_id, room_code, url }
+  }
+  
+  async gerarToken(room_id, user_id, role = 'guest') {
+    // Gerar auth token para participante
+  }
+  
+  async cancelarSala(room_id) {
+    // Remover sala do 100ms
+  }
+  
+  async iniciarGravacao(room_id) {
+    // Iniciar gravação da reunião
+  }
+  
+  async pararGravacao(room_id) {
+    // Parar gravação
+    // Retornar URL da gravação
+  }
+}
+```
+
+
+## 2. Integração n8n (server/services/n8n.js)
+```javascript
+class N8nService {
+  async notificarReuniaoAgendada(reuniao) {
+    await axios.post(`${process.env.N8N_WEBHOOK_URL}/reuniao-agendada`, reuniao);
+  }
+  
+  async notificarReuniaoIniciada(reuniao) {
+    await axios.post(`${process.env.N8N_WEBHOOK_URL}/reuniao-iniciada`, reuniao);
+  }
+  
+  async notificarReuniaoFinalizada(reuniao, gravacao_url) {
+    await axios.post(`${process.env.N8N_WEBHOOK_URL}/reuniao-finalizada`, {
+      ...reuniao,
+      gravacao_url
+    });
+  }
+}
+```
+
+
+## 3. Integração Supabase (server/services/supabase.js)
+```javascript
+const { createClient } = require('@supabase/supabase-js');
+
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_KEY
+);
+
+
+class SupabaseService {
+  async buscarReuniao(id, tenant_id) {
+    const { data, error } = await supabase
+      .from('reunioes')
+      .select('*')
+      .eq('id', id)
+      .eq('tenant_id', tenant_id)
+      .single();
+    
+    if (error) throw error;
+    return data;
+  }
+  
+  async verificarDisponibilidade(tenant_id, data_inicio, data_fim, excluir_id = null) {
+    let query = supabase
+      .from('reunioes')
+      .select('*')
+      .eq('tenant_id', tenant_id)
+      .eq('status', 'agendada')
+      .or(`data_inicio.lte.${data_fim},data_fim.gte.${data_inicio}`);
+    
+    if (excluir_id) {
+      query = query.neq('id', excluir_id);
+    }
+    
+    const { data, error } = await query;
+    
+    return {
+      disponivel: !data || data.length === 0,
+      conflitos: data || []
+    };
+  }
+}
+```
+
+
+# 🎯 FUNCIONALIDADES ESPECÍFICAS
+
+
+## 1. Sistema Multitenant
+- Cada requisição deve incluir tenant_id (extraído do token JWT)
+- Middleware para validar acesso ao tenant
+- Isolamento total de dados entre tenants
+
+
+## 2. Fluxo de Agendamento
+```
+Usuário preenche formulário
+  ↓
+Frontend valida dados
+  ↓
+POST /api/reunioes
+  ↓
+Backend verifica disponibilidade
+  ↓
+Cria sala no 100ms
+  ↓
+Salva no Supabase
+  ↓
+Envia webhook para n8n (confirmação WhatsApp)
+  ↓
+Retorna dados para frontend
+```
+
+
+## 3. Fluxo de Reunião
+```
+Usuário clica "Entrar na Reunião"
+  ↓
+GET /api/reunioes/:id/token-100ms
+  ↓
+Frontend carrega componente Meeting100ms
+  ↓
+Join room com token
+  ↓
+Reunião acontece
+  ↓
+Ao finalizar: POST /api/webhooks/reuniao-finalizada
+  ↓
+n8n recebe webhook para transcrição
+```
+
+
+# 📱 UI/UX REQUIREMENTS
+
+
+## Design System
+- Tailwind CSS com tema personalizável
+- Dark mode opcional
+- Responsivo (mobile-first)
+- Componentes acessíveis (a11y)
+
+
+## Cores padrão
+- Primary: #3B82F6 (blue-500)
+- Secondary: #10B981 (green-500)
+- Danger: #EF4444 (red-500)
+- Gray: #6B7280
+
+
+## Tipografia
+- Font: Inter (Google Fonts)
+- Títulos: font-bold
+- Corpo: font-normal
+
+
+# 🔒 SEGURANÇA E VALIDAÇÃO
+
+
+1. Autenticação obrigatória em todas as rotas (exceto login/register)
+2. Validação de tenant_id em todas as operações
+3. Rate limiting: 100 req/min por IP
+4. Sanitização de inputs
+5. CORS configurado corretamente
+6. Headers de segurança (helmet.js)
+
+
+# 📦 DEPENDÊNCIAS
+
+
+## Backend (package.json)
+```json
+{
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "helmet": "^7.1.0",
+    "express-rate-limit": "^7.1.5",
+    "@supabase/supabase-js": "^2.39.0",
+    "@100mslive/server-sdk": "^0.2.0",
+    "axios": "^1.6.2",
+    "dotenv": "^16.3.1",
+    "joi": "^17.11.0"
+  }
+}
+```
+
+
+## Frontend (client/package.json)
+```json
+{
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.20.1",
+    "@100mslive/react-sdk": "^0.10.0",
+    "@supabase/supabase-js": "^2.39.0",
+    "axios": "^1.6.2",
+    "react-big-calendar": "^1.8.5",
+    "date-fns": "^3.0.6",
+    "lucide-react": "^0.294.0"
+  },
+  "devDependencies": {
+    "vite": "^5.0.8",
+    "tailwindcss": "^3.3.6",
+    "@vitejs/plugin-react": "^4.2.1"
+  }
+}
+```
+
+
+# 🚀 SCRIPT DE INICIALIZAÇÃO
+
+
+Crie script para iniciar dev:
+```json
+"scripts": {
+  "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+  "dev:server": "nodemon server/index.js",
+  "dev:client": "cd client && vite",
+  "build": "cd client && vite build",
+  "start": "node server/index.js"
+}
+```
+
+
+# ✅ CHECKLIST DE IMPLEMENTAÇÃO
+
+
+1. Configurar estrutura de pastas
+2. Instalar todas as dependências
+3. Configurar .env com variáveis
+4. Criar tabelas no Supabase (executar SQL)
+5. Implementar servidor Express
+6. Criar todas as rotas da API
+7. Implementar serviços (100ms, n8n, Supabase)
+8. Configurar Vite + React
+9. Criar todas as páginas do frontend
+10. Implementar componente Meeting100ms
+11. Conectar frontend com backend
+12. Testar fluxo completo de agendamento
+13. Testar fluxo de reunião online
+14. Implementar tratamento de erros
+15. Adicionar logs para debug
+
+
+# 🎯 RESULTADO ESPERADO
+
+
+Uma plataforma completa onde:
+- Usuários fazem login
+- Visualizam calendário de reuniões
+- Agendam novas reuniões (valida disponibilidade)
+- Entram em reuniões online via 100ms
+- Reuniões são gravadas (opcional)
+- Após finalizar, n8n recebe webhook para processar transcrição
+- Sistema é multitenant (cada cliente isolado)
+- Interface moderna e responsiva
+
+
+IMPLEMENTE TUDO ISSO DE FORMA COMPLETA E FUNCIONAL.
+```
+
+
+---
+
+
+## 🎯 Como usar:
+
+
+1. **Abra o Replit**
+2. **Crie um novo projeto** (Node.js)
+3. **Abra o Replit Agent** (ícone de ⚡ ou digite `/agent`)
+4. **Cole o prompt completo**
+5. **Pressione Enter**
+
+
+O Replit Agent vai criar toda a estrutura, instalar dependências e implementar o código! 🚀
+
+
+**Tempo estimado:** 10-20 minutos para o Agent criar tudo.
+
+
+

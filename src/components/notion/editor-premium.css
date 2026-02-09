@@ -1,0 +1,51 @@
+/* Premium Editor Styles - Inspirado em Notion, Linear, Stripe, Figma 2025 */
+
+/* Title Placeholder Premium com letter-spacing */
+[contenteditable][data-placeholder]:empty:before {
+  content: attr(data-placeholder);
+  color: rgba(255, 255, 255, 0.12);
+  font-weight: 900;
+  pointer-events: none;
+  position: absolute;
+  letter-spacing: -0.02em;
+}
+
+[contenteditable]:focus {
+  outline: none;
+}
+
+/* Gradient Text Enhancement */
+[contenteditable] {
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Premium Hover Effects com smooth transition */
+[contenteditable]:hover {
+  opacity: 1;
+}
+
+/* Caret color premium (primary color) */
+[contenteditable] {
+  caret-color: hsl(var(--primary));
+}
+
+/* Selection Premium com glow sutil */
+::selection {
+  background-color: rgba(212, 175, 55, 0.25);
+  color: inherit;
+  text-shadow: 0 0 1px rgba(212, 175, 55, 0.1);
+}
+
+::-moz-selection {
+  background-color: rgba(212, 175, 55, 0.25);
+  color: inherit;
+  text-shadow: 0 0 1px rgba(212, 175, 55, 0.1);
+}
+
+/* Kbd style premium (Figma/Linear style) */
+kbd {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}

@@ -1,0 +1,685 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@100;200;300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* NEXUS Intelligence - Luxury Dark Premium Design System */
+
+@layer base {
+  :root {
+    /* === LIGHT THEME VARIABLES === */
+    /* === BACKGROUNDS === */
+    --background: 0 0% 96%;              /* #f5f5f5 - Fundo off-white suave */
+    --card: 0 0% 98%;                    /* #fafafa - Cards e containers */
+    --popover: 0 0% 97%;                 /* #f7f7f7 - Popovers e dropdowns */
+    --muted: 0 0% 94%;                   /* #f0f0f0 - Áreas desabilitadas */
+    --secondary: 0 0% 94%;               /* #f0f0f0 - Elementos secundários */
+    --input: 0 0% 92%;                   /* #ebebeb - Campos de input */
+
+    /* === TEXTO === */
+    --foreground: 0 0% 10%;              /* #1a1a1a - Texto principal escuro */
+    --card-foreground: 0 0% 10%;         /* #1a1a1a - Texto em cards */
+    --popover-foreground: 0 0% 10%;      /* #1a1a1a - Texto em popovers */
+    --muted-foreground: 0 0% 40%;        /* #666666 - Texto secundário/disabled */
+    --secondary-foreground: 0 0% 10%;    /* #1a1a1a - Texto em elementos secundários */
+
+    /* === ACENTOS DOURADOS === */
+    --primary: 45 90% 45%;               /* #cc9900 - Dourado mais escuro para contraste */
+    --primary-foreground: 0 0% 100%;     /* #ffffff - Texto em botões primários */
+    --accent: 45 90% 45%;                /* #cc9900 - Cor de destaque */
+    --accent-foreground: 0 0% 10%;       /* #1a1a1a - Texto escuro para contraste com fundo amarelo */
+    
+    /* === ELEMENTOS INTERATIVOS === */
+    --border: 0 0% 90%;                  /* Bordas sutis escuras */
+    --ring: 45 90% 45%;                  /* #cc9900 - Focus outline */
+    --destructive: 0 72% 50%;            /* #e53e3e - Ações destrutivas */
+    --destructive-foreground: 0 0% 100%; /* #ffffff - Texto destrutivo */
+
+    /* === GRÁFICOS === */
+    --chart-1: 45 90% 45%;               /* Dourado */
+    --chart-2: 0 0% 20%;                 /* Cinza escuro */
+    --chart-3: 0 0% 35%;                 /* Cinza médio */
+    --chart-4: 0 0% 50%;                 /* Cinza claro */
+    --chart-5: 0 0% 65%;                 /* Cinza muito claro */
+
+    /* === CONFIGURAÇÕES === */
+    --radius: 12px;                      /* Border radius padrão */
+    --font-sans: 'Outfit', 'Inter', sans-serif;
+
+    /* === SIDEBAR LIGHT THEME === */
+    --sidebar-background: 0 0% 97%;
+    --sidebar-foreground: 0 0% 10%;
+    --sidebar-primary: 45 90% 45%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 0 0% 93%;
+    --sidebar-accent-foreground: 0 0% 10%;
+    --sidebar-border: 0 0% 90%;
+    --sidebar-ring: 45 90% 45%;
+
+    /* === WORKSPACE/KANBAN LIGHT THEME === */
+    --bg-board: 0 0% 94%;                /* Fundo do board Kanban - tom claro consistente */
+    --bg-list: 0 0% 97%;                 /* Fundo das listas Kanban - branco suave */
+    --card-hover: 0 0% 92%;              /* Hover state para cards - sutilmente mais escuro */
+    --notion-bg-hover: 0 0% 92%;         /* Hover no workspace/notion - consistente com card-hover */
+
+    /* === GRADIENT BACKGROUND VARIABLES === */
+    --bg-start: 0 0% 96%;                /* Off-white para tema claro */
+    --bg-end: 0 0% 94%;                  /* Cinza claro para tema claro */
+  }
+
+  /* Dark mode - NEXUS theme */
+  .dark {
+    /* === DARK THEME VARIABLES === */
+    /* === BACKGROUNDS === */
+    --background: 0 0% 4%;               /* #0a0a0a - Fundo principal muito escuro */
+    --card: 0 0% 7%;                     /* #121212 - Cards e containers */
+    --popover: 0 0% 7%;                  /* #121212 - Popovers e dropdowns */
+    --muted: 0 0% 10%;                   /* #1a1a1a - Áreas desabilitadas */
+    --secondary: 0 0% 12%;               /* #1f1f1f - Elementos secundários */
+    --input: 0 0% 10%;                   /* #1a1a1a - Campos de input */
+
+    /* === TEXTO === */
+    --foreground: 0 0% 98%;              /* #fafafa - Texto principal branco */
+    --card-foreground: 0 0% 98%;         /* #fafafa - Texto em cards */
+    --popover-foreground: 0 0% 98%;      /* #fafafa - Texto em popovers */
+    --muted-foreground: 0 0% 60%;        /* #999999 - Texto secundário/disabled */
+    --secondary-foreground: 0 0% 98%;    /* #fafafa - Texto em elementos secundários */
+
+    /* === ACENTOS DOURADOS === */
+    --primary: 45 100% 85%;              /* #ffdf80 - Dourado principal */
+    --primary-foreground: 0 0% 4%;       /* #0a0a0a - Texto em botões primários */
+    --accent: 45 100% 85%;               /* #ffdf80 - Cor de destaque */
+    --accent-foreground: 0 0% 4%;        /* #0a0a0a - Texto em elementos de destaque */
+    
+    /* === ELEMENTOS INTERATIVOS === */
+    --border: 0 0% 20%;                  /* Bordas sutis */
+    --ring: 45 100% 85%;                 /* #ffdf80 - Focus outline */
+    --destructive: 0 80% 65%;            /* #e57373 - Ações destrutivas */
+    --destructive-foreground: 0 0% 98%;  /* #fafafa - Texto destrutivo */
+
+    /* === GRÁFICOS === */
+    --chart-1: 45 100% 85%;              /* Dourado */
+    --chart-2: 0 0% 80%;                 /* Cinza claro */
+    --chart-3: 0 0% 65%;                 /* Cinza médio */
+    --chart-4: 0 0% 50%;                 /* Cinza escuro */
+    --chart-5: 0 0% 35%;                 /* Cinza muito escuro */
+
+    /* === SIDEBAR DARK THEME === */
+    --sidebar-background: 0 0% 7%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 45 100% 85%;
+    --sidebar-primary-foreground: 0 0% 4%;
+    --sidebar-accent: 0 0% 10%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 0 0% 20%;
+    --sidebar-ring: 45 100% 85%;
+
+    /* === WORKSPACE/KANBAN DARK THEME === */
+    --bg-board: 0 0% 6%;                 /* Fundo do board Kanban - tom escuro consistente */
+    --bg-list: 0 0% 9%;                  /* Fundo das listas Kanban - um pouco mais claro que o board */
+    --card-hover: 0 0% 12%;              /* Hover state para cards - sutilmente mais claro */
+    --notion-bg-hover: 0 0% 12%;         /* Hover no workspace/notion - consistente com card-hover */
+
+    /* === GRADIENT BACKGROUND VARIABLES === */
+    --bg-start: 0 0% 6%;                 /* Cinza muito escuro para tema escuro */
+    --bg-end: 0 0% 4%;                   /* Preto para tema escuro */
+  }
+}
+
+@layer base {
+  * {
+    border-color: hsl(var(--border));
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Outfit', 'Inter', sans-serif;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    background: hsl(var(--background));
+    background-image: 
+      radial-gradient(ellipse at top, hsl(var(--bg-start)) 0%, hsl(var(--bg-end)) 100%);
+    background-attachment: fixed;
+  }
+
+  /* NEXUS Typography */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    line-height: 1.2;
+  }
+
+  /* Luxury Scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--background));
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.25);
+    border-radius: 3px;
+    transition: background 0.3s ease;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.35);
+  }
+
+  /* Premium Selection */
+  ::selection {
+    background: hsl(var(--primary) / 0.2);
+    color: hsl(var(--foreground));
+  }
+}
+
+@layer components {
+  /* NEXUS Luxury Text Effects */
+  .luxury-text {
+    background: linear-gradient(135deg, hsl(0, 0%, 98%) 0%, hsl(0, 0%, 80%) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .luxury-accent {
+    background: linear-gradient(135deg, hsl(45, 100%, 85%) 0%, hsl(45, 80%, 75%) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* NEXUS Glass Effects */
+  .luxury-glass {
+    background: rgba(255, 255, 255, 0.02);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow: 
+      0 0 0 1px rgba(255, 255, 255, 0.02),
+      0 8px 32px rgba(0, 0, 0, 0.6),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+
+  /* NEXUS Cards */
+  .luxury-card {
+    background: hsl(var(--card));
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 
+      0 4px 24px rgba(0, 0, 0, 0.4),
+      0 1px 0 rgba(255, 255, 255, 0.04);
+    transition: all 400ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .luxury-card:hover {
+    background: color-mix(in oklab, hsl(var(--card)), hsl(var(--foreground)) 6%);
+    border-color: var(--border);
+    box-shadow: 
+      0 8px 40px rgba(0, 0, 0, 0.5),
+      0 1px 0 hsl(var(--border));
+    transform: translateY(-2px);
+  }
+
+  /* NEXUS Input Fields */
+  .luxury-input {
+    background: hsl(var(--input));
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: hsl(var(--foreground));
+    transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .luxury-input:focus {
+    border-color: hsl(var(--primary));
+    box-shadow: 0 0 0 3px hsl(var(--primary) / 0.15);
+    background: color-mix(in oklab, hsl(var(--input)), hsl(var(--foreground)) 3%);
+  }
+
+  .luxury-input::placeholder {
+    color: hsl(var(--muted-foreground));
+  }
+
+  /* NEXUS Animations */
+  .animate-breathe {
+    animation: breathe 4s ease-in-out infinite;
+  }
+
+  @keyframes breathe {
+    0%, 100% { transform: scale(1) translateY(0px); opacity: 1; }
+    50% { transform: scale(1.02) translateY(-5px); opacity: 0.95; }
+  }
+
+  @keyframes gradient {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  .animate-gradient {
+    background-size: 200% 200%;
+    animation: gradient 15s ease infinite;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .animate-fadeIn {
+    animation: fadeIn 0.3s ease-out;
+  }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+    20%, 40%, 60%, 80% { transform: translateX(4px); }
+  }
+
+  .animate-shake {
+    animation: shake 0.4s ease-in-out;
+  }
+
+  /* Calendar Animations */
+  @keyframes slideInLeft {
+    from { opacity: 0; transform: translateX(-20px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  @keyframes slideInRight {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  @keyframes slideOutLeft {
+    from { opacity: 1; transform: translateX(0); }
+    to { opacity: 0; transform: translateX(-20px); }
+  }
+
+  @keyframes slideOutRight {
+    from { opacity: 1; transform: translateX(0); }
+    to { opacity: 0; transform: translateX(20px); }
+  }
+
+  @keyframes glow {
+    0%, 100% { 
+      box-shadow: 0 0 8px hsl(var(--primary) / 0.4),
+                  0 0 16px hsl(var(--primary) / 0.2),
+                  0 0 24px hsl(var(--primary) / 0.1);
+    }
+    50% { 
+      box-shadow: 0 0 12px hsl(var(--primary) / 0.6),
+                  0 0 24px hsl(var(--primary) / 0.4),
+                  0 0 32px hsl(var(--primary) / 0.2);
+    }
+  }
+
+  @keyframes scaleIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  .animate-slide-in-left {
+    animation: slideInLeft 0.2s ease-out;
+  }
+
+  .animate-slide-in-right {
+    animation: slideInRight 0.2s ease-out;
+  }
+
+  .animate-slide-out-left {
+    animation: slideOutLeft 0.2s ease-out;
+  }
+
+  .animate-slide-out-right {
+    animation: slideOutRight 0.2s ease-out;
+  }
+
+  .animate-glow {
+    animation: glow 2s ease-in-out infinite;
+  }
+
+  .animate-scale-in {
+    animation: scaleIn 0.15s ease-out;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-shake {
+      animation: none;
+    }
+  }
+
+  /* NEXUS Utility Classes */
+  .minimal-shadow {
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  }
+
+  .luxury-gradient {
+    background: radial-gradient(ellipse at top, hsl(var(--bg-start)) 0%, hsl(var(--bg-end)) 100%);
+  }
+
+  /* Additional Missing Classes */
+  .container-luxury {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 2rem;
+  }
+
+  /* Desktop Optimizations - Reduced sizing for better proportion */
+  @media (min-width: 1024px) {
+    /* Desktop Typography - Smaller and more refined */
+    h1 {
+      font-size: 1.75rem; /* ~28px instead of 30px */
+      line-height: 1.1;
+    }
+    
+    h2 {
+      font-size: 1.5rem; /* ~24px instead of 24px */
+      line-height: 1.2;
+    }
+    
+    h3 {
+      font-size: 1.125rem; /* ~18px instead of 20px */
+      line-height: 1.3;
+    }
+    
+    h4 {
+      font-size: 1rem; /* ~16px instead of 18px */
+      line-height: 1.4;
+    }
+    
+    /* Desktop Glass Cards - Reduced padding */
+    .glass-card {
+      padding: 1rem; /* 16px instead of default */
+    }
+    
+    .luxury-card {
+      padding: 1rem; /* 16px instead of default */
+    }
+    
+    /* Desktop Container - More compact */
+    .container-luxury {
+      padding: 0 1.5rem; /* 24px instead of 32px */
+    }
+    
+    /* Desktop specific class for extra compact spacing */
+    .desktop-compact {
+      font-size: 0.875rem; /* 14px */
+      line-height: 1.4;
+    }
+    
+    .desktop-compact-heading {
+      font-size: 1.25rem; /* 20px */
+      line-height: 1.3;
+    }
+  }
+  
+  /* Mobile Optimizations */
+  @media (max-width: 768px) {
+    .glass-card {
+      padding: 1rem;
+      margin: 0.5rem;
+    }
+    
+    .luxury-card {
+      padding: 1rem;
+    }
+    
+    .animate-float {
+      animation: none; /* Disable animations on mobile for better performance */
+    }
+    
+    /* Improved touch targets for mobile */
+    .mobile-touch-target {
+      min-height: 44px;
+      min-width: 44px;
+    }
+    
+    /* Better text sizing for mobile */
+    .mobile-text-optimize {
+      font-size: 16px; /* Prevents zoom on iOS */
+    }
+    
+    /* Mobile safe areas */
+    .mobile-safe-top {
+      padding-top: max(1rem, env(safe-area-inset-top));
+    }
+    
+    .mobile-safe-bottom {
+      padding-bottom: max(1rem, env(safe-area-inset-bottom));
+    }
+    
+    /* Mobile specific gradients */
+    .mobile-gradient {
+      background: linear-gradient(180deg, hsl(var(--background)) 0%, hsl(var(--muted)) 100%);
+    }
+  }
+  
+  /* Tablet optimizations */
+  @media (min-width: 768px) and (max-width: 1024px) {
+    .tablet-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+    }
+  }
+  
+  /* High DPI screen optimizations */
+  @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    .crisp-edges {
+      image-rendering: -webkit-optimize-contrast;
+      image-rendering: crisp-edges;
+    }
+  }
+
+  .glass-card {
+    background: rgba(255, 255, 255, 0.02);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    box-shadow: 
+      0 0 0 1px rgba(255, 255, 255, 0.02),
+      0 8px 32px rgba(0, 0, 0, 0.6),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+
+  .transition-elegant {
+    transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+  }
+
+  .transition-smooth {
+    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+
+  .shadow-luxury {
+    box-shadow: 
+      0 16px 64px rgba(0, 0, 0, 0.7),
+      0 8px 32px rgba(0, 0, 0, 0.5);
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+
+  @keyframes slideUp {
+    0% { 
+      opacity: 0; 
+      transform: translateY(30px); 
+    }
+    100% { 
+      opacity: 1; 
+      transform: translateY(0); 
+    }
+  }
+
+  /* Estilos para Calendário de Reuniões conforme especificações */
+  .reunions-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+
+  .reunion-card {
+    position: relative;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+    border-radius: 16px;
+    color: hsl(var(--foreground));
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    overflow: hidden;
+  }
+
+  .reunion-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, #667eea20 0%, #764ba220 100%);
+    border-radius: 16px;
+    z-index: -1;
+  }
+
+  .reunion-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+  }
+
+  .reunion-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+
+  .reunion-title {
+    font-size: 20px;
+    font-weight: 600;
+    margin: 0;
+    color: hsl(var(--foreground));
+  }
+
+  .reunion-time {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
+
+  .reunion-date, .reunion-hour {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .reunion-participants {
+    margin-bottom: 20px;
+    opacity: 0.9;
+  }
+
+  .meet-btn {
+    width: 100%;
+    padding: 16px 24px;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .meet-join {
+    background: #4caf50;
+    color: white;
+  }
+
+  .meet-join:hover {
+    background: #45a049;
+    transform: scale(1.02);
+  }
+
+  .meet-create {
+    background: #2196f3;
+    color: white;
+  }
+
+  .meet-create:hover {
+    background: #1976d2;
+    transform: scale(1.02);
+  }
+
+  .reunion-description {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 12px;
+    border-radius: 8px;
+    margin-top: 16px;
+    font-size: 14px;
+    line-height: 1.4;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  /* Layout Responsivo */
+  @media (max-width: 768px) {
+    .reunions-container {
+      grid-template-columns: 1fr;
+      padding: 16px;
+    }
+    
+    .reunion-card {
+      padding: 20px;
+    }
+    
+    .reunion-time {
+      flex-direction: column;
+      gap: 8px;
+    }
+  }
+
+  /* Animações adicionais para as reuniões */
+  .animate-fade-in {
+    animation: fadeIn 0.6s ease-out;
+  }
+
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+  }
+
+  .gradient-text {
+    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .bg-luxury {
+    background: hsl(var(--background));
+    background-image: 
+      radial-gradient(ellipse at top, hsl(var(--bg-start)) 0%, hsl(var(--bg-end)) 100%);
+  }
+}

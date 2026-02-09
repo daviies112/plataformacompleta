@@ -1,0 +1,260 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Premium Design System - Luxurious and Professional
+All colors MUST be HSL format.
+*/
+
+@layer base {
+  :root {
+    /* Premium Color Palette - Light Mode */
+    --background: 240 20% 98%;
+    --foreground: 240 60% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 240 60% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 60% 15%;
+
+    --primary: 245 60% 25%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 265 85% 65%;
+    --primary-dark: 245 70% 18%;
+
+    --secondary: 240 15% 94%;
+    --secondary-foreground: 240 60% 15%;
+
+    --muted: 240 12% 96%;
+    --muted-foreground: 240 20% 45%;
+
+    --accent: 43 96% 56%;
+    --accent-foreground: 240 60% 15%;
+    --accent-light: 45 100% 70%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 240 15% 90%;
+    --input: 240 15% 92%;
+    --ring: 265 85% 65%;
+
+    --radius: 0.875rem;
+    
+    /* Premium Gradients */
+    --gradient-premium: linear-gradient(135deg, hsl(245 60% 25%) 0%, hsl(260 70% 40%) 50%, hsl(265 85% 65%) 100%);
+    --gradient-premium-soft: linear-gradient(135deg, hsl(245 60% 25% / 0.95) 0%, hsl(265 75% 45% / 0.95) 100%);
+    --gradient-gold: linear-gradient(135deg, hsl(43 96% 56%) 0%, hsl(38 92% 50%) 50%, hsl(35 88% 45%) 100%);
+    --gradient-gold-subtle: linear-gradient(135deg, hsl(43 96% 56% / 0.1) 0%, hsl(35 88% 45% / 0.05) 100%);
+    --gradient-subtle: linear-gradient(180deg, hsl(240 20% 98%) 0%, hsl(240 25% 99%) 100%);
+    --gradient-glass: linear-gradient(135deg, hsl(0 0% 100% / 0.7) 0%, hsl(0 0% 100% / 0.3) 100%);
+    
+    /* Luxury Shadows & Effects */
+    --shadow-luxury: 0 25px 70px -20px hsl(265 85% 65% / 0.3);
+    --shadow-glow: 0 0 50px hsl(265 85% 65% / 0.2);
+    --shadow-glow-gold: 0 0 40px hsl(43 96% 56% / 0.25);
+    --shadow-card: 0 10px 40px -10px hsl(240 60% 15% / 0.1);
+    --shadow-card-hover: 0 20px 60px -15px hsl(240 60% 15% / 0.15);
+    
+    /* Glassmorphism Effects */
+    --glass-bg: hsl(0 0% 100% / 0.7);
+    --glass-border: hsl(0 0% 100% / 0.3);
+    --glass-shadow: 0 8px 32px 0 hsl(240 60% 15% / 0.1);
+
+    /* Sidebar Premium */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 240 60% 20%;
+    --sidebar-primary: 245 60% 25%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 265 85% 65% / 0.1;
+    --sidebar-accent-foreground: 245 60% 25%;
+    --sidebar-border: 240 15% 92%;
+    --sidebar-ring: 265 85% 65%;
+  }
+
+  .dark {
+    /* Premium Color Palette - Dark Mode */
+    --background: 240 45% 6%;
+    --foreground: 240 15% 95%;
+
+    --card: 240 40% 10%;
+    --card-foreground: 240 15% 95%;
+
+    --popover: 240 40% 10%;
+    --popover-foreground: 240 15% 95%;
+
+    --primary: 265 85% 65%;
+    --primary-foreground: 240 45% 6%;
+    --primary-glow: 265 90% 75%;
+    --primary-dark: 260 80% 55%;
+
+    --secondary: 240 35% 15%;
+    --secondary-foreground: 240 15% 95%;
+
+    --muted: 240 30% 14%;
+    --muted-foreground: 240 15% 65%;
+
+    --accent: 43 96% 56%;
+    --accent-foreground: 240 45% 6%;
+    --accent-light: 45 100% 70%;
+
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 240 15% 95%;
+
+    --border: 240 30% 18%;
+    --input: 240 30% 16%;
+    --ring: 265 85% 65%;
+    
+    /* Premium Gradients - Dark */
+    --gradient-premium: linear-gradient(135deg, hsl(245 70% 15%) 0%, hsl(260 75% 30%) 50%, hsl(265 85% 50%) 100%);
+    --gradient-premium-soft: linear-gradient(135deg, hsl(245 70% 15% / 0.95) 0%, hsl(265 75% 35% / 0.95) 100%);
+    --gradient-gold: linear-gradient(135deg, hsl(43 96% 56%) 0%, hsl(38 92% 50%) 50%, hsl(35 88% 45%) 100%);
+    --gradient-gold-subtle: linear-gradient(135deg, hsl(43 96% 56% / 0.15) 0%, hsl(35 88% 45% / 0.08) 100%);
+    --gradient-subtle: linear-gradient(180deg, hsl(240 45% 6%) 0%, hsl(240 40% 8%) 100%);
+    --gradient-glass: linear-gradient(135deg, hsl(240 40% 15% / 0.7) 0%, hsl(240 40% 10% / 0.3) 100%);
+    
+    /* Luxury Shadows & Effects - Dark */
+    --shadow-luxury: 0 25px 70px -20px hsl(265 85% 65% / 0.5);
+    --shadow-glow: 0 0 60px hsl(265 85% 65% / 0.3);
+    --shadow-glow-gold: 0 0 50px hsl(43 96% 56% / 0.35);
+    --shadow-card: 0 10px 40px -10px hsl(0 0% 0% / 0.3);
+    --shadow-card-hover: 0 20px 60px -15px hsl(0 0% 0% / 0.5);
+    
+    /* Glassmorphism Effects - Dark */
+    --glass-bg: hsl(240 40% 15% / 0.6);
+    --glass-border: hsl(240 40% 25% / 0.3);
+    --glass-shadow: 0 8px 32px 0 hsl(0 0% 0% / 0.3);
+
+    /* Sidebar Premium - Dark */
+    --sidebar-background: 240 45% 8%;
+    --sidebar-foreground: 240 15% 90%;
+    --sidebar-primary: 265 85% 65%;
+    --sidebar-primary-foreground: 240 45% 6%;
+    --sidebar-accent: 265 85% 65% / 0.15;
+    --sidebar-accent-foreground: 265 85% 75%;
+    --sidebar-border: 240 30% 16%;
+    --sidebar-ring: 265 85% 65%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "liga" 1, "calt" 1;
+  }
+}
+
+/* Premium Utility Classes */
+@layer utilities {
+  /* Glassmorphism */
+  .glass {
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px) saturate(180%);
+    -webkit-backdrop-filter: blur(12px) saturate(180%);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
+  }
+  
+  .glass-strong {
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px) saturate(200%);
+    -webkit-backdrop-filter: blur(20px) saturate(200%);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
+  }
+
+  /* Premium Gradients */
+  .gradient-premium {
+    background: var(--gradient-premium);
+  }
+  
+  .gradient-gold {
+    background: var(--gradient-gold);
+  }
+  
+  /* Luxury Shadows */
+  .shadow-luxury {
+    box-shadow: var(--shadow-luxury);
+  }
+  
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
+  }
+  
+  .shadow-glow-gold {
+    box-shadow: var(--shadow-glow-gold);
+  }
+
+  /* Premium Animations */
+  .animate-fade-in {
+    animation: fadeIn 0.6s ease-out forwards;
+  }
+  
+  .animate-slide-up {
+    animation: slideUp 0.6s ease-out forwards;
+  }
+  
+  .animate-scale-in {
+    animation: scaleIn 0.5s ease-out forwards;
+  }
+  
+  .animate-glow {
+    animation: glow 2s ease-in-out infinite;
+  }
+
+  /* Hover Lift Effect */
+  .hover-lift {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  
+  .hover-lift:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-card-hover);
+  }
+}
+
+/* Premium Keyframe Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes glow {
+  0%, 100% {
+    box-shadow: 0 0 20px hsl(265 85% 65% / 0.2);
+  }
+  50% {
+    box-shadow: 0 0 40px hsl(265 85% 65% / 0.4);
+  }
+}

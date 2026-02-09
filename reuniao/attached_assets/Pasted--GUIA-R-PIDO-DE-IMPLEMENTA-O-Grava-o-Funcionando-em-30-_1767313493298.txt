@@ -1,0 +1,428 @@
+# ⚡ GUIA RÁPIDO DE IMPLEMENTAÇÃO
+## Gravação Funcionando em 30 Minutos
+
+---
+
+## 📋 CHECKLIST RÁPIDO
+
+```
+[ ] 1. Variáveis de ambiente (2 min)
+[ ] 2. Schema do banco (3 min)
+[ ] 3. RecordingView.tsx (5 min)
+[ ] 4. Rota no App.tsx (1 min)
+[ ] 5. Endpoints no server (5 min)
+[ ] 6. Role no dashboard 100ms (3 min)
+[ ] 7. Botão de gravar no Meeting (5 min)
+[ ] 8. Teste completo (6 min)
+```
+
+**TOTAL: 30 MINUTOS** ⏱️
+
+---
+
+## 1️⃣ VARIÁVEIS DE AMBIENTE (2 min)
+
+Adicione no `.env`:
+
+```bash
+# URL pública da aplicação
+PUBLIC_URL=https://seu-projeto.replit.dev
+
+# Management Token do 100ms
+# Obtenha em: https://dashboard.100ms.live > Developer > Management Tokens
+HMS_MANAGEMENT_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6...
+
+# Outras (já devem existir)
+HMS_APP_ID=69388eebbd0dab5f9a014bdd
+HMS_APP_SECRET=kQvC6xVK_...
+DATABASE_URL=postgresql://...
+```
+
+**Como obter PUBLIC_URL no Replit:**
+- Está na barra de URL quando roda: `https://[seu-id].replit.dev`
+
+**Como obter HMS_MANAGEMENT_TOKEN:**
+1. https://dashboard.100ms.live
+2. Menu lateral → "Developer"
+3. "Management Tokens"
+4. "Create New Token"
+5. Copie o token
+
+---
+
+## 2️⃣ SCHEMA DO BANCO (3 min)
+
+Adicione em `shared/schema.ts`:
+
+```typescript
+// Adicionar ao final do arquivo
+
+export const gravacoes = pgTable("gravacoes", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  roomId: varchar("room_id", { length: 255 }).notNull(),
+  recordingId: varchar("recording_id", { length: 255 }),
+  beamId: varchar("beam_id", { length: 255 }),
+  status: varchar("status", { length: 50 }).notNull(), // recording, processing, completed, failed
+  beamUrl: text("beam_url"),
+  downloadUrl: text("download_url"),
+  duration: integer("duration"), // segundos
+  size: bigint("size", { mode: "number" }), // bytes
+  errorMessage: text("error_message"),
+  createdAt: timestamp("created_at").defaultNow(),
+  stoppedAt: timestamp("stopped_at"),
+  completedAt: timestamp("completed_at"),
+});
+```
+
+**Rodar migration:**
+```bash
+npm run db:push
+```
+
+**Verificar se funcionou:**
+```bash
+# Deve mostrar a nova tabela "gravacoes"
+npx drizzle-kit studio
+```
+
+---
+
+## 3️⃣ CRIAR RECORDINGVIEW.TSX (5 min)
+
+```bash
+# Criar arquivo
+mkdir -p client/src/pages
+touch client/src/pages/RecordingView.tsx
+```
+
+**Cole o código do artifact** "RecordingView.tsx - CÓDIGO COMPLETO"
+
+---
+
+## 4️⃣ ADICIONAR ROTA (1 min)
+
+Edite `client/src/App.tsx`:
+
+```typescript
+// Adicionar import no topo
+import RecordingView from "@/pages/RecordingView";
+
+// Adicionar rota dentro de <Routes>
+<Route path="/recording/:roomId" element={<RecordingView />} />
+```
+
+---
+
+## 5️⃣ ADICIONAR ENDPOINTS (5 min)
+
+Edite `server/routes.ts`:
+
+**Cole os 5 endpoints do artifact** "Endpoints de Gravação - CÓDIGO COMPLETO"
+
+Adicione no final do arquivo (antes do `export default app`):
+- POST `/api/100ms/recording/start`
+- POST `/api/100ms/recording/stop`
+- GET `/api/100ms/recording/:roomId`
+- GET `/api/100ms/recording/:roomId/:recordingId`
+- POST `/api/webhooks/100ms`
+
+**Importante:** Adicione o import:
+```typescript
+import { gravacoes } from "@shared/schema";
+import { and, desc } from "drizzle-orm";
+```
+
+---
+
+## 6️⃣ CRIAR ROLE NO DASHBOARD (3 min)
+
+1. Acesse: https://dashboard.100ms.live
+2. Vá no seu template (nexusintelligence)
+3. "Roles" → "Add Role"
+4. Configure:
+
+```json
+{
+  "name": "beam_recorder",
+  "publishParams": {
+    "allowed": []
+  },
+  "subscribeParams": {
+    "subscribeToRoles": ["guest", "host"],
+    "maxSubsBitRate": 3200
+  },
+  "permissions": {
+    "browserRecording": false,
+    "sendRoomState": false
+  }
+}
+```
+
+5. Salvar
+
+---
+
+## 7️⃣ ADICIONAR BOTÃO DE GRAVAR (5 min)
+
+Edite `client/src/components/Meeting100ms.tsx`:
+
+**Adicionar imports:**
+```typescript
+import { Circle } from "lucide-react";
+```
+
+**Adicionar estados:**
+```typescript
+const [isRecording, setIsRecording] = useState(false);
+const [recordingId, setRecordingId] = useState<string | null>(null);
+```
+
+**Adicionar função:**
+```typescript
+const handleToggleRecording = async () => {
+  try {
+    const roomId = window.location.pathname.split('/').pop();
+    
+    if (!isRecording) {
+      // Iniciar
+      const response = await fetch('/api/100ms/recording/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roomId }),
+      });
+
+      if (!response.ok) throw new Error('Erro ao iniciar');
+
+      const data = await response.json();
+      setRecordingId(data.recordingId);
+      setIsRecording(true);
+      alert('✅ Gravação iniciada!');
+      
+    } else {
+      // Parar
+      const response = await fetch('/api/100ms/recording/stop', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ roomId }),
+      });
+
+      if (!response.ok) throw new Error('Erro ao parar');
+
+      setIsRecording(false);
+      setRecordingId(null);
+      alert('⏸️ Gravação parada! Será processada em 5-10 minutos.');
+    }
+  } catch (err: any) {
+    alert('❌ ' + err.message);
+  }
+};
+```
+
+**Adicionar botão nos controles (após botão de tela):**
+```typescript
+{/* Botão de Gravar (só para host) */}
+{localPeer?.roleName === 'host' && (
+  <Button
+    onClick={handleToggleRecording}
+    variant={isRecording ? "destructive" : "outline"}
+    size="lg"
+    className="flex items-center gap-2"
+  >
+    <Circle 
+      className={`w-5 h-5 ${isRecording ? 'animate-pulse fill-red-500' : ''}`} 
+    />
+    <span className="hidden sm:inline">
+      {isRecording ? 'Parar' : 'Gravar'}
+    </span>
+  </Button>
+)}
+```
+
+---
+
+## 8️⃣ TESTAR (6 min)
+
+### Passo 1: Reiniciar servidor
+```bash
+# Parar (Ctrl+C)
+npm run dev
+```
+
+### Passo 2: Testar página de gravação manualmente
+
+```bash
+# 1. Criar reunião
+curl -X POST http://localhost:5000/api/reunioes/instantanea \
+  -H "Content-Type: application/json" \
+  -d '{"titulo":"Teste Gravação"}'
+
+# 2. Copiar roomId da resposta
+
+# 3. Gerar token para bot
+curl -X POST http://localhost:5000/api/100ms/get-token \
+  -H "Content-Type: application/json" \
+  -d '{
+    "roomId": "ROOM_ID_AQUI",
+    "role": "beam_recorder",
+    "userId": "test-bot"
+  }'
+
+# 4. Copiar token
+
+# 5. Acessar URL (no navegador):
+http://localhost:5000/recording/ROOM_ID?token=TOKEN_AQUI
+```
+
+**Deve mostrar:**
+- ✅ "Conectando à reunião..."
+- ✅ Depois: "Aguardando participantes..."
+
+### Passo 3: Entrar como participante normal
+
+```
+http://localhost:5000/reuniao/meetflow/ROOM_ID
+```
+
+**Na página /recording deve aparecer:**
+- ✅ Seu vídeo renderizando!
+- ✅ Grid layout bonitinho
+
+### Passo 4: Testar gravação real
+
+1. Entrar em uma reunião como host
+2. Clicar em "Gravar"
+3. Aguardar mensagem "Gravação iniciada"
+4. Falar algo por 30 segundos
+5. Clicar em "Parar Gravação"
+6. Aguardar 5-10 minutos (processamento)
+7. Consultar status:
+
+```bash
+curl http://localhost:5000/api/100ms/recording/ROOM_ID
+```
+
+---
+
+## ✅ VERIFICAÇÃO FINAL
+
+### Console do servidor deve mostrar:
+```
+[Recording] 🎥 Iniciando gravação...
+[Recording] 1/4 Gerando token para bot...
+[Recording] ✅ Token gerado: eyJhbGci...
+[Recording] 2/4 URL de gravação gerada:
+[Recording] https://seu-projeto.replit.dev/recording/...
+[Recording] 3/4 Chamando API 100ms Beam...
+[Recording] ✅ Resposta 100ms: { id: '...', beam_id: '...' }
+[Recording] 4/4 Salvando no banco...
+[Recording] ✅ Gravação iniciada com sucesso!
+```
+
+### Console do browser (página /recording) deve mostrar:
+```
+[RecordingView] 🎬 Página de gravação carregada
+[RecordingView] 🎥 Iniciando conexão...
+[RecordingView] ✅ Bot conectado com sucesso!
+[RecordingGrid] Conexão: CONECTADO ✅
+[RecordingGrid] Peers atualizados: 1 participantes
+  - Nome: videoTrack=abc123, audioTrack=def456
+[PeerTile Nome] Track ID: abc123
+[PeerTile Nome] Anexando vídeo...
+[PeerTile Nome] ✅ Vídeo anexado com sucesso!
+```
+
+---
+
+## 🐛 TROUBLESHOOTING RÁPIDO
+
+### Erro: "Token não fornecido"
+**Causa:** URL sem `?token=...`
+**Solução:** Verificar endpoint de start que está incluindo token na URL
+
+### Erro: "Role não encontrada"
+**Causa:** Role `beam_recorder` não existe
+**Solução:** Criar role no dashboard 100ms
+
+### Vídeo não aparece na página /recording
+**Causa:** Tracks não estão sendo anexados
+**Solução:** Verificar logs no console, pode precisar aguardar mais tempo
+
+### Gravação com tela preta
+**Causa:** Bot indo para URL errada
+**Solução:** Verificar `PUBLIC_URL` no .env
+
+### Erro 401 na API 100ms
+**Causa:** `HMS_MANAGEMENT_TOKEN` inválido
+**Solução:** Gerar novo token no dashboard
+
+---
+
+## 📊 RESULTADO ESPERADO
+
+Após implementação:
+
+```
+✅ Página /recording renderiza corretamente
+✅ Bot entra na sala invisível
+✅ Bot vê os vídeos dos participantes
+✅ Gravação inicia sem erros
+✅ Após processamento, vídeo tem imagem + áudio
+✅ Download funciona
+```
+
+---
+
+## 🎯 PRÓXIMOS PASSOS
+
+Depois que funcionar:
+
+1. **Configurar Webhook** no dashboard 100ms
+   - URL: `https://seu-projeto.replit.dev/api/webhooks/100ms`
+   - Recebe notificação quando gravação completa
+
+2. **Adicionar indicador visual** de gravação ativa
+   ```tsx
+   {isRecording && (
+     <div className="fixed top-4 left-4 bg-red-500 text-white px-4 py-2 rounded-full">
+       🔴 Gravando
+     </div>
+   )}
+   ```
+
+3. **Lista de gravações** no dashboard
+   - Página para ver todas as gravações
+   - Botão de download
+   - Status (processando/completa)
+
+4. **Upload automático** para storage
+   - Quando webhook receber success
+   - Upload para S3/R2/Google Cloud
+   - Salvar URL no banco
+
+---
+
+## 🚀 COMEÇAR AGORA!
+
+**Execute na ordem:**
+
+```bash
+# 1. Ambiente
+nano .env  # Adicionar PUBLIC_URL e HMS_MANAGEMENT_TOKEN
+
+# 2. Banco
+nano shared/schema.ts  # Adicionar tabela gravacoes
+npm run db:push
+
+# 3. Frontend
+nano client/src/pages/RecordingView.tsx  # Criar arquivo
+nano client/src/App.tsx  # Adicionar rota
+
+# 4. Backend
+nano server/routes.ts  # Adicionar 5 endpoints
+
+# 5. Testar
+npm run dev
+# Acessar: http://localhost:5000/recording/ROOM_ID?token=...
+```
+
+**Boa sorte! 🎬**

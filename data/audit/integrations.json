@@ -1,0 +1,450 @@
+{
+  "audit_info": {
+    "platform": "ExecutiveAI Pro",
+    "audit_date": "2026-01-27",
+    "total_integrations": 11,
+    "auditor": "Replit Agent"
+  },
+  "integrations": [
+    {
+      "name": "Pagar.me",
+      "purpose": "Gateway de pagamentos brasileiro para processamento de PIX e cartão de crédito com suporte a split de pagamentos para revendedoras",
+      "api_base_url": "https://api.pagar.me/core/v5",
+      "endpoints": [
+        "POST /orders - Criar pedidos (PIX e Cartão)",
+        "GET /orders/{id} - Consultar status do pedido",
+        "POST /recipients - Criar recebedores (split)",
+        "GET /recipients/{id} - Consultar recebedor",
+        "PATCH /recipients/{id}/default-bank-account - Atualizar conta bancária",
+        "GET /balance/{recipient_id} - Consultar saldo"
+      ],
+      "env_vars": [
+        "CHAVE_SECRETA_PRODUCAO - Chave secreta para ambiente de produção",
+        "CHAVE_PUBLICA_PRODUCAO - Chave pública para ambiente de produção",
+        "CHAVE_SECRETA_TESTE - Chave secreta para ambiente de teste",
+        "CHAVE_PUBLICA_TESTE - Chave pública para ambiente de teste",
+        "CHAVE_SECRETA - Chave secreta (fallback)",
+        "CHAVE_PUBLICA - Chave pública (fallback)",
+        "CHAVE_ID_PRODUCAO - ID da conta Pagar.me produção",
+        "CHAVE_ID_TESTE - ID da conta Pagar.me teste",
+        "CHAVE_ID - ID da conta (fallback)"
+      ],
+      "files": [
+        "server/services/pagarme.ts",
+        "server/services/commission.ts",
+        "server/routes/pagarme.ts",
+        "server/routes/pagarmePublic.ts",
+        "server/routes/split.ts",
+        "server/routes/wallet.ts",
+        "src/features/revendedora/hooks/usePagarme.ts",
+        "src/features/revendedora/components/PagarmeCheckout.tsx"
+      ],
+      "webhooks": [
+        "POST /api/pagarme/webhook - Recebe notificações de status de pagamento"
+      ],
+      "features": [
+        "Pagamento via PIX com QR Code",
+        "Pagamento via Cartão de Crédito (tokenização)",
+        "Split de pagamentos automático entre empresa e revendedoras",
+        "Criação de recebedores (recipients) para revendedoras",
+        "Sistema de comissões dinâmicas por volume de vendas",
+        "Gestão de contas bancárias dos recebedores"
+      ]
+    },
+    {
+      "name": "BigDataCorp",
+      "purpose": "Consulta de dados cadastrais, processos judiciais e análise de crédito de CPF/CNPJ para compliance e verificação de clientes",
+      "api_base_url": "https://plataforma.bigdatacorp.com.br/pessoas",
+      "endpoints": [
+        "POST /pessoas (Datasets: basic_data) - Dados cadastrais (R$ 0,030/consulta)",
+        "POST /pessoas (Datasets: collections) - Presença em cobrança (R$ 0,070/consulta)",
+        "POST /pessoas (Datasets: processes) - Processos judiciais (R$ 0,070/consulta)"
+      ],
+      "env_vars": [
+        "TOKEN_ID - ID do token BigDataCorp",
+        "CHAVE_TOKEN - Chave de acesso ao token",
+        "BIGDATACORP_API_URL - URL da API (opcional, usa default)"
+      ],
+      "files": [
+        "server/lib/bigdatacorpClient.ts",
+        "server/lib/datacorpCompliance.ts",
+        "server/lib/cpfCompliancePoller.ts",
+        "server/routes/compliance.ts",
+        "src/pages/consultar-cpf.tsx",
+        "src/components/compliance/cpf-form.tsx"
+      ],
+      "webhooks": [],
+      "features": [
+        "Consulta de dados cadastrais (nome, CPF status, data nascimento)",
+        "Verificação de presença em cobranças",
+        "Consulta de processos judiciais (autor/réu)",
+        "Análise de crédito automatizada",
+        "Rate limiting integrado (2 req/s)",
+        "Retry automático com backoff exponencial",
+        "Cache de credenciais por tenant"
+      ]
+    },
+    {
+      "name": "Supabase",
+      "purpose": "Backend-as-a-Service para banco de dados PostgreSQL, autenticação e armazenamento. Suporta multi-tenant com múltiplas instâncias",
+      "api_base_url": "Configurável por tenant",
+      "endpoints": [
+        "REST API - CRUD em todas as tabelas",
+        "Auth API - Autenticação de usuários",
+        "Storage API - Upload/download de arquivos",
+        "Realtime - Subscriptions WebSocket"
+      ],
+      "env_vars": [
+        "SUPABASE_OWNER_URL - URL do Supabase principal (owner)",
+        "SUPABASE_OWNER_SERVICE_KEY - Service role key do owner",
+        "SUPABASE_MASTER_URL - URL alternativa do master",
+        "SUPABASE_MASTER_SERVICE_ROLE_KEY - Service role key master",
+        "SUPABASE_URL - URL genérica (fallback)",
+        "SUPABASE_ANON_KEY - Chave anônima (fallback)",
+        "REACT_APP_SUPABASE_URL - URL para frontend",
+        "REACT_APP_SUPABASE_ANON_KEY - Chave para frontend"
+      ],
+      "files": [
+        "server/lib/supabaseClient.ts",
+        "server/lib/supabaseMaster.ts",
+        "server/lib/multiTenantSupabase.ts",
+        "server/lib/supabaseAutoConnect.ts",
+        "server/lib/supabaseFileConfig.ts",
+        "server/lib/supabaseOptimizer.ts",
+        "server/lib/clienteSupabase.ts",
+        "server/config/supabaseOwner.ts",
+        "server/services/assinatura-supabase.ts",
+        "server/services/commission.ts",
+        "src/integrations/supabase/client.ts"
+      ],
+      "webhooks": [],
+      "features": [
+        "Multi-tenant com instâncias separadas por cliente",
+        "Criptografia de credenciais no banco",
+        "Cache de clientes Supabase",
+        "Sincronização automática de dados",
+        "Armazenamento de gravações de reunião",
+        "Tabelas de contratos, revendedoras, vendas, leads"
+      ],
+      "tables": [
+        "revendedoras - Cadastro de revendedoras",
+        "contratos - Contratos de assinatura",
+        "vendas_revendedora - Vendas com split",
+        "sales_with_split - Vendas detalhadas",
+        "platform_settings - Configurações da plataforma",
+        "commission_config - Configuração de comissões",
+        "leads - Leads capturados",
+        "forms - Formulários dinâmicos",
+        "submissions - Submissões de formulários",
+        "reunioes - Agendamento de reuniões",
+        "gravacoes - Gravações de reuniões"
+      ]
+    },
+    {
+      "name": "100ms",
+      "purpose": "Plataforma de videoconferência para reuniões online com suporte a gravação, transcrição e streaming",
+      "api_base_url": "https://api.100ms.live/v2",
+      "endpoints": [
+        "POST /rooms - Criar sala de reunião",
+        "GET /rooms - Listar salas",
+        "GET /rooms/{id} - Obter detalhes da sala",
+        "POST /rooms/{id} - Atualizar/desativar sala",
+        "POST /recordings/room/{id}/start - Iniciar gravação",
+        "POST /recordings/room/{id}/stop - Parar gravação",
+        "GET /recordings/{id} - Obter detalhes da gravação",
+        "GET /recordings - Listar gravações",
+        "GET /recording-assets/{id} - Obter asset de gravação",
+        "GET /recording-assets/{id}/presigned-url - URL para download"
+      ],
+      "env_vars": [
+        "HMS_APP_ACCESS_KEY - Chave de acesso da aplicação 100ms",
+        "HMS_APP_SECRET - Secret da aplicação 100ms",
+        "HMS_TEMPLATE_ID - ID do template de sala"
+      ],
+      "files": [
+        "server/services/hms100ms.ts",
+        "server/services/meetings/hms100ms.ts",
+        "server/routes/meetings.ts",
+        "src/hooks/use100ms.ts",
+        "src/components/Meeting100ms.tsx",
+        "src/features/reuniao-platform/components/Meeting100ms.tsx",
+        "src/pages/ReuniaoPublica.tsx",
+        "src/pages/PublicMeetingRoom.tsx"
+      ],
+      "webhooks": [
+        "POST /api/meetings/webhook/100ms - Recebe eventos de sala (início, fim, gravação)"
+      ],
+      "features": [
+        "Criação de salas de reunião",
+        "Geração de tokens JWT para participantes",
+        "Gravação de reuniões",
+        "Download de gravações via URLs pré-assinadas",
+        "Diferentes roles (host, guest)",
+        "Integração com sistema de agendamento"
+      ]
+    },
+    {
+      "name": "Total Express",
+      "purpose": "Transportadora para cálculo de frete e registro de coletas/envios de produtos",
+      "api_base_url": "https://edi.totalexpress.com.br",
+      "endpoints": [
+        "POST /webservice_calculo_frete.php - Cálculo de frete (SOAP)",
+        "POST /webservice24.php (GravarPedido) - Registrar coleta (SOAP)",
+        "POST /webservice_e_total.php - Fallback para registro (XML)",
+        "GET /rastreamento - Consultar status do envio"
+      ],
+      "env_vars": [
+        "TOTAL_EXPRESS_USER - Usuário de acesso",
+        "TOTAL_EXPRESS_PASS - Senha de acesso",
+        "TOTAL_EXPRESS_REID - ID do remetente",
+        "TOTAL_EXPRESS_SERVICE - Tipo de serviço (EXP, ECO, etc.)",
+        "TOTAL_EXPRESS_TEST_MODE - Modo de teste (true/false)"
+      ],
+      "files": [
+        "server/services/totalExpressService.ts",
+        "server/services/envioService.ts",
+        "server/routes/envio.ts",
+        "src/pages/envio/EnvioEnviar.tsx",
+        "src/pages/envio/EnvioCotacao.tsx"
+      ],
+      "webhooks": [],
+      "features": [
+        "Cálculo de frete com peso real e cubado",
+        "Margem de lucro configurável por tenant (default 40%)",
+        "Registro de coletas com geração de AWB",
+        "Geração de etiquetas",
+        "Rastreamento de envios",
+        "Suporte multi-tenant com credenciais separadas",
+        "Cache de credenciais com TTL de 5 minutos",
+        "Modo de teste para desenvolvimento"
+      ]
+    },
+    {
+      "name": "n8n",
+      "purpose": "Plataforma de automação e workflows para integração com sistemas externos via webhooks",
+      "api_base_url": "Configurável via webhook URLs",
+      "endpoints": [
+        "POST {N8N_WEBHOOK_URL} - Webhook genérico para eventos",
+        "POST {N8N_WEBHOOK_REUNIAO_INICIADA} - Notificação de reunião iniciada",
+        "POST {N8N_WEBHOOK_REUNIAO_FINALIZADA} - Notificação de reunião finalizada",
+        "POST {N8N_ALERT_WEBHOOK_URL} - Alertas do sistema"
+      ],
+      "env_vars": [
+        "N8N_WEBHOOK_URL - URL do webhook principal",
+        "N8N_WEBHOOK_REUNIAO_INICIADA - Webhook para início de reunião",
+        "N8N_WEBHOOK_REUNIAO_FINALIZADA - Webhook para fim de reunião",
+        "N8N_ALERT_WEBHOOK_URL - Webhook para alertas"
+      ],
+      "files": [
+        "server/services/n8n.ts",
+        "server/services/meetings/n8n.ts",
+        "server/routes/n8n.ts",
+        "server/lib/alerting.ts"
+      ],
+      "webhooks": [],
+      "events_sent": [
+        "reuniao.agendada - Quando uma reunião é agendada",
+        "reuniao.iniciada - Quando uma reunião começa",
+        "reuniao.finalizada - Quando uma reunião termina (inclui URL de gravação)",
+        "booking.criado - Quando um agendamento é criado",
+        "booking.cancelado - Quando um agendamento é cancelado",
+        "booking.confirmado - Quando um agendamento é confirmado",
+        "Transcrição iniciada/finalizada - Para integração com serviços de transcrição"
+      ],
+      "features": [
+        "Envio de eventos de reunião para automações externas",
+        "Integração com transcrição de reuniões",
+        "Sistema de alertas via webhook",
+        "Timeout configurável (10-30 segundos)",
+        "Logging detalhado de payloads"
+      ]
+    },
+    {
+      "name": "Resend",
+      "purpose": "Serviço de envio de emails transacionais com suporte a templates e fila de processamento",
+      "api_base_url": "https://api.resend.com",
+      "endpoints": [
+        "POST /emails - Enviar email"
+      ],
+      "env_vars": [
+        "RESEND_API_KEY - Chave da API Resend",
+        "RESEND_FROM_EMAIL - Email remetente (configurável via DB)",
+        "ALERT_EMAIL - Email para receber alertas do sistema"
+      ],
+      "files": [
+        "server/lib/email.ts",
+        "server/lib/queue.ts",
+        "server/lib/alerting.ts",
+        "server/lib/credentialsDb.ts"
+      ],
+      "webhooks": [],
+      "features": [
+        "Envio direto de emails",
+        "Fila de emails em background",
+        "Templates pré-definidos: Welcome, Password Reset, Invite, Notification",
+        "Templates de billing: Invoice, Payment Success/Failed, Subscription Ending",
+        "Priorização de emails (high, normal, low)",
+        "Retry automático (3-5 tentativas)",
+        "Teste de configuração"
+      ]
+    },
+    {
+      "name": "Sentry",
+      "purpose": "Monitoramento de erros e performance da aplicação com rastreamento de exceções e transactions",
+      "api_base_url": "https://sentry.io",
+      "endpoints": [
+        "Sentry SDK - Captura automática via SDK Node.js"
+      ],
+      "env_vars": [
+        "SENTRY_DSN - Data Source Name do projeto Sentry",
+        "SENTRY_ENVIRONMENT - Ambiente (production, staging, development)",
+        "SENTRY_TRACES_SAMPLE_RATE - Taxa de amostragem (default: 0.1)",
+        "SENTRY_ENABLE_DEV - Habilitar em desenvolvimento (opcional)"
+      ],
+      "files": [
+        "server/lib/sentry.ts",
+        "server/lib/sentryOptimized.ts",
+        "src/lib/sentry.ts",
+        "src/main.tsx"
+      ],
+      "webhooks": [],
+      "features": [
+        "Captura automática de exceções",
+        "Performance monitoring com traces",
+        "Integração com Express middleware",
+        "Filtro de erros comuns (network failed, aborted)",
+        "Remoção de dados sensíveis (authorization, cookies)",
+        "Contexto de usuário",
+        "Breadcrumbs personalizados",
+        "Transactions para operações críticas"
+      ]
+    },
+    {
+      "name": "OpenAI",
+      "purpose": "API de inteligência artificial para transcrição de áudio e geração de conteúdo (integração planejada)",
+      "api_base_url": "https://api.openai.com/v1",
+      "endpoints": [
+        "POST /audio/transcriptions - Transcrição de áudio (Whisper)",
+        "POST /chat/completions - Geração de texto (GPT)"
+      ],
+      "env_vars": [
+        "OPENAI_API_KEY - Chave da API OpenAI"
+      ],
+      "files": [
+        "server/routes/assinatura.ts"
+      ],
+      "webhooks": [],
+      "features": [
+        "Transcrição de reuniões gravadas",
+        "Geração de resumos de reuniões",
+        "Análise de sentimento em conversas"
+      ],
+      "status": "Parcialmente implementado - Referências encontradas para transcrição de reuniões"
+    },
+    {
+      "name": "Stripe",
+      "purpose": "Gateway de pagamentos internacional alternativo ao Pagar.me, com suporte a Stripe Connect para marketplace",
+      "api_base_url": "https://api.stripe.com/v1",
+      "endpoints": [
+        "POST /accounts - Criar conta Express (Connect)",
+        "POST /account_links - Gerar link de onboarding",
+        "GET /accounts/{id} - Consultar status da conta",
+        "POST /checkout/sessions - Criar sessão de checkout",
+        "POST /payment_intents - Criar payment intent"
+      ],
+      "env_vars": [
+        "STRIPE_PUBLISHABLE_KEY - Chave pública do Stripe",
+        "STRIPE_SECRET_KEY - Chave secreta do Stripe",
+        "STRIPE_WEBHOOK_SECRET - Secret para validação de webhooks",
+        "VITE_STRIPE_PUBLISHABLE_KEY - Chave pública para frontend"
+      ],
+      "files": [
+        "server/routes/stripePayment.ts",
+        "src/features/revendedora/services/StripeService.ts"
+      ],
+      "webhooks": [
+        "POST /api/stripe/webhook - Recebe eventos de pagamento (checkout.session.completed)"
+      ],
+      "features": [
+        "Stripe Connect para onboarding de revendedoras",
+        "Checkout sessions com split de pagamento",
+        "Application fee automático para a empresa",
+        "Verificação de assinatura de webhooks",
+        "Configuração por tenant (chaves salvas no Supabase)",
+        "Status de conta Express (charges_enabled, payouts_enabled)"
+      ],
+      "notes": "Usado como alternativa ao Pagar.me. Configuração é feita por admin e salva na tabela config_split"
+    },
+    {
+      "name": "Evolution API",
+      "purpose": "Automação de WhatsApp para comunicação com clientes via API não-oficial (Baileys)",
+      "api_base_url": "Configurável via URL_EVOLUTION ou EVOLUTION_API_URL",
+      "endpoints": [
+        "POST /instance/create - Criar instância WhatsApp",
+        "GET /instance/connectionState/{instance} - Status de conexão",
+        "GET /instance/fetchInstances - Listar todas as instâncias",
+        "GET /instance/connect/{instance} - Obter QR Code",
+        "DELETE /instance/logout/{instance} - Desconectar",
+        "DELETE /instance/delete/{instance} - Deletar instância",
+        "POST /chat/findChats/{instance} - Buscar conversas",
+        "POST /chat/findContacts/{instance} - Buscar contatos",
+        "POST /chat/findMessages/{instance} - Buscar mensagens",
+        "POST /message/sendText/{instance} - Enviar mensagem de texto",
+        "POST /message/sendMedia/{instance} - Enviar mídia (imagem, vídeo, documento)",
+        "POST /message/sendAudio/{instance} - Enviar áudio",
+        "POST /chat/getBase64FromMediaMessage/{instance} - Download de mídia"
+      ],
+      "env_vars": [
+        "URL_EVOLUTION - URL da Evolution API (novo formato)",
+        "EVOLUTION_API_URL - URL alternativa (formato legado)",
+        "API_KEY_EVOLUTION - API Key (novo formato)",
+        "EVOLUTION_API_KEY - API Key alternativa",
+        "EVOLUTION_API - API Key (fallback)",
+        "NOME_DA_INSTANCIA - Nome da instância (novo formato)",
+        "EVOLUTION_INSTANCE - Nome da instância (legado)"
+      ],
+      "files": [
+        "server/lib/evolutionApi.ts",
+        "server/routes/evolution.ts",
+        "server/routes/whatsapp-complete.ts",
+        "server/routes/connections.ts",
+        "server/lib/chatCacheManager.ts",
+        "src/features/whatsapp-platform/lib/evolutionApi.ts",
+        "src/features/whatsapp-platform/components/QRCodeDisplay.tsx",
+        "src/features/whatsapp-platform/components/ChatArea.tsx",
+        "src/pages/EvolutionQRCode.tsx"
+      ],
+      "webhooks": [
+        "Webhooks configuráveis na Evolution API para receber mensagens"
+      ],
+      "features": [
+        "Conexão via QR Code",
+        "Envio de mensagens de texto",
+        "Envio de mídia (imagem, vídeo, áudio, documentos)",
+        "Download de mídia recebida como base64",
+        "Listagem de conversas e contatos",
+        "Histórico de mensagens",
+        "Cache de chats para performance",
+        "Fallback para contatos quando findChats retorna erro 500 (bug conhecido v2.2.3)",
+        "Suporte a múltiplas instâncias por cliente"
+      ]
+    }
+  ],
+  "summary": {
+    "payment_gateways": ["Pagar.me", "Stripe"],
+    "communication": ["Resend (Email)", "Evolution API (WhatsApp)", "n8n (Automação)"],
+    "video_conferencing": ["100ms"],
+    "data_services": ["BigDataCorp (Compliance)", "Supabase (Database)"],
+    "logistics": ["Total Express"],
+    "monitoring": ["Sentry"],
+    "ai_services": ["OpenAI (Transcrição/GPT)"]
+  },
+  "security_notes": [
+    "Todas as chaves sensíveis são armazenadas como secrets no Replit ou criptografadas no banco",
+    "Webhooks do Stripe validam assinatura para evitar eventos falsificados",
+    "Credenciais do BigDataCorp e Total Express são criptografadas no banco por tenant",
+    "Evolution API usa API Key para autenticação",
+    "Pagar.me usa autenticação Basic com chave secreta",
+    "100ms usa tokens JWT assinados com app secret"
+  ]
+}
