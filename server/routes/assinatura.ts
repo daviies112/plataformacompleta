@@ -583,12 +583,12 @@ function loadLocalGlobalConfig(): AssinaturaGlobalConfig {
   try {
     ensureDataDir();
     let config = getDefaultGlobalConfig();
-    
+
     if (fs.existsSync(GLOBAL_CONFIG_FILE)) {
       const data = fs.readFileSync(GLOBAL_CONFIG_FILE, 'utf-8');
       config = { ...config, ...JSON.parse(data) };
     }
-    
+
     const dataDir = path.join(process.cwd(), 'data');
     const tenantFiles = fs.readdirSync(dataDir).filter(f => f.startsWith('assinatura_global_config_') && f.endsWith('.json'));
     for (const file of tenantFiles) {
@@ -610,7 +610,7 @@ function loadLocalGlobalConfig(): AssinaturaGlobalConfig {
         // Skip invalid tenant config files
       }
     }
-    
+
     return config;
   } catch (error) {
     console.error('[Assinatura] Erro ao carregar config global local:', error);
@@ -2635,7 +2635,7 @@ router.post('/public/contracts/from-meeting', async (req: Request, res: Response
         try {
           const companySlug = await getCompanySlug(tenantId);
           signature_url = `${protocolScheme}://${domain}/assinar/${companySlug}/${access_token}`;
-        } catch (err) {}
+        } catch (err) { }
       }
 
       // IMPORTANTE: Priorizar dados do form_submission sobre dados da reunião
@@ -2910,7 +2910,7 @@ router.post('/public/contracts/from-meeting', async (req: Request, res: Response
       try {
         const companySlug = await getCompanySlug(formSubmission.tenant_id);
         signatureUrl = `${protocolScheme}://${domain}/assinar/${companySlug}/${accessToken}`;
-      } catch (err) {}
+      } catch (err) { }
     }
 
     // 4. Preparar dados do contrato
@@ -3049,5 +3049,102 @@ export function clearLocalContractsCache(): void {
   localGlobalConfig = null;
   console.log(`🗑️ [Assinatura] Cache em memória limpo: ${count} contratos removidos`);
 }
+
+
+// Rota para importação em massa de revendedoras
+router.post('/import-resellers', async (req: Request, res: Response) => {
+  try {
+    const { resellers } = req.body; // Array of { nome, cpf_cnpj, email, contato, loja }
+
+    if (!Array.isArray(resellers) || resellers.length === 0) {
+      return res.status(400).json({ error: 'Lista de revendedoras inválida ou vazia.' });
+    }
+
+    if (!SUPABASE_CONFIGURED || !supabaseOwner) {
+      return res.status(500).json({ error: 'Supabase Owner não configurado no servidor.' });
+    }
+
+    console.log(`[Assinatura] Iniciando importação de ${resellers.length} revendedoras...`);
+    const results = [];
+    const errors = [];
+    const baseUrl = process.env.APP_URL || 'http://localhost:5000'; // Ajuste conforme ambiente
+
+    for (const reseller of resellers) {
+      try {
+        const { nome, cpf_cnpj, email, contato, loja } = reseller;
+
+        if (!nome || !cpf_cnpj) {
+          errors.push({ reseller, error: 'Nome e CPF/CNPJ são obrigatórios.' });
+          continue;
+        }
+
+        // 1. Gerar token e protocolo
+        const accessToken = nanoid(32);
+        const protocolNumber = `CONT-${Date.now()}-${nanoid(6).toUpperCase()}`;
+
+        // 2. Criar contrato (pendente)
+        // Usar assinaturaSupabaseService para criar o contrato na tabela contracts
+        const contractData: AssinaturaContract = {
+          client_name: nome,
+          client_cpf: String(cpf_cnpj).replace(/\D/g, ''),
+          client_email: email || `sem_email_${nanoid(5)}@temp.com`, // Email é obrigatório na criação
+          client_phone: contato ? String(contato) : null,
+          access_token: accessToken,
+          protocol_number: protocolNumber,
+          status: 'pending',
+          contract_html: '<p>Contrato de Revenda</p>', // Placeholder
+          // Outros campos opcionais
+          company_name: loja || 'Revendedora',
+        };
+
+        // Assumindo tenant 'default' ou pegando de algum lugar. O serviço usa 'default' por padrão se não passar.
+        // Mas se a tabela revendedora_ativa é do admin, talvez devêssemos usar o adminId se disponível.
+        // Por segurança, vamos usar o padrão do serviço que tenta identificar o tenant.
+        const createdContract = await assinaturaSupabaseService.createContract(contractData);
+
+        if (!createdContract) {
+          throw new Error('Falha ao criar contrato no Supabase.');
+        }
+
+        const assinaturaUrl = `${baseUrl}/assinar/${accessToken}`;
+
+        // 3. Salvar na tabela revendedora_ativa
+        // Usar supabaseOwner pois essa tabela parece ser do sistema principal/admin
+        // Normalizar CPF para chave se necessário, mas o usuário passou "CPF/CNPJ" na planilha
+        const cpfLimpo = String(cpf_cnpj).replace(/\D/g, '');
+
+        const { error: insertError } = await supabaseOwner
+          .from('revendedora_ativa')
+          .upsert({
+            nome,
+            cpf_cnpj: cpfLimpo,
+            email,
+            contato,
+            loja,
+            url_assinatura: assinaturaUrl,
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'cpf_cnpj' });
+
+        if (insertError) {
+          // Se a tabela não existir, vai dar erro. Vamos logar.
+          throw new Error(`Erro ao salvar na tabela revendedora_ativa: ${insertError.message}`);
+        }
+
+        results.push({ ...reseller, url_assinatura: assinaturaUrl, status: 'success' });
+
+      } catch (err: any) {
+        console.error(`[Assinatura] Erro ao processar revendedora ${reseller.nome}:`, err);
+        errors.push({ reseller, error: err.message });
+      }
+    }
+
+    console.log(`[Assinatura] Importação concluída. Sucessos: ${results.length}, Erros: ${errors.length}`);
+    res.json({ success: true, results, errors });
+
+  } catch (error: any) {
+    console.error('[Assinatura] Erro fatal na importação em massa:', error);
+    res.status(500).json({ error: 'Erro interno no servidor durante a importação.' });
+  }
+});
 
 export default router;

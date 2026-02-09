@@ -1,3 +1,4 @@
+import 'dotenv/config';
 console.log('[STARTUP] Loading server modules...');
 
 import express, { type Request, Response, NextFunction } from "express";
@@ -87,25 +88,25 @@ app.use(cloudflareCache);
 app.use((req, res, next) => {
   if (req.path.includes('leads-pipeline')) {
     console.log(`[PIPELINE-DEBUG] ${new Date().toISOString()} ${req.method} ${req.path} - Request received`);
-    
+
     // Track when headers are sent
     const originalWriteHead = res.writeHead.bind(res);
-    res.writeHead = function(statusCode: number, ...args: any[]) {
+    res.writeHead = function (statusCode: number, ...args: any[]) {
       console.log(`[PIPELINE-DEBUG] writeHead called with status ${statusCode}`);
       return originalWriteHead(statusCode, ...args);
     };
-    
+
     // Track when response ends
     const originalEnd = res.end.bind(res);
-    res.end = function(...args: any[]) {
+    res.end = function (...args: any[]) {
       console.log(`[PIPELINE-DEBUG] res.end called`);
       return originalEnd(...args);
     };
-    
+
     res.on('close', () => {
       console.log(`[PIPELINE-DEBUG] Response closed (client disconnected?)`);
     });
-    
+
     res.on('finish', () => {
       console.log(`[PIPELINE-DEBUG] Response finished successfully`);
     });
@@ -141,7 +142,7 @@ app.use((req, res, next) => {
     log('Warning: Failed to initialize credentials manager: ' + (error as Error).message);
     console.error('Credentials manager error:', error);
   }
-  
+
   try {
     // Initialize poller states on startup
     const { initializePollerStates, checkAndResetStaleStates } = await import('./lib/stateReset');
@@ -150,16 +151,16 @@ app.use((req, res, next) => {
   } catch (error) {
     log('Warning: Failed to initialize poller states: ' + (error as Error).message);
   }
-  
+
   // Setup configuration routes (público)
   setupConfigRoutes(app);
-  
+
   // Setup multi-tenant authentication routes (público - para login)
   app.use('/api/auth', multiTenantAuthRoutes);
-  
+
   // Setup biometric authentication routes (público - para login biométrico)
   app.use('/api/biometric', biometricRoutes);
-  
+
   // Health check endpoint (público)
   app.use('/api/health', healthRouter);
 
@@ -171,10 +172,10 @@ app.use((req, res, next) => {
   } else {
     log('⚠️ Multi-tenant authentication disabled - running in open access mode');
   }
-  
+
   // N8N integration routes - EXEMPT from global auth redirects in server/index.ts
   // They are already registered inside registerRoutes
-  
+
   const server = await registerRoutes(app);
 
   // Setup Sentry error handler (must be after all routes)
@@ -183,7 +184,7 @@ app.use((req, res, next) => {
   // Custom 404 handler for API routes - always return JSON
   app.use((req: Request, res: Response, next: NextFunction) => {
     if (req.path.startsWith('/api/')) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         success: false,
         error: 'Endpoint não encontrado',
         path: req.path,
@@ -203,7 +204,7 @@ app.use((req, res, next) => {
 
   // ALWAYS serve the app on the port specified in the environment variable PORT
   const port = parseInt(process.env.PORT || '5000', 10);
-  
+
   // Start server and setup Vite in the callback
   server.listen({
     port,
@@ -211,11 +212,11 @@ app.use((req, res, next) => {
     reusePort: true,
   }, () => {
     log(`serving on port ${port}`);
-    
+
     // Setup static files or Vite dev server based on NODE_ENV
     const isProduction = process.env.NODE_ENV === 'production';
     log(`Environment: ${isProduction ? 'production' : 'development'}`);
-    
+
     if (isProduction) {
       log('Serving static files from dist/');
       serveStatic(app);
@@ -231,27 +232,27 @@ app.use((req, res, next) => {
         console.error('❌ Failed to load Vite module:', err);
       });
     }
-    
+
     // Background tasks - Initialize queues and automation
     setImmediate(async () => {
       try {
         // Initialize job queues for background processing
         initializeQueues();
         log('✅ Background job queues initialized');
-        
+
         // Start form submission polling and automation
         startAutomation();
         log('✅ Form submission automation started');
-        
+
         // Start monitoring and alerting
         startMonitoring();
         startAutomaticAlerting();
         log('✅ Monitoring and alerting started');
-        
+
         // Start contract sync poller (Master-Client sync)
         startContractSyncPoller();
         log('✅ Contract sync poller started');
-        
+
         // Start cache cleanup scheduler (daily cleanup of local cache tables)
         const { startCacheCleanupScheduler } = await import('./lib/cacheCleanup');
         startCacheCleanupScheduler(24);
@@ -269,7 +270,7 @@ app.use((req, res, next) => {
     stopAutomation();
     stopAutomaticAlerting();
     stopContractSyncPoller();
-    import('./lib/cacheCleanup').then(m => m.stopCacheCleanupScheduler()).catch(() => {});
+    import('./lib/cacheCleanup').then(m => m.stopCacheCleanupScheduler()).catch(() => { });
     shutdownQueues();
     server.close(() => {
       log('HTTP server closed');

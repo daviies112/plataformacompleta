@@ -26,7 +26,7 @@ function loadSupabaseConfigFromFile(): { url: string; key: string } | null {
 // Prioridade ABSOLUTA: SUPABASE_OWNER_URL/KEY dos env vars (secrets)
 // Esses são os secrets do Owner principal do sistema
 let supabaseOwnerUrl = process.env.SUPABASE_OWNER_URL || '';
-let supabaseOwnerKey = process.env.SUPABASE_OWNER_SERVICE_KEY || '';
+let supabaseOwnerKey = process.env.SUPABASE_OWNER_SERVICE_KEY || process.env.SUPABASE_OWNER_KEY || '';
 
 // Log para debug
 if (supabaseOwnerUrl && supabaseOwnerKey) {

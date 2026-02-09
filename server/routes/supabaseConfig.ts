@@ -10,14 +10,15 @@
  */
 
 import express from 'express';
-import { 
-  getSupabaseFileConfig, 
-  saveSupabaseFileConfig, 
+import {
+  getSupabaseFileConfig,
+  saveSupabaseFileConfig,
   isSupabaseConfigured,
   getEffectiveSupabaseConfig,
   SupabaseFileConfig
 } from '../lib/supabaseFileConfig';
 import { resetAllPollerStates } from '../lib/stateReset';
+import { runFullMigration, checkTablesExist } from '../lib/supabaseMigration';
 
 const router = express.Router();
 
@@ -29,7 +30,7 @@ router.get('/supabase-setup', async (req, res) => {
   try {
     const configured = isSupabaseConfigured();
     const effectiveConfig = getEffectiveSupabaseConfig();
-    
+
     res.json({
       configured,
       source: effectiveConfig ? (process.env.REACT_APP_SUPABASE_URL ? 'environment' : 'file') : null,
@@ -51,50 +52,50 @@ router.get('/supabase-setup', async (req, res) => {
 router.post('/supabase-setup', async (req, res) => {
   try {
     const { supabaseUrl, supabaseAnonKey, supabaseServiceRoleKey, databaseUrl } = req.body;
-    
+
     if (!supabaseUrl) {
       return res.status(400).json({
         success: false,
         error: 'supabaseUrl é obrigatório',
       });
     }
-    
+
     if (!supabaseAnonKey) {
       return res.status(400).json({
         success: false,
         error: 'supabaseAnonKey é obrigatório',
       });
     }
-    
+
     if (!supabaseUrl.includes('supabase.co')) {
       return res.status(400).json({
         success: false,
         error: 'URL inválida. Deve ser uma URL do Supabase (ex: https://xxx.supabase.co)',
       });
     }
-    
+
     if (databaseUrl && !databaseUrl.startsWith('postgres')) {
       return res.status(400).json({
         success: false,
         error: 'DATABASE_URL inválida. Deve começar com postgresql:// ou postgres://',
       });
     }
-    
+
     const config: Partial<SupabaseFileConfig> = {
       supabaseUrl,
       supabaseAnonKey,
     };
-    
+
     if (supabaseServiceRoleKey) {
       config.supabaseServiceRoleKey = supabaseServiceRoleKey;
     }
-    
+
     if (databaseUrl) {
       config.databaseUrl = databaseUrl;
     }
-    
+
     const saved = saveSupabaseFileConfig(config);
-    
+
     if (saved) {
       // 🔐 Sincronizar credenciais com o banco de dados local para persistência
       try {
@@ -102,7 +103,7 @@ router.post('/supabase-setup', async (req, res) => {
         const { supabaseConfig } = await import('../../shared/db-schema');
         const { eq } = await import('drizzle-orm');
         const { encrypt } = await import('../lib/credentialsManager');
-        
+
         // Garantir tabelas
         try {
           if (pool) {
@@ -123,9 +124,9 @@ router.post('/supabase-setup', async (req, res) => {
         }
 
         // 🔐 MULTI-TENANT: Usar o tenantId real da sessão se disponível
-        const tenantId = req.user?.userId || 'system'; 
+        const tenantId = req.user?.userId || 'system';
         console.log(`🔐 [CONFIG] Sincronizando credenciais para tenant: ${tenantId}`);
-        
+
         // No Replit, as credenciais salvas via UI não devem ser criptografadas 
         // para manter compatibilidade com o leitor legado do arquivo
         const encryptedUrl = supabaseUrl;
@@ -163,7 +164,7 @@ router.post('/supabase-setup', async (req, res) => {
               updated_at = NOW()
             RETURNING id;
           `, [tenantId, encryptedUrl, encryptedAnonKey, 'receipts']);
-          
+
           console.log(`✅ [CONFIG] Resultado SQL:`, sqlResult.rows[0]);
         } else {
           // Fallback para Drizzle se pool não disponível (improvável)
@@ -189,13 +190,37 @@ router.post('/supabase-setup', async (req, res) => {
         console.warn('⚠️ Could not sync credentials to database:', dbSyncError.message);
       }
 
+      // ========================================================================
+      // 🚀 AUTO-CRIAÇÃO DE TABELAS
+      // ========================================================================
+      let migrationResult = null;
+      try {
+        console.log('🚀 [AUTO-MIGRATION] Iniciando auto-criação de tabelas...');
+
+        // Usar service role key se disponível, senão usar anon key
+        const keyToUse = supabaseServiceRoleKey || supabaseAnonKey;
+
+        migrationResult = await runFullMigration(supabaseUrl, keyToUse);
+
+        if (migrationResult.success) {
+          console.log(`✅ [AUTO-MIGRATION] ${migrationResult.tablesCreated} tabelas criadas/verificadas`);
+          console.log(`📊 [AUTO-MIGRATION] Método usado: ${migrationResult.method}`);
+        } else {
+          console.warn('⚠️ [AUTO-MIGRATION] Migração falhou, mas credenciais foram salvas');
+          console.warn('   Erros:', migrationResult.errors);
+        }
+      } catch (migrationError: any) {
+        console.error('❌ [AUTO-MIGRATION] Erro na migração:', migrationError.message);
+        // Não bloquear o salvamento das credenciais se a migração falhar
+      }
+
       console.log('✅ Supabase credentials saved to file');
       console.log(`   URL: ${maskUrl(supabaseUrl)}`);
       console.log(`   Database URL: ${databaseUrl ? 'configured' : 'not configured'}`);
-      
+
       resetAllPollerStates();
       console.log('🔄 Estados de polling resetados - sincronização completa será executada após reiniciar');
-      
+
       res.json({
         success: true,
         message: 'Credenciais do Supabase salvas com sucesso. Reinicie o servidor para aplicar.',
@@ -228,26 +253,26 @@ router.post('/supabase-setup', async (req, res) => {
 router.get('/supabase-setup/test', async (req, res) => {
   try {
     const config = getEffectiveSupabaseConfig();
-    
+
     if (!config) {
       return res.json({
         success: false,
         error: 'Supabase não configurado',
       });
     }
-    
+
     const { createClient } = await import('@supabase/supabase-js');
     const supabase = createClient(config.url, config.anonKey);
-    
+
     const { data, error } = await supabase.from('workspace_pages').select('id').limit(1);
-    
+
     if (error && !error.message.includes('does not exist')) {
       return res.json({
         success: false,
         error: `Erro de conexão: ${error.message}`,
       });
     }
-    
+
     res.json({
       success: true,
       message: 'Conexão com Supabase estabelecida com sucesso',
