@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { 
-  MessageSquare, 
-  FileText, 
+import {
+  MessageSquare,
+  FileText,
   MoreHorizontal,
   FileEdit,
   Layout,
@@ -16,7 +16,6 @@ import {
   Settings,
   Download,
   Bell,
-  Store,
   ChevronRight
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -50,7 +49,7 @@ interface DrawerSection {
 const mainNavItems: NavItem[] = [
   { path: "/kanban", icon: LayoutDashboard, label: "Kanban" },
   { path: "/whatsapp-platform", icon: MessageSquare, label: "WhatsApp" },
-  { path: "/faturamento", icon: FileText, label: "Finanças" },
+
 ];
 
 const drawerSections: DrawerSection[] = [
@@ -87,12 +86,6 @@ const drawerSections: DrawerSection[] = [
       { path: "/notifications", icon: Bell, label: "Notificações" },
     ],
   },
-  {
-    title: "Plataforma Revendedora",
-    items: [
-      { path: "/revendedora", icon: Store, label: "Revendedora" },
-    ],
-  },
 ];
 
 const triggerHaptic = () => {
@@ -111,7 +104,7 @@ export function BottomNav() {
   };
 
   const isAnyDrawerItemActive = () => {
-    return drawerSections.some(section => 
+    return drawerSections.some(section =>
       section.items.some(item => isActive(item.path))
     );
   };
@@ -146,7 +139,7 @@ export function BottomNav() {
           {mainNavItems.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.path);
-            
+
             return (
               <button
                 key={item.path}
@@ -208,7 +201,7 @@ export function BottomNav() {
       </nav>
 
       <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
-        <DrawerContent 
+        <DrawerContent
           className="bg-[#0a0a0a] border-primary/20 max-h-[85vh]"
           style={{
             background: 'rgba(10, 10, 10, 0.98)',
@@ -224,7 +217,7 @@ export function BottomNav() {
               Acesse todas as funcionalidades da plataforma
             </DrawerDescription>
           </DrawerHeader>
-          
+
           <ScrollArea className="flex-1 px-4 py-2" style={{ maxHeight: 'calc(85vh - 120px)' }}>
             <div className="space-y-6 pb-8">
               {drawerSections.map((section) => (
@@ -236,7 +229,7 @@ export function BottomNav() {
                     {section.items.map((item) => {
                       const Icon = item.icon;
                       const active = isActive(item.path);
-                      
+
                       return (
                         <DrawerClose asChild key={item.path}>
                           <button
@@ -252,16 +245,16 @@ export function BottomNav() {
                             <div
                               className={cn(
                                 "w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 transition-all",
-                                active 
-                                  ? "bg-primary/20" 
+                                active
+                                  ? "bg-primary/20"
                                   : "bg-white/5"
                               )}
                             >
-                              <Icon 
+                              <Icon
                                 className={cn(
                                   "w-5 h-5 transition-colors",
                                   active ? "text-primary" : "text-muted-foreground"
-                                )} 
+                                )}
                               />
                             </div>
                             <span className={cn(
@@ -270,11 +263,11 @@ export function BottomNav() {
                             )}>
                               {item.label}
                             </span>
-                            <ChevronRight 
+                            <ChevronRight
                               className={cn(
                                 "w-5 h-5 flex-shrink-0",
                                 active ? "text-primary/60" : "text-muted-foreground/40"
-                              )} 
+                              )}
                             />
                           </button>
                         </DrawerClose>

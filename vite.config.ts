@@ -59,6 +59,7 @@ export default defineConfig(({ mode }) => ({
       '@supabase/supabase-js',
       'zustand',
       'axios',
+      'react/jsx-dev-runtime',
     ],
     // Força pré-bundling na inicialização
     force: true,

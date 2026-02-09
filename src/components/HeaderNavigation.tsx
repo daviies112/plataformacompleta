@@ -8,13 +8,13 @@ import {
   Layers,
   Settings,
   Crown,
-  Receipt,
+
   FileText,
   MessageSquare,
   Package,
   Trello,
   Shield,
-  ShoppingBag,
+
   Video,
   FileSignature,
   Truck,
@@ -30,7 +30,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { WalletBadge } from "@/components/WalletBadge";
-import { ResellerImportDialog } from "@/components/assinatura/ResellerImportDialog";
+
 
 const HeaderNavigation = () => {
   const navigate = useNavigate();
@@ -56,12 +56,7 @@ const HeaderNavigation = () => {
       icon: Layers,
       active: location.pathname === "/workspace"
     },
-    {
-      path: "/faturamento",
-      label: "Faturamento",
-      icon: Receipt,
-      active: location.pathname.startsWith("/faturamento")
-    },
+
     {
       path: "/whatsapp-platform",
       label: "WhatsApp",
@@ -99,12 +94,7 @@ const HeaderNavigation = () => {
       icon: Shield,
       active: location.pathname === "/consultar-cpf"
     },
-    {
-      path: "/revendedora",
-      label: "Revendedora",
-      icon: ShoppingBag,
-      active: location.pathname.startsWith("/revendedora")
-    },
+
     {
       path: "/assinatura/personalizar",
       label: "Assinatura",
@@ -175,7 +165,7 @@ const HeaderNavigation = () => {
 
           {/* Wallet Balance & Settings */}
           <div className="flex items-center gap-2 flex-shrink-0">
-            <ResellerImportDialog />
+
             <WalletBadge />
             <Button
               onClick={() => navigate("/settings")}

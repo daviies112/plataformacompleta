@@ -8,7 +8,7 @@ import CalendarPage from "./pages/CalendarPage";
 import SettingsPage from "./pages/SettingsPage";
 import ClientConfigPage from "./pages/ClientConfigPage";
 import WorkspacePage from "./pages/WorkspacePage";
-import BillingPage from "./pages/BillingPage";
+
 import NotificationsPage from "./pages/NotificationsPage";
 import WhatsAppPage from "./pages/WhatsAppPage";
 import WhatsAppPlatformPage from "@/features/whatsapp-platform/WhatsAppPlatformPage";
@@ -44,8 +44,6 @@ import ContratosListaPage from "@/pages/ContratosListaPage";
 // Import Envio Platform
 import { EnvioCotacao, EnvioEnviar, EnvioList, EnvioRastreamento } from "@/pages/envio";
 
-// Import Financeiro (Wallet) Page
-import Financeiro from "@/pages/Financeiro";
 
 // Import Revendedora Admin components for /produto/admin/* routes
 import { CompanyProvider } from "@/features/revendedora/contexts/CompanyContext";
@@ -62,7 +60,7 @@ import AdminProductRequests from "@/features/revendedora/pages/admin/ProductRequ
 import AdminAnalytics from "@/features/revendedora/pages/admin/Analytics";
 import AdminSettings from "@/features/revendedora/pages/admin/Settings";
 import AdminBranding from "@/features/revendedora/pages/admin/Branding";
-import BankAccountSetup from "@/pages/billing/BankAccountSetup";
+
 import AdminGamification from "@/features/revendedora/pages/admin/Gamification";
 
 /**
@@ -76,144 +74,124 @@ const DesktopApp = () => {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/" element={<RootRedirect />} />
       {/* Rotas públicas de formulário removidas - tratadas via lazy loading no PlatformRouter */}
-      
+
       {/* Dashboard - Rota principal após login */}
-      <Route 
-        path="/dashboard" 
+      <Route
+        path="/dashboard"
         element={
           <ProtectedRoute>
             <DesktopLayout>
               <FormularioPage />
             </DesktopLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      
+
       {/* Protected routes with Desktop Layout */}
       {/* Formulário Page - Plataforma completa com header completo */}
-      <Route 
-        path="/formulario/*" 
+      <Route
+        path="/formulario/*"
         element={
           <ProtectedRoute>
             <DesktopLayout>
               <FormularioPage />
             </DesktopLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      
-      <Route 
-        path="/calendar" 
+
+      <Route
+        path="/calendar"
         element={
           <ProtectedRoute>
             <DesktopLayout>
               <CalendarPage />
             </DesktopLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      
-      <Route 
-        path="/calendario" 
+
+      <Route
+        path="/calendario"
         element={
           <ProtectedRoute>
             <DesktopLayout>
               <CalendarPage />
             </DesktopLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      
-      <Route 
-        path="/workspace" 
+
+      <Route
+        path="/workspace"
         element={
           <ProtectedRoute>
             <DesktopLayout>
               <WorkspacePage />
             </DesktopLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      
-      <Route 
-        path="/faturamento/*" 
-        element={
-          <ProtectedRoute>
-            <DesktopLayout>
-              <BillingPage />
-            </DesktopLayout>
-          </ProtectedRoute>
-        } 
-      />
-      
-      <Route 
-        path="/financeiro" 
-        element={
-          <ProtectedRoute>
-            <DesktopLayout>
-              <Financeiro />
-            </DesktopLayout>
-          </ProtectedRoute>
-        } 
-      />
-      
-      <Route 
-        path="/settings" 
+
+
+
+      <Route
+        path="/settings"
         element={
           <ProtectedRoute>
             <DesktopLayout>
               <SettingsPage />
             </DesktopLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      
-      <Route 
-        path="/configuracoes" 
+
+      <Route
+        path="/configuracoes"
         element={
           <ProtectedRoute>
             <DesktopLayout>
               <SettingsPage />
             </DesktopLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      
-      <Route 
-        path="/config" 
+
+      <Route
+        path="/config"
         element={
           <ProtectedRoute>
             <DesktopLayout>
               <ClientConfigPage />
             </DesktopLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      
-      <Route 
-        path="/notifications" 
+
+      <Route
+        path="/notifications"
         element={
           <ProtectedRoute>
             <DesktopLayout>
               <NotificationsPage />
             </DesktopLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      
-      <Route 
-        path="/whatsapp" 
+
+      <Route
+        path="/whatsapp"
         element={
           <ProtectedRoute>
             <DesktopLayout>
               <WhatsAppPage />
             </DesktopLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      
-      <Route 
-        path="/whatsapp-platform" 
+
+      <Route
+        path="/whatsapp-platform"
         element={
           <ProtectedRoute>
             <DesktopLayout>
@@ -222,23 +200,23 @@ const DesktopApp = () => {
               </LeadStatusProvider>
             </DesktopLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      
-      <Route 
-        path="/produto" 
+
+      <Route
+        path="/produto"
         element={
           <ProtectedRoute>
             <DesktopLayout>
               <ProdutoPage />
             </DesktopLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      
+
       {/* Produto Admin Routes - Plataforma de Vendas integrada ao Produto */}
-      <Route 
-        path="/produto/admin/dashboard" 
+      <Route
+        path="/produto/admin/dashboard"
         element={
           <ProtectedRoute>
             <DesktopLayout>
@@ -247,10 +225,10 @@ const DesktopApp = () => {
               </CompanyProvider>
             </DesktopLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/produto/admin/products" 
+      <Route
+        path="/produto/admin/products"
         element={
           <ProtectedRoute>
             <DesktopLayout>
@@ -259,10 +237,10 @@ const DesktopApp = () => {
               </CompanyProvider>
             </DesktopLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/produto/admin/orders" 
+      <Route
+        path="/produto/admin/orders"
         element={
           <ProtectedRoute>
             <DesktopLayout>
@@ -271,10 +249,10 @@ const DesktopApp = () => {
               </CompanyProvider>
             </DesktopLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/produto/admin/resellers" 
+      <Route
+        path="/produto/admin/resellers"
         element={
           <ProtectedRoute>
             <DesktopLayout>
@@ -285,10 +263,10 @@ const DesktopApp = () => {
               </AdminSupabaseProvider>
             </DesktopLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/produto/admin/resellers/:id" 
+      <Route
+        path="/produto/admin/resellers/:id"
         element={
           <ProtectedRoute>
             <DesktopLayout>
@@ -297,10 +275,10 @@ const DesktopApp = () => {
               </CompanyProvider>
             </DesktopLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/produto/admin/commissions" 
+      <Route
+        path="/produto/admin/commissions"
         element={
           <ProtectedRoute>
             <DesktopLayout>
@@ -309,10 +287,10 @@ const DesktopApp = () => {
               </CompanyProvider>
             </DesktopLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/produto/admin/commission-config" 
+      <Route
+        path="/produto/admin/commission-config"
         element={
           <ProtectedRoute>
             <DesktopLayout>
@@ -321,10 +299,10 @@ const DesktopApp = () => {
               </CompanyProvider>
             </DesktopLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/produto/admin/product-requests" 
+      <Route
+        path="/produto/admin/product-requests"
         element={
           <ProtectedRoute>
             <DesktopLayout>
@@ -333,10 +311,10 @@ const DesktopApp = () => {
               </CompanyProvider>
             </DesktopLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/produto/admin/analytics" 
+      <Route
+        path="/produto/admin/analytics"
         element={
           <ProtectedRoute>
             <DesktopLayout>
@@ -347,10 +325,10 @@ const DesktopApp = () => {
               </AdminSupabaseProvider>
             </DesktopLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/produto/admin/branding" 
+      <Route
+        path="/produto/admin/branding"
         element={
           <ProtectedRoute>
             <DesktopLayout>
@@ -361,10 +339,10 @@ const DesktopApp = () => {
               </AdminSupabaseProvider>
             </DesktopLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/produto/admin/gamification" 
+      <Route
+        path="/produto/admin/gamification"
         element={
           <ProtectedRoute>
             <DesktopLayout>
@@ -373,10 +351,10 @@ const DesktopApp = () => {
               </CompanyProvider>
             </DesktopLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/produto/admin/settings" 
+      <Route
+        path="/produto/admin/settings"
         element={
           <ProtectedRoute>
             <DesktopLayout>
@@ -385,12 +363,12 @@ const DesktopApp = () => {
               </CompanyProvider>
             </DesktopLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      
+
       {/* Vendas Routes - Plataforma de Vendas no Header Principal */}
-      <Route 
-        path="/vendas" 
+      <Route
+        path="/vendas"
         element={
           <ProtectedRoute>
             <DesktopLayout>
@@ -399,10 +377,10 @@ const DesktopApp = () => {
               </CompanyProvider>
             </DesktopLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/vendas/dashboard" 
+      <Route
+        path="/vendas/dashboard"
         element={
           <ProtectedRoute>
             <DesktopLayout>
@@ -411,10 +389,10 @@ const DesktopApp = () => {
               </CompanyProvider>
             </DesktopLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/vendas/products" 
+      <Route
+        path="/vendas/products"
         element={
           <ProtectedRoute>
             <DesktopLayout>
@@ -423,10 +401,10 @@ const DesktopApp = () => {
               </CompanyProvider>
             </DesktopLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/vendas/orders" 
+      <Route
+        path="/vendas/orders"
         element={
           <ProtectedRoute>
             <DesktopLayout>
@@ -435,10 +413,10 @@ const DesktopApp = () => {
               </CompanyProvider>
             </DesktopLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/vendas/resellers" 
+      <Route
+        path="/vendas/resellers"
         element={
           <ProtectedRoute>
             <DesktopLayout>
@@ -449,10 +427,10 @@ const DesktopApp = () => {
               </AdminSupabaseProvider>
             </DesktopLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/vendas/resellers/:id" 
+      <Route
+        path="/vendas/resellers/:id"
         element={
           <ProtectedRoute>
             <DesktopLayout>
@@ -461,10 +439,10 @@ const DesktopApp = () => {
               </CompanyProvider>
             </DesktopLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/vendas/commissions" 
+      <Route
+        path="/vendas/commissions"
         element={
           <ProtectedRoute>
             <DesktopLayout>
@@ -473,10 +451,10 @@ const DesktopApp = () => {
               </CompanyProvider>
             </DesktopLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/vendas/commission-config" 
+      <Route
+        path="/vendas/commission-config"
         element={
           <ProtectedRoute>
             <DesktopLayout>
@@ -485,10 +463,10 @@ const DesktopApp = () => {
               </CompanyProvider>
             </DesktopLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/vendas/product-requests" 
+      <Route
+        path="/vendas/product-requests"
         element={
           <ProtectedRoute>
             <DesktopLayout>
@@ -497,10 +475,10 @@ const DesktopApp = () => {
               </CompanyProvider>
             </DesktopLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/vendas/analytics" 
+      <Route
+        path="/vendas/analytics"
         element={
           <ProtectedRoute>
             <DesktopLayout>
@@ -511,10 +489,10 @@ const DesktopApp = () => {
               </AdminSupabaseProvider>
             </DesktopLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/vendas/branding" 
+      <Route
+        path="/vendas/branding"
         element={
           <ProtectedRoute>
             <DesktopLayout>
@@ -525,10 +503,10 @@ const DesktopApp = () => {
               </AdminSupabaseProvider>
             </DesktopLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/vendas/gamification" 
+      <Route
+        path="/vendas/gamification"
         element={
           <ProtectedRoute>
             <DesktopLayout>
@@ -537,10 +515,10 @@ const DesktopApp = () => {
               </CompanyProvider>
             </DesktopLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/vendas/settings" 
+      <Route
+        path="/vendas/settings"
         element={
           <ProtectedRoute>
             <DesktopLayout>
@@ -549,165 +527,142 @@ const DesktopApp = () => {
               </CompanyProvider>
             </DesktopLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/vendas/dados-bancarios" 
-        element={
-          <ProtectedRoute>
-            <DesktopLayout>
-              <CompanyProvider>
-                <AdminLayout basePath="/vendas"><BankAccountSetup /></AdminLayout>
-              </CompanyProvider>
-            </DesktopLayout>
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/produto/admin/dados-bancarios" 
-        element={
-          <ProtectedRoute>
-            <DesktopLayout>
-              <CompanyProvider>
-                <AdminLayout><BankAccountSetup /></AdminLayout>
-              </CompanyProvider>
-            </DesktopLayout>
-          </ProtectedRoute>
-        } 
-      />
-      
-      <Route 
-        path="/kanban" 
+
+
+      <Route
+        path="/kanban"
         element={
           <ProtectedRoute>
             <DesktopLayout>
               <KanbanPage />
             </DesktopLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      
-      <Route 
-        path="/notion" 
+
+      <Route
+        path="/notion"
         element={
           <ProtectedRoute>
             <DesktopLayout>
               <NotionHomePage />
             </DesktopLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      
-      <Route 
-        path="/notion/boards" 
+
+      <Route
+        path="/notion/boards"
         element={
           <ProtectedRoute>
             <DesktopLayout>
               <NotionBoardsPage />
             </DesktopLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      
-      <Route 
-        path="/notion/templates" 
+
+      <Route
+        path="/notion/templates"
         element={
           <ProtectedRoute>
             <DesktopLayout>
               <NotionTemplatesPage />
             </DesktopLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      
-      <Route 
-        path="/documentos" 
+
+      <Route
+        path="/documentos"
         element={
           <ProtectedRoute>
             <DesktopLayout>
               <NotionHomePage />
             </DesktopLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      
-      <Route 
-        path="/reuniao" 
+
+      <Route
+        path="/reuniao"
         element={
           <ProtectedRoute>
             <DesktopLayout>
               <ReuniaoDashboard />
             </DesktopLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      
+
       {/* Rotas de reunião pública removidas - tratadas via lazy loading no PlatformRouter */}
-      
-      <Route 
-        path="/gravacoes" 
+
+      <Route
+        path="/gravacoes"
         element={
           <ProtectedRoute>
             <DesktopLayout>
               <GravacoesPage />
             </DesktopLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      
-      <Route 
-        path="/horarios-disponiveis" 
+
+      <Route
+        path="/horarios-disponiveis"
         element={
           <ProtectedRoute>
             <DesktopLayout>
               <HorariosDisponiveis />
             </DesktopLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      
-      <Route 
-        path="/room-design" 
+
+      <Route
+        path="/room-design"
         element={
           <ProtectedRoute>
             <DesktopLayout>
               <RoomDesignSettings />
             </DesktopLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      
-      <Route 
-        path="/consultar-cpf" 
+
+      <Route
+        path="/consultar-cpf"
         element={
           <ProtectedRoute>
             <DesktopLayout>
               <ConsultarCPFPage />
             </DesktopLayout>
           </ProtectedRoute>
-        } 
+        }
       />
 
-      <Route 
-        path="/historico-consultas" 
+      <Route
+        path="/historico-consultas"
         element={
           <ProtectedRoute>
             <DesktopLayout>
               <HistoricoConsultasPage />
             </DesktopLayout>
           </ProtectedRoute>
-        } 
+        }
       />
 
-      <Route 
-        path="/export" 
+      <Route
+        path="/export"
         element={
           <ProtectedRoute>
             <DesktopLayout>
               <ExportDataPage />
             </DesktopLayout>
           </ProtectedRoute>
-        } 
+        }
       />
 
       {/* Plataforma Revendedora - REMOVIDO do DesktopApp 
@@ -715,98 +670,98 @@ const DesktopApp = () => {
           para evitar interferência do AuthContext */}
 
       {/* Envio Platform Routes */}
-      <Route 
-        path="/envio" 
+      <Route
+        path="/envio"
         element={
           <ProtectedRoute>
             <DesktopLayout>
               <EnvioCotacao />
             </DesktopLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      
-      <Route 
-        path="/envio/enviar" 
+
+      <Route
+        path="/envio/enviar"
         element={
           <ProtectedRoute>
             <DesktopLayout>
               <EnvioEnviar />
             </DesktopLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      
-      <Route 
-        path="/envio/lista" 
+
+      <Route
+        path="/envio/lista"
         element={
           <ProtectedRoute>
             <DesktopLayout>
               <EnvioList />
             </DesktopLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      
-      <Route 
-        path="/envio/rastreamento" 
+
+      <Route
+        path="/envio/rastreamento"
         element={
           <ProtectedRoute>
             <DesktopLayout>
               <EnvioRastreamento />
             </DesktopLayout>
           </ProtectedRoute>
-        } 
+        }
       />
 
       {/* Assinatura Digital - Admin */}
-      <Route 
-        path="/assinatura" 
-        element={<Navigate to="/assinatura/personalizar" replace />} 
+      <Route
+        path="/assinatura"
+        element={<Navigate to="/assinatura/personalizar" replace />}
       />
-      <Route 
-        path="/assinatura/criar" 
+      <Route
+        path="/assinatura/criar"
         element={
           <ProtectedRoute>
             <DesktopLayout>
               <CriarAssinaturaPage />
             </DesktopLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/assinatura/personalizar" 
+      <Route
+        path="/assinatura/personalizar"
         element={
           <ProtectedRoute>
             <DesktopLayout>
               <PersonalizarAssinaturaPage />
             </DesktopLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      <Route 
-        path="/assinatura/contratos" 
+      <Route
+        path="/assinatura/contratos"
         element={
           <ProtectedRoute>
             <DesktopLayout>
               <ContratosListaPage />
             </DesktopLayout>
           </ProtectedRoute>
-        } 
+        }
       />
-      
+
       {/* Rota /assinar/:token removida - tratada via lazy loading no App.tsx */}
-      
+
       {/* Catch all - 404 */}
-      <Route 
-        path="*" 
+      <Route
+        path="*"
         element={
           <ProtectedRoute>
             <DesktopLayout>
               <NotFoundPage />
             </DesktopLayout>
           </ProtectedRoute>
-        } 
+        }
       />
     </Routes>
   );
