@@ -18,11 +18,11 @@ interface QuestionPage {
 function groupQuestionsByPages(form: Form): QuestionPage[] {
   // Priority: form.questions (where elements are saved via API) > form.elements (legacy separate column)
   const formData = (form.questions as any[] | null) || (form.elements as any[] | null);
-  
+
   if (!formData || formData.length === 0) {
     return [];
   }
-  
+
   // Check if data is in new FormElement[] format (has type: 'question' with questionType)
   // or legacy Question[] format (has type: 'text'/'multiple-choice'/'radio' directly)
   const isNewFormat = formData.some((item: any) => {
@@ -32,7 +32,7 @@ function groupQuestionsByPages(form: Form): QuestionPage[] {
     if (item.type === 'heading' || item.type === 'pageBreak' || item.type === 'text') return true;
     return false;
   });
-  
+
   if (!isNewFormat) {
     // Legacy format: each question on its own page (1 pergunta = 1 página)
     // Include all legacy question types: text, multiple-choice, radio, checkbox, select, textarea
@@ -60,13 +60,13 @@ function groupQuestionsByPages(form: Form): QuestionPage[] {
     }
     return [];
   }
-  
+
   // New FormElement[] format: parse with pageBreak support
   const pages: QuestionPage[] = [];
   let currentPageQuestions: any[] = [];
   let foundFirstQuestion = false;
   let lastWasPageBreak = false;
-  
+
   for (const element of formData) {
     if (element.type === 'question') {
       foundFirstQuestion = true;
@@ -93,12 +93,12 @@ function groupQuestionsByPages(form: Form): QuestionPage[] {
     }
     // Ignore other element types (heading, text) for pagination purposes
   }
-  
+
   // Don't forget the last page
   if (currentPageQuestions.length > 0) {
     pages.push({ questions: currentPageQuestions });
   }
-  
+
   return pages;
 }
 
@@ -109,7 +109,7 @@ function groupQuestionsByPages(form: Form): QuestionPage[] {
 const TrackedPublicForm = () => {
   const params = useParams();
   const token = params.token;
-  
+
   // Estados
   const [form, setForm] = useState<Form | null>(null);
   const [sessao, setSessao] = useState<any>(null);
@@ -131,31 +131,31 @@ const TrackedPublicForm = () => {
     const loadFormData = async () => {
       try {
         console.log('📋 Carregando sessão do formulário...', token);
-        
+
         // 1. VALIDAR TOKEN E REGISTRAR ABERTURA (tudo em uma call)
         const validationResponse = await fetch('/api/leads/validar-token', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token })
         });
-        
+
         if (!validationResponse.ok) {
           throw new Error('Token inválido ou expirado');
         }
-        
+
         const validationData = await validationResponse.json();
-        
+
         if (!validationData.valid) {
           throw new Error(validationData.erro || 'Token inválido');
         }
-        
+
         const { lead, sessao, dadosPreenchidos } = validationData.data;
-        
+
         console.log('✅ Token validado com sucesso!');
         console.log('📋 Dados pré-preenchidos:', dadosPreenchidos);
-        
+
         setSessao(sessao);
-        
+
         // 2. PRÉ-PREENCHER dados do WhatsApp
         if (dadosPreenchidos) {
           if (dadosPreenchidos.telefone) {
@@ -170,7 +170,7 @@ const TrackedPublicForm = () => {
             setContactEmail(dadosPreenchidos.email);
           }
         }
-        
+
         // 3. Buscar formulário
         if (lead?.formularioId) {
           const formResponse = await fetch(`/api/forms/${lead.formularioId}`);
@@ -179,7 +179,7 @@ const TrackedPublicForm = () => {
             setForm(formData);
           }
         }
-        
+
         setIsLoading(false);
       } catch (error: any) {
         console.error('❌ Erro ao carregar formulário:', error);
@@ -194,7 +194,7 @@ const TrackedPublicForm = () => {
   // REGISTRAR INÍCIO quando preenche primeiro campo
   const registrarInicio = useCallback(async () => {
     if (hasStarted || !token) return;
-    
+
     try {
       console.log('⏳ Registrando INÍCIO do preenchimento...');
       await fetch('/api/leads/registrar-inicio', {
@@ -222,9 +222,9 @@ const TrackedPublicForm = () => {
         questionCount = (form.questions as any[] || []).length;
       }
       const totalCampos = questionCount + 2; // +2 para nome e email
-      
+
       console.log(`📊 Atualizando progresso: ${Object.keys(camposPreenchidos).length}/${totalCampos} campos`);
-      
+
       await fetch('/api/leads/atualizar-progresso', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -256,14 +256,14 @@ const TrackedPublicForm = () => {
     const camposPreenchidos: Record<string, any> = { ...newAnswers };
     if (contactName) camposPreenchidos.contactName = contactName;
     if (contactEmail) camposPreenchidos.contactEmail = contactEmail;
-    
+
     atualizarProgresso(camposPreenchidos);
   };
 
   // Handler para mudar nome
   const handleNameChange = (value: string) => {
     setContactName(value);
-    
+
     if (value && !hasStarted) {
       registrarInicio();
     }
@@ -277,7 +277,7 @@ const TrackedPublicForm = () => {
   // Handler para mudar email
   const handleEmailChange = (value: string) => {
     setContactEmail(value);
-    
+
     if (value && !hasStarted) {
       registrarInicio();
     }
@@ -291,7 +291,7 @@ const TrackedPublicForm = () => {
   // Submeter formulário
   const handleSubmit = async () => {
     if (!form || !token) return;
-    
+
     if (!contactName || !contactEmail) {
       toast.error("Por favor, preencha seu nome e email");
       return;
@@ -302,10 +302,10 @@ const TrackedPublicForm = () => {
     try {
       const answerArray = Object.values(answers);
       const totalScore = answerArray.reduce((sum, ans) => sum + ans.points, 0);
-      
+
       const passingScore = form.passingScore || 0;
       let passed = totalScore >= passingScore;
-      
+
       const scoreTiers = form.scoreTiers as ScoreTier[] | undefined;
       if (scoreTiers && scoreTiers.length > 0) {
         const tier = scoreTiers.find(
@@ -358,7 +358,7 @@ const TrackedPublicForm = () => {
         totalScore,
         passed,
       });
-      
+
       toast.success("Formulário enviado com sucesso!");
     } catch (error: any) {
       console.error('❌ Erro ao enviar formulário:', error);
@@ -471,15 +471,15 @@ const TrackedPublicForm = () => {
           ) : (
             <XCircle className="h-16 w-16 mx-auto mb-4" style={{ color: `${colors.text}60` }} />
           )}
-          
+
           <h2 className="text-3xl font-bold mb-2" style={{ color: colors.text }}>
-            {result.passed ? "Parabéns!" : "Obrigado!"}
+            Obrigado por preencher o formulário!
           </h2>
 
           <p className="text-lg mb-6" style={{ color: `${colors.text}99` }}>
-            {result.passed 
-              ? "Você está qualificado! Entraremos em contato em breve."
-              : "Obrigado pela sua participação. Infelizmente você não atingiu a pontuação mínima."}
+            {result.passed
+              ? "Nossa equipe está analisando suas informações e retornaremos em breve pelo WhatsApp."
+              : "Obrigado por preencher o formulário. Nossa equipe analisará suas respostas."}
           </p>
 
           {tier && (
@@ -517,12 +517,12 @@ const TrackedPublicForm = () => {
           {form.description && (
             <p style={{ color: `${colors.text}99` }}>{form.description}</p>
           )}
-          
+
           {/* Barra de progresso */}
           <div className="mt-4 h-2 rounded-full overflow-hidden" style={{ backgroundColor: colors.secondary }}>
-            <div 
-              className="h-full transition-all duration-300" 
-              style={{ 
+            <div
+              className="h-full transition-all duration-300"
+              style={{
                 width: `${progressoAtual}%`,
                 backgroundColor: colors.progressBar || colors.primary
               }}
@@ -553,7 +553,7 @@ const TrackedPublicForm = () => {
             {currentPageQuestions.map((question, index) => {
               const questionType = question.questionType || question.type;
               const globalIndex = questionPages.slice(0, currentPage).reduce((sum, page) => sum + page.questions.length, 0) + index;
-              
+
               return (
                 <div key={question.id} className="space-y-3">
                   <Label className="text-base font-semibold" style={{ color: colors.text }}>
@@ -572,8 +572,8 @@ const TrackedPublicForm = () => {
                       }}
                     >
                       {question.options.map((option: any, optIndex: number) => (
-                        <div 
-                          key={optIndex} 
+                        <div
+                          key={optIndex}
                           className="flex items-center space-x-3 p-4 rounded-lg border hover:bg-accent transition-colors cursor-pointer"
                           style={{ backgroundColor: colors.secondary, borderColor: `${colors.primary}30` }}
                         >

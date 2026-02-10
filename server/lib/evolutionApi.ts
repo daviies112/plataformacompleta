@@ -53,7 +53,7 @@ export async function getInstanceStatus(config: EvolutionConfig): Promise<any> {
   try {
     const baseUrl = normalizeUrl(config.apiUrl);
     const url = `${baseUrl}/instance/fetchInstances`;
-    
+
     const response = await fetch(url, {
       headers: {
         'apiKey': config.apiKey,
@@ -67,12 +67,12 @@ export async function getInstanceStatus(config: EvolutionConfig): Promise<any> {
     }
 
     const instances = await response.json();
-    
+
     // Find our specific instance
-    const instanceData = Array.isArray(instances) 
+    const instanceData = Array.isArray(instances)
       ? instances.find((i: any) => i.name === config.instance)
       : instances;
-    
+
     if (!instanceData) {
       console.warn('⚠️ [Evolution API] Instância não encontrada:', config.instance);
       return {
@@ -82,20 +82,20 @@ export async function getInstanceStatus(config: EvolutionConfig): Promise<any> {
         }
       };
     }
-    
+
     // Determine real connection state using connectionStatus field
     // connectionStatus can be: "open", "close", "connecting"
     // Also check ownerJid for extra confirmation
     const connectionStatus = instanceData.connectionStatus || 'close';
     const isConnected = connectionStatus === 'open' && !!instanceData.ownerJid;
     const realState = isConnected ? 'open' : connectionStatus;
-    
+
     console.log('✅ [Evolution API] Status:', {
       instance: config.instance,
       state: realState,
       profile: instanceData.profileName || 'N/A'
     });
-    
+
     return {
       instance: {
         instanceName: config.instance,
@@ -118,7 +118,7 @@ export async function getQRCode(config: EvolutionConfig): Promise<QRCodeResponse
   try {
     const baseUrl = normalizeUrl(config.apiUrl);
     const encodedInstance = encodeURIComponent(config.instance);
-    
+
     // First check if instance exists and its status
     const statusResponse = await fetch(
       `${baseUrl}/instance/connectionState/${encodedInstance}`,
@@ -153,7 +153,7 @@ export async function getQRCode(config: EvolutionConfig): Promise<QRCodeResponse
 
     const data = await qrResponse.json();
     console.log('✅ QR code obtido com sucesso');
-    
+
     return data;
   } catch (error) {
     console.error('❌ Erro ao obter QR code:', error);
@@ -190,7 +190,7 @@ export async function createInstance(config: EvolutionConfig): Promise<InstanceI
 
     const data = await response.json();
     console.log('✅ Instância criada com sucesso:', config.instance);
-    
+
     return data;
   } catch (error) {
     console.error('❌ Erro ao criar instância:', error);
@@ -222,7 +222,7 @@ export async function logoutInstance(config: EvolutionConfig): Promise<any> {
 
     const data = await response.json();
     console.log('✅ Logout realizado com sucesso');
-    
+
     return data;
   } catch (error) {
     console.error('❌ Erro ao fazer logout:', error);
@@ -254,7 +254,7 @@ export async function deleteInstance(config: EvolutionConfig): Promise<any> {
 
     const data = await response.json();
     console.log('✅ Instância deletada com sucesso');
-    
+
     return data;
   } catch (error) {
     console.error('❌ Erro ao deletar instância:', error);
@@ -263,15 +263,19 @@ export async function deleteInstance(config: EvolutionConfig): Promise<any> {
 }
 
 /**
- * Get Evolution API configuration from credentials manager or environment
+ * Get Evolution API configuration from credentials manager, database, or environment
+ * 🔧 FIX: Now queries database when memory is empty (fixes issue after server restart)
  */
-export function getEvolutionConfig(clientId: string = '1'): EvolutionConfig | null {
-  // PRIORIDADE 1: Buscar credenciais do cliente no credentialsManager
+export async function getEvolutionConfig(
+  clientId: string = '1',
+  tenantId?: string
+): Promise<EvolutionConfig | null> {
+  // PRIORIDADE 1: Buscar credenciais do cliente no credentialsManager (memória)
   try {
     const credentials = getClientCredentials(clientId, 'evolution_api');
-    
+
     if (credentials && credentials.api_url && credentials.api_key && credentials.instance) {
-      console.log('✅ Credenciais da Evolution API carregadas do banco de dados');
+      console.log('✅ Credenciais da Evolution API carregadas da memória');
       return {
         apiUrl: credentials.api_url,
         apiKey: credentials.api_key,
@@ -279,15 +283,41 @@ export function getEvolutionConfig(clientId: string = '1'): EvolutionConfig | nu
       };
     }
   } catch (error) {
-    console.error('Erro ao buscar credenciais do Evolution API:', error);
+    console.error('Erro ao buscar credenciais da memória:', error);
   }
 
-  // PRIORIDADE 2: Fallback para variáveis de ambiente (suporta múltiplos formatos)
+  // PRIORIDADE 2: Buscar do banco de dados (NOVO - corrige problema após restart)
+  if (tenantId) {
+    try {
+      const { getEvolutionApiCredentials } = await import('./credentialsDb');
+      const { decrypt } = await import('./credentialsManager');
+
+      const dbCredentials = await getEvolutionApiCredentials(tenantId);
+
+      if (dbCredentials && dbCredentials.apiUrl && dbCredentials.apiKey && dbCredentials.instance) {
+        console.log(`✅ Credenciais da Evolution API carregadas do banco de dados (tenant: ${tenantId})`);
+
+        // Decrypt credentials from database
+        const apiUrl = decrypt(dbCredentials.apiUrl);
+        const apiKey = decrypt(dbCredentials.apiKey);
+
+        return {
+          apiUrl,
+          apiKey,
+          instance: dbCredentials.instance,
+        };
+      }
+    } catch (error) {
+      console.error('Erro ao buscar credenciais do banco de dados:', error);
+    }
+  }
+
+  // PRIORIDADE 3: Fallback para variáveis de ambiente (suporta múltiplos formatos)
   // Aceita ambos URL_EVOLUTION e EVOLUTION_API_URL (novo formato e legado)
   const apiUrl = process.env.URL_EVOLUTION || process.env.EVOLUTION_API_URL;
   const apiKey = process.env.API_KEY_EVOLUTION || process.env.EVOLUTION_API_KEY || process.env.EVOLUTION_API;
   const instance = process.env.NOME_DA_INSTANCIA || process.env.EVOLUTION_INSTANCE;
-  
+
   if (!apiKey || !apiUrl || !instance) {
     // Não logar erro se as credenciais do cliente existem
     const clientCredentials = credentialsStorage.get(clientId);
@@ -296,7 +326,7 @@ export function getEvolutionConfig(clientId: string = '1'): EvolutionConfig | nu
       console.log('⚠️ Credenciais da Evolution API encontradas mas não puderam ser lidas');
       return null;
     }
-    
+
     console.log('⚠️ Evolution API não configurado completamente');
     console.log(`  URL: ${apiUrl ? '✅' : '❌'}`);
     console.log(`  API Key: ${apiKey ? '✅' : '❌'}`);
@@ -317,6 +347,7 @@ export function getEvolutionConfig(clientId: string = '1'): EvolutionConfig | nu
   };
 }
 
+
 /**
  * Fetch all chats from Evolution API
  * ✅ CORREÇÃO: Headers anti-cache + timestamp + validação robusta
@@ -326,9 +357,9 @@ export async function fetchChats(config: EvolutionConfig): Promise<any[]> {
   try {
     const baseUrl = normalizeUrl(config.apiUrl);
     const encodedInstance = encodeURIComponent(config.instance);
-    
+
     const timestamp = Date.now();
-    
+
     // Tentar primeiro o endpoint principal /chat/findChats
     try {
       const response = await fetch(
@@ -352,43 +383,43 @@ export async function fetchChats(config: EvolutionConfig): Promise<any[]> {
 
       if (response.ok) {
         const data = await response.json();
-        
+
         if (Array.isArray(data)) {
           console.log('✅ Conversas obtidas com sucesso via findChats:', data.length);
           return data;
         }
       }
-      
+
       // Se retornou 500, é o bug conhecido - fazer fallback
       if (response.status === 500) {
         console.warn('⚠️ Bug conhecido da Evolution API v2.2.3 detectado (findChats retorna 500)');
         console.log('🔄 Usando fallback: buscando conversas via findContacts...');
         throw new Error('Using fallback');
       }
-      
+
       console.error('❌ Evolution API error:', response.status, response.statusText);
       throw new Error(`Evolution API error: ${response.status}`);
-      
+
     } catch (fallbackError: any) {
       // Se foi o erro 500 ou outro erro de rede, tentar fallback via contatos
       if (fallbackError.message === 'Using fallback' || fallbackError.code === 'ECONNRESET') {
         console.log('📞 FALLBACK: Construindo conversas a partir dos contatos...');
-        
+
         // Buscar contatos e transformá-los em formato de chats
         const contacts = await fetchContacts(config);
-        
+
         if (!Array.isArray(contacts) || contacts.length === 0) {
           console.warn('⚠️ Nenhum contato encontrado no fallback');
           return [];
         }
-        
+
         // Transformar contatos em formato de chat
         const chats = contacts
           .filter((contact: any) => {
             // Filtrar apenas contatos válidos (não grupos, com número válido)
-            return contact.remoteJid && 
-                   !contact.remoteJid.includes('@g.us') && 
-                   contact.remoteJid.includes('@s.whatsapp.net');
+            return contact.remoteJid &&
+              !contact.remoteJid.includes('@g.us') &&
+              contact.remoteJid.includes('@s.whatsapp.net');
           })
           .map((contact: any) => ({
             id: contact.remoteJid,
@@ -406,15 +437,15 @@ export async function fetchChats(config: EvolutionConfig): Promise<any[]> {
             createdAt: contact.createdAt,
             updatedAt: contact.updatedAt,
           }));
-        
+
         console.log(`✅ ${chats.length} conversas construídas a partir de ${contacts.length} contatos (fallback)`);
         return chats;
       }
-      
+
       // Se não foi erro de fallback, relanc ar
       throw fallbackError;
     }
-    
+
   } catch (error) {
     console.error('❌ Erro ao buscar conversas (mesmo após fallback):', error);
     throw error;
@@ -446,7 +477,7 @@ export async function fetchContacts(config: EvolutionConfig): Promise<any[]> {
 
     const data = await response.json();
     console.log('✅ Contatos obtidos com sucesso:', data.length || 0);
-    
+
     return Array.isArray(data) ? data : [];
   } catch (error) {
     console.error('❌ Erro ao buscar contatos:', error);
@@ -463,23 +494,23 @@ async function getBase64FromMedia(config: EvolutionConfig, messageKey: any): Pro
     const baseUrl = normalizeUrl(config.apiUrl);
     const encodedInstance = encodeURIComponent(config.instance);
     const url = `${baseUrl}/chat/getBase64FromMediaMessage/${encodedInstance}`;
-    
+
     // Clean messageKey - remove extra fields that can cause errors
     const cleanedMessageKey = {
       id: messageKey.id,
       remoteJid: messageKey.remoteJid,
       fromMe: messageKey.fromMe || false
     };
-    
+
     const payload = {
       message: {
         key: cleanedMessageKey
       },
       convertToMp4: false
     };
-    
+
     console.log('📥 Baixando base64 da mídia:', cleanedMessageKey.id);
-    
+
     const response = await fetch(url, {
       method: 'POST',
       headers: {
@@ -495,7 +526,7 @@ async function getBase64FromMedia(config: EvolutionConfig, messageKey: any): Pro
     }
 
     const data = await response.json();
-    
+
     if (data.base64) {
       console.log('✅ Base64 baixado:', data.base64.substring(0, 50) + '...', 'mimetype:', data.mimetype);
       return {
@@ -503,7 +534,7 @@ async function getBase64FromMedia(config: EvolutionConfig, messageKey: any): Pro
         mimetype: data.mimetype
       };
     }
-    
+
     return null;
   } catch (error) {
     console.error('❌ Erro ao baixar base64:', error);
@@ -519,11 +550,11 @@ export async function fetchMessages(config: EvolutionConfig, chatId: string): Pr
   try {
     console.log('🚀 ==== FETCH MESSAGES INICIADO ====');
     console.log('🔍 ChatId:', chatId);
-    
+
     const baseUrl = normalizeUrl(config.apiUrl);
     const encodedInstance = encodeURIComponent(config.instance);
     const url = `${baseUrl}/chat/findMessages/${encodedInstance}`;
-    
+
     const payload = {
       where: {
         key: {
@@ -532,13 +563,13 @@ export async function fetchMessages(config: EvolutionConfig, chatId: string): Pr
       },
       limit: 100
     };
-    
+
     console.log('🔍 Fetching messages:');
     console.log('  URL:', url);
     console.log('  ChatId:', chatId);
     console.log('  Instance:', config.instance);
     console.log('  Payload:', JSON.stringify(payload, null, 2));
-    
+
     const response = await fetch(url, {
       method: 'POST',
       headers: {
@@ -557,11 +588,11 @@ export async function fetchMessages(config: EvolutionConfig, chatId: string): Pr
     }
 
     const data = JSON.parse(responseText);
-    
+
     // A Evolution API v2 retorna mensagens em um formato paginado:
     // { messages: { total, pages, currentPage, records: [...] } }
     let messages = [];
-    
+
     if (data.messages && Array.isArray(data.messages.records)) {
       messages = data.messages.records;
       console.log('✅ Mensagens obtidas com sucesso:', messages.length);
@@ -575,28 +606,28 @@ export async function fetchMessages(config: EvolutionConfig, chatId: string): Pr
       console.log('  ⚠️ Formato de resposta não reconhecido');
       console.log('  Response:', JSON.stringify(data).substring(0, 200));
     }
-    
+
     // 📥 BAIXAR BASE64 PARA MENSAGENS DE MÍDIA AUTOMATICAMENTE
     console.log('📥 Processando mensagens de mídia...');
-    
+
     for (const msg of messages) {
       if (!msg.message) continue;
-      
+
       // Detectar tipo de mídia
       const isAudio = msg.message.audioMessage || msg.messageType === 'audioMessage';
       const isImage = msg.message.imageMessage || msg.messageType === 'imageMessage';
       const isVideo = msg.message.videoMessage || msg.messageType === 'videoMessage';
       const isDocument = msg.message.documentMessage || msg.messageType === 'documentMessage';
-      
+
       const hasMedia = isAudio || isImage || isVideo || isDocument;
-      
+
       if (hasMedia && msg.key) {
         console.log(`📸 Mensagem de mídia detectada: ${msg.messageType || 'unknown'}`);
-        
+
         // Baixar base64 se não tiver
         if (!msg.message.base64) {
           const mediaData = await getBase64FromMedia(config, msg.key);
-          
+
           if (mediaData?.base64) {
             // Adicionar base64 diretamente no objeto da mensagem
             msg.message.base64 = mediaData.base64;
@@ -607,11 +638,11 @@ export async function fetchMessages(config: EvolutionConfig, chatId: string): Pr
         } else {
           console.log(`✅ Mensagem ${msg.key.id} já tem base64`);
         }
-        
+
         // 🔧 CRIAR DATA URL COMPLETO PARA O FRONTEND
         if (msg.message.base64) {
           let mimeType = 'application/octet-stream'; // default
-          
+
           if (isAudio) {
             mimeType = msg.message.audioMessage?.mimetype || 'audio/ogg; codecs=opus';
           } else if (isImage) {
@@ -621,20 +652,20 @@ export async function fetchMessages(config: EvolutionConfig, chatId: string): Pr
           } else if (isDocument) {
             mimeType = msg.message.documentMessage?.mimetype || 'application/pdf';
           }
-          
+
           // Criar data URL completo
           msg.message.mediaDataUrl = `data:${mimeType};base64,${msg.message.base64}`;
           console.log(`✅ mediaDataUrl criado para ${msg.key.id} (${mimeType})`);
         }
       }
     }
-    
+
     if (messages.length > 0) {
       console.log('  Primeira mensagem (preview):', JSON.stringify(messages[0], null, 2).substring(0, 400));
     } else {
       console.log('  ⚠️ Nenhuma mensagem encontrada para chatId:', chatId);
     }
-    
+
     return messages;
   } catch (error) {
     console.error('❌ Erro ao buscar mensagens:', error);
@@ -653,13 +684,13 @@ export async function sendMessage(
   try {
     const baseUrl = normalizeUrl(config.apiUrl);
     const encodedInstance = encodeURIComponent(config.instance);
-    
+
     // Formatar número se necessário
     let formattedNumber = number;
     if (!formattedNumber.includes('@')) {
       formattedNumber = `${number}@s.whatsapp.net`;
     }
-    
+
     const response = await fetch(
       `${baseUrl}/message/sendText/${encodedInstance}`,
       {
@@ -687,7 +718,7 @@ export async function sendMessage(
 
     const data = await response.json();
     console.log('✅ Mensagem enviada com sucesso');
-    
+
     return data;
   } catch (error) {
     console.error('❌ Erro ao enviar mensagem:', error);
@@ -710,19 +741,19 @@ export async function sendMedia(
   try {
     const baseUrl = normalizeUrl(config.apiUrl);
     const encodedInstance = encodeURIComponent(config.instance);
-    
+
     // Formatar número se necessário
     let formattedNumber = number;
     if (!formattedNumber.includes('@')) {
       formattedNumber = `${number}@s.whatsapp.net`;
     }
-    
+
     // Garantir que media tem o prefixo data URL
     let formattedMedia = media;
     if (!media.startsWith('data:')) {
       formattedMedia = `data:${mimetype};base64,${media}`;
     }
-    
+
     const requestBody: any = {
       number: formattedNumber,
       mediatype: mediatype,
@@ -737,7 +768,7 @@ export async function sendMedia(
     if (fileName) {
       requestBody.fileName = fileName;
     }
-    
+
     const response = await fetch(
       `${baseUrl}/message/sendMedia/${encodedInstance}`,
       {
@@ -757,7 +788,7 @@ export async function sendMedia(
 
     const data = await response.json();
     console.log('✅ Mídia enviada com sucesso');
-    
+
     return data;
   } catch (error) {
     console.error('❌ Erro ao enviar mídia:', error);
@@ -778,19 +809,19 @@ export async function sendAudio(
   try {
     const baseUrl = normalizeUrl(config.apiUrl);
     const encodedInstance = encodeURIComponent(config.instance);
-    
+
     // Formatar número se necessário
     let formattedNumber = number;
     if (!formattedNumber.includes('@')) {
       formattedNumber = `${number}@s.whatsapp.net`;
     }
-    
+
     // Remover prefixo data: se existir e pegar apenas base64 puro
     let pureBase64 = audioBase64;
     if (audioBase64.startsWith('data:')) {
       pureBase64 = audioBase64.split(',')[1] || audioBase64;
     }
-    
+
     const response = await fetch(
       `${baseUrl}/message/sendWhatsAppAudio/${encodedInstance}`,
       {
@@ -814,7 +845,7 @@ export async function sendAudio(
 
     const data = await response.json();
     console.log('✅ Áudio enviado com sucesso');
-    
+
     return data;
   } catch (error) {
     console.error('❌ Erro ao enviar áudio:', error);

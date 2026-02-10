@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import * as fabricModule from 'fabric';
+import * as fabric from 'fabric';
 import { Input } from '@/components/ui/input';
-
-const fabric = (fabricModule as any).fabric || fabricModule;
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';

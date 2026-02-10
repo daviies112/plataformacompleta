@@ -20,11 +20,11 @@ interface QuestionPage {
 function groupQuestionsByPages(form: Form): QuestionPage[] {
   // Priority: form.questions (where elements are saved via API) > form.elements (legacy separate column)
   const formData = (form.questions as any[] | null) || (form.elements as any[] | null);
-  
+
   if (!formData || formData.length === 0) {
     return [];
   }
-  
+
   // Check if data is in new FormElement[] format (has type: 'question' with questionType)
   // or legacy Question[] format (has type: 'text'/'multiple-choice' directly)
   const isNewFormat = formData.some((item: any) => {
@@ -34,7 +34,7 @@ function groupQuestionsByPages(form: Form): QuestionPage[] {
     if (item.type === 'heading' || item.type === 'pageBreak' || item.type === 'text') return true;
     return false;
   });
-  
+
   if (!isNewFormat) {
     // Legacy format: each question on its own page (original behavior)
     // Include all legacy question types: text, multiple-choice, radio, checkbox, select, textarea
@@ -62,14 +62,14 @@ function groupQuestionsByPages(form: Form): QuestionPage[] {
     }
     return [];
   }
-  
+
   // New FormElement[] format: parse with pageBreak support
   // Handle duplicate/empty pageBreaks gracefully by only splitting when we have questions
   const pages: QuestionPage[] = [];
   let currentPageQuestions: any[] = [];
   let foundFirstQuestion = false;
   let lastWasPageBreak = false;
-  
+
   for (const element of formData) {
     if (element.type === 'question') {
       foundFirstQuestion = true;
@@ -97,12 +97,12 @@ function groupQuestionsByPages(form: Form): QuestionPage[] {
     // Ignore other element types (heading, text) for pagination purposes
     // They are rendered separately
   }
-  
+
   // Don't forget the last page
   if (currentPageQuestions.length > 0) {
     pages.push({ questions: currentPageQuestions });
   }
-  
+
   return pages;
 }
 
@@ -117,7 +117,7 @@ const PublicForm = () => {
   const [searchParams] = useSearchParams();
   const ref = searchParams.get('ref');
   const telefone = searchParams.get('telefone');
-  
+
   const [answers, setAnswers] = useState<Record<string, FormAnswer>>({});
   const [result, setResult] = useState<FormSubmission | null>(null);
   const [contactName, setContactName] = useState("");
@@ -131,7 +131,7 @@ const PublicForm = () => {
   const [carregandoDados, setCarregandoDados] = useState(false);
   const [dadosWhatsApp, setDadosWhatsApp] = useState<ContactData | null>(null);
   const [iniciado, setIniciado] = useState(false);
-  
+
   // 🔥 FIX: Guard para evitar duplo fetch em React Strict Mode
   const hasFetchedRef = useRef(false);
 
@@ -178,7 +178,7 @@ const PublicForm = () => {
   // 🔥 PRIORIDADE: telefone direto > ref (n8n pode enviar ambos)
   useEffect(() => {
     if (hasFetchedRef.current) return;
-    
+
     // Se tiver telefone direto na URL, usa ele (prioridade máxima)
     if (telefone) {
       hasFetchedRef.current = true;
@@ -194,7 +194,7 @@ const PublicForm = () => {
       toast.success('Telefone verificado via WhatsApp!');
       return;
     }
-    
+
     // Se tiver ref, busca dados do WhatsApp
     if (ref && !dadosWhatsApp) {
       hasFetchedRef.current = true;
@@ -211,7 +211,7 @@ const PublicForm = () => {
       console.log('🔍 Buscando dados do WhatsApp para:', numero);
 
       const response = await fetch(`/api/whatsapp/contact/${numero}`);
-      
+
       if (!response.ok) {
         throw new Error('Erro ao buscar dados do contato');
       }
@@ -244,7 +244,7 @@ const PublicForm = () => {
         }
       } else {
         console.warn('⚠️ Contato não encontrado');
-        
+
         // Usa número da ref como fallback (formatado)
         const telefoneFormatado = formatarTelefone(numero);
         console.log('📱 [PublicForm] Fallback ref:', numero, '→', telefoneFormatado);
@@ -259,7 +259,7 @@ const PublicForm = () => {
 
     } catch (error) {
       console.error('❌ Erro ao buscar dados do WhatsApp:', error);
-      
+
       // Usa número da ref como fallback (formatado)
       if (ref) {
         const telefoneFormatado = formatarTelefone(ref);
@@ -384,7 +384,7 @@ const PublicForm = () => {
 
   const handleSubmit = () => {
     if (!config || !id) return;
-    
+
     if (!contactName || !contactEmail || !contactCpf) {
       toast.error("Por favor, preencha seu nome completo, email e CPF");
       return;
@@ -392,9 +392,9 @@ const PublicForm = () => {
 
     const answerArray = Object.values(answers);
     const totalScore = answerArray.reduce((sum, ans) => sum + ans.points, 0);
-    
+
     let passed = totalScore >= config.passingScore;
-    
+
     if (config.scoreTiers && config.scoreTiers.length > 0) {
       const tier = config.scoreTiers.find(
         t => totalScore >= t.minScore && totalScore <= t.maxScore
@@ -478,9 +478,9 @@ const PublicForm = () => {
     );
 
     const completionConfig = config?.completionPageConfig || {
-      title: "Obrigado!",
-      successMessage: "Parabéns! Você está qualificado. Entraremos em contato em breve.",
-      failureMessage: "Obrigado pela sua participação. Infelizmente você não atingiu a pontuação mínima.",
+      title: "Obrigado por preencher o formulário!",
+      successMessage: "Nossa equipe está analisando suas informações e retornaremos em breve pelo WhatsApp.",
+      failureMessage: "Obrigado por preencher o formulário. Nossa equipe analisará suas respostas.",
       showScore: true,
       showTierBadge: true
     };
@@ -497,7 +497,7 @@ const PublicForm = () => {
           ) : (
             <XCircle className="h-16 w-16 mx-auto mb-4" style={{ color: failureIconColor }} />
           )}
-          
+
           <h2 className="text-3xl font-bold mb-2" style={{ color: colors.text }}>
             {completionConfig.title}
           </h2>
@@ -532,7 +532,7 @@ const PublicForm = () => {
           </p>
 
           {completionConfig.customContent && (
-            <div 
+            <div
               className="mt-6 p-4 rounded-lg"
               dangerouslySetInnerHTML={{ __html: completionConfig.customContent }}
               style={{ color: colors.text, backgroundColor: `${colors.secondary}50` }}
@@ -594,7 +594,7 @@ const PublicForm = () => {
           <Card className="p-6 mb-6" style={{ backgroundColor: colors.background, borderColor: `${colors.primary}30` }}>
             <div className="flex items-center gap-4 mb-4">
               {dadosWhatsApp.profilePicUrl ? (
-                <img 
+                <img
                   src={dadosWhatsApp.profilePicUrl}
                   alt="Foto de perfil"
                   className="w-16 h-16 rounded-full border-2"
@@ -620,7 +620,7 @@ const PublicForm = () => {
                 <span className="text-sm font-medium" style={{ color: colors.primary }}>{progresso}%</span>
               </div>
               <div className="w-full rounded-full h-2" style={{ backgroundColor: colors.secondary }}>
-                <div 
+                <div
                   className="h-2 rounded-full transition-all duration-300"
                   style={{ width: `${progresso}%`, backgroundColor: colors.progressBar || colors.primary }}
                 />
@@ -628,7 +628,7 @@ const PublicForm = () => {
             </div>
 
             {/* Verificação WhatsApp */}
-            <div 
+            <div
               className="flex items-center gap-2 text-sm rounded-lg p-3"
               style={{ backgroundColor: `${colors.primary}15`, color: colors.primary }}
             >
@@ -641,15 +641,15 @@ const PublicForm = () => {
         <Card className={`p-8 mb-6 ${spacingClasses[design.spacing as keyof typeof spacingClasses]}`} style={{ backgroundColor: colors.background, borderColor: `${colors.primary}30` }}>
           {design.logo && (
             <div className={`mb-8 ${design.logoAlign === 'center' ? 'flex justify-center' : design.logoAlign === 'right' ? 'flex justify-end' : ''}`}>
-              <img 
-                src={design.logo} 
-                alt="Logo" 
+              <img
+                src={design.logo}
+                alt="Logo"
                 style={{ height: `${design.logoSize || 64}px` }}
-                className="object-contain" 
+                className="object-contain"
               />
             </div>
           )}
-          
+
           <h1 className={`${titleSizeClasses[design.typography.titleSize as keyof typeof titleSizeClasses]} font-bold mb-4`} style={{ color: colors.primary }}>{config.title}</h1>
           <p className={`${textSizeClasses[design.typography.textSize as keyof typeof textSizeClasses]} mb-6`} style={{ color: colors.text, opacity: 0.8 }}>{config.description}</p>
 
@@ -674,13 +674,13 @@ const PublicForm = () => {
             {currentPageQuestions.map((question, index) => {
               const questionType = question.questionType || question.type;
               const globalIndex = questionPages.slice(0, currentPage).reduce((sum, page) => sum + page.questions.length, 0) + index;
-              
+
               return (
                 <div key={question.id} className="space-y-4" data-testid={`question-${question.id}`}>
                   <div className="flex items-start gap-3">
-                    <span 
+                    <span
                       className="font-semibold px-3 py-1 rounded-full text-sm shrink-0"
-                      style={{ 
+                      style={{
                         backgroundColor: `${colors.primary}20`,
                         color: colors.primary
                       }}
@@ -688,7 +688,7 @@ const PublicForm = () => {
                       {globalIndex + 1}
                     </span>
                     <div className="flex-1">
-                      <h3 
+                      <h3
                         className={`font-medium ${textSizeClasses[design.typography.textSize as keyof typeof textSizeClasses]} mb-4`}
                         style={{ color: colors.text }}
                       >
@@ -723,7 +723,7 @@ const PublicForm = () => {
                               data-testid={`option-${option.id}`}
                             >
                               <RadioGroupItem value={option.id} id={option.id} />
-                              <span 
+                              <span
                                 className="flex-1 font-normal"
                                 style={{ color: colors.text }}
                               >
@@ -783,126 +783,126 @@ const PublicForm = () => {
 
           {/* Informações de Contato - apenas na última página ou se há apenas 1 página */}
           {(isLastPage || totalPages <= 1) && (
-          <div className="mt-8 pt-6 border-t space-y-4" style={{ borderColor: colors.primary + '30' }}>
-            <h3 className={`${textSizeClasses[design.typography.textSize as keyof typeof textSizeClasses]} font-semibold`} style={{ color: colors.text }}>Informações de Contato</h3>
-            
-            <div>
-              <Label htmlFor="contact-name" style={{ color: colors.text }}>Nome *</Label>
-              <Input
-                id="contact-name"
-                value={contactName}
-                onChange={(e) => {
-                  setContactName(e.target.value);
-                  // 🔥 NOVO: Registra início ao preencher nome
-                  if (!iniciado && e.target.value && !Object.keys(answers).length) {
-                    registrarInicio();
-                  }
-                }}
-                placeholder="Seu nome completo"
-                required
-                data-testid="input-name"
-                style={dadosWhatsApp?.nome 
-                  ? { backgroundColor: `${colors.primary}10`, borderColor: `${colors.primary}50`, color: colors.text }
-                  : { backgroundColor: colors.secondary, borderColor: `${colors.primary}30`, color: colors.text }
-                }
-              />
-              {dadosWhatsApp?.nome && (
-                <p className="text-xs mt-1" style={{ color: colors.primary }}>
-                  ✓ Nome carregado do WhatsApp (você pode editar se necessário)
-                </p>
-              )}
-            </div>
+            <div className="mt-8 pt-6 border-t space-y-4" style={{ borderColor: colors.primary + '30' }}>
+              <h3 className={`${textSizeClasses[design.typography.textSize as keyof typeof textSizeClasses]} font-semibold`} style={{ color: colors.text }}>Informações de Contato</h3>
 
-            <div>
-              <Label htmlFor="contact-email" style={{ color: colors.text }}>Email *</Label>
-              <Input
-                id="contact-email"
-                type="email"
-                value={contactEmail}
-                onChange={(e) => setContactEmail(e.target.value)}
-                placeholder="seu@email.com"
-                required
-                data-testid="input-email"
-                style={{ backgroundColor: colors.secondary, borderColor: `${colors.primary}30`, color: colors.text }}
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="contact-cpf" style={{ color: colors.text }}>CPF *</Label>
-              <Input
-                id="contact-cpf"
-                value={contactCpf}
-                onChange={(e) => {
-                  const value = e.target.value.replace(/\D/g, '');
-                  const formatted = value
-                    .replace(/(\d{3})(\d)/, '$1.$2')
-                    .replace(/(\d{3})(\d)/, '$1.$2')
-                    .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
-                  setContactCpf(formatted);
-                }}
-                placeholder="000.000.000-00"
-                required
-                maxLength={14}
-                data-testid="input-cpf"
-                style={{ backgroundColor: colors.secondary, borderColor: `${colors.primary}30`, color: colors.text }}
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="contact-phone" style={{ color: colors.text }} className="flex items-center gap-2">
-                Telefone {(ref || telefoneBloqueado) && (
-                  <span className="text-xs px-2 py-0.5 rounded-full flex items-center gap-1" style={{ backgroundColor: '#22c55e', color: '#ffffff' }}>
-                    <Lock className="w-3 h-3" />
-                    Verificado
-                  </span>
-                )}
-              </Label>
-              <div className="relative">
+              <div>
+                <Label htmlFor="contact-name" style={{ color: colors.text }}>Nome *</Label>
                 <Input
-                  id="contact-phone"
-                  value={contactPhone}
-                  onChange={(e) => !telefoneBloqueado && !ref && setContactPhone(e.target.value)}
-                  placeholder="(00) 00000-0000"
-                  data-testid="input-phone"
-                  readOnly={telefoneBloqueado || !!ref}
-                  className={telefoneBloqueado || ref ? "pr-10" : ""}
-                  style={(ref || telefoneBloqueado)
-                    ? { backgroundColor: colors.secondary, borderColor: '#22c55e', borderWidth: '2px', color: colors.text, cursor: 'not-allowed' }
+                  id="contact-name"
+                  value={contactName}
+                  onChange={(e) => {
+                    setContactName(e.target.value);
+                    // 🔥 NOVO: Registra início ao preencher nome
+                    if (!iniciado && e.target.value && !Object.keys(answers).length) {
+                      registrarInicio();
+                    }
+                  }}
+                  placeholder="Seu nome completo"
+                  required
+                  data-testid="input-name"
+                  style={dadosWhatsApp?.nome
+                    ? { backgroundColor: `${colors.primary}10`, borderColor: `${colors.primary}50`, color: colors.text }
                     : { backgroundColor: colors.secondary, borderColor: `${colors.primary}30`, color: colors.text }
                   }
                 />
-                {(ref || telefoneBloqueado) && (
-                  <Lock className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: colors.primary }} />
+                {dadosWhatsApp?.nome && (
+                  <p className="text-xs mt-1" style={{ color: colors.primary }}>
+                    ✓ Nome carregado do WhatsApp (você pode editar se necessário)
+                  </p>
                 )}
               </div>
-              {(ref || telefoneBloqueado) && (
-                <p className="text-xs mt-1 flex items-center gap-1" style={{ color: colors.primary }}>
-                  <CheckCircle2 className="w-3 h-3" />
-                  Telefone verificado via WhatsApp (não pode ser alterado)
-                </p>
-              )}
-            </div>
 
-            <Button
-              onClick={handleSubmit}
-              disabled={submitMutation.isPending || Object.keys(answers).length === 0}
-              className="w-full gap-2 py-6"
-              style={{ backgroundColor: colors.button, color: colors.buttonText }}
-              data-testid="button-submit"
-            >
-              {submitMutation.isPending ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Enviando...
-                </>
-              ) : (
-                <>
-                  <Send className="h-4 w-4" />
-                  Enviar Formulário
-                </>
-              )}
-            </Button>
-          </div>
+              <div>
+                <Label htmlFor="contact-email" style={{ color: colors.text }}>Email *</Label>
+                <Input
+                  id="contact-email"
+                  type="email"
+                  value={contactEmail}
+                  onChange={(e) => setContactEmail(e.target.value)}
+                  placeholder="seu@email.com"
+                  required
+                  data-testid="input-email"
+                  style={{ backgroundColor: colors.secondary, borderColor: `${colors.primary}30`, color: colors.text }}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="contact-cpf" style={{ color: colors.text }}>CPF *</Label>
+                <Input
+                  id="contact-cpf"
+                  value={contactCpf}
+                  onChange={(e) => {
+                    const value = e.target.value.replace(/\D/g, '');
+                    const formatted = value
+                      .replace(/(\d{3})(\d)/, '$1.$2')
+                      .replace(/(\d{3})(\d)/, '$1.$2')
+                      .replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+                    setContactCpf(formatted);
+                  }}
+                  placeholder="000.000.000-00"
+                  required
+                  maxLength={14}
+                  data-testid="input-cpf"
+                  style={{ backgroundColor: colors.secondary, borderColor: `${colors.primary}30`, color: colors.text }}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="contact-phone" style={{ color: colors.text }} className="flex items-center gap-2">
+                  Telefone {(ref || telefoneBloqueado) && (
+                    <span className="text-xs px-2 py-0.5 rounded-full flex items-center gap-1" style={{ backgroundColor: '#22c55e', color: '#ffffff' }}>
+                      <Lock className="w-3 h-3" />
+                      Verificado
+                    </span>
+                  )}
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="contact-phone"
+                    value={contactPhone}
+                    onChange={(e) => !telefoneBloqueado && !ref && setContactPhone(e.target.value)}
+                    placeholder="(00) 00000-0000"
+                    data-testid="input-phone"
+                    readOnly={telefoneBloqueado || !!ref}
+                    className={telefoneBloqueado || ref ? "pr-10" : ""}
+                    style={(ref || telefoneBloqueado)
+                      ? { backgroundColor: colors.secondary, borderColor: '#22c55e', borderWidth: '2px', color: colors.text, cursor: 'not-allowed' }
+                      : { backgroundColor: colors.secondary, borderColor: `${colors.primary}30`, color: colors.text }
+                    }
+                  />
+                  {(ref || telefoneBloqueado) && (
+                    <Lock className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: colors.primary }} />
+                  )}
+                </div>
+                {(ref || telefoneBloqueado) && (
+                  <p className="text-xs mt-1 flex items-center gap-1" style={{ color: colors.primary }}>
+                    <CheckCircle2 className="w-3 h-3" />
+                    Telefone verificado via WhatsApp (não pode ser alterado)
+                  </p>
+                )}
+              </div>
+
+              <Button
+                onClick={handleSubmit}
+                disabled={submitMutation.isPending || Object.keys(answers).length === 0}
+                className="w-full gap-2 py-6"
+                style={{ backgroundColor: colors.button, color: colors.buttonText }}
+                data-testid="button-submit"
+              >
+                {submitMutation.isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Enviando...
+                  </>
+                ) : (
+                  <>
+                    <Send className="h-4 w-4" />
+                    Enviar Formulário
+                  </>
+                )}
+              </Button>
+            </div>
           )}
         </Card>
       </div>

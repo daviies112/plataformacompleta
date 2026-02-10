@@ -1,5 +1,4 @@
-import * as fabricModule from 'fabric';
-const fabric = (fabricModule as any).fabric || fabricModule;
+import * as fabric from 'fabric';
 
 export interface LabelTemplate {
   id?: number;
@@ -44,11 +43,11 @@ export interface CanvasEditorProps {
 export interface CanvasEditorRef {
   canvas: fabric.Canvas | null;
   addText: () => void;
-  addTextWithContent: (content: string, options?: { 
-    x?: number; 
-    y?: number; 
+  addTextWithContent: (content: string, options?: {
+    x?: number;
+    y?: number;
     width?: number;
-    fontSize?: number; 
+    fontSize?: number;
     fontWeight?: string;
     fontFamily?: string;
     fill?: string;

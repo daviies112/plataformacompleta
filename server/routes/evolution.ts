@@ -4,10 +4,10 @@
  */
 
 import express from 'express';
-import { 
-  getQRCode, 
-  getInstanceStatus, 
-  logoutInstance, 
+import {
+  getQRCode,
+  getInstanceStatus,
+  logoutInstance,
   deleteInstance,
   createInstance,
   getEvolutionConfig,
@@ -34,8 +34,8 @@ router.get('/qrcode', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const clientId = req.user!.clientId;
     const tenantId = req.user!.tenantId || 'default';
-    const config = getEvolutionConfig(clientId);
-    
+    const config = await getEvolutionConfig(clientId, tenantId);
+
     if (!config) {
       return res.status(400).json({
         success: false,
@@ -44,7 +44,7 @@ router.get('/qrcode', authenticateToken, async (req: AuthRequest, res) => {
     }
 
     const qrData = await getQRCode(config);
-    
+
     res.json({
       success: true,
       qrcode: qrData.qrcode,
@@ -67,8 +67,8 @@ router.get('/status', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const clientId = req.user!.clientId;
     const tenantId = req.user!.tenantId || 'default';
-    const config = getEvolutionConfig(clientId);
-    
+    const config = await getEvolutionConfig(clientId, tenantId);
+
     if (!config) {
       return res.status(400).json({
         success: false,
@@ -77,7 +77,7 @@ router.get('/status', authenticateToken, async (req: AuthRequest, res) => {
     }
 
     const status = await getInstanceStatus(config);
-    
+
     res.json({
       success: true,
       status,
@@ -99,8 +99,8 @@ router.post('/create', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const clientId = req.user!.clientId;
     const tenantId = req.user!.tenantId || 'default';
-    const config = getEvolutionConfig(clientId);
-    
+    const config = await getEvolutionConfig(clientId, tenantId);
+
     if (!config) {
       return res.status(400).json({
         success: false,
@@ -109,7 +109,7 @@ router.post('/create', authenticateToken, async (req: AuthRequest, res) => {
     }
 
     const instance = await createInstance(config);
-    
+
     res.json({
       success: true,
       instance,
@@ -131,8 +131,8 @@ router.post('/logout', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const clientId = req.user!.clientId;
     const tenantId = req.user!.tenantId || 'default';
-    const config = getEvolutionConfig(clientId);
-    
+    const config = await getEvolutionConfig(clientId, tenantId);
+
     if (!config) {
       return res.status(400).json({
         success: false,
@@ -141,7 +141,7 @@ router.post('/logout', authenticateToken, async (req: AuthRequest, res) => {
     }
 
     const result = await logoutInstance(config);
-    
+
     res.json({
       success: true,
       result,
@@ -163,8 +163,8 @@ router.delete('/delete', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const clientId = req.user!.clientId;
     const tenantId = req.user!.tenantId || 'default';
-    const config = getEvolutionConfig(clientId);
-    
+    const config = await getEvolutionConfig(clientId, tenantId);
+
     if (!config) {
       return res.status(400).json({
         success: false,
@@ -173,7 +173,7 @@ router.delete('/delete', authenticateToken, async (req: AuthRequest, res) => {
     }
 
     const result = await deleteInstance(config);
-    
+
     res.json({
       success: true,
       result,
@@ -199,17 +199,17 @@ router.delete('/delete', authenticateToken, async (req: AuthRequest, res) => {
  */
 router.post('/chats', authenticateToken, async (req: AuthRequest, res) => {
   const startTime = Date.now();
-  
+
   try {
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log('⚡ [ULTRA-FAST] Buscando chats com cache Redis agressivo');
     console.log('⏰ Timestamp:', new Date().toISOString());
-    
+
     const clientId = req.user!.clientId;
     const tenantId = req.user!.tenantId || 'default';
     const forceRefresh = req.body?.forceRefresh === true;
-    const config = getEvolutionConfig(clientId);
-    
+    const config = await getEvolutionConfig(clientId, tenantId);
+
     if (!config) {
       console.log('❌ [BACKEND] Evolution API não configurado');
       return res.status(400).json({
@@ -221,13 +221,13 @@ router.post('/chats', authenticateToken, async (req: AuthRequest, res) => {
     // ESTRATÉGIA 1: Tenta retornar do cache IMEDIATAMENTE
     if (!forceRefresh) {
       const cached = await chatCacheManager.getCachedChats(clientId, tenantId);
-      
+
       if (cached) {
         const responseTime = Date.now() - startTime;
         console.log(`⚡ CACHE HIT! Retornando ${cached.chats.length} chats em ${responseTime}ms`);
         console.log(`📊 Cache info: versão ${cached.metadata.version}, última sync: ${cached.metadata.lastSync}`);
         console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
-        
+
         // Agenda refresh em BACKGROUND se necessário (não bloqueia)
         const needsRefresh = await chatCacheManager.needsRefresh(clientId, tenantId);
         if (needsRefresh) {
@@ -236,7 +236,7 @@ router.post('/chats', authenticateToken, async (req: AuthRequest, res) => {
             return enrichChatsWithContacts(chats, clientId, tenantId, config);
           });
         }
-        
+
         return res.json({
           success: true,
           chats: cached.chats,
@@ -255,17 +255,17 @@ router.post('/chats', authenticateToken, async (req: AuthRequest, res) => {
     // ESTRATÉGIA 2: Cache vazio ou forceRefresh - fazer refresh SÍNCRONO
     console.log(forceRefresh ? '🔥 FORCE REFRESH solicitado' : '📭 Cache vazio - primeira vez');
     console.log('🔄 Fazendo refresh SÍNCRONO (bloqueante apenas na primeira vez)...');
-    
+
     const enrichFn = async (chats: any[]) => {
       return enrichChatsWithContacts(chats, clientId, tenantId, config);
     };
-    
+
     const cached = await chatCacheManager.forceRefreshSync(clientId, tenantId, config, enrichFn);
-    
+
     const responseTime = Date.now() - startTime;
     console.log(`✅ Refresh completo! ${cached.chats.length} chats em ${responseTime}ms`);
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
-    
+
     res.json({
       success: true,
       chats: cached.chats,
@@ -296,16 +296,16 @@ router.post('/chats', authenticateToken, async (req: AuthRequest, res) => {
  */
 async function enrichChatsWithContacts(chats: any[], clientId: string, tenantId: string, config: any): Promise<any[]> {
   if (chats.length === 0) return chats;
-  
+
   try {
     console.log('📇 Enriquecendo chats com nomes de contatos...');
     const { getCachedContacts } = await import('../lib/cache');
     const contactsMap = await getCachedContacts(clientId, tenantId, config);
-    
+
     let enrichedCount = 0;
     const enrichedChats = chats.map((chat: any) => {
       const contact = contactsMap.contactsByJid[chat.remoteJid];
-      
+
       if (contact) {
         const contactName = contact.name || contact.pushName || contact.notify;
         if (contactName && contactName !== chat.pushName) {
@@ -321,10 +321,10 @@ async function enrichChatsWithContacts(chats: any[], clientId: string, tenantId:
           };
         }
       }
-      
+
       return chat;
     });
-    
+
     console.log(`✅ ${enrichedCount}/${chats.length} chats enriquecidos com nomes`);
     return enrichedChats;
   } catch (error) {
@@ -343,11 +343,11 @@ router.post('/force-sync', authenticateToken, async (req: AuthRequest, res) => {
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log('🔄 [FORCE-SYNC] Forçando sincronização manual com Evolution API');
     console.log('⏰ Timestamp:', new Date().toISOString());
-    
+
     const clientId = req.user!.clientId;
     const tenantId = req.user!.tenantId || 'default';
-    const config = getEvolutionConfig(clientId);
-    
+    const config = await getEvolutionConfig(clientId, tenantId);
+
     if (!config) {
       return res.status(400).json({
         success: false,
@@ -359,16 +359,16 @@ router.post('/force-sync', authenticateToken, async (req: AuthRequest, res) => {
     console.log('📡 Tentativa 1: Buscar chats com refresh forçado...');
     const chats = await fetchChats(config);
     console.log(`✅ Recebidos ${chats.length} chats`);
-    
+
     if (chats.length > 0) {
       const mostRecent = chats[0];
       const timestamp = mostRecent.lastMessage?.messageTimestamp;
       console.log(`📅 Chat mais recente: ${mostRecent.pushName || 'N/A'}`);
       console.log(`📅 Timestamp: ${timestamp} (${new Date(timestamp * 1000).toISOString()})`);
     }
-    
+
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
-    
+
     res.json({
       success: true,
       message: 'Sincronização forçada',
@@ -395,8 +395,8 @@ router.post('/contacts', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const clientId = req.user!.clientId;
     const tenantId = req.user!.tenantId || 'default';
-    const config = getEvolutionConfig(clientId);
-    
+    const config = await getEvolutionConfig(clientId, tenantId);
+
     if (!config) {
       return res.status(400).json({
         success: false,
@@ -405,7 +405,7 @@ router.post('/contacts', authenticateToken, async (req: AuthRequest, res) => {
     }
 
     const contacts = await fetchContacts(config);
-    
+
     res.json({
       success: true,
       contacts,
@@ -427,11 +427,11 @@ router.post('/contacts', authenticateToken, async (req: AuthRequest, res) => {
 router.post('/refresh-contacts-cache', authenticateToken, async (req: AuthRequest, res) => {
   try {
     console.log('🔄 [REFRESH-CACHE] Invalidando cache COMPLETO (chats + contatos)...');
-    
+
     const clientId = req.user!.clientId;
     const tenantId = req.user!.tenantId || 'default';
-    const config = getEvolutionConfig(clientId);
-    
+    const config = await getEvolutionConfig(clientId, tenantId);
+
     if (!config) {
       return res.status(400).json({
         success: false,
@@ -440,28 +440,28 @@ router.post('/refresh-contacts-cache', authenticateToken, async (req: AuthReques
     }
 
     const startTime = Date.now();
-    
+
     // Invalida cache de chats
     await chatCacheManager.invalidateCache(clientId, tenantId);
-    
+
     // Invalida cache de contatos (com isolamento multi-tenant)
     const contactsCacheKey = `evolution:contacts:${clientId}:${tenantId}:${config.instance}`;
     const { cache } = await import('../lib/cache');
     await cache.del(contactsCacheKey);
-    
+
     console.log('✅ Caches invalidados (chats + contatos)');
-    
+
     // Força refresh SÍNCRONO para pré-popular cache
     console.log('🔄 Pré-populando cache com novos dados...');
     const enrichFn = async (chats: any[]) => {
       return enrichChatsWithContacts(chats, clientId, tenantId, config);
     };
-    
+
     const cached = await chatCacheManager.forceRefreshSync(clientId, tenantId, config, enrichFn);
     const responseTime = Date.now() - startTime;
-    
+
     console.log(`✅ Cache atualizado: ${cached.chats.length} chats em ${responseTime}ms`);
-    
+
     res.json({
       success: true,
       message: 'Cache completo atualizado com sucesso',
@@ -488,18 +488,18 @@ router.post('/refresh-contacts-cache', authenticateToken, async (req: AuthReques
 router.post('/messages', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const { chatId } = req.body;
-    
+
     if (!chatId) {
       return res.status(400).json({
         success: false,
         error: 'chatId é obrigatório',
       });
     }
-    
+
     const clientId = req.user!.clientId;
     const tenantId = req.user!.tenantId || 'default';
-    const config = getEvolutionConfig(clientId);
-    
+    const config = await getEvolutionConfig(clientId, tenantId);
+
     if (!config) {
       return res.status(400).json({
         success: false,
@@ -511,7 +511,7 @@ router.post('/messages', authenticateToken, async (req: AuthRequest, res) => {
     const messages = await cacheWhatsAppMessages(
       clientId,
       tenantId,
-      config.instanceName,
+      config.instance,
       chatId,
       async () => {
         console.log(`🔄 Cache MISS for messages (chat: ${chatId.substring(0, 20)}...)`);
@@ -523,7 +523,7 @@ router.post('/messages', authenticateToken, async (req: AuthRequest, res) => {
       // Graceful degradation - fetch without cache
       return await fetchMessages(config, chatId);
     });
-    
+
     res.json({
       success: true,
       messages,
@@ -544,18 +544,18 @@ router.post('/messages', authenticateToken, async (req: AuthRequest, res) => {
 router.post('/send-message', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const { number, text } = req.body;
-    
+
     if (!number || !text) {
       return res.status(400).json({
         success: false,
         error: 'number e text são obrigatórios',
       });
     }
-    
+
     const clientId = req.user!.clientId;
     const tenantId = req.user!.tenantId || 'default';
-    const config = getEvolutionConfig(clientId);
-    
+    const config = await getEvolutionConfig(clientId, tenantId);
+
     if (!config) {
       return res.status(400).json({
         success: false,
@@ -564,7 +564,7 @@ router.post('/send-message', authenticateToken, async (req: AuthRequest, res) =>
     }
 
     const result = await sendMessage(config, number, text);
-    
+
     res.json({
       success: true,
       data: result,
@@ -585,18 +585,18 @@ router.post('/send-message', authenticateToken, async (req: AuthRequest, res) =>
 router.post('/send-media', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const { number, mediatype, mimetype, media, caption, fileName } = req.body;
-    
+
     if (!number || !mediatype || !mimetype || !media) {
       return res.status(400).json({
         success: false,
         error: 'number, mediatype, mimetype e media são obrigatórios',
       });
     }
-    
+
     const clientId = req.user!.clientId;
     const tenantId = req.user!.tenantId || 'default';
-    const config = getEvolutionConfig(clientId);
-    
+    const config = await getEvolutionConfig(clientId, tenantId);
+
     if (!config) {
       return res.status(400).json({
         success: false,
@@ -605,7 +605,7 @@ router.post('/send-media', authenticateToken, async (req: AuthRequest, res) => {
     }
 
     const result = await sendMedia(config, number, mediatype, mimetype, media, caption, fileName);
-    
+
     res.json({
       success: true,
       data: result,
@@ -626,18 +626,18 @@ router.post('/send-media', authenticateToken, async (req: AuthRequest, res) => {
 router.post('/send-audio', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const { number, audioBase64, mimeType } = req.body;
-    
+
     if (!number || !audioBase64) {
       return res.status(400).json({
         success: false,
         error: 'number e audioBase64 são obrigatórios',
       });
     }
-    
+
     const clientId = req.user!.clientId;
     const tenantId = req.user!.tenantId || 'default';
-    const config = getEvolutionConfig(clientId);
-    
+    const config = await getEvolutionConfig(clientId, tenantId);
+
     if (!config) {
       return res.status(400).json({
         success: false,
@@ -646,7 +646,7 @@ router.post('/send-audio', authenticateToken, async (req: AuthRequest, res) => {
     }
 
     const result = await sendAudio(config, number, audioBase64, mimeType);
-    
+
     res.json({
       success: true,
       data: result,
@@ -667,14 +667,14 @@ router.post('/send-audio', authenticateToken, async (req: AuthRequest, res) => {
 router.post('/proxy-media', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const { messageKey } = req.body;
-    
+
     if (!messageKey) {
       return res.status(400).json({
         success: false,
         error: 'messageKey é obrigatório',
       });
     }
-    
+
     // Validar formato do messageKey
     if (!messageKey.id || !messageKey.remoteJid) {
       return res.status(400).json({
@@ -682,11 +682,11 @@ router.post('/proxy-media', authenticateToken, async (req: AuthRequest, res) => 
         error: 'messageKey deve conter id e remoteJid',
       });
     }
-    
+
     const clientId = req.user!.clientId;
     const tenantId = req.user!.tenantId || 'default';
-    const config = getEvolutionConfig(clientId);
-    
+    const config = await getEvolutionConfig(clientId, tenantId);
+
     if (!config) {
       return res.status(400).json({
         success: false,
@@ -712,18 +712,18 @@ router.post('/proxy-media', authenticateToken, async (req: AuthRequest, res) => 
     const baseUrl = config.apiUrl.endsWith('/') ? config.apiUrl.slice(0, -1) : config.apiUrl;
     const encodedInstance = encodeURIComponent(config.instance);
     const url = `${baseUrl}/chat/getBase64FromMediaMessage/${encodedInstance}`;
-    
+
     console.log('  URL:', url);
-    
+
     const payload = {
       message: {
         key: cleanedMessageKey
       },
       convertToMp4: false
     };
-    
+
     console.log('  Payload:', JSON.stringify(payload, null, 2));
-    
+
     const response = await fetch(url, {
       method: 'POST',
       headers: {
@@ -740,18 +740,18 @@ router.post('/proxy-media', authenticateToken, async (req: AuthRequest, res) => 
       console.error('  ❌ Evolution API retornou erro:');
       console.error('  Status:', response.status, response.statusText);
       console.error('  Body:', errorText);
-      
+
       throw new Error(`Evolution API error: ${response.statusText} - ${errorText}`);
     }
 
     const data = await response.json();
-    
+
     console.log('✅ Mídia baixada com sucesso:', {
       hasBase64: !!data.base64,
       mimetype: data.mimetype,
       base64Length: data.base64?.length || 0
     });
-    
+
     res.json({
       success: true,
       base64: data.base64,
@@ -759,10 +759,10 @@ router.post('/proxy-media', authenticateToken, async (req: AuthRequest, res) => 
     });
   } catch (error) {
     console.error('❌ Erro ao baixar mídia:', error);
-    
+
     // Retornar erro mais amigável
     const errorMessage = error instanceof Error ? error.message : 'Erro ao baixar mídia';
-    
+
     res.status(500).json({
       success: false,
       error: errorMessage,
@@ -779,24 +779,24 @@ router.post('/proxy-media', authenticateToken, async (req: AuthRequest, res) => 
 router.post('/test-envio-mensagem', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const { numero, mensagem } = req.body;
-    
+
     if (!numero || !mensagem) {
       return res.status(400).json({
         success: false,
         error: 'Campos obrigatórios: numero, mensagem',
       });
     }
-    
+
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log('🧪 [TESTE ENVIO] Iniciando teste de envio de mensagem...');
     console.log('⏰ Timestamp:', new Date().toISOString());
     console.log('📞 Número:', numero);
     console.log('💬 Mensagem:', mensagem);
-    
+
     const clientId = req.user!.clientId;
     const tenantId = req.user!.tenantId || 'default';
-    const config = getEvolutionConfig(clientId);
-    
+    const config = await getEvolutionConfig(clientId, tenantId);
+
     if (!config) {
       console.log('❌ [TESTE ENVIO] Evolution API não configurado');
       return res.status(400).json({
@@ -804,13 +804,13 @@ router.post('/test-envio-mensagem', authenticateToken, async (req: AuthRequest, 
         error: 'Evolution API não configurado',
       });
     }
-    
+
     // Passo 1: Buscar chats antes do envio
     console.log('\n📊 [TESTE ENVIO] Passo 1: Buscando chats ANTES do envio...');
     const chatsBefore = await fetchChats(config);
     const totalBefore = chatsBefore.length;
     console.log('  Total de chats antes:', totalBefore);
-    
+
     // Passo 2: Enviar mensagem
     console.log('\n📤 [TESTE ENVIO] Passo 2: Enviando mensagem...');
     const sendStartTime = Date.now();
@@ -819,21 +819,21 @@ router.post('/test-envio-mensagem', authenticateToken, async (req: AuthRequest, 
     console.log('  Mensagem enviada com sucesso!');
     console.log('  Tempo de envio:', sendDuration, 'ms');
     console.log('  Result:', JSON.stringify(sendResult).substring(0, 200));
-    
+
     // Passo 3: Aguardar 3 segundos para a mensagem aparecer
     console.log('\n⏳ [TESTE ENVIO] Passo 3: Aguardando 3 segundos...');
     await new Promise(resolve => setTimeout(resolve, 3000));
-    
+
     // Passo 4: Buscar chats DEPOIS do envio
     console.log('\n📊 [TESTE ENVIO] Passo 4: Buscando chats DEPOIS do envio...');
     const chatsAfter = await fetchChats(config);
     const totalAfter = chatsAfter.length;
     console.log('  Total de chats depois:', totalAfter);
-    
+
     // Passo 5: Verificar se a mensagem aparece
     const targetJid = numero.includes('@') ? numero : `${numero}@s.whatsapp.net`;
     const conversaEncontrada = chatsAfter.find((chat: any) => chat.remoteJid === targetJid);
-    
+
     if (conversaEncontrada) {
       console.log('\n✅ [TESTE ENVIO] SUCESSO! Conversa encontrada:');
       console.log('  RemoteJid:', conversaEncontrada.remoteJid);
@@ -845,10 +845,10 @@ router.post('/test-envio-mensagem', authenticateToken, async (req: AuthRequest, 
       console.log('  JID procurado:', targetJid);
       console.log('  Total de chats:', totalAfter);
     }
-    
+
     console.log('\n✅ [TESTE ENVIO] Teste concluído!');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
-    
+
     res.json({
       success: true,
       test: {
@@ -880,19 +880,19 @@ router.post('/test-envio-mensagem', authenticateToken, async (req: AuthRequest, 
             } : null,
           },
         },
-        conclusion: conversaEncontrada ? 
+        conclusion: conversaEncontrada ?
           '✅ SUCESSO: Mensagem enviada e conversa apareceu na lista!' :
           '⚠️ ATENÇÃO: Mensagem enviada mas conversa não apareceu na lista!',
       },
     });
-    
+
   } catch (error) {
     console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.error('❌ [TESTE ENVIO] ERRO:');
     console.error('  Timestamp:', new Date().toISOString());
     console.error('  Erro:', error);
     console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
-    
+
     res.status(500).json({
       success: false,
       error: error instanceof Error ? error.message : 'Erro no teste de envio',
@@ -910,11 +910,11 @@ router.get('/test-diagnostico', authenticateToken, async (req: AuthRequest, res)
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log('🧪 [TESTE DIAGNÓSTICO] Iniciando teste...');
     console.log('⏰ Timestamp:', new Date().toISOString());
-    
+
     const clientId = req.user!.clientId;
     const tenantId = req.user!.tenantId || 'default';
-    const config = getEvolutionConfig(clientId);
-    
+    const config = await getEvolutionConfig(clientId, tenantId);
+
     if (!config) {
       console.log('❌ [TESTE] Evolution API não configurado');
       return res.status(400).json({
@@ -931,27 +931,27 @@ router.get('/test-diagnostico', authenticateToken, async (req: AuthRequest, res)
     console.log('  URL:', config.apiUrl);
     console.log('  Instance:', config.instance);
     console.log('  API Key:', '***' + (config.apiKey ? config.apiKey.slice(-8) : 'N/A'));
-    
+
     // Testar conexão
     const startTime = Date.now();
     const connectionState = await getInstanceStatus(config);
     const connectionTime = Date.now() - startTime;
-    
+
     console.log('🔗 [TESTE] Status de Conexão:');
     console.log('  Conectado:', connectionState.state === 'open');
     console.log('  State:', connectionState.state);
     console.log('  Tempo de verificação:', connectionTime, 'ms');
-    
+
     // Buscar chats
     const chatsStartTime = Date.now();
     const chats = await fetchChats(config);
     const chatsResponseTime = Date.now() - chatsStartTime;
-    
+
     console.log('📊 [TESTE] Resultado da busca de chats:');
     console.log('  Total de chats:', chats.length);
     console.log('  Tempo de resposta:', chatsResponseTime, 'ms');
     console.log('  Tipo da resposta:', Array.isArray(chats) ? 'Array ✅' : `${typeof chats} ❌`);
-    
+
     // Análise detalhada dos chats
     const chatAnalysis = {
       total: chats.length,
@@ -961,32 +961,32 @@ router.get('/test-diagnostico', authenticateToken, async (req: AuthRequest, res)
       groups: chats.filter((c: any) => c.remoteJid?.includes('@g.us')).length,
       individuals: chats.filter((c: any) => c.remoteJid?.includes('@s.whatsapp.net')).length,
     };
-    
+
     console.log('  Análise:');
     console.log('    - Com última mensagem:', chatAnalysis.withLastMessage);
     console.log('    - Com pushName:', chatAnalysis.withPushName);
     console.log('    - Com mensagens não lidas:', chatAnalysis.withUnreadCount);
     console.log('    - Grupos:', chatAnalysis.groups);
     console.log('    - Individuais:', chatAnalysis.individuals);
-    
+
     // Primeiros 5 chats detalhados
     const sampleChats = chats.slice(0, 5).map((chat: any) => {
-      const lastMsg = chat.lastMessage?.message?.conversation || 
-                     chat.lastMessage?.message?.extendedTextMessage?.text ||
-                     '[Mídia ou vazio]';
-      
+      const lastMsg = chat.lastMessage?.message?.conversation ||
+        chat.lastMessage?.message?.extendedTextMessage?.text ||
+        '[Mídia ou vazio]';
+
       return {
         remoteJid: chat.remoteJid,
         pushName: chat.pushName || 'N/A',
         lastMessage: lastMsg.substring(0, 100),
         messageTimestamp: chat.lastMessage?.messageTimestamp || 'N/A',
         unreadCount: chat.unreadCount || 0,
-        hasMedia: !!(chat.lastMessage?.message?.imageMessage || 
-                     chat.lastMessage?.message?.videoMessage ||
-                     chat.lastMessage?.message?.audioMessage),
+        hasMedia: !!(chat.lastMessage?.message?.imageMessage ||
+          chat.lastMessage?.message?.videoMessage ||
+          chat.lastMessage?.message?.audioMessage),
       };
     });
-    
+
     console.log('\n  Primeiros 5 chats (amostra):');
     sampleChats.forEach((chat, index) => {
       console.log(`    ${index + 1}. ${chat.remoteJid}`);
@@ -996,10 +996,10 @@ router.get('/test-diagnostico', authenticateToken, async (req: AuthRequest, res)
       console.log(`       Não lidas: ${chat.unreadCount}`);
       console.log('');
     });
-    
+
     console.log('✅ [TESTE] Diagnóstico completo!');
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
-    
+
     res.json({
       success: true,
       diagnostics: {
@@ -1023,14 +1023,14 @@ router.get('/test-diagnostico', authenticateToken, async (req: AuthRequest, res)
         },
       },
     });
-    
+
   } catch (error) {
     console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.error('❌ [TESTE] ERRO no diagnóstico:');
     console.error('  Timestamp:', new Date().toISOString());
     console.error('  Erro:', error);
     console.error('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
-    
+
     res.status(500).json({
       success: false,
       error: error instanceof Error ? error.message : 'Erro no diagnóstico',

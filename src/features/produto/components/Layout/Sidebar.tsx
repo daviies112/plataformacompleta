@@ -47,6 +47,8 @@ export const Sidebar = ({ currentPage, onNavigate }: SidebarProps) => {
         { icon: FolderTree, label: "Categorias", id: "produto-category" },
         { icon: Printer, label: "Fila de Impressão", id: "produto-print-queue" },
         { icon: SettingsIcon, label: "Configurações", id: "printer-config" },
+        { icon: Store, label: "Produtos", path: "/produto/admin/products" },
+        { icon: ClipboardList, label: "Solicitações", path: "/produto/admin/product-requests" },
       ],
     },
   ];
@@ -103,15 +105,21 @@ export const Sidebar = ({ currentPage, onNavigate }: SidebarProps) => {
                   <div className="ml-3 mt-1 space-y-0.5 border-l-2 border-sidebar-border pl-3">
                     {item.submenu.map((subitem) => (
                       <Button
-                        key={subitem.id}
+                        key={subitem.id || subitem.path}
                         variant="ghost"
                         className={cn(
                           "w-full justify-start gap-3 h-10 px-3 rounded-lg transition-all duration-200",
                           "text-sm text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                           currentPage === subitem.id &&
-                            "bg-primary text-primary-foreground hover:bg-primary-hover font-medium shadow-sm"
+                          "bg-primary text-primary-foreground hover:bg-primary-hover font-medium shadow-sm"
                         )}
-                        onClick={() => onNavigate(subitem.id)}
+                        onClick={() => {
+                          if (subitem.path) {
+                            navigate(subitem.path);
+                          } else if (subitem.id) {
+                            onNavigate(subitem.id);
+                          }
+                        }}
                       >
                         {subitem.icon && <subitem.icon className="w-4 h-4 flex-shrink-0" />}
                         <span className="text-sm">{subitem.label}</span>
@@ -141,10 +149,10 @@ export const Sidebar = ({ currentPage, onNavigate }: SidebarProps) => {
       </nav>
 
       <Separator className="bg-sidebar-border" />
-      
+
       <div className="p-3">
-        <Button 
-          variant="ghost" 
+        <Button
+          variant="ghost"
           className="w-full justify-start gap-3 h-11 px-3 rounded-lg text-sidebar-foreground hover:bg-destructive/10 hover:text-destructive transition-all duration-200"
         >
           <LogOut className="w-5 h-5 flex-shrink-0" />

@@ -1,11 +1,9 @@
 import React, { useEffect, useRef, useImperativeHandle, forwardRef, useState, useCallback } from 'react';
-import * as fabricModule from 'fabric';
+import * as fabric from 'fabric';
 import JsBarcode from 'jsbarcode';
 import QRCode from 'qrcode';
 import { CanvasEditorRef, LabelElement } from './types';
 import type { LayoutElement, SmartLayout } from './smartLabelLayout';
-
-const fabric = (fabricModule as any).fabric || fabricModule;
 
 interface CanvasEditorProps {
   widthMm: number;
@@ -38,7 +36,7 @@ export const CanvasEditor = forwardRef<CanvasEditorRef, CanvasEditorProps>(
       });
 
       fabricCanvasRef.current = canvas;
-      
+
       setCanvasVersion(v => v + 1);
 
       canvas.on('selection:created', (e) => {
@@ -96,12 +94,12 @@ export const CanvasEditor = forwardRef<CanvasEditorRef, CanvasEditorProps>(
     };
 
     const addTextWithContent = (
-      content: string, 
-      options?: { 
-        x?: number; 
-        y?: number; 
+      content: string,
+      options?: {
+        x?: number;
+        y?: number;
         width?: number;
-        fontSize?: number; 
+        fontSize?: number;
         fontWeight?: string;
         fontFamily?: string;
         fill?: string;
@@ -236,7 +234,7 @@ export const CanvasEditor = forwardRef<CanvasEditorRef, CanvasEditorProps>(
       try {
         const canvas = document.createElement('canvas');
         const barcodeHeight = options?.height ? options.height * MM_TO_PX * 0.7 : 40;
-        
+
         JsBarcode(canvas, text, {
           format: 'CODE128',
           displayValue: false,
@@ -245,7 +243,7 @@ export const CanvasEditor = forwardRef<CanvasEditorRef, CanvasEditorProps>(
         });
 
         const dataUrl = canvas.toDataURL('image/png');
-        
+
         const img = await fabric.Image.fromURL(dataUrl, { crossOrigin: 'anonymous' });
         if (!fabricCanvasRef.current) return;
 
@@ -258,7 +256,7 @@ export const CanvasEditor = forwardRef<CanvasEditorRef, CanvasEditorProps>(
           const scaleX = targetWidth / (img.width || 100);
           const scaleY = targetHeight / (img.height || 50);
           const scale = Math.min(scaleX, scaleY, 1);
-          
+
           img.set({
             left: xPx,
             top: yPx,
@@ -289,12 +287,12 @@ export const CanvasEditor = forwardRef<CanvasEditorRef, CanvasEditorProps>(
 
       try {
         const size = options?.size ? options.size * MM_TO_PX : 128;
-        
+
         const dataUrl = await QRCode.toDataURL(text, {
           width: size,
           margin: 1,
         });
-        
+
         const img = await fabric.Image.fromURL(dataUrl, { crossOrigin: 'anonymous' });
         if (!fabricCanvasRef.current) return;
 
@@ -384,7 +382,7 @@ export const CanvasEditor = forwardRef<CanvasEditorRef, CanvasEditorProps>(
       }
 
       await Promise.all(imagePromises);
-      
+
       fabricCanvasRef.current.renderAll();
     };
 
@@ -439,7 +437,7 @@ export const CanvasEditor = forwardRef<CanvasEditorRef, CanvasEditorProps>(
           elements.push({
             type: 'barcode',
             value: (obj as any).barcodeValue || 'BJ-0001',
-            data: obj.toDataURL({ format: 'png' }),
+            data: obj.toDataURL({ format: 'png', multiplier: 1 }),
             x: xMm,
             y: yMm,
             width: widthMm,
@@ -449,7 +447,7 @@ export const CanvasEditor = forwardRef<CanvasEditorRef, CanvasEditorProps>(
           elements.push({
             type: 'qrcode',
             value: (obj as any).qrCodeValue || 'https://sua-loja.com',
-            data: obj.toDataURL({ format: 'png' }),
+            data: obj.toDataURL({ format: 'png', multiplier: 1 }),
             x: xMm,
             y: yMm,
             width: widthMm,
@@ -458,7 +456,7 @@ export const CanvasEditor = forwardRef<CanvasEditorRef, CanvasEditorProps>(
         } else if (obj.type === 'image' || (obj as any).elementType === 'logo') {
           elements.push({
             type: 'image',
-            data: obj.toDataURL({ format: 'png' }),
+            data: obj.toDataURL({ format: 'png', multiplier: 1 }),
             x: xMm,
             y: yMm,
             width: widthMm,
@@ -471,12 +469,15 @@ export const CanvasEditor = forwardRef<CanvasEditorRef, CanvasEditorProps>(
       return elements;
     };
 
-    const loadDesignData = (data: any) => {
+    const loadDesignData = async (data: any) => {
       if (!fabricCanvasRef.current) return;
 
-      fabricCanvasRef.current.loadFromJSON(data, () => {
-        fabricCanvasRef.current?.renderAll();
-      });
+      try {
+        await fabricCanvasRef.current.loadFromJSON(data);
+        fabricCanvasRef.current.renderAll();
+      } catch (error) {
+        console.error("Error loading design data:", error);
+      }
     };
 
     const getDesignData = () => {

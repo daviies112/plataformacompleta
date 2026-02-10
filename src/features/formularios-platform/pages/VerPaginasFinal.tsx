@@ -56,10 +56,11 @@ interface CompletionPageForm {
 
 const defaultPage: CompletionPageForm = {
   name: "Nova Página Final",
-  title: "Obrigado!",
+  title: "Obrigado por preencher o formulário!",
   subtitle: "",
-  successMessage: "Parabéns! Você está qualificado. Entraremos em contato em breve.",
-  failureMessage: "Obrigado pela sua participação. Infelizmente você não atingiu a pontuação mínima.",
+
+  successMessage: "Nossa equipe está analisando suas informações e retornaremos em breve pelo WhatsApp.",
+  failureMessage: "Obrigado por preencher o formulário. Nossa equipe analisará suas respostas.",
   showScore: true,
   showTierBadge: true,
   logo: null,
@@ -287,7 +288,7 @@ export default function VerPaginasFinal() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 relative overflow-hidden">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_var(--tw-gradient-stops))] from-accent/5 via-transparent to-transparent pointer-events-none" />
-      
+
       <div className="container mx-auto px-4 py-12 relative">
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10 animate-slide-up">
@@ -304,18 +305,18 @@ export default function VerPaginasFinal() {
               </p>
             </div>
             <div className="flex gap-3 animate-fade-in">
-              <Button 
+              <Button
                 onClick={handleCreateNew}
-                variant="premium" 
+                variant="premium"
                 className="gap-2 shadow-luxury"
               >
                 <Plus className="h-4 w-4" />
                 Criar Nova Página
               </Button>
               {pages.length > 0 && (
-                <Button 
+                <Button
                   onClick={() => setShowPagesList(!showPagesList)}
-                  variant="outline" 
+                  variant="outline"
                   className="gap-2 glass"
                 >
                   <List className="h-4 w-4" />
@@ -343,7 +344,7 @@ export default function VerPaginasFinal() {
                   Escolha uma página da lista ou crie uma nova
                 </p>
                 <div className="flex gap-4 justify-center">
-                  <Button 
+                  <Button
                     onClick={handleCreateNew}
                     variant="premium"
                     size="lg"
@@ -352,7 +353,7 @@ export default function VerPaginasFinal() {
                     Criar Nova Página
                   </Button>
                   {pages.length > 0 && (
-                    <Button 
+                    <Button
                       onClick={() => setShowPagesList(true)}
                       variant="outline"
                       size="lg"
@@ -368,8 +369,8 @@ export default function VerPaginasFinal() {
           ) : showPagesList ? (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {pages.map((page, index) => (
-                <Card 
-                  key={page.id} 
+                <Card
+                  key={page.id}
                   className="glass hover-lift border-2 border-border/50 hover:border-primary/30 shadow-card animate-slide-up group cursor-pointer"
                   style={{ animationDelay: `${index * 0.05}s` }}
                   onClick={() => handleSelectPage(page)}
@@ -387,13 +388,13 @@ export default function VerPaginasFinal() {
                     <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
                       {page.title}
                     </p>
-                    <Button 
+                    <Button
                       onClick={(e) => {
                         e.stopPropagation();
                         handleSelectPage(page);
                       }}
-                      variant="outline" 
-                      size="sm" 
+                      variant="outline"
+                      size="sm"
                       className="w-full"
                     >
                       Editar Página
@@ -450,462 +451,462 @@ export default function VerPaginasFinal() {
                       <TabsTrigger value="design">Design</TabsTrigger>
                     </TabsList>
 
-                <TabsContent value="content" className="space-y-6 mt-6">
-                  <Card className="p-6 glass border-2 border-border/50 shadow-card">
-                    <div className="space-y-6">
-                      <div>
-                        <Label htmlFor="name">Nome da Página</Label>
-                        <Input
-                          id="name"
-                          value={pageForm.name}
-                          onChange={(e) => setPageForm({ ...pageForm, name: e.target.value })}
-                          placeholder="Ex: Página Final Padrão"
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor="title">Título da Página</Label>
-                          <Input
-                            id="title"
-                            value={pageForm.title}
-                            onChange={(e) => setPageForm({ ...pageForm, title: e.target.value })}
-                            placeholder="Ex: Obrigado!"
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="subtitle">Subtítulo (Opcional)</Label>
-                          <Input
-                            id="subtitle"
-                            value={pageForm.subtitle}
-                            onChange={(e) => setPageForm({ ...pageForm, subtitle: e.target.value })}
-                            placeholder="Ex: Sua resposta foi registrada"
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <Label htmlFor="successMessage">Mensagem de Sucesso</Label>
-                        <Textarea
-                          id="successMessage"
-                          value={pageForm.successMessage}
-                          onChange={(e) => setPageForm({ ...pageForm, successMessage: e.target.value })}
-                          placeholder="Mensagem para candidatos qualificados"
-                          rows={3}
-                        />
-                      </div>
-
-                      <div>
-                        <Label htmlFor="failureMessage">Mensagem de Não Qualificado</Label>
-                        <Textarea
-                          id="failureMessage"
-                          value={pageForm.failureMessage}
-                          onChange={(e) => setPageForm({ ...pageForm, failureMessage: e.target.value })}
-                          placeholder="Mensagem para candidatos não qualificados"
-                          rows={3}
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor="ctaText">Texto do Botão (Opcional)</Label>
-                          <Input
-                            id="ctaText"
-                            value={pageForm.ctaText}
-                            onChange={(e) => setPageForm({ ...pageForm, ctaText: e.target.value })}
-                            placeholder="Ex: Agendar Reunião"
-                          />
-                        </div>
-                        <div>
-                          <Label htmlFor="ctaUrl">Link do Botão</Label>
-                          <Input
-                            id="ctaUrl"
-                            value={pageForm.ctaUrl}
-                            onChange={(e) => setPageForm({ ...pageForm, ctaUrl: e.target.value })}
-                            placeholder="https://..."
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <Label htmlFor="customContent">Conteúdo Adicional (HTML)</Label>
-                        <Textarea
-                          id="customContent"
-                          value={pageForm.customContent}
-                          onChange={(e) => setPageForm({ ...pageForm, customContent: e.target.value })}
-                          placeholder="<p>Texto adicional em HTML</p>"
-                          rows={4}
-                        />
-                      </div>
-
-                      <div className="flex gap-6">
-                        <div className="flex items-center space-x-2">
-                          <Switch
-                            id="showScore"
-                            checked={pageForm.showScore}
-                            onCheckedChange={(checked) => setPageForm({ ...pageForm, showScore: checked })}
-                          />
-                          <Label htmlFor="showScore">Mostrar Pontuação</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Switch
-                            id="showTierBadge"
-                            checked={pageForm.showTierBadge}
-                            onCheckedChange={(checked) => setPageForm({ ...pageForm, showTierBadge: checked })}
-                          />
-                          <Label htmlFor="showTierBadge">Mostrar Badge de Nível</Label>
-                        </div>
-                      </div>
-                    </div>
-                  </Card>
-                </TabsContent>
-
-                <TabsContent value="design" className="space-y-6 mt-6">
-                  <Card className="p-6 glass border-2 border-border/50 shadow-card">
-                    <div className="space-y-6">
-                      <div>
-                        <Label>Logo</Label>
-                        <div className="flex gap-4 items-center mt-2">
-                          <label className="cursor-pointer">
-                            <div className="flex items-center gap-2 px-4 py-2 bg-primary/10 hover:bg-primary/20 rounded-lg transition-colors">
-                              <Upload className="h-4 w-4" />
-                              <span className="text-sm">Enviar Logo</span>
-                            </div>
-                            <input
-                              type="file"
-                              accept="image/*"
-                              onChange={handleUploadLogo}
-                              className="hidden"
+                    <TabsContent value="content" className="space-y-6 mt-6">
+                      <Card className="p-6 glass border-2 border-border/50 shadow-card">
+                        <div className="space-y-6">
+                          <div>
+                            <Label htmlFor="name">Nome da Página</Label>
+                            <Input
+                              id="name"
+                              value={pageForm.name}
+                              onChange={(e) => setPageForm({ ...pageForm, name: e.target.value })}
+                              placeholder="Ex: Página Final Padrão"
                             />
-                          </label>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <Label htmlFor="title">Título da Página</Label>
+                              <Input
+                                id="title"
+                                value={pageForm.title}
+                                onChange={(e) => setPageForm({ ...pageForm, title: e.target.value })}
+                                placeholder="Ex: Obrigado por preencher o formulário!"
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="subtitle">Subtítulo (Opcional)</Label>
+                              <Input
+                                id="subtitle"
+                                value={pageForm.subtitle}
+                                onChange={(e) => setPageForm({ ...pageForm, subtitle: e.target.value })}
+                                placeholder="Ex: Sua resposta foi registrada"
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <Label htmlFor="successMessage">Mensagem de Sucesso</Label>
+                            <Textarea
+                              id="successMessage"
+                              value={pageForm.successMessage}
+                              onChange={(e) => setPageForm({ ...pageForm, successMessage: e.target.value })}
+                              placeholder="Mensagem para candidatos qualificados"
+                              rows={3}
+                            />
+                          </div>
+
+                          <div>
+                            <Label htmlFor="failureMessage">Mensagem de Não Qualificado</Label>
+                            <Textarea
+                              id="failureMessage"
+                              value={pageForm.failureMessage}
+                              onChange={(e) => setPageForm({ ...pageForm, failureMessage: e.target.value })}
+                              placeholder="Mensagem para candidatos não qualificados"
+                              rows={3}
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <Label htmlFor="ctaText">Texto do Botão (Opcional)</Label>
+                              <Input
+                                id="ctaText"
+                                value={pageForm.ctaText}
+                                onChange={(e) => setPageForm({ ...pageForm, ctaText: e.target.value })}
+                                placeholder="Ex: Agendar Reunião"
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="ctaUrl">Link do Botão</Label>
+                              <Input
+                                id="ctaUrl"
+                                value={pageForm.ctaUrl}
+                                onChange={(e) => setPageForm({ ...pageForm, ctaUrl: e.target.value })}
+                                placeholder="https://..."
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <Label htmlFor="customContent">Conteúdo Adicional (HTML)</Label>
+                            <Textarea
+                              id="customContent"
+                              value={pageForm.customContent}
+                              onChange={(e) => setPageForm({ ...pageForm, customContent: e.target.value })}
+                              placeholder="<p>Texto adicional em HTML</p>"
+                              rows={4}
+                            />
+                          </div>
+
+                          <div className="flex gap-6">
+                            <div className="flex items-center space-x-2">
+                              <Switch
+                                id="showScore"
+                                checked={pageForm.showScore}
+                                onCheckedChange={(checked) => setPageForm({ ...pageForm, showScore: checked })}
+                              />
+                              <Label htmlFor="showScore">Mostrar Pontuação</Label>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <Switch
+                                id="showTierBadge"
+                                checked={pageForm.showTierBadge}
+                                onCheckedChange={(checked) => setPageForm({ ...pageForm, showTierBadge: checked })}
+                              />
+                              <Label htmlFor="showTierBadge">Mostrar Badge de Nível</Label>
+                            </div>
+                          </div>
+                        </div>
+                      </Card>
+                    </TabsContent>
+
+                    <TabsContent value="design" className="space-y-6 mt-6">
+                      <Card className="p-6 glass border-2 border-border/50 shadow-card">
+                        <div className="space-y-6">
+                          <div>
+                            <Label>Logo</Label>
+                            <div className="flex gap-4 items-center mt-2">
+                              <label className="cursor-pointer">
+                                <div className="flex items-center gap-2 px-4 py-2 bg-primary/10 hover:bg-primary/20 rounded-lg transition-colors">
+                                  <Upload className="h-4 w-4" />
+                                  <span className="text-sm">Enviar Logo</span>
+                                </div>
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  onChange={handleUploadLogo}
+                                  className="hidden"
+                                />
+                              </label>
+                              {pageForm.logo && (
+                                <div className="flex items-center gap-3">
+                                  <img src={pageForm.logo} alt="Logo" className="h-12 w-12 object-contain" />
+                                  <Button
+                                    onClick={() => setPageForm({ ...pageForm, logo: null })}
+                                    variant="ghost"
+                                    size="sm"
+                                  >
+                                    Remover
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
                           {pageForm.logo && (
-                            <div className="flex items-center gap-3">
-                              <img src={pageForm.logo} alt="Logo" className="h-12 w-12 object-contain" />
-                              <Button
-                                onClick={() => setPageForm({ ...pageForm, logo: null })}
-                                variant="ghost"
-                                size="sm"
+                            <div>
+                              <Label>Alinhamento do Logo</Label>
+                              <Select
+                                value={pageForm.logoAlign}
+                                onValueChange={(value) => setPageForm({ ...pageForm, logoAlign: value })}
                               >
-                                Remover
-                              </Button>
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="left">Esquerda</SelectItem>
+                                  <SelectItem value="center">Centro</SelectItem>
+                                  <SelectItem value="right">Direita</SelectItem>
+                                </SelectContent>
+                              </Select>
                             </div>
                           )}
-                        </div>
-                      </div>
 
-                      {pageForm.logo && (
-                        <div>
-                          <Label>Alinhamento do Logo</Label>
-                          <Select
-                            value={pageForm.logoAlign}
-                            onValueChange={(value) => setPageForm({ ...pageForm, logoAlign: value })}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="left">Esquerda</SelectItem>
-                              <SelectItem value="center">Centro</SelectItem>
-                              <SelectItem value="right">Direita</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      )}
+                          <div className="border-t pt-6">
+                            <h3 className="font-semibold mb-4">Personalização de Ícones</h3>
+                            <div className="grid grid-cols-2 gap-6">
+                              <div className="space-y-4">
+                                <Label className="text-base">Ícone de Sucesso (Qualificado)</Label>
 
-                      <div className="border-t pt-6">
-                        <h3 className="font-semibold mb-4">Personalização de Ícones</h3>
-                        <div className="grid grid-cols-2 gap-6">
-                          <div className="space-y-4">
-                            <Label className="text-base">Ícone de Sucesso (Qualificado)</Label>
-                            
-                            <div>
-                              <Label>Tipo de Ícone</Label>
-                              <Select
-                                value={pageForm.successIconType}
-                                onValueChange={(value) => setPageForm({ ...pageForm, successIconType: value })}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="check-circle">✓ Check Circle</SelectItem>
-                                  <SelectItem value="star">★ Estrela</SelectItem>
-                                  <SelectItem value="trophy">🏆 Troféu</SelectItem>
-                                  <SelectItem value="sparkles">✨ Sparkles</SelectItem>
-                                  <SelectItem value="heart">❤ Coração</SelectItem>
-                                  <SelectItem value="thumbs-up">👍 Thumbs Up</SelectItem>
-                                  <SelectItem value="party-popper">🎉 Party Popper</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
+                                <div>
+                                  <Label>Tipo de Ícone</Label>
+                                  <Select
+                                    value={pageForm.successIconType}
+                                    onValueChange={(value) => setPageForm({ ...pageForm, successIconType: value })}
+                                  >
+                                    <SelectTrigger>
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="check-circle">✓ Check Circle</SelectItem>
+                                      <SelectItem value="star">★ Estrela</SelectItem>
+                                      <SelectItem value="trophy">🏆 Troféu</SelectItem>
+                                      <SelectItem value="sparkles">✨ Sparkles</SelectItem>
+                                      <SelectItem value="heart">❤ Coração</SelectItem>
+                                      <SelectItem value="thumbs-up">👍 Thumbs Up</SelectItem>
+                                      <SelectItem value="party-popper">🎉 Party Popper</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
 
-                            <div>
-                              <Label>Cor do Ícone</Label>
-                              <ColorPicker
-                                color={pageForm.successIconColor}
-                                onChange={(color) => setPageForm({ ...pageForm, successIconColor: color })}
-                              />
-                            </div>
-
-                            <div>
-                              <Label>Ou envie uma imagem customizada</Label>
-                              <div className="flex gap-4 items-center mt-2">
-                                <label className="cursor-pointer">
-                                  <div className="flex items-center gap-2 px-4 py-2 bg-primary/10 hover:bg-primary/20 rounded-lg transition-colors">
-                                    <Upload className="h-4 w-4" />
-                                    <span className="text-sm">Enviar Ícone</span>
-                                  </div>
-                                  <input
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={handleUploadSuccessIcon}
-                                    className="hidden"
+                                <div>
+                                  <Label>Cor do Ícone</Label>
+                                  <ColorPicker
+                                    color={pageForm.successIconColor}
+                                    onChange={(color) => setPageForm({ ...pageForm, successIconColor: color })}
                                   />
-                                </label>
-                                {pageForm.successIconImage && (
-                                  <div className="flex items-center gap-3">
-                                    <img src={pageForm.successIconImage} alt="Ícone" className="h-12 w-12 object-contain" />
-                                    <Button
-                                      onClick={() => setPageForm({ ...pageForm, successIconImage: null })}
-                                      variant="ghost"
-                                      size="sm"
-                                    >
-                                      Remover
-                                    </Button>
+                                </div>
+
+                                <div>
+                                  <Label>Ou envie uma imagem customizada</Label>
+                                  <div className="flex gap-4 items-center mt-2">
+                                    <label className="cursor-pointer">
+                                      <div className="flex items-center gap-2 px-4 py-2 bg-primary/10 hover:bg-primary/20 rounded-lg transition-colors">
+                                        <Upload className="h-4 w-4" />
+                                        <span className="text-sm">Enviar Ícone</span>
+                                      </div>
+                                      <input
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={handleUploadSuccessIcon}
+                                        className="hidden"
+                                      />
+                                    </label>
+                                    {pageForm.successIconImage && (
+                                      <div className="flex items-center gap-3">
+                                        <img src={pageForm.successIconImage} alt="Ícone" className="h-12 w-12 object-contain" />
+                                        <Button
+                                          onClick={() => setPageForm({ ...pageForm, successIconImage: null })}
+                                          variant="ghost"
+                                          size="sm"
+                                        >
+                                          Remover
+                                        </Button>
+                                      </div>
+                                    )}
                                   </div>
-                                )}
+                                  <p className="text-xs text-muted-foreground mt-2">
+                                    A imagem customizada substitui o ícone padrão
+                                  </p>
+                                </div>
                               </div>
-                              <p className="text-xs text-muted-foreground mt-2">
-                                A imagem customizada substitui o ícone padrão
-                              </p>
-                            </div>
-                          </div>
 
-                          <div className="space-y-4">
-                            <Label className="text-base">Ícone de Falha (Não Qualificado)</Label>
-                            
-                            <div>
-                              <Label>Tipo de Ícone</Label>
-                              <Select
-                                value={pageForm.failureIconType}
-                                onValueChange={(value) => setPageForm({ ...pageForm, failureIconType: value })}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="x-circle">✕ X Circle</SelectItem>
-                                  <SelectItem value="star">★ Estrela</SelectItem>
-                                  <SelectItem value="trophy">🏆 Troféu</SelectItem>
-                                  <SelectItem value="sparkles">✨ Sparkles</SelectItem>
-                                  <SelectItem value="heart">❤ Coração</SelectItem>
-                                  <SelectItem value="thumbs-up">👍 Thumbs Up</SelectItem>
-                                  <SelectItem value="party-popper">🎉 Party Popper</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
+                              <div className="space-y-4">
+                                <Label className="text-base">Ícone de Falha (Não Qualificado)</Label>
 
-                            <div>
-                              <Label>Cor do Ícone</Label>
-                              <ColorPicker
-                                color={pageForm.failureIconColor}
-                                onChange={(color) => setPageForm({ ...pageForm, failureIconColor: color })}
-                              />
-                            </div>
+                                <div>
+                                  <Label>Tipo de Ícone</Label>
+                                  <Select
+                                    value={pageForm.failureIconType}
+                                    onValueChange={(value) => setPageForm({ ...pageForm, failureIconType: value })}
+                                  >
+                                    <SelectTrigger>
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="x-circle">✕ X Circle</SelectItem>
+                                      <SelectItem value="star">★ Estrela</SelectItem>
+                                      <SelectItem value="trophy">🏆 Troféu</SelectItem>
+                                      <SelectItem value="sparkles">✨ Sparkles</SelectItem>
+                                      <SelectItem value="heart">❤ Coração</SelectItem>
+                                      <SelectItem value="thumbs-up">👍 Thumbs Up</SelectItem>
+                                      <SelectItem value="party-popper">🎉 Party Popper</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
 
-                            <div>
-                              <Label>Ou envie uma imagem customizada</Label>
-                              <div className="flex gap-4 items-center mt-2">
-                                <label className="cursor-pointer">
-                                  <div className="flex items-center gap-2 px-4 py-2 bg-primary/10 hover:bg-primary/20 rounded-lg transition-colors">
-                                    <Upload className="h-4 w-4" />
-                                    <span className="text-sm">Enviar Ícone</span>
-                                  </div>
-                                  <input
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={handleUploadFailureIcon}
-                                    className="hidden"
+                                <div>
+                                  <Label>Cor do Ícone</Label>
+                                  <ColorPicker
+                                    color={pageForm.failureIconColor}
+                                    onChange={(color) => setPageForm({ ...pageForm, failureIconColor: color })}
                                   />
-                                </label>
-                                {pageForm.failureIconImage && (
-                                  <div className="flex items-center gap-3">
-                                    <img src={pageForm.failureIconImage} alt="Ícone" className="h-12 w-12 object-contain" />
-                                    <Button
-                                      onClick={() => setPageForm({ ...pageForm, failureIconImage: null })}
-                                      variant="ghost"
-                                      size="sm"
-                                    >
-                                      Remover
-                                    </Button>
+                                </div>
+
+                                <div>
+                                  <Label>Ou envie uma imagem customizada</Label>
+                                  <div className="flex gap-4 items-center mt-2">
+                                    <label className="cursor-pointer">
+                                      <div className="flex items-center gap-2 px-4 py-2 bg-primary/10 hover:bg-primary/20 rounded-lg transition-colors">
+                                        <Upload className="h-4 w-4" />
+                                        <span className="text-sm">Enviar Ícone</span>
+                                      </div>
+                                      <input
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={handleUploadFailureIcon}
+                                        className="hidden"
+                                      />
+                                    </label>
+                                    {pageForm.failureIconImage && (
+                                      <div className="flex items-center gap-3">
+                                        <img src={pageForm.failureIconImage} alt="Ícone" className="h-12 w-12 object-contain" />
+                                        <Button
+                                          onClick={() => setPageForm({ ...pageForm, failureIconImage: null })}
+                                          variant="ghost"
+                                          size="sm"
+                                        >
+                                          Remover
+                                        </Button>
+                                      </div>
+                                    )}
                                   </div>
-                                )}
+                                  <p className="text-xs text-muted-foreground mt-2">
+                                    A imagem customizada substitui o ícone padrão
+                                  </p>
+                                </div>
                               </div>
-                              <p className="text-xs text-muted-foreground mt-2">
-                                A imagem customizada substitui o ícone padrão
-                              </p>
                             </div>
                           </div>
-                        </div>
-                      </div>
 
-                      <div className="border-t pt-6">
-                        <h3 className="font-semibold mb-4">Cores do Design</h3>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <Label>Cor Primária</Label>
-                            <ColorPicker
-                              color={pageForm.designConfig.colors.primary}
-                              onChange={(color) => setPageForm({
-                                ...pageForm,
-                                designConfig: {
-                                  ...pageForm.designConfig,
-                                  colors: { ...pageForm.designConfig.colors, primary: color }
-                                }
-                              })}
-                            />
+                          <div className="border-t pt-6">
+                            <h3 className="font-semibold mb-4">Cores do Design</h3>
+                            <div className="grid grid-cols-2 gap-4">
+                              <div>
+                                <Label>Cor Primária</Label>
+                                <ColorPicker
+                                  color={pageForm.designConfig.colors.primary}
+                                  onChange={(color) => setPageForm({
+                                    ...pageForm,
+                                    designConfig: {
+                                      ...pageForm.designConfig,
+                                      colors: { ...pageForm.designConfig.colors, primary: color }
+                                    }
+                                  })}
+                                />
+                              </div>
+                              <div>
+                                <Label>Cor Secundária</Label>
+                                <ColorPicker
+                                  color={pageForm.designConfig.colors.secondary}
+                                  onChange={(color) => setPageForm({
+                                    ...pageForm,
+                                    designConfig: {
+                                      ...pageForm.designConfig,
+                                      colors: { ...pageForm.designConfig.colors, secondary: color }
+                                    }
+                                  })}
+                                />
+                              </div>
+                              <div>
+                                <Label>Cor de Fundo</Label>
+                                <ColorPicker
+                                  color={pageForm.designConfig.colors.background}
+                                  onChange={(color) => setPageForm({
+                                    ...pageForm,
+                                    designConfig: {
+                                      ...pageForm.designConfig,
+                                      colors: { ...pageForm.designConfig.colors, background: color }
+                                    }
+                                  })}
+                                />
+                              </div>
+                              <div>
+                                <Label>Cor do Texto</Label>
+                                <ColorPicker
+                                  color={pageForm.designConfig.colors.text}
+                                  onChange={(color) => setPageForm({
+                                    ...pageForm,
+                                    designConfig: {
+                                      ...pageForm.designConfig,
+                                      colors: { ...pageForm.designConfig.colors, text: color }
+                                    }
+                                  })}
+                                />
+                              </div>
+                            </div>
                           </div>
-                          <div>
-                            <Label>Cor Secundária</Label>
-                            <ColorPicker
-                              color={pageForm.designConfig.colors.secondary}
-                              onChange={(color) => setPageForm({
-                                ...pageForm,
-                                designConfig: {
-                                  ...pageForm.designConfig,
-                                  colors: { ...pageForm.designConfig.colors, secondary: color }
-                                }
-                              })}
-                            />
-                          </div>
-                          <div>
-                            <Label>Cor de Fundo</Label>
-                            <ColorPicker
-                              color={pageForm.designConfig.colors.background}
-                              onChange={(color) => setPageForm({
-                                ...pageForm,
-                                designConfig: {
-                                  ...pageForm.designConfig,
-                                  colors: { ...pageForm.designConfig.colors, background: color }
-                                }
-                              })}
-                            />
-                          </div>
-                          <div>
-                            <Label>Cor do Texto</Label>
-                            <ColorPicker
-                              color={pageForm.designConfig.colors.text}
-                              onChange={(color) => setPageForm({
-                                ...pageForm,
-                                designConfig: {
-                                  ...pageForm.designConfig,
-                                  colors: { ...pageForm.designConfig.colors, text: color }
-                                }
-                              })}
-                            />
-                          </div>
-                        </div>
-                      </div>
 
-                      <div className="border-t pt-6">
-                        <h3 className="font-semibold mb-4">Tipografia</h3>
-                        <div className="space-y-4">
-                          <div>
-                            <Label>Fonte</Label>
+                          <div className="border-t pt-6">
+                            <h3 className="font-semibold mb-4">Tipografia</h3>
+                            <div className="space-y-4">
+                              <div>
+                                <Label>Fonte</Label>
+                                <Select
+                                  value={pageForm.designConfig.typography.fontFamily}
+                                  onValueChange={(value) => setPageForm({
+                                    ...pageForm,
+                                    designConfig: {
+                                      ...pageForm.designConfig,
+                                      typography: { ...pageForm.designConfig.typography, fontFamily: value }
+                                    }
+                                  })}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="Inter">Inter</SelectItem>
+                                    <SelectItem value="Poppins">Poppins</SelectItem>
+                                    <SelectItem value="Roboto">Roboto</SelectItem>
+                                    <SelectItem value="Montserrat">Montserrat</SelectItem>
+                                    <SelectItem value="Open Sans">Open Sans</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                  <Label>Tamanho do Título</Label>
+                                  <Select
+                                    value={pageForm.designConfig.typography.titleSize}
+                                    onValueChange={(value) => setPageForm({
+                                      ...pageForm,
+                                      designConfig: {
+                                        ...pageForm.designConfig,
+                                        typography: { ...pageForm.designConfig.typography, titleSize: value }
+                                      }
+                                    })}
+                                  >
+                                    <SelectTrigger>
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="xl">Pequeno</SelectItem>
+                                      <SelectItem value="2xl">Médio</SelectItem>
+                                      <SelectItem value="3xl">Grande</SelectItem>
+                                      <SelectItem value="4xl">Extra Grande</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                                <div>
+                                  <Label>Tamanho do Texto</Label>
+                                  <Select
+                                    value={pageForm.designConfig.typography.textSize}
+                                    onValueChange={(value) => setPageForm({
+                                      ...pageForm,
+                                      designConfig: {
+                                        ...pageForm.designConfig,
+                                        typography: { ...pageForm.designConfig.typography, textSize: value }
+                                      }
+                                    })}
+                                  >
+                                    <SelectTrigger>
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="sm">Pequeno</SelectItem>
+                                      <SelectItem value="base">Médio</SelectItem>
+                                      <SelectItem value="lg">Grande</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="border-t pt-6">
+                            <h3 className="font-semibold mb-4">Espaçamento</h3>
                             <Select
-                              value={pageForm.designConfig.typography.fontFamily}
+                              value={pageForm.designConfig.spacing}
                               onValueChange={(value) => setPageForm({
                                 ...pageForm,
-                                designConfig: {
-                                  ...pageForm.designConfig,
-                                  typography: { ...pageForm.designConfig.typography, fontFamily: value }
-                                }
+                                designConfig: { ...pageForm.designConfig, spacing: value }
                               })}
                             >
                               <SelectTrigger>
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="Inter">Inter</SelectItem>
-                                <SelectItem value="Poppins">Poppins</SelectItem>
-                                <SelectItem value="Roboto">Roboto</SelectItem>
-                                <SelectItem value="Montserrat">Montserrat</SelectItem>
-                                <SelectItem value="Open Sans">Open Sans</SelectItem>
+                                <SelectItem value="compact">Compacto</SelectItem>
+                                <SelectItem value="comfortable">Confortável</SelectItem>
+                                <SelectItem value="spacious">Espaçoso</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <Label>Tamanho do Título</Label>
-                              <Select
-                                value={pageForm.designConfig.typography.titleSize}
-                                onValueChange={(value) => setPageForm({
-                                  ...pageForm,
-                                  designConfig: {
-                                    ...pageForm.designConfig,
-                                    typography: { ...pageForm.designConfig.typography, titleSize: value }
-                                  }
-                                })}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="xl">Pequeno</SelectItem>
-                                  <SelectItem value="2xl">Médio</SelectItem>
-                                  <SelectItem value="3xl">Grande</SelectItem>
-                                  <SelectItem value="4xl">Extra Grande</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-                            <div>
-                              <Label>Tamanho do Texto</Label>
-                              <Select
-                                value={pageForm.designConfig.typography.textSize}
-                                onValueChange={(value) => setPageForm({
-                                  ...pageForm,
-                                  designConfig: {
-                                    ...pageForm.designConfig,
-                                    typography: { ...pageForm.designConfig.typography, textSize: value }
-                                  }
-                                })}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="sm">Pequeno</SelectItem>
-                                  <SelectItem value="base">Médio</SelectItem>
-                                  <SelectItem value="lg">Grande</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          </div>
                         </div>
-                      </div>
-
-                      <div className="border-t pt-6">
-                        <h3 className="font-semibold mb-4">Espaçamento</h3>
-                        <Select
-                          value={pageForm.designConfig.spacing}
-                          onValueChange={(value) => setPageForm({
-                            ...pageForm,
-                            designConfig: { ...pageForm.designConfig, spacing: value }
-                          })}
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="compact">Compacto</SelectItem>
-                            <SelectItem value="comfortable">Confortável</SelectItem>
-                            <SelectItem value="spacious">Espaçoso</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  </Card>
-                </TabsContent>
+                      </Card>
+                    </TabsContent>
                   </Tabs>
                 </div>
 

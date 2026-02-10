@@ -7,10 +7,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/features/produto/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/features/produto/components/ui/card";
 import { toast } from "sonner";
-import { 
-  Printer, 
-  FileBox, 
-  Barcode, 
+import {
+  Printer,
+  FileBox,
+  Barcode,
   Loader2,
   Eye,
   Tag,
@@ -32,10 +32,8 @@ import { TemplateManager } from "@/components/label-designer/TemplateManager";
 import { ExportPanel } from "@/components/label-designer/ExportPanel";
 import { CanvasEditorRef, LabelTemplate } from "@/components/label-designer/types";
 import { generateSmartLayout, SmartLayout } from "@/components/label-designer/smartLabelLayout";
-import * as fabricModule from 'fabric';
+import * as fabric from 'fabric';
 import axios from 'axios';
-
-const fabric = (fabricModule as any).fabric || fabricModule;
 
 interface LabelConfigDialogProps {
   product: Product;
@@ -44,11 +42,11 @@ interface LabelConfigDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export const LabelConfigDialog = ({ 
-  product, 
-  printerSettings, 
-  open, 
-  onOpenChange 
+export const LabelConfigDialog = ({
+  product,
+  printerSettings,
+  open,
+  onOpenChange
 }: LabelConfigDialogProps) => {
   const [quantity, setQuantity] = useState(1);
   const [isPrinting, setIsPrinting] = useState(false);
@@ -56,7 +54,7 @@ export const LabelConfigDialog = ({
   const [selectedBarcodeType, setSelectedBarcodeType] = useState<BarcodeType>("CODE128");
   const [enabledFields, setEnabledFields] = useState<PrinterEnabledFields>(DEFAULT_ENABLED_FIELDS);
   const [activeTab, setActiveTab] = useState("print");
-  
+
   const [widthMm, setWidthMm] = useState(60);
   const [heightMm, setHeightMm] = useState(40);
   const [selectedObject, setSelectedObject] = useState<fabric.Object | null>(null);
@@ -66,10 +64,10 @@ export const LabelConfigDialog = ({
   const [previewDataUrl, setPreviewDataUrl] = useState<string | null>(null);
   const [isLoadingPreview, setIsLoadingPreview] = useState(true);
   const [currentLayout, setCurrentLayout] = useState<SmartLayout | null>(null);
-  
+
   const canvasEditorRef = useRef<CanvasEditorRef>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   const {
     defaultConfig,
     fetchDefaultConfig,
@@ -80,7 +78,7 @@ export const LabelConfigDialog = ({
   const updatePreview = useCallback(() => {
     if (canvasEditorRef.current?.canvas) {
       try {
-        const dataUrl = canvasEditorRef.current.canvas.toDataURL({ format: 'png' });
+        const dataUrl = canvasEditorRef.current.canvas.toDataURL({ format: 'png', multiplier: 1 });
         setPreviewDataUrl(dataUrl);
         setIsLoadingPreview(false);
       } catch (error) {
@@ -98,7 +96,7 @@ export const LabelConfigDialog = ({
       setIsCanvasReady(false);
       setPreviewDataUrl(null);
       setIsLoadingPreview(true);
-      
+
       const layout = generateSmartLayout(
         { widthMm, heightMm },
         product
@@ -128,16 +126,16 @@ export const LabelConfigDialog = ({
       setTimeout(loadProductWithSmartLayout, 50);
       return;
     }
-    
+
     try {
       const layout = generateSmartLayout(
         { widthMm, heightMm },
         product
       );
       setCurrentLayout(layout);
-      
+
       await editor.loadSmartLayout(layout);
-      
+
       setHasLoadedProduct(true);
       requestAnimationFrame(() => {
         updatePreview();
@@ -187,7 +185,7 @@ export const LabelConfigDialog = ({
     setHeightMm(template.heightMm);
     setIsCanvasReady(false);
     setHasLoadedProduct(true);
-    
+
     setTimeout(() => {
       if (canvasEditorRef.current && template.designData) {
         canvasEditorRef.current.loadDesignData(template.designData);
@@ -195,7 +193,7 @@ export const LabelConfigDialog = ({
         requestAnimationFrame(updatePreview);
       }
     }, 100);
-    
+
     setCanvasKey(prev => prev + 1);
   };
 
@@ -232,7 +230,7 @@ export const LabelConfigDialog = ({
     setIsPrinting(true);
     try {
       const elements = canvasEditorRef.current?.getElements() || [];
-      
+
       if (elements.length === 0) {
         toast.error('Nenhum elemento na etiqueta para imprimir');
         setIsPrinting(false);
@@ -277,7 +275,7 @@ export const LabelConfigDialog = ({
   const handleLabelSizeChange = async (value: string) => {
     setSelectedLabelSize(value);
     const selectedSize = LABEL_SIZES.find(s => s.value === value);
-    
+
     if (selectedSize) {
       setWidthMm(selectedSize.widthMm);
       setHeightMm(selectedSize.heightMm);
@@ -286,7 +284,7 @@ export const LabelConfigDialog = ({
       setIsLoadingPreview(true);
       setCanvasKey(prev => prev + 1);
     }
-    
+
     if (selectedSize && defaultConfig?.id && updateConfig) {
       try {
         await updateConfig({
@@ -304,7 +302,7 @@ export const LabelConfigDialog = ({
 
   const handleBarcodeTypeChange = async (value: BarcodeType) => {
     setSelectedBarcodeType(value);
-    
+
     if (defaultConfig?.id && updateConfig) {
       try {
         await updateConfig({
@@ -324,7 +322,7 @@ export const LabelConfigDialog = ({
     const width = size?.widthMm || widthMm || 60;
     const height = size?.heightMm || heightMm || 40;
     const scale = Math.min(280 / width, 180 / height, 4);
-    
+
     return {
       width: `${width * scale}px`,
       height: `${height * scale}px`,
@@ -372,7 +370,7 @@ export const LabelConfigDialog = ({
                 ✅ Impressão Universal via PDF
               </p>
               <p className="text-xs text-green-700">
-                Funciona com qualquer impressora (térmica, laser, jato de tinta, AirPrint, Bluetooth). 
+                Funciona com qualquer impressora (térmica, laser, jato de tinta, AirPrint, Bluetooth).
                 Não requer instalação de software adicional.
               </p>
             </div>
@@ -448,14 +446,14 @@ export const LabelConfigDialog = ({
               </CardHeader>
               <CardContent>
                 <div className="flex flex-col items-center justify-center">
-                  <div 
+                  <div
                     className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-950 flex items-center justify-center overflow-hidden"
                     style={getLabelPreviewStyle()}
                   >
                     {previewDataUrl && !isLoadingPreview ? (
-                      <img 
-                        src={previewDataUrl} 
-                        alt="Preview da etiqueta" 
+                      <img
+                        src={previewDataUrl}
+                        alt="Preview da etiqueta"
                         className="max-w-full max-h-full object-contain"
                       />
                     ) : (
@@ -468,9 +466,9 @@ export const LabelConfigDialog = ({
                   <p className="text-xs text-gray-500 mt-2">
                     Tamanho: {widthMm}mm × {heightMm}mm
                   </p>
-                  <Button 
-                    variant="link" 
-                    size="sm" 
+                  <Button
+                    variant="link"
+                    size="sm"
                     className="mt-1 text-blue-600 gap-1"
                     onClick={() => setActiveTab('design')}
                   >
@@ -498,8 +496,8 @@ export const LabelConfigDialog = ({
                 <Button variant="outline" onClick={() => onOpenChange(false)}>
                   Cancelar
                 </Button>
-                <Button 
-                  onClick={handlePrintPDF} 
+                <Button
+                  onClick={handlePrintPDF}
                   disabled={isPrinting || isLoadingPreview}
                   className="gap-2 bg-green-600 hover:bg-green-700"
                 >
@@ -560,10 +558,10 @@ export const LabelConfigDialog = ({
                     <Button onClick={handleSizeChange} className="w-full" size="sm">
                       Aplicar Tamanho
                     </Button>
-                    <Button 
-                      onClick={handleReloadLayout} 
-                      variant="outline" 
-                      className="w-full" 
+                    <Button
+                      onClick={handleReloadLayout}
+                      variant="outline"
+                      className="w-full"
                       size="sm"
                     >
                       <RefreshCw className="w-3.5 h-3.5 mr-2" />
@@ -574,7 +572,7 @@ export const LabelConfigDialog = ({
 
                 <div className="flex flex-wrap gap-2 p-4 bg-white dark:bg-gray-900 rounded-lg shadow-sm border">
                   <h3 className="w-full text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Adicionar Elementos</h3>
-                  
+
                   <Button
                     variant="outline"
                     size="sm"
@@ -665,7 +663,7 @@ export const LabelConfigDialog = ({
                       Arraste, redimensione e personalize os elementos - Layout 100% personalizável
                     </p>
                   </div>
-                  
+
                   <div className="flex-1 flex items-center justify-center overflow-auto">
                     <CanvasEditor
                       key={canvasKey}

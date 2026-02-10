@@ -8,11 +8,11 @@ export function toCamelCase(str: string): string {
 
 export function convertKeysToSnakeCase(obj: any): any {
   if (obj === null || obj === undefined) return obj;
-  
+
   if (Array.isArray(obj)) {
     return obj.map(item => convertKeysToSnakeCase(item));
   }
-  
+
   if (typeof obj === 'object' && obj.constructor === Object) {
     const converted: any = {};
     for (const key in obj) {
@@ -23,17 +23,17 @@ export function convertKeysToSnakeCase(obj: any): any {
     }
     return converted;
   }
-  
+
   return obj;
 }
 
 export function convertKeysToCamelCase(obj: any): any {
   if (obj === null || obj === undefined) return obj;
-  
+
   if (Array.isArray(obj)) {
     return obj.map(item => convertKeysToCamelCase(item));
   }
-  
+
   if (typeof obj === 'object' && obj.constructor === Object) {
     const converted: any = {};
     for (const key in obj) {
@@ -44,13 +44,13 @@ export function convertKeysToCamelCase(obj: any): any {
     }
     return converted;
   }
-  
+
   return obj;
 }
 
 export function parseJsonbFields(obj: any, fields: string[]): any {
   const parsed = { ...obj };
-  
+
   for (const field of fields) {
     if (parsed[field] && typeof parsed[field] === 'string') {
       try {
@@ -63,19 +63,19 @@ export function parseJsonbFields(obj: any, fields: string[]): any {
       parsed[field] = convertKeysToCamelCase(parsed[field]);
     }
   }
-  
+
   return parsed;
 }
 
 export function stringifyJsonbFields(obj: any, fields: string[]): any {
   const stringified = { ...obj };
-  
+
   for (const field of fields) {
     if (stringified[field] && typeof stringified[field] === 'object') {
       stringified[field] = JSON.stringify(stringified[field]);
     }
   }
-  
+
   return stringified;
 }
 
@@ -96,7 +96,7 @@ export function stringifyJsonbFields(obj: any, fields: string[]): any {
  */
 export function mapFormDataToSupabase(frontendData: any): Record<string, any> {
   const mapped: Record<string, any> = {};
-  
+
   // Campos diretos (1:1 mapping)
   if (frontendData.title !== undefined) {
     mapped.title = frontendData.title;
@@ -128,7 +128,7 @@ export function mapFormDataToSupabase(frontendData: any): Record<string, any> {
   if (frontendData.completion_page_id !== undefined) {
     mapped.completion_page_id = frontendData.completion_page_id;
   }
-  
+
   // Questions/Elements → questions JSONB
   if (frontendData.questions !== undefined) {
     mapped.questions = frontendData.questions;
@@ -136,7 +136,7 @@ export function mapFormDataToSupabase(frontendData: any): Record<string, any> {
   if (frontendData.elements !== undefined) {
     mapped.questions = frontendData.elements;
   }
-  
+
   // Score Tiers → score_tiers JSONB
   if (frontendData.scoreTiers !== undefined) {
     mapped.score_tiers = frontendData.scoreTiers;
@@ -144,12 +144,12 @@ export function mapFormDataToSupabase(frontendData: any): Record<string, any> {
   if (frontendData.score_tiers !== undefined) {
     mapped.score_tiers = frontendData.score_tiers;
   }
-  
+
   // Tags → tags JSONB
   if (frontendData.tags !== undefined) {
     mapped.tags = frontendData.tags;
   }
-  
+
   // =====================================================
   // WELCOME CONFIG - Extrair para colunas separadas
   // welcomeConfig: { title, description, buttonText, logo, logoAlign, titleSize, extendedDescription }
@@ -164,7 +164,7 @@ export function mapFormDataToSupabase(frontendData: any): Record<string, any> {
       mapped.welcome_message = welcomeConfig.description;
     }
   }
-  
+
   // Também aceitar campos legados diretos
   if (frontendData.welcomeTitle !== undefined) {
     mapped.welcome_title = frontendData.welcomeTitle;
@@ -178,13 +178,13 @@ export function mapFormDataToSupabase(frontendData: any): Record<string, any> {
   if (frontendData.welcome_message !== undefined) {
     mapped.welcome_message = frontendData.welcome_message;
   }
-  
+
   // =====================================================
   // DESIGN CONFIG - Incluir configurações extras do welcome
   // design_config: { colors, typography, logo, spacing, welcomeScreen: {...} }
   // =====================================================
   let designConfig = frontendData.designConfig || frontendData.design_config || {};
-  
+
   // Garantir que designConfig é um objeto
   if (typeof designConfig === 'string') {
     try {
@@ -193,11 +193,11 @@ export function mapFormDataToSupabase(frontendData: any): Record<string, any> {
       designConfig = {};
     }
   }
-  
+
   // Armazenar configurações extras do welcome no design_config
   if (welcomeConfig) {
     const welcomeScreenConfig: Record<string, any> = {};
-    
+
     if (welcomeConfig.buttonText !== undefined) {
       welcomeScreenConfig.buttonText = welcomeConfig.buttonText;
     }
@@ -225,7 +225,7 @@ export function mapFormDataToSupabase(frontendData: any): Record<string, any> {
     if (welcomeConfig.extended_description !== undefined) {
       welcomeScreenConfig.extendedDescription = welcomeConfig.extended_description;
     }
-    
+
     // Só adiciona welcomeScreen se tiver algum campo
     if (Object.keys(welcomeScreenConfig).length > 0) {
       designConfig = {
@@ -234,7 +234,7 @@ export function mapFormDataToSupabase(frontendData: any): Record<string, any> {
       };
     }
   }
-  
+
   // =====================================================
   // COMPLETION PAGE CONFIG - Armazenar no design_config
   // Já que Supabase usa completion_page_id (FK), guardamos config inline no design
@@ -246,15 +246,15 @@ export function mapFormDataToSupabase(frontendData: any): Record<string, any> {
       completionPage: completionConfig
     };
   }
-  
+
   // Se temos algo no designConfig, incluir
   if (Object.keys(designConfig).length > 0) {
     mapped.design_config = designConfig;
   }
-  
+
   // Sempre atualizar updated_at
   mapped.updated_at = new Date().toISOString();
-  
+
   return mapped;
 }
 
@@ -263,19 +263,19 @@ export function mapFormDataToSupabase(frontendData: any): Record<string, any> {
  * Usada para validação final antes de enviar
  */
 export const SUPABASE_FORMS_VALID_FIELDS = [
-  'title', 
-  'description', 
-  'welcome_title', 
+  'title',
+  'description',
+  'welcome_title',
   'welcome_message',
-  'questions', 
-  'passing_score', 
-  'score_tiers', 
+  'questions',
+  'passing_score',
+  'score_tiers',
   'design_config',
-  'completion_page_id', 
-  'is_public', 
-  'slug', 
-  'status', 
-  'tags', 
+  'completion_page_id',
+  'is_public',
+  'slug',
+  'status',
+  'tags',
   'updated_at'
 ];
 
@@ -295,34 +295,34 @@ export const SUPABASE_FORMS_VALID_FIELDS = [
 export function reconstructFormDataFromSupabase(supabaseData: any): Record<string, any> {
   // Start with camelCase converted data
   const result: Record<string, any> = { ...supabaseData };
-  
+
   // Get designConfig for nested properties
   const designConfig = supabaseData.designConfig || supabaseData.design_config || {};
   const welcomeScreen = designConfig.welcomeScreen || designConfig.welcome_screen || {};
-  
+
   // =====================================================
   // RECONSTRUCT WELCOME CONFIG
   // Combinar welcome_title/welcome_message com welcomeScreen extras
   // =====================================================
   const welcomeConfig: Record<string, any> = {};
-  
+
   // Get title and description from welcome_title/welcome_message (camelCase: welcomeTitle/welcomeMessage)
   const welcomeTitle = supabaseData.welcomeTitle ?? supabaseData.welcome_title;
   const welcomeMessage = supabaseData.welcomeMessage ?? supabaseData.welcome_message;
-  
+
   if (welcomeTitle !== undefined && welcomeTitle !== null) {
     welcomeConfig.title = welcomeTitle;
   }
   if (welcomeMessage !== undefined && welcomeMessage !== null) {
     welcomeConfig.description = welcomeMessage;
   }
-  
+
   // Merge welcomeScreen properties into welcomeConfig
   if (welcomeScreen.buttonText !== undefined) {
     welcomeConfig.buttonText = welcomeScreen.buttonText;
   }
   if (welcomeScreen.logo !== undefined) {
-    welcomeConfig.logo = welcomeScreen.logo;
+    welcomeConfig.imageUrl = welcomeScreen.logo;  // FIX: Frontend expects 'imageUrl', not 'logo'
   }
   if (welcomeScreen.logoAlign !== undefined) {
     welcomeConfig.logoAlign = welcomeScreen.logoAlign;
@@ -333,13 +333,13 @@ export function reconstructFormDataFromSupabase(supabaseData: any): Record<strin
   if (welcomeScreen.extendedDescription !== undefined) {
     welcomeConfig.extendedDescription = welcomeScreen.extendedDescription;
   }
-  
+
   // Always add welcomeConfig if it has any content
   // This ensures the frontend always has the expected structure
   if (Object.keys(welcomeConfig).length > 0) {
     result.welcomeConfig = welcomeConfig;
   }
-  
+
   // =====================================================
   // RECONSTRUCT COMPLETION PAGE CONFIG
   // =====================================================
@@ -347,18 +347,18 @@ export function reconstructFormDataFromSupabase(supabaseData: any): Record<strin
   if (completionPage && Object.keys(completionPage).length > 0) {
     result.completionPageConfig = completionPage;
   }
-  
+
   // =====================================================
   // CLEAN UP: Remove internal storage fields from response
   // to avoid conflicts in round-trips
   // =====================================================
-  
+
   // Remove welcomeTitle/welcomeMessage as they're now in welcomeConfig
   delete result.welcomeTitle;
   delete result.welcomeMessage;
   delete result.welcome_title;
   delete result.welcome_message;
-  
+
   // Clean up designConfig - remove internal nested structures
   if (result.designConfig) {
     const cleanDesignConfig = { ...result.designConfig };
@@ -366,10 +366,10 @@ export function reconstructFormDataFromSupabase(supabaseData: any): Record<strin
     delete cleanDesignConfig.welcome_screen;
     delete cleanDesignConfig.completionPage;
     delete cleanDesignConfig.completion_page;
-    
+
     // Keep designConfig with remaining properties
     result.designConfig = cleanDesignConfig;
   }
-  
+
   return result;
 }

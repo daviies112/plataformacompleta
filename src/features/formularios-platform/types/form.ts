@@ -129,12 +129,24 @@ export function elementToQuestion(element: QuestionElement): Question {
 
 export interface DesignConfig {
   colors: {
-    primary: string;
-    secondary: string;
-    background: string;
-    text: string;
-    button: string;
-    buttonText: string;
+    // ✅ NEW: Clear, intuitive color naming
+    titleColor?: string;           // Cor do título (h1)
+    textColor?: string;            // Cor do texto (p, labels)
+    pageBackground?: string;       // Fundo da página (pode ser gradiente)
+    containerBackground?: string;  // Fundo do card/container
+    buttonColor?: string;          // Cor do botão
+    buttonTextColor?: string;      // Cor do texto do botão
+    progressBarColor?: string;     // Cor da barra de progresso
+    inputBackground?: string;      // Fundo dos inputs
+    borderColor?: string;          // Cor das bordas
+
+    // ⚠️ DEPRECATED: Manter para retrocompatibilidade (será removido no futuro)
+    primary?: string;
+    secondary?: string;
+    background?: string;
+    text?: string;
+    button?: string;
+    buttonText?: string;
     progressBar?: string;
   };
   typography: {
@@ -166,6 +178,8 @@ export interface CompletionPageConfig {
   failureMessage: string;
   showScore: boolean;
   showTierBadge: boolean;
+  logo?: string | null;
+  logoAlign?: 'left' | 'center' | 'right';
   ctaText?: string;
   ctaUrl?: string;
   customContent?: string;
@@ -339,11 +353,11 @@ export function groupElementsIntoPages(elements: FormElement[] | undefined | nul
 // Flatten pages back into a single elements array with pageBreaks between them
 export function flattenPagesToElements(pages: Page[]): FormElement[] {
   const elements: FormElement[] = [];
-  
+
   pages.forEach((page, index) => {
     // Add page elements
     elements.push(...page.elements);
-    
+
     // Add page break after each page except the last one
     if (index < pages.length - 1) {
       elements.push({
@@ -355,7 +369,7 @@ export function flattenPagesToElements(pages: Page[]): FormElement[] {
       });
     }
   });
-  
+
   return elements;
 }
 

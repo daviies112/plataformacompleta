@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import { 
-  FormConfig, 
-  FormAnswer, 
-  FormSubmission, 
+import {
+  FormConfig,
+  FormAnswer,
+  FormSubmission,
   ScoreTier,
   FormElement,
   isQuestionElement,
@@ -41,6 +41,18 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
 
   const defaultDesign = {
     colors: {
+      // ✅ NEW: Clear color naming
+      titleColor: "hsl(221, 83%, 53%)",
+      textColor: "hsl(222, 47%, 11%)",
+      pageBackground: "linear-gradient(135deg, hsl(210, 40%, 96%), hsl(0, 0%, 100%))",
+      containerBackground: "hsl(0, 0%, 100%)",
+      buttonColor: "hsl(221, 83%, 53%)",
+      buttonTextColor: "hsl(0, 0%, 100%)",
+      progressBarColor: "hsl(221, 83%, 53%)",
+      inputBackground: "hsl(210, 40%, 96%)",
+      borderColor: "hsl(214, 32%, 91%)",
+
+      // DEPRECATED: Para retrocompatibilidade
       primary: "hsl(221, 83%, 53%)",
       secondary: "hsl(210, 40%, 96%)",
       background: "hsl(0, 0%, 100%)",
@@ -56,14 +68,39 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
     spacing: "comfortable"
   };
 
+  // Função para migrar cores antigas para novo formato
+  const migrateColors = (oldColors: any) => {
+    if (!oldColors) return defaultDesign.colors;
+
+    return {
+      // Novas cores (prioridade para novos campos)
+      titleColor: oldColors.titleColor || oldColors.primary || defaultDesign.colors.titleColor,
+      textColor: oldColors.textColor || oldColors.text || defaultDesign.colors.textColor,
+      pageBackground: oldColors.pageBackground ||
+        `linear-gradient(135deg, ${oldColors.secondary || defaultDesign.colors.inputBackground}, ${oldColors.background || defaultDesign.colors.containerBackground})`,
+      containerBackground: oldColors.containerBackground || oldColors.background || defaultDesign.colors.containerBackground,
+      buttonColor: oldColors.buttonColor || oldColors.button || defaultDesign.colors.buttonColor,
+      buttonTextColor: oldColors.buttonTextColor || oldColors.buttonText || defaultDesign.colors.buttonTextColor,
+      progressBarColor: oldColors.progressBarColor || oldColors.progressBar || oldColors.primary || defaultDesign.colors.progressBarColor,
+      inputBackground: oldColors.inputBackground || oldColors.secondary || defaultDesign.colors.inputBackground,
+      borderColor: oldColors.borderColor || defaultDesign.colors.borderColor,
+
+      // Manter deprecated para compatibilidade
+      primary: oldColors.primary,
+      secondary: oldColors.secondary,
+      background: oldColors.background,
+      text: oldColors.text,
+      button: oldColors.button,
+      buttonText: oldColors.buttonText,
+      progressBar: oldColors.progressBar
+    };
+  };
+
   const baseDesign = config.designConfig ?? {};
   const design = {
     ...defaultDesign,
     ...baseDesign,
-    colors: {
-      ...defaultDesign.colors,
-      ...(baseDesign.colors || {})
-    },
+    colors: migrateColors(baseDesign.colors),
     typography: {
       ...defaultDesign.typography,
       ...(baseDesign.typography || {})
@@ -109,30 +146,30 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
 
   const elements = useMemo<FormElement[]>(() => {
     let allElements: FormElement[] = [];
-    
+
     if (config.elements && config.elements.length > 0) {
       allElements = config.elements;
     } else if (config.questions && config.questions.length > 0) {
       allElements = migrateQuestionsToElements(config.questions);
     }
-    
+
     if (activeQuestionId && isLivePreview && !shouldUseWizard) {
       const questionElement = allElements.find(el => isQuestionElement(el) && el.id === activeQuestionId);
       if (questionElement) {
         return [questionElement];
       }
     }
-    
+
     if (activePageId) {
       const pages = groupElementsIntoPages(allElements);
       const activePage = pages.find(page => page.id === activePageId);
       return activePage ? activePage.elements : allElements;
     }
-    
+
     return allElements;
   }, [config.elements, config.questions, activePageId, activeQuestionId, isLivePreview, shouldUseWizard]);
 
-  const questionElements = useMemo(() => 
+  const questionElements = useMemo(() =>
     elements.filter(isQuestionElement),
     [elements]
   );
@@ -149,7 +186,7 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
   const pages = useMemo(() => {
     const pagesArray: FormElement[][] = [];
     let currentPage: FormElement[] = [];
-    
+
     elements.forEach((element) => {
       if (isPageBreakElement(element)) {
         if (currentPage.length > 0) {
@@ -160,11 +197,11 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
         currentPage.push(element);
       }
     });
-    
+
     if (currentPage.length > 0) {
       pagesArray.push(currentPage);
     }
-    
+
     return pagesArray.length > 0 ? pagesArray : [elements];
   }, [elements]);
 
@@ -236,9 +273,9 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
   const handleSubmit = () => {
     const answerArray = Object.values(answers);
     const totalScore = answerArray.reduce((sum, ans) => sum + ans.points, 0);
-    
+
     let passed = totalScore >= config.passingScore;
-    
+
     if (config.scoreTiers && config.scoreTiers.length > 0) {
       const tier = config.scoreTiers.find(
         t => totalScore >= t.minScore && totalScore <= t.maxScore
@@ -265,9 +302,9 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
 
   const renderHeading = (element: FormElement) => {
     if (!isHeadingElement(element)) return null;
-    
+
     const HeadingTag = `h${element.level}` as keyof JSX.IntrinsicElements;
-    
+
     const fontSizeClasses = {
       'xs': 'text-xs',
       'sm': 'text-sm',
@@ -278,37 +315,37 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
       '3xl': 'text-3xl',
       '4xl': 'text-4xl'
     };
-    
+
     const fontWeightClasses = {
       'normal': 'font-normal',
       'medium': 'font-medium',
       'semibold': 'font-semibold',
       'bold': 'font-bold'
     };
-    
+
     const alignmentClasses = {
       'left': 'text-left',
       'center': 'text-center',
       'right': 'text-right'
     };
-    
+
     const fontSize = element.style?.fontSize || '2xl';
     const fontWeight = element.style?.fontWeight || 'bold';
     const alignment = element.style?.alignment || 'left';
     const italic = element.style?.italic || false;
     const underline = element.style?.underline || false;
     const strikethrough = element.style?.strikethrough || false;
-    
+
     const textDecorationParts = [];
     if (underline) textDecorationParts.push('underline');
     if (strikethrough) textDecorationParts.push('line-through');
     const textDecoration = textDecorationParts.length > 0 ? textDecorationParts.join(' ') : 'none';
-    
+
     return (
       <div key={element.id} className="space-y-2">
-        <HeadingTag 
+        <HeadingTag
           className={`${fontSizeClasses[fontSize]} ${fontWeightClasses[fontWeight]} ${alignmentClasses[alignment]}`}
-          style={{ 
+          style={{
             color: design.colors.text,
             fontStyle: italic ? 'italic' : 'normal',
             textDecoration
@@ -322,7 +359,7 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
 
   const renderText = (element: FormElement) => {
     if (!isTextElement(element)) return null;
-    
+
     const fontSizeClasses = {
       'xs': 'text-xs',
       'sm': 'text-sm',
@@ -333,38 +370,38 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
       '3xl': 'text-3xl',
       '4xl': 'text-4xl'
     };
-    
+
     const fontWeightClasses = {
       'normal': 'font-normal',
       'medium': 'font-medium',
       'semibold': 'font-semibold',
       'bold': 'font-bold'
     };
-    
+
     const alignmentClasses = {
       'left': 'text-left',
       'center': 'text-center',
       'right': 'text-right'
     };
-    
+
     const fontSize = element.style?.fontSize || 'base';
     const fontWeight = element.style?.fontWeight || 'normal';
     const alignment = element.style?.alignment || 'left';
     const italic = element.style?.italic || false;
     const underline = element.style?.underline || false;
     const strikethrough = element.style?.strikethrough || false;
-    
+
     const textDecorationParts = [];
     if (underline) textDecorationParts.push('underline');
     if (strikethrough) textDecorationParts.push('line-through');
     const textDecoration = textDecorationParts.length > 0 ? textDecorationParts.join(' ') : 'none';
-    
+
     return (
       <div key={element.id} className="space-y-2">
-        <p 
+        <p
           className={`leading-relaxed ${fontSizeClasses[fontSize]} ${fontWeightClasses[fontWeight]} ${alignmentClasses[alignment]}`}
-          style={{ 
-            color: design.colors.text, 
+          style={{
+            color: design.colors.text,
             opacity: 0.9,
             fontStyle: italic ? 'italic' : 'normal',
             textDecoration
@@ -378,17 +415,17 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
 
   const renderPageBreak = (element: FormElement) => {
     if (!isPageBreakElement(element)) return null;
-    
+
     return (
       <div key={element.id} className="my-8">
         {element.showLine && (
-          <hr 
-            className="border-t-2" 
-            style={{ borderColor: design.colors.primary + '30' }}
+          <hr
+            className="border-t-2"
+            style={{ borderColor: design.colors.titleColor + '30' }}
           />
         )}
         {element.label && (
-          <p 
+          <p
             className="text-center text-sm mt-2"
             style={{ color: design.colors.text, opacity: 0.6 }}
           >
@@ -401,23 +438,23 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
 
   const renderQuestion = (element: FormElement, questionNumber: number) => {
     if (!isQuestionElement(element)) return null;
-    
+
     const isActiveQuestion = activeQuestionId === element.id;
-    
+
     return (
-      <div 
-        key={element.id} 
+      <div
+        key={element.id}
         ref={(el) => { questionRefs.current[element.id] = el; }}
         className="space-y-4 transition-all duration-300 rounded-lg p-4"
-        style={isActiveQuestion ? { 
+        style={isActiveQuestion ? {
           boxShadow: `0 0 0 2px ${design.colors.primary}`,
           backgroundColor: `${design.colors.primary}0d`
         } : undefined}
       >
         <div className="flex items-start gap-3">
-          <span 
+          <span
             className="font-semibold px-3 py-1 rounded-full text-sm shrink-0"
-            style={{ 
+            style={{
               backgroundColor: `${design.colors.primary}20`,
               color: design.colors.primary
             }}
@@ -425,7 +462,7 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
             {questionNumber}
           </span>
           <div className="flex-1">
-            <h3 
+            <h3
               className={`font-medium ${textSizeClasses[design.typography.textSize as keyof typeof textSizeClasses]} mb-4`}
               style={{ color: design.colors.text }}
             >
@@ -449,12 +486,12 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
                     className="flex items-center space-x-3 p-4 rounded-lg border transition-all duration-200 cursor-pointer hover:shadow-md"
                     style={{
                       backgroundColor: design.colors.secondary,
-                      borderColor: design.colors.primary + '30',
+                      borderColor: design.colors.titleColor + '30',
                       color: design.colors.text
                     }}
                   >
                     <RadioGroupItem value={option.id} id={`${element.id}-${option.id}`} />
-                    <Label 
+                    <Label
                       htmlFor={`${element.id}-${option.id}`}
                       className="flex-1 cursor-pointer font-normal"
                       style={{ color: design.colors.text }}
@@ -474,7 +511,7 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
                 className="resize-none"
                 style={{
                   backgroundColor: design.colors.secondary,
-                  borderColor: design.colors.primary + '30',
+                  borderColor: design.colors.titleColor + '30',
                   color: design.colors.text
                 }}
                 rows={4}
@@ -506,14 +543,14 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
   const renderWizardWelcome = () => {
     return (
       <div className="min-h-[500px] flex items-center justify-center p-4" style={{ background: `linear-gradient(to bottom right, ${colors.background}, ${colors.secondary})` }}>
-        <Card className="w-full max-w-2xl shadow-xl" style={{ backgroundColor: colors.background, borderColor: `${colors.primary}30` }}>
+        <Card className="w-full max-w-2xl shadow-xl" style={{ backgroundColor: colors.containerBackground, borderColor: `${colors.primary}30` }}>
           <CardHeader className="text-center pb-8">
             {welcomeConfig.imageUrl && (
               <div className="mb-6">
                 <img src={welcomeConfig.imageUrl} alt="Welcome" className="max-w-xs mx-auto rounded-lg" />
               </div>
             )}
-            <CardTitle className="text-4xl font-bold mb-4" style={{ color: colors.primary }}>
+            <CardTitle className="text-4xl font-bold mb-4" style={{ color: colors.titleColor }}>
               {welcomeConfig.title}
             </CardTitle>
             <CardDescription className="text-lg" style={{ color: `${colors.text}99` }}>
@@ -521,10 +558,10 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
             </CardDescription>
           </CardHeader>
           <CardFooter className="flex justify-center pb-8">
-            <Button 
-              size="lg" 
+            <Button
+              size="lg"
               onClick={handleStartWizard}
-              style={{ backgroundColor: colors.button, color: colors.buttonText }}
+              style={{ backgroundColor: colors.buttonColor, color: colors.buttonTextColor }}
               className="px-8"
             >
               <Sparkles className="mr-2 h-5 w-5" />
@@ -542,15 +579,15 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
         <div className="max-w-3xl mx-auto pt-4">
           <div className="mb-6">
             <div className="w-full rounded-full h-2 mb-2" style={{ backgroundColor: colors.secondary }}>
-              <div 
+              <div
                 className="h-2 rounded-full transition-all duration-300"
-                style={{ width: `${wizardProgress}%`, backgroundColor: colors.progressBar || colors.primary }}
+                style={{ width: `${wizardProgress}%`, backgroundColor: colors.progressBarColor }}
               />
             </div>
             <p className="text-sm text-right" style={{ color: colors.text }}>{wizardProgress}% completo</p>
           </div>
 
-          <Card className="shadow-lg" style={{ backgroundColor: colors.background, borderColor: `${colors.primary}30` }}>
+          <Card className="shadow-lg" style={{ backgroundColor: colors.containerBackground, borderColor: `${colors.primary}30` }}>
             <CardHeader>
               <CardTitle className="text-2xl" style={{ color: colors.text }}>Dados Pessoais</CardTitle>
               <CardDescription style={{ color: `${colors.text}99` }}>Por favor, preencha suas informações de contato</CardDescription>
@@ -563,7 +600,7 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
                   className="mt-1"
                   disabled
                   value="João da Silva"
-                  style={{ backgroundColor: colors.secondary, borderColor: `${colors.primary}30`, color: colors.text }}
+                  style={{ backgroundColor: colors.inputBackground, borderColor: `${colors.primary}30`, color: colors.text }}
                 />
               </div>
               <div>
@@ -574,7 +611,7 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
                   className="mt-1"
                   disabled
                   value="joao@email.com"
-                  style={{ backgroundColor: colors.secondary, borderColor: `${colors.primary}30`, color: colors.text }}
+                  style={{ backgroundColor: colors.inputBackground, borderColor: `${colors.primary}30`, color: colors.text }}
                 />
               </div>
               <div>
@@ -585,7 +622,7 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
                   className="mt-1"
                   disabled
                   value="123.456.789-00"
-                  style={{ backgroundColor: colors.secondary, borderColor: `${colors.primary}30`, color: colors.text }}
+                  style={{ backgroundColor: colors.inputBackground, borderColor: `${colors.primary}30`, color: colors.text }}
                 />
               </div>
               <div>
@@ -596,7 +633,7 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
                   className="mt-1"
                   disabled
                   value="(11) 99999-9999"
-                  style={{ backgroundColor: colors.secondary, borderColor: `${colors.primary}30`, color: colors.text }}
+                  style={{ backgroundColor: colors.inputBackground, borderColor: `${colors.primary}30`, color: colors.text }}
                 />
               </div>
               <div>
@@ -606,13 +643,13 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
                   className="mt-1"
                   disabled
                   value="@joaosilva"
-                  style={{ backgroundColor: colors.secondary, borderColor: `${colors.primary}30`, color: colors.text }}
+                  style={{ backgroundColor: colors.inputBackground, borderColor: `${colors.primary}30`, color: colors.text }}
                 />
               </div>
               <p className="text-xs italic" style={{ color: `${colors.text}80` }}>* Campos simulados para preview</p>
             </CardContent>
             <CardFooter className="flex justify-end">
-              <Button onClick={handleWizardNext} style={{ backgroundColor: colors.button, color: colors.buttonText }}>
+              <Button onClick={handleWizardNext} style={{ backgroundColor: colors.buttonColor, color: colors.buttonTextColor }}>
                 Próximo
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
@@ -629,15 +666,15 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
         <div className="max-w-3xl mx-auto pt-4">
           <div className="mb-6">
             <div className="w-full rounded-full h-2 mb-2" style={{ backgroundColor: colors.secondary }}>
-              <div 
+              <div
                 className="h-2 rounded-full transition-all duration-300"
-                style={{ width: `${wizardProgress}%`, backgroundColor: colors.progressBar || colors.primary }}
+                style={{ width: `${wizardProgress}%`, backgroundColor: colors.progressBarColor }}
               />
             </div>
             <p className="text-sm text-right" style={{ color: colors.text }}>{wizardProgress}% completo</p>
           </div>
 
-          <Card className="shadow-lg" style={{ backgroundColor: colors.background, borderColor: `${colors.primary}30` }}>
+          <Card className="shadow-lg" style={{ backgroundColor: colors.containerBackground, borderColor: `${colors.primary}30` }}>
             <CardHeader>
               <CardTitle className="text-2xl" style={{ color: colors.text }}>Dados de Endereço</CardTitle>
               <CardDescription style={{ color: `${colors.text}99` }}>Preencha seu endereço completo</CardDescription>
@@ -652,7 +689,7 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
                     className="mt-1"
                     disabled
                     value="01310-100"
-                    style={{ backgroundColor: colors.secondary, borderColor: `${colors.primary}30`, color: colors.text }}
+                    style={{ backgroundColor: colors.inputBackground, borderColor: `${colors.primary}30`, color: colors.text }}
                   />
                 </div>
                 <div className="col-span-2 sm:col-span-1">
@@ -663,11 +700,11 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
                     className="mt-1 uppercase"
                     disabled
                     value="SP"
-                    style={{ backgroundColor: colors.secondary, borderColor: `${colors.primary}30`, color: colors.text }}
+                    style={{ backgroundColor: colors.inputBackground, borderColor: `${colors.primary}30`, color: colors.text }}
                   />
                 </div>
               </div>
-              
+
               <div>
                 <Label style={{ color: colors.text }}>Rua *</Label>
                 <Input
@@ -675,7 +712,7 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
                   className="mt-1"
                   disabled
                   value="Av. Paulista"
-                  style={{ backgroundColor: colors.secondary, borderColor: `${colors.primary}30`, color: colors.text }}
+                  style={{ backgroundColor: colors.inputBackground, borderColor: `${colors.primary}30`, color: colors.text }}
                 />
               </div>
 
@@ -687,7 +724,7 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
                     className="mt-1"
                     disabled
                     value="1000"
-                    style={{ backgroundColor: colors.secondary, borderColor: `${colors.primary}30`, color: colors.text }}
+                    style={{ backgroundColor: colors.inputBackground, borderColor: `${colors.primary}30`, color: colors.text }}
                   />
                 </div>
                 <div className="col-span-2">
@@ -697,7 +734,7 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
                     className="mt-1"
                     disabled
                     value="Sala 501"
-                    style={{ backgroundColor: colors.secondary, borderColor: `${colors.primary}30`, color: colors.text }}
+                    style={{ backgroundColor: colors.inputBackground, borderColor: `${colors.primary}30`, color: colors.text }}
                   />
                 </div>
               </div>
@@ -710,7 +747,7 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
                     className="mt-1"
                     disabled
                     value="Bela Vista"
-                    style={{ backgroundColor: colors.secondary, borderColor: `${colors.primary}30`, color: colors.text }}
+                    style={{ backgroundColor: colors.inputBackground, borderColor: `${colors.primary}30`, color: colors.text }}
                   />
                 </div>
                 <div>
@@ -720,14 +757,14 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
                     className="mt-1"
                     disabled
                     value="São Paulo"
-                    style={{ backgroundColor: colors.secondary, borderColor: `${colors.primary}30`, color: colors.text }}
+                    style={{ backgroundColor: colors.inputBackground, borderColor: `${colors.primary}30`, color: colors.text }}
                   />
                 </div>
               </div>
               <p className="text-xs italic" style={{ color: `${colors.text}80` }}>* Campos simulados para preview</p>
             </CardContent>
             <CardFooter className="flex justify-end">
-              <Button onClick={handleWizardNext} style={{ backgroundColor: colors.button, color: colors.buttonText }}>
+              <Button onClick={handleWizardNext} style={{ backgroundColor: colors.buttonColor, color: colors.buttonTextColor }}>
                 Próximo
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
@@ -741,7 +778,7 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
   const renderWizardQuestion = (questionIndex: number) => {
     const question = questionElements[questionIndex];
     if (!question) return null;
-    
+
     const isLastQuestion = questionIndex === questionElements.length - 1;
 
     return (
@@ -749,15 +786,15 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
         <div className="max-w-3xl mx-auto pt-4">
           <div className="mb-6">
             <div className="w-full rounded-full h-2 mb-2" style={{ backgroundColor: colors.secondary }}>
-              <div 
+              <div
                 className="h-2 rounded-full transition-all duration-300"
-                style={{ width: `${wizardProgress}%`, backgroundColor: colors.progressBar || colors.primary }}
+                style={{ width: `${wizardProgress}%`, backgroundColor: colors.progressBarColor }}
               />
             </div>
             <p className="text-sm text-right" style={{ color: colors.text }}>{wizardProgress}% completo</p>
           </div>
 
-          <Card className="shadow-lg" style={{ backgroundColor: colors.background, borderColor: `${colors.primary}30` }}>
+          <Card className="shadow-lg" style={{ backgroundColor: colors.containerBackground, borderColor: `${colors.primary}30` }}>
             <CardHeader>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm font-medium" style={{ color: `${colors.text}80` }}>
@@ -782,10 +819,10 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
                   className="space-y-3"
                 >
                   {question.options.map((option, optIndex) => (
-                    <div 
-                      key={optIndex} 
+                    <div
+                      key={optIndex}
                       className="flex items-center space-x-3 p-3 rounded-lg border transition-colors"
-                      style={{ backgroundColor: colors.secondary, borderColor: `${colors.primary}30`, color: colors.text }}
+                      style={{ backgroundColor: colors.inputBackground, borderColor: `${colors.primary}30`, color: colors.text }}
                     >
                       <RadioGroupItem value={option.text} id={`${question.id}-${optIndex}`} />
                       <Label htmlFor={`${question.id}-${optIndex}`} className="font-normal cursor-pointer flex-1" style={{ color: colors.text }}>
@@ -795,7 +832,7 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
                   ))}
                 </RadioGroup>
               )}
-              
+
               {(question.questionType === 'long-text') && (
                 <Textarea
                   value={answers[question.id]?.answer || ""}
@@ -803,31 +840,31 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
                   placeholder="Digite sua resposta"
                   rows={6}
                   className="text-base"
-                  style={{ backgroundColor: colors.secondary, borderColor: `${colors.primary}30`, color: colors.text }}
+                  style={{ backgroundColor: colors.inputBackground, borderColor: `${colors.primary}30`, color: colors.text }}
                 />
               )}
-              
+
               {(question.questionType === 'text' || question.questionType === 'short-text') && (
                 <Input
                   value={answers[question.id]?.answer || ""}
                   onChange={(e) => handleAnswer(question.id, e.target.value, question.points || 0)}
                   placeholder="Digite sua resposta"
                   className="text-base"
-                  style={{ backgroundColor: colors.secondary, borderColor: `${colors.primary}30`, color: colors.text }}
+                  style={{ backgroundColor: colors.inputBackground, borderColor: `${colors.primary}30`, color: colors.text }}
                 />
               )}
             </CardContent>
             <CardFooter className="flex justify-end">
               {isLastQuestion ? (
-                <Button 
+                <Button
                   onClick={handleSubmit}
-                  style={{ backgroundColor: colors.button, color: colors.buttonText }}
+                  style={{ backgroundColor: colors.buttonColor, color: colors.buttonTextColor }}
                 >
                   <CheckCircle2 className="mr-2 h-4 w-4" />
                   Ver Resultado
                 </Button>
               ) : (
-                <Button onClick={handleWizardNext} style={{ backgroundColor: colors.button, color: colors.buttonText }}>
+                <Button onClick={handleWizardNext} style={{ backgroundColor: colors.buttonColor, color: colors.buttonTextColor }}>
                   Próximo
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
@@ -844,13 +881,13 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
     const useTiers = config.scoreTiers && config.scoreTiers.length > 0;
     const passed = result?.passed ?? false;
     const totalScore = result?.totalScore ?? 0;
-    
+
     return (
       <div className="min-h-[500px] flex items-center justify-center p-4" style={{ background: `linear-gradient(to bottom right, ${colors.background}, ${colors.secondary})` }}>
-        <Card className="w-full max-w-2xl p-8 text-center shadow-xl" style={{ backgroundColor: colors.background, borderColor: `${colors.primary}30` }}>
-          <div 
+        <Card className="w-full max-w-2xl p-8 text-center shadow-xl" style={{ backgroundColor: colors.containerBackground, borderColor: `${colors.primary}30` }}>
+          <div
             className="inline-flex items-center justify-center w-20 h-20 rounded-full mx-auto mb-6"
-            style={{ 
+            style={{
               backgroundColor: passed ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)',
               color: passed ? '#22c55e' : '#ef4444'
             }}
@@ -861,23 +898,23 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
               <XCircle className="h-10 w-10" />
             )}
           </div>
-          
+
           <h2 className="text-4xl font-bold mb-4" style={{ color: colors.text }}>
-            {passed ? "Parabéns!" : "Obrigado!"}
+            Obrigado por preencher o formulário!
           </h2>
 
           <p className="text-xl mb-8" style={{ color: `${colors.text}80` }}>
-            {passed 
-              ? "Você está qualificado! Entraremos em contato em breve."
-              : "Obrigado pela sua participação."}
+            {passed
+              ? "Nossa equipe está analisando suas informações e retornaremos em breve pelo WhatsApp."
+              : "Obrigado por preencher o formulário. Nossa equipe analisará suas respostas."}
           </p>
 
           {useTiers && currentTier ? (
             <div className="space-y-4 mb-6">
               <div className="flex items-center justify-center gap-3 p-4 rounded-lg" style={{ backgroundColor: `${colors.primary}15`, borderColor: `${colors.primary}30`, borderWidth: 1 }}>
-                <Award className="h-6 w-6" style={{ color: colors.primary }} />
+                <Award className="h-6 w-6" style={{ color: colors.titleColor }} />
                 <div className="text-left">
-                  <div className="font-bold text-lg" style={{ color: colors.primary }}>
+                  <div className="font-bold text-lg" style={{ color: colors.titleColor }}>
                     {currentTier.label}
                   </div>
                   <div className="text-sm" style={{ color: `${colors.text}80` }}>
@@ -888,13 +925,13 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
 
               <div className="p-6 rounded-xl" style={{ backgroundColor: colors.secondary }}>
                 <p className="text-sm mb-2" style={{ color: `${colors.text}80` }}>Sua pontuação</p>
-                <p className="text-5xl font-bold" style={{ color: colors.primary }}>{totalScore}</p>
+                <p className="text-5xl font-bold" style={{ color: colors.titleColor }}>{totalScore}</p>
               </div>
             </div>
           ) : (
             <div className="p-6 rounded-xl mb-6" style={{ backgroundColor: colors.secondary }}>
               <p className="text-sm mb-2" style={{ color: `${colors.text}80` }}>Sua pontuação</p>
-              <p className="text-5xl font-bold" style={{ color: colors.primary }}>{totalScore}</p>
+              <p className="text-5xl font-bold" style={{ color: colors.titleColor }}>{totalScore}</p>
               <p className="text-sm mt-2" style={{ color: `${colors.text}80` }}>/ {config.passingScore} necessário</p>
             </div>
           )}
@@ -938,11 +975,11 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
   if (result) {
     const currentTier = getCurrentTier(result.totalScore);
     const useTiers = config.scoreTiers && config.scoreTiers.length > 0;
-    
+
     return (
-      <div 
-        className={isLivePreview ? "min-h-full p-4 rounded-lg" : "max-w-2xl mx-auto"} 
-        style={{ 
+      <div
+        className={isLivePreview ? "min-h-full p-4 rounded-lg" : "max-w-2xl mx-auto"}
+        style={{
           fontFamily: design.typography.fontFamily,
           background: isLivePreview ? `linear-gradient(to bottom right, ${colors.background}, ${colors.secondary})` : undefined
         }}
@@ -954,17 +991,17 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
           </Button>
         )}
         <Card
-          className="p-8 shadow-xl" 
-          style={{ 
-            backgroundColor: colors.background,
-            color: colors.text,
+          className="p-8 shadow-xl"
+          style={{
+            backgroundColor: colors.containerBackground,
+            color: colors.textColor,
             borderColor: `${colors.primary}30`
           }}
         >
           <div className="text-center space-y-6">
-            <div 
+            <div
               className="inline-flex items-center justify-center w-20 h-20 rounded-full"
-              style={{ 
+              style={{
                 backgroundColor: result.passed ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)',
                 color: result.passed ? '#22c55e' : '#ef4444'
               }}
@@ -981,17 +1018,17 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
                 {result.passed ? 'Parabéns!' : 'Não foi desta vez'}
               </h2>
               <p className="text-lg" style={{ color: `${design.colors.text}80` }}>
-                {result.passed 
-                  ? 'Você está qualificado para uma reunião com nosso time!' 
+                {result.passed
+                  ? 'Você está qualificado para uma reunião com nosso time!'
                   : 'Infelizmente você não atingiu a pontuação necessária.'}
               </p>
             </div>
 
             {useTiers && currentTier ? (
               <div className="space-y-4">
-                <div 
+                <div
                   className="flex items-center justify-center gap-3 p-4 rounded-lg"
-                  style={{ 
+                  style={{
                     backgroundColor: `${design.colors.primary}1a`,
                     border: `1px solid ${design.colors.primary}33`
                   }}
@@ -1007,7 +1044,7 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
                   </div>
                 </div>
 
-                <div 
+                <div
                   className="flex items-center justify-center gap-8 py-6 border-y"
                   style={{ borderColor: `${design.colors.primary}30` }}
                 >
@@ -1027,7 +1064,7 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
                 </div>
               </div>
             ) : (
-              <div 
+              <div
                 className="flex items-center justify-center gap-8 py-6 border-y"
                 style={{ borderColor: `${design.colors.primary}30` }}
               >
@@ -1048,9 +1085,9 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
             )}
 
             {result.passed && (
-              <div 
+              <div
                 className="p-4 rounded-lg"
-                style={{ 
+                style={{
                   backgroundColor: `${design.colors.primary}1a`,
                   border: `1px solid ${design.colors.primary}33`
                 }}
@@ -1061,9 +1098,9 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
               </div>
             )}
 
-            <Button 
-              onClick={onBack} 
-              variant="outline" 
+            <Button
+              onClick={onBack}
+              variant="outline"
               className="gap-2"
               style={{ borderColor: `${design.colors.primary}30`, color: design.colors.text }}
             >
@@ -1077,9 +1114,9 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
   }
 
   return (
-    <div 
-      className={isLivePreview ? "min-h-full p-4 rounded-lg" : "max-w-2xl mx-auto space-y-6"} 
-      style={{ 
+    <div
+      className={isLivePreview ? "min-h-full p-4 rounded-lg" : "max-w-2xl mx-auto space-y-6"}
+      style={{
         fontFamily: design.typography.fontFamily,
         background: isLivePreview ? `linear-gradient(to bottom right, ${colors.background}, ${colors.secondary})` : undefined
       }}
@@ -1093,19 +1130,19 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
 
       <Card
         className={`p-8 shadow-xl ${spacingClasses[design.spacing]}`}
-        style={{ 
-          backgroundColor: colors.background,
-          color: colors.text,
+        style={{
+          backgroundColor: colors.containerBackground,
+          color: colors.textColor,
           borderColor: `${colors.primary}30`
         }}
       >
         {design.logo && (
           <div className={`mb-8 ${design.logoAlign === 'center' ? 'flex justify-center' : design.logoAlign === 'right' ? 'flex justify-end' : ''}`}>
-            <img 
-              src={design.logo} 
-              alt="Logo" 
+            <img
+              src={design.logo}
+              alt="Logo"
               style={{ height: `${design.logoSize || 64}px` }}
-              className="object-contain" 
+              className="object-contain"
               onError={(e) => {
                 console.error('Logo failed to load in preview:', design.logo);
                 (e.target as HTMLImageElement).style.display = 'none';
@@ -1113,24 +1150,24 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
             />
           </div>
         )}
-        
+
         {(() => {
           const firstElement = elements[0];
-          const isDuplicateHeading = firstElement && 
-            isHeadingElement(firstElement) && 
+          const isDuplicateHeading = firstElement &&
+            isHeadingElement(firstElement) &&
             firstElement.text.trim() === config.title.trim();
-          
+
           if (isDuplicateHeading) return null;
-          
+
           return (
             <div className="space-y-2 mb-8">
-              <h1 
+              <h1
                 className={`${titleSizeClasses[design.typography.titleSize as keyof typeof titleSizeClasses]} font-bold`}
                 style={{ color: design.colors.primary }}
               >
                 {config.title}
               </h1>
-              <p 
+              <p
                 className={textSizeClasses[design.typography.textSize as keyof typeof textSizeClasses]}
                 style={{ color: design.colors.text, opacity: 0.8 }}
               >
@@ -1151,7 +1188,7 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
         </div>
 
         {!isLivePreview && (
-          <div className="mt-8 pt-8 border-t" style={{ borderColor: design.colors.primary + '30' }}>
+          <div className="mt-8 pt-8 border-t" style={{ borderColor: design.colors.titleColor + '30' }}>
             <Button
               onClick={handleSubmit}
               className="w-full gap-2 py-6 text-base"

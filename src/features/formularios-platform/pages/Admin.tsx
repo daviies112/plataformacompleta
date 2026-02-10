@@ -33,9 +33,9 @@ const defaultDesign: DesignConfig = {
 };
 
 const defaultCompletionPage: CompletionPageConfig = {
-  title: "Obrigado!",
-  successMessage: "Parabéns! Você está qualificado. Entraremos em contato em breve.",
-  failureMessage: "Obrigado pela sua participação. Infelizmente você não atingiu a pontuação mínima.",
+  title: "Obrigado por preencher o formulário!",
+  successMessage: "Nossa equipe está analisando suas informações e retornaremos em breve pelo WhatsApp.",
+  failureMessage: "Obrigado por preencher o formulário. Nossa equipe analisará suas respostas.",
   showScore: true,
   showTierBadge: true,
   design: {
@@ -126,7 +126,7 @@ const Admin = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 relative overflow-hidden">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/5 via-transparent to-transparent pointer-events-none" />
-      
+
       <div className="container mx-auto px-4 py-10 relative">
         <header className="text-center mb-10 animate-slide-up">
           <div className="inline-flex items-center gap-2 mb-5 px-5 py-2.5 glass rounded-full border border-primary/20 shadow-glow">

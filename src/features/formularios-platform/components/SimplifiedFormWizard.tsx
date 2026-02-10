@@ -122,15 +122,14 @@ const SortableQuestionItem = ({ question, index, onEdit, onDelete, isSelected = 
       ref={setNodeRef}
       style={style}
       onClick={() => onSelect?.(question.id)}
-      className={`p-4 rounded-lg border cursor-pointer transition-all flex items-center gap-4 ${
-        isDragging 
-          ? 'shadow-lg ring-2 ring-primary bg-background' 
-          : isSelected
+      className={`p-4 rounded-lg border cursor-pointer transition-all flex items-center gap-4 ${isDragging
+        ? 'shadow-lg ring-2 ring-primary bg-background'
+        : isSelected
           ? 'bg-primary/10 border-primary shadow-md hover:bg-primary/15'
           : 'bg-background/50 hover:bg-background'
-      }`}
+        }`}
     >
-      <div 
+      <div
         className="flex items-center gap-3 text-muted-foreground cursor-grab active:cursor-grabbing"
         {...attributes}
         {...listeners}
@@ -203,7 +202,7 @@ export const SimplifiedFormWizard = ({
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false);
-  
+
   const [welcomePage, setWelcomePage] = useState<WelcomePageData>({
     title: welcomeTitle || externalWelcomePageConfig?.title || '',
     description: welcomeMessage || externalWelcomePageConfig?.description || '',
@@ -213,7 +212,7 @@ export const SimplifiedFormWizard = ({
     extendedDescription: externalWelcomePageConfig?.extendedDescription,
     logoAlign: externalWelcomePageConfig?.logoAlign
   });
-  
+
   const [questions, setQuestions] = useState<QuestionData[]>([]);
   const [editingQuestion, setEditingQuestion] = useState<QuestionData | null>(null);
   const [isAddingQuestion, setIsAddingQuestion] = useState(false);
@@ -282,9 +281,9 @@ export const SimplifiedFormWizard = ({
         required: question.required,
         elementTypeVersion: 1
       };
-      
+
       finalElements.push(questionElement);
-      
+
       // Add pageBreak after each question (except the last one)
       // Use question.id for stable unique pageBreak IDs
       if (index < questionsToSerialize.length - 1) {
@@ -315,11 +314,11 @@ export const SimplifiedFormWizard = ({
         const newIndex = items.findIndex((item) => item.id === over.id);
 
         const reorderedQuestions = arrayMove(items, oldIndex, newIndex);
-        
+
         // Use centralized helper to build and propagate updated elements
         const finalElements = serializeElements(reorderedQuestions, welcomePage);
         onElementsChange(finalElements);
-        
+
         toast({
           title: "Ordem alterada!",
           description: `Pergunta movida da posição ${oldIndex + 1} para ${newIndex + 1}`,
@@ -430,7 +429,7 @@ export const SimplifiedFormWizard = ({
     try {
       const logoUrl = await api.uploadLogo(file);
       setWelcomePage(prev => ({ ...prev, logo: logoUrl }));
-      
+
       toast({
         title: "Sucesso!",
         description: "Logo de boas-vindas enviada com sucesso"
@@ -467,7 +466,7 @@ export const SimplifiedFormWizard = ({
 
   const handleSaveQuestion = () => {
     if (!editingQuestion) return;
-    
+
     if (!editingQuestion.text.trim()) {
       toast({
         title: "Erro",
@@ -495,7 +494,7 @@ export const SimplifiedFormWizard = ({
       updatedQuestions = [...questions, editingQuestion];
     }
     setQuestions(updatedQuestions);
-    
+
     // Propagate updated elements to parent immediately after add/edit
     const finalElements = serializeElements(updatedQuestions, welcomePage);
     onElementsChange(finalElements);
@@ -522,11 +521,11 @@ export const SimplifiedFormWizard = ({
   const handleDeleteQuestion = (questionId: string) => {
     const updatedQuestions = questions.filter(q => q.id !== questionId);
     setQuestions(updatedQuestions);
-    
+
     // Propagate updated elements to parent immediately after deletion
     const finalElements = serializeElements(updatedQuestions, welcomePage);
     onElementsChange(finalElements);
-    
+
     toast({
       title: "Removido",
       description: "Pergunta removida com sucesso"
@@ -550,9 +549,9 @@ export const SimplifiedFormWizard = ({
     if (!editingQuestion) return;
     setEditingQuestion({
       ...editingQuestion,
-      options: editingQuestion.options?.map(opt => 
-        opt.id === optionId 
-          ? { ...opt, [field]: value } 
+      options: editingQuestion.options?.map(opt =>
+        opt.id === optionId
+          ? { ...opt, [field]: value }
           : opt
       )
     });
@@ -625,7 +624,7 @@ export const SimplifiedFormWizard = ({
   const handleSaveProgress = () => {
     const finalElements = buildFinalElements();
     onElementsChange(finalElements);
-    
+
     if (onSave) {
       onSave();
     }
@@ -842,9 +841,9 @@ export const SimplifiedFormWizard = ({
               <Save className="h-4 w-4" />
               {isSaving ? 'Salvando...' : 'Salvar Progresso'}
             </Button>
-            <Button 
-              onClick={handleNextStep} 
-              className="flex-1 gap-2 min-h-[44px] md:min-h-0" 
+            <Button
+              onClick={handleNextStep}
+              className="flex-1 gap-2 min-h-[44px] md:min-h-0"
               disabled={!canAdvanceFromStep1}
             >
               Próximo: Adicionar Perguntas
@@ -856,7 +855,7 @@ export const SimplifiedFormWizard = ({
 
       {currentStep === 2 && (
         <Tabs defaultValue="content" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-4">
+          <TabsList className="grid w-full grid-cols-3 mb-4">
             <TabsTrigger value="content" className="min-h-[44px] md:min-h-0">
               <Target className="h-4 w-4 mr-2" />
               Perguntas
@@ -864,6 +863,10 @@ export const SimplifiedFormWizard = ({
             <TabsTrigger value="design" className="min-h-[44px] md:min-h-0">
               <Palette className="h-4 w-4 mr-2" />
               Design
+            </TabsTrigger>
+            <TabsTrigger value="scoring" className="min-h-[44px] md:min-h-0">
+              <Target className="h-4 w-4 mr-2" />
+              Pontuação
             </TabsTrigger>
           </TabsList>
 
@@ -987,7 +990,7 @@ export const SimplifiedFormWizard = ({
                               Adicionar Opção
                             </Button>
                           </div>
-                          
+
                           {editingQuestion.options && editingQuestion.options.length > 0 ? (
                             <div className="space-y-2">
                               {editingQuestion.options.map((option, idx) => (
@@ -1057,6 +1060,129 @@ export const SimplifiedFormWizard = ({
               <DesignCustomizer design={designConfig} onChange={onDesignChange} />
             </Card>
           </TabsContent>
+
+          <TabsContent value="scoring" className="space-y-4 md:space-y-6">
+            <Card className="p-4 md:p-6 bg-gradient-to-br from-card to-card/80 border-border shadow-md">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 rounded-lg bg-background border border-border">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="use-tiers-step2">Usar Níveis de Pontuação</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Classifique leads em diferentes níveis baseado na pontuação
+                    </p>
+                  </div>
+                  <Switch
+                    id="use-tiers-step2"
+                    checked={useTiers}
+                    onCheckedChange={handleUseTiersChange}
+                  />
+                </div>
+
+                {!useTiers && (
+                  <div className="space-y-2">
+                    <Label htmlFor="passing-score-step2">Pontuação Mínima para Qualificação</Label>
+                    <Input
+                      id="passing-score-step2"
+                      type="number"
+                      value={passingScore}
+                      onChange={(e) => onPassingScoreChange(parseInt(e.target.value) || 0)}
+                      className="bg-background border-border"
+                      min={0}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Pontuação mínima para considerar o lead qualificado
+                    </p>
+                  </div>
+                )}
+
+                {useTiers && (
+                  <div className="space-y-4">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
+                      <Label className="text-base">Níveis de Pontuação</Label>
+                      <Button onClick={addScoreTier} size="sm" variant="outline" className="gap-2 min-h-[44px] md:min-h-0">
+                        <Plus className="h-3 w-3" />
+                        Adicionar Nível
+                      </Button>
+                    </div>
+
+                    {scoreTiers.length > 0 ? (
+                      <div className="space-y-3">
+                        {scoreTiers.map((tier) => (
+                          <Card key={tier.id} className="p-4 bg-background">
+                            <div className="space-y-3">
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div className="space-y-1">
+                                  <Label className="text-xs">Nome do Nível</Label>
+                                  <Input
+                                    value={tier.label}
+                                    onChange={(e) => updateScoreTier(tier.id, { label: e.target.value })}
+                                    placeholder="Ex: Ótimo"
+                                    className="h-9"
+                                  />
+                                </div>
+                                <div className="space-y-1">
+                                  <Label className="text-xs">Descrição</Label>
+                                  <Input
+                                    value={tier.description}
+                                    onChange={(e) => updateScoreTier(tier.id, { description: e.target.value })}
+                                    placeholder="Ex: Lead altamente qualificado"
+                                    className="h-9"
+                                  />
+                                </div>
+                              </div>
+
+                              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                <div className="space-y-1">
+                                  <Label className="text-xs">Pontuação Mínima</Label>
+                                  <Input
+                                    type="number"
+                                    value={tier.minScore}
+                                    onChange={(e) => updateScoreTier(tier.id, { minScore: parseInt(e.target.value) || 0 })}
+                                    className="h-9"
+                                    min={0}
+                                  />
+                                </div>
+                                <div className="space-y-1">
+                                  <Label className="text-xs">Pontuação Máxima</Label>
+                                  <Input
+                                    type="number"
+                                    value={tier.maxScore}
+                                    onChange={(e) => updateScoreTier(tier.id, { maxScore: parseInt(e.target.value) || 0 })}
+                                    className="h-9"
+                                    min={0}
+                                  />
+                                </div>
+                                <div className="flex items-end gap-2 col-span-2 md:col-span-1">
+                                  <div className="flex-1 flex items-center justify-between p-2 rounded-md bg-muted">
+                                    <Label className="text-xs">Qualifica</Label>
+                                    <Switch
+                                      checked={tier.qualifies}
+                                      onCheckedChange={(checked) => updateScoreTier(tier.id, { qualifies: checked })}
+                                    />
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => deleteScoreTier(tier.id)}
+                                    className="text-destructive hover:text-destructive h-9 w-9"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          </Card>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground text-center py-8 border border-dashed rounded-lg">
+                        Nenhum nível de pontuação configurado. Clique em "Adicionar Nível" para começar.
+                      </p>
+                    )}\n                  </div>
+                )}
+              </div>
+            </Card>
+          </TabsContent>
         </Tabs>
       )}
 
@@ -1071,227 +1197,22 @@ export const SimplifiedFormWizard = ({
               <Save className="h-4 w-4" />
               {isSaving ? 'Salvando...' : 'Salvar Progresso'}
             </Button>
-            <Button 
-              onClick={handleNextStep} 
-              className="flex-1 gap-2 min-h-[44px] md:min-h-0" 
+            <Button
+              onClick={handleNextStep}
+              className="flex-1 gap-2 min-h-[44px] md:min-h-0"
               disabled={!canAdvanceFromStep2}
             >
-              Finalizar: Configurações
+              Salvar Formulário
               <ArrowRight className="h-4 w-4" />
             </Button>
           </div>
         </div>
       )}
 
-      {currentStep === 3 && (
-        <Card className="p-4 md:p-8 bg-gradient-to-br from-card to-card/80 border-border shadow-[var(--shadow-luxury)]">
-          <CardHeader className="px-0 pt-0">
-            <CardTitle className="text-xl md:text-2xl flex items-center gap-2">
-              <Palette className="h-5 w-5 md:h-6 md:w-6 text-primary" />
-              Configurações Finais
-            </CardTitle>
-            <CardDescription className="text-sm">
-              Personalize a aparência e configure os detalhes finais do seu formulário
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="px-0">
-            <Tabs value={step3ActiveTab} onValueChange={(v: any) => setStep3ActiveTab(v)} className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="design" className="gap-1 md:gap-2 text-xs md:text-sm min-h-[44px] md:min-h-0">
-                  <Palette className="h-3 w-3 md:h-4 md:w-4" />
-                  <span className="hidden sm:inline">Design</span>
-                </TabsTrigger>
-                <TabsTrigger value="completion" className="gap-1 md:gap-2 text-xs md:text-sm min-h-[44px] md:min-h-0">
-                  <CheckCircle2 className="h-3 w-3 md:h-4 md:w-4" />
-                  <span className="hidden sm:inline">Página Final</span>
-                </TabsTrigger>
-                <TabsTrigger value="scoring" className="gap-1 md:gap-2 text-xs md:text-sm min-h-[44px] md:min-h-0">
-                  <Target className="h-3 w-3 md:h-4 md:w-4" />
-                  <span className="hidden sm:inline">Pontuação</span>
-                </TabsTrigger>
-              </TabsList>
 
-              <TabsContent value="design" className="mt-4 md:mt-6 max-h-none md:max-h-[calc(100vh-28rem)] overflow-visible md:overflow-y-auto">
-                <DesignCustomizer design={designConfig} onChange={onDesignChange} />
-              </TabsContent>
 
-              <TabsContent value="completion" className="mt-4 md:mt-6 max-h-none md:max-h-[calc(100vh-28rem)] overflow-visible md:overflow-y-auto">
-                {completionPageConfig ? (
-                  <CompletionPageCustomizer
-                    config={completionPageConfig}
-                    onChange={(config) => onCompletionPageChange?.(config)}
-                  />
-                ) : (
-                  <Card className="p-6 md:p-8 bg-muted/30">
-                    <div className="text-center space-y-4">
-                      <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                        <CheckCircle2 className="h-8 w-8 text-primary" />
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-semibold">Página de Conclusão</h3>
-                        <p className="text-sm text-muted-foreground mt-2">
-                          Configure a página que será exibida após o usuário completar o formulário.
-                        </p>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        Por favor, salve o formulário primeiro para habilitar esta configuração.
-                      </p>
-                    </div>
-                  </Card>
-                )}
-              </TabsContent>
 
-              <TabsContent value="scoring" className="mt-4 md:mt-6 space-y-4 md:space-y-6 max-h-none md:max-h-[calc(100vh-28rem)] overflow-visible md:overflow-y-auto">
-                <Card className="p-4 md:p-6 bg-gradient-to-br from-card to-card/80 border-border shadow-md">
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between p-4 rounded-lg bg-background border border-border">
-                      <div className="space-y-0.5">
-                        <Label htmlFor="use-tiers">Usar Níveis de Pontuação</Label>
-                        <p className="text-xs text-muted-foreground">
-                          Classifique leads em diferentes níveis baseado na pontuação
-                        </p>
-                      </div>
-                      <Switch
-                        id="use-tiers"
-                        checked={useTiers}
-                        onCheckedChange={handleUseTiersChange}
-                      />
-                    </div>
 
-                    {!useTiers && (
-                      <div className="space-y-2">
-                        <Label htmlFor="passing-score">Pontuação Mínima para Qualificação</Label>
-                        <Input
-                          id="passing-score"
-                          type="number"
-                          value={passingScore}
-                          onChange={(e) => onPassingScoreChange(parseInt(e.target.value) || 0)}
-                          className="bg-background border-border"
-                          min={0}
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Pontuação mínima para considerar o lead qualificado
-                        </p>
-                      </div>
-                    )}
-
-                    {useTiers && (
-                      <div className="space-y-4">
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
-                          <Label className="text-base">Níveis de Pontuação</Label>
-                          <Button onClick={addScoreTier} size="sm" variant="outline" className="gap-2 min-h-[44px] md:min-h-0">
-                            <Plus className="h-3 w-3" />
-                            Adicionar Nível
-                          </Button>
-                        </div>
-
-                        {scoreTiers.length > 0 ? (
-                          <div className="space-y-3">
-                            {scoreTiers.map((tier) => (
-                              <Card key={tier.id} className="p-4 bg-background">
-                                <div className="space-y-3">
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                    <div className="space-y-1">
-                                      <Label className="text-xs">Nome do Nível</Label>
-                                      <Input
-                                        value={tier.label}
-                                        onChange={(e) => updateScoreTier(tier.id, { label: e.target.value })}
-                                        placeholder="Ex: Ótimo"
-                                        className="h-9"
-                                      />
-                                    </div>
-                                    <div className="space-y-1">
-                                      <Label className="text-xs">Descrição</Label>
-                                      <Input
-                                        value={tier.description}
-                                        onChange={(e) => updateScoreTier(tier.id, { description: e.target.value })}
-                                        placeholder="Ex: Lead altamente qualificado"
-                                        className="h-9"
-                                      />
-                                    </div>
-                                  </div>
-
-                                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                                    <div className="space-y-1">
-                                      <Label className="text-xs">Pontuação Mínima</Label>
-                                      <Input
-                                        type="number"
-                                        value={tier.minScore}
-                                        onChange={(e) => updateScoreTier(tier.id, { minScore: parseInt(e.target.value) || 0 })}
-                                        className="h-9"
-                                        min={0}
-                                      />
-                                    </div>
-                                    <div className="space-y-1">
-                                      <Label className="text-xs">Pontuação Máxima</Label>
-                                      <Input
-                                        type="number"
-                                        value={tier.maxScore}
-                                        onChange={(e) => updateScoreTier(tier.id, { maxScore: parseInt(e.target.value) || 0 })}
-                                        className="h-9"
-                                        min={0}
-                                      />
-                                    </div>
-                                    <div className="flex items-end gap-2 col-span-2 md:col-span-1">
-                                      <div className="flex-1 flex items-center justify-between p-2 rounded-md bg-muted">
-                                        <Label className="text-xs">Qualifica</Label>
-                                        <Switch
-                                          checked={tier.qualifies}
-                                          onCheckedChange={(checked) => updateScoreTier(tier.id, { qualifies: checked })}
-                                        />
-                                      </div>
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() => deleteScoreTier(tier.id)}
-                                        className="text-destructive hover:text-destructive h-9 w-9"
-                                      >
-                                        <Trash2 className="h-4 w-4" />
-                                      </Button>
-                                    </div>
-                                  </div>
-                                </div>
-                              </Card>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="text-sm text-muted-foreground text-center py-8 border border-dashed rounded-lg">
-                            Nenhum nível de pontuação configurado. Clique em "Adicionar Nível" para começar.
-                          </p>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </Card>
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
-      )}
-
-      {currentStep === 3 && (
-        <div className="flex-shrink-0 border-t bg-background pt-4 mt-4">
-          <div className="flex flex-col md:flex-row gap-3 md:gap-4">
-            <Button onClick={handlePrevStep} variant="outline" className="gap-2 min-h-[44px] md:min-h-0">
-              <ArrowLeft className="h-4 w-4" />
-              Voltar
-            </Button>
-            <Button onClick={handleSaveProgress} variant="outline" className="gap-2 min-h-[44px] md:min-h-0" disabled={isSaving}>
-              <Save className="h-4 w-4" />
-              {isSaving ? 'Salvando...' : 'Salvar Progresso'}
-            </Button>
-            <Button
-              onClick={handleSaveProgress}
-              className="flex-1 gap-2 min-h-[48px] md:min-h-0"
-              size="lg"
-              disabled={isSaving}
-            >
-              <Save className="h-5 w-5" />
-              {isSaving ? 'Salvando...' : 'Salvar Formulário'}
-            </Button>
-          </div>
-        </div>
-      )}
     </>
   );
 
@@ -1306,9 +1227,9 @@ export const SimplifiedFormWizard = ({
           <p className="text-xs md:text-sm text-muted-foreground">
             {currentStep === 3 && step3ActiveTab === 'completion'
               ? "Veja como a página de conclusão aparece para os usuários"
-              : selectedQuestionId 
-              ? "Clique em outra pergunta para visualizar ou veja todas" 
-              : "Veja como seu formulário aparece para os usuários"}
+              : selectedQuestionId
+                ? "Clique em outra pergunta para visualizar ou veja todas"
+                : "Veja como seu formulário aparece para os usuários"}
           </p>
         </div>
         {currentStep === 3 && step3ActiveTab === 'completion' && (
@@ -1326,18 +1247,18 @@ export const SimplifiedFormWizard = ({
           </Tabs>
         )}
       </div>
-      
+
       <div className="border-2 border-dashed border-gray-300 rounded-lg flex-1 overflow-hidden flex flex-col" style={{ backgroundColor: '#f8fafc' }}>
         <div className="overflow-y-auto flex-1 p-4 md:p-6">
           {currentStep === 3 && step3ActiveTab === 'completion' && completionPageConfig ? (
-            <CompletionPagePreview 
+            <CompletionPagePreview
               config={completionPageConfig}
               previewMode={completionPreviewMode}
             />
           ) : (
             <FormPreview
               config={previewConfig}
-              onBack={() => {}}
+              onBack={() => { }}
               isLivePreview={true}
               activeQuestionId={selectedQuestionId}
             />
@@ -1354,22 +1275,20 @@ export const SimplifiedFormWizard = ({
         <div className="flex items-center gap-2 md:gap-4">
           {[
             { step: 1, label: 'Boas-vindas' },
-            { step: 2, label: 'Perguntas' },
-            { step: 3, label: 'Finalizar' }
+            { step: 2, label: 'Perguntas' }
           ].map(({ step, label }) => (
             <div key={step} className="flex items-center gap-1 md:gap-2">
               <button
                 onClick={() => handleStepClick(step as 1 | 2 | 3)}
                 disabled={step > currentStep + 1}
-                className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center font-semibold transition-all duration-300 text-sm md:text-base ${
-                  currentStep === step
-                    ? 'bg-primary text-primary-foreground shadow-lg scale-110 cursor-pointer'
-                    : currentStep > step
+                className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center font-semibold transition-all duration-300 text-sm md:text-base ${currentStep === step
+                  ? 'bg-primary text-primary-foreground shadow-lg scale-110 cursor-pointer'
+                  : currentStep > step
                     ? 'bg-green-500 text-white cursor-pointer hover:scale-105'
                     : step === currentStep + 1
-                    ? 'bg-muted text-muted-foreground cursor-pointer hover:bg-muted/80'
-                    : 'bg-muted text-muted-foreground cursor-not-allowed opacity-50'
-                }`}
+                      ? 'bg-muted text-muted-foreground cursor-pointer hover:bg-muted/80'
+                      : 'bg-muted text-muted-foreground cursor-not-allowed opacity-50'
+                  }`}
               >
                 {currentStep > step ? <CheckCircle2 className="h-4 w-4 md:h-5 md:w-5" /> : step}
               </button>
@@ -1378,7 +1297,7 @@ export const SimplifiedFormWizard = ({
                   {label}
                 </div>
               </div>
-              {step < 3 && <ChevronRight className="h-4 w-4 md:h-5 md:w-5 text-muted-foreground hidden md:block" />}
+              {step < 2 && <ChevronRight className="h-4 w-4 md:h-5 md:w-5 text-muted-foreground hidden md:block" />}
             </div>
           ))}
         </div>
@@ -1437,7 +1356,7 @@ export const SimplifiedFormWizard = ({
           </DialogHeader>
           <div className="flex-1 overflow-y-auto p-4">
             {currentStep === 3 && step3ActiveTab === 'completion' && completionPageConfig ? (
-              <CompletionPagePreview 
+              <CompletionPagePreview
                 config={completionPageConfig}
                 previewMode={completionPreviewMode}
               />

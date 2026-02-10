@@ -28,10 +28,10 @@ const defaultDesign: DesignConfig = {
 };
 
 const defaultCompletionPage: CompletionPageConfig = {
-  title: "Formulário Concluído",
-  subtitle: "Obrigado por responder!",
-  successMessage: "Parabéns! Você está qualificado.",
-  failureMessage: "Infelizmente você não atingiu a pontuação necessária.",
+  title: "Obrigado por preencher o formulário!",
+  subtitle: "",
+  successMessage: "Nossa equipe está analisando suas informações e retornaremos em breve pelo WhatsApp.",
+  failureMessage: "Obrigado por preencher o formulário. Nossa equipe analisará suas respostas.",
   showScore: true,
   showTierBadge: true,
   design: {
@@ -83,7 +83,7 @@ const EditarFormulario = () => {
     if (form) {
       setTitle(form.title);
       setDescription(form.description || "");
-      
+
       // CRITICAL: Load welcomeConfig to preserve ALL fields (buttonText, logo, logoAlign, titleSize, extendedDescription)
       // If form.welcomeConfig exists, use its values
       if ((form as any).welcomeConfig) {
@@ -98,7 +98,7 @@ const EditarFormulario = () => {
         setWelcomeMessage((form as any).welcomeMessage || form.description || "");
         setWelcomePageConfig(undefined);
       }
-      
+
       // Handle both old Question[] format and new FormElement[] format
       const formQuestions = form.questions as any[];
       if (formQuestions && formQuestions.length > 0) {
@@ -108,15 +108,15 @@ const EditarFormulario = () => {
         // - Old Question[] has type 'text'/'multiple-choice'/'radio' without 'questionType' or 'content' fields
         const isNewFormat = formQuestions.some((item: any) => {
           if (!item.type) return false;
-          
+
           // Check for modern elements
           if (item.type === 'question' && 'questionType' in item) return true;
           if (item.type === 'heading' || item.type === 'pageBreak') return true;
           if (item.type === 'text' && 'content' in item) return true;
-          
+
           return false;
         });
-        
+
         if (isNewFormat) {
           // Already FormElement[] format - use directly
           setElements(formQuestions as FormElement[]);
@@ -124,12 +124,12 @@ const EditarFormulario = () => {
           // Old Question[] format - convert to COMPLETE FormElement[] structure
           // This includes welcome page elements and pageBreaks between questions
           const convertedElements: FormElement[] = [];
-          
+
           // Get welcome page data
           const welcomeData = (form as any).welcomeConfig || {};
           const welcomeTitleText = welcomeData.title || (form as any).welcomeTitle || form.title || 'Bem-vindo!';
           const welcomeDescText = welcomeData.description || (form as any).welcomeMessage || form.description || '';
-          
+
           // Add welcome page elements (heading + text)
           convertedElements.push({
             type: 'heading' as const,
@@ -138,14 +138,14 @@ const EditarFormulario = () => {
             level: 1,
             elementTypeVersion: 1
           });
-          
+
           convertedElements.push({
             type: 'text' as const,
             id: 'welcome-text',
             content: welcomeDescText,
             elementTypeVersion: 1
           });
-          
+
           // Add pageBreak after welcome if there are questions
           if (formQuestions.length > 0) {
             convertedElements.push({
@@ -154,7 +154,7 @@ const EditarFormulario = () => {
               elementTypeVersion: 1
             });
           }
-          
+
           // Add each question with pageBreaks between them
           formQuestions.forEach((q: any, index: number) => {
             // Normalize legacy types to standard questionType
@@ -164,7 +164,7 @@ const EditarFormulario = () => {
             } else if (questionType === 'textarea') {
               questionType = 'text';
             }
-            
+
             convertedElements.push({
               type: 'question' as const,
               id: q.id,
@@ -175,7 +175,7 @@ const EditarFormulario = () => {
               required: q.required || false,
               elementTypeVersion: 1
             });
-            
+
             // Add pageBreak after each question except the last one
             if (index < formQuestions.length - 1) {
               convertedElements.push({
@@ -185,14 +185,14 @@ const EditarFormulario = () => {
               });
             }
           });
-          
+
           setElements(convertedElements);
         }
       } else {
         // Empty array or undefined
         setElements([]);
       }
-      
+
       setPassingScore(form.passingScore);
       setScoreTiers((form.scoreTiers as ScoreTier[]) || []);
       setDesignConfig((form.designConfig as DesignConfig) || defaultDesign);
@@ -245,13 +245,13 @@ const EditarFormulario = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 relative overflow-hidden">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_var(--tw-gradient-stops))] from-accent/5 via-transparent to-transparent pointer-events-none" />
-      
+
       <div className="container mx-auto px-4 py-8 relative">
         <div className="mb-6 flex items-center gap-4">
-          <Button 
-            onClick={() => setLocation("/admin/formularios")} 
-            variant="outline" 
-            className="gap-2" 
+          <Button
+            onClick={() => setLocation("/admin/formularios")}
+            variant="outline"
+            className="gap-2"
             data-testid="button-back"
           >
             <ArrowLeft className="h-4 w-4" />
