@@ -1,0 +1,59 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Deploy to VPS
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+      
+      - name: 🔐 Setup SSH
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+      
+      - name: 📝 Add server to known hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+      
+      - name: 🚀 Deploy to server
+        env:
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+        run: |
+          ssh -p $SSH_PORT $SSH_USER@$SSH_HOST << 'ENDSSH'
+            set -e
+            
+            echo "📂 Navegando para o diretório do projeto..."
+            cd /var/www/plataformacompleta
+            
+            echo "🔄 Fazendo backup..."
+            cp -r ../plataformacompleta ../plataformacompleta-backup-$(date +%Y%m%d-%H%M%S) || true
+            
+            echo "📥 Baixando atualizações do Git..."
+            git pull origin main
+            
+            echo "📦 Instalando dependências..."
+            npm install
+            
+            echo "🔨 Compilando projeto..."
+            npm run build
+            
+            echo "🔄 Reiniciando PM2..."
+            pm2 restart plataforma
+            
+            echo "✅ Deploy concluído com sucesso!"
+            pm2 status
+          ENDSSH
+      
+      - name: ✅ Deployment successful
+        run: echo "🎉 Deploy concluído! Acesse https://seu-dominio.com"
