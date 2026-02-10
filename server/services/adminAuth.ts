@@ -47,30 +47,60 @@ class AdminAuthService {
       console.log(`[AdminAuth] Verificando login para: ${email}`);
 
       // Tenta primeiro a função RPC get_admin_by_email (mais confiável)
-      const { data: rpcData, error: rpcError } = await supabaseOwner!.rpc('get_admin_by_email', {
-        p_email: email
-      });
+      if (supabaseOwner && SUPABASE_CONFIGURED) {
+        const { data: rpcData, error: rpcError } = await supabaseOwner.rpc('get_admin_by_email', {
+          p_email: email
+        });
 
-      if (!rpcError && rpcData && rpcData.length > 0) {
-        console.log('[AdminAuth] ✅ Usuário encontrado via RPC get_admin_by_email');
-        const userData = rpcData[0];
+        if (!rpcError && rpcData && rpcData.length > 0) {
+          console.log('[AdminAuth] ✅ Usuário encontrado via RPC get_admin_by_email');
+          const userData = rpcData[0];
 
-        const isValidPassword = await bcrypt.compare(password, userData.password_hash);
-        if (!isValidPassword) {
-          console.log('[AdminAuth] Senha inválida');
-          return { success: false, error: 'Credenciais inválidas' };
+          const isValidPassword = await bcrypt.compare(password, userData.password_hash);
+          if (!isValidPassword) {
+            console.log('[AdminAuth] Senha inválida');
+            return { success: false, error: 'Credenciais inválidas' };
+          }
+
+          await this.updateLastLogin(userData.id);
+          return this.generateLoginResponse(userData);
         }
 
-        await this.updateLastLogin(userData.id);
-        return this.generateLoginResponse(userData);
+        if (rpcError && rpcError.code !== 'PGRST202') {
+          console.log('[AdminAuth] RPC get_admin_by_email falhou:', rpcError.message);
+        }
       }
 
-      if (rpcError) {
-        console.log('[AdminAuth] RPC get_admin_by_email falhou:', rpcError.message);
+      // Tenta login via banco de dados LOCAL
+      try {
+        const { db } = await import('../db');
+        const { adminUsers } = await import('../../shared/db-schema');
+        const { eq, and } = await import('drizzle-orm');
+
+        console.log(`[AdminAuth] Tentando login local para: ${email}`);
+        const [localUser] = await db.select()
+          .from(adminUsers)
+          .where(and(
+            eq(adminUsers.email, email),
+            eq(adminUsers.isActive, true)
+          ))
+          .limit(1);
+
+        if (localUser) {
+          const isValidPassword = await bcrypt.compare(password, localUser.passwordHash);
+          if (isValidPassword) {
+            console.log('[AdminAuth] ✅ Login local bem-sucedido');
+            return this.generateLoginResponse(localUser);
+          }
+          console.log('[AdminAuth] Senha local inválida');
+          return { success: false, error: 'Credenciais inválidas' };
+        }
+      } catch (localError) {
+        console.error('[AdminAuth] Erro ao consultar banco local:', localError);
       }
 
-      // Fallback para query direta
-      console.log('[AdminAuth] Tentando query direta...');
+      // Fallback para query direta no Supabase
+      console.log('[AdminAuth] Tentando query direta no Supabase...');
       return this.directLogin(email, password);
 
     } catch (error) {
@@ -223,34 +253,36 @@ class AdminAuthService {
   }
 
   private async fallbackLogin(email: string, password: string, force: boolean = false): Promise<LoginResult> {
-    console.log('[AdminAuth] Usando fallback de desenvolvimento');
+    console.log('[AdminAuth] Usando fallback de desenvolvimento para:', email);
 
-    const fallbackEmail = force ? email : (process.env.CLIENT_LOGIN_EMAIL || 'admin@empresa.com');
+    // Permitir qualquer email que combine com a configuração de fallback OU se for forçado
+    const fallbackEmail = process.env.CLIENT_LOGIN_EMAIL || 'user@nexus.com.br';
     const fallbackPasswordHash = process.env.CLIENT_LOGIN_PASSWORD_HASH ||
-      '$2b$10$sxI6Ai8icfl0P3tKdF67wOsCmweeQvr314iAs/wIb3DDvowy60qP.';
-    const fallbackName = process.env.CLIENT_USER_NAME || 'Administrador';
-    const fallbackCompany = process.env.CLIENT_COMPANY_NAME || 'Sua Empresa';
+      '$2b$10$sxI6Ai8icfl0P3tKdF67wOsCmweeQvr314iAs/wIb3DDvowy60qP.'; // admin123
+    const fallbackName = process.env.CLIENT_USER_NAME || 'Administrador NEXUS';
+    const fallbackCompany = process.env.CLIENT_COMPANY_NAME || 'NEXUS Intelligence';
 
-    if (!force && email !== fallbackEmail) {
-      return { success: false, error: 'Credenciais inválidas' };
-    }
-
-    if (!force) {
+    // Se o email for o de fallback configurado, validamos a senha
+    if (email === fallbackEmail) {
       const isValidPassword = await bcrypt.compare(password, fallbackPasswordHash);
       if (!isValidPassword) {
+        console.log('[AdminAuth] Senha inválida para email de fallback');
         return { success: false, error: 'Credenciais inválidas' };
       }
+    } else if (!force) {
+      // Se não for o email de fallback e não for forçado, falha
+      return { success: false, error: 'Credenciais inválidas' };
     }
 
     const tenantId = `dev-${email.replace('@', '_').replace(/\./g, '_')}`;
 
     const user: AdminUser = {
       id: '1',
-      email: fallbackEmail,
+      email: email,
       name: fallbackName,
       role: 'admin',
       company_name: fallbackCompany,
-      company_email: fallbackEmail,
+      company_email: email,
       plan_type: 'pro',
       tenant_id: tenantId
     };
