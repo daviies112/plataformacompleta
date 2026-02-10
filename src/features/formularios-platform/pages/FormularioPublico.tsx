@@ -9,11 +9,11 @@ import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "../components/ui/radio-group";
 import { Label } from "../components/ui/label";
-import { 
-  Send, 
-  CheckCircle2, 
-  XCircle, 
-  Loader2, 
+import {
+  Send,
+  CheckCircle2,
+  XCircle,
+  Loader2,
   ArrowRight,
   AlertCircle,
   Sparkles
@@ -28,11 +28,11 @@ interface QuestionPage {
 function groupQuestionsByPages(form: Form): QuestionPage[] {
   // Priority: form.questions (where elements are saved via API) > form.elements (legacy separate column)
   const formData = (form.questions as any[] | null) || (form.elements as any[] | null);
-  
+
   if (!formData || formData.length === 0) {
     return [];
   }
-  
+
   // Check if data is in new FormElement[] format (has type: 'question' with questionType)
   // or legacy Question[] format (has type: 'text'/'multiple-choice'/'radio' directly)
   const isNewFormat = formData.some((item: any) => {
@@ -42,7 +42,7 @@ function groupQuestionsByPages(form: Form): QuestionPage[] {
     if (item.type === 'heading' || item.type === 'pageBreak' || item.type === 'text') return true;
     return false;
   });
-  
+
   if (!isNewFormat) {
     // Legacy format: each question on its own page (1 pergunta = 1 página)
     // Include all legacy question types: text, multiple-choice, radio, checkbox, select, textarea
@@ -70,13 +70,13 @@ function groupQuestionsByPages(form: Form): QuestionPage[] {
     }
     return [];
   }
-  
+
   // New FormElement[] format: parse with pageBreak support
   const pages: QuestionPage[] = [];
   let currentPageQuestions: any[] = [];
   let foundFirstQuestion = false;
   let lastWasPageBreak = false;
-  
+
   for (const element of formData) {
     if (element.type === 'question') {
       foundFirstQuestion = true;
@@ -103,16 +103,16 @@ function groupQuestionsByPages(form: Form): QuestionPage[] {
     }
     // Ignore other element types (heading, text) for pagination purposes
   }
-  
+
   // Don't forget the last page
   if (currentPageQuestions.length > 0) {
     pages.push({ questions: currentPageQuestions });
   }
-  
+
   return pages;
 }
 
-interface FormularioPublicoProps {}
+interface FormularioPublicoProps { }
 
 const personalDataSchema = z.object({
   name: z.string().min(3, "Nome deve ter pelo menos 3 caracteres"),
@@ -145,7 +145,7 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
   const rawFormIdOrSlug = params.id;
   const formIdOrSlug = rawFormIdOrSlug?.split('?')[0]; // Pode ser UUID ou slug
   const companySlugParam = params.companySlug?.split('?')[0]; // Slug da empresa da URL
-  
+
   // 🔥 FIX: Extrair telefone da URL query params (wouter não tem useSearchParams)
   // IMPORTANTE: Em alguns casos o React Router codifica "?" como "%3F" no path
   // então precisamos verificar tanto window.location.search quanto o href completo
@@ -156,22 +156,22 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
       const tel = params.get('telefone');
       if (tel) return tel;
     }
-    
+
     // Fallback: verificar se o telefone está codificado no path (%3F = ?)
     const href = decodeURIComponent(window.location.href);
     const match = href.match(/[?&]telefone=([^&]+)/);
     if (match) return match[1];
-    
+
     // Fallback 2: verificar no pathname se %3F foi usado
     const pathname = decodeURIComponent(window.location.pathname);
     const matchPath = pathname.match(/[?]telefone=([^&]+)/);
     if (matchPath) return matchPath[1];
-    
+
     return null;
   };
-  
+
   const telefoneFromUrl = extractTelefone();
-  
+
   // Função para formatar telefone brasileiro
   const formatarTelefone = (numero: string): string => {
     if (!numero) return '';
@@ -199,69 +199,69 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
     }
     return cleaned;
   };
-  
+
   // ✅ OTIMIZAÇÃO: isLoading começa false para mostrar skeleton instantaneamente
   // Estado principal
   const [form, setForm] = useState<Form | null>(null);
   const [sessao, setSessao] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false); // Muda para false para renderizar skeleton rápido
   const [error, setError] = useState<string | null>(null);
-  
+
   // Estado do wizard
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
-  
+
   // 🔥 FIX: Estado para controlar se telefone veio da URL (bloqueado para edição)
   const [telefoneBloqueado, setTelefoneBloqueado] = useState(false);
-  
+
   // 🔥 FIX: Inicializar personalData com telefone da URL se presente
   const telefoneInicial = telefoneFromUrl ? formatarTelefone(telefoneFromUrl) : '';
-  const [personalData, setPersonalData] = useState({ 
-    name: '', 
-    email: '', 
-    cpf: '', 
-    phone: telefoneInicial, 
-    instagram: '' 
+  const [personalData, setPersonalData] = useState({
+    name: '',
+    email: '',
+    cpf: '',
+    phone: telefoneInicial,
+    instagram: ''
   });
-  const [addressData, setAddressData] = useState({ 
-    cep: '', 
-    street: '', 
-    number: '', 
-    complement: '', 
-    neighborhood: '', 
-    city: '', 
-    state: '' 
+  const [addressData, setAddressData] = useState({
+    cep: '',
+    street: '',
+    number: '',
+    complement: '',
+    neighborhood: '',
+    city: '',
+    state: ''
   });
   const [questionAnswers, setQuestionAnswers] = useState<Record<string, any>>({});
   const [result, setResult] = useState<any>(null);
-  
+
   // 🔥 FIX: Formulários de validação com telefone da URL como defaultValue
   const personalForm = useForm({
     resolver: zodResolver(personalDataSchema),
     mode: "onChange",
-    defaultValues: { 
-      name: '', 
-      email: '', 
-      cpf: '', 
-      phone: telefoneInicial, 
-      instagram: '' 
+    defaultValues: {
+      name: '',
+      email: '',
+      cpf: '',
+      phone: telefoneInicial,
+      instagram: ''
     }
   });
-  
+
   const addressForm = useForm({
     resolver: zodResolver(addressDataSchema),
     mode: "onChange",
     defaultValues: addressData
   });
-  
+
   // 🔥 FIX: Effect para marcar telefone como bloqueado e logar
   useEffect(() => {
     if (telefoneFromUrl) {
       const formattedPhone = formatarTelefone(telefoneFromUrl);
       console.log('📱 [FormularioPublico] Telefone extraído da URL:', telefoneFromUrl, '→', formattedPhone);
       setTelefoneBloqueado(true);
-      
+
       // Garantir que o valor está no react-hook-form
       personalForm.setValue('phone', formattedPhone);
       setPersonalData(prev => ({ ...prev, phone: formattedPhone }));
@@ -272,12 +272,12 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
     const carregarFormulario = async () => {
       const startTime = performance.now();
       console.log('⏱️ [TIMING] Início do carregamento:', new Date().toISOString());
-      
+
       try {
         // Caso 1: URL com ID ou slug de formulário (/form/:id ou /empresa/form/:slug)
         if (formIdOrSlug) {
           const isFormUUID = isUUID(formIdOrSlug);
-          
+
           if (isFormUUID) {
             // Se for UUID, usar endpoint padrão
             console.log('📝 Carregando formulário por UUID:', formIdOrSlug);
@@ -295,7 +295,7 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
             const fetchStart = performance.now();
             const formResponse = await fetch(`/api/forms/public/by-slug/${companySlug}/${formIdOrSlug}`);
             console.log(`⏱️ [TIMING] Fetch API levou: ${(performance.now() - fetchStart).toFixed(0)}ms`);
-            
+
             if (!formResponse.ok) {
               // Fallback: tentar buscar por ID caso o slug não funcione
               console.log('⚠️ Slug não encontrado, tentando como ID...');
@@ -313,7 +313,7 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
               setForm(formData);
             }
           }
-          
+
           setIsLoading(false);
           return;
         }
@@ -321,7 +321,7 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
         // Caso 2: URL com token de lead (/f/:token) - Usa endpoint otimizado
         if (token) {
           console.log('🔍 [OTIMIZADO] Carregando formulário com token:', token.substring(0, 10) + '...');
-          
+
           // Endpoint otimizado que combina validação de token + busca do formulário
           const response = await fetch(`/api/forms/public/with-token/${token}`);
 
@@ -340,12 +340,12 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
 
           // Dados já vêm combinados do endpoint otimizado
           setSessao(data.data.sessao);
-          
+
           if (data.data.form) {
             console.log('📝 [OTIMIZADO] Formulário:', data.data.form.title);
             setForm(data.data.form);
           }
-          
+
           // Preencher telefone se disponível nos dados do lead
           if (data.data.lead?.telefone) {
             const formattedPhone = formatarTelefone(data.data.lead.telefone);
@@ -354,7 +354,7 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
             setPersonalData(prev => ({ ...prev, phone: formattedPhone }));
             setTelefoneBloqueado(true);
           }
-          
+
           // Preencher nome se disponível
           if (data.data.lead?.nome) {
             personalForm.setValue('name', data.data.lead.nome);
@@ -380,7 +380,7 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
 
   const registrarInicio = useCallback(async () => {
     if (hasStarted || !token) return;
-    
+
     try {
       console.log('⏳ Registrando INÍCIO do preenchimento...');
       await fetch('/api/leads/registrar-inicio', {
@@ -403,9 +403,9 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
       const totalCampos = 2 + 7 + questionCount; // personal (2) + address (7) + questions
       const camposCount = Object.keys(camposPreenchidos).length;
       const progresso = Math.round((camposCount / totalCampos) * 100);
-      
+
       console.log(`📊 Atualizando progresso: ${camposCount}/${totalCampos} campos (${progresso}%)`);
-      
+
       await fetch('/api/leads/atualizar-progresso', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -421,17 +421,17 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
   }, [token, form]);
 
   useEffect(() => {
-    const camposPreenchidos: Record<string, any> = { 
+    const camposPreenchidos: Record<string, any> = {
       ...questionAnswers,
       ...personalData,
       ...addressData
     };
-    
+
     if (Object.keys(camposPreenchidos).length > 0 && form) {
       const timeoutId = setTimeout(() => {
         atualizarProgresso(camposPreenchidos);
       }, 3000); // Aumentado de 1s para 3s para reduzir requests
-      
+
       return () => clearTimeout(timeoutId);
     }
   }, [questionAnswers, personalData, addressData, form, atualizarProgresso]);
@@ -451,7 +451,7 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
         return;
       }
       setAddressData(addressForm.getValues());
-      
+
       // Se não há páginas de perguntas, submeter diretamente
       if (questionPages.length === 0) {
         await handleSubmit();
@@ -460,12 +460,12 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
     } else if (currentStep >= 3 && form) {
       const pageIndex = currentStep - 3;
       const currentPage = questionPages[pageIndex];
-      
+
       if (currentPage) {
         const unansweredRequired = currentPage.questions.filter(
           (q: any) => q.required && (!questionAnswers[q.id] || !questionAnswers[q.id].answer?.toString().trim())
         );
-        
+
         if (unansweredRequired.length > 0) {
           toast.error(`Por favor, responda todas as perguntas obrigatórias: "${unansweredRequired[0].text}"`);
           return;
@@ -486,12 +486,12 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
     if (currentStep >= 3 && form) {
       const pageIndex = currentStep - 3;
       const currentPage = questionPages[pageIndex];
-      
+
       if (currentPage) {
         const unansweredRequired = currentPage.questions.filter(
           (q: any) => q.required && (!questionAnswers[q.id] || !questionAnswers[q.id].answer?.toString().trim())
         );
-        
+
         if (unansweredRequired.length > 0) {
           toast.error(`Por favor, responda todas as perguntas obrigatórias: "${unansweredRequired[0].text}"`);
           return false;
@@ -518,9 +518,9 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
     const question = pages.flatMap(p => p.questions).find(q => q.id === questionId);
     setQuestionAnswers(prev => ({
       ...prev,
-      [questionId]: { 
-        questionId, 
-        answer, 
+      [questionId]: {
+        questionId,
+        answer,
         points,
         questionText: questionText || question?.text || `Pergunta ${questionId}`
       }
@@ -529,30 +529,30 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
 
   const handleSubmit = async () => {
     if (!form) return;
-    
+
     // Validar ambos os formulários antes de submeter
     const isPersonalValid = await personalForm.trigger();
     const isAddressValid = await addressForm.trigger();
-    
+
     if (!isPersonalValid) {
       toast.error("Por favor, verifique os dados pessoais");
       return;
     }
-    
+
     if (!isAddressValid) {
       toast.error("Por favor, verifique os dados de endereço");
       return;
     }
-    
+
     setIsSubmitting(true);
 
     try {
       const finalPersonalData = personalForm.getValues();
       const finalAddressData = addressForm.getValues();
-      
+
       const answerArray = Object.values(questionAnswers);
       const totalScore = answerArray.reduce((sum: number, ans: any) => sum + (ans.points || 0), 0);
-      
+
       const passingScore = form.passingScore || 0;
       const passed = totalScore >= passingScore;
 
@@ -621,7 +621,7 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
         passed,
         qualificacao
       });
-      
+
       setCurrentStep(totalSteps - 1);
       toast.success("Formulário enviado com sucesso!");
     } catch (error: any) {
@@ -674,13 +674,13 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
 
   const welcomeConfig = useMemo(() => {
     if (!form) return { title: "Bem-vindo!", description: "Por favor, preencha o formulário a seguir.", imageUrl: null, buttonText: "Começar", titleSize: "2xl", logoAlign: "center" };
-    
+
     const config = ((form as any).welcomePageConfig) || (form.welcomeConfig as any) || {};
     const elements = (form.questions as any[] | null) || (form.elements as any[] | null) || [];
-    
+
     const heading = elements.find((el: any) => el.type === 'heading' && el.level === 1);
     const text = elements.find((el: any) => el.type === 'text');
-    
+
     const title = config.title || heading?.text || form.title || "Bem-vindo!";
     const description = config.description || text?.content || form.description || "Por favor, preencha o formulário a seguir.";
     const imageUrl = config.logo || config.imageUrl || (form.welcomeConfig as any)?.imageUrl || null;
@@ -714,7 +714,7 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
         </div>
       );
     }
-    
+
     // Senão, mostrar skeleton super-leve (sem Loader2, sem imports pesados)
     return (
       <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'linear-gradient(to bottom right, #ffffff, #f8fafc)' }}>
@@ -781,8 +781,8 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
             </CardDescription>
           </CardHeader>
           <CardFooter className="flex justify-center pb-8">
-            <Button 
-              size="lg" 
+            <Button
+              size="lg"
               onClick={handleStartWizard}
               style={{ backgroundColor: colors.button, color: colors.buttonText }}
               className="px-8"
@@ -808,7 +808,7 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
             <p className="text-sm text-right" style={{ color: colors.text }}>{progress}% completo</p>
           </div>
 
-          <Card className="shadow-lg" style={{ backgroundColor: colors.background, borderColor: `${colors.primary}30` }}>
+          <Card className="shadow-lg" style={{ backgroundColor: 'hsl(0, 0%, 100%)', borderColor: `${colors.primary}30` }}>
             <CardHeader>
               <CardTitle className="text-2xl" style={{ color: colors.text }}>Dados Pessoais</CardTitle>
               <CardDescription style={{ color: `${colors.text}99` }}>Por favor, preencha suas informações de contato</CardDescription>
@@ -881,9 +881,9 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
                   placeholder="(00) 00000-0000"
                   className="mt-1"
                   readOnly={telefoneBloqueado}
-                  style={{ 
-                    backgroundColor: colors.secondary, 
-                    borderColor: telefoneBloqueado ? '#22c55e' : `${colors.primary}30`, 
+                  style={{
+                    backgroundColor: colors.secondary,
+                    borderColor: telefoneBloqueado ? '#22c55e' : `${colors.primary}30`,
                     color: colors.text,
                     cursor: telefoneBloqueado ? 'not-allowed' : 'text',
                     borderWidth: telefoneBloqueado ? '2px' : '1px'
@@ -969,7 +969,7 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
                   )}
                 </div>
               </div>
-              
+
               <div>
                 <Label style={{ color: colors.text }}>Rua *</Label>
                 <Input
@@ -1060,7 +1060,7 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
     const currentPage = questionPages[pageIndex];
     const isLastPage = pageIndex === questionPages.length - 1;
     const pageQuestions = currentPage?.questions || [];
-    
+
     if (!currentPage || pageQuestions.length === 0) return null;
 
     const renderQuestionInput = (question: any, questionIndexInPage: number) => {
@@ -1071,9 +1071,9 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
       return (
         <div key={question.id} className="space-y-4 p-4 rounded-lg border" style={{ backgroundColor: colors.secondary, borderColor: `${colors.primary}30` }}>
           <div className="flex items-start gap-3">
-            <span 
+            <span
               className="font-semibold px-3 py-1 rounded-full text-sm shrink-0"
-              style={{ 
+              style={{
                 backgroundColor: `${colors.primary}20`,
                 color: colors.primary
               }}
@@ -1097,8 +1097,8 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
                   className="space-y-3"
                 >
                   {question.options.map((option: any, optIndex: number) => (
-                    <div 
-                      key={optIndex} 
+                    <div
+                      key={optIndex}
                       className="flex items-center space-x-3 p-4 rounded-lg border hover:bg-accent transition-colors cursor-pointer"
                       style={{ backgroundColor: colors.secondary, borderColor: `${colors.primary}30` }}
                     >
@@ -1149,8 +1149,8 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
             </CardContent>
             <CardFooter className="flex justify-end">
               {isLastPage ? (
-                <Button 
-                  onClick={handleSubmitWithValidation} 
+                <Button
+                  onClick={handleSubmitWithValidation}
                   disabled={isSubmitting}
                   style={{ backgroundColor: colors.button, color: colors.buttonText }}
                 >
@@ -1207,13 +1207,13 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
           ) : (
             <XCircle className="h-20 w-20 mx-auto mb-6" style={{ color: `${colors.text}80` }} />
           )}
-          
+
           <h2 className="text-4xl font-bold mb-4" style={{ color: colors.text }}>
             {result?.passed ? "Parabéns!" : "Obrigado!"}
           </h2>
 
           <p className="text-xl mb-8" style={{ color: `${colors.text}99` }}>
-            {result?.passed 
+            {result?.passed
               ? "Você está qualificado! Entraremos em contato em breve."
               : "Obrigado pela sua participação. Infelizmente você não atingiu a pontuação mínima."}
           </p>

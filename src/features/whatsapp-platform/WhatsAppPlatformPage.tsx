@@ -80,7 +80,7 @@ const Index = () => {
   // Carregar tags salvas para cada conversa
   useEffect(() => {
     const allConversationTags = configManager.getAllConversationTags();
-    setConversations(prevConversations => 
+    setConversations(prevConversations =>
       prevConversations.map(conv => ({
         ...conv,
         tags: allConversationTags[conv.id] || conv.tags || []
@@ -94,27 +94,27 @@ const Index = () => {
   useEffect(() => {
     if (Object.keys(leadsMap).length > 0 && conversations.length > 0) {
       console.log('🔄 [LeadsMap Changed] Atualizando conversas com novos status de leads...');
-      
+
       setConversations(prevConversations =>
         prevConversations.map(conv => {
           // Extrair número limpo e normalizar
           const rawNumber = conv.id.replace('@s.whatsapp.net', '').replace('@g.us', '');
           const normalizedPhone = normalizePhoneForDatabase(rawNumber);
           const lead = leadsMap[normalizedPhone];
-          
+
           // Se encontrou lead com dados novos, atualizar a conversa
           if (lead) {
-            const hasChanged = 
+            const hasChanged =
               conv.formStatus !== lead.formStatus ||
               conv.qualificationStatus !== lead.qualificationStatus ||
               conv.pontuacao !== lead.pontuacao;
-            
+
             if (hasChanged) {
               console.log(`✅ Atualizando conversa ${conv.nome}:`, {
                 old: { formStatus: conv.formStatus, qualificationStatus: conv.qualificationStatus },
                 new: { formStatus: lead.formStatus, qualificationStatus: lead.qualificationStatus }
               });
-              
+
               return {
                 ...conv,
                 formStatus: lead.formStatus,
@@ -123,7 +123,7 @@ const Index = () => {
               };
             }
           }
-          
+
           return conv;
         })
       );
@@ -134,16 +134,16 @@ const Index = () => {
   useEffect(() => {
     if (Object.keys(cpfComplianceMap).length > 0 && conversations.length > 0) {
       console.log('🔄 [CPF Compliance Changed] Atualizando conversas com status de compliance...');
-      
+
       setConversations(prevConversations =>
         prevConversations.map(conv => {
           const rawNumber = conv.id.replace('@s.whatsapp.net', '').replace('@g.us', '');
           const normalizedPhone = normalizePhoneForDatabase(rawNumber);
           const compliance = cpfComplianceMap[normalizedPhone];
-          
+
           if (compliance && compliance.hasCheck) {
             const hasChanged = JSON.stringify(conv.cpfCompliance) !== JSON.stringify(compliance);
-            
+
             if (hasChanged) {
               console.log(`✅ Atualizando compliance CPF para ${conv.nome}:`, compliance.status);
               return { ...conv, cpfCompliance: compliance };
@@ -158,31 +158,31 @@ const Index = () => {
   // 🔍 BUSCAR CPF COMPLIANCE do Supabase Master
   const fetchCpfCompliance = useCallback(async () => {
     if (conversations.length === 0) return;
-    
+
     try {
       const phoneNumbers = conversations.map(conv => {
         const rawNumber = conv.id.replace('@s.whatsapp.net', '').replace('@g.us', '');
         return normalizePhoneForDatabase(rawNumber);
       }).filter(Boolean);
-      
+
       if (phoneNumbers.length === 0) return;
-      
+
       console.log('🔍 [CPF Compliance] Buscando status de compliance para', phoneNumbers.length, 'números...');
-      
+
       const response = await fetch('/api/whatsapp-complete/leads/cpf-compliance', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phoneNumbers }),
         credentials: 'include'
       });
-      
+
       if (!response.ok) {
         console.warn('⚠️ [CPF Compliance] Resposta não-OK:', response.status);
         return;
       }
-      
+
       const data = await response.json();
-      
+
       if (data.success && data.complianceMap) {
         console.log('✅ [CPF Compliance] Recebidos', Object.keys(data.complianceMap).length, 'registros de compliance');
         setCpfComplianceMap(data.complianceMap);
@@ -207,7 +207,7 @@ const Index = () => {
         const state = await evolutionApi.checkConnectionState();
         setConnectionState(state);
         console.log('✅ [Component Mount] Status de conexão:', state);
-        
+
         // 🔥 CORREÇÃO: Ativar dados reais automaticamente quando Evolution API estiver conectado
         if (state.connected) {
           console.log('🔄 Evolution API conectado - ativando dados reais automaticamente');
@@ -236,9 +236,9 @@ const Index = () => {
   const convertEvolutionChat = (chat: any): Conversation => {
     const rawNumber = chat.remoteJid.replace('@s.whatsapp.net', '').replace('@g.us', '');
     const formattedNumber = formatPhoneNumber(rawNumber);
-    
+
     let displayName = '';
-    
+
     // PRIORIDADE 1: Dados da API de contatos (mais confiável)
     const jidVariations = [
       chat.remoteJid,
@@ -247,7 +247,7 @@ const Index = () => {
       rawNumber,
       `${rawNumber}@s.whatsapp.net`,
     ];
-    
+
     let contact: { name?: string; pushName?: string; notify?: string; verifiedName?: string } | null = null;
     for (const jid of jidVariations) {
       if (contactsMap[jid]) {
@@ -255,35 +255,35 @@ const Index = () => {
         break;
       }
     }
-    
+
     if (contact) {
-      displayName = sanitizeName(contact.name) || 
-                   sanitizeName(contact.pushName) || 
-                   sanitizeName(contact.verifiedName) ||
-                   sanitizeName(contact.notify) ||
-                   '';
+      displayName = sanitizeName(contact.name) ||
+        sanitizeName(contact.pushName) ||
+        sanitizeName(contact.verifiedName) ||
+        sanitizeName(contact.notify) ||
+        '';
     }
-    
+
     // PRIORIDADE 2: Nome do contato dentro do chat (se não encontrou na API de contatos)
     if (!displayName && chat.contact?.name) {
       displayName = sanitizeName(chat.contact.name) || '';
     }
-    
+
     // PRIORIDADE 3: pushName (nome que a pessoa definiu no WhatsApp)
     if (!displayName) {
-      displayName = sanitizeName(chat.pushName) || 
-                   sanitizeName(chat.contact?.pushName) ||
-                   sanitizeName(chat.contact?.verifiedName) ||
-                   sanitizeName(chat.contact?.notify) ||
-                   '';
+      displayName = sanitizeName(chat.pushName) ||
+        sanitizeName(chat.contact?.pushName) ||
+        sanitizeName(chat.contact?.verifiedName) ||
+        sanitizeName(chat.contact?.notify) ||
+        '';
     }
-    
+
     // PRIORIDADE 4 (ÚLTIMA): Se ainda não tem nome, usar número formatado
     // EVITAMOS chat.name e chat.shortName pois podem conter mensagens!
     if (!displayName) {
       displayName = formattedNumber;
     }
-    
+
     console.log('🔍 Convertendo chat:', {
       jid: chat.remoteJid,
       rawNumber,
@@ -293,21 +293,21 @@ const Index = () => {
       chatPushName: chat.pushName,
       finalName: displayName
     });
-    
+
     // Extrair texto da última mensagem
     // Evolution API pode retornar mensagem em várias estruturas diferentes
     let lastMsg = 'Sem mensagens';
     if (chat.lastMessage?.message) {
       const msg = chat.lastMessage.message;
       // Tentar extrair texto de múltiplas estruturas possíveis
-      lastMsg = msg.conversation || 
-                msg.extendedTextMessage?.text ||
-                msg.textMessage?.text ||  // Evolution API também usa textMessage.text
-                (chat.lastMessage.messageType === 'audioMessage' ? '🎤 Áudio' : 
-                 chat.lastMessage.messageType === 'imageMessage' ? '🖼️ Imagem' :
-                 chat.lastMessage.messageType === 'videoMessage' ? '🎥 Vídeo' :
-                 chat.lastMessage.messageType === 'documentMessage' ? '📄 Documento' :
-                 'Mensagem de mídia');
+      lastMsg = msg.conversation ||
+        msg.extendedTextMessage?.text ||
+        msg.textMessage?.text ||  // Evolution API também usa textMessage.text
+        (chat.lastMessage.messageType === 'audioMessage' ? '🎤 Áudio' :
+          chat.lastMessage.messageType === 'imageMessage' ? '🖼️ Imagem' :
+            chat.lastMessage.messageType === 'videoMessage' ? '🎥 Vídeo' :
+              chat.lastMessage.messageType === 'documentMessage' ? '📄 Documento' :
+                'Mensagem de mídia');
     } else if (chat.lastMessage?.text) {
       // Às vezes o texto vem direto em lastMessage.text
       lastMsg = chat.lastMessage.text;
@@ -315,7 +315,7 @@ const Index = () => {
       // Ou em lastMessageText
       lastMsg = chat.lastMessageText;
     }
-    
+
     // Usar o timestamp da última mensagem ou do chat
     let timestamp = new Date().toISOString();
     if (chat.lastMessage?.messageTimestamp) {
@@ -325,19 +325,19 @@ const Index = () => {
     } else if (chat.lastMessageTimestamp) {
       timestamp = new Date(chat.lastMessageTimestamp * 1000).toISOString();
     }
-    
+
     // Tentar múltiplos campos possíveis para mensagens não lidas
     // Evolution API real usa: chat.unreadMessages ou chat.count.unread
     // Garantir que seja sempre um número
     const unreadCount = Number(
-      chat.unreadMessages ?? 
-      chat.count?.unread ?? 
-      chat.unreadCount ?? 
-      chat.unread ?? 
-      chat.notViewedMessagesCount ?? 
+      chat.unreadMessages ??
+      chat.count?.unread ??
+      chat.unreadCount ??
+      chat.unread ??
+      chat.notViewedMessagesCount ??
       0
     );
-    
+
     // LOG COMPLETO do objeto chat para debug - APENAS conversas com mensagens não lidas
     if (unreadCount > 0) {
       console.log('🔍 DEBUG - Estrutura completa do chat com não lidas:', {
@@ -353,17 +353,17 @@ const Index = () => {
         completeChat: chat  // Objeto completo para inspeção
       });
     }
-    
+
     // BUSCAR STATUS REAL DO LEAD DO BANCO DE DADOS
     const normalizedPhone = normalizePhoneForDatabase(rawNumber);
     const lead = leadsMap[normalizedPhone];
-    
+
     // Se encontrou o lead, usar os dados reais dele
     // Se NÃO encontrou, significa que ainda não fez formulário
     const formStatus = lead?.formStatus || 'not_sent';
     const qualificationStatus = lead?.qualificationStatus;
     const pontuacao = lead?.pontuacao;
-    
+
     console.log('🏷️ Status do lead:', {
       rawNumber,
       normalizedPhone,
@@ -374,7 +374,7 @@ const Index = () => {
       pontuacao,
       leadKeys: Object.keys(leadsMap).slice(0, 5) // Mostrar exemplos de chaves no mapa
     });
-    
+
     return {
       id: chat.remoteJid,
       numero: formattedNumber,
@@ -390,13 +390,13 @@ const Index = () => {
 
   const normalizePhoneForDatabase = (rawNumber: string): string => {
     let phone = rawNumber.replace(/\D/g, '');
-    
+
     // 13 dígitos = número brasileiro completo (55 + DDD + 9 + 8 dígitos)
     // Exemplo: 5531998784136 → +5531998784136
     if (phone.length === 13 && phone.startsWith('55')) {
       return '+' + phone;
     }
-    
+
     // 12 dígitos com 55 = número sem o 9 do celular
     // Exemplo: 553198784136 → +5531998784136
     if (phone.length === 12 && phone.startsWith('55')) {
@@ -405,7 +405,7 @@ const Index = () => {
       phone = '55' + ddd + '9' + resto;
       return '+' + phone;
     }
-    
+
     // 11 dígitos = número local com DDD e 9
     // Exemplo: 31998784136 → +5531998784136
     // CUIDADO: Se já começa com 55, é um número incompleto - não duplicar!
@@ -422,7 +422,7 @@ const Index = () => {
       }
       return '+' + phone;
     }
-    
+
     // 10 dígitos = número local sem 9
     // Exemplo: 3198784136 → +5531998784136
     // CUIDADO: Se já começa com 55, é um número incompleto
@@ -437,7 +437,7 @@ const Index = () => {
       // Mantém como está
       return '+' + phone;
     }
-    
+
     // Qualquer outro tamanho: retorna com + apenas
     return '+' + phone;
   };
@@ -452,39 +452,39 @@ const Index = () => {
 
   const sanitizeName = (name?: string) => {
     if (!name) return undefined;
-    
+
     // Remover espaços em branco extras
     const trimmed = name.trim();
     if (!trimmed) return undefined;
-    
+
     const lowered = trimmed.toLowerCase();
-    
+
     // Filtrar palavras genéricas
-    if (['você','voce','you','me','eu'].includes(lowered)) return undefined;
-    
+    if (['você', 'voce', 'you', 'me', 'eu'].includes(lowered)) return undefined;
+
     // Filtrar mensagens comuns que aparecem como nomes
     const messagePatterns = [
       'obrigada', 'obrigado', 'olá', 'ola', 'oi', 'ok', 'sim', 'não', 'nao',
       'bom dia', 'boa tarde', 'boa noite', 'tudo bem', 'video', 're:', 'fwd:',
       'https://', 'http://', 'www.'
     ];
-    
+
     // Se contém padrões de mensagem, não é um nome
     if (messagePatterns.some(pattern => lowered.includes(pattern))) {
       return undefined;
     }
-    
+
     // Se tem muita pontuação, provavelmente é uma mensagem e não um nome
     const punctuationCount = (trimmed.match(/[.,!?;:]/g) || []).length;
     if (punctuationCount > 1) return undefined;
-    
+
     // Se é muito longo (mais de 40 caracteres), provavelmente é uma mensagem
     if (trimmed.length > 40) return undefined;
-    
+
     // Se tem múltiplos emojis, provavelmente é uma mensagem
     const emojiCount = (trimmed.match(/[\u{1F300}-\u{1F9FF}]/gu) || []).length;
     if (emojiCount > 2) return undefined;
-    
+
     return trimmed;
   };
 
@@ -511,7 +511,7 @@ const Index = () => {
         mediaDataUrl = msg.message.mediaDataUrl;
         console.log('✅ mediaDataUrl completo do backend encontrado!');
       }
-      
+
       // Áudio - tentar múltiplas estruturas possíveis
       if (msg.message.audioMessage || msg.messageType === 'audioMessage') {
         mediaType = "audio";
@@ -528,9 +528,9 @@ const Index = () => {
             console.log('🔧 mediaDataUrl criado para áudio:', mimeType);
           }
         } else if (msg.message.audioMessage) {
-          mediaUrl = msg.message.audioMessage.url || 
-                     msg.message.audioMessage.directPath ||
-                     msg.message.audioMessage.mediaUrl;
+          mediaUrl = msg.message.audioMessage.url ||
+            msg.message.audioMessage.directPath ||
+            msg.message.audioMessage.mediaUrl;
           console.log('ℹ️ Usando URL do áudio:', mediaUrl?.substring(0, 100));
         }
         text = '🎤 Áudio';
@@ -593,12 +593,12 @@ const Index = () => {
       }
       // Texto
       else {
-        text = msg.message.conversation || 
-               msg.message.extendedTextMessage?.text || 
-               '';
+        text = msg.message.conversation ||
+          msg.message.extendedTextMessage?.text ||
+          '';
       }
     }
-    
+
     const result: Message = {
       id: msg.key.id,
       conversationId: conversationId,
@@ -624,7 +624,7 @@ const Index = () => {
         texto: result.texto,
         fullMessage: JSON.stringify(msg, null, 2).substring(0, 1000)
       });
-      
+
       // DEBUG: Tentar acessar a URL diretamente para verificar CORS
       if (mediaUrl) {
         fetch(mediaUrl, { method: 'HEAD' })
@@ -672,9 +672,9 @@ const Index = () => {
     try {
       const cached = localStorage.getItem(CACHE_KEY);
       const timestamp = localStorage.getItem(CACHE_TIMESTAMP_KEY);
-      
+
       if (!cached || !timestamp) return null;
-      
+
       const age = Date.now() - parseInt(timestamp);
       if (age > CACHE_DURATION) {
         console.log('⏰ Cache expirado, limpando...');
@@ -682,7 +682,7 @@ const Index = () => {
         localStorage.removeItem(CACHE_TIMESTAMP_KEY);
         return null;
       }
-      
+
       const chats = JSON.parse(cached);
       console.log('💾 Conversas carregadas do cache:', chats.length);
       return chats;
@@ -718,16 +718,16 @@ const Index = () => {
     try {
       const cached = localStorage.getItem(`${MESSAGE_CACHE_PREFIX}${conversationId}`);
       if (!cached) return null;
-      
+
       const { messages, timestamp } = JSON.parse(cached);
       const age = Date.now() - timestamp;
-      
+
       if (age > MESSAGE_CACHE_DURATION) {
         console.log('⏰ Cache de mensagens expirado para:', conversationId);
         localStorage.removeItem(`${MESSAGE_CACHE_PREFIX}${conversationId}`);
         return null;
       }
-      
+
       console.log('💾 Mensagens carregadas do cache para:', conversationId, '(idade:', age, 'ms)');
       return messages;
     } catch (error) {
@@ -740,12 +740,12 @@ const Index = () => {
   const refreshLabelsOnly = async () => {
     console.log('🏷️ Atualizando apenas etiquetas...');
     toast.info('Atualizando etiquetas...', { duration: 1000 });
-    
+
     try {
       const response = await fetch('/api/leads/whatsapp-status');
       if (response.ok) {
         const leads = await response.json();
-        
+
         const leadsObj: Record<string, { formStatus?: string; qualificationStatus?: string; pontuacao?: number }> = {};
         leads.forEach((lead: any) => {
           const normalizedPhone = lead.telefoneNormalizado;
@@ -757,7 +757,7 @@ const Index = () => {
             };
           }
         });
-        
+
         setLeadsMap(leadsObj);
         toast.success('Etiquetas atualizadas!', { duration: 2000 });
       }
@@ -798,7 +798,7 @@ const Index = () => {
 
       if (data.success && Array.isArray(data.results)) {
         const leadsObj: Record<string, { formStatus?: string; qualificationStatus?: string; pontuacao?: number }> = {};
-        
+
         data.results.forEach((result: any) => {
           if (result.exists && result.lead) {
             const leadData = {
@@ -806,20 +806,20 @@ const Index = () => {
               qualificationStatus: result.lead.qualificationStatus,
               pontuacao: result.lead.pontuacao,
             };
-            
+
             // PRIORIDADE 1: Usar o telefone normalizado que já vem do backend (formato correto: +5531998784136)
             const leadTelefone = result.lead.telefone;
             if (leadTelefone) {
               leadsObj[leadTelefone] = leadData;
             }
-            
+
             // PRIORIDADE 2: Usar o telefone original da requisição como fallback
             leadsObj[result.telefone] = leadData;
-            
+
             // PRIORIDADE 3: Normalizar o telefone original para garantir match
             const normalizedKey = normalizePhoneForDatabase(result.telefone);
             leadsObj[normalizedKey] = leadData;
-            
+
             console.log(`🏷️ [loadLeadStatuses] Chaves adicionadas:`, {
               leadTelefone,
               resultTelefone: result.telefone,
@@ -841,55 +841,55 @@ const Index = () => {
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log('📱 [FRONTEND loadRealChats] Iniciando busca de conversas');
     console.log('⏰ Timestamp:', new Date().toISOString());
-    
+
     // ✅ CORREÇÃO 5: Prevenir requisições simultâneas
     if (loadingRef.current) {
       console.log('⏸️ [FRONTEND] Requisição em andamento, aguardando...');
       return;
     }
-    
+
     // ✅ CORREÇÃO 5: Cancelar requisição anterior se existir
     if (abortControllerRef.current) {
       console.log('🛑 [FRONTEND] Cancelando requisição anterior');
       abortControllerRef.current.abort();
     }
-    
+
     loadingRef.current = true;
     abortControllerRef.current = new AbortController();
-    
+
     // 🔥 CORREÇÃO 3: SEMPRE forçar reload em modo polling (silent=true)
     // Isso garante que TODA atualização automática busque dados frescos da API
     if (silent) {
       forceReload = true;
-      
+
       clearCache();
-      
+
       console.log('🔄 [Polling] Modo automático - CACHE LIMPO + forçando busca fresca');
     }
-    
+
     // Verificar conexão PRIMEIRO
     const state = await checkConnection();
-    
+
     // ✅ CORREÇÃO 5: Verificar se não foi cancelado após async operation
     if (abortControllerRef.current?.signal.aborted) {
       console.log('⏭️ [FRONTEND] Requisição cancelada durante checkConnection');
       loadingRef.current = false;
       return;
     }
-    
+
     // ✅ CORREÇÃO 3: Se estiver conectado (state === 'open'), SEMPRE buscar dados frescos - NÃO usar cache
     if (state.connected && state.state === 'open') {
       forceReload = true; // Força reload quando conectado
       clearCache(); // Limpa cache para garantir dados frescos
-      
+
       localStorage.setItem('last_cache_clear', new Date().toISOString());
-      
+
       console.log('✅ WhatsApp conectado - cache limpo + dados frescos');
       if (!silent) {
         toast.info('WhatsApp conectado - carregando conversas atualizadas...', { duration: 2000 });
       }
     }
-    
+
     // ✅ CORREÇÃO 3: Se for reload forçado OU polling, NÃO usar cache - sempre buscar da API
     if (silent || forceReload) {
       console.log('⚡ Pulando verificação de cache - buscando direto da API');
@@ -901,7 +901,7 @@ const Index = () => {
         data: cachedChats,
         timestamp: parseInt(localStorage.getItem(CACHE_TIMESTAMP_KEY) || '0')
       } : null;
-      
+
       if (cached && Date.now() - cached.timestamp < 5000) {
         console.log('📦 Usando cache (última atualização há', Date.now() - cached.timestamp, 'ms)');
         setConversations(cached.data);
@@ -910,7 +910,7 @@ const Index = () => {
         return;
       }
     }
-    
+
     // Se for reload forçado, limpar cache SEMPRE
     if (forceReload && !silent) {
       clearCache();
@@ -922,16 +922,16 @@ const Index = () => {
       setIsLoadingChats(true);
     }
     try {
-      
+
       console.log('=== INÍCIO DO CARREGAMENTO DE CHATS ===');
-      
+
       // Buscar contatos primeiro para obter nomes salvos
       try {
         const contactsArray = await evolutionApi.fetchContacts();
-        
+
         // Converter array de contatos em mapa indexado por remoteJid
         const contactsObj: Record<string, { name?: string; pushName?: string; notify?: string; verifiedName?: string }> = {};
-        
+
         contactsArray.forEach((contact: any) => {
           // Criar múltiplas chaves para facilitar a busca
           const jid = contact.id || contact.remoteJid;
@@ -943,18 +943,18 @@ const Index = () => {
               notify: contact.notify,
               verifiedName: contact.verifiedName,
             };
-            
+
             // Adicionar também sem o sufixo @s.whatsapp.net
             const cleanJid = jid.replace('@s.whatsapp.net', '').replace('@g.us', '');
             contactsObj[cleanJid] = contactsObj[jid];
-            
+
             // Adicionar com @s.whatsapp.net se não tiver
             if (!jid.includes('@')) {
               contactsObj[`${jid}@s.whatsapp.net`] = contactsObj[jid];
             }
           }
         });
-        
+
         setContactsMap(contactsObj);
         console.log('✅ Contatos carregados:', contactsArray.length, 'contatos mapeados com', Object.keys(contactsObj).length, 'chaves');
         console.log('📋 Exemplo de contatos:', contactsArray.slice(0, 3).map((c: any) => ({
@@ -968,35 +968,35 @@ const Index = () => {
         console.error('❌ Erro ao carregar contatos:', contactError);
         // Continua mesmo se falhar ao carregar contatos
       }
-      
+
       // ✅ CORREÇÃO 5: Verificar se não foi cancelado após async operation
       if (abortControllerRef.current?.signal.aborted) {
         console.log('⏭️ [FRONTEND] Requisição cancelada após carregar contatos');
         loadingRef.current = false;
         return;
       }
-      
+
       // Buscar conversas
       console.log('🔧 Parâmetros:');
       console.log('  forceReload:', forceReload);
       console.log('  silent (polling):', silent);
       console.log('  WhatsApp conectado:', state?.connected);
-      
+
       const fetchStartTime = Date.now();
       const rawChats = await evolutionApi.fetchChats();
       const fetchDuration = Date.now() - fetchStartTime;
-      
+
       // ✅ CORREÇÃO 5: Verificar se não foi cancelado após async operation
       if (abortControllerRef.current?.signal.aborted) {
         console.log('⏭️ [FRONTEND] Requisição cancelada após fetchChats');
         loadingRef.current = false;
         return;
       }
-      
+
       console.log('✅ [FRONTEND] Resposta recebida do backend:');
       console.log(`  Tempo de resposta: ${fetchDuration}ms`);
       console.log('  Total de chats brutos:', rawChats?.length || 0);
-      
+
       if (rawChats && rawChats.length > 0) {
         console.log('  Primeiros 5 chats brutos:');
         rawChats.slice(0, 5).forEach((chat: any, index: number) => {
@@ -1006,7 +1006,7 @@ const Index = () => {
           console.log(`       Timestamp: ${chat.lastMessageTimestamp || chat.lastMessage?.messageTimestamp || 'N/A'}`);
         });
       }
-      
+
       if (!rawChats || rawChats.length === 0) {
         console.log('⚠️ [FRONTEND] NENHUMA CONVERSA RECEBIDA!');
         console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
@@ -1023,25 +1023,25 @@ const Index = () => {
 
       const normalizeTimestamp = (timestamp: any): number => {
         if (!timestamp) return 0;
-        
+
         if (typeof timestamp === 'number') {
           return timestamp > 9999999999 ? timestamp : timestamp * 1000;
         }
-        
+
         if (typeof timestamp === 'string') {
           const date = new Date(timestamp);
           return date.getTime();
         }
-        
+
         return 0;
       };
-      
+
       // Agrupar por remoteJid para garantir apenas 1 conversa por contato
       const chatsMap = new Map<string, any>();
-      
+
       rawChats.forEach((chat: any) => {
         const jid = chat.remoteJid;
-        
+
         // Debug: mostrar o que está sendo processado
         console.log('📝 Processando chat:', {
           jid,
@@ -1049,26 +1049,26 @@ const Index = () => {
           pushName: chat.pushName,
           hasLastMessage: !!chat.lastMessage
         });
-        
+
         // IGNORAR GRUPOS - apenas conversas individuais
         if (jid.includes('@g.us')) {
           console.log('⏭️ Ignorando grupo:', jid);
           return;
         }
-        
+
         const newTimestamp = normalizeTimestamp(chat.lastMessage?.messageTimestamp);
-        
+
         // Se já existe esse contato, verificar qual tem mensagem mais recente
         if (chatsMap.has(jid)) {
           const existing = chatsMap.get(jid)!;
           const existingTimestamp = normalizeTimestamp(existing.lastMessage?.messageTimestamp);
-          
+
           console.log(`🔄 Comparando ${jid}:`, {
             novo: newTimestamp,
             existente: existingTimestamp,
             diferenca: newTimestamp - existingTimestamp,
           });
-          
+
           if (newTimestamp > existingTimestamp) {
             console.log(`✅ Atualizando conversa ${jid} (timestamp mais recente)`);
             chatsMap.set(jid, chat);
@@ -1080,21 +1080,21 @@ const Index = () => {
           chatsMap.set(jid, chat);
         }
       });
-      
+
       console.log('📊 Total após remoção de duplicatas:', chatsMap.size);
-      
+
       // Converter Map para Array
       const uniqueChats = Array.from(chatsMap.values());
       console.log('✅ Chats únicos para exibir:', uniqueChats.length);
-      
+
       // Converter para formato da aplicação
       const convertedChats = uniqueChats.map(convertEvolutionChat);
-      
+
       // Ordenar por timestamp da última mensagem (mais recente primeiro)
-      convertedChats.sort((a, b) => 
+      convertedChats.sort((a, b) =>
         new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
       );
-      
+
       console.log('🎯 [FRONTEND] Conversas finais após conversão:', convertedChats.length);
       console.log('  Preview das primeiras 5 conversas convertidas:');
       convertedChats.slice(0, 5).forEach((conv, index) => {
@@ -1105,9 +1105,9 @@ const Index = () => {
         console.log(`       Status form: ${conv.formStatus || 'N/A'}`);
         console.log(`       Status qualif: ${conv.qualificationStatus || 'N/A'}`);
       });
-      
+
       console.log('📊 [FRONTEND] Atualizando state React com', convertedChats.length, 'conversas');
-      
+
       // ✅ CORREÇÃO DEFINITIVA: Comparação inteligente em vez de JSON.stringify
       // Função helper para detectar mudanças reais nas conversas
       const conversationsChanged = (prev: Conversation[], next: Conversation[]): boolean => {
@@ -1116,16 +1116,16 @@ const Index = () => {
           console.log('🔄 Tamanho mudou:', prev.length, '→', next.length);
           return true;
         }
-        
+
         // 2. Sem conversas = sem mudança
         if (prev.length === 0 && next.length === 0) {
           return false;
         }
-        
+
         // 3. Criar maps por ID para comparação eficiente
         const prevMap = new Map(prev.map(c => [c.id, c]));
         const nextMap = new Map(next.map(c => [c.id, c]));
-        
+
         // 4. Verificar se há IDs novos ou removidos
         for (const id of nextMap.keys()) {
           if (!prevMap.has(id)) {
@@ -1133,12 +1133,12 @@ const Index = () => {
             return true;
           }
         }
-        
+
         // 5. Comparar campos importantes de cada conversa
         for (const [id, nextConv] of nextMap.entries()) {
           const prevConv = prevMap.get(id);
           if (!prevConv) continue; // Já verificado acima
-          
+
           // Comparar campos que indicam atividade nova
           if (
             prevConv.ultimaMensagem !== nextConv.ultimaMensagem ||
@@ -1165,35 +1165,35 @@ const Index = () => {
             return true;
           }
         }
-        
+
         console.log('⏭️ Nenhuma mudança real detectada (conversas idênticas)');
         return false;
       };
-      
+
       // ✅ CORREÇÃO 5: Usar callback funcional para prevenir race conditions
       setConversations(prev => {
         console.log('🔄 [FRONTEND] State anterior:', prev.length, 'conversas');
         console.log('🔄 [FRONTEND] Novo state:', convertedChats.length, 'conversas');
-        
+
         // Verifica se realmente mudou usando comparação inteligente
         if (!conversationsChanged(prev, convertedChats)) {
           console.log('⏭️ [FRONTEND] State idêntico, pulando update (comparação inteligente)');
           return prev;
         }
-        
+
         console.log('✅ [FRONTEND] State atualizado com sucesso! (mudanças detectadas)');
         return convertedChats;
       });
-      
+
       setUseRealData(true);
       setLastFullUpdate(Date.now());
-      
+
       // 💾 Salvar no cache
       saveToCache(convertedChats);
-      
+
       // 🏷️ Carregar status dos leads para exibição correta das etiquetas
       loadLeadStatuses(convertedChats);
-      
+
       // Mostrar aviso se não estiver conectado (apenas se não for silencioso)
       if (!silent) {
         if (state && !state.connected) {
@@ -1207,7 +1207,7 @@ const Index = () => {
           });
         }
       }
-      
+
       console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
     } catch (error) {
       // ✅ CORREÇÃO 5: Verificar se erro foi por abort
@@ -1231,7 +1231,7 @@ const Index = () => {
       // ✅ CORREÇÃO 5: Liberar flag de loading no finally
       loadingRef.current = false;
       abortControllerRef.current = null;
-      
+
       if (!silent) {
         setIsLoadingChats(false);
       }
@@ -1242,7 +1242,7 @@ const Index = () => {
   // Inicializar dados - SOMENTE DADOS REAIS
   useEffect(() => {
     const config = configManager.getConfig();
-    
+
     if (config && configManager.isConfigured()) {
       // Limpar dados mockados do localStorage
       storage.clear();
@@ -1271,25 +1271,25 @@ const Index = () => {
         console.log(`Loading real messages for chat: ${chatId} (limit: ${limit})`);
       }
       const msgs = await evolutionApi.fetchMessages(chatId, limit);
-      
+
       // Ensure msgs is always an array
       const messagesArray = Array.isArray(msgs) ? msgs : [];
       console.log('Messages received:', messagesArray.length);
-      
+
       const convertedMsgs = messagesArray.map(msg => convertEvolutionMessage(msg, chatId));
-      convertedMsgs.sort((a, b) => 
+      convertedMsgs.sort((a, b) =>
         new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
       );
-      
+
       // 💾 Salvar mensagens no cache
       saveMessagesToCache(chatId, convertedMsgs);
-      
+
       // Update conversation unread count
-      const updatedConversations = conversations.map(conv => 
+      const updatedConversations = conversations.map(conv =>
         conv.id === chatId ? { ...conv, naoLidas: 0 } : conv
       );
       setConversations(updatedConversations);
-      
+
       // ✅ RETURN messages instead of setting state
       return convertedMsgs;
     } catch (error) {
@@ -1313,24 +1313,24 @@ const Index = () => {
     // IMMEDIATE: Clear messages to prevent showing wrong conversation
     console.log('🔄 Conversation changed to:', activeConversationId);
     setMessages([]);
-    
+
     // Cancel previous request if exists
     if (messageAbortControllerRef.current) {
       console.log('🛑 Aborting previous message request');
       messageAbortControllerRef.current.abort();
     }
-    
+
     // Try cache first for instant display
     const cachedMessages = loadMessagesFromCache(activeConversationId);
     if (cachedMessages) {
       console.log('💾 Displaying cached messages for instant UX');
       setMessages(cachedMessages);
     }
-    
+
     // Create new abort controller for this request
     messageAbortControllerRef.current = new AbortController();
     const currentConversationId = activeConversationId;
-    
+
     // ✅ FIX RACE CONDITION: Load fresh data in background and validate before setting state
     loadRealMessages(activeConversationId, false, 50)
       .then((freshMessages) => {
@@ -1347,7 +1347,7 @@ const Index = () => {
           console.error('Error loading messages:', error);
         }
       });
-    
+
     return () => {
       if (messageAbortControllerRef.current) {
         messageAbortControllerRef.current.abort();
@@ -1389,6 +1389,12 @@ const Index = () => {
         console.error('❌ Erro ao atualizar leads:', error);
       }
     };
+
+    // 🔥 CORREÇÃO: Carregar conversas IMEDIATAMENTE ao ativar dados reais
+    console.log('🔄 [Initial Load] Carregando conversas inicialmente...');
+    loadRealChats(false, false).catch(err => {
+      console.error('❌ [Initial Load] Erro ao carregar conversas:', err);
+    });
 
     // 🔄 Conversas - 60s (reduzido de 30s)
     conversationTimer = setInterval(() => {
@@ -1483,7 +1489,7 @@ const Index = () => {
     if (useRealData) {
       try {
         const number = activeConversationId.replace('@s.whatsapp.net', '');
-        
+
         // Otimistically add message to UI first
         const tempMessage: Message = {
           id: `temp-${Date.now()}`,
@@ -1493,12 +1499,12 @@ const Index = () => {
           enviadaPor: "atendente",
           timestamp: new Date().toISOString(),
         };
-        
+
         setMessages(prev => [...prev, tempMessage]);
-        
+
         // Send via API
         await evolutionApi.sendMessage(number, messageText);
-        
+
         const updatedConversations = conversations.map(conv => {
           if (conv.id === activeConversationId) {
             return {
@@ -1509,24 +1515,24 @@ const Index = () => {
           }
           return conv;
         });
-        
-        updatedConversations.sort((a, b) => 
+
+        updatedConversations.sort((a, b) =>
           new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
         );
-        
+
         setConversations(updatedConversations);
-        
+
         toast.success("Mensagem enviada!", {
           duration: 2000,
         });
       } catch (error) {
         console.error('Error sending message:', error);
-        
+
         // Remove the temporary message on error
         setMessages(prev => prev.filter(m => !m.id.startsWith('temp-')));
-        
+
         const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
-        
+
         if (errorMessage.includes('não está conectado') || errorMessage.includes('Connection Closed')) {
           toast.error("WhatsApp desconectado", {
             description: "Conecte sua instância do WhatsApp nas Configurações para enviar mensagens",
@@ -1565,7 +1571,7 @@ const Index = () => {
         return conv;
       });
 
-      updatedConversations.sort((a, b) => 
+      updatedConversations.sort((a, b) =>
         new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
       );
 
@@ -1583,7 +1589,7 @@ const Index = () => {
     if (useRealData) {
       try {
         const number = activeConversationId.replace('@s.whatsapp.net', '');
-        
+
         // Adicionar mensagem otimista na UI
         const tempMessage: Message = {
           id: `temp-audio-${Date.now()}`,
@@ -1594,18 +1600,18 @@ const Index = () => {
           timestamp: new Date().toISOString(),
           mediaType: "audio",
         };
-        
+
         setMessages(prev => [...prev, tempMessage]);
-        
+
         // Converter Blob para base64
         const arrayBuffer = await audioBlob.arrayBuffer();
         const uint8Array = new Uint8Array(arrayBuffer);
         const binaryString = uint8Array.reduce((acc, byte) => acc + String.fromCharCode(byte), '');
         const audioBase64 = btoa(binaryString);
-        
+
         // Enviar via API
         await evolutionApi.sendAudio(number, audioBase64);
-        
+
         // Atualizar conversa
         const updatedConversations = conversations.map(conv => {
           if (conv.id === activeConversationId) {
@@ -1617,13 +1623,13 @@ const Index = () => {
           }
           return conv;
         });
-        
-        updatedConversations.sort((a, b) => 
+
+        updatedConversations.sort((a, b) =>
           new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
         );
-        
+
         setConversations(updatedConversations);
-        
+
         // Remover mensagem temporária e recarregar mensagens
         setTimeout(() => {
           // ✅ FIX RACE CONDITION: Validate conversation ID before setting state
@@ -1636,17 +1642,17 @@ const Index = () => {
             })
             .catch(err => console.error('Erro ao recarregar mensagens:', err));
         }, 1000);
-        
+
         toast.success("Áudio enviado!", { duration: 2000 });
-        
+
       } catch (error) {
         console.error('Error sending audio:', error);
-        
+
         // Remover mensagem temporária
         setMessages(prev => prev.filter(m => !m.id.startsWith('temp-audio-')));
-        
+
         const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
-        
+
         if (errorMessage.includes('não está conectado') || errorMessage.includes('Connection Closed')) {
           toast.error("WhatsApp desconectado", {
             description: "Conecte sua instância do WhatsApp nas Configurações para enviar áudio",
@@ -1677,14 +1683,14 @@ const Index = () => {
     if (useRealData) {
       try {
         const number = activeConversationId.replace('@s.whatsapp.net', '');
-        
+
         // Adicionar mensagem otimista na UI
         const emojiMap = {
           image: '🖼️',
           video: '🎥',
           document: '📄'
         };
-        
+
         const tempMessage: Message = {
           id: `temp-media-${Date.now()}`,
           conversationId: activeConversationId,
@@ -1694,9 +1700,9 @@ const Index = () => {
           timestamp: new Date().toISOString(),
           mediaType: mediaData.mediatype,
         };
-        
+
         setMessages(prev => [...prev, tempMessage]);
-        
+
         // Enviar via API
         await evolutionApi.sendMedia(
           number,
@@ -1706,7 +1712,7 @@ const Index = () => {
           mediaData.caption,
           mediaData.fileName
         );
-        
+
         // Atualizar conversa
         const lastMessage = mediaData.caption || `${emojiMap[mediaData.mediatype]} ${mediaData.mediatype.charAt(0).toUpperCase() + mediaData.mediatype.slice(1)}`;
         const updatedConversations = conversations.map(conv => {
@@ -1719,13 +1725,13 @@ const Index = () => {
           }
           return conv;
         });
-        
-        updatedConversations.sort((a, b) => 
+
+        updatedConversations.sort((a, b) =>
           new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
         );
-        
+
         setConversations(updatedConversations);
-        
+
         // Remover mensagem temporária e recarregar mensagens
         setTimeout(() => {
           // ✅ FIX RACE CONDITION: Validate conversation ID before setting state
@@ -1738,17 +1744,17 @@ const Index = () => {
             })
             .catch(err => console.error('Erro ao recarregar mensagens:', err));
         }, 1000);
-        
+
         toast.success(`${mediaData.mediatype.charAt(0).toUpperCase() + mediaData.mediatype.slice(1)} enviado!`, { duration: 2000 });
-        
+
       } catch (error) {
         console.error('Error sending media:', error);
-        
+
         // Remover mensagem temporária
         setMessages(prev => prev.filter(m => !m.id.startsWith('temp-media-')));
-        
+
         const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
-        
+
         if (errorMessage.includes('não está conectado') || errorMessage.includes('Connection Closed')) {
           toast.error("WhatsApp desconectado", {
             description: "Conecte sua instância do WhatsApp nas Configurações para enviar mídia",
@@ -1766,13 +1772,13 @@ const Index = () => {
 
   return (
     <div className="flex flex-col h-screen w-full overflow-hidden bg-background">
-      <Header 
+      <Header
         onRefreshAll={() => loadRealChats(true)}
         onRefreshLabels={refreshLabelsOnly}
         isRefreshing={isLoadingChats}
         connectionState={connectionState}
       />
-      
+
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar SEMPRE visível */}
         <div className="w-[380px] shrink-0 h-full border-r border-border">
@@ -1789,11 +1795,11 @@ const Index = () => {
             conversation={
               activeConversation
                 ? {
-                    id: activeConversation.id,
-                    nome: activeConversation.nome,
-                    numero: activeConversation.numero,
-                    tags: activeConversation.tags,
-                  }
+                  id: activeConversation.id,
+                  nome: activeConversation.nome,
+                  numero: activeConversation.numero,
+                  tags: activeConversation.tags,
+                }
                 : null
             }
             messages={messages}

@@ -117,6 +117,7 @@ export default function RoomDesignSettings() {
   const [devicePreview, setDevicePreview] = useState<"desktop" | "mobile">("desktop");
   const [isUploading, setIsUploading] = useState(false);
   const [extractingColors, setExtractingColors] = useState(false);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null); // Preview local da logo
   const [colorVariations, setColorVariations] = useState<Array<{
     primary: string;
     secondary: string;
@@ -278,6 +279,9 @@ export default function RoomDesignSettings() {
     const reader = new FileReader();
     reader.onload = async (readerEvent) => {
       const dataUrl = readerEvent.target?.result as string;
+
+      // Salvar preview local IMEDIATAMENTE para exibir a logo
+      setLogoPreview(dataUrl);
 
       // Extract colors from base64 dataUrl (works locally in browser)
       setExtractingColors(true);
@@ -447,6 +451,7 @@ export default function RoomDesignSettings() {
         extractedColors: undefined,
       },
     }));
+    setLogoPreview(null); // Limpar preview local
     setColorVariations([]);
   };
 
@@ -579,7 +584,7 @@ export default function RoomDesignSettings() {
                             }}
                           >
                             <img
-                              src={config.branding.logo}
+                              src={logoPreview || config.branding.logo}
                               alt="Logo"
                               className="object-contain"
                               style={{ height: `${config.branding.logoSize || 60}px`, maxWidth: "200px" }}

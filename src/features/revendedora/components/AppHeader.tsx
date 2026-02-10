@@ -17,7 +17,9 @@ import {
   Trophy,
   Settings,
   Banknote,
+  Banknote,
   LogOut,
+  Tag
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -35,6 +37,7 @@ interface AppHeaderProps {
 
 const getAdminItems = (basePath: string) => ({
   etiqueta: [
+    { title: 'Etiqueta', url: `${basePath}/tags`, icon: Tag },
     { title: 'Produtos', url: `${basePath}/products`, icon: Package },
     { title: 'Solicitações', url: `${basePath}/product-requests`, icon: ClipboardList },
   ],

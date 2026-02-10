@@ -54,6 +54,7 @@ export const DesignCustomizer = ({ design, onChange }: DesignCustomizerProps) =>
   const { toast } = useToast();
   const [uploading, setUploading] = useState(false);
   const [extractingColors, setExtractingColors] = useState(false);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null); // Preview local da logo
   const [colorVariations, setColorVariations] = useState<Array<{
     primary: string;
     secondary: string;
@@ -88,6 +89,9 @@ export const DesignCustomizer = ({ design, onChange }: DesignCustomizerProps) =>
     const reader = new FileReader();
     reader.onload = async (event) => {
       const dataUrl = event.target?.result as string;
+
+      // Salvar preview local IMEDIATAMENTE para exibir a logo
+      setLogoPreview(dataUrl);
 
       // Extract colors from base64 dataUrl (works locally in browser)
       setExtractingColors(true);
@@ -220,12 +224,12 @@ export const DesignCustomizer = ({ design, onChange }: DesignCustomizerProps) =>
                   }}
                 >
                   <img
-                    src={design.logo}
+                    src={logoPreview || design.logo}
                     alt="Logo"
                     style={{ height: `${design.logoSize || 64}px`, maxWidth: '200px' }}
                     className="object-contain"
                     onError={(e) => {
-                      console.error('Logo failed to load:', design.logo);
+                      console.error('Logo failed to load:', logoPreview || design.logo);
                       (e.target as HTMLImageElement).style.display = 'none';
                     }}
                     onLoad={(e) => {

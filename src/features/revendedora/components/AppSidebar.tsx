@@ -24,7 +24,9 @@ import {
   Store,
   Building2,
   Percent,
-  Palette
+  Percent,
+  Palette,
+  Tag
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
@@ -38,6 +40,7 @@ interface AppSidebarProps {
 
 const adminSections = {
   etiqueta: [
+    { title: 'Etiqueta', url: '/admin/tags', icon: Tag },
     { title: 'Produtos', url: '/admin/products', icon: Package },
     { title: 'Solicitações', url: '/admin/product-requests', icon: Package },
   ],

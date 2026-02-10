@@ -37,56 +37,59 @@ import AdminProductRequests from "@/features/revendedora/pages/admin/ProductRequ
 import AdminSettings from "@/features/revendedora/pages/admin/Settings";
 import AdminBranding from "@/features/revendedora/pages/admin/Branding";
 import AdminGamification from "@/features/revendedora/pages/admin/Gamification";
+import AdminGamification from "@/features/revendedora/pages/admin/Gamification";
 import AdminSplitTest from "@/features/revendedora/pages/admin/SplitTest";
+import { AdminTags } from "@/features/revendedora/pages/admin/Tags";
 
 const RevendedoraApp = () => {
   return (
-  <CompanyProvider>
-    <Routes>
-      {/* Rota principal - Redireciona para login da revendedora */}
-      <Route path="/revendedora" element={<Navigate to="/revendedora/login" replace />} />
-      
-      {/* Login da revendedora */}
-      <Route path="/revendedora/login" element={<Login />} />
-      <Route path="/revendedora/demo" element={<Demo />} />
-      
-      {/* Rotas publicas */}
-      <Route path="/revendedora/checkout/:linkToken" element={<Checkout />} />
-      <Route path="/revendedora/store/:storeSlug" element={<Storefront />} />
-      <Route path="/revendedora/order-success/:orderId" element={<OrderSuccess />} />
-      <Route path="/revendedora/track-order/:orderId" element={<TrackOrder />} />
-      <Route path="/revendedora/produto/:productId" element={<ProductView />} />
-      
-      {/* ===== ROTAS ADMIN (Gestao de Revendedoras) ===== */}
-      <Route path="/revendedora/admin" element={<Navigate to="/revendedora" replace />} />
-      <Route path="/revendedora/admin/dashboard" element={<AdminSupabaseProvider><AdminLayout><AdminDashboard /></AdminLayout></AdminSupabaseProvider>} />
-      <Route path="/revendedora/admin/resellers" element={<AdminSupabaseProvider><AdminLayout><AdminResellers /></AdminLayout></AdminSupabaseProvider>} />
-      <Route path="/revendedora/admin/resellers/:id" element={<AdminSupabaseProvider><AdminLayout><AdminResellerDetails /></AdminLayout></AdminSupabaseProvider>} />
-      <Route path="/revendedora/admin/products" element={<AdminSupabaseProvider><AdminLayout><AdminProducts /></AdminLayout></AdminSupabaseProvider>} />
-      <Route path="/revendedora/admin/orders" element={<AdminSupabaseProvider><AdminLayout><AdminOrders /></AdminLayout></AdminSupabaseProvider>} />
-      <Route path="/revendedora/admin/commissions" element={<AdminSupabaseProvider><AdminLayout><AdminCommissions /></AdminLayout></AdminSupabaseProvider>} />
-      <Route path="/revendedora/admin/commission-config" element={<AdminSupabaseProvider><AdminLayout><AdminCommissionConfiguration /></AdminLayout></AdminSupabaseProvider>} />
-      <Route path="/revendedora/admin/product-requests" element={<AdminSupabaseProvider><AdminLayout><AdminProductRequests /></AdminLayout></AdminSupabaseProvider>} />
-      <Route path="/revendedora/admin/settings" element={<AdminSupabaseProvider><AdminLayout><AdminSettings /></AdminLayout></AdminSupabaseProvider>} />
-      <Route path="/revendedora/admin/branding" element={<AdminSupabaseProvider><AdminLayout><AdminBranding /></AdminLayout></AdminSupabaseProvider>} />
-      <Route path="/revendedora/admin/gamification" element={<AdminSupabaseProvider><AdminLayout><AdminGamification /></AdminLayout></AdminSupabaseProvider>} />
-      <Route path="/revendedora/admin/split-test" element={<AdminSupabaseProvider><AdminLayout><AdminSplitTest /></AdminLayout></AdminSupabaseProvider>} />
-      
-      {/* ===== ROTAS REVENDEDORA (apos login) ===== */}
-      <Route path="/revendedora/reseller/dashboard" element={<ResellerLayout><ResellerDashboard /></ResellerLayout>} />
-      <Route path="/revendedora/reseller/team" element={<ResellerLayout><ResellerTeam /></ResellerLayout>} />
-      <Route path="/revendedora/reseller/sales" element={<ResellerLayout><ResellerSales /></ResellerLayout>} />
-      <Route path="/revendedora/reseller/financial" element={<ResellerLayout><ResellerFinancial /></ResellerLayout>} />
-      <Route path="/revendedora/reseller/store" element={<ResellerLayout><ResellerStore /></ResellerLayout>} />
-      <Route path="/revendedora/reseller/checkout/:productId" element={<ResellerLayout><ResellerPagarmePayment /></ResellerLayout>} />
-      <Route path="/revendedora/reseller/payment/pix/:saleId" element={<ResellerLayout><ResellerPaymentPix /></ResellerLayout>} />
-      <Route path="/revendedora/reseller/payment/card/:saleId" element={<ResellerLayout><ResellerPaymentCard /></ResellerLayout>} />
-      <Route path="/revendedora/reseller/gamification" element={<ResellerLayout><ResellerGamification /></ResellerLayout>} />
-      <Route path="/revendedora/reseller/settings" element={<ResellerLayout><ResellerSettings /></ResellerLayout>} />
-      
-      <Route path="*" element={<NotFound />} />
-    </Routes>
-  </CompanyProvider>
+    <CompanyProvider>
+      <Routes>
+        {/* Rota principal - Redireciona para login da revendedora */}
+        <Route path="/revendedora" element={<Navigate to="/revendedora/login" replace />} />
+
+        {/* Login da revendedora */}
+        <Route path="/revendedora/login" element={<Login />} />
+        <Route path="/revendedora/demo" element={<Demo />} />
+
+        {/* Rotas publicas */}
+        <Route path="/revendedora/checkout/:linkToken" element={<Checkout />} />
+        <Route path="/revendedora/store/:storeSlug" element={<Storefront />} />
+        <Route path="/revendedora/order-success/:orderId" element={<OrderSuccess />} />
+        <Route path="/revendedora/track-order/:orderId" element={<TrackOrder />} />
+        <Route path="/revendedora/produto/:productId" element={<ProductView />} />
+
+        {/* ===== ROTAS ADMIN (Gestao de Revendedoras) ===== */}
+        <Route path="/revendedora/admin" element={<Navigate to="/revendedora" replace />} />
+        <Route path="/revendedora/admin/dashboard" element={<AdminSupabaseProvider><AdminLayout><AdminDashboard /></AdminLayout></AdminSupabaseProvider>} />
+        <Route path="/revendedora/admin/tags" element={<AdminSupabaseProvider><AdminLayout><AdminTags /></AdminLayout></AdminSupabaseProvider>} />
+        <Route path="/revendedora/admin/resellers" element={<AdminSupabaseProvider><AdminLayout><AdminResellers /></AdminLayout></AdminSupabaseProvider>} />
+        <Route path="/revendedora/admin/resellers/:id" element={<AdminSupabaseProvider><AdminLayout><AdminResellerDetails /></AdminLayout></AdminSupabaseProvider>} />
+        <Route path="/revendedora/admin/products" element={<AdminSupabaseProvider><AdminLayout><AdminProducts /></AdminLayout></AdminSupabaseProvider>} />
+        <Route path="/revendedora/admin/orders" element={<AdminSupabaseProvider><AdminLayout><AdminOrders /></AdminLayout></AdminSupabaseProvider>} />
+        <Route path="/revendedora/admin/commissions" element={<AdminSupabaseProvider><AdminLayout><AdminCommissions /></AdminLayout></AdminSupabaseProvider>} />
+        <Route path="/revendedora/admin/commission-config" element={<AdminSupabaseProvider><AdminLayout><AdminCommissionConfiguration /></AdminLayout></AdminSupabaseProvider>} />
+        <Route path="/revendedora/admin/product-requests" element={<AdminSupabaseProvider><AdminLayout><AdminProductRequests /></AdminLayout></AdminSupabaseProvider>} />
+        <Route path="/revendedora/admin/settings" element={<AdminSupabaseProvider><AdminLayout><AdminSettings /></AdminLayout></AdminSupabaseProvider>} />
+        <Route path="/revendedora/admin/branding" element={<AdminSupabaseProvider><AdminLayout><AdminBranding /></AdminLayout></AdminSupabaseProvider>} />
+        <Route path="/revendedora/admin/gamification" element={<AdminSupabaseProvider><AdminLayout><AdminGamification /></AdminLayout></AdminSupabaseProvider>} />
+        <Route path="/revendedora/admin/split-test" element={<AdminSupabaseProvider><AdminLayout><AdminSplitTest /></AdminLayout></AdminSupabaseProvider>} />
+
+        {/* ===== ROTAS REVENDEDORA (apos login) ===== */}
+        <Route path="/revendedora/reseller/dashboard" element={<ResellerLayout><ResellerDashboard /></ResellerLayout>} />
+        <Route path="/revendedora/reseller/team" element={<ResellerLayout><ResellerTeam /></ResellerLayout>} />
+        <Route path="/revendedora/reseller/sales" element={<ResellerLayout><ResellerSales /></ResellerLayout>} />
+        <Route path="/revendedora/reseller/financial" element={<ResellerLayout><ResellerFinancial /></ResellerLayout>} />
+        <Route path="/revendedora/reseller/store" element={<ResellerLayout><ResellerStore /></ResellerLayout>} />
+        <Route path="/revendedora/reseller/checkout/:productId" element={<ResellerLayout><ResellerPagarmePayment /></ResellerLayout>} />
+        <Route path="/revendedora/reseller/payment/pix/:saleId" element={<ResellerLayout><ResellerPaymentPix /></ResellerLayout>} />
+        <Route path="/revendedora/reseller/payment/card/:saleId" element={<ResellerLayout><ResellerPaymentCard /></ResellerLayout>} />
+        <Route path="/revendedora/reseller/gamification" element={<ResellerLayout><ResellerGamification /></ResellerLayout>} />
+        <Route path="/revendedora/reseller/settings" element={<ResellerLayout><ResellerSettings /></ResellerLayout>} />
+
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </CompanyProvider>
   );
 };
 

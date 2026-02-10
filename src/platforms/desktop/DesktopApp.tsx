@@ -62,6 +62,7 @@ import AdminSettings from "@/features/revendedora/pages/admin/Settings";
 import AdminBranding from "@/features/revendedora/pages/admin/Branding";
 
 import AdminGamification from "@/features/revendedora/pages/admin/Gamification";
+import { AdminTags } from "@/features/revendedora/pages/admin/Tags";
 
 /**
  * Desktop App - Versão completa para desktop
@@ -228,6 +229,18 @@ const DesktopApp = () => {
         }
       />
       <Route
+        path="/produto/admin/tags"
+        element={
+          <ProtectedRoute>
+            <DesktopLayout>
+              <CompanyProvider>
+                <AdminLayout><AdminTags /></AdminLayout>
+              </CompanyProvider>
+            </DesktopLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/produto/admin/products"
         element={
           <ProtectedRoute>
@@ -386,6 +399,18 @@ const DesktopApp = () => {
             <DesktopLayout>
               <CompanyProvider>
                 <AdminLayout basePath="/vendas"><AdminDashboard /></AdminLayout>
+              </CompanyProvider>
+            </DesktopLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/vendas/tags"
+        element={
+          <ProtectedRoute>
+            <DesktopLayout>
+              <CompanyProvider>
+                <AdminLayout basePath="/vendas"><AdminTags /></AdminLayout>
               </CompanyProvider>
             </DesktopLayout>
           </ProtectedRoute>
