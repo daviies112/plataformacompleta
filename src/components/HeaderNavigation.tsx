@@ -17,18 +17,8 @@ import {
 
   Video,
   FileSignature,
-  Truck,
-  ChevronDown,
-  Calculator,
-  ListOrdered,
-  Search
+  Truck
 } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { WalletBadge } from "@/components/WalletBadge";
 
 
@@ -124,43 +114,16 @@ const HeaderNavigation = () => {
               </Button>
             ))}
 
-            {/* Envio Dropdown Menu */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant={isEnvioActive ? "default" : "ghost"}
-                  size="sm"
-                  className={`h-10 px-3 whitespace-nowrap flex-shrink-0 hover:bg-transparent hover:text-inherit ${isEnvioActive ? '!bg-primary !text-black' : 'text-gray-400 hover:text-white'}`}
-                >
-                  <Truck className="w-4 h-4 mr-1.5" />
-                  Envio
-                  <ChevronDown className="w-3 h-3 ml-1" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-48">
-                <DropdownMenuItem
-                  onClick={() => navigate("/envio")}
-                  className={location.pathname === "/envio" ? "bg-accent" : ""}
-                >
-                  <Calculator className="w-4 h-4 mr-2" />
-                  Cotação de Frete
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => navigate("/envio/lista")}
-                  className={location.pathname === "/envio/lista" ? "bg-accent" : ""}
-                >
-                  <ListOrdered className="w-4 h-4 mr-2" />
-                  Meus Envios
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => navigate("/envio/rastreamento")}
-                  className={location.pathname === "/envio/rastreamento" ? "bg-accent" : ""}
-                >
-                  <Search className="w-4 h-4 mr-2" />
-                  Rastreamento
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {/* Envio Button - Direct Navigation */}
+            <Button
+              variant={isEnvioActive ? "default" : "ghost"}
+              size="sm"
+              onClick={() => navigate("/envio")}
+              className={`h-10 px-3 whitespace-nowrap flex-shrink-0 hover:bg-transparent hover:text-inherit ${isEnvioActive ? '!bg-primary !text-black' : 'text-gray-400 hover:text-white'}`}
+            >
+              <Truck className="w-4 h-4 mr-1.5" />
+              Envio
+            </Button>
           </nav>
 
           {/* Wallet Balance & Settings */}

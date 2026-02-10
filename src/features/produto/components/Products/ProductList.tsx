@@ -16,6 +16,8 @@ import { LabelConfigDialog } from "@/features/produto/components/Printer/LabelCo
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/features/produto/components/ui/sheet";
 import { Label } from "@/features/produto/components/ui/label";
 import { formatDateBRT } from "@/features/produto/lib/datetime";
+import { ImportWithImagesDialog } from "./ImportWithImagesDialog";
+
 
 interface ProductListProps {
   products: Product[];
@@ -32,6 +34,7 @@ export const ProductList = ({ products, printerSettings, onAddProduct, onImportP
   const [printDialogOpen, setPrintDialogOpen] = useState(false);
   const [selectedProductToPrint, setSelectedProductToPrint] = useState<Product | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
 
   const [filters, setFilters] = useState({
     barcode: "",
@@ -98,7 +101,7 @@ export const ProductList = ({ products, printerSettings, onAddProduct, onImportP
 
     try {
       const data = await importFromExcel<any>(file);
-      
+
       if (data.length === 0) {
         toast.error("Arquivo vazio");
         return;
@@ -121,7 +124,7 @@ export const ProductList = ({ products, printerSettings, onAddProduct, onImportP
 
       onImportProducts(importedProducts);
       toast.success(`${importedProducts.length} produtos importados com sucesso`);
-      
+
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
@@ -142,13 +145,13 @@ export const ProductList = ({ products, printerSettings, onAddProduct, onImportP
       const matchSubcategory = product.subcategory.toLowerCase().includes(filters.subcategory.toLowerCase());
       const matchPrice = product.price.toLowerCase().includes(filters.price.toLowerCase());
       const matchStock = product.stock.toString().includes(filters.stock);
-      
+
       // Filtro de data
       let matchDate = true;
       if (filters.startDate || filters.endDate) {
         const productDate = new Date(product.createdAt);
         productDate.setHours(0, 0, 0, 0);
-        
+
         if (filters.startDate && filters.endDate) {
           const start = new Date(filters.startDate);
           start.setHours(0, 0, 0, 0);
@@ -165,10 +168,10 @@ export const ProductList = ({ products, printerSettings, onAddProduct, onImportP
           matchDate = productDate <= end;
         }
       }
-      
-      return matchBarcode && matchReference && matchDescription && matchNumber && 
-             matchColor && matchCategory && matchSubcategory && matchPrice && 
-             matchStock && matchDate;
+
+      return matchBarcode && matchReference && matchDescription && matchNumber &&
+        matchColor && matchCategory && matchSubcategory && matchPrice &&
+        matchStock && matchDate;
     });
   }, [products, filters]);
 
@@ -177,7 +180,7 @@ export const ProductList = ({ products, printerSettings, onAddProduct, onImportP
       <div className="p-6">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-semibold text-foreground">Lista de Produtos</h2>
-          
+
           <div className="flex items-center gap-2">
             <input
               ref={fileInputRef}
@@ -192,7 +195,15 @@ export const ProductList = ({ products, printerSettings, onAddProduct, onImportP
               onClick={() => fileInputRef.current?.click()}
             >
               <Upload className="w-4 h-4" />
-              Importar
+              Importar Excel
+            </Button>
+            <Button
+              variant="outline"
+              className="gap-2 bg-primary/10 border-primary/20 hover:bg-primary/20"
+              onClick={() => setImportDialogOpen(true)}
+            >
+              <Upload className="w-4 h-4" />
+              Importar com Imagens
             </Button>
             <Button
               variant="outline"
@@ -226,7 +237,7 @@ export const ProductList = ({ products, printerSettings, onAddProduct, onImportP
                     <Input
                       placeholder="Buscar por código..."
                       value={filters.barcode}
-                      onChange={(e) => setFilters({...filters, barcode: e.target.value})}
+                      onChange={(e) => setFilters({ ...filters, barcode: e.target.value })}
                     />
                   </div>
                   <div>
@@ -234,7 +245,7 @@ export const ProductList = ({ products, printerSettings, onAddProduct, onImportP
                     <Input
                       placeholder="Buscar por referência..."
                       value={filters.reference}
-                      onChange={(e) => setFilters({...filters, reference: e.target.value})}
+                      onChange={(e) => setFilters({ ...filters, reference: e.target.value })}
                     />
                   </div>
                   <div>
@@ -242,7 +253,7 @@ export const ProductList = ({ products, printerSettings, onAddProduct, onImportP
                     <Input
                       placeholder="Buscar por descrição..."
                       value={filters.description}
-                      onChange={(e) => setFilters({...filters, description: e.target.value})}
+                      onChange={(e) => setFilters({ ...filters, description: e.target.value })}
                     />
                   </div>
                   <div>
@@ -250,7 +261,7 @@ export const ProductList = ({ products, printerSettings, onAddProduct, onImportP
                     <Input
                       placeholder="Buscar por número..."
                       value={filters.number}
-                      onChange={(e) => setFilters({...filters, number: e.target.value})}
+                      onChange={(e) => setFilters({ ...filters, number: e.target.value })}
                     />
                   </div>
                   <div>
@@ -258,7 +269,7 @@ export const ProductList = ({ products, printerSettings, onAddProduct, onImportP
                     <Input
                       placeholder="Buscar por cor..."
                       value={filters.color}
-                      onChange={(e) => setFilters({...filters, color: e.target.value})}
+                      onChange={(e) => setFilters({ ...filters, color: e.target.value })}
                     />
                   </div>
                   <div>
@@ -266,7 +277,7 @@ export const ProductList = ({ products, printerSettings, onAddProduct, onImportP
                     <Input
                       placeholder="Buscar por categoria..."
                       value={filters.category}
-                      onChange={(e) => setFilters({...filters, category: e.target.value})}
+                      onChange={(e) => setFilters({ ...filters, category: e.target.value })}
                     />
                   </div>
                   <div>
@@ -274,7 +285,7 @@ export const ProductList = ({ products, printerSettings, onAddProduct, onImportP
                     <Input
                       placeholder="Buscar por subcategoria..."
                       value={filters.subcategory}
-                      onChange={(e) => setFilters({...filters, subcategory: e.target.value})}
+                      onChange={(e) => setFilters({ ...filters, subcategory: e.target.value })}
                     />
                   </div>
                   <div>
@@ -282,7 +293,7 @@ export const ProductList = ({ products, printerSettings, onAddProduct, onImportP
                     <Input
                       placeholder="Buscar por preço..."
                       value={filters.price}
-                      onChange={(e) => setFilters({...filters, price: e.target.value})}
+                      onChange={(e) => setFilters({ ...filters, price: e.target.value })}
                     />
                   </div>
                   <div>
@@ -290,7 +301,7 @@ export const ProductList = ({ products, printerSettings, onAddProduct, onImportP
                     <Input
                       placeholder="Buscar por estoque..."
                       value={filters.stock}
-                      onChange={(e) => setFilters({...filters, stock: e.target.value})}
+                      onChange={(e) => setFilters({ ...filters, stock: e.target.value })}
                     />
                   </div>
                   <div>
@@ -298,7 +309,7 @@ export const ProductList = ({ products, printerSettings, onAddProduct, onImportP
                     <Calendar
                       mode="single"
                       selected={filters.startDate}
-                      onSelect={(date) => setFilters({...filters, startDate: date})}
+                      onSelect={(date) => setFilters({ ...filters, startDate: date })}
                       locale={ptBR}
                       className="rounded-md border"
                     />
@@ -308,7 +319,7 @@ export const ProductList = ({ products, printerSettings, onAddProduct, onImportP
                     <Calendar
                       mode="single"
                       selected={filters.endDate}
-                      onSelect={(date) => setFilters({...filters, endDate: date})}
+                      onSelect={(date) => setFilters({ ...filters, endDate: date })}
                       locale={ptBR}
                       className="rounded-md border"
                     />
@@ -358,7 +369,7 @@ export const ProductList = ({ products, printerSettings, onAddProduct, onImportP
             <TableHeader>
               <TableRow className="bg-muted/50">
                 <TableHead className="w-12">
-                  <Checkbox 
+                  <Checkbox
                     checked={selectAll}
                     onCheckedChange={handleSelectAll}
                   />
@@ -381,7 +392,7 @@ export const ProductList = ({ products, printerSettings, onAddProduct, onImportP
               {filteredProducts.map((product) => (
                 <TableRow key={product.id} className="hover:bg-muted/50">
                   <TableCell>
-                    <Checkbox 
+                    <Checkbox
                       checked={selectedProducts.includes(product.id)}
                       onCheckedChange={(checked) => handleSelectProduct(product.id, checked as boolean)}
                     />
@@ -416,18 +427,18 @@ export const ProductList = ({ products, printerSettings, onAddProduct, onImportP
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         className="h-8 w-8"
                         onClick={() => onEdit(product)}
                         title="Editar Produto"
                       >
                         <Edit className="w-4 h-4" />
                       </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10"
                         onClick={() => {
                           setSelectedProductToPrint(product);
@@ -445,7 +456,7 @@ export const ProductList = ({ products, printerSettings, onAddProduct, onImportP
           </Table>
         </div>
       </div>
-      
+
       {selectedProductToPrint && (
         <LabelConfigDialog
           product={selectedProductToPrint}
@@ -457,6 +468,12 @@ export const ProductList = ({ products, printerSettings, onAddProduct, onImportP
           }}
         />
       )}
+
+      <ImportWithImagesDialog
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
+        onImportComplete={onImportProducts}
+      />
     </div>
   );
 };
