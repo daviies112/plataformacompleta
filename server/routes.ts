@@ -207,7 +207,7 @@ export async function registerRoutes(app: Express) {
       // Return absolute URL for CORS compatibility
       const protocol = req.protocol;
       const host = req.get('host');
-      const logoUrl = `${protocol}://${host}/uploads/logos/${req.file.filename}`;
+      const logoUrl = `${protocol}://${process.env.APP_DOMAIN || host}/uploads/logos/${req.file.filename}`;
 
       res.json({ success: true, url: logoUrl });
     } catch (error) {

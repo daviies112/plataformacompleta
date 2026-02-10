@@ -3046,9 +3046,9 @@ export function registerFormulariosCompleteRoutes(app: Express) {
       }
 
       // Return absolute URL for CORS compatibility
+      const appDomain = process.env.APP_DOMAIN || req.get('host');
       const protocol = req.protocol;
-      const host = req.get('host');
-      const logoUrl = `${protocol}://${host}/uploads/logos/${req.file.filename}`;
+      const logoUrl = `${protocol}://${appDomain}/uploads/logos/${req.file.filename}`;
 
       res.json({ url: logoUrl });
     } catch (error: any) {
