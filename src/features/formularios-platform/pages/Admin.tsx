@@ -34,19 +34,17 @@ const defaultDesign: DesignConfig = {
 
 const defaultCompletionConfig: CompletionPageConfig = {
   title: "Agradecemos sua resposta!",
-  message: "Nossa equipe está analisando suas informações e retornaremos em breve pelo WhatsApp.",
-  showButton: false,
-  failureMessage: "Obrigado pela sua participação. Infelizmente você não atingiu a pontuação mínima.",
-  showScore: true,
-  showTierBadge: true,
+  subtitle: "",
+  message: "Obrigado por preencher o formulário. Nossa equipe já está analisando e em breve você receberá a mensagem no seu WhatsApp.",
+  logo: null,
+  logoAlign: "center",
   design: {
     colors: {
       primary: "hsl(221, 83%, 53%)",
       secondary: "hsl(210, 40%, 96%)",
       background: "hsl(0, 0%, 100%)",
       text: "hsl(222, 47%, 11%)",
-      successIcon: "hsl(142, 71%, 45%)",
-      failureIcon: "hsl(0, 84%, 60%)"
+      icon: "hsl(221, 83%, 53%)"
     },
     typography: {
       fontFamily: "Inter",
@@ -67,7 +65,7 @@ const Admin = () => {
   const [passingScore, setPassingScore] = useState(20);
   const [scoreTiers, setScoreTiers] = useState<ScoreTier[]>([]);
   const [designConfig, setDesignConfig] = useState<DesignConfig>(defaultDesign);
-  const [completionPageConfig, setCompletionPageConfig] = useState<CompletionPageConfig>(defaultCompletionPage);
+  const [completionPageConfig, setCompletionPageConfig] = useState<CompletionPageConfig>(defaultCompletionConfig);
   const [selectedCompletionPageId, setSelectedCompletionPageId] = useState<string>("");
   const [activeStep, setActiveStep] = useState<1 | 2 | 3>(1);
 

@@ -12,7 +12,6 @@ import { Label } from "../components/ui/label";
 import {
   Send,
   CheckCircle2,
-  XCircle,
   Loader2,
   ArrowRight,
   AlertCircle,
@@ -1236,31 +1235,132 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
 
   // Renderizar tela de conclusão APENAS se result existir
   if (result) {
+    // Get completion page configuration from form
+    const completionConfig = (form.completionPageConfig as any) || {
+      title: "Agradecemos sua resposta!",
+      subtitle: "",
+      message: "Obrigado por preencher o formulário. Nossa equipe já está analisando e em breve você receberá a mensagem no seu WhatsApp.",
+      logo: null,
+      logoAlign: "center",
+      design: {
+        colors: {
+          primary: colors.titleColor,
+          secondary: colors.inputBackground,
+          background: colors.containerBackground,
+          text: colors.textColor,
+          icon: "hsl(221, 83%, 53%)"
+        },
+        typography: {
+          fontFamily: design.typography.fontFamily,
+          titleSize: "3xl",
+          textSize: "base"
+        },
+        spacing: "comfortable"
+      }
+    };
+
+    // Use completion page design if available, otherwise fall back to form design
+    const completionDesign = completionConfig.design || {};
+    const completionColors = completionDesign.colors || {};
+    const completionTypography = completionDesign.typography || design.typography;
+
+    // Determine colors with fallback chain: completionConfig.design.colors > form.designConfig.colors > defaults
+    // 6 VARIAÇÕES DE CORES:
+    const titleColor = completionColors.primary || colors.titleColor || "hsl(221, 83%, 53%)"; // 1. Cor do Título
+    const textColor = completionColors.text || colors.textColor || "hsl(222, 47%, 11%)"; // 2. Cor do Texto
+    const bgColor = completionColors.background || colors.containerBackground || "hsl(0, 0%, 100%)"; // 3. Fundo do Container
+    const pageBg = colors.pageBackground || `linear-gradient(to bottom right, ${colors.background}, ${colors.secondary})`; // 4. Fundo da Página
+    const buttonColor = colors.buttonColor || "hsl(221, 83%, 53%)"; // 5. Cor do Botão
+    const buttonTextColor = colors.buttonTextColor || "hsl(0, 0%, 100%)"; // 6. Cor do Texto do Botão
+    const iconColor = completionColors.icon || completionColors.primary || titleColor;
+
+    // Get messages - usando campo único "message" em vez de successMessage/failureMessage
+    const displayTitle = completionConfig.title || "Agradecemos sua resposta!";
+    const displaySubtitle = completionConfig.subtitle || "";
+    const displayMessage = completionConfig.message ||
+      completionConfig.successMessage ||
+      "Obrigado por preencher o formulário. Nossa equipe já está analisando e em breve você receberá a mensagem no seu WhatsApp.";
+    const additionalText = completionConfig.additionalThankYouText || "";
+
+    // Get logo configuration
+    const completionLogo = completionConfig.logo || completionDesign.logo || null;
+    const logoAlign = completionConfig.logoAlign || completionDesign.logoAlign || "center";
+
+    // Title size mapping
+    const titleSizeMap: Record<string, string> = {
+      'xs': 'text-xs',
+      'sm': 'text-sm',
+      'base': 'text-base',
+      'lg': 'text-lg',
+      'xl': 'text-xl',
+      '2xl': 'text-2xl',
+      '3xl': 'text-3xl',
+      '4xl': 'text-4xl'
+    };
+    const titleSizeClass = titleSizeMap[completionTypography.titleSize] || 'text-3xl';
+
+    // Logo alignment classes
+    const logoAlignClass = logoAlign === 'left' ? 'justify-start' : logoAlign === 'right' ? 'justify-end' : 'justify-center';
+
     return (
-      <div className="min-h-screen flex items-center justify-center p-4" style={{ background: `linear-gradient(to bottom right, ${colors.background}, ${colors.secondary})` }}>
-        <Card className="w-full max-w-2xl p-8 text-center shadow-xl" style={{ backgroundColor: colors.containerBackground, borderColor: `${colors.primary}30` }}>
-          {result?.passed ? (
-            <CheckCircle2 className="h-20 w-20 mx-auto mb-6" style={{ color: colors.titleColor }} />
-          ) : (
-            <XCircle className="h-20 w-20 mx-auto mb-6" style={{ color: `${colors.text}80` }} />
+      <div className="min-h-screen flex items-center justify-center p-4" style={{ background: pageBg }}>
+        <Card className="w-full max-w-2xl p-8 text-center shadow-xl" style={{ backgroundColor: bgColor, borderColor: `${titleColor}30` }}>
+          {/* Logo */}
+          {completionLogo && (
+            <div className={`flex ${logoAlignClass} mb-6`}>
+              <img src={completionLogo} alt="Logo" className="h-16 object-contain" />
+            </div>
           )}
 
-          <h2 className="text-4xl font-bold mb-4" style={{ color: colors.text }}>
-            {result?.passed ? "Parabéns!" : "Obrigado!"}
+          {/* Icon Genérico - sem diferenciar sucesso/falha */}
+          <CheckCircle2 className="h-20 w-20 mx-auto mb-6" style={{ color: iconColor }} />
+
+          {/* Title */}
+          <h2 className={`${titleSizeClass} font-bold mb-2`} style={{ color: titleColor, fontFamily: completionTypography.fontFamily }}>
+            {displayTitle}
           </h2>
 
-          <p className="text-xl mb-8" style={{ color: `${colors.text}99` }}>
-            {result?.passed
-              ? "Você está qualificado! Nossa equipe analisará suas informações e retornaremos em breve pelo WhatsApp."
-              : "Obrigado pela sua participação. Infelizmente você não atingiu a pontuação mínima."}
+          {/* Subtitle */}
+          {displaySubtitle && (
+            <p className="text-lg mb-4" style={{ color: `${textColor}90`, fontFamily: completionTypography.fontFamily }}>
+              {displaySubtitle}
+            </p>
+          )}
+
+          {/* Main Message - SEMPRE a mesma mensagem genérica */}
+          <p className="text-xl mb-6" style={{ color: `${textColor}99`, fontFamily: completionTypography.fontFamily }}>
+            {displayMessage}
           </p>
 
-          <div className="p-6 rounded-xl mb-6" style={{ backgroundColor: colors.secondary }}>
-            <p className="text-sm mb-2" style={{ color: `${colors.text}99` }}>Sua pontuação</p>
-            <p className="text-5xl font-bold" style={{ color: colors.titleColor }}>{result?.totalScore || 0}</p>
-          </div>
+          {/* Additional Thank You Text */}
+          {additionalText && (
+            <p className="text-base mb-6" style={{ color: `${textColor}90`, fontFamily: completionTypography.fontFamily }}>
+              {additionalText}
+            </p>
+          )}
 
-          <div className="text-sm" style={{ color: `${colors.text}99` }}>
+          {/* CTA Button */}
+          {completionConfig.ctaText && completionConfig.ctaUrl && (
+            <div className="mb-6">
+              <a href={completionConfig.ctaUrl} target="_blank" rel="noopener noreferrer">
+                <Button size="lg" style={{ backgroundColor: buttonColor, color: buttonTextColor }}>
+                  {completionConfig.ctaText}
+                </Button>
+              </a>
+            </div>
+          )}
+
+          {/* Custom Content */}
+          {completionConfig.customContent && (
+            <div
+              className="mt-6 text-sm"
+              style={{ color: textColor }}
+              dangerouslySetInnerHTML={{ __html: completionConfig.customContent }}
+            />
+          )}
+
+          {/* Footer Text */}
+          <div className="text-sm mt-6" style={{ color: `${textColor}80` }}>
             <p>Seus dados foram salvos com sucesso.</p>
             <p>Em breve você receberá um retorno pelo WhatsApp.</p>
           </div>

@@ -94,13 +94,61 @@ export const evolutionApi = {
       // O servidor retorna status.instance.state
       const state = data.status?.instance?.state || data.status?.state || 'unknown';
       console.log('🔄 [Connection Status] Estado atualizado do Evolution API:', state);
-      return { 
-        connected: state === 'open', 
-        state 
+      return {
+        connected: state === 'open',
+        state
       };
     } catch (error) {
       console.error('Error checking connection state:', error);
       return { connected: false, state: 'not_configured' };
+    }
+  },
+
+  // Buscar QR Code para conectar WhatsApp
+  fetchQRCode: async (): Promise<{ qrcode?: string; pairingCode?: string; connected: boolean }> => {
+    try {
+      console.log('🔄 Fetching QR Code from Evolution API...');
+
+      const response = await fetch('/api/evolution/qrcode', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+        },
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erro ao buscar QR Code');
+      }
+
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.error || 'Erro ao buscar QR Code');
+      }
+
+      // Verificar se já está conectado
+      if (data.connected || data.status?.instance?.state === 'open') {
+        console.log('✅ WhatsApp já está conectado!');
+        return { connected: true };
+      }
+
+      console.log('📱 QR Code recebido:', {
+        hasQRCode: !!data.qrcode,
+        hasPairingCode: !!data.pairingCode,
+        instance: data.instance
+      });
+
+      return {
+        qrcode: data.qrcode,
+        pairingCode: data.pairingCode,
+        connected: false
+      };
+    } catch (error) {
+      console.error('❌ Error fetching QR code:', error);
+      throw error;
     }
   },
 
@@ -129,7 +177,7 @@ export const evolutionApi = {
 
     const response = await apiRequest('/api/evolution/messages', {
       method: 'POST',
-      body: JSON.stringify({ 
+      body: JSON.stringify({
         userId: USER_ID_WHATSAPP,
         chatId: chatId,
         limit: limit // Passar limit para o backend
@@ -150,7 +198,7 @@ export const evolutionApi = {
     // Verificar estado da conexão ANTES de enviar
     console.log('Checking connection state before sending...');
     const connectionState = await evolutionApi.checkConnectionState();
-    
+
     if (!connectionState.connected) {
       console.error('❌ Cannot send message - WhatsApp is not connected');
       console.error('Current state:', connectionState.state);

@@ -174,10 +174,11 @@ export interface WelcomePageConfig {
 export interface CompletionPageConfig {
   title: string;
   subtitle?: string;
-  successMessage: string;
-  failureMessage: string;
-  showScore: boolean;
-  showTierBadge: boolean;
+  message?: string; // NEW: Single generic message (replaces successMessage/failureMessage)
+  successMessage?: string; // LEGACY: Keep for backward compatibility
+  failureMessage?: string; // LEGACY: Keep for backward compatibility
+  showScore?: boolean; // LEGACY: Optional now
+  showTierBadge?: boolean; // LEGACY: Optional now
   logo?: string | null;
   logoAlign?: 'left' | 'center' | 'right';
   ctaText?: string;
@@ -190,8 +191,9 @@ export interface CompletionPageConfig {
       secondary: string;
       background: string;
       text: string;
-      successIcon: string;
-      failureIcon: string;
+      icon?: string; // NEW: Generic icon color
+      successIcon?: string; // LEGACY: Keep for backward compatibility
+      failureIcon?: string; // LEGACY: Keep for backward compatibility
     };
     typography: {
       fontFamily: string;

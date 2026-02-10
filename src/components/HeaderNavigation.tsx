@@ -64,65 +64,19 @@ const HeaderNavigation = () => {
       path: "/produto",
       label: "Etiqueta",
       icon: Package,
-      active: location.pathname.startsWith("/produto") || location.pathname.startsWith("/vendas/tags"),
-      children: [
-        {
-          label: "Etiqueta",
-          path: "/produto/admin/tags",
-          icon: Tag
-        },
-        {
-          label: "Produtos",
-          path: "/produto/admin/products",
-          icon: Package
-        },
-        {
-          label: "Solicitações",
-          path: "/produto/admin/product-requests",
-          icon: ClipboardList
-        }
-      ]
+      active: location.pathname.startsWith("/produto")
     },
     {
-      path: "/revendedoras",
+      path: "/produto/admin/branding",
       label: "Revendedoras",
       icon: Users,
-      active: location.pathname.startsWith("/produto/admin/resellers") || location.pathname.startsWith("/produto/admin/commission-config"),
-      children: [
-        {
-          label: "Revendedores",
-          path: "/produto/admin/resellers",
-          icon: Users
-        },
-        {
-          label: "Configurar Comissões",
-          path: "/produto/admin/commission-config",
-          icon: Percent
-        }
-      ]
+      active: location.pathname.startsWith("/produto/admin/branding") || location.pathname.startsWith("/produto/admin/resellers") || location.pathname.startsWith("/produto/admin/commission-config")
     },
     {
-      path: "/vendas",
+      path: "/vendas/analytics",
       label: "Vendas",
       icon: Crown,
-      active: location.pathname.startsWith("/vendas"),
-      children: [
-        {
-          label: "Dashboard",
-          path: "/vendas/dashboard",
-          icon: LayoutDashboard
-        },
-        {
-          label: "Dados Bancários",
-          path: "/vendas/dados-bancarios",
-          icon: Banknote
-        },
-        {
-          label: "Analytics",
-          path: "/vendas/analytics",
-          icon: BarChart3
-        }
-      ]
+      active: location.pathname.startsWith("/vendas")
     },
     {
       path: "/kanban",

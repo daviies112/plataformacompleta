@@ -49,14 +49,15 @@ interface Conversation {
 
 const CACHE_KEY = 'whatsapp_conversations_cache';
 const CACHE_TIMESTAMP_KEY = 'whatsapp_cache_timestamp';
-const CACHE_DURATION = 5 * 1000; // ✅ CORREÇÃO: 5 segundos - cache mínimo APENAS anti-duplicate (NÃO usado em polling)
+const CACHE_DURATION = 5 * 60 * 1000; // ✅ CORREÇÃO: 5 MINUTOS - conversas ficam visíveis por mais tempo
 
-// ⏱️ 🎯 OTIMIZAÇÃO: Configurações de Auto-Atualização (Polling) REDUZIDAS
-// IMPORTANTE: Intervalos reduzidos para melhorar performance e reduzir carga no servidor
+// ⏱️ 🎯 OTIMIZAÇÃO: Configurações de Auto-Atualização (Polling) DESABILITADAS
+// IMPORTANTE: Polling desabilitado para evitar que conversas sumam
+// Usuário deve clicar em "Atualizar" manualmente para ver novas mensagens
 const POLLING_CONFIG = {
-  CONVERSATION_REFRESH: 60000, // 🎯 60s (reduzido de 30s) - atualização de lista de conversas
-  MESSAGE_REFRESH: 10000, // 🎯 10s (reduzido de 5s) - atualização de mensagens do chat ativo
-  LEADS_REFRESH: 30000, // 🎯 30s (reduzido de 10s) - atualização de status de leads/etiquetas
+  CONVERSATION_REFRESH: 0, // 🎯 DESABILITADO - não atualiza automaticamente
+  MESSAGE_REFRESH: 0, // 🎯 DESABILITADO - não atualiza automaticamente  
+  LEADS_REFRESH: 30000, // 🎯 30s - atualização de status de leads/etiquetas (não afeta conversas)
 };
 
 const Index = () => {
@@ -857,14 +858,18 @@ const Index = () => {
     loadingRef.current = true;
     abortControllerRef.current = new AbortController();
 
-    // 🔥 CORREÇÃO 3: SEMPRE forçar reload em modo polling (silent=true)
-    // Isso garante que TODA atualização automática busque dados frescos da API
+    // 🔥 CORREÇÃO: NÃO limpar cache em modo silent (polling automático)
+    // Isso evita que as conversas sumam durante atualizações automáticas
+    // Cache só é limpo quando usuário clica explicitamente em "Atualizar"
     if (silent) {
-      forceReload = true;
-
+      console.log('🔄 [Polling] Modo automático - mantendo conversas visíveis (cache preservado)');
+      // NÃO forçar reload em modo silent
+      // NÃO limpar cache em modo silent
+    } else if (forceReload) {
+      // Apenas limpar cache quando usuário clica explicitamente em "Atualizar"
       clearCache();
-
-      console.log('🔄 [Polling] Modo automático - CACHE LIMPO + forçando busca fresca');
+      console.log('🗑️ Cache limpo - buscando dados frescos da Evolution API');
+      toast.info('Recarregando conversas...', { duration: 2000 });
     }
 
     // Verificar conexão PRIMEIRO
@@ -877,45 +882,45 @@ const Index = () => {
       return;
     }
 
-    // ✅ CORREÇÃO 3: Se estiver conectado (state === 'open'), SEMPRE buscar dados frescos - NÃO usar cache
-    if (state.connected && state.state === 'open') {
-      forceReload = true; // Força reload quando conectado
-      clearCache(); // Limpa cache para garantir dados frescos
+    // ✅ CORREÇÃO: Não forçar reload quando conectado em modo silent
+    // Isso permite que o cache funcione e as conversas não sumam
+    if (state.connected && state.state === 'open' && !silent) {
+      forceReload = true; // Força reload apenas quando NÃO for silent
+      clearCache(); // Limpa cache apenas quando NÃO for silent
 
       localStorage.setItem('last_cache_clear', new Date().toISOString());
 
       console.log('✅ WhatsApp conectado - cache limpo + dados frescos');
-      if (!silent) {
-        toast.info('WhatsApp conectado - carregando conversas atualizadas...', { duration: 2000 });
-      }
+      toast.info('WhatsApp conectado - carregando conversas atualizadas...', { duration: 2000 });
     }
 
-    // ✅ CORREÇÃO 3: Se for reload forçado OU polling, NÃO usar cache - sempre buscar da API
-    if (silent || forceReload) {
-      console.log('⚡ Pulando verificação de cache - buscando direto da API');
-      clearCache(); // Garante que cache está limpo
-    } else {
-      // Apenas em casos MUITO específicos usa cache (5s apenas)
+    // ✅ CORREÇÃO: Usar cache SEMPRE em modo silent (polling)
+    // Apenas buscar da API quando usuário clica explicitamente em "Atualizar"
+    if (!silent && !forceReload) {
+      // Apenas em casos MUITO específicos usa cache (5 minutos)
       const cachedChats = loadFromCache();
       const cached = cachedChats ? {
         data: cachedChats,
         timestamp: parseInt(localStorage.getItem(CACHE_TIMESTAMP_KEY) || '0')
       } : null;
 
-      if (cached && Date.now() - cached.timestamp < 5000) {
+      if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
         console.log('📦 Usando cache (última atualização há', Date.now() - cached.timestamp, 'ms)');
         setConversations(cached.data);
         setUseRealData(true);
         loadingRef.current = false;
         return;
       }
-    }
-
-    // Se for reload forçado, limpar cache SEMPRE
-    if (forceReload && !silent) {
-      clearCache();
-      console.log('🗑️ Cache limpo - buscando dados frescos da Evolution API');
-      toast.info('Recarregando conversas...', { duration: 2000 });
+    } else if (silent) {
+      // Em modo silent, SEMPRE usar cache se existir
+      const cachedChats = loadFromCache();
+      if (cachedChats && cachedChats.length > 0) {
+        console.log('📦 [Polling] Usando cache existente - conversas preservadas:', cachedChats.length);
+        setConversations(cachedChats);
+        setUseRealData(true);
+        loadingRef.current = false;
+        return;
+      }
     }
 
     if (!silent) {
