@@ -1,14 +1,14 @@
 {
   "lastSyncedAt": null,
   "lastSyncedId": null,
-  "lastRunAt": "2026-02-08T12:33:00.212Z",
-  "totalSubmissionsProcessed": 6,
+  "lastRunAt": "2026-02-10T23:05:34.270Z",
+  "totalSubmissionsProcessed": 7,
   "totalErrors": 328,
   "lastError": null,
   "tenantStates": {
     "system": {
-      "lastSyncedAt": "2026-02-06T19:14:42.279572+00:00",
-      "lastSyncedId": "e3f0fdcd-6972-4348-b26e-d68959d0ee45"
+      "lastSyncedAt": "2026-02-08T00:06:01.491117+00:00",
+      "lastSyncedId": "c4110bc3-2be8-4b06-8eec-525fcc0b0005"
     },
     "dev-daviemericko_gmail_com": {
       "lastSyncedAt": "2026-02-06T19:14:42.279572+00:00",
