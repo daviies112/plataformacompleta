@@ -56,7 +56,7 @@ interface CompletionPageForm {
 
 const defaultPage: CompletionPageForm = {
   name: "Nova Página Final",
-  title: "Obrigado por preencher o formulário!",
+  title: "Agradecemos sua resposta!",
   subtitle: "",
 
   successMessage: "Nossa equipe está analisando suas informações e retornaremos em breve pelo WhatsApp.",

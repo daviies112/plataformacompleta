@@ -28,9 +28,10 @@ const defaultDesign: DesignConfig = {
 };
 
 const defaultCompletionPage: CompletionPageConfig = {
-  title: "Obrigado por preencher o formulário!",
+  title: "Agradecemos sua resposta!",
   subtitle: "",
-  successMessage: "Nossa equipe está analisando suas informações e retornaremos em breve pelo WhatsApp.",
+  message: "Nossa equipe está analisando suas informações e retornaremos em breve pelo WhatsApp.",
+  showButton: false,
   failureMessage: "Obrigado por preencher o formulário. Nossa equipe analisará suas respostas.",
   showScore: true,
   showTierBadge: true,

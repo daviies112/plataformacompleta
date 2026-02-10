@@ -900,13 +900,13 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
           </div>
 
           <h2 className="text-4xl font-bold mb-4" style={{ color: colors.text }}>
-            Obrigado por preencher o formulário!
+            Agradecemos sua resposta!
           </h2>
 
           <p className="text-xl mb-8" style={{ color: `${colors.text}80` }}>
             {passed
-              ? "Nossa equipe está analisando suas informações e retornaremos em breve pelo WhatsApp."
-              : "Obrigado por preencher o formulário. Nossa equipe analisará suas respostas."}
+              ? "Você está qualificado! Nossa equipe analisará suas informações e retornaremos em breve pelo WhatsApp."
+              : "Obrigado pela sua participação. Infelizmente você não atingiu a pontuação mínima."}
           </p>
 
           {useTiers && currentTier ? (
@@ -1015,12 +1015,12 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
 
             <div>
               <h2 className="text-3xl font-bold mb-2" style={{ color: design.colors.text }}>
-                {result.passed ? 'Parabéns!' : 'Não foi desta vez'}
+                {result.passed ? 'Agradecemos sua resposta!' : 'Agradecemos sua resposta!'}
               </h2>
               <p className="text-lg" style={{ color: `${design.colors.text}80` }}>
                 {result.passed
-                  ? 'Você está qualificado para uma reunião com nosso time!'
-                  : 'Infelizmente você não atingiu a pontuação necessária.'}
+                  ? 'Você está qualificado! Nossa equipe analisará suas informações e retornaremos em breve pelo WhatsApp.'
+                  : 'Obrigado pela sua participação. Infelizmente você não atingiu a pontuação mínima.'}
               </p>
             </div>
 

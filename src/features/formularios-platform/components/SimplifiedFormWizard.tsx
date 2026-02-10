@@ -601,7 +601,7 @@ export const SimplifiedFormWizard = ({
       }
       const finalElements = buildFinalElements();
       onElementsChange(finalElements);
-      setCurrentStep(3);
+      handleSaveProgress();
     }
   };
 
@@ -725,6 +725,10 @@ export const SimplifiedFormWizard = ({
             <TabsTrigger value="content" className="min-h-[44px] md:min-h-0">
               <FileText className="h-4 w-4 mr-2" />
               Conteúdo
+            </TabsTrigger>
+            <TabsTrigger value="scoring" className="min-h-[44px] md:min-h-0">
+              <Target className="h-4 w-4 mr-2" />
+              Pontuação
             </TabsTrigger>
             <TabsTrigger value="design" className="min-h-[44px] md:min-h-0">
               <Palette className="h-4 w-4 mr-2" />
@@ -1195,15 +1199,15 @@ export const SimplifiedFormWizard = ({
             </Button>
             <Button onClick={handleSaveProgress} variant="outline" className="gap-2 min-h-[44px] md:min-h-0" disabled={isSaving}>
               <Save className="h-4 w-4" />
-              {isSaving ? 'Salvando...' : 'Salvar Progresso'}
+              {isSaving ? 'Salvando...' : 'Salvar e Sair'}
             </Button>
             <Button
               onClick={handleNextStep}
               className="flex-1 gap-2 min-h-[44px] md:min-h-0"
               disabled={!canAdvanceFromStep2}
             >
+              <CheckCircle2 className="h-4 w-4" />
               Salvar Formulário
-              <ArrowRight className="h-4 w-4" />
             </Button>
           </div>
         </div>

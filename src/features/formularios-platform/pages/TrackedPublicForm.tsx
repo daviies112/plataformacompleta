@@ -473,13 +473,13 @@ const TrackedPublicForm = () => {
           )}
 
           <h2 className="text-3xl font-bold mb-2" style={{ color: colors.text }}>
-            Obrigado por preencher o formulário!
+            Agradecemos sua resposta!
           </h2>
 
           <p className="text-lg mb-6" style={{ color: `${colors.text}99` }}>
             {result.passed
-              ? "Nossa equipe está analisando suas informações e retornaremos em breve pelo WhatsApp."
-              : "Obrigado por preencher o formulário. Nossa equipe analisará suas respostas."}
+              ? "Você está qualificado! Nossa equipe analisará suas informações e retornaremos em breve pelo WhatsApp."
+              : "Obrigado pela sua participação. Infelizmente você não atingiu a pontuação mínima."}
           </p>
 
           {tier && (

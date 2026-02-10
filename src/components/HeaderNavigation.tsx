@@ -105,7 +105,7 @@ const HeaderNavigation = () => {
       path: "/vendas",
       label: "Vendas",
       icon: Crown,
-      active: location.pathname.startsWith("/vendas") && !location.pathname.startsWith("/vendas/tags"),
+      active: location.pathname.startsWith("/vendas"),
       children: [
         {
           label: "Dashboard",

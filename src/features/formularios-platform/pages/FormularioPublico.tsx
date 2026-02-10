@@ -1251,7 +1251,7 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
 
           <p className="text-xl mb-8" style={{ color: `${colors.text}99` }}>
             {result?.passed
-              ? "Você está qualificado! Entraremos em contato em breve."
+              ? "Você está qualificado! Nossa equipe analisará suas informações e retornaremos em breve pelo WhatsApp."
               : "Obrigado pela sua participação. Infelizmente você não atingiu a pontuação mínima."}
           </p>
 
@@ -1262,7 +1262,7 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
 
           <div className="text-sm" style={{ color: `${colors.text}99` }}>
             <p>Seus dados foram salvos com sucesso.</p>
-            <p>Em breve você receberá um retorno por email.</p>
+            <p>Em breve você receberá um retorno pelo WhatsApp.</p>
           </div>
         </Card>
       </div>

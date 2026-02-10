@@ -32,10 +32,11 @@ const defaultDesign: DesignConfig = {
   spacing: "comfortable"
 };
 
-const defaultCompletionPage: CompletionPageConfig = {
-  title: "Obrigado por preencher o formulário!",
-  successMessage: "Nossa equipe está analisando suas informações e retornaremos em breve pelo WhatsApp.",
-  failureMessage: "Obrigado por preencher o formulário. Nossa equipe analisará suas respostas.",
+const defaultCompletionConfig: CompletionPageConfig = {
+  title: "Agradecemos sua resposta!",
+  message: "Nossa equipe está analisando suas informações e retornaremos em breve pelo WhatsApp.",
+  showButton: false,
+  failureMessage: "Obrigado pela sua participação. Infelizmente você não atingiu a pontuação mínima.",
   showScore: true,
   showTierBadge: true,
   design: {
