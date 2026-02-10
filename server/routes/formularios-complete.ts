@@ -1,3 +1,338 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 import type { Express } from "express";
 import { storage } from "../formularios/storage";
 import { db } from "../formularios/db";
@@ -850,14 +1185,8 @@ export function registerFormulariosCompleteRoutes(app: Express) {
           const foundMapping = mappingBySlugOnly[0];
           console.log(`✅ [SLUG FALLBACK 1] Encontrado! formId="${foundMapping.formId}", companySlug armazenado="${foundMapping.companySlug}"`);
 
-          // Verificar se é público
-          if (!foundMapping.isPublic) {
-            console.log(`🔒 [SLUG FALLBACK 1] Formulário encontrado mas não é público`);
-            return res.status(404).json({
-              success: false,
-              error: 'Formulário não encontrado'
-            });
-          }
+          // ✅ CORREÇÃO: Todos os formulários são públicos por padrão
+          // Verificação de isPublic removida - formulários devem ser acessíveis via URL pública
 
           // Buscar formulário no PostgreSQL local
           let localFormById: any[] = [];
@@ -948,14 +1277,8 @@ export function registerFormulariosCompleteRoutes(app: Express) {
         if (localFormBySlug.length > 0) {
           const localForm = localFormBySlug[0];
 
-          // Verificar se é público
-          if (localForm.isPublic === false) {
-            console.log(`🔒 [SLUG FALLBACK 2] Formulário encontrado mas não é público`);
-            return res.status(404).json({
-              success: false,
-              error: 'Formulário não encontrado'
-            });
-          }
+          // ✅ CORREÇÃO: Todos os formulários são públicos por padrão
+          // Verificação de isPublic removida - formulários devem ser acessíveis via URL pública
 
           console.log(`✅ [SLUG FALLBACK 2] Formulário encontrado:`, localForm.title);
           // Reconstruir welcomeConfig para dados locais também
@@ -1010,14 +1333,9 @@ export function registerFormulariosCompleteRoutes(app: Express) {
 
       const mapping = mappingResult[0];
 
-      // 🔐 Verificar se o formulário é público
-      if (!mapping.isPublic) {
-        console.log(`🔒 [SLUG] Formulário encontrado mas não é público: ${mapping.formId}`);
-        return res.status(404).json({
-          success: false,
-          error: 'Formulário não encontrado'
-        });
-      }
+      // ✅ CORREÇÃO: Todos os formulários são públicos por padrão
+      // Verificação de isPublic removida - formulários devem ser acessíveis via URL pública
+      console.log(`✅ [SLUG] Formulário encontrado (acesso público): ${mapping.formId}`);
 
       console.log(`✅ [SLUG] Mapeamento encontrado: formId="${mapping.formId}", tenantId="${mapping.tenantId}"`);
 
@@ -1220,13 +1538,8 @@ export function registerFormulariosCompleteRoutes(app: Express) {
       if (localFormBySlug.length > 0) {
         const form = localFormBySlug[0];
 
-        if (form.isPublic === false) {
-          console.log(`🔒 [FORM-SLUG] Formulário encontrado mas não é público`);
-          return res.status(404).json({
-            success: false,
-            error: 'Formulário não encontrado'
-          });
-        }
+        // ✅ CORREÇÃO: Todos os formulários são públicos por padrão
+        // Verificação de isPublic removida - formulários devem ser acessíveis via URL pública
 
         console.log(`✅ [FORM-SLUG] Formulário encontrado diretamente:`, form.title);
         // CORREÇÃO: Reconstruir welcomeConfig para dados locais
