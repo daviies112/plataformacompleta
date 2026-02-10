@@ -54,7 +54,7 @@ const isPublicRoute = (path: string): boolean => {
   return (
     path === '/' ||
     path === '/login' ||
-
+    path === '/auth/login' ||
     path.startsWith('/assinar/') ||
     path.startsWith('/assinatura/') ||
     path.startsWith('/f/') ||

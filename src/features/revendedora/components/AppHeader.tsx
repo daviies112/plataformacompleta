@@ -17,7 +17,6 @@ import {
   Trophy,
   Settings,
   Banknote,
-  Banknote,
   LogOut,
   Tag
 } from 'lucide-react';
