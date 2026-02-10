@@ -185,6 +185,9 @@ export function mapFormDataToSupabase(frontendData: any): Record<string, any> {
   // =====================================================
   let designConfig = frontendData.designConfig || frontendData.design_config || {};
 
+  // 🐛 DEBUG: Log do designConfig recebido do frontend
+  console.log('🎨 [DESIGN CONFIG] Recebido do frontend:', JSON.stringify(designConfig, null, 2));
+
   // Garantir que designConfig é um objeto
   if (typeof designConfig === 'string') {
     try {
@@ -247,9 +250,15 @@ export function mapFormDataToSupabase(frontendData: any): Record<string, any> {
     };
   }
 
+  // 🐛 DEBUG: Log do designConfig final antes de salvar
+  console.log('🎨 [DESIGN CONFIG] Final (com welcomeScreen e completionPage):', JSON.stringify(designConfig, null, 2));
+
   // Se temos algo no designConfig, incluir
   if (Object.keys(designConfig).length > 0) {
     mapped.design_config = designConfig;
+    console.log('✅ [DESIGN CONFIG] Incluído no mapped.design_config');
+  } else {
+    console.warn('⚠️ [DESIGN CONFIG] Vazio - NÃO será salvo!');
   }
 
   // Sempre atualizar updated_at

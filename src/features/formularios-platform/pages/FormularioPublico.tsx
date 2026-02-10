@@ -719,7 +719,9 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
 
     const title = config.title || heading?.text || form.title || "Bem-vindo!";
     const description = config.description || text?.content || form.description || "Por favor, preencha o formulário a seguir.";
-    const imageUrl = config.logo || config.imageUrl || (form.welcomeConfig as any)?.imageUrl || null;
+
+    // 🎨 LOGO: Buscar primeiro do design.logo (igual Assinatura), depois fallback para welcomeConfig
+    const imageUrl = design.logo || config.logo || config.imageUrl || (form.welcomeConfig as any)?.imageUrl || null;
     const buttonText = config.buttonText || "Começar";
 
     return {
@@ -730,7 +732,7 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
       titleSize: config.titleSize || "2xl",
       logoAlign: config.logoAlign || "center"
     };
-  }, [form]);
+  }, [form, design.logo]);
 
   const colors = design.colors;
   const totalSteps = 1 + 1 + 1 + questionPages.length + 1; // welcome + personal + address + pages de perguntas + completion
@@ -1282,8 +1284,8 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
       "Obrigado por preencher o formulário. Nossa equipe já está analisando e em breve você receberá a mensagem no seu WhatsApp.";
     const additionalText = completionConfig.additionalThankYouText || "";
 
-    // Get logo configuration
-    const completionLogo = completionConfig.logo || completionDesign.logo || null;
+    // Get logo configuration - buscar primeiro do design.logo (igual Assinatura)
+    const completionLogo = design.logo || completionConfig.logo || completionDesign.logo || null;
     const logoAlign = completionConfig.logoAlign || completionDesign.logoAlign || "center";
 
     // Title size mapping

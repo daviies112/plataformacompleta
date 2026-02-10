@@ -7,10 +7,10 @@ import { Loader2 } from "lucide-react";
 import { api, getAuthToken } from "@/lib/api";
 import { DEFAULT_ROOM_DESIGN_CONFIG, type RoomDesignConfig } from "@/types/reuniao";
 
-const Meeting100msWithProvider = lazy(() => 
+const Meeting100msWithProvider = lazy(() =>
   import("@/components/Meeting100ms").then(m => ({ default: m.Meeting100msWithProvider }))
 );
-const MeetingLobby = lazy(() => 
+const MeetingLobby = lazy(() =>
   import("@/components/MeetingLobby").then(m => ({ default: m.MeetingLobby }))
 );
 
@@ -28,7 +28,7 @@ type MeetingStep = "lobby" | "meeting" | "ended";
 export default function ReuniaoPublica() {
   const params = useParams();
   const [searchParams] = useSearchParams();
-  
+
   // Extrair o ID da reunião corretamente, suportando /reuniao/:id ou /reuniao/:tenantId/:id
   // Clean the ID to remove any query string that might be included
   const meetingId = useMemo(() => {
@@ -44,22 +44,22 @@ export default function ReuniaoPublica() {
     // Clean query string from the ID (handles both ? and %3F encoding)
     return rawId.split('?')[0].split('%3F')[0];
   }, [params.id]);
-  
-  const isRecordingBot = searchParams.get("recording_bot") === "true" || 
-                         searchParams.get("recording") === "true";
+
+  const isRecordingBot = searchParams.get("recording_bot") === "true" ||
+    searchParams.get("recording") === "true";
   const autoJoin = searchParams.get("auto_join") === "true" || isRecordingBot;
   const skipPreview = searchParams.get("skip_preview") === "true" || isRecordingBot;
-  
+
   const [step, setStep] = useState<MeetingStep>(autoJoin ? "meeting" : "lobby");
   const [token100ms, setToken100ms] = useState<string | null>(null);
   const [tokenLoading, setTokenLoading] = useState(false);
   const [tokenError, setTokenError] = useState<string | null>(null);
   const [userName, setUserName] = useState<string>(isRecordingBot ? "Recording Bot" : "");
-  const [mediaSettings, setMediaSettings] = useState({ 
-    audioEnabled: !isRecordingBot, 
-    videoEnabled: !isRecordingBot 
+  const [mediaSettings, setMediaSettings] = useState({
+    audioEnabled: !isRecordingBot,
+    videoEnabled: !isRecordingBot
   });
-  
+
   const hasAutoJoinedRef = useRef(false);
 
   // Pre-load design and meeting data to avoid blank screen
@@ -98,7 +98,12 @@ export default function ReuniaoPublica() {
     }
     const serverConfig = designData.roomDesignConfig;
     return {
-      branding: { ...DEFAULT_ROOM_DESIGN_CONFIG.branding, ...serverConfig.branding },
+      branding: {
+        ...DEFAULT_ROOM_DESIGN_CONFIG.branding,
+        ...serverConfig.branding,
+        // 🎨 LOGO: Garantir que showLogoInLobby seja true por padrão (igual Assinatura)
+        showLogoInLobby: serverConfig.branding?.showLogoInLobby ?? true
+      },
       colors: { ...DEFAULT_ROOM_DESIGN_CONFIG.colors, ...serverConfig.colors },
       lobby: { ...DEFAULT_ROOM_DESIGN_CONFIG.lobby, ...serverConfig.lobby },
       meeting: { ...DEFAULT_ROOM_DESIGN_CONFIG.meeting, ...serverConfig.meeting },
@@ -123,7 +128,7 @@ export default function ReuniaoPublica() {
       // Check if user is authenticated - if so, use authenticated endpoint for host role
       const authToken = getAuthToken();
       let response;
-      
+
       if (authToken && !isRecordingBot) {
         // Authenticated user: gets "host" role (can record)
         console.log("[ReuniaoPublica] Usuário autenticado - usando endpoint autenticado para role host");
@@ -148,7 +153,7 @@ export default function ReuniaoPublica() {
           role: isRecordingBot ? "recorder" : "guest"
         });
       }
-      
+
       if (response.data.token) {
         setToken100ms(response.data.token);
         setStep("meeting");
@@ -243,7 +248,7 @@ export default function ReuniaoPublica() {
         <Card>
           <CardContent className="p-6 text-center">
             <p className="text-destructive mb-4">{tokenError}</p>
-            <button 
+            <button
               onClick={() => { setTokenError(null); setStep("lobby"); }}
               className="px-4 py-2 bg-primary text-primary-foreground rounded-md"
             >
@@ -278,33 +283,33 @@ export default function ReuniaoPublica() {
   if (step === "ended") {
     // Pegar fsid da URL ou dos metadados da reunião
     const fsid = searchParams.get('fsid') || meeting?.metadata?.formSubmissionId;
-    const redirectUrl = roomConfig.endScreen.redirectUrl || 
+    const redirectUrl = roomConfig.endScreen.redirectUrl ||
       (fsid ? `/assinatura/from-meeting?meetingId=${meetingId}&fsid=${fsid}` : null);
 
     return (
-      <div 
+      <div
         className="flex items-center justify-center h-screen"
-        style={{ 
-          backgroundColor: roomConfig.colors.background 
+        style={{
+          backgroundColor: roomConfig.colors.background
         }}
       >
         <Card className="max-w-md">
           <CardContent className="p-8 text-center">
-            <h2 
+            <h2
               className="text-2xl font-bold mb-4"
               style={{ color: roomConfig.colors.controlsText }}
             >
               {roomConfig.endScreen.title}
             </h2>
-            <p 
+            <p
               className="text-muted-foreground"
               style={{ color: roomConfig.colors.controlsText }}
             >
               {roomConfig.endScreen.message}
             </p>
-            
+
             {redirectUrl && (
-              <Button 
+              <Button
                 onClick={() => window.location.href = redirectUrl}
                 style={{ backgroundColor: roomConfig.colors.primaryButton }}
                 className="mt-4 w-full"
