@@ -213,12 +213,12 @@ class AdminAuthService {
     const user: AdminUser = {
       id: userData.id,
       email: userData.email,
-      name: userData.name,
+      name: userData.name || userData.nome || 'Usuário',
       role: userData.role || 'admin',
-      company_name: userData.company_name,
-      company_email: userData.company_email,
-      plan_type: userData.plan_type || 'pro',
-      tenant_id: userData.tenant_id || `dev-${userData.email.replace('@', '_').replace(/\./g, '_')}`
+      company_name: userData.company_name || userData.companyName || 'NEXUS',
+      company_email: userData.company_email || userData.companyEmail || userData.email,
+      plan_type: userData.plan_type || userData.planType || 'pro',
+      tenant_id: userData.tenant_id || userData.tenantId || `dev-${userData.email.replace('@', '_').replace(/\./g, '_')}`
     };
 
     const token = jwt.sign(
