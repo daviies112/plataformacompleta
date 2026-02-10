@@ -1,0 +1,1211 @@
+{
+  "audit_info": {
+    "generated_at": "2026-01-27",
+    "platform": "ExecutiveAI Pro",
+    "description": "Mapeamento completo de todas as tabelas Supabase utilizadas pela plataforma",
+    "sources": [
+      "SQL schema files (supabase-*.sql, docs/sql/*.sql, assinatura/*.sql)",
+      "Code patterns (.from('table') in .ts/.tsx files)",
+      "Server routes and services"
+    ]
+  },
+  "owner_supabase": {
+    "description": "Supabase Master/Owner - Central para autenticação multitenant e gestão de admins/revendedoras",
+    "environment_vars": ["SUPABASE_OWNER_URL", "SUPABASE_OWNER_SERVICE_KEY", "SUPABASE_MASTER_URL", "SUPABASE_MASTER_SERVICE_ROLE_KEY"],
+    "tables": [
+      {
+        "name": "admins",
+        "description": "Administradores/Tenants principais (Dashboards A, B, C...)",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "email", "type": "VARCHAR(255)", "unique": true, "not_null": true },
+          { "name": "cpf", "type": "VARCHAR(14)", "unique": true },
+          { "name": "password_hash", "type": "VARCHAR(255)" },
+          { "name": "nome", "type": "VARCHAR(255)", "not_null": true },
+          { "name": "empresa", "type": "VARCHAR(255)" },
+          { "name": "telefone", "type": "VARCHAR(20)" },
+          { "name": "status", "type": "VARCHAR(20)", "default": "ativo", "check": "['ativo', 'inativo', 'pendente']" },
+          { "name": "ativo", "type": "BOOLEAN", "default": true },
+          { "name": "supabase_url", "type": "TEXT" },
+          { "name": "supabase_anon_key", "type": "TEXT" },
+          { "name": "criado_em", "type": "TIMESTAMP", "default": "NOW()" },
+          { "name": "atualizado_em", "type": "TIMESTAMP", "default": "NOW()" },
+          { "name": "ultimo_acesso", "type": "TIMESTAMP" },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" },
+          { "name": "updated_at", "type": "TIMESTAMPTZ", "default": "NOW()" }
+        ],
+        "indexes": ["idx_admins_email", "idx_admins_status", "idx_admins_ativo"]
+      },
+      {
+        "name": "admin_supabase_credentials",
+        "description": "Credenciais do Supabase do tenant (cada admin tem seu próprio Supabase)",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "admin_id", "type": "UUID", "foreign_key": "admins(id)", "not_null": true, "unique": true },
+          { "name": "supabase_url", "type": "VARCHAR(500)", "not_null": true },
+          { "name": "supabase_anon_key", "type": "TEXT", "not_null": true },
+          { "name": "supabase_service_role_key", "type": "TEXT" },
+          { "name": "storage_bucket", "type": "VARCHAR(255)", "default": "documents" },
+          { "name": "project_name", "type": "VARCHAR(255)" },
+          { "name": "webhook_secret", "type": "VARCHAR(255)" },
+          { "name": "is_active", "type": "BOOLEAN", "default": true },
+          { "name": "last_sync_at", "type": "TIMESTAMPTZ" },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" },
+          { "name": "updated_at", "type": "TIMESTAMPTZ", "default": "NOW()" }
+        ],
+        "indexes": ["idx_admin_creds_admin"]
+      },
+      {
+        "name": "admin_branding",
+        "description": "Configurações de branding/white-label por admin",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "admin_id", "type": "UUID", "foreign_key": "admins(id)", "unique": true },
+          { "name": "logo_url", "type": "TEXT" },
+          { "name": "primary_color", "type": "VARCHAR(7)", "default": "#3B82F6" },
+          { "name": "secondary_color", "type": "VARCHAR(7)", "default": "#1E40AF" },
+          { "name": "company_name", "type": "VARCHAR(255)" },
+          { "name": "favicon_url", "type": "TEXT" },
+          { "name": "custom_css", "type": "TEXT" },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" },
+          { "name": "updated_at", "type": "TIMESTAMPTZ", "default": "NOW()" }
+        ]
+      },
+      {
+        "name": "revendedoras",
+        "description": "Revendedoras vinculadas a admins (login: Email + CPF)",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "admin_id", "type": "TEXT/UUID", "not_null": true },
+          { "name": "email", "type": "TEXT/VARCHAR(255)", "not_null": true },
+          { "name": "cpf", "type": "TEXT/VARCHAR(14)", "not_null": true },
+          { "name": "nome", "type": "TEXT/VARCHAR(255)", "not_null": true },
+          { "name": "telefone", "type": "TEXT/VARCHAR(20)" },
+          { "name": "subdominio_slug", "type": "TEXT", "unique": true },
+          { "name": "status", "type": "TEXT/VARCHAR(20)", "default": "pendente", "check": "['pendente', 'ativo', 'bloqueado', 'inativo']" },
+          { "name": "comissao_padrao", "type": "DECIMAL(5,2)", "default": "20.00/10.00" },
+          { "name": "stripe_account_id", "type": "TEXT" },
+          { "name": "pagarme_recipient_id", "type": "TEXT" },
+          { "name": "foto_url", "type": "TEXT" },
+          { "name": "avatar_url", "type": "TEXT" },
+          { "name": "contract_id", "type": "UUID" },
+          { "name": "contract_signed_at", "type": "TIMESTAMPTZ" },
+          { "name": "endereco_rua", "type": "VARCHAR(255)" },
+          { "name": "endereco_numero", "type": "VARCHAR(20)" },
+          { "name": "endereco_complemento", "type": "VARCHAR(100)" },
+          { "name": "endereco_cidade", "type": "VARCHAR(100)" },
+          { "name": "endereco_estado", "type": "VARCHAR(2)" },
+          { "name": "endereco_cep", "type": "VARCHAR(10)" },
+          { "name": "senha_hash", "type": "TEXT" },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" },
+          { "name": "updated_at", "type": "TIMESTAMPTZ", "default": "NOW()" }
+        ],
+        "indexes": ["idx_revendedoras_admin", "idx_revendedoras_email", "idx_revendedoras_cpf", "idx_revendedoras_status", "idx_revendedoras_contract"],
+        "unique_constraints": ["(admin_id, email)", "(admin_id, cpf)"]
+      },
+      {
+        "name": "sync_log",
+        "description": "Log de sincronização entre Supabase Cliente e Master",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "admin_id", "type": "UUID", "foreign_key": "admins(id)" },
+          { "name": "event_type", "type": "VARCHAR(50)", "not_null": true },
+          { "name": "source_table", "type": "VARCHAR(100)" },
+          { "name": "source_id", "type": "UUID" },
+          { "name": "payload", "type": "JSONB" },
+          { "name": "status", "type": "VARCHAR(20)", "default": "success", "check": "['success', 'error', 'pending']" },
+          { "name": "error_message", "type": "TEXT" },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" }
+        ],
+        "indexes": ["idx_sync_log_admin", "idx_sync_log_type", "idx_sync_log_created"]
+      },
+      {
+        "name": "sessoes",
+        "description": "Sessões ativas de login dos admins",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "admin_id", "type": "UUID", "foreign_key": "admins(id)" },
+          { "name": "session_token", "type": "TEXT", "unique": true, "not_null": true },
+          { "name": "ip_address", "type": "VARCHAR(45)" },
+          { "name": "user_agent", "type": "TEXT" },
+          { "name": "ativo", "type": "BOOLEAN", "default": true },
+          { "name": "criado_em", "type": "TIMESTAMP", "default": "NOW()" },
+          { "name": "expira_em", "type": "TIMESTAMP", "not_null": true }
+        ],
+        "indexes": ["idx_sessoes_admin_id", "idx_sessoes_ativo"]
+      },
+      {
+        "name": "logs_acesso",
+        "description": "Logs de tentativas de acesso/login",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "admin_id", "type": "UUID", "foreign_key": "admins(id)" },
+          { "name": "email", "type": "VARCHAR(255)" },
+          { "name": "sucesso", "type": "BOOLEAN", "not_null": true },
+          { "name": "ip_address", "type": "VARCHAR(45)" },
+          { "name": "user_agent", "type": "TEXT" },
+          { "name": "mensagem", "type": "TEXT" },
+          { "name": "criado_em", "type": "TIMESTAMP", "default": "NOW()" }
+        ],
+        "indexes": ["idx_logs_admin_id", "idx_logs_criado_em"]
+      },
+      {
+        "name": "vendas_revendedora",
+        "description": "Registro de vendas feitas por revendedoras com split de comissão (Owner)",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "revendedora_id", "type": "UUID", "foreign_key": "revendedoras(id)" },
+          { "name": "admin_id", "type": "TEXT", "not_null": true },
+          { "name": "produto_id", "type": "UUID" },
+          { "name": "produto_nome", "type": "TEXT" },
+          { "name": "valor_total", "type": "DECIMAL(10,2)", "not_null": true },
+          { "name": "valor_comissao", "type": "DECIMAL(10,2)", "not_null": true },
+          { "name": "valor_empresa", "type": "DECIMAL(10,2)", "not_null": true },
+          { "name": "status_pagamento", "type": "TEXT", "default": "pendente" },
+          { "name": "stripe_payment_id", "type": "TEXT" },
+          { "name": "cliente_nome", "type": "TEXT" },
+          { "name": "cliente_telefone", "type": "TEXT" },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" }
+        ],
+        "indexes": ["idx_vendas_revendedora", "idx_vendas_admin", "idx_vendas_status"]
+      },
+      {
+        "name": "config_split",
+        "description": "Configuração do Stripe Connect para split de pagamentos por admin",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "admin_id", "type": "TEXT", "unique": true, "not_null": true },
+          { "name": "stripe_secret_key", "type": "TEXT" },
+          { "name": "stripe_publishable_key", "type": "TEXT" },
+          { "name": "gateway_preferido", "type": "TEXT", "default": "stripe" },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" }
+        ]
+      }
+    ]
+  },
+  "tenant_supabase": {
+    "description": "Supabase do Tenant/Cliente - Cada admin tem seu próprio banco de dados",
+    "tables": [
+      {
+        "name": "products",
+        "description": "Catálogo de produtos da empresa",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "name", "type": "VARCHAR(255)", "not_null": true },
+          { "name": "description", "type": "TEXT" },
+          { "name": "price", "type": "DECIMAL(10,2)", "not_null": true },
+          { "name": "cost_price", "type": "DECIMAL(10,2)" },
+          { "name": "category_id", "type": "UUID", "foreign_key": "categories(id)" },
+          { "name": "supplier_id", "type": "UUID", "foreign_key": "suppliers(id)" },
+          { "name": "image_url", "type": "TEXT" },
+          { "name": "sku", "type": "VARCHAR(100)" },
+          { "name": "barcode", "type": "VARCHAR(100)" },
+          { "name": "stock_quantity", "type": "INTEGER", "default": 0 },
+          { "name": "min_stock", "type": "INTEGER", "default": 0 },
+          { "name": "active", "type": "BOOLEAN", "default": true },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" },
+          { "name": "updated_at", "type": "TIMESTAMPTZ", "default": "NOW()" }
+        ],
+        "indexes": ["idx_products_category", "idx_products_supplier"]
+      },
+      {
+        "name": "categories",
+        "description": "Categorias de produtos",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "name", "type": "VARCHAR(100)", "not_null": true },
+          { "name": "description", "type": "TEXT" },
+          { "name": "color", "type": "VARCHAR(7)" },
+          { "name": "icon", "type": "VARCHAR(50)" },
+          { "name": "parent_id", "type": "UUID", "foreign_key": "categories(id)" },
+          { "name": "active", "type": "BOOLEAN", "default": true },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" }
+        ]
+      },
+      {
+        "name": "suppliers",
+        "description": "Fornecedores de produtos",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "name", "type": "VARCHAR(255)", "not_null": true },
+          { "name": "cnpj", "type": "VARCHAR(20)" },
+          { "name": "email", "type": "VARCHAR(255)" },
+          { "name": "phone", "type": "VARCHAR(20)" },
+          { "name": "address", "type": "TEXT" },
+          { "name": "contact_person", "type": "VARCHAR(100)" },
+          { "name": "notes", "type": "TEXT" },
+          { "name": "active", "type": "BOOLEAN", "default": true },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" }
+        ]
+      },
+      {
+        "name": "resellers",
+        "description": "Revendedores no tenant (dados complementares)",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "nome", "type": "VARCHAR(255)", "not_null": true },
+          { "name": "email", "type": "VARCHAR(255)" },
+          { "name": "telefone", "type": "VARCHAR(20)" },
+          { "name": "cpf", "type": "VARCHAR(14)" },
+          { "name": "comissao", "type": "DECIMAL(5,2)" },
+          { "name": "status", "type": "VARCHAR(20)", "default": "ativo" },
+          { "name": "pagarme_recipient_id", "type": "VARCHAR(255)" },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" },
+          { "name": "updated_at", "type": "TIMESTAMPTZ", "default": "NOW()" }
+        ]
+      },
+      {
+        "name": "reseller_profiles",
+        "description": "Perfis públicos de revendedoras para storefronts",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "reseller_id", "type": "UUID", "foreign_key": "resellers(id)" },
+          { "name": "display_name", "type": "VARCHAR(255)" },
+          { "name": "bio", "type": "TEXT" },
+          { "name": "avatar_url", "type": "TEXT" },
+          { "name": "banner_url", "type": "TEXT" },
+          { "name": "social_links", "type": "JSONB" },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" }
+        ]
+      },
+      {
+        "name": "reseller_stores",
+        "description": "Configurações de loja de cada revendedora",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "reseller_id", "type": "UUID", "foreign_key": "resellers(id)" },
+          { "name": "store_name", "type": "VARCHAR(255)" },
+          { "name": "slug", "type": "VARCHAR(100)", "unique": true },
+          { "name": "description", "type": "TEXT" },
+          { "name": "logo_url", "type": "TEXT" },
+          { "name": "banner_url", "type": "TEXT" },
+          { "name": "theme_colors", "type": "JSONB" },
+          { "name": "active", "type": "BOOLEAN", "default": true },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" }
+        ]
+      },
+      {
+        "name": "sales_with_split",
+        "description": "Vendas com divisão de comissão entre revendedora e empresa",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "product_id", "type": "UUID", "not_null": true },
+          { "name": "reseller_id", "type": "UUID", "not_null": true },
+          { "name": "company_id", "type": "UUID" },
+          { "name": "payment_method", "type": "VARCHAR(50)", "not_null": true },
+          { "name": "status", "type": "VARCHAR(50)", "default": "aguardando_pagamento" },
+          { "name": "total_amount", "type": "DECIMAL(10,2)", "not_null": true },
+          { "name": "reseller_amount", "type": "DECIMAL(10,2)", "not_null": true },
+          { "name": "company_amount", "type": "DECIMAL(10,2)", "not_null": true },
+          { "name": "commission_percentage", "type": "DECIMAL(5,2)" },
+          { "name": "quantity", "type": "INTEGER", "default": 1 },
+          { "name": "paid", "type": "BOOLEAN", "default": false },
+          { "name": "paid_at", "type": "TIMESTAMPTZ" },
+          { "name": "pagarme_order_id", "type": "VARCHAR(100)" },
+          { "name": "pagarme_charge_id", "type": "VARCHAR(100)" },
+          { "name": "customer_name", "type": "VARCHAR(255)" },
+          { "name": "customer_email", "type": "VARCHAR(255)" },
+          { "name": "customer_phone", "type": "VARCHAR(50)" },
+          { "name": "customer_document", "type": "VARCHAR(20)" },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" },
+          { "name": "updated_at", "type": "TIMESTAMPTZ", "default": "NOW()" }
+        ],
+        "indexes": ["idx_sales_reseller_id", "idx_sales_product_id", "idx_sales_status", "idx_sales_created_at", "idx_sales_pagarme_order"]
+      },
+      {
+        "name": "product_requests",
+        "description": "Requisições de produtos feitas por revendedoras",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "reseller_id", "type": "UUID", "foreign_key": "resellers(id)" },
+          { "name": "product_id", "type": "UUID", "foreign_key": "products(id)" },
+          { "name": "quantity", "type": "INTEGER", "not_null": true },
+          { "name": "status", "type": "VARCHAR(50)", "default": "pendente" },
+          { "name": "notes", "type": "TEXT" },
+          { "name": "approved_at", "type": "TIMESTAMPTZ" },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" }
+        ]
+      },
+      {
+        "name": "orders",
+        "description": "Pedidos feitos pelos clientes",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "customer_name", "type": "VARCHAR(255)" },
+          { "name": "customer_email", "type": "VARCHAR(255)" },
+          { "name": "customer_phone", "type": "VARCHAR(20)" },
+          { "name": "total", "type": "DECIMAL(10,2)" },
+          { "name": "status", "type": "VARCHAR(50)", "default": "pending" },
+          { "name": "items", "type": "JSONB" },
+          { "name": "reseller_id", "type": "UUID" },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" }
+        ]
+      },
+      {
+        "name": "payment_links",
+        "description": "Links de pagamento gerados para vendas",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "reseller_id", "type": "UUID" },
+          { "name": "product_id", "type": "UUID" },
+          { "name": "amount", "type": "DECIMAL(10,2)" },
+          { "name": "url", "type": "TEXT" },
+          { "name": "short_code", "type": "VARCHAR(50)" },
+          { "name": "expires_at", "type": "TIMESTAMPTZ" },
+          { "name": "used", "type": "BOOLEAN", "default": false },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" }
+        ]
+      },
+      {
+        "name": "withdrawals",
+        "description": "Saques de comissão solicitados por revendedoras",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "reseller_id", "type": "UUID" },
+          { "name": "amount", "type": "DECIMAL(10,2)", "not_null": true },
+          { "name": "status", "type": "VARCHAR(50)", "default": "pending" },
+          { "name": "bank_account_id", "type": "UUID" },
+          { "name": "processed_at", "type": "TIMESTAMPTZ" },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" }
+        ]
+      },
+      {
+        "name": "bank_accounts",
+        "description": "Contas bancárias das revendedoras para recebimento",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "reseller_id", "type": "UUID" },
+          { "name": "holder_name", "type": "VARCHAR(255)" },
+          { "name": "holder_document", "type": "VARCHAR(20)" },
+          { "name": "bank_code", "type": "VARCHAR(10)" },
+          { "name": "branch", "type": "VARCHAR(20)" },
+          { "name": "account_number", "type": "VARCHAR(30)" },
+          { "name": "account_type", "type": "VARCHAR(20)" },
+          { "name": "is_default", "type": "BOOLEAN", "default": false },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" }
+        ]
+      },
+      {
+        "name": "commission_splits",
+        "description": "Registro de divisões de comissão por venda",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "sale_id", "type": "UUID" },
+          { "name": "reseller_id", "type": "UUID" },
+          { "name": "reseller_amount", "type": "DECIMAL(10,2)" },
+          { "name": "company_amount", "type": "DECIMAL(10,2)" },
+          { "name": "platform_fee", "type": "DECIMAL(10,2)" },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" }
+        ]
+      },
+      {
+        "name": "commission_config",
+        "description": "Configuração de tiers de comissão baseado em volume de vendas mensal",
+        "fields": [
+          { "name": "id", "type": "TEXT", "primary_key": true, "default": "default" },
+          { "name": "use_dynamic_tiers", "type": "BOOLEAN", "default": true },
+          { "name": "sales_tiers", "type": "JSONB", "not_null": true },
+          { "name": "updated_at", "type": "TIMESTAMPTZ", "default": "NOW()" },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" },
+          { "name": "created_by", "type": "TEXT" },
+          { "name": "updated_by", "type": "TEXT" }
+        ]
+      },
+      {
+        "name": "platform_settings",
+        "description": "Configurações globais da plataforma (chaves API, modo live, recipient IDs)",
+        "fields": [
+          { "name": "id", "type": "TEXT", "primary_key": true, "default": "default" },
+          { "name": "pagarme_company_recipient_id", "type": "VARCHAR(255)" },
+          { "name": "pagarme_api_key_test", "type": "VARCHAR(500)" },
+          { "name": "pagarme_api_key_live", "type": "VARCHAR(500)" },
+          { "name": "use_live_mode", "type": "BOOLEAN", "default": false },
+          { "name": "updated_at", "type": "TIMESTAMPTZ", "default": "NOW()" },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" },
+          { "name": "created_by", "type": "TEXT" },
+          { "name": "updated_by", "type": "TEXT" }
+        ]
+      },
+      {
+        "name": "companies",
+        "description": "Dados da empresa/tenant para branding e configurações",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "name", "type": "VARCHAR(255)" },
+          { "name": "logo_url", "type": "TEXT" },
+          { "name": "primary_color", "type": "VARCHAR(7)" },
+          { "name": "secondary_color", "type": "VARCHAR(7)" },
+          { "name": "favicon_url", "type": "TEXT" },
+          { "name": "domain", "type": "VARCHAR(255)" },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" }
+        ]
+      },
+      {
+        "name": "evolution_connections",
+        "description": "Conexões WhatsApp via Evolution API",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "instance_name", "type": "VARCHAR(255)" },
+          { "name": "status", "type": "VARCHAR(50)" },
+          { "name": "qr_code", "type": "TEXT" },
+          { "name": "phone_number", "type": "VARCHAR(20)" },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" }
+        ]
+      },
+      {
+        "name": "print_queue",
+        "description": "Fila de impressão de etiquetas",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "product_id", "type": "UUID" },
+          { "name": "quantity", "type": "INTEGER" },
+          { "name": "status", "type": "VARCHAR(50)", "default": "pending" },
+          { "name": "printed_at", "type": "TIMESTAMPTZ" },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" }
+        ]
+      },
+      {
+        "name": "gamification_badges",
+        "description": "Badges/conquistas do sistema de gamificação",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "name", "type": "VARCHAR(100)" },
+          { "name": "description", "type": "TEXT" },
+          { "name": "icon", "type": "VARCHAR(50)" },
+          { "name": "xp_reward", "type": "INTEGER" },
+          { "name": "criteria", "type": "JSONB" },
+          { "name": "active", "type": "BOOLEAN", "default": true },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" }
+        ]
+      },
+      {
+        "name": "gamification_challenges",
+        "description": "Desafios do sistema de gamificação",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "title", "type": "VARCHAR(255)" },
+          { "name": "description", "type": "TEXT" },
+          { "name": "type", "type": "VARCHAR(50)" },
+          { "name": "target", "type": "INTEGER" },
+          { "name": "xp_reward", "type": "INTEGER" },
+          { "name": "start_date", "type": "DATE" },
+          { "name": "end_date", "type": "DATE" },
+          { "name": "active", "type": "BOOLEAN", "default": true },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" }
+        ]
+      },
+      {
+        "name": "gamification_rewards",
+        "description": "Recompensas do sistema de gamificação",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "name", "type": "VARCHAR(100)" },
+          { "name": "description", "type": "TEXT" },
+          { "name": "type", "type": "VARCHAR(50)" },
+          { "name": "value", "type": "DECIMAL(10,2)" },
+          { "name": "xp_cost", "type": "INTEGER" },
+          { "name": "active", "type": "BOOLEAN", "default": true },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" }
+        ]
+      },
+      {
+        "name": "gamification_config",
+        "description": "Configurações gerais do sistema de gamificação",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "enabled", "type": "BOOLEAN", "default": true },
+          { "name": "xp_per_sale", "type": "INTEGER", "default": 10 },
+          { "name": "streak_bonus_multiplier", "type": "DECIMAL(3,2)", "default": 1.5 },
+          { "name": "config_json", "type": "JSONB" },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" }
+        ]
+      },
+      {
+        "name": "workspace_pages",
+        "description": "Páginas estilo Notion do workspace",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "title", "type": "VARCHAR(255)" },
+          { "name": "content", "type": "JSONB" },
+          { "name": "parent_id", "type": "UUID" },
+          { "name": "icon", "type": "VARCHAR(50)" },
+          { "name": "cover_url", "type": "TEXT" },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" },
+          { "name": "updated_at", "type": "TIMESTAMPTZ", "default": "NOW()" }
+        ]
+      },
+      {
+        "name": "workspace_boards",
+        "description": "Quadros Kanban do workspace",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "title", "type": "VARCHAR(255)" },
+          { "name": "columns", "type": "JSONB" },
+          { "name": "cards", "type": "JSONB" },
+          { "name": "page_id", "type": "UUID", "foreign_key": "workspace_pages(id)" },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" },
+          { "name": "updated_at", "type": "TIMESTAMPTZ", "default": "NOW()" }
+        ]
+      },
+      {
+        "name": "workspace_databases",
+        "description": "Databases estilo Notion do workspace",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "title", "type": "VARCHAR(255)" },
+          { "name": "schema", "type": "JSONB" },
+          { "name": "rows", "type": "JSONB" },
+          { "name": "page_id", "type": "UUID", "foreign_key": "workspace_pages(id)" },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" },
+          { "name": "updated_at", "type": "TIMESTAMPTZ", "default": "NOW()" }
+        ]
+      },
+      {
+        "name": "forms",
+        "description": "Formulários criados na plataforma",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "title", "type": "VARCHAR(255)", "not_null": true },
+          { "name": "description", "type": "TEXT" },
+          { "name": "fields", "type": "JSONB", "not_null": true },
+          { "name": "settings", "type": "JSONB" },
+          { "name": "slug", "type": "VARCHAR(100)", "unique": true },
+          { "name": "active", "type": "BOOLEAN", "default": true },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" },
+          { "name": "updated_at", "type": "TIMESTAMPTZ", "default": "NOW()" }
+        ]
+      },
+      {
+        "name": "form_templates",
+        "description": "Templates de formulários pré-definidos",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "name", "type": "VARCHAR(255)", "not_null": true },
+          { "name": "category", "type": "VARCHAR(100)" },
+          { "name": "description", "type": "TEXT" },
+          { "name": "fields", "type": "JSONB", "not_null": true },
+          { "name": "preview_image", "type": "TEXT" },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" }
+        ]
+      },
+      {
+        "name": "form_submissions",
+        "description": "Submissões/respostas de formulários",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "form_id", "type": "UUID", "foreign_key": "forms(id)" },
+          { "name": "data", "type": "JSONB", "not_null": true },
+          { "name": "ip_address", "type": "VARCHAR(45)" },
+          { "name": "user_agent", "type": "TEXT" },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" }
+        ]
+      },
+      {
+        "name": "leads",
+        "description": "Leads capturados pelos formulários",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "name", "type": "VARCHAR(255)" },
+          { "name": "email", "type": "VARCHAR(255)" },
+          { "name": "phone", "type": "VARCHAR(20)" },
+          { "name": "source", "type": "VARCHAR(100)" },
+          { "name": "form_id", "type": "UUID" },
+          { "name": "data", "type": "JSONB" },
+          { "name": "status", "type": "VARCHAR(50)", "default": "new" },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" }
+        ]
+      },
+      {
+        "name": "integration_queue",
+        "description": "Fila de eventos para sincronização entre sistemas",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "entity_type", "type": "VARCHAR(100)", "not_null": true },
+          { "name": "entity_id", "type": "UUID" },
+          { "name": "status", "type": "VARCHAR(50)", "default": "pending" },
+          { "name": "payload", "type": "JSONB" },
+          { "name": "error_message", "type": "TEXT" },
+          { "name": "processed_at", "type": "TIMESTAMPTZ" },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" }
+        ]
+      },
+      {
+        "name": "datacorp_checks",
+        "description": "Verificações de compliance via DataCorp",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "document", "type": "VARCHAR(20)" },
+          { "name": "type", "type": "VARCHAR(50)" },
+          { "name": "result", "type": "JSONB" },
+          { "name": "status", "type": "VARCHAR(50)" },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" }
+        ]
+      },
+      {
+        "name": "compliance_audit_log",
+        "description": "Log de auditoria de compliance",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "action", "type": "VARCHAR(100)" },
+          { "name": "entity_type", "type": "VARCHAR(100)" },
+          { "name": "entity_id", "type": "UUID" },
+          { "name": "user_id", "type": "UUID" },
+          { "name": "details", "type": "JSONB" },
+          { "name": "ip_address", "type": "VARCHAR(45)" },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" }
+        ]
+      },
+      {
+        "name": "dashboard_completo_v5_base",
+        "description": "View/tabela base para dashboard completo",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "data", "type": "JSONB" },
+          { "name": "metrics", "type": "JSONB" },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" }
+        ]
+      },
+      {
+        "name": "contracts",
+        "description": "Contratos para assinatura digital",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "user_id", "type": "UUID", "foreign_key": "users(id)" },
+          { "name": "contract_html", "type": "TEXT", "not_null": true },
+          { "name": "contract_pdf_url", "type": "TEXT" },
+          { "name": "status", "type": "VARCHAR(50)", "default": "pending" },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" },
+          { "name": "signed_at", "type": "TIMESTAMPTZ" },
+          { "name": "protocol_number", "type": "VARCHAR(50)", "unique": true },
+          { "name": "client_name", "type": "VARCHAR(255)", "not_null": true },
+          { "name": "client_cpf", "type": "VARCHAR(14)", "not_null": true },
+          { "name": "client_email", "type": "VARCHAR(255)", "not_null": true },
+          { "name": "client_phone", "type": "VARCHAR(20)" },
+          { "name": "access_token", "type": "UUID", "unique": true }
+        ],
+        "indexes": ["idx_contracts_access_token", "idx_contracts_status", "idx_contracts_client_cpf"]
+      },
+      {
+        "name": "users",
+        "description": "Usuários/clientes que assinam contratos",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "cpf", "type": "VARCHAR(14)", "unique": true, "not_null": true },
+          { "name": "nome_completo", "type": "VARCHAR(255)", "not_null": true },
+          { "name": "email", "type": "VARCHAR(255)", "not_null": true },
+          { "name": "telefone", "type": "VARCHAR(20)" },
+          { "name": "cep", "type": "VARCHAR(10)" },
+          { "name": "rua", "type": "VARCHAR(255)" },
+          { "name": "numero", "type": "VARCHAR(20)" },
+          { "name": "cidade", "type": "VARCHAR(100)" },
+          { "name": "estado", "type": "VARCHAR(2)" },
+          { "name": "endereco_completo", "type": "TEXT" },
+          { "name": "govbr_verified", "type": "BOOLEAN", "default": false },
+          { "name": "govbr_nivel_conta", "type": "VARCHAR(20)" },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" }
+        ],
+        "indexes": ["idx_users_cpf"]
+      },
+      {
+        "name": "signature_logs",
+        "description": "Logs de assinatura para auditoria",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "contract_id", "type": "UUID", "foreign_key": "contracts(id)" },
+          { "name": "ip_address", "type": "VARCHAR(45)", "not_null": true },
+          { "name": "user_agent", "type": "TEXT" },
+          { "name": "timestamp", "type": "TIMESTAMPTZ", "not_null": true },
+          { "name": "govbr_token_hash", "type": "VARCHAR(255)" },
+          { "name": "govbr_auth_time", "type": "TIMESTAMPTZ" },
+          { "name": "signature_valid", "type": "BOOLEAN", "default": true },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" }
+        ],
+        "indexes": ["idx_signature_logs_contract_id"]
+      },
+      {
+        "name": "audit_trail",
+        "description": "Trilha de auditoria para todas as ações",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "contract_id", "type": "UUID", "foreign_key": "contracts(id)" },
+          { "name": "action", "type": "VARCHAR(100)", "not_null": true },
+          { "name": "user_id", "type": "UUID", "foreign_key": "users(id)" },
+          { "name": "metadata", "type": "JSONB" },
+          { "name": "timestamp", "type": "TIMESTAMPTZ", "default": "NOW()" }
+        ],
+        "indexes": ["idx_audit_trail_contract_id"]
+      },
+      {
+        "name": "face_verifications",
+        "description": "Verificações de reconhecimento facial",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "contract_id", "type": "UUID" },
+          { "name": "selfie_photo", "type": "TEXT" },
+          { "name": "document_photo", "type": "TEXT" },
+          { "name": "verification_result", "type": "JSONB" },
+          { "name": "confidence_score", "type": "DECIMAL(5,4)" },
+          { "name": "status", "type": "VARCHAR(50)" },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" }
+        ]
+      },
+      {
+        "name": "global_appearance_settings",
+        "description": "Configurações globais de aparência da assinatura digital",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "tenant_id", "type": "VARCHAR(255)" },
+          { "name": "logo_url", "type": "TEXT" },
+          { "name": "primary_color", "type": "VARCHAR(7)" },
+          { "name": "company_name", "type": "VARCHAR(255)" },
+          { "name": "settings", "type": "JSONB" },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" },
+          { "name": "updated_at", "type": "TIMESTAMPTZ", "default": "NOW()" }
+        ]
+      },
+      {
+        "name": "appearance_configs",
+        "description": "Configurações de aparência por contrato",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "contract_id", "type": "UUID", "foreign_key": "contracts(id)" },
+          { "name": "logo_url", "type": "TEXT" },
+          { "name": "logo_size", "type": "VARCHAR(20)", "default": "medium" },
+          { "name": "logo_position", "type": "VARCHAR(20)", "default": "center" },
+          { "name": "primary_color", "type": "VARCHAR(7)" },
+          { "name": "text_color", "type": "VARCHAR(7)", "default": "#333333" },
+          { "name": "font_family", "type": "VARCHAR(100)" },
+          { "name": "font_size", "type": "VARCHAR(20)" },
+          { "name": "company_name", "type": "VARCHAR(255)" },
+          { "name": "footer_text", "type": "TEXT" },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" },
+          { "name": "updated_at", "type": "TIMESTAMPTZ", "default": "NOW()" }
+        ],
+        "indexes": ["idx_appearance_configs_contract_id"]
+      },
+      {
+        "name": "verification_configs",
+        "description": "Configurações da tela de verificação por contrato",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "contract_id", "type": "UUID", "foreign_key": "contracts(id)" },
+          { "name": "primary_color", "type": "VARCHAR(7)" },
+          { "name": "text_color", "type": "VARCHAR(7)", "default": "#000000" },
+          { "name": "font_family", "type": "VARCHAR(100)" },
+          { "name": "font_size", "type": "VARCHAR(20)" },
+          { "name": "logo_url", "type": "TEXT" },
+          { "name": "logo_size", "type": "VARCHAR(20)" },
+          { "name": "logo_position", "type": "VARCHAR(20)" },
+          { "name": "footer_text", "type": "TEXT" },
+          { "name": "welcome_text", "type": "VARCHAR(255)" },
+          { "name": "instructions", "type": "TEXT" },
+          { "name": "security_text", "type": "TEXT" },
+          { "name": "background_image", "type": "TEXT" },
+          { "name": "background_color", "type": "VARCHAR(7)", "default": "#ffffff" },
+          { "name": "icon_url", "type": "TEXT" },
+          { "name": "header_background_color", "type": "VARCHAR(7)", "default": "#2c3e50" },
+          { "name": "header_logo_url", "type": "TEXT" },
+          { "name": "header_company_name", "type": "VARCHAR(255)" },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" },
+          { "name": "updated_at", "type": "TIMESTAMPTZ", "default": "NOW()" }
+        ],
+        "indexes": ["idx_verification_configs_contract_id"]
+      },
+      {
+        "name": "contract_configs",
+        "description": "Configurações de estilo do contrato",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "contract_id", "type": "UUID", "foreign_key": "contracts(id)" },
+          { "name": "title", "type": "VARCHAR(255)" },
+          { "name": "clauses", "type": "JSONB" },
+          { "name": "logo_url", "type": "TEXT" },
+          { "name": "logo_size", "type": "VARCHAR(20)" },
+          { "name": "logo_position", "type": "VARCHAR(20)" },
+          { "name": "primary_color", "type": "VARCHAR(7)" },
+          { "name": "text_color", "type": "VARCHAR(7)" },
+          { "name": "font_family", "type": "VARCHAR(100)" },
+          { "name": "font_size", "type": "VARCHAR(20)" },
+          { "name": "company_name", "type": "VARCHAR(255)" },
+          { "name": "footer_text", "type": "TEXT" },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" },
+          { "name": "updated_at", "type": "TIMESTAMPTZ", "default": "NOW()" }
+        ],
+        "indexes": ["idx_contract_configs_contract_id"]
+      },
+      {
+        "name": "progress_tracker_configs",
+        "description": "Configurações do rastreador de progresso",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "contract_id", "type": "UUID", "foreign_key": "contracts(id)" },
+          { "name": "card_color", "type": "VARCHAR(7)", "default": "#dbeafe" },
+          { "name": "button_color", "type": "VARCHAR(7)", "default": "#22c55e" },
+          { "name": "text_color", "type": "VARCHAR(7)", "default": "#1e40af" },
+          { "name": "title", "type": "VARCHAR(100)", "default": "Assinatura Digital" },
+          { "name": "subtitle", "type": "TEXT" },
+          { "name": "step1_title", "type": "VARCHAR(255)" },
+          { "name": "step1_description", "type": "TEXT" },
+          { "name": "step2_title", "type": "VARCHAR(255)" },
+          { "name": "step2_description", "type": "TEXT" },
+          { "name": "step3_title", "type": "VARCHAR(255)" },
+          { "name": "step3_description", "type": "TEXT" },
+          { "name": "button_text", "type": "VARCHAR(255)" },
+          { "name": "font_family", "type": "VARCHAR(100)" },
+          { "name": "font_size", "type": "VARCHAR(20)" },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" },
+          { "name": "updated_at", "type": "TIMESTAMPTZ", "default": "NOW()" }
+        ],
+        "indexes": ["idx_progress_tracker_configs_contract_id"]
+      },
+      {
+        "name": "reseller_welcome_configs",
+        "description": "Configurações da tela de parabéns/boas-vindas da revendedora",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "contract_id", "type": "UUID", "foreign_key": "contracts(id)" },
+          { "name": "title", "type": "VARCHAR(255)" },
+          { "name": "subtitle", "type": "VARCHAR(255)" },
+          { "name": "description", "type": "TEXT" },
+          { "name": "card_color", "type": "VARCHAR(7)" },
+          { "name": "background_color", "type": "VARCHAR(7)" },
+          { "name": "button_color", "type": "VARCHAR(7)" },
+          { "name": "text_color", "type": "VARCHAR(7)" },
+          { "name": "font_family", "type": "VARCHAR(100)" },
+          { "name": "form_title", "type": "VARCHAR(255)" },
+          { "name": "button_text", "type": "VARCHAR(255)" },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" },
+          { "name": "updated_at", "type": "TIMESTAMPTZ", "default": "NOW()" }
+        ],
+        "indexes": ["idx_reseller_welcome_configs_contract_id"]
+      },
+      {
+        "name": "app_promotion_configs",
+        "description": "Configurações de links de apps",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "contract_id", "type": "UUID", "foreign_key": "contracts(id)" },
+          { "name": "app_store_url", "type": "TEXT" },
+          { "name": "google_play_url", "type": "TEXT" },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" },
+          { "name": "updated_at", "type": "TIMESTAMPTZ", "default": "NOW()" }
+        ],
+        "indexes": ["idx_app_promotion_configs_contract_id"]
+      },
+      {
+        "name": "assinatura_global_config",
+        "description": "Configurações globais de design para assinatura digital",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "tenant_id", "type": "VARCHAR(255)", "default": "default", "unique": true },
+          { "name": "logo_url", "type": "TEXT" },
+          { "name": "logo_size", "type": "VARCHAR(20)", "default": "medium" },
+          { "name": "logo_position", "type": "VARCHAR(20)", "default": "center" },
+          { "name": "primary_color", "type": "VARCHAR(7)", "default": "#2c3e50" },
+          { "name": "text_color", "type": "VARCHAR(7)", "default": "#333333" },
+          { "name": "font_family", "type": "VARCHAR(100)", "default": "Arial, sans-serif" },
+          { "name": "font_size", "type": "VARCHAR(20)", "default": "16px" },
+          { "name": "company_name", "type": "VARCHAR(255)", "default": "Sua Empresa" },
+          { "name": "footer_text", "type": "TEXT", "default": "Documento gerado eletronicamente" },
+          { "name": "maleta_card_color", "type": "VARCHAR(7)", "default": "#dbeafe" },
+          { "name": "maleta_button_color", "type": "VARCHAR(7)", "default": "#22c55e" },
+          { "name": "maleta_text_color", "type": "VARCHAR(7)", "default": "#1e40af" },
+          { "name": "verification_primary_color", "type": "VARCHAR(7)", "default": "#2c3e50" },
+          { "name": "verification_text_color", "type": "VARCHAR(7)", "default": "#000000" },
+          { "name": "contract_clauses", "type": "JSONB" },
+          { "name": "app_store_url", "type": "TEXT" },
+          { "name": "google_play_url", "type": "TEXT" },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" },
+          { "name": "updated_at", "type": "TIMESTAMPTZ", "default": "NOW()" }
+        ],
+        "indexes": ["idx_assinatura_global_config_tenant_id"]
+      },
+      {
+        "name": "assinatura_contracts",
+        "description": "Contratos individuais com configurações completas",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "tenant_id", "type": "VARCHAR(255)", "default": "default" },
+          { "name": "client_name", "type": "VARCHAR(255)", "not_null": true },
+          { "name": "client_cpf", "type": "VARCHAR(14)" },
+          { "name": "client_email", "type": "VARCHAR(255)" },
+          { "name": "client_phone", "type": "VARCHAR(20)" },
+          { "name": "status", "type": "VARCHAR(50)", "default": "pending" },
+          { "name": "access_token", "type": "UUID", "unique": true },
+          { "name": "protocol_number", "type": "VARCHAR(50)" },
+          { "name": "contract_html", "type": "TEXT" },
+          { "name": "contract_pdf_url", "type": "TEXT" },
+          { "name": "address_street", "type": "VARCHAR(255)" },
+          { "name": "address_number", "type": "VARCHAR(20)" },
+          { "name": "address_complement", "type": "VARCHAR(100)" },
+          { "name": "address_city", "type": "VARCHAR(100)" },
+          { "name": "address_state", "type": "VARCHAR(2)" },
+          { "name": "address_zipcode", "type": "VARCHAR(10)" },
+          { "name": "selfie_photo", "type": "TEXT" },
+          { "name": "document_photo", "type": "TEXT" },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" },
+          { "name": "signed_at", "type": "TIMESTAMPTZ" },
+          { "name": "updated_at", "type": "TIMESTAMPTZ", "default": "NOW()" }
+        ],
+        "indexes": ["idx_assinatura_contracts_access_token", "idx_assinatura_contracts_status", "idx_assinatura_contracts_tenant_id", "idx_assinatura_contracts_client_cpf"]
+      },
+      {
+        "name": "assinatura_signature_logs",
+        "description": "Logs de assinatura para auditoria (versão assinatura)",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "contract_id", "type": "UUID", "foreign_key": "assinatura_contracts(id)" },
+          { "name": "ip_address", "type": "VARCHAR(45)" },
+          { "name": "user_agent", "type": "TEXT" },
+          { "name": "action", "type": "VARCHAR(100)", "not_null": true },
+          { "name": "metadata", "type": "JSONB" },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" }
+        ],
+        "indexes": ["idx_assinatura_signature_logs_contract_id"]
+      },
+      {
+        "name": "transportadoras",
+        "description": "Transportadoras para módulo de envio",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "admin_id", "type": "TEXT", "not_null": true },
+          { "name": "nome", "type": "VARCHAR(100)", "not_null": true },
+          { "name": "codigo", "type": "VARCHAR(50)", "not_null": true },
+          { "name": "tipo", "type": "VARCHAR(50)", "default": "nacional" },
+          { "name": "logo_url", "type": "TEXT" },
+          { "name": "api_url", "type": "TEXT" },
+          { "name": "api_token", "type": "TEXT" },
+          { "name": "ativo", "type": "BOOLEAN", "default": true },
+          { "name": "prazo_adicional_dias", "type": "INTEGER", "default": 0 },
+          { "name": "markup_percentual", "type": "DECIMAL(5,2)", "default": 0 },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" },
+          { "name": "updated_at", "type": "TIMESTAMPTZ", "default": "NOW()" }
+        ],
+        "indexes": ["idx_transportadoras_admin_id", "idx_transportadoras_ativo"]
+      },
+      {
+        "name": "cotacoes_frete",
+        "description": "Cotações de frete realizadas",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "admin_id", "type": "TEXT", "not_null": true },
+          { "name": "cep_origem", "type": "VARCHAR(10)", "not_null": true },
+          { "name": "cep_destino", "type": "VARCHAR(10)", "not_null": true },
+          { "name": "peso_kg", "type": "DECIMAL(10,3)", "not_null": true },
+          { "name": "altura_cm", "type": "DECIMAL(10,2)" },
+          { "name": "largura_cm", "type": "DECIMAL(10,2)" },
+          { "name": "comprimento_cm", "type": "DECIMAL(10,2)" },
+          { "name": "valor_declarado", "type": "DECIMAL(10,2)" },
+          { "name": "transportadora_id", "type": "UUID", "foreign_key": "transportadoras(id)" },
+          { "name": "transportadora_nome", "type": "VARCHAR(100)" },
+          { "name": "servico", "type": "VARCHAR(100)" },
+          { "name": "valor_frete", "type": "DECIMAL(10,2)" },
+          { "name": "prazo_dias", "type": "INTEGER" },
+          { "name": "selecionado", "type": "BOOLEAN", "default": false },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" }
+        ],
+        "indexes": ["idx_cotacoes_admin_id", "idx_cotacoes_created_at"]
+      },
+      {
+        "name": "envios",
+        "description": "Envios/remessas realizados",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "admin_id", "type": "TEXT", "not_null": true },
+          { "name": "contract_id", "type": "UUID" },
+          { "name": "cotacao_id", "type": "UUID", "foreign_key": "cotacoes_frete(id)" },
+          { "name": "codigo_rastreio", "type": "VARCHAR(50)" },
+          { "name": "status", "type": "VARCHAR(50)", "default": "pendente" },
+          { "name": "remetente_nome", "type": "VARCHAR(200)" },
+          { "name": "remetente_cpf_cnpj", "type": "VARCHAR(20)" },
+          { "name": "remetente_cep", "type": "VARCHAR(10)" },
+          { "name": "destinatario_nome", "type": "VARCHAR(200)", "not_null": true },
+          { "name": "destinatario_cpf_cnpj", "type": "VARCHAR(20)" },
+          { "name": "destinatario_cep", "type": "VARCHAR(10)", "not_null": true },
+          { "name": "peso_kg", "type": "DECIMAL(10,3)" },
+          { "name": "valor_declarado", "type": "DECIMAL(10,2)" },
+          { "name": "transportadora_id", "type": "UUID", "foreign_key": "transportadoras(id)" },
+          { "name": "transportadora_nome", "type": "VARCHAR(100)" },
+          { "name": "servico", "type": "VARCHAR(100)" },
+          { "name": "valor_frete", "type": "DECIMAL(10,2)" },
+          { "name": "prazo_estimado_dias", "type": "INTEGER" },
+          { "name": "data_postagem", "type": "TIMESTAMPTZ" },
+          { "name": "data_entrega", "type": "TIMESTAMPTZ" },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" },
+          { "name": "updated_at", "type": "TIMESTAMPTZ", "default": "NOW()" }
+        ],
+        "indexes": ["idx_envios_admin_id", "idx_envios_status", "idx_envios_codigo_rastreio", "idx_envios_created_at", "idx_envios_contract_id"]
+      },
+      {
+        "name": "rastreamento_eventos",
+        "description": "Eventos de rastreamento de envios",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "envio_id", "type": "UUID", "foreign_key": "envios(id)" },
+          { "name": "codigo_rastreio", "type": "VARCHAR(50)" },
+          { "name": "data_hora", "type": "TIMESTAMPTZ", "not_null": true },
+          { "name": "status", "type": "VARCHAR(100)", "not_null": true },
+          { "name": "descricao", "type": "TEXT" },
+          { "name": "local", "type": "VARCHAR(200)" },
+          { "name": "cidade", "type": "VARCHAR(100)" },
+          { "name": "uf", "type": "VARCHAR(2)" },
+          { "name": "origem_api", "type": "BOOLEAN", "default": false },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" }
+        ],
+        "indexes": ["idx_rastreamento_envio_id", "idx_rastreamento_codigo"]
+      },
+      {
+        "name": "etiquetas_envio",
+        "description": "Etiquetas geradas para envios",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "envio_id", "type": "UUID", "foreign_key": "envios(id)" },
+          { "name": "tipo", "type": "VARCHAR(50)", "default": "pdf" },
+          { "name": "url", "type": "TEXT" },
+          { "name": "conteudo_base64", "type": "TEXT" },
+          { "name": "gerada_em", "type": "TIMESTAMPTZ", "default": "NOW()" }
+        ]
+      },
+      {
+        "name": "config_frete",
+        "description": "Configurações de frete por tenant",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "admin_id", "type": "TEXT", "unique": true, "not_null": true },
+          { "name": "remetente_nome", "type": "VARCHAR(200)" },
+          { "name": "remetente_cpf_cnpj", "type": "VARCHAR(20)" },
+          { "name": "remetente_cep", "type": "VARCHAR(10)" },
+          { "name": "frete_gratis_acima", "type": "DECIMAL(10,2)" },
+          { "name": "prazo_adicional_dias", "type": "INTEGER", "default": 0 },
+          { "name": "markup_padrao", "type": "DECIMAL(5,2)", "default": 0 },
+          { "name": "correios_usuario", "type": "VARCHAR(100)" },
+          { "name": "correios_senha", "type": "VARCHAR(100)" },
+          { "name": "jadlog_token", "type": "VARCHAR(200)" },
+          { "name": "loggi_api_key", "type": "VARCHAR(200)" },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" },
+          { "name": "updated_at", "type": "TIMESTAMPTZ", "default": "NOW()" }
+        ]
+      },
+      {
+        "name": "tabela_frete",
+        "description": "Tabelas de frete personalizadas",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "admin_id", "type": "TEXT", "not_null": true },
+          { "name": "nome", "type": "VARCHAR(100)", "not_null": true },
+          { "name": "tipo", "type": "VARCHAR(50)", "default": "peso" },
+          { "name": "ativo", "type": "BOOLEAN", "default": true },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" },
+          { "name": "updated_at", "type": "TIMESTAMPTZ", "default": "NOW()" }
+        ]
+      },
+      {
+        "name": "faixa_frete",
+        "description": "Faixas de frete para tabelas personalizadas",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "tabela_id", "type": "UUID", "foreign_key": "tabela_frete(id)" },
+          { "name": "cep_inicio", "type": "VARCHAR(10)" },
+          { "name": "cep_fim", "type": "VARCHAR(10)" },
+          { "name": "uf", "type": "VARCHAR(2)" },
+          { "name": "regiao", "type": "VARCHAR(50)" },
+          { "name": "peso_min", "type": "DECIMAL(10,3)", "default": 0 },
+          { "name": "peso_max", "type": "DECIMAL(10,3)" },
+          { "name": "valor_fixo", "type": "DECIMAL(10,2)" },
+          { "name": "valor_por_kg", "type": "DECIMAL(10,2)" },
+          { "name": "prazo_dias", "type": "INTEGER" },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" }
+        ]
+      },
+      {
+        "name": "gravacoes",
+        "description": "Gravações de reuniões via 100ms",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "reuniao_id", "type": "UUID", "not_null": true },
+          { "name": "tenant_id", "type": "TEXT", "not_null": true },
+          { "name": "room_id_100ms", "type": "TEXT" },
+          { "name": "session_id_100ms", "type": "TEXT" },
+          { "name": "recording_id_100ms", "type": "TEXT" },
+          { "name": "asset_id", "type": "TEXT" },
+          { "name": "status", "type": "TEXT", "default": "recording" },
+          { "name": "started_at", "type": "TIMESTAMPTZ", "default": "NOW()" },
+          { "name": "stopped_at", "type": "TIMESTAMPTZ" },
+          { "name": "duration", "type": "INTEGER" },
+          { "name": "file_url", "type": "TEXT" },
+          { "name": "file_size", "type": "INTEGER" },
+          { "name": "thumbnail_url", "type": "TEXT" },
+          { "name": "metadata", "type": "JSONB", "default": "{}" },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" },
+          { "name": "updated_at", "type": "TIMESTAMPTZ" }
+        ],
+        "indexes": ["idx_gravacoes_reuniao", "idx_gravacoes_tenant", "idx_gravacoes_status", "idx_gravacoes_room_id"]
+      },
+      {
+        "name": "reunioes",
+        "description": "Reuniões agendadas/realizadas",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "tenant_id", "type": "TEXT", "not_null": true },
+          { "name": "title", "type": "VARCHAR(255)" },
+          { "name": "description", "type": "TEXT" },
+          { "name": "room_id", "type": "TEXT" },
+          { "name": "scheduled_at", "type": "TIMESTAMPTZ" },
+          { "name": "started_at", "type": "TIMESTAMPTZ" },
+          { "name": "ended_at", "type": "TIMESTAMPTZ" },
+          { "name": "status", "type": "VARCHAR(50)", "default": "scheduled" },
+          { "name": "participants", "type": "JSONB" },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" },
+          { "name": "updated_at", "type": "TIMESTAMPTZ", "default": "NOW()" }
+        ]
+      },
+      {
+        "name": "formularios",
+        "description": "Formulários sincronizados do backend",
+        "fields": [
+          { "name": "id", "type": "UUID", "primary_key": true },
+          { "name": "title", "type": "VARCHAR(255)" },
+          { "name": "fields", "type": "JSONB" },
+          { "name": "settings", "type": "JSONB" },
+          { "name": "slug", "type": "VARCHAR(100)" },
+          { "name": "active", "type": "BOOLEAN", "default": true },
+          { "name": "created_at", "type": "TIMESTAMPTZ", "default": "NOW()" },
+          { "name": "updated_at", "type": "TIMESTAMPTZ", "default": "NOW()" }
+        ]
+      }
+    ],
+    "storage_buckets": [
+      {
+        "name": "product-images",
+        "description": "Imagens de produtos"
+      },
+      {
+        "name": "company-logos",
+        "description": "Logos das empresas para branding"
+      },
+      {
+        "name": "documents",
+        "description": "Documentos gerais (contratos, PDFs, etc)"
+      }
+    ]
+  },
+  "summary": {
+    "total_owner_tables": 9,
+    "total_tenant_tables": 55,
+    "storage_buckets": 3,
+    "modules": {
+      "revendedoras": ["revendedoras", "vendas_revendedora", "config_split", "sales_with_split", "resellers", "reseller_profiles", "reseller_stores", "product_requests", "withdrawals", "bank_accounts", "commission_splits"],
+      "produtos": ["products", "categories", "suppliers", "print_queue"],
+      "pagamentos": ["sales_with_split", "payment_links", "commission_config", "platform_settings"],
+      "assinatura_digital": ["contracts", "users", "signature_logs", "audit_trail", "face_verifications", "appearance_configs", "verification_configs", "contract_configs", "progress_tracker_configs", "reseller_welcome_configs", "app_promotion_configs", "assinatura_global_config", "assinatura_contracts", "assinatura_signature_logs", "global_appearance_settings"],
+      "envio_frete": ["transportadoras", "cotacoes_frete", "envios", "rastreamento_eventos", "etiquetas_envio", "config_frete", "tabela_frete", "faixa_frete"],
+      "reunioes": ["gravacoes", "reunioes"],
+      "formularios": ["forms", "form_templates", "form_submissions", "leads", "formularios"],
+      "workspace": ["workspace_pages", "workspace_boards", "workspace_databases"],
+      "gamificacao": ["gamification_badges", "gamification_challenges", "gamification_rewards", "gamification_config"],
+      "compliance": ["datacorp_checks", "compliance_audit_log"],
+      "integracao": ["integration_queue", "evolution_connections"],
+      "autenticacao": ["admins", "admin_supabase_credentials", "admin_branding", "sessoes", "logs_acesso", "sync_log"]
+    }
+  }
+}

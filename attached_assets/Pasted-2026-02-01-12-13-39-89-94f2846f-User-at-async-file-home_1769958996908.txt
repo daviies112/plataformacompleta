@@ -1,0 +1,156 @@
+2026-02-01 12:13:39.89
+94f2846f
+User
+at async file:///home/runner/workspace/dist/index.mjs:74329:26
+2026-02-01 12:13:39.89
+94f2846f
+User
+params: [],
+2026-02-01 12:13:44.76
+9344a30a
+User
+⚠️ JWT_SECRET não configurado - usando fallback seguro
+2026-02-01 12:13:44.82
+9344a30a
+User
+designed for a production environment, as it will leak
+2026-02-01 12:13:44.82
+9344a30a
+User
+Warning: connect.session() MemoryStore is not
+2026-02-01 12:13:44.82
+9344a30a
+User
+memory, and will not scale past a single process.
+2026-02-01 12:15:50.61
+9344a30a
+User
+details: null,
+2026-02-01 12:15:50.61
+9344a30a
+User
+❌ [MULTI-TENANT] Erro ao buscar dados para dev-daviemericko_gmail_com: {
+2026-02-01 12:15:50.61
+9344a30a
+User
+}
+2026-02-01 12:15:50.61
+9344a30a
+User
+message: "Could not find the table 'public.dashboard_completo_v5_base' in the schema cache"
+2026-02-01 12:15:50.61
+9344a30a
+User
+hint: "Perhaps you meant the table 'public.clientes_completos'",
+2026-02-01 12:15:50.61
+9344a30a
+User
+code: 'PGRST205',
+2026-02-01 12:15:51.51
+9344a30a
+User
+at async file:///home/runner/workspace/dist/index.mjs:74329:26
+2026-02-01 12:15:51.51
+9344a30a
+User
+at Socket.emit (node:events:536:35)
+2026-02-01 12:15:51.51
+9344a30a
+User
+at async file:///home/runner/workspace/dist/index.mjs:74336:22
+2026-02-01 12:15:51.51
+9344a30a
+User
+at file:///home/runner/workspace/dist/index.mjs:69034:15
+2026-02-01 12:15:51.51
+9344a30a
+User
+cause: Error: Connection terminated due to connection timeout
+2026-02-01 12:15:51.51
+9344a30a
+User
+at Object.onceWrapper (node:events:638:28)
+2026-02-01 12:15:51.51
+9344a30a
+User
+at async executeFormSubmissionSync (file:///home/runner/workspace/dist/index.mjs:1200348:20) {
+2026-02-01 12:15:51.51
+9344a30a
+User
+query: 'select "id", "tenant_id", "supabase_url", "supabase_anon_key", "supabase_bucket", "created_at", "updated_at" from "supabase_config"',
+2026-02-01 12:15:51.51
+9344a30a
+User
+at NodePgPreparedQuery.queryWithCache (file:///home/runner/workspace/dist/index.mjs:74033:19)
+2026-02-01 12:15:51.51
+9344a30a
+User
+at async file:///home/runner/workspace/dist/index.mjs:74329:26
+2026-02-01 12:15:51.51
+9344a30a
+User
+at async getAllSupabaseConfigs (file:///home/runner/workspace/dist/index.mjs:103443:21)
+2026-02-01 12:15:51.51
+9344a30a
+User
+at async pollFormSubmissions (file:///home/runner/workspace/dist/index.mjs:1199849:24)
+2026-02-01 12:15:51.51
+9344a30a
+User
+params:
+2026-02-01 12:15:51.51
+9344a30a
+User
+at async executeFormSubmissionSync (file:///home/runner/workspace/dist/index.mjs:1200348:20) {
+2026-02-01 12:15:51.51
+9344a30a
+User
+at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2026-02-01 12:15:51.51
+9344a30a
+User
+}
+2026-02-01 12:15:51.51
+9344a30a
+User
+at async NodePgPreparedQuery.queryWithCache (file:///home/runner/workspace/dist/index.mjs:74031:20)
+2026-02-01 12:15:51.51
+9344a30a
+User
+at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2026-02-01 12:15:51.51
+9344a30a
+User
+params: [],
+2026-02-01 12:15:51.51
+9344a30a
+User
+at Connection2. (file:///home/runner/workspace/dist/index.mjs:68569:79)
+2026-02-01 12:15:51.51
+9344a30a
+User
+at TCP. (node:net:343:12)
+2026-02-01 12:15:51.51
+9344a30a
+User
+at Socket. (file:///home/runner/workspace/dist/index.mjs:68024:17)
+2026-02-01 12:15:51.51
+9344a30a
+User
+}
+2026-02-01 12:15:51.51
+9344a30a
+User
+... 2 lines matching cause stack trace ...
+2026-02-01 12:15:51.51
+9344a30a
+User
+[cause]: Error: Connection terminated unexpectedly
+2026-02-01 12:15:51.51
+9344a30a
+User
+at Connection2.emit (node:events:524:28)
+2026-02-01 12:15:51.51
+9344a30a
+User
+❌ [SUPABASE] Erro ao buscar configs do banco: DrizzleQueryError: Failed query: select "id", "tenant_id", "supabase_url", "supabase_anon_key", "supabase_bucket", "created_at", "updated_at" from "supabase_config"

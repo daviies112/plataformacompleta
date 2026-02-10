@@ -1,0 +1,127 @@
+Jump to Content
+Pagar.me
+Guides
+Suporte
+API Reference
+Chaves de acesso
+
+Search
+CTRL-K
+Conhecendo o Pagar.me
+Bem-vindo ao Pagar.me!
+Quickstart Pagar.me
+Chaves de acesso
+Segurança na Integração
+IP Allowlist
+REGULATÓRIO
+Bandeiras
+
+Banco Central
+
+Facilitadores de pagamento (Dados de Subadquirente)
+
+Gestão de Clientes
+Carteira de Clientes
+Carteira de Cartões
+Card Updater
+Pagamentos
+Pedido
+Cobrança
+Multimeios
+Multicompradores
+Pedidos abertos
+Meios de pagamento
+
+Mais funcionalidades
+Cancelamento Garantido
+Retentativa
+Idempotência
+Token de Bandeira
+Manual de Integração 3DS
+
+tokenizecard.js
+Tokenizecard.js
+Checkout
+Checkout
+
+Shop
+Overview Shop
+Pedido no Shop
+
+Recorrência no Shop (venda digitada)
+Recorrências
+Overview Recorrência
+Assinaturas
+Planos
+Esquemas de precificação dos itens
+Faturas
+Marketplace
+Overview Marketplace
+Split
+Recebedores
+Simuladores
+O que é um simulador?
+
+Webhooks
+O que são?
+SDKs
+Bibliotecas
+HUB
+Overview HUB
+Lojista
+
+Parceiros
+Integrações Plataformas Pagar.me
+Plataformas Overview
+Magento 2 (Adobe Commerce)
+
+Shopify
+
+Vtex
+
+Nuvemshop
+
+Woocommerce
+
+Integrações Extras Pagar.me
+NFe.io
+Slack
+Doações
+Powered by 
+
+Chaves de acesso
+Suggest Edits
+Para usar todas rotas disponíveis em nossa API, você vai precisar de duas chaves. São elas a Chave Secreta e a Chave Pública.
+
+Obs.: as duas são encontradas em sua Dashboard, nas versões de PRODUÇÃO e TESTE, de acordo com o ambiente que você estiver usando.
+
+Isto é, se você abrir a Dashboard no modo de produção (live), as chaves mostradas serão somente as de produção, já se alternar para o modo de teste (test), as chaves mostradas servem apenas para fazer testes com a nossa API, sem gerar transações reais.
+
+Chave Secreta:
+
+Essa chave é a mais importante para o nosso sistema, pois ela funciona como uma forma de autenticação intransferível para a sua empresa. Ela é obrigatória para que a sua aplicação consiga criar transações, planos, transferências etc. É extremamente importante que você mantenha essa chave segura, dada a sua sensibilidade.
+
+Exemplo de chave secreta: sk_qrezZl4TrZFRb1Vx
+
+Chave Pública:
+
+Essa chave tem um nível de acesso menor do que o da Chave Secreta. Ela também serve como uma forma de autenticação, mas você pode usá-la apenas em operações como encriptação de dados.
+
+Exemplo de chave pública: pk_e7BkJ1dKsYtWQXWV
+
+🚧
+Ambiente de teste e produção
+
+Atenção! Operações feitas usando uma chave de teste não geram recebíveis reais. Se você quiser criar transações reais, é preciso usar uma chave de produção.
+
+❗️
+Chave de Casa
+
+Pense que sua chave de api, e de criptografia, são as chaves de sua casa. Você compartilharia a chave de sua casa com qualquer um?
+Mantenha suas chaves de api em sigilo, e não compartilhe com ninguém, são dados sensíveis aos quais apenas você deve ter acesso.
+
+Updated over 4 years ago
+
+Próximo
+IP Whitelist
+Did this page help you?

@@ -1,0 +1,159 @@
+Perfeito. Preparei um documento técnico funcional (uma Especificação) para esse módulo da sua plataforma.
+
+Este documento serve como guia para você (ou sua equipe de desenvolvimento) construir a tela de cadastro onde a revendedora coloca os dados dela, e o seu sistema cria a conta "invisível" dela no Pagar.me automaticamente.
+
+---
+
+# Especificação Técnica: Onboarding de Revendedoras (Split de Pagamentos)
+
+**Projeto:** Nexus Intelligence | **Módulo:** Financeiro / Configuração de Recebedores
+
+## 1. Objetivo
+
+Permitir que revendedoras e fábricas cadastrem seus dados bancários e fiscais diretamente na plataforma Nexus. O sistema deve processar esses dados e criar automaticamente um `recipient` (recebedor) na API do Pagar.me, eliminando a necessidade de cadastro manual no Dashboard.
+
+## 2. O Fluxo de Dados (User Journey)
+
+1. **Usuário (Revendedora):** Acessa "Configurações > Dados de Recebimento" na Nexus.
+2. **Usuário:** Preenche um formulário com dados pessoais e bancários.
+3. **Nexus (Back-end):** Valida os dados e envia uma requisição `POST /recipients` para o Pagar.me.
+4. **Pagar.me:** Valida a conta bancária e retorna um ID único (`re_...`).
+5. **Nexus (Banco de Dados):** Salva esse ID vinculado ao usuário da Nexus.
+
+---
+
+## 3. Estrutura do Formulário (Front-end)
+
+Estes são os campos **obrigatórios** que sua interface deve pedir ao usuário.
+
+### A. Dados Cadastrais
+
+Você deve permitir selecionar entre Pessoa Física (CPF) ou Jurídica (CNPJ).
+
+* **Tipo de Pessoa:** [ Física | Jurídica ]
+* **Nome Completo / Razão Social**
+* **Email** (Para notificações de pagamento)
+* **CPF / CNPJ**
+* **Descrição na Fatura:** (Ex: "Revendedora Nexus")
+* *(Se PJ)* **Dados do Sócio Principal:** Nome e CPF do responsável legal (Obrigatório para evitar aquele erro de "Managing Partners").
+
+### B. Dados Bancários
+
+A conta bancária deve pertencer ao mesmo CPF/CNPJ informado acima.
+
+* **Banco:** (Select Box com a lista de bancos brasileiros - Ex: 237 Bradesco, 001 BB, 260 Nubank)
+* **Agência:** (Número) + **Dígito** (se houver)
+* **Conta Corrente:** (Número) + **Dígito** (Obrigatório)
+* **Tipo de Conta:** [ Corrente | Poupança ]
+
+---
+
+## 4. Lógica de Integração (Back-end)
+
+Quando o usuário clicar em "Salvar", seu servidor deve montar o seguinte JSON para enviar ao Pagar.me.
+
+**Endpoint:** `POST https://api.pagar.me/core/v5/recipients`
+**Auth:** Basic Auth (Sua `sk_test` ou `sk_live`)
+
+### Cenário 1: Revendedora Pessoa Física (Mais simples)
+
+```json
+{
+  "name": "Nome da Revendedora",
+  "email": "email@revendedora.com",
+  "document": "12345678909", 
+  "type": "individual",
+  "default_bank_account": {
+    "holder_name": "Nome da Revendedora",
+    "holder_type": "individual",
+    "holder_document": "12345678909",
+    "bank": "260", 
+    "branch_number": "0001",
+    "branch_check_digit": "0", // Se não tiver, envie string vazia "" ou trate a regra do banco
+    "account_number": "123456",
+    "account_check_digit": "7",
+    "type": "checking"
+  },
+  "transfer_settings": {
+    "transfer_enabled": true,
+    "transfer_interval": "Daily", // Recebe todos os dias úteis
+    "transfer_day": 0
+  }
+}
+
+```
+
+### Cenário 2: Fábrica/Empresa (Pessoa Jurídica)
+
+*Atenção à regra de "Managing Partners" que deu erro no seu teste manual.*
+
+```json
+{
+  "name": "Fábrica de Joias LTDA",
+  "document": "12345678000199", // CNPJ
+  "type": "corporation", // MUDANÇA AQUI
+  "register_information": {
+    "type": "corporation",
+    "managing_partners": [ // OBRIGATÓRIO PARA CNPJ
+      {
+        "type": "individual",
+        "name": "Nome do Dono da Fábrica",
+        "document": "12345678900", // CPF do Dono
+        "mother_name": "Nome da Mãe do Dono",
+        "birthdate": "1980-01-01"
+      }
+    ]
+  },
+  "default_bank_account": { 
+     // ... Mesmos dados bancários, mas holder_type = "corporation"
+  },
+  // ... transfer_settings iguais
+}
+
+```
+
+---
+
+## 5. Persistência de Dados (Seu Banco de Dados)
+
+Isso é o mais importante. Você não precisa salvar os dados bancários sensíveis no seu banco (apenas os últimos 4 dígitos para exibição, se quiser). O que você **PRECISA** salvar é o retorno da API.
+
+Na tabela `users` ou `sellers` da Nexus, adicione a coluna:
+
+* **`pagarme_recipient_id`** (String/Varchar)
+
+**Fluxo de Salvamento:**
+
+1. API do Pagar.me responde: `HTTP 200 OK` com JSON `{ "id": "re_clx9382...", ... }`.
+2. Seu sistema executa: `UPDATE sellers SET pagarme_recipient_id = 're_clx9382...' WHERE id = X`.
+
+---
+
+## 6. Como isso se conecta com a Venda?
+
+Quando houver uma venda na sua plataforma, o seu código de checkout buscará esse ID que foi salvo automaticamente.
+
+**Exemplo de uso na transação:**
+
+```javascript
+// O sistema busca no banco quem é a revendedora dona desse pedido
+const revendedora = await db.sellers.findById(pedido.seller_id);
+
+// Cria a regra de split dinamicamente
+split_rules: [
+  {
+    recipient_id: revendedora.pagarme_recipient_id, // "re_clx9382..."
+    percentage: 20, // 20% de comissão
+    liable: true,
+    charge_processing_fee: true
+  }
+  // ... resto para a Nexus
+]
+
+```
+
+---
+
+### Próximo Passo para Implementar
+
+Esse documento te dá a visão completa da arquitetura. Para colocar a mão na massa, **você gostaria que eu criasse o modelo da Tabela do Banco de Dados (SQL) necessária para guardar essas informações?**

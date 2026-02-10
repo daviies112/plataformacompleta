@@ -1,0 +1,51 @@
+Atue como um Engenheiro Fullstack Sênior especialista em Node.js, Integração com 100ms (Video SDK) e Supabase.
+
+## Objetivo
+Implementar um sistema de "Check-in Automático" na nossa plataforma de reuniões. Precisamos que o sistema detecte quando um usuário entra na sala de reunião e atualize o banco de dados marcando que ele compareceu.
+
+## Contexto Atual
+1. Temos uma aplicação no Replit que cria reuniões usando a API da 100ms.
+2. Os dados das reuniões são salvos no Supabase na tabela `reunioes`.
+3. O Frontend renderiza a sala de vídeo personalizada.
+
+## Estrutura do Banco de Dados (Tabela: `reunioes`)
+- `id` (uuid, primary key)
+- `room_id_100ms` (string, ID da sala na 100ms - **Chave de busca**)
+- `compareceu` (boolean, default: false)
+- `status` (string)
+
+## O que precisa ser feito (Task List)
+
+### 1. Backend (API Route)
+Crie uma nova rota API (ex: `POST /api/reunioes/registrar-presenca`) que:
+- Receba o `room_id` (ou `room_id_100ms`) e opcionalmente o `usuario_id` ou `nome` no corpo da requisição.
+- Consulte o Supabase na tabela `reunioes`.
+- Atualize a coluna `compareceu` para `true` onde o `room_id_100ms` for igual ao recebido.
+- Retorne sucesso (200) ou erro.
+
+### 2. Frontend (Sala de Reunião - Integração SDK 100ms)
+No arquivo onde a lógica da sala de reunião é carregada (provavelmente onde os hooks do 100ms `useHMSActions` ou `selectIsConnectedToRoom` são usados):
+- Implemente um efeito (`useEffect`) ou listener que detecte o evento **ON_JOIN** (quando o usuário entra com sucesso na sala).
+- Assim que o usuário entrar, faça uma chamada `fetch` para a rota criada no passo 1.
+- Garanta que essa chamada aconteça apenas uma vez por sessão de usuário (para não spamar o banco).
+
+### Requisitos Técnicos
+- Use as variáveis de ambiente já configuradas para o Supabase Client.
+- O código deve ser resiliente: se a API falhar, o usuário não deve ser desconectado da reunião, apenas logue o erro no console.
+- Se possível, adicione um log no backend informando: "Usuário X marcou presença na sala Y".
+
+## Exemplo de Lógica Esperada (Frontend)
+```javascript
+// Exemplo conceitual usando React/SDK 100ms
+const isConnected = useHMSStore(selectIsConnectedToRoom);
+
+useEffect(() => {
+  if (isConnected) {
+    // Usuário acabou de entrar: Avisar Backend
+    fetch('/api/reunioes/registrar-presenca', {
+       method: 'POST',
+       body: JSON.stringify({ room_id: hmsRoomId }),
+       headers: { 'Content-Type': 'application/json'}
+    });
+  }
+}, [isConnected]);

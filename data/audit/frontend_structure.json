@@ -1,0 +1,783 @@
+{
+  "audit_info": {
+    "generated_at": "2026-01-27",
+    "platform": "ExecutiveAI Pro",
+    "description": "Comprehensive frontend structure audit documenting all modules, pages, components, hooks, and routes"
+  },
+  "modules": [
+    {
+      "name": "revendedora",
+      "description": "Plataforma de gestão de revendedoras com painel admin e área do revendedor",
+      "path": "src/features/revendedora",
+      "pages": {
+        "root": [
+          "Demo.tsx",
+          "Index.tsx",
+          "Login.tsx",
+          "NotFound.tsx"
+        ],
+        "admin": [
+          "Analytics.tsx",
+          "Branding.tsx",
+          "CommissionConfiguration.tsx",
+          "Commissions.tsx",
+          "Dashboard.tsx",
+          "EvolutionConfig.tsx",
+          "Gamification.tsx",
+          "Orders.tsx",
+          "ProductForm.tsx",
+          "ProductRequests.tsx",
+          "Products.tsx",
+          "ResellerDetails.tsx",
+          "Resellers.tsx",
+          "Settings.tsx",
+          "SplitTest.tsx"
+        ],
+        "public": [
+          "Checkout.tsx",
+          "OrderSuccess.tsx",
+          "ProductView.tsx",
+          "PublicCheckout.tsx",
+          "PublicStore.tsx",
+          "Storefront.tsx",
+          "TrackOrder.tsx"
+        ],
+        "reseller": [
+          "CreatePaymentLink.tsx",
+          "Dashboard.tsx",
+          "Financial.tsx",
+          "Gamification.tsx",
+          "PagarmePayment.tsx",
+          "PaymentCard.tsx",
+          "PaymentLinks.tsx",
+          "PaymentPix.tsx",
+          "Products.tsx",
+          "Sales.tsx",
+          "Settings.tsx",
+          "Store.tsx",
+          "Team.tsx",
+          "Withdrawals.tsx"
+        ]
+      },
+      "components": {
+        "root": [
+          "AppHeader.tsx",
+          "AppSidebar.tsx",
+          "BrandingLogoUploader.tsx",
+          "BrandingPreview.tsx",
+          "Cards.tsx",
+          "ColorPicker.tsx",
+          "ImageUploader.tsx",
+          "NavLink.tsx",
+          "NotificationBell.tsx",
+          "PagarmeCheckout.tsx",
+          "PaletteSuggestions.tsx"
+        ],
+        "chat": [
+          "ChatWidget.tsx"
+        ],
+        "financial": [
+          "BalanceCard.tsx",
+          "BankAccountForm.tsx",
+          "FutureBalanceList.tsx",
+          "ResellerBankSetup.tsx",
+          "WithdrawalModal.tsx"
+        ],
+        "gamification": [
+          "AchievementCard.tsx",
+          "AchievementsList.tsx",
+          "BadgeCard.tsx",
+          "ChallengeCard.tsx",
+          "DuolingoStyleAchievements.tsx",
+          "LeagueBadge.tsx",
+          "RankingList.tsx",
+          "StreakCounter.tsx",
+          "XPDisplay.tsx"
+        ],
+        "inventory": [
+          "BestSellingProducts.tsx",
+          "LowStockAlert.tsx",
+          "ProductEditModal.tsx",
+          "ProductInventorySettingsModal.tsx",
+          "StockForecastPanel.tsx"
+        ],
+        "modals": [
+          "ProductRequestModal.tsx",
+          "SellProductModal.tsx"
+        ],
+        "reseller": [
+          "ResellerProfileForm.tsx"
+        ],
+        "ui": ["accordion.tsx", "alert-dialog.tsx", "alert.tsx", "avatar.tsx", "badge.tsx", "button.tsx", "card.tsx", "checkbox.tsx", "collapsible.tsx", "dialog.tsx", "input.tsx", "label.tsx", "popover.tsx", "progress.tsx", "radio-group.tsx", "scroll-area.tsx"]
+      },
+      "hooks": [
+        "index.ts",
+        "use-mobile.tsx",
+        "use-toast.ts",
+        "useAchievements.ts",
+        "useBankAccounts.ts",
+        "useBranding.ts",
+        "useChat.ts",
+        "useCommissionConfig.ts",
+        "useCompanyBranding.ts",
+        "useFinancialSummary.ts",
+        "useGamification.ts",
+        "useNotifications.ts",
+        "usePagarme.ts",
+        "useResellerAlerts.ts",
+        "useResellerAnalytics.ts",
+        "useResellerProfile.ts",
+        "useWithdrawals.ts",
+        "useProductAnalytics.ts",
+        "useInventoryForecasting.ts"
+      ],
+      "layouts": [
+        "AdminLayout.tsx",
+        "ResellerLayout.tsx"
+      ],
+      "contexts": [
+        "CompanyContext.tsx",
+        "AdminSupabaseContext.tsx"
+      ],
+      "services": ["folder exists"],
+      "types": ["folder exists"],
+      "utils": ["folder exists"],
+      "integrations": ["supabase/"]
+    },
+    {
+      "name": "formularios-platform",
+      "description": "Plataforma de criação e gestão de formulários dinâmicos",
+      "path": "src/features/formularios-platform",
+      "pages": [
+        "Admin.tsx",
+        "Configuracoes.tsx",
+        "Dashboard.tsx",
+        "EditarFormulario.tsx",
+        "FormularioPublico.tsx",
+        "FormularioPublicoWrapper.tsx",
+        "FormularioRespostas.tsx",
+        "Index.tsx",
+        "NotFound.tsx",
+        "PreviewTemp.tsx",
+        "PublicForm.tsx",
+        "TrackedPublicForm.tsx",
+        "VerFormularios.tsx",
+        "VerPaginasFinal.tsx",
+        "WhatsApp.tsx"
+      ],
+      "components": {
+        "root": [
+          "AppLayout.tsx",
+          "AppSidebar.tsx",
+          "ElementCard.tsx",
+          "ElementToolbar.tsx",
+          "FormBuilder.tsx",
+          "FormBuilderWithDesign.tsx",
+          "FormLoader.tsx",
+          "FormPreview.tsx",
+          "FormularioLayout.tsx",
+          "HeadingEditor.tsx",
+          "HorizontalNav.tsx",
+          "LeadStatusBadge.tsx",
+          "MainHeader.tsx",
+          "PageBreakEditor.tsx",
+          "QuestionEditor.tsx",
+          "SimplifiedFormWizard.tsx",
+          "TextEditor.tsx"
+        ],
+        "design": [
+          "ColorPicker.tsx",
+          "CompletionPageCustomizer.tsx",
+          "CompletionPagePreview.tsx",
+          "DesignCustomizer.tsx",
+          "DragDropEditor.tsx",
+          "SortableElementItem.tsx",
+          "SortableQuestionItem.tsx",
+          "TemplateSelector.tsx"
+        ],
+        "submissions": [
+          "SubmissionCard.tsx",
+          "SubmissionStats.tsx"
+        ],
+        "ui": ["accordion.tsx", "alert-dialog.tsx", "alert.tsx", "aspect-ratio.tsx", "avatar.tsx", "badge.tsx", "breadcrumb.tsx", "button.tsx", "calendar.tsx", "card.tsx", "carousel.tsx", "chart.tsx", "checkbox.tsx", "collapsible.tsx", "command.tsx", "context-menu.tsx", "dialog.tsx", "drawer.tsx", "dropdown-menu.tsx", "form.tsx", "hover-card.tsx", "input-otp.tsx", "input.tsx"]
+      },
+      "hooks": [
+        "use-mobile.tsx",
+        "use-toast.ts",
+        "useCompanySlug.tsx",
+        "useLeadStatus.ts"
+      ],
+      "contexts": ["folder exists"],
+      "types": ["folder exists"],
+      "utils": ["folder exists"],
+      "integrations": ["supabase/"],
+      "submodules": {
+        "whatsapp-platform": {
+          "path": "src/features/formularios-platform/whatsapp-platform",
+          "pages": [
+            "Index.tsx",
+            "Settings.tsx"
+          ],
+          "components": ["folder exists"],
+          "contexts": ["folder exists"],
+          "hooks": ["folder exists"],
+          "lib": ["folder exists"]
+        }
+      }
+    },
+    {
+      "name": "produto",
+      "description": "Gestão de produtos, categorias, fornecedores e revendedores",
+      "path": "src/features/produto",
+      "pages": [
+        "ProdutoPage.tsx"
+      ],
+      "components": {
+        "Categories": [
+          "CategoryForm.tsx",
+          "CategoryList.tsx"
+        ],
+        "Layout": [
+          "BottomNav.tsx",
+          "Header.tsx",
+          "MobileHeader.tsx",
+          "Sidebar.tsx"
+        ],
+        "Mobile": [
+          "CategoryCard.tsx",
+          "Dashboard.tsx",
+          "FAB.tsx",
+          "MobileCategoryForm.tsx",
+          "MobileCategoryList.tsx",
+          "MobilePrintQueueList.tsx",
+          "MobileProductForm.tsx",
+          "MobileProductList.tsx",
+          "MobileResellerForm.tsx",
+          "MobileResellerList.tsx",
+          "MobileSupplierForm.tsx",
+          "MobileSupplierList.tsx",
+          "ProductCard.tsx",
+          "ProductCardSkeleton.tsx",
+          "ResellerCard.tsx",
+          "SupplierCard.tsx"
+        ],
+        "PrintQueue": [
+          "PrintQueueList.tsx"
+        ],
+        "Printer": [
+          "LabelConfigDialog.tsx",
+          "PrintLabelDialog.tsx",
+          "PrinterConfig.tsx"
+        ],
+        "Products": [
+          "ProductForm.tsx",
+          "ProductList.tsx"
+        ],
+        "Resellers": [
+          "ResellerForm.tsx",
+          "ResellerList.tsx"
+        ],
+        "Suppliers": [
+          "SupplierForm.tsx",
+          "SupplierList.tsx"
+        ],
+        "ui": ["accordion.tsx", "alert-dialog.tsx", "alert.tsx", "aspect-ratio.tsx", "avatar.tsx", "badge.tsx", "breadcrumb.tsx", "button.tsx", "calendar.tsx", "card.tsx", "carousel.tsx", "chart.tsx", "checkbox.tsx", "collapsible.tsx", "command.tsx", "context-menu.tsx", "dialog.tsx", "drawer.tsx"]
+      },
+      "hooks": [
+        "use-mobile.tsx",
+        "use-toast.ts",
+        "useCategories.ts",
+        "usePrintQueue.ts",
+        "useProducts.ts",
+        "useResellers.ts",
+        "useSuppliers.ts"
+      ],
+      "types": ["folder exists"],
+      "lib": ["folder exists"]
+    },
+    {
+      "name": "reuniao-platform",
+      "description": "Plataforma de videoconferência e agendamento de reuniões",
+      "path": "src/features/reuniao-platform",
+      "pages": [
+        "ReuniaoDashboardPage.tsx",
+        "ReuniaoHubPage.tsx"
+      ],
+      "components": [
+        "CalendarioPage.tsx",
+        "Meeting100ms.tsx",
+        "ReuniaoCard.tsx"
+      ],
+      "hooks": [
+        "useGravacoes.ts",
+        "useReuniao.ts"
+      ],
+      "modals": ["folder exists"],
+      "types": ["folder exists"]
+    },
+    {
+      "name": "kanban",
+      "description": "Sistema de gestão de leads em formato Kanban",
+      "path": "src/features/kanban",
+      "pages": [
+        "KanbanPage.tsx"
+      ],
+      "components": [
+        "AddLeadDialog.tsx",
+        "EditLeadDialog.tsx",
+        "KanbanColumn.tsx",
+        "LeadCard.tsx"
+      ]
+    },
+    {
+      "name": "whatsapp-platform",
+      "description": "Plataforma de atendimento via WhatsApp com gestão de conversas",
+      "path": "src/features/whatsapp-platform",
+      "pages": [
+        "WhatsAppPlatformPage.tsx"
+      ],
+      "components": [
+        "AudioDebugInfo.tsx",
+        "AudioPlayer.tsx",
+        "AudioRecorder.tsx",
+        "CPFComplianceBadge.tsx",
+        "ChatArea.tsx",
+        "ConversationItem.tsx",
+        "ConversationList.tsx",
+        "FormStatusBadge.tsx",
+        "Header.tsx",
+        "ImageViewer.tsx",
+        "LabelManager.tsx",
+        "LeadStatusLabel.tsx",
+        "MediaModal.tsx",
+        "MediaSender.tsx",
+        "MessageBubble.tsx",
+        "QRCodeDisplay.tsx",
+        "TagBadge.tsx",
+        "TagManager.tsx",
+        "TagSelector.tsx"
+      ],
+      "contexts": [
+        "LeadStatusContext.tsx"
+      ],
+      "lib": ["folder exists"]
+    },
+    {
+      "name": "executive-dashboard",
+      "description": "Dashboard executivo com métricas e relatórios",
+      "path": "src/features/executive-dashboard",
+      "pages": [
+        "ExecutiveDashboard.tsx"
+      ]
+    }
+  ],
+  "platforms": {
+    "description": "Estrutura de plataformas Desktop/Mobile/Reseller",
+    "path": "src/platforms",
+    "items": {
+      "desktop": {
+        "path": "src/platforms/desktop",
+        "entry": "DesktopApp.tsx",
+        "layouts": ["DesktopLayout.tsx"],
+        "pages": [
+          "BillingPage.tsx",
+          "CalendarPage.tsx",
+          "ClientConfigPage.tsx",
+          "ClientPage.tsx",
+          "FormularioPage.tsx",
+          "LoginPage.tsx",
+          "NotFoundPage.tsx",
+          "NotificationsPage.tsx",
+          "SettingsPage.tsx",
+          "WhatsAppPage.tsx",
+          "WorkspacePage.tsx"
+        ]
+      },
+      "mobile": {
+        "path": "src/platforms/mobile",
+        "entry": "MobileApp.tsx",
+        "layouts": ["MobileLayout.tsx"],
+        "pages": [
+          "BillingPage.tsx",
+          "CalendarPage.tsx",
+          "ClientConfigPage.tsx",
+          "ClientPage.tsx",
+          "FormularioPage.tsx",
+          "LoginPage.tsx",
+          "NotFoundPage.tsx",
+          "NotificationsPage.tsx",
+          "SettingsPage.tsx",
+          "WhatsAppPage.tsx",
+          "WorkspacePage.tsx"
+        ],
+        "components": {
+          "premium": [
+            "MobileButton.tsx",
+            "MobileCard.tsx",
+            "MobileInput.tsx",
+            "MobileSwitch.tsx"
+          ]
+        }
+      },
+      "reseller": {
+        "path": "src/platforms/reseller",
+        "entry": "ResellerApp.tsx",
+        "components": ["ResellerLayout.tsx"],
+        "hooks": ["useResellerAuth.tsx"],
+        "pages": [
+          "Catalog.tsx",
+          "Dashboard.tsx",
+          "Login.tsx",
+          "MySales.tsx",
+          "Settings.tsx"
+        ]
+      },
+      "shared": {
+        "path": "src/platforms/shared",
+        "components": ["PlatformIndicator.tsx"],
+        "hooks": ["usePlatform.tsx"],
+        "premium": [
+          "PremiumButton.tsx",
+          "PremiumCard.tsx",
+          "PremiumInput.tsx",
+          "PremiumSwitch.tsx"
+        ]
+      }
+    }
+  },
+  "main_pages": {
+    "description": "Páginas principais em src/pages/",
+    "path": "src/pages",
+    "pages": {
+      "root": [
+        "AssinaturaClientPage.tsx",
+        "AssinaturaPage.tsx",
+        "Billing.tsx",
+        "CalendarPage.tsx",
+        "Calendario.tsx",
+        "ClientConfigPage.tsx",
+        "ClientPage.tsx",
+        "Configuracoes.tsx",
+        "Dashboard.tsx",
+        "EvolutionQRCode.tsx",
+        "ExportData.tsx",
+        "Financeiro.tsx",
+        "Gravacoes.tsx",
+        "Index.tsx",
+        "Login.tsx",
+        "NotFound.tsx",
+        "NotificationTestPage.tsx",
+        "PublicBookingPage.tsx",
+        "PublicMeetingRoom.tsx",
+        "RecordingView.tsx",
+        "Reuniao.tsx",
+        "ReuniaoDashboard.tsx",
+        "ReuniaoPublica.tsx",
+        "RoomDesignSettings.tsx",
+        "Settings.tsx",
+        "SettingsPage.tsx",
+        "WorkspaceCalendarPage.tsx",
+        "consultar-cpf.tsx",
+        "historico-consultas.tsx",
+        "not-found.tsx"
+      ],
+      "admin": [
+        "Dashboard.tsx"
+      ],
+      "billing": [
+        "Attachments.tsx",
+        "BankAccountSetup.tsx",
+        "BankDashboard.tsx",
+        "Dashboard.tsx",
+        "Home.tsx",
+        "not-found.tsx"
+      ],
+      "envio": [
+        "EnvioCotacao.tsx",
+        "EnvioEnviar.tsx",
+        "EnvioList.tsx",
+        "EnvioNavigation.tsx",
+        "EnvioRastreamento.tsx",
+        "index.tsx"
+      ],
+      "notion": [
+        "Boards.tsx",
+        "BoardsWrapper.tsx",
+        "Home.tsx",
+        "NotionIndex.tsx",
+        "Templates.tsx"
+      ]
+    }
+  },
+  "main_components": {
+    "description": "Componentes principais em src/components/",
+    "categories": {
+      "layout": [
+        "Header.tsx",
+        "HeaderNavigation.tsx",
+        "Layout.tsx",
+        "MobileHeader.tsx",
+        "PageShell.tsx",
+        "Sidebar.tsx",
+        "BottomNav.tsx"
+      ],
+      "meeting": [
+        "Meeting100ms.tsx",
+        "MeetingHeader.tsx",
+        "MeetingLobby.tsx",
+        "InstantMeetingModal.tsx",
+        "ReuniaoCard.tsx"
+      ],
+      "billing": [
+        "BillingLayout.tsx",
+        "BillsTable.tsx",
+        "BankSelector.tsx",
+        "CategoryPieChart.tsx",
+        "InstallmentsBreakdown.tsx",
+        "MonthlyInvoiceCard.tsx",
+        "MonthlyProjectionsCard.tsx",
+        "MonthlySpendingBarChart.tsx",
+        "SpendingTrendAreaChart.tsx",
+        "SummaryCards.tsx",
+        "TransactionFilters.tsx",
+        "TransactionsTable.tsx",
+        "UpcomingPaymentsTimeline.tsx"
+      ],
+      "files": [
+        "AttachmentsFilters.tsx",
+        "AttachmentsList.tsx",
+        "FilesList.tsx",
+        "SupabaseFilesTable.tsx"
+      ],
+      "utilities": [
+        "CPFInput.tsx",
+        "Calendar.tsx",
+        "CustomPluggyConnect.tsx",
+        "DataCollectionProgress.tsx",
+        "ErrorBoundary.tsx",
+        "ImageUploader.tsx",
+        "InstallPWAButton.tsx",
+        "NotificationBell.tsx",
+        "NotificationSettings.tsx",
+        "PluggyModal.tsx",
+        "ProtectedRoute.tsx",
+        "RootRedirect.tsx",
+        "WalletBadge.tsx"
+      ],
+      "subfolders": [
+        "assinatura/",
+        "billing/",
+        "calendar/",
+        "compliance/",
+        "design/",
+        "gamification/",
+        "inventory/",
+        "kanban/",
+        "label-designer/",
+        "mobile/",
+        "notion/",
+        "process-details/",
+        "ui/"
+      ]
+    }
+  },
+  "main_hooks": {
+    "description": "Hooks principais em src/hooks/",
+    "hooks": {
+      "root": [
+        "index.ts",
+        "use-cpf-validation.ts",
+        "use-debounce.ts",
+        "use-mobile.tsx",
+        "use-rich-text.ts",
+        "use-toast.ts",
+        "use100ms.ts",
+        "useAttachments.ts",
+        "useAuth.ts",
+        "useBankAccounts.ts",
+        "useBankingData.ts",
+        "useBiometric.ts",
+        "useBookings.ts",
+        "useCachedData.ts",
+        "useChat.ts",
+        "useClientData.ts",
+        "useCommissionConfig.ts",
+        "useFiles.ts",
+        "useFinancialSummary.ts",
+        "useFormularios.ts",
+        "useGamification.ts",
+        "useInventoryForecasting.ts",
+        "useMeetingType.ts",
+        "useNotionData.ts",
+        "usePWAInstall.ts",
+        "usePrinter.ts",
+        "useProductAnalytics.ts",
+        "usePublicBooking.ts",
+        "useResellerAlerts.ts",
+        "useResellerAnalytics.ts",
+        "useResellerProfile.ts",
+        "useReuniao.ts",
+        "useSupabaseFiles.ts"
+      ],
+      "assinatura": [
+        "index.ts",
+        "useCamera.ts",
+        "useFaceAlignment.ts",
+        "useFaceDetection.ts",
+        "useImagePreprocessing.ts",
+        "useVerificationSession.ts",
+        "useVerificationStorage.ts"
+      ],
+      "billing": [
+        "use-mobile.tsx",
+        "use-toast.ts",
+        "useAttachments.ts",
+        "useBankingData.ts",
+        "useCachedData.ts",
+        "useFiles.ts",
+        "useSupabaseFiles.ts"
+      ]
+    }
+  },
+  "routes": {
+    "public_routes": [
+      { "path": "/", "component": "LoginPage/RootRedirect", "auth_required": false, "description": "Página inicial/Login" },
+      { "path": "/login", "component": "LoginPage", "auth_required": false, "description": "Página de login" },
+      { "path": "/reseller-login", "component": "ResellerLogin", "auth_required": false, "description": "Login de revendedores" },
+      { "path": "/assinar/:token", "component": "AssinaturaClientPage", "auth_required": false, "description": "Assinatura digital de contrato" },
+      { "path": "/f/:token", "component": "FormularioPublicoWrapper", "auth_required": false, "description": "Formulário público com token" },
+      { "path": "/form/:id", "component": "FormularioPublicoWrapper", "auth_required": false, "description": "Formulário público por ID" },
+      { "path": "/formulario/:slug/form/:id", "component": "FormularioPublicoWrapper", "auth_required": false, "description": "Formulário público com slug" },
+      { "path": "/:companySlug/form/:id", "component": "FormularioPublicoWrapper", "auth_required": false, "description": "Formulário público por empresa" },
+      { "path": "/reuniao/:id", "component": "ReuniaoPublica", "auth_required": false, "description": "Sala de reunião pública" },
+      { "path": "/reuniao-publica/:id", "component": "ReuniaoPublica", "auth_required": false, "description": "Sala de reunião pública (alternativa)" },
+      { "path": "/loja/:storeSlug", "component": "PublicStore", "auth_required": false, "description": "Loja pública do revendedor" },
+      { "path": "/checkout/:linkToken", "component": "PublicCheckout", "auth_required": false, "description": "Checkout público" }
+    ],
+    "protected_routes_main": [
+      { "path": "/formulario/*", "component": "FormularioPage", "auth_required": true, "description": "Plataforma de formulários" },
+      { "path": "/calendar", "component": "CalendarPage", "auth_required": true, "description": "Calendário" },
+      { "path": "/calendario", "component": "CalendarPage", "auth_required": true, "description": "Calendário (português)" },
+      { "path": "/workspace", "component": "WorkspacePage", "auth_required": true, "description": "Workspace principal" },
+      { "path": "/faturamento/*", "component": "BillingPage", "auth_required": true, "description": "Módulo de faturamento" },
+      { "path": "/financeiro", "component": "Financeiro", "auth_required": true, "description": "Gestão financeira/Wallet" },
+      { "path": "/settings", "component": "SettingsPage", "auth_required": true, "description": "Configurações" },
+      { "path": "/configuracoes", "component": "SettingsPage", "auth_required": true, "description": "Configurações (português)" },
+      { "path": "/config", "component": "ClientConfigPage", "auth_required": true, "description": "Configurações do cliente" },
+      { "path": "/notifications", "component": "NotificationsPage", "auth_required": true, "description": "Notificações" },
+      { "path": "/whatsapp", "component": "WhatsAppPage", "auth_required": true, "description": "Integração WhatsApp básica" },
+      { "path": "/whatsapp-platform", "component": "WhatsAppPlatformPage", "auth_required": true, "description": "Plataforma WhatsApp completa" },
+      { "path": "/produto", "component": "ProdutoPage", "auth_required": true, "description": "Gestão de produtos" },
+      { "path": "/kanban", "component": "KanbanPage", "auth_required": true, "description": "Kanban de leads" },
+      { "path": "/notion", "component": "NotionHomePage", "auth_required": true, "description": "Documentos estilo Notion" },
+      { "path": "/notion/boards", "component": "NotionBoardsPage", "auth_required": true, "description": "Quadros Notion" },
+      { "path": "/notion/templates", "component": "NotionTemplatesPage", "auth_required": true, "description": "Templates Notion" },
+      { "path": "/documentos", "component": "NotionHomePage", "auth_required": true, "description": "Documentos" },
+      { "path": "/reuniao", "component": "ReuniaoDashboard", "auth_required": true, "description": "Dashboard de reuniões" },
+      { "path": "/gravacoes", "component": "GravacoesPage", "auth_required": true, "description": "Gravações de reuniões" },
+      { "path": "/room-design", "component": "RoomDesignSettings", "auth_required": true, "description": "Design da sala de reunião" },
+      { "path": "/consultar-cpf", "component": "ConsultarCPFPage", "auth_required": true, "description": "Consulta de CPF" },
+      { "path": "/historico-consultas", "component": "HistoricoConsultasPage", "auth_required": true, "description": "Histórico de consultas CPF" },
+      { "path": "/export", "component": "ExportDataPage", "auth_required": true, "description": "Exportação de dados" },
+      { "path": "/assinatura", "component": "AssinaturaPage", "auth_required": true, "description": "Admin de assinaturas" }
+    ],
+    "vendas_routes": [
+      { "path": "/vendas", "component": "AdminDashboard", "auth_required": true, "description": "Dashboard de vendas" },
+      { "path": "/vendas/dashboard", "component": "AdminDashboard", "auth_required": true, "description": "Dashboard de vendas" },
+      { "path": "/vendas/products", "component": "AdminProducts", "auth_required": true, "description": "Produtos de vendas" },
+      { "path": "/vendas/orders", "component": "AdminOrders", "auth_required": true, "description": "Pedidos de vendas" },
+      { "path": "/vendas/resellers", "component": "AdminResellers", "auth_required": true, "description": "Revendedores" },
+      { "path": "/vendas/resellers/:id", "component": "AdminResellerDetails", "auth_required": true, "description": "Detalhes do revendedor" },
+      { "path": "/vendas/commissions", "component": "AdminCommissions", "auth_required": true, "description": "Comissões" },
+      { "path": "/vendas/commission-config", "component": "AdminCommissionConfiguration", "auth_required": true, "description": "Config de comissões" },
+      { "path": "/vendas/product-requests", "component": "AdminProductRequests", "auth_required": true, "description": "Solicitações de produtos" },
+      { "path": "/vendas/analytics", "component": "AdminAnalytics", "auth_required": true, "description": "Analytics de vendas" },
+      { "path": "/vendas/branding", "component": "AdminBranding", "auth_required": true, "description": "Branding/Marca" },
+      { "path": "/vendas/gamification", "component": "AdminGamification", "auth_required": true, "description": "Gamificação" },
+      { "path": "/vendas/settings", "component": "AdminSettings", "auth_required": true, "description": "Configurações vendas" },
+      { "path": "/vendas/dados-bancarios", "component": "BankAccountSetup", "auth_required": true, "description": "Dados bancários" }
+    ],
+    "produto_admin_routes": [
+      { "path": "/produto/admin/dashboard", "component": "AdminDashboard", "auth_required": true },
+      { "path": "/produto/admin/products", "component": "AdminProducts", "auth_required": true },
+      { "path": "/produto/admin/orders", "component": "AdminOrders", "auth_required": true },
+      { "path": "/produto/admin/resellers", "component": "AdminResellers", "auth_required": true },
+      { "path": "/produto/admin/resellers/:id", "component": "AdminResellerDetails", "auth_required": true },
+      { "path": "/produto/admin/commissions", "component": "AdminCommissions", "auth_required": true },
+      { "path": "/produto/admin/commission-config", "component": "AdminCommissionConfiguration", "auth_required": true },
+      { "path": "/produto/admin/product-requests", "component": "AdminProductRequests", "auth_required": true },
+      { "path": "/produto/admin/analytics", "component": "AdminAnalytics", "auth_required": true },
+      { "path": "/produto/admin/branding", "component": "AdminBranding", "auth_required": true },
+      { "path": "/produto/admin/gamification", "component": "AdminGamification", "auth_required": true },
+      { "path": "/produto/admin/settings", "component": "AdminSettings", "auth_required": true },
+      { "path": "/produto/admin/dados-bancarios", "component": "BankAccountSetup", "auth_required": true }
+    ],
+    "envio_routes": [
+      { "path": "/envio", "component": "EnvioCotacao", "auth_required": true, "description": "Cotação de envio" },
+      { "path": "/envio/enviar", "component": "EnvioEnviar", "auth_required": true, "description": "Realizar envio" },
+      { "path": "/envio/lista", "component": "EnvioList", "auth_required": true, "description": "Lista de envios" },
+      { "path": "/envio/rastreamento", "component": "EnvioRastreamento", "auth_required": true, "description": "Rastreamento" }
+    ],
+    "revendedora_routes": {
+      "public": [
+        { "path": "/revendedora", "component": "Navigate to /revendedora/login", "auth_required": false },
+        { "path": "/revendedora/login", "component": "Login", "auth_required": false },
+        { "path": "/revendedora/demo", "component": "Demo", "auth_required": false },
+        { "path": "/revendedora/checkout/:linkToken", "component": "Checkout", "auth_required": false },
+        { "path": "/revendedora/store/:storeSlug", "component": "Storefront", "auth_required": false },
+        { "path": "/revendedora/order-success/:orderId", "component": "OrderSuccess", "auth_required": false },
+        { "path": "/revendedora/track-order/:orderId", "component": "TrackOrder", "auth_required": false },
+        { "path": "/revendedora/produto/:productId", "component": "ProductView", "auth_required": false }
+      ],
+      "admin": [
+        { "path": "/revendedora/admin/dashboard", "component": "AdminDashboard", "auth_required": true },
+        { "path": "/revendedora/admin/resellers", "component": "AdminResellers", "auth_required": true },
+        { "path": "/revendedora/admin/resellers/:id", "component": "AdminResellerDetails", "auth_required": true },
+        { "path": "/revendedora/admin/products", "component": "AdminProducts", "auth_required": true },
+        { "path": "/revendedora/admin/orders", "component": "AdminOrders", "auth_required": true },
+        { "path": "/revendedora/admin/commissions", "component": "AdminCommissions", "auth_required": true },
+        { "path": "/revendedora/admin/commission-config", "component": "AdminCommissionConfiguration", "auth_required": true },
+        { "path": "/revendedora/admin/product-requests", "component": "AdminProductRequests", "auth_required": true },
+        { "path": "/revendedora/admin/settings", "component": "AdminSettings", "auth_required": true },
+        { "path": "/revendedora/admin/branding", "component": "AdminBranding", "auth_required": true },
+        { "path": "/revendedora/admin/gamification", "component": "AdminGamification", "auth_required": true },
+        { "path": "/revendedora/admin/split-test", "component": "AdminSplitTest", "auth_required": true }
+      ],
+      "reseller": [
+        { "path": "/revendedora/reseller/dashboard", "component": "ResellerDashboard", "auth_required": true },
+        { "path": "/revendedora/reseller/team", "component": "ResellerTeam", "auth_required": true },
+        { "path": "/revendedora/reseller/sales", "component": "ResellerSales", "auth_required": true },
+        { "path": "/revendedora/reseller/financial", "component": "ResellerFinancial", "auth_required": true },
+        { "path": "/revendedora/reseller/store", "component": "ResellerStore", "auth_required": true },
+        { "path": "/revendedora/reseller/checkout/:productId", "component": "ResellerPagarmePayment", "auth_required": true },
+        { "path": "/revendedora/reseller/payment/pix/:saleId", "component": "ResellerPaymentPix", "auth_required": true },
+        { "path": "/revendedora/reseller/payment/card/:saleId", "component": "ResellerPaymentCard", "auth_required": true },
+        { "path": "/revendedora/reseller/gamification", "component": "ResellerGamification", "auth_required": true },
+        { "path": "/revendedora/reseller/settings", "component": "ResellerSettings", "auth_required": true }
+      ]
+    }
+  },
+  "statistics": {
+    "total_modules": 7,
+    "total_pages_in_features": 62,
+    "total_pages_in_src_pages": 47,
+    "total_main_hooks": 47,
+    "total_routes": 85,
+    "platforms_supported": ["desktop", "mobile", "reseller"],
+    "main_functionalities": [
+      "Gestão de Revendedoras",
+      "Formulários Dinâmicos",
+      "Gestão de Produtos",
+      "Videoconferência (100ms)",
+      "Kanban de Leads",
+      "WhatsApp Business",
+      "Faturamento/Billing",
+      "Assinatura Digital",
+      "Envio/Logística",
+      "Documentos Notion-like",
+      "Gamificação",
+      "Consulta CPF",
+      "Calendário/Agendamento"
+    ]
+  }
+}

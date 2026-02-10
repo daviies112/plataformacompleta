@@ -1,0 +1,464 @@
+Implementação: Página de Dados Bancários (Empresa)
+Objetivo: Criar uma página onde a Empresa (Admin/Tenant) cadastra seus dados bancários para receber o Split de pagamentos via Pagar.me.
+
+1. Backend
+1.1 [ADD] Endpoint em server/routes/pagarmePayment.ts
+Adicione este endpoint ao arquivo pagarmePayment.ts:
+
+// =============================================================================
+// ONBOARDING DE EMPRESA (Criar Recebedor Empresa no Pagar.me)
+// =============================================================================
+router.post('/onboarding-empresa', authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    if (req.session?.userRole === 'reseller') {
+      return res.status(403).json({ error: 'Acesso restrito a administradores' });
+    }
+    const adminId = req.user?.tenantId || req.session?.tenantId || req.session?.userId;
+    if (!adminId) return res.status(401).json({ error: 'Não autenticado' });
+    if (!SUPABASE_CONFIGURED || !supabaseOwner) return res.status(503).json({ error: 'Sistema não configurado' });
+    const {
+      razaoSocial,
+      cnpj,
+      bancoCode,
+      agencia,
+      agenciaDv,
+      conta,
+      contaDv,
+      tipoConta,
+    } = req.body;
+    // Validação básica
+    if (!razaoSocial || !cnpj || !bancoCode || !agencia || !conta) {
+      return res.status(400).json({ error: 'Dados bancários incompletos' });
+    }
+    const client = await getPlatformPagarmeClient();
+    // Criar Recebedor (Empresa) no Pagar.me
+    const recipient = await client.recipients.create({
+      transfer_enabled: true,
+      transfer_interval: 'daily',
+      transfer_day: 0,
+      anticipatable_volume_percentage: 0,
+      bank_account: {
+        bank_code: bancoCode,
+        agencia: agencia,
+        agencia_dv: agenciaDv || null,
+        conta: conta,
+        conta_dv: contaDv || null,
+        type: tipoConta || 'conta_corrente',
+        document_number: cnpj.replace(/\D/g, ''),
+        legal_name: razaoSocial,
+      },
+    });
+    // Salvar no banco de dados
+    const { error: dbError } = await supabaseOwner
+      .from('config_pagamento')
+      .upsert({
+        admin_id: adminId,
+        pagarme_recipient_id: recipient.id,
+      }, { onConflict: 'admin_id' });
+    if (dbError) {
+      console.error('Erro ao salvar recipient_id:', dbError);
+    }
+    res.json({
+      success: true,
+      recipientId: recipient.id,
+      message: 'Dados bancários cadastrados com sucesso!',
+    });
+  } catch (error: any) {
+    console.error('Erro onboarding empresa Pagar.me:', error);
+    
+    // Tratar erros comuns do Pagar.me
+    if (error.response?.errors) {
+      const erros = error.response.errors.map((e: any) => e.message).join(', ');
+      return res.status(400).json({ error: `Erro Pagar.me: ${erros}` });
+    }
+    
+    res.status(500).json({ error: error.message || 'Erro ao cadastrar dados bancários' });
+  }
+});
+// GET /api/pagarme/empresa-status - Verificar se empresa tem recebedor configurado
+router.get('/empresa-status', authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    const adminId = req.user?.tenantId || req.session?.tenantId || req.session?.userId;
+    if (!adminId) return res.status(401).json({ error: 'Não autenticado' });
+    if (!SUPABASE_CONFIGURED || !supabaseOwner) return res.status(503).json({ error: 'Sistema não configurado' });
+    const { data: config } = await supabaseOwner
+      .from('config_pagamento')
+      .select('pagarme_recipient_id, taxa_plataforma_percentual')
+      .eq('admin_id', adminId)
+      .single();
+    if (!config?.pagarme_recipient_id) {
+      return res.json({ configured: false });
+    }
+    // Opcional: buscar detalhes do recebedor no Pagar.me
+    let recipientDetails = null;
+    try {
+      const client = await getPlatformPagarmeClient();
+      recipientDetails = await client.recipients.find({ id: config.pagarme_recipient_id });
+    } catch (e) {
+      console.warn('Não foi possível buscar detalhes do recebedor:', e);
+    }
+    res.json({
+      configured: true,
+      recipientId: config.pagarme_recipient_id,
+      taxaPlataforma: config.taxa_plataforma_percentual,
+      bankAccount: recipientDetails?.bank_account ? {
+        banco: recipientDetails.bank_account.bank_code,
+        agencia: recipientDetails.bank_account.agencia,
+        conta: `****${recipientDetails.bank_account.conta?.slice(-4) || ''}`,
+        tipo: recipientDetails.bank_account.type,
+      } : null,
+    });
+  } catch (error: any) {
+    console.error('Erro ao verificar status empresa:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+2. Frontend
+2.1 [NEW] src/features/revendedora/pages/admin/BankAccountSetup.tsx
+import { useEffect, useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Building2, CreditCard, CheckCircle2, Loader2, AlertCircle, RefreshCw, Banknote } from 'lucide-react';
+import { toast } from 'sonner';
+// Lista dos principais bancos brasileiros
+const BANCOS = [
+  { code: '001', name: 'Banco do Brasil' },
+  { code: '033', name: 'Santander' },
+  { code: '104', name: 'Caixa Econômica Federal' },
+  { code: '237', name: 'Bradesco' },
+  { code: '341', name: 'Itaú Unibanco' },
+  { code: '260', name: 'Nubank' },
+  { code: '077', name: 'Inter' },
+  { code: '336', name: 'C6 Bank' },
+  { code: '212', name: 'Banco Original' },
+  { code: '290', name: 'PagBank' },
+  { code: '380', name: 'PicPay' },
+  { code: '756', name: 'Sicoob' },
+  { code: '748', name: 'Sicredi' },
+  { code: '422', name: 'Safra' },
+  { code: '070', name: 'BRB' },
+  { code: '394', name: 'Banco BMG' },
+  { code: '029', name: 'Banco Itaú Consignado' },
+  { code: '655', name: 'Neon' },
+  { code: '323', name: 'Mercado Pago' },
+];
+interface EmpresaStatus {
+  configured: boolean;
+  recipientId?: string;
+  taxaPlataforma?: number;
+  bankAccount?: {
+    banco: string;
+    agencia: string;
+    conta: string;
+    tipo: string;
+  };
+}
+export default function BankAccountSetup() {
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [status, setStatus] = useState<EmpresaStatus | null>(null);
+  // Form state
+  const [razaoSocial, setRazaoSocial] = useState('');
+  const [cnpj, setCnpj] = useState('');
+  const [bancoCode, setBancoCode] = useState('');
+  const [agencia, setAgencia] = useState('');
+  const [agenciaDv, setAgenciaDv] = useState('');
+  const [conta, setConta] = useState('');
+  const [contaDv, setContaDv] = useState('');
+  const [tipoConta, setTipoConta] = useState('conta_corrente');
+  useEffect(() => {
+    checkStatus();
+  }, []);
+  const checkStatus = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('/api/pagarme/empresa-status', {
+        credentials: 'include',
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setStatus(data);
+      }
+    } catch (error) {
+      console.error('Erro ao verificar status:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  const formatCNPJ = (value: string) => {
+    return value
+      .replace(/\D/g, '')
+      .replace(/^(\d{2})(\d)/, '$1.$2')
+      .replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3')
+      .replace(/\.(\d{3})(\d)/, '.$1/$2')
+      .replace(/(\d{4})(\d)/, '$1-$2')
+      .slice(0, 18);
+  };
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!razaoSocial || !cnpj || !bancoCode || !agencia || !conta) {
+      toast.error('Preencha todos os campos obrigatórios');
+      return;
+    }
+    setSaving(true);
+    try {
+      const response = await fetch('/api/pagarme/onboarding-empresa', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          razaoSocial,
+          cnpj: cnpj.replace(/\D/g, ''),
+          bancoCode,
+          agencia,
+          agenciaDv: agenciaDv || null,
+          conta,
+          contaDv: contaDv || null,
+          tipoConta,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro ao cadastrar');
+      }
+      toast.success('Dados bancários cadastrados com sucesso!');
+      checkStatus(); // Recarregar status
+    } catch (error: any) {
+      toast.error(error.message || 'Erro ao cadastrar dados bancários');
+    } finally {
+      setSaving(false);
+    }
+  };
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+  return (
+    <div className="container max-w-3xl py-6 space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
+          <Building2 className="h-8 w-8" />
+          Dados Bancários da Empresa
+        </h1>
+        <p className="text-muted-foreground">
+          Configure sua conta bancária para receber os pagamentos do Split automaticamente
+        </p>
+      </div>
+      {/* Status Card (se já configurado) */}
+      {status?.configured && (
+        <Alert className="border-green-500 bg-green-50 dark:bg-green-950">
+          <CheckCircle2 className="h-5 w-5 text-green-600" />
+          <AlertTitle className="text-green-800 dark:text-green-200">Conta Bancária Configurada</AlertTitle>
+          <AlertDescription className="text-green-700 dark:text-green-300">
+            <div className="mt-2 space-y-1">
+              <p><strong>Banco:</strong> {BANCOS.find(b => b.code === status.bankAccount?.banco)?.name || status.bankAccount?.banco}</p>
+              <p><strong>Agência:</strong> {status.bankAccount?.agencia}</p>
+              <p><strong>Conta:</strong> {status.bankAccount?.conta}</p>
+              <p><strong>Tipo:</strong> {status.bankAccount?.tipo === 'conta_corrente' ? 'Conta Corrente' : 'Conta Poupança'}</p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="mt-4"
+              onClick={() => setStatus({ ...status, configured: false })}
+            >
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Alterar Dados Bancários
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+      {/* Formulário (se não configurado ou alterando) */}
+      {!status?.configured && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Banknote className="h-5 w-5" />
+              Cadastrar Conta Bancária
+            </CardTitle>
+            <CardDescription>
+              Informe os dados da conta bancária PJ para receber os valores das vendas.
+              A conta deve estar no mesmo CNPJ da empresa.
+            </CardDescription>
+          </CardHeader>
+          
+          <form onSubmit={handleSubmit}>
+            <CardContent className="space-y-6">
+              {/* Dados da Empresa */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold border-b pb-2">Dados da Empresa</h3>
+                
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="razaoSocial">Razão Social *</Label>
+                    <Input
+                      id="razaoSocial"
+                      placeholder="Nome completo da empresa"
+                      value={razaoSocial}
+                      onChange={(e) => setRazaoSocial(e.target.value)}
+                      required
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="cnpj">CNPJ *</Label>
+                    <Input
+                      id="cnpj"
+                      placeholder="00.000.000/0000-00"
+                      value={cnpj}
+                      onChange={(e) => setCnpj(formatCNPJ(e.target.value))}
+                      maxLength={18}
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+              {/* Dados Bancários */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold border-b pb-2">Dados Bancários</h3>
+                
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2 sm:col-span-2">
+                    <Label htmlFor="banco">Banco *</Label>
+                    <Select value={bancoCode} onValueChange={setBancoCode} required>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o banco" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {BANCOS.map((banco) => (
+                          <SelectItem key={banco.code} value={banco.code}>
+                            {banco.code} - {banco.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="tipoConta">Tipo de Conta *</Label>
+                    <Select value={tipoConta} onValueChange={setTipoConta}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="conta_corrente">Conta Corrente</SelectItem>
+                        <SelectItem value="conta_poupanca">Conta Poupança</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="agencia">Agência *</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="agencia"
+                        placeholder="0000"
+                        value={agencia}
+                        onChange={(e) => setAgencia(e.target.value.replace(/\D/g, '').slice(0, 5))}
+                        className="flex-1"
+                        required
+                      />
+                      <Input
+                        placeholder="DV"
+                        value={agenciaDv}
+                        onChange={(e) => setAgenciaDv(e.target.value.slice(0, 1))}
+                        className="w-16"
+                        maxLength={1}
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">Dígito verificador é opcional</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="conta">Conta *</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="conta"
+                        placeholder="00000000"
+                        value={conta}
+                        onChange={(e) => setConta(e.target.value.replace(/\D/g, '').slice(0, 13))}
+                        className="flex-1"
+                        required
+                      />
+                      <Input
+                        placeholder="DV"
+                        value={contaDv}
+                        onChange={(e) => setContaDv(e.target.value.slice(0, 2))}
+                        className="w-16"
+                        maxLength={2}
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">Informe o dígito verificador separado</p>
+                  </div>
+                </div>
+              </div>
+              {/* Aviso */}
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Importante</AlertTitle>
+                <AlertDescription>
+                  A conta bancária deve ser <strong>Pessoa Jurídica (PJ)</strong> e estar no mesmo CNPJ informado acima.
+                  Contas de pessoa física não são aceitas para recebimento de Split.
+                </AlertDescription>
+              </Alert>
+            </CardContent>
+            <CardFooter>
+              <Button type="submit" disabled={saving} className="w-full sm:w-auto">
+                {saving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Salvando...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="mr-2 h-4 w-4" />
+                    Salvar Dados Bancários
+                  </>
+                )}
+              </Button>
+            </CardFooter>
+          </form>
+        </Card>
+      )}
+      {/* Informações Adicionais */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Como funciona o recebimento?</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm text-muted-foreground">
+          <p>
+            <strong>1. Split Automático:</strong> Quando uma venda é realizada, o valor é automaticamente dividido entre você (Empresa), a Revendedora e a Taxa da Plataforma.
+          </p>
+          <p>
+            <strong>2. Transferência Diária:</strong> O Pagar.me faz transferências diárias para sua conta bancária cadastrada.
+          </p>
+          <p>
+            <strong>3. Prazo:</strong> O valor fica disponível para saque após D+15 (15 dias úteis) por padrão, podendo ser antecipado com taxas.
+          </p>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+3. Rota no Router
+Adicione a rota no arquivo de rotas:
+
+import BankAccountSetup from './pages/admin/BankAccountSetup';
+// Dentro das rotas do admin:
+{
+  path: 'bank-account',
+  element: <BankAccountSetup />,
+},
+4. Verificação
+Acesse /admin/bank-account
+Preencha os dados da empresa e bancários
+Clique em "Salvar Dados Bancários"
+Verifique no Dashboard do Pagar.me se o recebedor foi criado
+Atualize a página e confirme que mostra "Conta Bancária Configurada"

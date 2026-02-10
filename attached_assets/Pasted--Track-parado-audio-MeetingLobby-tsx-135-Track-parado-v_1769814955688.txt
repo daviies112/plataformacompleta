@@ -1,0 +1,82 @@
+✅ Track parado: audio
+MeetingLobby.tsx:135 ✅ Track parado: video
+ReuniaoPublica.tsx:145 [ReuniaoPublica] Usuário público - usando endpoint público para role guest
+ReuniaoPublica.tsx:258 [ReuniaoPublica] Renderizando Meeting100ms com: Object
+Meeting100ms.tsx:783 [Meeting100ms] Mostrando tela de conexão. isJoining: true isConnected: false
+Meeting100ms.tsx:175 [Meeting100ms] 🔧 Ativando logs de debug do SDK 100ms...
+Meeting100ms.tsx:180 [Meeting100ms] ✅ Log level setado para debug
+Meeting100ms.tsx:189 [Meeting100ms] 📊 Room state atualizado: Object
+Meeting100ms.tsx:396 [Meeting100ms] 🎬 Iniciando processo de join...
+Meeting100ms.tsx:332 [Meeting100ms] 🚀 Tentativa 1 de entrar na sala...
+Meeting100ms.tsx:333 [Meeting100ms] Token válido: eyJhbGciOiJIUzI1NiIsInR5cCI6Ik...
+Meeting100ms.tsx:334 [Meeting100ms] userName: Davi Emerick
+Meeting100ms.tsx:335 [Meeting100ms] roomId: 697d23f758b83c59b56c5a26
+Meeting100ms.tsx:355 [Meeting100ms] Chamando hmsActions.join()...
+Meeting100ms.tsx:409 [Meeting100ms] 🔍 Estado de conexão atualizado: Object
+Meeting100ms.tsx:707 [Meeting100ms] 🔄 Estado atual: Object
+Meeting100ms.tsx:783 [Meeting100ms] Mostrando tela de conexão. isJoining: true isConnected: false
+Meeting100ms.tsx:189 [Meeting100ms] 📊 Room state atualizado: Object
+Meeting100ms.tsx:707 [Meeting100ms] 🔄 Estado atual: Object
+/api/100ms/recording/697d23f758b83c59b56c5a26:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+Meeting100ms.tsx:783 [Meeting100ms] Mostrando tela de conexão. isJoining: true isConnected: false
+Meeting100ms.tsx:189 [Meeting100ms] 📊 Room state atualizado: Object
+Meeting100ms.tsx:707 [Meeting100ms] 🔄 Estado atual: Object
+Meeting100ms.tsx:783 [Meeting100ms] Mostrando tela de conexão. isJoining: true isConnected: true
+Meeting100ms.tsx:189 [Meeting100ms] 📊 Room state atualizado: Object
+Meeting100ms.tsx:409 [Meeting100ms] 🔍 Estado de conexão atualizado: Object
+Meeting100ms.tsx:412 [Meeting100ms] ✅ CONEXÃO CONFIRMADA! Removendo spinner de loading...
+Meeting100ms.tsx:431 [Meeting100ms] 📋 Registrando presença automática na sala: 697d23f758b83c59b56c5a26
+Meeting100ms.tsx:707 [Meeting100ms] 🔄 Estado atual: Object
+Meeting100ms.tsx:409 [Meeting100ms] 🔍 Estado de conexão atualizado: Object
+Meeting100ms.tsx:422 [Meeting100ms] 👥 Conexão estável com 1 participante(s)
+Meeting100ms.tsx:707 [Meeting100ms] 🔄 Estado atual: Object
+Meeting100ms.tsx:189 [Meeting100ms] 📊 Room state atualizado: Object
+Meeting100ms.tsx:707 [Meeting100ms] 🔄 Estado atual: Object
+/api/public/reunioes/registrar-presenca:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+Meeting100ms.tsx:456 [Meeting100ms] ⚠️ Falha ao registrar presença: Endpoint não encontrado
+(anonymous) @ Meeting100ms.tsx:456Understand this warning
+Meeting100ms.tsx:189 [Meeting100ms] 📊 Room state atualizado: Object
+Meeting100ms.tsx:255 [Meeting100ms] 🔔 Notificação recebida: TRACK_ADDED Object
+Meeting100ms.tsx:409 [Meeting100ms] 🔍 Estado de conexão atualizado: Object
+Meeting100ms.tsx:422 [Meeting100ms] 👥 Conexão estável com 1 participante(s)
+Meeting100ms.tsx:707 [Meeting100ms] 🔄 Estado atual: Object
+Meeting100ms.tsx:368 [Meeting100ms] ✅ join() resolveu com sucesso!
+Meeting100ms.tsx:189 [Meeting100ms] 📊 Room state atualizado: Object
+Meeting100ms.tsx:255 [Meeting100ms] 🔔 Notificação recebida: TRACK_ADDED Object
+Meeting100ms.tsx:409 [Meeting100ms] 🔍 Estado de conexão atualizado: Object
+Meeting100ms.tsx:422 [Meeting100ms] 👥 Conexão estável com 1 participante(s)
+Meeting100ms.tsx:707 [Meeting100ms] 🔄 Estado atual: Object
+Meeting100ms.tsx:372 [Meeting100ms] 📊 Estado 2s após join - verificando conexão...
+Meeting100ms.tsx:189 [Meeting100ms] 📊 Room state atualizado: Object
+Meeting100ms.tsx:707 [Meeting100ms] 🔄 Estado atual: Object
+Meeting100ms.tsx:189 [Meeting100ms] 📊 Room state atualizado: Object
+Meeting100ms.tsx:255 [Meeting100ms] 🔔 Notificação recebida: PEER_JOINED Object
+Meeting100ms.tsx:291 [Meeting100ms] 👤 Peer entrou: Gleice Emerick
+Meeting100ms.tsx:409 [Meeting100ms] 🔍 Estado de conexão atualizado: Object
+Meeting100ms.tsx:422 [Meeting100ms] 👥 Conexão estável com 2 participante(s)
+Meeting100ms.tsx:707 [Meeting100ms] 🔄 Estado atual: Object
+Meeting100ms.tsx:189 [Meeting100ms] 📊 Room state atualizado: Object
+Meeting100ms.tsx:255 [Meeting100ms] 🔔 Notificação recebida: TRACK_ADDED Object
+Meeting100ms.tsx:409 [Meeting100ms] 🔍 Estado de conexão atualizado: Object
+Meeting100ms.tsx:422 [Meeting100ms] 👥 Conexão estável com 2 participante(s)
+Meeting100ms.tsx:707 [Meeting100ms] 🔄 Estado atual: Object
+Meeting100ms.tsx:189 [Meeting100ms] 📊 Room state atualizado: Object
+Meeting100ms.tsx:707 [Meeting100ms] 🔄 Estado atual: Object
+Meeting100ms.tsx:988 [Meeting100ms] Click Assinar Contrato
+Meeting100ms.tsx:1005 [Meeting100ms] Meeting ID extraído da URL: 6dc1a06c-fa1e-42a5-857a-c4e189f092bb
+Meeting100ms.tsx:1029 [Meeting100ms] Dados do participante: Object tenantId: null formSubmissionId: undefined
+Meeting100ms.tsx:189 [Meeting100ms] 📊 Room state atualizado: Object
+Meeting100ms.tsx:255 [Meeting100ms] 🔔 Notificação recebida: TRACK_ADDED Object
+Meeting100ms.tsx:409 [Meeting100ms] 🔍 Estado de conexão atualizado: Object
+Meeting100ms.tsx:422 [Meeting100ms] 👥 Conexão estável com 2 participante(s)
+Meeting100ms.tsx:707 [Meeting100ms] 🔄 Estado atual: Object
+/api/assinatura/public/contracts/from-meeting:1  Failed to load resource: the server responded with a status of 400 (Bad Request)Understand this error
+Meeting100ms.tsx:1068 [Meeting100ms] Erro ao criar contrato: Error: Campo obrigatório ausente
+    at onClick (Meeting100ms.tsx:1048:35)
+onClick @ Meeting100ms.tsx:1068Understand this error
+Meeting100ms.tsx:988 [Meeting100ms] Click Assinar Contrato
+Meeting100ms.tsx:1005 [Meeting100ms] Meeting ID extraído da URL: 6dc1a06c-fa1e-42a5-857a-c4e189f092bb
+Meeting100ms.tsx:1029 [Meeting100ms] Dados do participante: Object tenantId: null formSubmissionId: undefined
+/api/assinatura/public/contracts/from-meeting:1  Failed to load resource: the server responded with a status of 400 (Bad Request)Understand this error
+Meeting100ms.tsx:1068 [Meeting100ms] Erro ao criar contrato: Error: Campo obrigatório ausente
+    at onClick (Meeting100ms.tsx:1048:35)

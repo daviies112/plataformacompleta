@@ -1,0 +1,691 @@
+# 📋 DOCUMENTAÇÃO COMPLETA: Sistema de Transcrição de Reuniões 100ms + n8n
+
+## 🎯 VISÃO GERAL DO SISTEMA
+
+Este documento explica a integração completa entre sua plataforma Replit e o n8n para transcrição automática de reuniões usando 100ms.
+
+### Fluxo Completo
+```
+1. Usuário agenda reunião → Sala 100ms criada → Dados salvos no Supabase
+2. Usuário inicia reunião → Replit notifica n8n → n8n inicia transcrição HLS (sem gravar)
+3. Usuário finaliza reunião → Replit notifica n8n → n8n busca transcrição → IA cria documento → Envia WhatsApp + Email
+```
+
+---
+
+## 📊 ARQUITETURA DO WORKFLOW N8N
+
+### Webhook 1: Reunião Iniciada
+- **URL**: `https://seu-n8n.com/webhook/100ms-reuniao-iniciada`
+- **Método**: POST
+- **Payload esperado**:
+```json
+{
+  "room_id": "693ab777dab2ac6aa54f1f86",
+  "nome": "João Silva",
+  "email": "joao.silva@exemplo.com",
+  "telefone": "5511999999999",
+  "data_inicio": "2025-01-15T14:00:00-03:00"
+}
+```
+- **Ação**: Inicia stream HLS na 100ms para transcrição ao vivo (não usa minutos de gravação)
+
+### Webhook 2: Reunião Finalizada
+- **URL**: `https://seu-n8n.com/webhook/100ms-reuniao-finalizada`
+- **Método**: POST
+- **Payload esperado**:
+```json
+{
+  "room_id": "693ab777dab2ac6aa54f1f86",
+  "data_fim": "2025-01-15T15:00:00-03:00"
+}
+```
+- **Ação**: Busca transcrição, gera documento estratégico com IA, salva no Supabase, envia WhatsApp e Email
+
+---
+
+## 🔧 CONFIGURAÇÃO DO N8N
+
+### 1. Importar o workflow
+1. Copie o JSON do workflow
+2. No n8n: Menu → Import from File/URL → Cole o JSON
+3. Clique em "Import"
+
+### 2. Configurar variáveis de ambiente
+No n8n, vá em **Settings → Environment Variables** e adicione:
+
+```bash
+HMS_MANAGEMENT_TOKEN=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE3NjUzMTQzNDEsImV4cCI6MTc2NTkxOTE0MSwianRpIjoiOGJmOTQ2OTUtY2Y3Zi00OWJjLThlOWQtNzY2M2Q3YTk0MjQ0IiwidHlwZSI6Im1hbmFnZW1lbnQiLCJ2ZXJzaW9uIjoyLCJuYmYiOjE3NjUzMTQzNDEsImFjY2Vzc19rZXkiOiI2OTM4OGVlYmJkMGRhYjVmOWEwMTRiZGUifQ.o8WpTPWahcyNYf4B7JySb7HPAsAQIr_kSaDLLgoiyrE
+```
+
+### 3. Corrigir node "Iniciar Stream HLS (Sem Gravar)1"
+Substitua o token hardcoded por:
+```json
+{
+  "name": "Authorization",
+  "value": "Bearer {{ $env.HMS_MANAGEMENT_TOKEN }}"
+}
+```
+
+### 4. Corrigir node "Enviar WhatsApp3"
+Alterar referência de:
+```
+{{ $('Criar Documento Estratégico (IA)').item.json.output }}
+```
+Para:
+```
+{{ $('Criar Documento Estratégico (IA)3').item.json.output }}
+```
+
+### 5. Adicionar operation no node "Salvar no Supabase3"
+Adicionar no início do `parameters`:
+```json
+"operation": "create"
+```
+
+### 6. Configurar credenciais
+- **Supabase**: Já configurado (ID: huldkk2UMf07U3qF)
+- **Evolution API**: Já configurado (ID: A8lJVGUjAAR1ZRfV)
+- **Gmail**: Configurar OAuth2
+- **OpenAI**: Já configurado (ID: ponpo6Y785vToiRe)
+- **Postgres**: Já configurado (ID: Z3Nn16v5g0rVof99)
+
+### 7. Ativar o workflow
+1. Clique no botão "Inactive" → "Active"
+2. Copie as URLs dos webhooks (clique nos nodes de webhook)
+
+---
+
+## 💻 CÓDIGO PARA O REPLIT
+
+### Passo 1: Adicionar variáveis de ambiente no Replit
+
+No Replit, vá em **Secrets** (ícone de cadeado) e adicione:
+
+```bash
+# URLs dos webhooks do n8n
+N8N_WEBHOOK_REUNIAO_INICIADA=https://seu-n8n.com/webhook/100ms-reuniao-iniciada
+N8N_WEBHOOK_REUNIAO_FINALIZADA=https://seu-n8n.com/webhook/100ms-reuniao-finalizada
+
+# 100ms credentials (se ainda não tiver)
+HMS_APP_ACCESS_KEY=seu_access_key
+HMS_APP_SECRET=seu_app_secret
+HMS_MANAGEMENT_TOKEN=seu_management_token
+HMS_TEMPLATE_ID=69388f230...26e62efcd
+```
+
+### Passo 2: Criar serviço de notificação (Replit)
+
+Crie o arquivo: `server/services/n8nNotifications.js`
+
+```javascript
+// server/services/n8nNotifications.js
+
+/**
+ * Serviço para notificar o n8n sobre eventos de reunião
+ */
+
+const fetch = require('node-fetch');
+
+/**
+ * Notifica o n8n quando uma reunião é iniciada
+ * @param {Object} dadosReuniao - Dados da reunião
+ * @param {string} dadosReuniao.room_id - ID da sala 100ms
+ * @param {string} dadosReuniao.nome - Nome do participante
+ * @param {string} dadosReuniao.email - Email do participante
+ * @param {string} dadosReuniao.telefone - Telefone do participante (formato: 5511999999999)
+ */
+async function notificarReuniaoIniciada(dadosReuniao) {
+  try {
+    const webhookUrl = process.env.N8N_WEBHOOK_REUNIAO_INICIADA;
+    
+    if (!webhookUrl) {
+      throw new Error('N8N_WEBHOOK_REUNIAO_INICIADA não configurado');
+    }
+
+    const payload = {
+      room_id: dadosReuniao.room_id,
+      nome: dadosReuniao.nome,
+      email: dadosReuniao.email,
+      telefone: dadosReuniao.telefone,
+      data_inicio: new Date().toISOString()
+    };
+
+    console.log('📤 Notificando n8n - Reunião iniciada:', payload);
+
+    const response = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      throw new Error(`Erro ao notificar n8n: ${response.status} ${response.statusText}`);
+    }
+
+    const result = await response.json();
+    console.log('✅ n8n notificado com sucesso - Reunião iniciada');
+    return result;
+
+  } catch (error) {
+    console.error('❌ Erro ao notificar reunião iniciada:', error);
+    throw error;
+  }
+}
+
+/**
+ * Notifica o n8n quando uma reunião é finalizada
+ * @param {string} roomId - ID da sala 100ms
+ */
+async function notificarReuniaoFinalizada(roomId) {
+  try {
+    const webhookUrl = process.env.N8N_WEBHOOK_REUNIAO_FINALIZADA;
+    
+    if (!webhookUrl) {
+      throw new Error('N8N_WEBHOOK_REUNIAO_FINALIZADA não configurado');
+    }
+
+    const payload = {
+      room_id: roomId,
+      data_fim: new Date().toISOString()
+    };
+
+    console.log('📤 Notificando n8n - Reunião finalizada:', payload);
+
+    const response = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      throw new Error(`Erro ao notificar n8n: ${response.status} ${response.statusText}`);
+    }
+
+    const result = await response.json();
+    console.log('✅ n8n notificado com sucesso - Reunião finalizada');
+    return result;
+
+  } catch (error) {
+    console.error('❌ Erro ao notificar reunião finalizada:', error);
+    throw error;
+  }
+}
+
+module.exports = {
+  notificarReuniaoIniciada,
+  notificarReuniaoFinalizada
+};
+```
+
+### Passo 3: Criar rotas para webhooks da 100ms (Replit)
+
+Crie o arquivo: `server/routes/100msWebhooks.js`
+
+```javascript
+// server/routes/100msWebhooks.js
+
+/**
+ * Rotas para receber webhooks da 100ms
+ * Documentação: https://www.100ms.live/docs/server-side/v2/features/webhooks
+ */
+
+const express = require('express');
+const router = express.Router();
+const { notificarReuniaoIniciada, notificarReuniaoFinalizada } = require('../services/n8nNotifications');
+const { createClient } = require('@supabase/supabase-js');
+
+// Inicializar Supabase
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_KEY
+);
+
+/**
+ * Webhook da 100ms para eventos de sala
+ * A 100ms chama este endpoint quando:
+ * - Alguém entra na sala (peer.join.success)
+ * - Alguém sai da sala (peer.leave.success)
+ * - A sala é criada ou encerrada
+ */
+router.post('/100ms-events', async (req, res) => {
+  try {
+    const event = req.body;
+    
+    console.log('📥 Webhook 100ms recebido:', event.type);
+
+    // Evento: Primeiro participante entrou na sala
+    if (event.type === 'peer.join.success') {
+      const { room_id, peer } = event.data;
+
+      // Verificar se é o primeiro participante (inicia a reunião)
+      const { data: sala, error } = await supabase
+        .from('reunioes')
+        .select('*')
+        .eq('room_id', room_id)
+        .single();
+
+      if (error) {
+        console.error('Erro ao buscar sala:', error);
+        return res.status(500).json({ error: error.message });
+      }
+
+      if (!sala) {
+        return res.status(404).json({ error: 'Sala não encontrada' });
+      }
+
+      // Notificar n8n para iniciar transcrição
+      await notificarReuniaoIniciada({
+        room_id: room_id,
+        nome: sala.nome,
+        email: sala.email,
+        telefone: sala.telefone
+      });
+
+      // Atualizar status da reunião para "em_andamento"
+      await supabase
+        .from('reunioes')
+        .update({ status: 'em_andamento' })
+        .eq('room_id', room_id);
+    }
+
+    // Evento: Último participante saiu da sala
+    if (event.type === 'peer.leave.success') {
+      const { room_id, peer } = event.data;
+
+      // Verificar quantos participantes ainda estão na sala
+      // Se for 0, finalizar a reunião
+      const { data: peers, error } = await fetch(
+        `https://api.100ms.live/v2/active-rooms/${room_id}/peers`,
+        {
+          headers: {
+            'Authorization': `Bearer ${process.env.HMS_MANAGEMENT_TOKEN}`
+          }
+        }
+      ).then(r => r.json());
+
+      if (peers && peers.length === 0) {
+        // Todos saíram, finalizar reunião
+        await notificarReuniaoFinalizada(room_id);
+
+        // Atualizar status da reunião para "concluida"
+        await supabase
+          .from('reunioes')
+          .update({ 
+            status: 'concluida',
+            data_fim: new Date().toISOString()
+          })
+          .eq('room_id', room_id);
+      }
+    }
+
+    res.json({ success: true });
+
+  } catch (error) {
+    console.error('Erro ao processar webhook 100ms:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * Endpoint manual para iniciar transcrição
+ * Usado se a 100ms não tiver webhooks configurados
+ */
+router.post('/iniciar-transcricao', async (req, res) => {
+  try {
+    const { room_id } = req.body;
+
+    if (!room_id) {
+      return res.status(400).json({ error: 'room_id é obrigatório' });
+    }
+
+    // Buscar dados da reunião no Supabase
+    const { data: reuniao, error } = await supabase
+      .from('reunioes')
+      .select('*')
+      .eq('room_id', room_id)
+      .single();
+
+    if (error || !reuniao) {
+      return res.status(404).json({ error: 'Reunião não encontrada' });
+    }
+
+    // Notificar n8n
+    await notificarReuniaoIniciada({
+      room_id: room_id,
+      nome: reuniao.nome,
+      email: reuniao.email,
+      telefone: reuniao.telefone
+    });
+
+    res.json({ success: true, message: 'Transcrição iniciada' });
+
+  } catch (error) {
+    console.error('Erro ao iniciar transcrição:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * Endpoint manual para finalizar e transcrever reunião
+ */
+router.post('/finalizar-transcricao', async (req, res) => {
+  try {
+    const { room_id } = req.body;
+
+    if (!room_id) {
+      return res.status(400).json({ error: 'room_id é obrigatório' });
+    }
+
+    // Notificar n8n
+    await notificarReuniaoFinalizada(room_id);
+
+    // Atualizar status no Supabase
+    await supabase
+      .from('reunioes')
+      .update({ 
+        status: 'concluida',
+        data_fim: new Date().toISOString()
+      })
+      .eq('room_id', room_id);
+
+    res.json({ success: true, message: 'Reunião finalizada, transcrição em processamento' });
+
+  } catch (error) {
+    console.error('Erro ao finalizar transcrição:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+module.exports = router;
+```
+
+### Passo 4: Registrar as rotas no servidor (Replit)
+
+Edite o arquivo: `server/index.js` (ou `server.js`)
+
+```javascript
+// server/index.js
+
+const express = require('express');
+const app = express();
+
+// ... suas configurações existentes ...
+
+// Middleware para parsing de JSON
+app.use(express.json());
+
+// Importar e usar as rotas de webhooks 100ms
+const webhooks100ms = require('./routes/100msWebhooks');
+app.use('/api/webhooks', webhooks100ms);
+
+// ... suas outras rotas ...
+
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, () => {
+  console.log(`✅ Servidor rodando na porta ${PORT}`);
+});
+```
+
+### Passo 5: Frontend - Botões para iniciar/finalizar transcrição
+
+Adicione botões na interface da reunião: `src/pages/ReuniaoPage.jsx` (ou similar)
+
+```jsx
+// src/pages/ReuniaoPage.jsx
+
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+
+export default function ReuniaoPage() {
+  const [roomId, setRoomId] = useState(null);
+  const [transcricaoIniciada, setTranscricaoIniciada] = useState(false);
+
+  // Quando a reunião iniciar (primeiro participante entrar)
+  const handleReuniaoIniciada = async () => {
+    try {
+      const response = await fetch('/api/webhooks/iniciar-transcricao', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ room_id: roomId })
+      });
+
+      if (response.ok) {
+        setTranscricaoIniciada(true);
+        console.log('✅ Transcrição iniciada');
+      }
+    } catch (error) {
+      console.error('Erro ao iniciar transcrição:', error);
+    }
+  };
+
+  // Quando a reunião finalizar
+  const handleReuniaoFinalizada = async () => {
+    try {
+      const response = await fetch('/api/webhooks/finalizar-transcricao', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ room_id: roomId })
+      });
+
+      if (response.ok) {
+        console.log('✅ Reunião finalizada, documento sendo gerado...');
+        alert('Reunião finalizada! Você receberá o documento estratégico por WhatsApp e Email em alguns minutos.');
+      }
+    } catch (error) {
+      console.error('Erro ao finalizar reunião:', error);
+    }
+  };
+
+  return (
+    <div>
+      {/* Sua interface de reunião aqui */}
+      
+      <div className="meeting-controls">
+        {!transcricaoIniciada && (
+          <Button onClick={handleReuniaoIniciada}>
+            🎙️ Iniciar Transcrição
+          </Button>
+        )}
+        
+        {transcricaoIniciada && (
+          <Button onClick={handleReuniaoFinalizada} variant="destructive">
+            ⏹️ Finalizar Reunião e Gerar Documento
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
+```
+
+---
+
+## 🔐 CONFIGURAÇÃO DE SECRETS NO REPLIT
+
+### Como adicionar secrets no Replit:
+
+1. Abra seu projeto no Replit
+2. Clique no ícone de **cadeado** (🔒) na barra lateral esquerda ou vá em "Tools → Secrets"
+3. Adicione cada secret clicando em "New Secret"
+
+### Secrets necessários:
+
+```bash
+# n8n Webhooks
+N8N_WEBHOOK_REUNIAO_INICIADA=https://seu-n8n.com/webhook/100ms-reuniao-iniciada
+N8N_WEBHOOK_REUNIAO_FINALIZADA=https://seu-n8n.com/webhook/100ms-reuniao-finalizada
+
+# 100ms API
+HMS_APP_ACCESS_KEY=seu_access_key_aqui
+HMS_APP_SECRET=seu_app_secret_aqui
+HMS_MANAGEMENT_TOKEN=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...
+HMS_TEMPLATE_ID=69388f230...26e62efcd
+
+# Supabase
+SUPABASE_URL=https://seu-projeto.supabase.co
+SUPABASE_KEY=sua_chave_publica_aqui
+```
+
+### Como obter as URLs dos webhooks do n8n:
+
+1. No n8n, abra o workflow
+2. Clique no node "Webhook - Reunião Iniciada1"
+3. Clique em "Test URL" ou "Production URL"
+4. Copie a URL completa (ex: `https://seu-n8n.com/webhook/100ms-reuniao-iniciada`)
+5. Repita para "Webhook - Reunião Finalizada1"
+
+---
+
+## 🤖 PROMPT PARA O REPLIT AGENT
+
+Copie e cole este prompt no Replit Agent:
+
+```
+# TAREFA: Implementar sistema de transcrição de reuniões 100ms + n8n
+
+## OBJETIVO
+Criar integração entre a plataforma e o n8n para transcrição automática de reuniões usando 100ms.
+
+## ARQUIVOS A CRIAR
+
+### 1. server/services/n8nNotifications.js
+Criar serviço para notificar o n8n quando:
+- Uma reunião é iniciada (notificarReuniaoIniciada)
+- Uma reunião é finalizada (notificarReuniaoFinalizada)
+
+Usar as variáveis de ambiente:
+- N8N_WEBHOOK_REUNIAO_INICIADA
+- N8N_WEBHOOK_REUNIAO_FINALIZADA
+
+### 2. server/routes/100msWebhooks.js
+Criar rotas para:
+- POST /api/webhooks/100ms-events (recebe webhooks da 100ms)
+- POST /api/webhooks/iniciar-transcricao (endpoint manual)
+- POST /api/webhooks/finalizar-transcricao (endpoint manual)
+
+### 3. Atualizar server/index.js
+Registrar as rotas de webhooks:
+```javascript
+const webhooks100ms = require('./routes/100msWebhooks');
+app.use('/api/webhooks', webhooks100ms);
+```
+
+### 4. Atualizar a página de reunião (frontend)
+Adicionar botões para:
+- Iniciar transcrição (quando a reunião começar)
+- Finalizar reunião (quando terminar)
+
+## SECRETS NECESSÁRIOS
+O Replit já deve ter estes secrets configurados:
+- N8N_WEBHOOK_REUNIAO_INICIADA
+- N8N_WEBHOOK_REUNIAO_FINALIZADA
+- HMS_MANAGEMENT_TOKEN
+- SUPABASE_URL
+- SUPABASE_KEY
+
+## FLUXO ESPERADO
+1. Usuário entra na reunião → Clica em "Iniciar Transcrição"
+2. Backend chama webhook do n8n para iniciar HLS stream
+3. Usuário finaliza reunião → Clica em "Finalizar Reunião"
+4. Backend chama webhook do n8n para processar transcrição
+5. n8n gera documento estratégico e envia por WhatsApp e Email
+
+## INSTALAR DEPENDÊNCIAS
+```bash
+npm install node-fetch @supabase/supabase-js
+```
+
+## IMPORTANTE
+- Usar try/catch em todas as chamadas de API
+- Adicionar logs detalhados com console.log
+- Validar que os secrets existem antes de usar
+- Retornar respostas JSON apropriadas
+```
+
+---
+
+## ✅ CHECKLIST DE IMPLEMENTAÇÃO
+
+### n8n:
+- [ ] Workflow importado no n8n
+- [ ] `HMS_MANAGEMENT_TOKEN` configurado nas variáveis de ambiente
+- [ ] Token hardcoded substituído por variável de ambiente
+- [ ] Referência do node WhatsApp corrigida
+- [ ] Operation "create" adicionado no Supabase
+- [ ] Gmail OAuth2 configurado
+- [ ] Workflow ativado
+- [ ] URLs dos webhooks copiadas
+
+### Replit:
+- [ ] Secrets configurados (N8N_WEBHOOK_REUNIAO_INICIADA, N8N_WEBHOOK_REUNIAO_FINALIZADA)
+- [ ] Arquivo `server/services/n8nNotifications.js` criado
+- [ ] Arquivo `server/routes/100msWebhooks.js` criado
+- [ ] Rotas registradas em `server/index.js`
+- [ ] Dependências instaladas (`node-fetch`, `@supabase/supabase-js`)
+- [ ] Frontend atualizado com botões de transcrição
+- [ ] Servidor reiniciado
+
+### Testes:
+- [ ] Testar endpoint manual `/api/webhooks/iniciar-transcricao`
+- [ ] Testar endpoint manual `/api/webhooks/finalizar-transcricao`
+- [ ] Testar fluxo completo: agendar → iniciar → finalizar reunião
+- [ ] Verificar se WhatsApp e Email foram enviados
+- [ ] Verificar dados salvos no Supabase (tabela `transcricoes`)
+
+---
+
+## 🧪 COMO TESTAR
+
+### Teste 1: Endpoint manual (Postman/Insomnia)
+
+**Iniciar transcrição:**
+```bash
+POST https://seu-replit.repl.co/api/webhooks/iniciar-transcricao
+Content-Type: application/json
+
+{
+  "room_id": "693ab777dab2ac6aa54f1f86"
+}
+```
+
+**Finalizar transcrição:**
+```bash
+POST https://seu-replit.repl.co/api/webhooks/finalizar-transcricao
+Content-Type: application/json
+
+{
+  "room_id": "693ab777dab2ac6aa54f1f86"
+}
+```
+
+### Teste 2: Fluxo completo na plataforma
+
+1. Agende uma reunião na plataforma
+2. Entre na sala (abra o link da reunião)
+3. Clique em "Iniciar Transcrição"
+4. Fale algo durante a reunião (será transcrito)
+5. Clique em "Finalizar Reunião e Gerar Documento"
+6. Aguarde alguns minutos
+7. Verifique:
+   - WhatsApp recebido
+   - Email recebido
+   - Dados na tabela `transcricoes` do Supabase
+
+---
+
+## 🎯 BENEFÍCIOS DA SOLUÇÃO
+
+- ✅ **Sem custos de gravação**: Usa transcrição ao vivo (HLS) em vez de gravação (300 minutos grátis vs 10.000 minutos grátis)
+- ✅ **Documento profissional**: IA cria documento estratégico estruturado automaticamente
+- ✅ **Notificações automáticas**: WhatsApp + Email enviados automaticamente
+- ✅ **Histórico completo**: Todas as transcrições salvas no Supabase
+- ✅ **Escalável**: Suporta multi-tenancy e múltiplas reuniões simultâneas
+
+---
+
+Se precisar de ajuda com alguma etapa específica, me avise!

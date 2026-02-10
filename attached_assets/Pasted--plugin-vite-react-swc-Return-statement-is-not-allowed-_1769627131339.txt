@@ -1,0 +1,775 @@
+[plugin:vite:react-swc] × Return statement is not allowed here
+     ╭─[/home/runner/workspace/src/components/compliance/process-details-modal.tsx:195:1]
+ 192 │     }
+ 193 │   }, [processData, collectionsPayload, basicDataPayload, isCompleteConsultation, hasDebt, payload]);
+ 194 │ 
+ 195 │   if (!check) return null;
+     ·               ────────────
+ 196 │ 
+ 197 │   const formatDate = (dateStr?: string) => {
+ 198 │     if (!dateStr) return 'N/A';
+     ╰────
+  × Return statement is not allowed here
+     ╭─[/home/runner/workspace/src/components/compliance/process-details-modal.tsx:218:1]
+ 215 │         }
+ 216 │       };
+ 217 │     
+ 218 │ ╭─▶   return (
+ 219 │ │       <Dialog open={open} onOpenChange={onOpenChange}>
+ 220 │ │         <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+ 221 │ │           <DialogHeader>
+ 222 │ │             <div className="flex items-start justify-between gap-4">
+ 223 │ │               <div className="flex-1">
+ 224 │ │                 <DialogTitle>Detalhes da Consulta de Processos Judiciais</DialogTitle>
+ 225 │ │                 <DialogDescription>
+ 226 │ │                   Informações completas retornadas pela API Bigdatacorp
+ 227 │ │                 </DialogDescription>
+ 228 │ │               </div>
+ 229 │ │               <Button
+ 230 │ │                 onClick={handleDownload}
+ 231 │ │                 variant="outline"
+ 232 │ │                 size="sm"
+ 233 │ │                 className="gap-2"
+ 234 │ │                 disabled={isDownloading}
+ 235 │ │                 data-testid="button-download-check"
+ 236 │ │               >
+ 237 │ │                 {isDownloading ? (
+ 238 │ │                   <Loader2 className="h-4 w-4 animate-spin" />
+ 239 │ │                 ) : (
+ 240 │ │                   <FileText className="h-4 w-4" />
+ 241 │ │                 )}
+ 242 │ │                 {isDownloading ? 'Gerando PDF...' : 'Baixar PDF'}
+ 243 │ │               </Button>
+ 244 │ │             </div>
+ 245 │ │           </DialogHeader>
+ 246 │ │           
+ 247 │ │           <div className="space-y-6">
+ 248 │ │             {/* Score Universal - Início do Popup conforme solicitado */}
+ 249 │ │             <ScoreGauge score={universalScore} />
+ 250 │ │   
+ 251 │ │             {/* Informações da Consulta */}
+ 252 │ │             {(queryId || elapsedMs || queryDate || matchKeys) && (
+ 253 │ │               <Card className="bg-zinc-900 border-zinc-700">
+ 254 │ │                 <CardHeader>
+ 255 │ │                   <CardTitle className="text-base text-zinc-100">Informações da Consulta (API Bigdatacorp)</CardTitle>
+ 256 │ │                 </CardHeader>
+ 257 │ │                 <CardContent>
+ 258 │ │                   <div className="grid grid-cols-2 gap-4 text-sm">
+ 259 │ │                     {queryId && (
+ 260 │ │                       <div>
+ 261 │ │                         <p className="text-zinc-400">Query ID</p>
+ 262 │ │                         <p className="font-mono text-xs text-zinc-100">{queryId}</p>
+ 263 │ │                       </div>
+ 264 │ │                     )}
+ 265 │ │                     {queryDate && (
+ 266 │ │                       <div>
+ 267 │ │                         <p className="text-zinc-400">Data da Consulta</p>
+ 268 │ │                         <p className="font-medium text-zinc-100">{formatDate(queryDate)}</p>
+ 269 │ │                       </div>
+ 270 │ │                     )}
+ 271 │ │                     {elapsedMs !== undefined && (
+ 272 │ │                       <div>
+ 273 │ │                         <p className="text-zinc-400">Tempo de Resposta</p>
+ 274 │ │                         <p className="font-medium text-zinc-100">{elapsedMs}ms</p>
+ 275 │ │                       </div>
+ 276 │ │                     )}
+ 277 │ │                     {matchKeys && (
+ 278 │ │                       <div>
+ 279 │ │                         <p className="text-zinc-400">Match Keys</p>
+ 280 │ │                         <p className="font-mono text-xs text-zinc-100">{matchKeys}</p>
+ 281 │ │                       </div>
+ 282 │ │                     )}
+ 283 │ │                     {statusInfo?.processes && statusInfo.processes.length > 0 && (
+ 284 │ │                       <div className="col-span-2">
+ 285 │ │                         <p className="text-zinc-400 mb-2">Status da Consulta</p>
+ 286 │ │                         <div className="space-y-1">
+ 287 │ │                           {statusInfo.processes.map((proc: any, idx: number) => (
+ 288 │ │                             <div key={idx} className="flex items-center gap-2">
+ 289 │ │                               <Badge variant={proc.Code === 200 ? "default" : "destructive"}>
+ 290 │ │                                 Code: {proc.Code}
+ 291 │ │                               </Badge>
+ 292 │ │                               <span className="text-xs text-zinc-300">{proc.Message}</span>
+ 293 │ │                             </div>
+ 294 │ │                           ))}
+ 295 │ │                         </div>
+ 296 │ │                       </div>
+ 297 │ │                     )}
+ 298 │ │                   </div>
+ 299 │ │                 </CardContent>
+ 300 │ │               </Card>
+ 301 │ │             )}
+ 302 │ │             
+ 303 │ │             {/* Resumo Geral */}
+ 304 │ │             <div className="grid grid-cols-4 gap-4">
+ 305 │ │               <Card className="bg-zinc-900 border-zinc-700">
+ 306 │ │                 <CardHeader className="pb-2">
+ 307 │ │                   <CardTitle className="text-sm font-medium text-zinc-400">Status</CardTitle>
+ 308 │ │                 </CardHeader>
+ 309 │ │                 <CardContent>
+ 310 │ │                   <StatusBadgeLocal status={check.status} />
+ 311 │ │                 </CardContent>
+ 312 │ │               </Card>
+ 313 │ │               
+ 314 │ │               <Card className="bg-zinc-900 border-zinc-700">
+ 315 │ │                 <CardHeader className="pb-2">
+ 316 │ │                   <CardTitle className="text-sm font-medium text-zinc-400">Risco (1-10)</CardTitle>
+ 317 │ │                 </CardHeader>
+ 318 │ │                 <CardContent>
+ 319 │ │                   <Badge 
+ 320 │ │                     variant={riskInteger && riskInteger > 6 ? "destructive" : riskInteger && riskInteger > 3 ? "secondary" : "default"} 
+ 321 │ │                     className={`text-lg ${riskInteger && riskInteger <= 3 ? 'bg-green-600' : riskInteger && riskInteger <= 6 ? 'bg-amber-500' : ''}`}
+ 322 │ │                   >
+ 323 │ │                     {riskInteger !== null ? riskInteger : "N/A"}
+ 324 │ │                   </Badge>
+ 325 │ │                 </CardContent>
+ 326 │ │               </Card>
+ 327 │ │               
+ 328 │ │               <Card className="bg-zinc-900 border-zinc-700">
+ 329 │ │                 <CardHeader className="pb-2">
+ 330 │ │                   <CardTitle className="text-sm font-medium text-zinc-400">Total Processos</CardTitle>
+ 331 │ │                 </CardHeader>
+ 332 │ │                 <CardContent>
+ 333 │ │                   <p className="text-2xl font-bold text-zinc-100">{totalLawsuits}</p>
+ 334 │ │                 </CardContent>
+ 335 │ │               </Card>
+ 336 │ │               
+ 337 │ │               <Card className="bg-zinc-900 border-zinc-700">
+ 338 │ │                 <CardHeader className="pb-2">
+ 339 │ │                   <CardTitle className="text-sm font-medium text-zinc-400">Nome/CPF</CardTitle>
+ 340 │ │                 </CardHeader>
+ 341 │ │                 <CardContent>
+ 342 │ │                   <p className="text-xs font-medium truncate text-zinc-100">
+ 343 │ │                     {check.personName || 'N/A'}
+ 344 │ │                   </p>
+ 345 │ │                   <p className="text-xs text-zinc-400 font-mono">
+ 346 │ │                     {formatCPFLocal(check.personCpf)}
+ 347 │ │                   </p>
+ 348 │ │                 </CardContent>
+ 349 │ │               </Card>
+ 350 │ │             </div>
+ 351 │ │   
+ 352 │ │             {/* Métricas Detalhadas */}
+ 353 │ │             {processData && (
+ 354 │ │               <>
+ 355 │ │                 <div className="grid grid-cols-3 gap-4">
+ 356 │ │                   <Card className="bg-zinc-900 border-zinc-700">
+ 357 │ │                     <CardHeader className="pb-2">
+ 358 │ │                       <CardTitle className="text-sm text-zinc-100">Como Autor</CardTitle>
+ 359 │ │                     </CardHeader>
+ 360 │ │                     <CardContent>
+ 361 │ │                       <p className="text-xl font-semibold text-zinc-100">{processData.TotalLawsuitsAsAuthor || 0}</p>
+ 362 │ │                     </CardContent>
+ 363 │ │                   </Card>
+ 364 │ │                   
+ 365 │ │                   <Card className="bg-zinc-900 border-zinc-700">
+ 366 │ │                     <CardHeader className="pb-2">
+ 367 │ │                       <CardTitle className="text-sm text-zinc-100">Como Réu</CardTitle>
+ 368 │ │                     </CardHeader>
+ 369 │ │                     <CardContent>
+ 370 │ │                       <p className="text-xl font-semibold text-red-500">{processData.TotalLawsuitsAsDefendant || 0}</p>
+ 371 │ │                     </CardContent>
+ 372 │ │                   </Card>
+ 373 │ │                   
+ 374 │ │                   <Card className="bg-zinc-900 border-zinc-700">
+ 375 │ │                     <CardHeader className="pb-2">
+ 376 │ │                       <CardTitle className="text-sm text-zinc-100">Outros</CardTitle>
+ 377 │ │                     </CardHeader>
+ 378 │ │                     <CardContent>
+ 379 │ │                       <p className="text-xl font-semibold text-blue-400">{processData.TotalLawsuitsAsOther || 0}</p>
+ 380 │ │                     </CardContent>
+ 381 │ │                   </Card>
+ 382 │ │                 </div>
+ 383 │ │                 
+ 384 │ │                 <div className="grid grid-cols-4 gap-4">
+ 385 │ │                   <Card className="bg-zinc-900 border-zinc-700">
+ 386 │ │                     <CardHeader className="pb-2">
+ 387 │ │                       <CardTitle className="text-xs text-zinc-400">Primeiro Processo</CardTitle>
+ 388 │ │                     </CardHeader>
+ 389 │ │                     <CardContent>
+ 390 │ │                       <p className="text-sm font-medium text-zinc-100">{formatDate(processData.FirstLawsuitDate)}</p>
+ 391 │ │                     </CardContent>
+ 392 │ │                   </Card>
+ 393 │ │                   
+ 394 │ │                   <Card className="bg-zinc-900 border-zinc-700">
+ 395 │ │                     <CardHeader className="pb-2">
+ 396 │ │                       <CardTitle className="text-xs text-zinc-400">Último Processo</CardTitle>
+ 397 │ │                     </CardHeader>
+ 398 │ │                     <CardContent>
+ 399 │ │                       <p className="text-sm font-medium text-zinc-100">{formatDate(processData.LastLawsuitDate)}</p>
+ 400 │ │                     </CardContent>
+ 401 │ │                   </Card>
+ 402 │ │                   
+ 403 │ │                   <Card className="bg-zinc-900 border-zinc-700">
+ 404 │ │                     <CardHeader className="pb-2">
+ 405 │ │                       <CardTitle className="text-xs text-zinc-400">Últimos 30 dias</CardTitle>
+ 406 │ │                     </CardHeader>
+ 407 │ │                     <CardContent>
+ 408 │ │                       <p className="text-lg font-semibold text-zinc-100">{processData.Last30DaysLawsuits || 0}</p>
+ 409 │ │                     </CardContent>
+ 410 │ │                   </Card>
+ 411 │ │                   
+ 412 │ │                   <Card className="bg-zinc-900 border-zinc-700">
+ 413 │ │                     <CardHeader className="pb-2">
+ 414 │ │                       <CardTitle className="text-xs text-zinc-400">Últimos 90 dias</CardTitle>
+ 415 │ │                     </CardHeader>
+ 416 │ │                     <CardContent>
+ 417 │ │                       <p className="text-lg font-semibold text-zinc-100">{processData.Last90DaysLawsuits || 0}</p>
+ 418 │ │                     </CardContent>
+ 419 │ │                   </Card>
+ 420 │ │                 </div>
+ 421 │ │                 
+ 422 │ │                 {(processData.Last180DaysLawsuits !== undefined || processData.Last365DaysLawsuits !== undefined) && (
+ 423 │ │                   <div className="grid grid-cols-2 gap-4">
+ 424 │ │                     <Card className="bg-zinc-900 border-zinc-700">
+ 425 │ │                       <CardHeader className="pb-2">
+ 426 │ │                         <CardTitle className="text-xs text-zinc-400">Últimos 180 dias</CardTitle>
+ 427 │ │                       </CardHeader>
+ 428 │ │                       <CardContent>
+ 429 │ │                         <p className="text-lg font-semibold text-zinc-100">{processData.Last180DaysLawsuits || 0}</p>
+ 430 │ │                       </CardContent>
+ 431 │ │                     </Card>
+ 432 │ │                     
+ 433 │ │                     <Card className="bg-zinc-900 border-zinc-700">
+ 434 │ │                       <CardHeader className="pb-2">
+ 435 │ │                         <CardTitle className="text-xs text-zinc-400">Últimos 365 dias</CardTitle>
+ 436 │ │                       </CardHeader>
+ 437 │ │                       <CardContent>
+ 438 │ │                         <p className="text-lg font-semibold text-zinc-100">{processData.Last365DaysLawsuits || 0}</p>
+ 439 │ │                       </CardContent>
+ 440 │ │                     </Card>
+ 441 │ │                   </div>
+ 442 │ │                 )}
+ 443 │ │               </>
+ 444 │ │             )}
+ 445 │ │   
+ 446 │ │             {/* Dados Cadastrais (SEMPRE exibido) */}
+ 447 │ │             <Card className="border-zinc-700 bg-zinc-800/50">
+ 448 │ │               <CardHeader className="pb-2">
+ 449 │ │                 <div className="flex items-center gap-2">
+ 450 │ │                   <User className="h-5 w-5 text-amber-500" />
+ 451 │ │                   <CardTitle className="text-base text-zinc-100">Dados Cadastrais</CardTitle>
+ 452 │ │                   <Badge variant="outline" className="text-xs text-amber-500 border-amber-500/50">CPF Receita Federal</Badge>
+ 453 │ │                 </div>
+ 454 │ │               </CardHeader>
+ 455 │ │               <CardContent>
+ 456 │ │                 {basicDataPayload ? (
+ 457 │ │                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+ 458 │ │                     <div>
+ 459 │ │                       <p className="text-zinc-400">Nome Completo</p>
+ 460 │ │                       <p className="font-medium text-zinc-100">{basicDataPayload.Name || check.personName || 'N/A'}</p>
+ 461 │ │                     </div>
+ 462 │ │                     <div>
+ 463 │ │                       <p className="text-zinc-400">Status do CPF</p>
+ 464 │ │                       <Badge variant={basicDataPayload.TaxIdStatus === 'Regular' ? 'default' : 'destructive'} className={basicDataPayload.TaxIdStatus === 'Regular' ? 'bg-green-600' : ''}>
+ 465 │ │                         {basicDataPayload.TaxIdStatus || 'N/A'}
+ 466 │ │                       </Badge>
+ 467 │ │                     </div>
+ 468 │ │                     <div>
+ 469 │ │                       <p className="text-zinc-400">Data Status</p>
+ 470 │ │                       <p className="font-medium text-zinc-100">{basicDataPayload.TaxIdStatusDate ? formatDate(basicDataPayload.TaxIdStatusDate) : 'N/A'}</p>
+ 471 │ │                     </div>
+ 472 │ │                     <div>
+ 473 │ │                       <p className="text-zinc-400">Data de Nascimento</p>
+ 474 │ │                       <p className="font-medium text-zinc-100">{basicDataPayload.BirthDate ? formatDate(basicDataPayload.BirthDate) : 'N/A'}</p>
+ 475 │ │                     </div>
+ 476 │ │                     <div>
+ 477 │ │                       <p className="text-zinc-400">Idade</p>
+ 478 │ │                       <p className="font-medium text-zinc-100">{basicDataPayload.Age !== undefined ? `${basicDataPayload.Age} anos` : 'N/A'}</p>
+ 479 │ │                     </div>
+ 480 │ │                     <div>
+ 481 │ │                       <p className="text-zinc-400">Sexo</p>
+ 482 │ │                       <p className="font-medium text-zinc-100">
+ 483 │ │                         {basicDataPayload.Gender 
+ 484 │ │                           ? (basicDataPayload.Gender === 'M' ? 'Masculino' : basicDataPayload.Gender === 'F' ? 'Feminino' : basicDataPayload.Gender) 
+ 485 │ │                           : 'N/A'}
+ 486 │ │                       </p>
+ 487 │ │                     </div>
+ 488 │ │                     <div className="col-span-2 md:col-span-3">
+ 489 │ │                       <p className="text-zinc-400">Nome da Mãe</p>
+ 490 │ │                       <p className="font-medium text-zinc-100">{basicDataPayload.MotherName || 'N/A'}</p>
+ 491 │ │                     </div>
+ 492 │ │                     {basicDataPayload.FatherName && (
+ 493 │ │                       <div className="col-span-2 md:col-span-3">
+ 494 │ │                         <p className="text-zinc-400">Nome do Pai</p>
+ 495 │ │                         <p className="font-medium text-zinc-100">{basicDataPayload.FatherName}</p>
+ 496 │ │                       </div>
+ 497 │ │                     )}
+ 498 │ │                     {basicDataPayload.DeathDate && (
+ 499 │ │                       <div>
+ 500 │ │                         <p className="text-zinc-400">Data de Óbito</p>
+ 501 │ │                         <Badge variant="destructive">{formatDate(basicDataPayload.DeathDate)}</Badge>
+ 502 │ │                       </div>
+ 503 │ │                     )}
+ 504 │ │                   </div>
+ 505 │ │                 ) : (
+ 506 │ │                   <div className="text-sm text-zinc-400">
+ 507 │ │                     <p>Dados cadastrais não disponíveis para esta consulta.</p>
+ 508 │ │                     <p className="mt-1 text-xs">Marque "Forçar Atualização" para buscar dados completos nas 3 APIs.</p>
+ 509 │ │                   </div>
+ 510 │ │                 )}
+ 511 │ │               </CardContent>
+ 512 │ │             </Card>
+ 513 │ │   
+ 514 │ │             {/* Presença em Cobrança (SEMPRE exibido) */}
+ 515 │ │             <Card className="border-zinc-700 bg-zinc-800/50">
+ 516 │ │               <CardHeader className="pb-2">
+ 517 │ │                 <div className="flex items-center gap-2">
+ 518 │ │                   <CreditCard className="h-5 w-5 text-amber-500" />
+ 519 │ │                   <CardTitle className="text-base text-zinc-100">Presença em Cobrança</CardTitle>
+ 520 │ │                   {collectionsPayload ? (
+ 521 │ │                     collectionsPayload.HasActiveCollections ? (
+ 522 │ │                       <Badge variant="destructive" className="text-xs bg-red-600">
+ 523 │ │                         <AlertTriangle className="h-3 w-3 mr-1" />
+ 524 │ │                         Cobranças Ativas
+ 525 │ │                       </Badge>
+ 526 │ │                     ) : (collectionsPayload.TotalOccurrences || 0) === 0 ? (
+ 527 │ │                       <Badge variant="default" className="text-xs bg-green-600">
+ 528 │ │                         <CheckCircle2 className="h-3 w-3 mr-1" />
+ 529 │ │                         Sem Ocorrências
+ 530 │ │                       </Badge>
+ 531 │ │                     ) : (
+ 532 │ │                       <Badge variant="secondary" className="text-xs">
+ 533 │ │                         Histórico
+ 534 │ │                       </Badge>
+ 535 │ │                     )
+ 536 │ │                   ) : (
+ 537 │ │                     <Badge variant="secondary" className="text-xs">
+ 538 │ │                       Histórico
+ 539 │ │                     </Badge>
+ 540 │ │                   )}
+ 541 │ │                 </div>
+ 542 │ │               </CardHeader>
+ 543 │ │               <CardContent>
+ 544 │ │                 {collectionsPayload ? (
+ 545 │ │                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+ 546 │ │                     <div>
+ 547 │ │                       <p className="text-zinc-400">Total de Ocorrências</p>
+ 548 │ │                       <p className={`text-2xl font-bold ${(collectionsPayload.TotalOccurrences || 0) > 0 ? 'text-amber-500' : 'text-green-500'}`}>
+ 549 │ │                         {collectionsPayload.TotalOccurrences ?? 0}
+ 550 │ │                       </p>
+ 551 │ │                     </div>
+ 552 │ │                     <div>
+ 553 │ │                       <p className="text-zinc-400">Últimos 3 meses</p>
+ 554 │ │                       <p className="text-xl font-semibold text-zinc-100">{collectionsPayload.Last3Months ?? 0}</p>
+ 555 │ │                     </div>
+ 556 │ │                     <div>
+ 557 │ │                       <p className="text-zinc-400">Últimos 12 meses</p>
+ 558 │ │                       <p className="text-xl font-semibold text-zinc-100">{collectionsPayload.Last12Months ?? 0}</p>
+ 559 │ │                     </div>
+ 560 │ │                     <div>
+ 561 │ │                       <p className="text-zinc-400">Meses Consecutivos</p>
+ 562 │ │                       <p className="text-xl font-semibold text-zinc-100">{collectionsPayload.ConsecutiveMonths ?? 0}</p>
+ 563 │ │                     </div>
+ 564 │ │                     {(collectionsPayload.FirstOccurrenceDate || collectionsPayload.LastOccurrenceDate) && (
+ 565 │ │                       <>
+ 566 │ │                         <div>
+ 567 │ │                           <p className="text-zinc-400">Primeira Ocorrência</p>
+ 568 │ │                           <p className="font-medium text-zinc-100">{collectionsPayload.FirstOccurrenceDate ? formatDate(collectionsPayload.FirstOccurrenceDate) : 'N/A'}</p>
+ 569 │ │                         </div>
+ 570 │ │                         <div>
+ 571 │ │                           <p className="text-zinc-400">Última Ocorrência</p>
+ 572 │ │                           <p className="font-medium text-zinc-100">{collectionsPayload.LastOccurrenceDate ? formatDate(collectionsPayload.LastOccurrenceDate) : 'N/A'}</p>
+ 573 │ │                         </div>
+ 574 │ │                       </>
+ 575 │ │                     )}
+ 576 │ │                   </div>
+ 577 │ │                 ) : (
+ 578 │ │                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+ 579 │ │                     <div>
+ 580 │ │                       <p className="text-zinc-400">Total de Ocorrências</p>
+ 581 │ │                       <p className="text-2xl font-bold text-green-500">0</p>
+ 582 │ │                     </div>
+ 583 │ │                     <div className="col-span-3">
+ 584 │ │                       <p className="text-zinc-400 text-xs mt-2">
+ 585 │ │                         Dados de cobrança não disponíveis para esta consulta. Marque "Forçar Atualização" para buscar dados completos.
+ 586 │ │                       </p>
+ 587 │ │                     </div>
+ 588 │ │                   </div>
+ 589 │ │                 )}
+ 590 │ │               </CardContent>
+ 591 │ │             </Card>
+ 592 │ │   
+ 593 │ │             {/* Indicador de consulta completa (SEMPRE exibido) */}
+ 594 │ │             <Card className="border-zinc-700 bg-zinc-800/50">
+ 595 │ │               <CardHeader className="pb-2">
+ 596 │ │                 <div className="flex items-center justify-between">
+ 597 │ │                   <div className="flex items-center gap-2">
+ 598 │ │                     <Scale className="h-5 w-5 text-amber-500" />
+ 599 │ │                     <CardTitle className="text-base text-zinc-100">Consulta Completa DataCorp</CardTitle>
+ 600 │ │                   </div>
+ 601 │ │                   <Badge variant="outline" className={`text-xs ${isCompleteConsultation ? 'text-amber-500 border-amber-500/50' : 'text-zinc-500 border-zinc-500/50'}`}>
+ 602 │ │                     {isCompleteConsultation ? '3 APIs em paralelo' : 'Consulta simples'}
+ 603 │ │                   </Badge>
+ 604 │ │                 </div>
+ 605 │ │               </CardHeader>
+ 606 │ │               <CardContent>
+ 607 │ │                 {isCompleteConsultation && metadata ? (
+ 608 │ │                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+ 609 │ │                     <div>
+ 610 │ │                       <p className="text-zinc-400">Tempo de Consulta</p>
+ 611 │ │                       <p className="font-medium text-zinc-100">{metadata.tempoConsulta || 'N/A'}</p>
+ 612 │ │                     </div>
+ 613 │ │                     <div>
+ 614 │ │                       <p className="text-zinc-400">Custo Total</p>
+ 615 │ │                       <p className="font-medium text-amber-500">R$ {metadata.custoTotal || '0.170'}</p>
+ 616 │ │                     </div>
+ 617 │ │                     <div className="flex items-center gap-2">
+ 618 │ │                       <p className="text-zinc-400">Dados Cadastrais:</p>
+ 619 │ │                       {metadata.basicDataSuccess ? (
+ 620 │ │                         <CheckCircle2 className="h-4 w-4 text-green-500" />
+ 621 │ │                       ) : (
+ 622 │ │                         <AlertTriangle className="h-4 w-4 text-yellow-500" />
+ 623 │ │                       )}
+ 624 │ │                     </div>
+ 625 │ │                     <div className="flex items-center gap-2">
+ 626 │ │                       <p className="text-zinc-400">Cobranças:</p>
+ 627 │ │                       {metadata.collectionsSuccess ? (
+ 628 │ │                         <CheckCircle2 className="h-4 w-4 text-green-500" />
+ 629 │ │                       ) : (
+ 630 │ │                         <AlertTriangle className="h-4 w-4 text-yellow-500" />
+ 631 │ │                       )}
+ 632 │ │                     </div>
+ 633 │ │                   </div>
+ 634 │ │                 ) : (
+ 635 │ │                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+ 636 │ │                     <div>
+ 637 │ │                       <p className="text-zinc-400">Tempo de Consulta</p>
+ 638 │ │                       <p className="font-medium text-zinc-100">{elapsedMs ? `${elapsedMs}ms` : 'N/A'}</p>
+ 639 │ │                     </div>
+ 640 │ │                     <div>
+ 641 │ │                       <p className="text-zinc-400">Custo Estimado</p>
+ 642 │ │                       <p className="font-medium text-amber-500">R$ 0.070</p>
+ 643 │ │                     </div>
+ 644 │ │                     <div className="flex items-center gap-2">
+ 645 │ │                       <p className="text-zinc-400">Dados Cadastrais:</p>
+ 646 │ │                       {basicDataPayload ? (
+ 647 │ │                         <CheckCircle2 className="h-4 w-4 text-green-500" />
+ 648 │ │                       ) : (
+ 649 │ │                         <AlertTriangle className="h-4 w-4 text-yellow-500" />
+ 650 │ │                       )}
+ 651 │ │                     </div>
+ 652 │ │                     <div className="flex items-center gap-2">
+ 653 │ │                       <p className="text-zinc-400">Cobranças:</p>
+ 654 │ │                       {collectionsPayload ? (
+ 655 │ │                         <CheckCircle2 className="h-4 w-4 text-green-500" />
+ 656 │ │                       ) : (
+ 657 │ │                         <AlertTriangle className="h-4 w-4 text-yellow-500" />
+ 658 │ │                       )}
+ 659 │ │                     </div>
+ 660 │ │                   </div>
+ 661 │ │                 )}
+ 662 │ │               </CardContent>
+ 663 │ │             </Card>
+ 664 │ │   
+ 665 │ │             {/* Lista de Processos */}
+ 666 │ │             <Tabs defaultValue="processos" className="w-full">
+ 667 │ │               <TabsList className="grid w-full grid-cols-2">
+ 668 │ │                 <TabsTrigger value="processos">Processos ({lawsuits.length})</TabsTrigger>
+ 669 │ │                 <TabsTrigger value="json">JSON Completo</TabsTrigger>
+ 670 │ │               </TabsList>
+ 671 │ │               
+ 672 │ │               <TabsContent value="processos" className="space-y-4 mt-4">
+ 673 │ │                 {lawsuits.length > 0 ? (
+ 674 │ │                   <div className="space-y-4">
+ 675 │ │                     {lawsuits.map((lawsuit: any, index: number) => (
+ 676 │ │                       <Card key={index} className="border-l-4 border-l-primary">
+ 677 │ │                         <CardHeader>
+ 678 │ │                           <div className="flex items-start justify-between">
+ 679 │ │                             <div className="space-y-2 flex-1">
+ 680 │ │                               <CardTitle className="text-base">
+ 681 │ │                                 {lawsuit.Number || lawsuit.ProcessNumber || 'N/A'}
+ 682 │ │                               </CardTitle>
+ 683 │ │                               <div className="flex gap-2 flex-wrap">
+ 684 │ │                                 {lawsuit.Status && (
+ 685 │ │                                   <Badge variant={lawsuit.Status === 'Ativo' ? 'default' : 'secondary'}>
+ 686 │ │                                     {lawsuit.Status}
+ 687 │ │                                   </Badge>
+ 688 │ │                                 )}
+ 689 │ │                                 {lawsuit.InferredCNJProcedureTypeName && (
+ 690 │ │                                   <Badge variant="outline">{lawsuit.InferredCNJProcedureTypeName}</Badge>
+ 691 │ │                                 )}
+ 692 │ │                               </div>
+ 693 │ │                             </div>
+ 694 │ │                             {lawsuit.Value && lawsuit.Value > 0 && (
+ 695 │ │                               <div className="text-right ml-2">
+ 696 │ │                                 <p className="text-xs text-muted-foreground">Valor da Causa</p>
+ 697 │ │                                 <p className="text-lg font-bold text-green-600">
+ 698 │ │                                   {new Intl.NumberFormat('pt-BR', { 
+ 699 │ │                                     style: 'currency', 
+ 700 │ │                                     currency: 'BRL' 
+ 701 │ │                                   }).format(lawsuit.Value)}
+ 702 │ │                                 </p>
+ 703 │ │                               </div>
+ 704 │ │                             )}
+ 705 │ │                           </div>
+ 706 │ │                         </CardHeader>
+ 707 │ │                         <CardContent>
+ 708 │ │                           {/* Sub-tabs para cada processo */}
+ 709 │ │                           <Tabs defaultValue="info" className="w-full">
+ 710 │ │                             <TabsList className="grid w-full grid-cols-5">
+ 711 │ │                               <TabsTrigger value="info">Informações</TabsTrigger>
+ 712 │ │                               <TabsTrigger value="partes">
+ 713 │ │                                 Partes ({lawsuit.Parties?.length || 0})
+ 714 │ │                               </TabsTrigger>
+ 715 │ │                               <TabsTrigger value="movimentacoes">
+ 716 │ │                                 Movimentações ({lawsuit.Updates?.length || 0})
+ 717 │ │                               </TabsTrigger>
+ 718 │ │                               <TabsTrigger value="decisoes">
+ 719 │ │                                 Decisões ({lawsuit.Decisions?.length || 0})
+ 720 │ │                               </TabsTrigger>
+ 721 │ │                               <TabsTrigger value="peticoes">
+ 722 │ │                                 Petições ({lawsuit.Petitions?.length || 0})
+ 723 │ │                               </TabsTrigger>
+ 724 │ │                             </TabsList>
+ 725 │ │                             
+ 726 │ │                             {/* Aba de Informações Gerais */}
+ 727 │ │                             <TabsContent value="info" className="mt-4">
+ 728 │ │                               <div className="space-y-6">
+ 729 │ │                                 {/* Informações do Tribunal */}
+ 730 │ │                                 <div>
+ 731 │ │                                   <h4 className="font-semibold text-sm mb-3">Informações do Tribunal</h4>
+ 732 │ │                                   <div className="grid grid-cols-2 gap-4 text-sm">
+ 733 │ │                                     <div>
+ 734 │ │                                       <p className="text-muted-foreground">Tribunal</p>
+ 735 │ │                                       <p className="font-medium">{lawsuit.CourtName || lawsuit.Court || 'N/A'}</p>
+ 736 │ │                                     </div>
+ 737 │ │                                     <div>
+ 738 │ │                                       <p className="text-muted-foreground">Nível da Corte</p>
+ 739 │ │                                       <p className="font-medium">{lawsuit.CourtLevel || 'N/A'}</p>
+ 740 │ │                                     </div>
+ 741 │ │                                     <div>
+ 742 │ │                                       <p className="text-muted-foreground">Tipo da Corte</p>
+ 743 │ │                                       <p className="font-medium">{lawsuit.CourtType || 'N/A'}</p>
+ 744 │ │                                     </div>
+ 745 │ │                                     <div>
+ 746 │ │                                       <p className="text-muted-foreground">Distrito</p>
+ 747 │ │                                       <p className="font-medium">{lawsuit.CourtDistrict || 'N/A'}</p>
+ 748 │ │                                     </div>
+ 749 │ │                                     {lawsuit.CourtSection && (
+ 750 │ │                                       <div>
+ 751 │ │                                         <p className="text-muted-foreground">Seção</p>
+ 752 │ │                                         <p className="font-medium">{lawsuit.CourtSection}</p>
+ 753 │ │                                       </div>
+ 754 │ │                                     )}
+ 755 │ │                                     <div>
+ 756 │ │                                       <p className="text-muted-foreground">Estado</p>
+ 757 │ │                                       <p className="font-medium">{lawsuit.State || 'N/A'}</p>
+ 758 │ │                                     </div>
+ 759 │ │                                   </div>
+ 760 │ │                                 </div>
+ 761 │ │                                 
+ 762 │ │                                 {/* Classificação do Processo */}
+ 763 │ │                                 <div>
+ 764 │ │                                   <h4 className="font-semibold text-sm mb-3">Classificação</h4>
+ 765 │ │                                   <div className="grid grid-cols-2 gap-4 text-sm">
+ 766 │ │                                     <div>
+ 767 │ │                                       <p className="text-muted-foreground">Classe</p>
+ 768 │ │                                       <p className="font-medium">{lawsuit.Class || 'N/A'}</p>
+ 769 │ │                                     </div>
+ 770 │ │                                     {lawsuit.Type && (
+ 771 │ │                                       <div>
+ 772 │ │                                         <p className="text-muted-foreground">Tipo</p>
+ 773 │ │                                         <p className="font-medium">{lawsuit.Type}</p>
+ 774 │ │                                       </div>
+ 775 │ │                                     )}
+ 776 │ │                                     <div className="col-span-2">
+ 777 │ │                                       <p className="text-muted-foreground">Assunto Principal</p>
+ 778 │ │                                       <p className="font-medium">{lawsuit.MainSubject || lawsuit.Subject || 'N/A'}</p>
+ 779 │ │                                     </div>
+ 780 │ │                                     {lawsuit.InferredCNJSubjectName && (
+ 781 │ │                                       <div className="col-span-2">
+ 782 │ │                                         <p className="text-muted-foreground">Assunto CNJ Inferido</p>
+ 783 │ │                                         <p className="font-medium">{lawsuit.InferredCNJSubjectName}</p>
+ 784 │ │                                       </div>
+ 785 │ │                                     )}
+ 786 │ │                                     {lawsuit.InferredBroadCNJSubjectName && (
+ 787 │ │                                       <div className="col-span-2">
+ 788 │ │                                         <p className="text-muted-foreground">Assunto CNJ Amplo</p>
+ 789 │ │                                         <p className="font-medium">{lawsuit.InferredBroadCNJSubjectName}</p>
+ 790 │ │                                       </div>
+ 791 │ │                                     )}
+ 792 │ │                                     {lawsuit.SubjectCodes && lawsuit.SubjectCodes.length > 0 && (
+ 793 │ │                                       <div className="col-span-2">
+ 794 │ │                                         <p className="text-muted-foreground">Códigos de Assunto</p>
+ 795 │ │                                         <div className="flex flex-wrap gap-1 mt-1">
+ 796 │ │                                           {lawsuit.SubjectCodes.map((code: string, idx: number) => (
+ 797 │ │                                             <Badge key={idx} variant="outline" className="text-xs">
+ 798 │ │                                               {code}
+ 799 │ │                                             </Badge>
+ 800 │ │                                           ))}
+ 801 │ │                                         </div>
+ 802 │ │                                       </div>
+ 803 │ │                                     )}
+ 804 │ │                                     <div>
+ 805 │ │                                       <p className="text-muted-foreground">Área</p>
+ 806 │ │                                       <p className="font-medium">{lawsuit.Area || 'N/A'}</p>
+ 807 │ │                                     </div>
+ 808 │ │                                     <div>
+ 809 │ │                                       <p className="text-muted-foreground">Instância</p>
+ 810 │ │                                       <p className="font-medium">{lawsuit.Instance || 'N/A'}</p>
+ 811 │ │                                     </div>
+ 812 │ │                                   </div>
+ 813 │ │                                 </div>
+ 814 │ │                                 
+ 815 │ │                                 {/* Responsáveis */}
+ 816 │ │                                 <div>
+ 817 │ │                                   <h4 className="font-semibold text-sm mb-3">Responsáveis</h4>
+ 818 │ │                                   <div className="grid grid-cols-2 gap-4 text-sm">
+ 819 │ │                                     <div>
+ 820 │ │                                       <p className="text-muted-foreground">Juiz(a)</p>
+ 821 │ │                                       <p className="font-medium">{lawsuit.Judge || 'N/A'}</p>
+ 822 │ │                                     </div>
+ 823 │ │                                     <div>
+ 824 │ │                                       <p className="text-muted-foreground">Órgão Julgador</p>
+ 825 │ │                                       <p className="font-medium">{lawsuit.JudgingBody || 'N/A'}</p>
+ 826 │ │                                     </div>
+ 827 │ │                                   </div>
+ 828 │ │                                 </div>
+ 829 │ │                                 
+ 830 │ │                                 {/* Datas */}
+ 831 │ │                                 <div>
+ 832 │ │                                   <h4 className="font-semibold text-sm mb-3">Datas Importantes</h4>
+ 833 │ │                                   <div className="grid grid-cols-2 gap-4 text-sm">
+ 834 │ │                                     <div>
+ 835 │ │                                       <p className="text-muted-foreground">Data de Distribuição</p>
+ 836 │ │                                       <p className="font-medium">{formatDate(lawsuit.NoticeDate)}</p>
+ 837 │ │                                     </div>
+ 838 │ │                                     <div>
+ 839 │ │                                       <p className="text-muted-foreground">Data de Publicação</p>
+ 840 │ │                                       <p className="font-medium">{formatDate(lawsuit.PublicationDate)}</p>
+ 841 │ │                                     </div>
+ 842 │ │                                     <div>
+ 843 │ │                                       <p className="text-muted-foreground">Última Movimentação</p>
+ 844 │ │                                       <p className="font-medium">{formatDate(lawsuit.LastMovementDate)}</p>
+ 845 │ │                                     </div>
+ 846 │ │                                     {lawsuit.LastUpdate && (
+ 847 │ │                                       <div>
+ 848 │ │                                         <p className="text-muted-foreground">Última Atualização</p>
+ 849 │ │                                         <p className="font-medium">{formatDate(lawsuit.LastUpdate)}</p>
+ 850 │ │                                       </div>
+ 851 │ │                                     )}
+ 852 │ │                                     <div>
+ 853 │ │                                       <p className="text-muted-foreground">Data de Captura</p>
+ 854 │ │                                       <p className="font-medium">{formatDate(lawsuit.CaptureDate)}</p>
+ 855 │ │                                     </div>
+ 856 │ │                                     {lawsuit.CloseDate && (
+ 857 │ │                                       <div>
+ 858 │ │                                         <p className="text-muted-foreground">Data de Encerramento</p>
+ 859 │ │                                         <p className="font-medium">{formatDate(lawsuit.CloseDate)}</p>
+ 860 │ │                                       </div>
+ 861 │ │                                     )}
+ 862 │ │                                     {lawsuit.RedistributionDate && (
+ 863 │ │                                       <div>
+ 864 │ │                                         <p className="text-muted-foreground">Data de Redistribuição</p>
+ 865 │ │                                         <p className="font-medium">{formatDate(lawsuit.RedistributionDate)}</p>
+ 866 │ │                                       </div>
+ 867 │ │                                     )}
+ 868 │ │                                     {lawsuit.ResJudicataDate && (
+ 869 │ │                                       <div>
+ 870 │ │                                         <p className="text-muted-foreground">Data de Trânsito em Julgado</p>
+ 871 │ │                                         <p className="font-medium">{formatDate(lawsuit.ResJudicataDate)}</p>
+ 872 │ │                                       </div>
+ 873 │ │                                     )}
+ 874 │ │                                   </div>
+ 875 │ │                                 </div>
+ 876 │ │                                 
+ 877 │ │                                 {/* Métricas do Processo */}
+ 878 │ │                                 <div>
+ 879 │ │                                   <h4 className="font-semibold text-sm mb-3">Métricas</h4>
+ 880 │ │                                   <div className="grid grid-cols-2 gap-4 text-sm">
+ 881 │ │                                     <div>
+ 882 │ │                                       <p className="text-muted-foreground">Número de Partes</p>
+ 883 │ │                                       <p className="font-medium">{lawsuit.NumberOfParties || 0}</p>
+ 884 │ │                                     </div>
+ 885 │ │                                     <div>
+ 886 │ │                                       <p className="text-muted-foreground">Número de Movimentações</p>
+ 887 │ │                                       <p className="font-medium">{lawsuit.NumberOfUpdates || 0}</p>
+ 888 │ │                                     </div>
+ 889 │ │                                     {lawsuit.NumberOfPages !== undefined && (
+ 890 │ │                                       <div>
+ 891 │ │                                         <p className="text-muted-foreground">Número de Páginas</p>
+ 892 │ │                                         <p className="font-medium">{lawsuit.NumberOfPages}</p>
+ 893 │ │                                       </div>
+ 894 │ │                                     )}
+ 895 │ │                                     {lawsuit.NumberOfVolumes !== undefined && (
+ 896 │ │                                       <div>
+ 897 │ │                                         <p className="text-muted-foreground">Número de Volumes</p>
+ 898 │ │                                         <p className="font-medium">{lawsuit.NumberOfVolumes}</p>
+ 899 │ │                                       </div>
+ 900 │ │                                     )}
+ 901 │ │                                     {lawsuit.LawSuitAge !== undefined && (
+ 902 │ │                                       <div>
+ 903 │ │                                         <p className="text-muted-foreground">Idade do Processo (dias)</p>
+ 904 │ │                                         <p className="font-medium">{lawsuit.LawSuitAge}</p>
+ 905 │ │                                       </div>
+ 906 │ │                                     )}
+ 907 │ │                                     {lawsuit.AverageNumberOfUpdatesPerMonth !== undefined && (
+ 908 │ │                                       <div>
+ 909 │ │                                         <p className="text-muted-foreground">Média de Atualizações/Mês</p>
+ 910 │ │                                         <p className="font-medium">{lawsuit.AverageNumberOfUpdatesPerMonth.toFixed(2)}</p>
+ 911 │ │                                       </div>
+ 912 │ │                                     )}
+ 913 │ │                                   </div>
+ 914 │ │                                 </div>
+ 915 │ │                               </div>
+ 916 │ │                             </TabsContent>
+ 917 │ │                             
+ 918 │ │                             {/* Aba de Partes */}
+ 919 │ │                             <TabsContent value="partes" className="mt-4">
+ 920 │ │                               <PartyList parties={lawsuit.Parties || []} />
+ 921 │ │                             </TabsContent>
+ 922 │ │                             
+ 923 │ │                             {/* Aba de Movimentações */}
+ 924 │ │                             <TabsContent value="movimentacoes" className="mt-4">
+ 925 │ │                               <UpdateTimeline updates={lawsuit.Updates || []} />
+ 926 │ │                             </TabsContent>
+ 927 │ │                             
+ 928 │ │                             {/* Aba de Decisões */}
+ 929 │ │                             <TabsContent value="decisoes" className="mt-4">
+ 930 │ │                               <DecisionList decisions={lawsuit.Decisions || []} />
+ 931 │ │                             </TabsContent>
+ 932 │ │                             
+ 933 │ │                             {/* Aba de Petições */}
+ 934 │ │                             <TabsContent value="peticoes" className="mt-4">
+ 935 │ │                               <PetitionList petitions={lawsuit.Petitions || []} />
+ 936 │ │                             </TabsContent>
+ 937 │ │                           </Tabs>
+ 938 │ │                         </CardContent>
+ 939 │ │                       </Card>
+ 940 │ │                     ))}
+ 941 │ │                   </div>
+ 942 │ │                 ) : (
+ 943 │ │                   <div className="text-center py-8 text-muted-foreground">
+ 944 │ │                     <p>Nenhum processo encontrado</p>
+ 945 │ │                   </div>
+ 946 │ │                 )}
+ 947 │ │               </TabsContent>
+ 948 │ │               
+ 949 │ │               {/* Aba de JSON Completo */}
+ 950 │ │               <TabsContent value="json" className="mt-4">
+ 951 │ │                 <pre className="text-xs bg-muted p-4 rounded-lg overflow-auto max-h-[400px]">
+ 952 │ │                   {JSON.stringify(check.payload, null, 2)}
+ 953 │ │                 </pre>
+ 954 │ │               </TabsContent>
+ 955 │ │             </Tabs>
+ 956 │ │           </div>
+ 957 │ │         </DialogContent>
+ 958 │ │       </Dialog>
+ 959 │ ╰─▶   );
+ 960 │     }
+     ╰────
+  × Expression expected
+     ╭─[/home/runner/workspace/src/components/compliance/process-details-modal.tsx:960:1]
+ 957 │       </DialogContent>
+ 958 │     </Dialog>
+ 959 │   );
+ 960 │ }
+     · ─
+     ╰────
+
+
+Caused by:
+    Syntax Error
+/home/runner/workspace/src/components/compliance/process-details-modal.tsx
+Click outside, press Esc key, or fix the code to dismiss.
+You can also disable this overlay by setting server.hmr.overlay to false in vite.config.ts.

@@ -1,0 +1,45 @@
+Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+8437b98e-1ca8-4487-a201-f80b4992d030:1 Error while trying to use the following icon from the Manifest: https://02d16a0c-fa6f-4963-9f61-2edaa63b0764-00-36enijynk45y7.spock.replit.dev/icons/icon-192x192.png (Download error or resource isn't a valid image)Understand this warning
+AssinaturaClientPage.tsx:680 [AssinaturaClientPage] Unexpected step: 0 - showing loading fallback
+AssinaturaClientContent @ AssinaturaClientPage.tsx:680
+renderWithHooks @ chunk-NFC5BX5N.js?v=d4384754:11548
+updateFunctionComponent @ chunk-NFC5BX5N.js?v=d4384754:14582
+beginWork @ chunk-NFC5BX5N.js?v=d4384754:15924
+beginWork$1 @ chunk-NFC5BX5N.js?v=d4384754:19753
+performUnitOfWork @ chunk-NFC5BX5N.js?v=d4384754:19198
+workLoopSync @ chunk-NFC5BX5N.js?v=d4384754:19137
+renderRootSync @ chunk-NFC5BX5N.js?v=d4384754:19116
+performSyncWorkOnRoot @ chunk-NFC5BX5N.js?v=d4384754:18874
+flushSyncCallbacks @ chunk-NFC5BX5N.js?v=d4384754:9119
+(anonymous) @ chunk-NFC5BX5N.js?v=d4384754:18627
+setTimeout
+systemSetTimeoutZero @ @tanstack_react-query.js?v=58e6adab:103
+flush @ @tanstack_react-query.js?v=58e6adab:615
+batch @ @tanstack_react-query.js?v=58e6adab:633
+dispatch_fn @ @tanstack_react-query.js?v=58e6adab:1260
+setData @ @tanstack_react-query.js?v=58e6adab:935
+fetch @ @tanstack_react-query.js?v=58e6adab:1157
+await in fetch
+executeFetch_fn @ @tanstack_react-query.js?v=58e6adab:1651
+onSubscribe @ @tanstack_react-query.js?v=58e6adab:1344
+subscribe @ @tanstack_react-query.js?v=58e6adab:24
+(anonymous) @ @tanstack_react-query.js?v=58e6adab:3313
+subscribeToStore @ chunk-NFC5BX5N.js?v=d4384754:11984
+commitHookEffectListMount @ chunk-NFC5BX5N.js?v=d4384754:16915
+commitPassiveMountOnFiber @ chunk-NFC5BX5N.js?v=d4384754:18156
+commitPassiveMountEffects_complete @ chunk-NFC5BX5N.js?v=d4384754:18129
+commitPassiveMountEffects_begin @ chunk-NFC5BX5N.js?v=d4384754:18119
+commitPassiveMountEffects @ chunk-NFC5BX5N.js?v=d4384754:18109
+flushPassiveEffectsImpl @ chunk-NFC5BX5N.js?v=d4384754:19490
+flushPassiveEffects @ chunk-NFC5BX5N.js?v=d4384754:19447
+performSyncWorkOnRoot @ chunk-NFC5BX5N.js?v=d4384754:18868
+flushSyncCallbacks @ chunk-NFC5BX5N.js?v=d4384754:9119
+commitRootImpl @ chunk-NFC5BX5N.js?v=d4384754:19432
+commitRoot @ chunk-NFC5BX5N.js?v=d4384754:19277
+finishConcurrentRender @ chunk-NFC5BX5N.js?v=d4384754:18805
+performConcurrentWorkOnRoot @ chunk-NFC5BX5N.js?v=d4384754:18718
+workLoop @ chunk-NFC5BX5N.js?v=d4384754:197
+flushWork @ chunk-NFC5BX5N.js?v=d4384754:176
+performWorkUntilDeadline @ chunk-NFC5BX5N.js?v=d4384754:384Understand this warning
+AssinaturaClientPage.tsx:362 [AssinaturaClientPage] Contract address data: {address_street: null, address_number: null, address_city: null, address_state: null, address_zipcode: null, …}
+useFaceDetection.ts:68 Face detection models loaded successfully

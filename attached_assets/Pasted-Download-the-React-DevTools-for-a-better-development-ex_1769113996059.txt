@@ -1,0 +1,26 @@
+Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+supabase.ts:37 🔄 Tentativa 1/5 de carregar credenciais Supabase...
+client.ts:14 [Supabase] No credentials provided. Using stub client.
+createSupabaseClient @ client.ts:14Understand this warning
+usePWAInstall.ts:112 📱 [PWA] Device Info: Object
+usePWAInstall.ts:176 🧪 [PWA] Modo desenvolvimento detectado - botão sempre visível para testes
+AuthContext.tsx:69 [AuthContext] Checking session...
+usePWAInstall.ts:125 ✅ [PWA] Service Worker registrado: https://48d4e85d-fa2d-4f1a-924c-85d8fb696d12-00-2iexcnnb3smfy.spock.replit.dev/
+supabase.ts:109 ✅ Credenciais Supabase carregadas da API (runtime)
+supabase.ts:198 ✅ Cliente Supabase criado com sucesso a partir da API backend
+workspaceStorage.ts:292 🔄 Usuário autenticado - carregando workspace do Supabase...
+sentry.ts:34 ⚠️ Sentry não configurado - Monitoramento desativado
+AuthContext.tsx:73 [AuthContext] Session check response: Object
+AuthContext.tsx:129 [AuthContext] Setting isLoading to false
+FormularioPublico.tsx:290 📝 Carregando formulário por slug: formulario-de-qualificacaof empresa: elena
+NotificationContext.tsx:186 [Notifications] Não autenticado - limpando dados
+workspaceStorage.ts:304 📊 Dados do Supabase: Object
+workspaceStorage.ts:308 ✅ Parseando dados do Supabase com suporte a JSON escapado...
+workspaceStorage.ts:309 🔒 GARANTIA: Estes dados do Supabase NUNCA serão deletados automaticamente
+3workspaceStorage.ts:316 📄 Página "Nova Página": 1 blocos, 0 databases
+workspaceStorage.ts:428 ✅ Workspace carregado do Supabase: Object
+formulario-de-qualificacaof:1 <meta name="apple-mobile-web-app-capable" content="yes"> is deprecated. Please include <meta name="mobile-web-app-capable" content="yes">Understand this warning
+/api/forms/public/by-slug/elena/formulario-de-qualificacaof:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+FormularioPublico.tsx:295 ⚠️ Slug não encontrado, tentando como ID...
+FormularioPublico.tsx:301 ✅ Formulário carregado por fallback ID: Formulário de Qualificaçãof
+formulario-de-qualificacaof:1 Error while trying to use the following icon from the Manifest: https://48d4e85d-fa2d-4f1a-924c-85d8fb696d12-00-2iexcnnb3smfy.spock.replit.dev/icons/icon-192x192.png (Download error or resource isn't a valid image)Understand this warning

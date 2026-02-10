@@ -1,0 +1,56 @@
+Pacote de Entrega: Correções 100ms e Integração N8N
+Este documento consolida todas as alterações realizadas para corrigir o problema de "Tela Preta" nas reuniões públicas e para implementar uma integração segura e funcional com o N8N.
+
+🚀 Resumo das Alterações
+Correção de Tela Preta (Frontend):
+Remoção de HMSProvider duplicado que causava conflitos de estado.
+Correção do endpoint de token para o caminho público correto.
+Lógica de conexão robusta que aguarda o estado isConnected antes de remover o loading.
+Integração N8N (Backend):
+Novo arquivo de rotas 
+server/routes/n8n.ts
+ para criação de reuniões.
+Registro da rota no roteador principal da API.
+Sincronização automática com Supabase multi-tenant.
+🛠️ Detalhes do Código
+1. Frontend: Tela Preta e Conexão
+As correções foram aplicadas nos arquivos:
+
+Meeting100ms.tsx
+PublicMeetingRoom.tsx
+Mudança Principal: O frontend agora usa o endpoint /api/public/reunioes/:id/token-public em vez de um endpoint genérico que não existia. Além disso, o componente não tenta renderizar a sala até que a conexão com os servidores da 100ms seja confirmada (isConnected === true).
+
+2. Backend: Nova Rota N8N
+Arquivo Criado: 
+n8n.ts
+ Arquivo Modificado: 
+routes.ts
+
+A nova rota permite ao N8N criar reuniões passando o tenantId. Ela gera automaticamente o link da plataforma (Nexus) em vez do link nativo da 100ms, garantindo que o design customizado e as funcionalidades da plataforma sejam mantidos.
+
+📝 Instruções para o Replit
+Configuração de Ambiente
+Certifique-se de que a seguinte variável foi adicionada aos "Secrets" do Replit:
+
+N8N_API_KEY: Uma chave de sua escolha (ex: nexus_n8n_secure_key_2024) que deve ser enviada pelo N8N no header x-n8n-api-key.
+Como Usar no N8N
+Use um nó "HTTP Request":
+
+Método: POST
+URL: https://seu-dominio.replit.dev/api/n8n/reunioes
+Headers: x-n8n-api-key: [Sua Chave]
+Body (JSON):
+{
+  "tenantId": "id-do-cliente",
+  "titulo": "Reunião de Consultoria",
+  "userName": "Nome do Cliente",
+  "email": "cliente@email.com"
+}
+✅ Checklist de Verificação
+ Acessar link público: /reuniao/[ID] e verificar se o lobby carrega.
+ Clicar em "Participar agora" e aguardar o vídeo sem tela preta.
+ Testar requisição POST via N8N ou Postman para o novo endpoint.
+ Verificar se a reunião criada pelo N8N aparece no banco de dados local e no Supabase.
+IMPORTANT
+
+Todas as alterações de código já foram aplicadas nos arquivos locais. Este documento serve como guia de referência para a equipe de implantação.

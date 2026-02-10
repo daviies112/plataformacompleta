@@ -1,0 +1,309 @@
+{
+  "audit_info": {
+    "generated_at": "2026-01-27",
+    "platform": "ExecutiveAI Pro",
+    "description": "Auditoria completa de todos os arquivos de dados persistentes da plataforma",
+    "total_files": 14,
+    "total_size_bytes": 13131000
+  },
+  "config_files": [
+    {
+      "path": "data/supabase-config.json",
+      "purpose": "Configuração de conexão do Supabase principal - URL e chave anônima para conexão ao banco de dados multi-tenant",
+      "structure": {
+        "supabaseUrl": "URL do projeto Supabase",
+        "supabaseAnonKey": "Chave anônima JWT para autenticação",
+        "configuredAt": "Timestamp de quando foi configurado",
+        "configuredBy": "Quem configurou (ui ou api)"
+      },
+      "essential": true,
+      "backup_required": true,
+      "size_bytes": 366,
+      "notes": "Crítico para funcionamento da plataforma. Sem este arquivo, conexão ao Supabase falha."
+    },
+    {
+      "path": "data/credentials.json",
+      "purpose": "Armazena credenciais criptografadas de APIs externas por tenant (Evolution API, BigDataCorp, etc.)",
+      "structure": {
+        "<tenant_id>": {
+          "<api_name>": "credencial criptografada"
+        }
+      },
+      "essential": true,
+      "backup_required": true,
+      "size_bytes": 377,
+      "notes": "Credenciais sensíveis criptografadas com AES-256-GCM. Backup crítico para restauração de acessos."
+    },
+    {
+      "path": "data/assinatura_global_config.json",
+      "purpose": "Configurações globais de customização visual do módulo de assinatura digital (cores, fontes, textos)",
+      "structure": {
+        "logo_*": "Configurações do logo",
+        "primary_color/text_color": "Cores principais",
+        "font_family/font_size": "Tipografia",
+        "maleta_*": "Customização da tela de maleta",
+        "verification_*": "Customização da verificação facial",
+        "progress_*": "Customização do tracker de progresso",
+        "parabens_*": "Customização da tela de sucesso"
+      },
+      "essential": true,
+      "backup_required": true,
+      "size_bytes": 2213,
+      "notes": "Define branding e UX do fluxo de assinatura. Personalizável pelo admin."
+    },
+    {
+      "path": "data/app_promotion_config.json",
+      "purpose": "URLs de promoção do app nas lojas (App Store e Google Play) exibidas após assinatura de contrato",
+      "structure": {
+        "contract_id": "UUID do contrato associado",
+        "app_store_url": "Link da App Store",
+        "google_play_url": "Link do Google Play",
+        "updated_at": "Última atualização",
+        "id": "UUID da configuração"
+      },
+      "essential": false,
+      "backup_required": false,
+      "size_bytes": 331,
+      "notes": "Opcional. Usado para promover app após processo de assinatura."
+    }
+  ],
+  "state_files": [
+    {
+      "path": "data/automation_state.json",
+      "purpose": "Estado global do sistema de automação - controla pollers, detecta novos clientes, rastreia execuções",
+      "structure": {
+        "isRunning": "boolean - se automação está ativa",
+        "startedAt": "Timestamp de início",
+        "lastExecutions": {
+          "<clientId>-<tenantId>": {
+            "lastRun": "Última execução",
+            "lastSuccess": "Último sucesso",
+            "lastError": "Último erro",
+            "consecutiveErrors": "Contador de erros",
+            "totalExecutions": "Total de execuções",
+            "status": "stopped|running"
+          }
+        },
+        "globalStats": {
+          "totalExecutions": "Total global",
+          "totalNewClientsDetected": "Clientes detectados",
+          "totalEventsCreated": "Eventos criados",
+          "uptime": "Tempo ativo em segundos"
+        },
+        "settings": {
+          "detectionIntervalMinutes": "Intervalo de detecção",
+          "processingEnabled": "Processamento habilitado",
+          "maxRetries": "Máximo de tentativas"
+        }
+      },
+      "essential": true,
+      "backup_required": true,
+      "size_bytes": 1151,
+      "notes": "Persistido a cada 5 minutos. Usado para recuperação após restart. Evita reprocessamento duplicado."
+    },
+    {
+      "path": "data/form_submission_poller_state.json",
+      "purpose": "Estado do poller de sincronização de submissões de formulários entre Supabase tenants",
+      "structure": {
+        "lastSyncedAt": "Timestamp da última sincronização global",
+        "lastSyncedId": "ID da última submissão sincronizada",
+        "lastRunAt": "Última execução do poller",
+        "totalSubmissionsProcessed": "Total processado",
+        "totalErrors": "Total de erros",
+        "lastError": "Último erro (se houver)",
+        "tenantStates": {
+          "<tenant_id>": {
+            "lastSyncedAt": "Última sync do tenant",
+            "lastSyncedId": "Último ID do tenant"
+          }
+        }
+      },
+      "essential": true,
+      "backup_required": true,
+      "size_bytes": 497,
+      "notes": "Crítico para sincronização multi-tenant. Perda causa reprocessamento de submissions."
+    },
+    {
+      "path": "data/cpf_compliance_poller_state.json",
+      "purpose": "Estado do poller de compliance de CPF - monitora consultas BigDataCorp e atualiza etiquetas WhatsApp",
+      "structure": {
+        "lastPolledAt": "Última verificação",
+        "totalProcessed": "Total de CPFs processados",
+        "totalErrors": "Total de erros",
+        "lastError": "Último erro"
+      },
+      "essential": true,
+      "backup_required": true,
+      "size_bytes": 118,
+      "notes": "Controla processamento de compliance. Intervalo: 3 minutos."
+    }
+  ],
+  "cache_files": [
+    {
+      "path": "data/cpf_processed_ids.json",
+      "purpose": "Cache de IDs de submissões já processadas para verificação de CPF - evita reprocessamento duplicado",
+      "structure": "Array de UUIDs de submissions já processadas",
+      "essential": false,
+      "backup_required": false,
+      "size_bytes": 8503,
+      "notes": "Cache de idempotência. Pode ser regenerado, mas perda causa reprocessamento único."
+    },
+    {
+      "path": "data/cpf_auto_check_processed.json",
+      "purpose": "Cache de submissões processadas pelo auto-check de CPF com estatísticas",
+      "structure": {
+        "processedSubmissionIds": "Array de UUIDs processados",
+        "lastRun": "Última execução",
+        "totalProcessed": "Total processado",
+        "totalErrors": "Total de erros"
+      },
+      "essential": false,
+      "backup_required": false,
+      "size_bytes": 1001,
+      "notes": "Cache auxiliar. Regenerável a partir do Supabase."
+    }
+  ],
+  "data_files": [
+    {
+      "path": "data/assinatura_contracts.json",
+      "purpose": "Armazenamento persistente de todos os contratos de assinatura digital com dados completos",
+      "structure": {
+        "<contract_id>": {
+          "id": "UUID do contrato",
+          "client_name": "Nome do cliente",
+          "client_cpf": "CPF do cliente",
+          "client_email": "Email do cliente",
+          "client_phone": "Telefone",
+          "contract_html": "HTML completo do contrato",
+          "protocol_number": "Número de protocolo (CONT-timestamp)",
+          "status": "pending|signed|cancelled",
+          "access_token": "Token de acesso público",
+          "created_at": "Data de criação",
+          "signed_at": "Data de assinatura",
+          "address": "Endereço de entrega",
+          "logo_*": "Customizações visuais",
+          "verification_*": "Configurações de verificação",
+          "progress_*": "Configurações de progresso",
+          "parabens_*": "Configurações de conclusão"
+        }
+      },
+      "essential": true,
+      "backup_required": true,
+      "size_bytes": 12982596,
+      "notes": "ARQUIVO CRÍTICO (~13MB). Contém todos os contratos. Backup diário recomendado. Considerar migração para Supabase."
+    }
+  ],
+  "audit_files": [
+    {
+      "path": "data/audit/api_routes.json",
+      "purpose": "Documentação de todas as rotas de API da plataforma (287 rotas em 41 arquivos)",
+      "structure": {
+        "audit_info": "Metadados da auditoria",
+        "routes": "Array de rotas com method, path, description, auth, file"
+      },
+      "essential": false,
+      "backup_required": false,
+      "size_bytes": 80779,
+      "notes": "Documentação gerada. Pode ser regenerada."
+    },
+    {
+      "path": "data/audit/automations.json",
+      "purpose": "Documentação de todos os pollers, filas e tarefas agendadas da plataforma",
+      "structure": {
+        "pollers": "Array de pollers com intervals e descrições",
+        "job_queues": "Filas de processamento",
+        "scheduled_tasks": "Tarefas agendadas",
+        "frontend_intervals": "Intervalos do frontend",
+        "environment_variables": "Variáveis configuráveis",
+        "state_files": "Arquivos de estado",
+        "dependencies": "Serviços externos"
+      },
+      "essential": false,
+      "backup_required": false,
+      "size_bytes": 11227,
+      "notes": "Documentação de referência. Regenerável."
+    },
+    {
+      "path": "data/audit/environment_vars.json",
+      "purpose": "Documentação de todas as variáveis de ambiente e secrets da plataforma",
+      "structure": {
+        "required": "Variáveis obrigatórias",
+        "required_for_*": "Variáveis por módulo",
+        "optional_*": "Variáveis opcionais",
+        "frontend_vite_env": "Variáveis do frontend",
+        "replit_auto_configured": "Variáveis auto-configuradas"
+      },
+      "essential": false,
+      "backup_required": false,
+      "size_bytes": 25341,
+      "notes": "Documentação de referência. Regenerável."
+    },
+    {
+      "path": "data/audit/integrations.json",
+      "purpose": "Documentação de todas as integrações externas (Pagar.me, Supabase, 100ms, etc.)",
+      "structure": {
+        "integrations": "Array de 11 integrações com endpoints, env_vars, files, features",
+        "summary": "Resumo por categoria",
+        "security_notes": "Notas de segurança"
+      },
+      "essential": false,
+      "backup_required": false,
+      "size_bytes": 19385,
+      "notes": "Documentação de referência. Regenerável."
+    },
+    {
+      "path": "data/audit/supabase_tables.json",
+      "purpose": "Mapeamento completo de todas as tabelas Supabase (Owner e Tenant)",
+      "structure": {
+        "owner_supabase": "Tabelas do Supabase Master (admins, revendedoras, sync_log)",
+        "tenant_supabase": "Tabelas dos tenants (products, sales, forms, leads, etc.)"
+      },
+      "essential": false,
+      "backup_required": false,
+      "size_bytes": 63328,
+      "notes": "Documentação de referência. Regenerável."
+    },
+    {
+      "path": "data/audit/data_files.json",
+      "purpose": "Este arquivo - auditoria de todos os arquivos de dados persistentes",
+      "structure": "config_files, state_files, cache_files, data_files, audit_files",
+      "essential": false,
+      "backup_required": false,
+      "size_bytes": 0,
+      "notes": "Auto-referencial. Regenerável."
+    }
+  ],
+  "summary": {
+    "critical_for_backup": [
+      "data/supabase-config.json",
+      "data/credentials.json",
+      "data/assinatura_global_config.json",
+      "data/assinatura_contracts.json",
+      "data/automation_state.json",
+      "data/form_submission_poller_state.json",
+      "data/cpf_compliance_poller_state.json"
+    ],
+    "regenerable_from_supabase": [
+      "data/cpf_processed_ids.json",
+      "data/cpf_auto_check_processed.json"
+    ],
+    "documentation_only": [
+      "data/audit/api_routes.json",
+      "data/audit/automations.json",
+      "data/audit/environment_vars.json",
+      "data/audit/integrations.json",
+      "data/audit/supabase_tables.json",
+      "data/audit/data_files.json"
+    ],
+    "recommendations": [
+      "CRÍTICO: data/assinatura_contracts.json tem 13MB - considerar migração para Supabase",
+      "Implementar backup automático diário dos arquivos críticos",
+      "Configurar monitoramento de tamanho do arquivo de contratos",
+      "Arquivos de estado são salvos a cada 5 minutos pela automação"
+    ],
+    "total_essential_files": 7,
+    "total_backup_required": 7,
+    "total_cache_files": 2,
+    "total_audit_files": 6
+  }
+}

@@ -1,0 +1,53 @@
+<div style="font-family: Arial, sans-serif !important; padding: 40px !important; max-width: 800px !important; margin: 0 auto !important; color: #2c3e50 !important;">
+          <header style="text-align: center !important; margin-bottom: 40px !important; border-bottom: 3px solid #27ae60 !important; padding-bottom: 20px !important;">
+            
+            <h1 style="color: #27ae60 !important; margin: 0 !important; font-family: Arial, sans-serif !important; font-size: 28px !important;">CONTRATO DE PRESTAÇÃO DE SERVIÇOS</h1>
+            <p style="color: #2c3e50 !important; margin-top: 10px !important; font-family: Arial, sans-serif !important;">Protocolo: <strong>CONT-1770385729902-F960U3PGC</strong></p>
+          </header>
+          
+          <section style="margin-bottom: 30px !important;">
+            <h2 style="color: #2c3e50 !important; border-bottom: 2px solid #27ae60 !important; padding-bottom: 10px !important; font-family: Arial, sans-serif !important;">CONTRATANTE</h2>
+            <p style="font-family: Arial, sans-serif !important; font-size: 16px !important; color: #2c3e50 !important;"><strong>Nome:</strong> Davi Emerick</p>
+            <p style="font-family: Arial, sans-serif !important; font-size: 16px !important; color: #2c3e50 !important;"><strong>CPF:</strong> 145.155.666-79</p>
+            <p style="font-family: Arial, sans-serif !important; font-size: 16px !important; color: #2c3e50 !important;"><strong>Email:</strong> daviemericko@gmail.com</p>
+            
+          </section>
+          
+          <section style="margin-bottom: 30px !important;">
+            <h2 style="color: #2c3e50 !important; border-bottom: 2px solid #27ae60 !important; padding-bottom: 10px !important; font-family: Arial, sans-serif !important;">CLÁUSULAS CONTRATUAIS</h2>
+            
+      <h3 style="font-weight: bold !important; margin-top: 25px !important; margin-bottom: 10px !important; color: #2c3e50 !important; font-family: Arial, sans-serif !important;">CLÁUSULA PRIMEIRA - DO OBJETO</h3>
+      <p style="text-align: justify !important; line-height: 1.6 !important; font-family: Arial, sans-serif !important; font-size: 16px !important; color: #2c3e50 !important;">O presente contrato tem por objeto a prestação de serviços conforme especificações acordadas entre as partes, em conformidade com a legislação brasileira vigente.</p>
+    
+      <h3 style="font-weight: bold !important; margin-top: 25px !important; margin-bottom: 10px !important; color: #2c3e50 !important; font-family: Arial, sans-serif !important;">CLÁUSULA SEGUNDA - DO PRAZO</h3>
+      <p style="text-align: justify !important; line-height: 1.6 !important; font-family: Arial, sans-serif !important; font-size: 16px !important; color: #2c3e50 !important;">Este contrato terá vigência de 12 (doze) meses a partir da data de assinatura, podendo ser renovado mediante acordo entre as partes.</p>
+    
+      <h3 style="font-weight: bold !important; margin-top: 25px !important; margin-bottom: 10px !important; color: #2c3e50 !important; font-family: Arial, sans-serif !important;">CLÁUSULA TERCEIRA - DAS OBRIGAÇÕES</h3>
+      <p style="text-align: justify !important; line-height: 1.6 !important; font-family: Arial, sans-serif !important; font-size: 16px !important; color: #2c3e50 !important;">As partes se comprometem a cumprir fielmente todas as condições estabelecidas neste instrumento, sob pena de rescisão contratual e aplicação das penalidades cabíveis.</p>
+    
+      <h3 style="font-weight: bold !important; margin-top: 25px !important; margin-bottom: 10px !important; color: #2c3e50 !important; font-family: Arial, sans-serif !important;">CLÁUSULA QUARTA - DA CONFIDENCIALIDADE</h3>
+      <p style="text-align: justify !important; line-height: 1.6 !important; font-family: Arial, sans-serif !important; font-size: 16px !important; color: #2c3e50 !important;">As partes se obrigam a manter sigilo sobre todas as informações confidenciais a que tiverem acesso em razão deste contrato, em conformidade com a Lei Geral de Proteção de Dados (LGPD).</p>
+    
+      <h3 style="font-weight: bold !important; margin-top: 25px !important; margin-bottom: 10px !important; color: #2c3e50 !important; font-family: Arial, sans-serif !important;">CLÁUSULA QUINTA - DO FORO</h3>
+      <p style="text-align: justify !important; line-height: 1.6 !important; font-family: Arial, sans-serif !important; font-size: 16px !important; color: #2c3e50 !important;">Fica eleito o foro da comarca de São Paulo/SP para dirimir quaisquer dúvidas oriundas do presente contrato.</p>
+    
+          </section>
+          
+          
+      <div style="margin-top: 50px !important; padding-top: 30px !important; border-top: 2px solid #27ae60 !important;">
+        <h2 style="color: #2c3e50 !important; font-weight: bold !important; margin-bottom: 20px !important; font-family: Arial, sans-serif !important;">ASSINATURA ELETRÔNICA</h2>
+        <p style="margin-bottom: 8px !important; font-family: Arial, sans-serif !important; font-size: 16px !important; color: #2c3e50 !important;">Este contrato foi assinado eletronicamente em <strong>06/02/2026, 10:50</strong></p>
+        <p style="margin-bottom: 8px !important; font-family: Arial, sans-serif !important; font-size: 16px !important; color: #2c3e50 !important;"><strong>Método de autenticação:</strong> Reconhecimento Facial</p>
+        <p style="margin-bottom: 30px !important; font-family: Arial, sans-serif !important; font-size: 16px !important; color: #2c3e50 !important;"><strong>Nível de segurança:</strong> Verificado com Segurança</p>
+        
+        <div style="margin-top: 30px !important; padding: 30px !important; border: 2px solid #27ae60 !important; text-align: center !important; max-width: 400px !important; margin-left: auto !important; margin-right: auto !important; background-color: #fafafa !important;">
+          <p style="font-family: 'Brush Script MT', 'Segoe Script', 'Bradley Hand', cursive !important; font-size: 32px !important; color: #27ae60 !important; margin: 0 0 10px 0 !important; line-height: 1.2 !important;">Davi Emerick</p>
+          <div style="border-bottom: 2px solid #27ae60 !important; width: 250px !important; margin: 0 auto 15px auto !important;"></div>
+          <p style="margin: 0 !important; font-weight: bold !important; font-size: 14px !important; font-family: Arial, sans-serif !important; color: #2c3e50 !important;">Davi Emerick</p>
+          <p style="margin: 5px 0 !important; color: #2c3e50 !important; font-size: 13px !important; font-family: Arial, sans-serif !important;">CPF: 145.155.666-79</p>
+        </div>
+      </div>
+    
+          
+          <footer style="margin-top: 50px !important; padding-top: 20px !important; border-top: 1px solid #ddd !important; text-align: center !important; color: #2c3e50 !important; font-family: Arial, sans-serif !important; font-size: 12px !important; opacity: 0.8 !important;">Documento gerado eletronicamente</footer>
+        </div>

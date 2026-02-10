@@ -1,0 +1,90 @@
+{
+  "isRunning": true,
+  "startedAt": "2026-02-08T12:07:00.204Z",
+  "lastExecutions": {
+    "system-system": {
+      "clientId": "system",
+      "tenantId": "system",
+      "lastRun": "2026-02-07T22:14:24.650Z",
+      "lastSuccess": null,
+      "lastError": null,
+      "consecutiveErrors": 0,
+      "totalExecutions": 42,
+      "totalNewClientsDetected": 0,
+      "totalEventsCreated": 0,
+      "status": "running"
+    },
+    "dev-daviemericko_gmail_com-dev-daviemericko_gmail_com": {
+      "clientId": "dev-daviemericko_gmail_com",
+      "tenantId": "dev-daviemericko_gmail_com",
+      "lastRun": "2026-02-07T12:23:19.915Z",
+      "lastSuccess": "2026-02-06T20:24:49.124Z",
+      "lastError": null,
+      "consecutiveErrors": 0,
+      "totalExecutions": 371,
+      "totalNewClientsDetected": 0,
+      "totalEventsCreated": 0,
+      "status": "running"
+    },
+    "dev-teste_empresa_com-dev-teste_empresa_com": {
+      "clientId": "dev-teste_empresa_com",
+      "tenantId": "dev-teste_empresa_com",
+      "lastRun": "2026-02-07T12:23:19.913Z",
+      "lastSuccess": "2026-02-07T12:23:19.913Z",
+      "lastError": null,
+      "consecutiveErrors": 0,
+      "totalExecutions": 114,
+      "totalNewClientsDetected": 0,
+      "totalEventsCreated": 0,
+      "status": "running"
+    },
+    "emerick-sj-001-emerick-sj-001": {
+      "clientId": "emerick-sj-001",
+      "tenantId": "emerick-sj-001",
+      "lastRun": "2026-02-07T12:23:19.917Z",
+      "lastSuccess": "2026-02-07T12:23:19.917Z",
+      "lastError": null,
+      "consecutiveErrors": 0,
+      "totalExecutions": 20,
+      "totalNewClientsDetected": 0,
+      "totalEventsCreated": 0,
+      "status": "running"
+    },
+    "babilo-tenant-001-babilo-tenant-001": {
+      "clientId": "babilo-tenant-001",
+      "tenantId": "babilo-tenant-001",
+      "lastRun": "2026-02-07T19:09:07.234Z",
+      "lastSuccess": "2026-02-07T19:09:07.234Z",
+      "lastError": null,
+      "consecutiveErrors": 0,
+      "totalExecutions": 156,
+      "totalNewClientsDetected": 0,
+      "totalEventsCreated": 0,
+      "status": "running"
+    },
+    "dev-davipiano_gmail_com-dev-davipiano_gmail_com": {
+      "clientId": "dev-davipiano_gmail_com",
+      "tenantId": "dev-davipiano_gmail_com",
+      "lastRun": "2026-02-08T12:31:00.316Z",
+      "lastSuccess": null,
+      "lastError": null,
+      "consecutiveErrors": 0,
+      "totalExecutions": 100,
+      "totalNewClientsDetected": 0,
+      "totalEventsCreated": 0,
+      "status": "running"
+    }
+  },
+  "globalStats": {
+    "totalExecutions": 803,
+    "totalNewClientsDetected": 0,
+    "totalEventsCreated": 0,
+    "totalErrors": 0,
+    "uptime": 1497
+  },
+  "settings": {
+    "detectionIntervalMinutes": 2,
+    "processingEnabled": true,
+    "maxRetries": 3
+  }
+}

@@ -1,0 +1,163 @@
+
+de
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Logs
+Back to canvas
+
+Input
+IF - Horário Disponível?1
+1 item
+Evento
+agendamento
+Remotejid
+553192267220@s.whatsapp.net
+telefone
+[null]
+disponivel
+true
+data_inicio
+2026-01-12T21:20:55.440Z
+data_fim
+2026-01-12T22:20:55.440Z
+mensagem
+Horário disponível
+
+Code in JavaScript
+1 item
+Switch - Tipo de Evento2
+1 item
+Switch1
+1 item
+Execute Workflow Trigger
+1 item
+Variables and context
+
+Output
+1 item
+Bad request - please check your parameters
+Dados inválidos
+Error details
+
+ From HTTP Request
+Error code
+
+400
+
+Full message
+
+400 - "{\"error\":\"Dados inválidos\"}"
+Request
+
+{ "body": { "titulo": "Reunião Automática", "nome": "Participante", "email": "", "telefone": "553192267220@s.whatsapp.net", "dataInicio": "2026-01-12T21:20:55.440Z", "duracao": 60 }, "headers": { "x-n8n-api-key": "n8n_01c46932ae238aebd151f67ae2cdc619daeecac4cfd472eb27826b104f07df4e", "content-type": "application/json", "accept": "application/json,text/html,application/xhtml+xml,application/xml,text/*;q=0.9, image/*;q=0.8, */*;q=0.7" }, "method": "POST", "uri": "https://863db27b-299f-4f4f-ae93-4678cbe1589b-00-2521mi8n9pvo9.kirk.replit.dev/api/n8n/reunioes", "gzip": true, "rejectUnauthorized": true, "followRedirect": true, "resolveWithFullResponse": true, "followAllRedirects": true, "timeout": 300000, "encoding": null, "json": false, "useStream": true }
+ Other info
+Item Index
+
+0
+
+Node type
+
+n8n-nodes-base.httpRequest
+
+Node version
+
+4 (Latest version: 4.3)
+
+n8n version
+
+1.122.5 (Self Hosted)
+
+Time
+
+12/01/2026, 17:26:10
+
+Stack trace
+
+NodeApiError: Bad request - please check your parameters at ExecuteContext.execute (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-nodes-base@file+packages+nodes-base_@aws-sdk+credential-providers@3.808.0_asn1.js@5_8da18263ca0574b0db58d4fefd8173ce/node_modules/n8n-nodes-base/nodes/HttpRequest/V3/HttpRequestV3.node.ts:858:16) at processTicksAndRejections (node:internal/process/task_queues:105:5) at WorkflowExecute.executeNode (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-core@file+packages+core_@opentelemetry+api@1.9.0_@opentelemetry+sdk-trace-base@1.30_08b575bec2313d5d8a4cc75358971443/node_modules/n8n-core/src/execution-engine/workflow-execute.ts:1074:8) at WorkflowExecute.runNode (/usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-core@file+packages+core_@opentelemetry+api@1.9.0_@opentelemetry+sdk-trace-base@1.30_08b575bec2313d5d8a4cc75358971443/node_modules/n8n-core/src/execution-engine/workflow-execute.ts:1255:11) at /usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-core@file+packages+core_@opentelemetry+api@1.9.0_@opentelemetry+sdk-trace-base@1.30_08b575bec2313d5d8a4cc75358971443/node_modules/n8n-core/src/execution-engine/workflow-execute.ts:1691:27 at /usr/local/lib/node_modules/n8n/node_modules/.pnpm/n8n-core@file+packages+core_@opentelemetry+api@1.9.0_@opentelemetry+sdk-trace-base@1.30_08b575bec2313d5d8a4cc75358971443/node_modules/n8n-core/src/execution-engine/workflow-execute.ts:2307:11
+
+Parameters
+Settings
+Docs 
+Method
+POST
+URL
+https://863db27b-299f-4f4f-ae93-4678cbe1589b-00-2521mi8n9pvo9.kirk.replit.dev/api/n8n/reunioes
+Authentication
+None
+Send Query Parameters
+
+Send Headers
+
+Specify Headers
+Using Fields Below
+Header Parameters
+Name
+X-N8N-API-Key
+Value
+n8n_01c46932ae238aebd151f67ae2cdc619daeecac4cfd472eb27826b104f07df4e
+Name
+Content-Type
+Value
+application/json
+Send Body
+
+Body Content Type
+JSON
+Specify Body
+Using JSON
+JSON
+{
+  "titulo": "{{ $('Execute Workflow Trigger').item.json.query?.titulo || 'Reunião Automática' }}",
+  "nome": "{{ $('Execute Workflow Trigger').item.json.query?.nome || 'Participante' }}",
+  "email": "{{ $('Execute Workflow Trigger').item.json.query?.email || '' }}",
+  "telefone": "{{ $('Execute Workflow Trigger').item.json.Remotejid || '' }}",
+  "dataInicio": "{{ $('IF - Horário Disponível?1').item.json.data_inicio }}",
+  "duracao": 60
+}
+ 
+{   "titulo": "Reunião Automática",   "nome": "Participante",   "email": "",   "telefone": "553192267220@s.whatsapp.net",   "dataInicio": "2026-01-12T21:20:55.440Z",   "duracao": 60 }
+Options
+No properties
+Add option
+You can view the raw requests this node makes in your browser's developer console
+ I wish this node would...
+Problem in node ‘Criar Reunião via Plataforma‘
+Bad request - please check your parameters
+

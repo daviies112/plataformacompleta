@@ -1,0 +1,55 @@
+create table public.reunioes (
+  id uuid not null default gen_random_uuid (),
+  tenant_id text null,
+  usuario_id text null,
+  nome text null,
+  email text null,
+  telefone text null,
+  titulo text null,
+  descricao text null,
+  data_inicio timestamp with time zone null default now(),
+  data_fim timestamp with time zone null default now(),
+  duracao integer null,
+  room_id_100ms text null,
+  room_code_100ms text null,
+  link_reuniao text null,
+  status text null default 'agendada'::text,
+  participantes jsonb null default '[]'::jsonb,
+  gravacao_url text null,
+  metadata jsonb null default '{}'::jsonb,
+  created_at timestamp with time zone null default now(),
+  updated_at timestamp with time zone null default now(),
+  compareceu boolean null default false,
+  follow_up_count bigint null default '0'::bigint,
+  follow_up_encerrado boolean null default false,
+  ultimo_follow_up timestamp with time zone null,
+  tipo_reuniao text null,
+  notificacao_2h_enviada boolean null default false,
+  notificacao_5min_enviada boolean null default false,
+  mensagem_enviada boolean null default false,
+  participant_id text null,
+  constraint reunioes_pkey primary key (id),
+  constraint reunioes_participant_id_key unique (participant_id)
+) TABLESPACE pg_default;
+
+create index IF not exists idx_reunioes_notificacoes on public.reunioes using btree (
+  data_inicio,
+  notificacao_2h_enviada,
+  notificacao_5min_enviada
+) TABLESPACE pg_default;
+
+create index IF not exists idx_reunioes_tenant_id on public.reunioes using btree (tenant_id) TABLESPACE pg_default;
+
+create index IF not exists idx_reunioes_participant_id on public.reunioes using btree (participant_id) TABLESPACE pg_default
+where
+  (participant_id is not null);
+
+create index IF not exists idx_reunioes_tenant on public.reunioes using btree (tenant_id) TABLESPACE pg_default;
+
+create index IF not exists idx_reunioes_usuario on public.reunioes using btree (usuario_id) TABLESPACE pg_default;
+
+create index IF not exists idx_reunioes_data_inicio on public.reunioes using btree (data_inicio) TABLESPACE pg_default;
+
+create index IF not exists idx_reunioes_status on public.reunioes using btree (status) TABLESPACE pg_default;
+
+create index IF not exists idx_reunioes_room_id on public.reunioes using btree (room_id_100ms) TABLESPACE pg_default;

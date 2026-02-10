@@ -1,0 +1,46 @@
+Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+d7fae408-9fc5-444e-8296-9ddd406bd519:1 Error while trying to use the following icon from the Manifest: https://02d16a0c-fa6f-4963-9f61-2edaa63b0764-00-36enijynk45y7.spock.replit.dev/icons/icon-192x192.png (Download error or resource isn't a valid image)Understand this warning
+2Meeting100ms.tsx:663 Uncaught ReferenceError: isRecordingOn is not defined
+    at Meeting100ms (Meeting100ms.tsx:663:18)
+    at renderWithHooks (chunk-NFC5BX5N.js?v=26bf9b41:11548:26)
+    at updateFunctionComponent (chunk-NFC5BX5N.js?v=26bf9b41:14582:28)
+    at beginWork (chunk-NFC5BX5N.js?v=26bf9b41:15924:22)
+    at HTMLUnknownElement.callCallback2 (chunk-NFC5BX5N.js?v=26bf9b41:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-NFC5BX5N.js?v=26bf9b41:3699:24)
+    at invokeGuardedCallback (chunk-NFC5BX5N.js?v=26bf9b41:3733:39)
+    at beginWork$1 (chunk-NFC5BX5N.js?v=26bf9b41:19765:15)
+    at performUnitOfWork (chunk-NFC5BX5N.js?v=26bf9b41:19198:20)
+    at workLoopSync (chunk-NFC5BX5N.js?v=26bf9b41:19137:13)Understand this error
+chunk-NFC5BX5N.js?v=26bf9b41:14032 The above error occurred in the <Meeting100ms> component:
+
+    at Meeting100ms (https://02d16a0c-fa6f-4963-9f61-2edaa63b0764-00-36enijynk45y7.spock.replit.dev/src/components/Meeting100ms.tsx:176:32)
+    at l3 (https://02d16a0c-fa6f-4963-9f61-2edaa63b0764-00-36enijynk45y7.spock.replit.dev/node_modules/.vite/deps/@100mslive_react-sdk.js?v=17340d64:18589:23)
+    at Meeting100msWithProvider
+    at Suspense
+    at PublicMeetingApp (https://02d16a0c-fa6f-4963-9f61-2edaa63b0764-00-36enijynk45y7.spock.replit.dev/src/PublicMeetingApp.tsx:92:43)
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+logCapturedError @ chunk-NFC5BX5N.js?v=26bf9b41:14032Understand this error
+chunk-NFC5BX5N.js?v=26bf9b41:19413 Uncaught ReferenceError: isRecordingOn is not defined
+    at Meeting100ms (Meeting100ms.tsx:663:18)
+    at renderWithHooks (chunk-NFC5BX5N.js?v=26bf9b41:11548:26)
+    at updateFunctionComponent (chunk-NFC5BX5N.js?v=26bf9b41:14582:28)
+    at beginWork (chunk-NFC5BX5N.js?v=26bf9b41:15924:22)
+    at beginWork$1 (chunk-NFC5BX5N.js?v=26bf9b41:19753:22)
+    at performUnitOfWork (chunk-NFC5BX5N.js?v=26bf9b41:19198:20)
+    at workLoopSync (chunk-NFC5BX5N.js?v=26bf9b41:19137:13)
+    at renderRootSync (chunk-NFC5BX5N.js?v=26bf9b41:19116:15)
+    at recoverFromConcurrentError (chunk-NFC5BX5N.js?v=26bf9b41:18736:28)
+    at performConcurrentWorkOnRoot (chunk-NFC5BX5N.js?v=26bf9b41:18684:30)Understand this error
+@100mslive_react-sdk.js?v=17340d64:11971 HMS-Store: left room
+@100mslive_react-sdk.js?v=17340d64:8375 [HMSSdk]: Error in publish TypeError: Cannot set properties of undefined (setting 'audioTrack')
+    at Er.<anonymous> (@100mslive_react-sdk.js?v=17340d64:18181:37)
+    at Generator.next (<anonymous>)
+    at @100mslive_react-sdk.js?v=17340d64:8280:35
+    at new Promise (<anonymous>)
+    at c2 (@100mslive_react-sdk.js?v=17340d64:8266:29)
+    at Er.setLocalPeerTrack (@100mslive_react-sdk.js?v=17340d64:18177:12)
+    at Er.<anonymous> (@100mslive_react-sdk.js?v=17340d64:18172:20)
+    at Generator.next (<anonymous>)
+    at s10 (@100mslive_react-sdk.js?v=17340d64:8269:15)

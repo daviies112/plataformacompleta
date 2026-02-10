@@ -1,0 +1,279 @@
+-- =============================================
+-- 1. CONFIGURAÇÃO: BigDataCorp (CPF)
+-- =============================================
+CREATE TABLE IF NOT EXISTS bigdatacorp_config (
+  id SERIAL PRIMARY KEY,
+  tenant_id TEXT NOT NULL,
+  token_id TEXT NOT NULL,
+  chave_token TEXT NOT NULL,
+  supabase_master_url TEXT,
+  supabase_master_service_role_key TEXT,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_bigdatacorp_tenant_unique ON bigdatacorp_config (tenant_id);
+
+-- =============================================
+-- 2. CONFIGURAÇÃO: Supabase Master
+-- =============================================
+CREATE TABLE IF NOT EXISTS supabase_master_config (
+  id SERIAL PRIMARY KEY,
+  tenant_id TEXT NOT NULL,
+  supabase_master_url TEXT NOT NULL,
+  supabase_master_service_role_key TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_supabase_master_tenant_unique ON supabase_master_config (tenant_id);
+
+-- =============================================
+-- 3. CONFIGURAÇÃO: Total Express (Envios)
+-- =============================================
+CREATE TABLE IF NOT EXISTS total_express_config (
+  id SERIAL PRIMARY KEY,
+  tenant_id TEXT NOT NULL,
+  "user" TEXT NOT NULL,
+  password TEXT NOT NULL,
+  reid TEXT NOT NULL,
+  service TEXT DEFAULT 'EXP',
+  test_mode BOOLEAN DEFAULT TRUE,
+  profit_margin REAL DEFAULT 1.40,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_total_express_tenant_unique ON total_express_config (tenant_id);
+
+-- =============================================
+-- 4. CONFIGURAÇÃO: Supabase do Cliente
+-- =============================================
+CREATE TABLE IF NOT EXISTS supabase_config (
+  id SERIAL PRIMARY KEY,
+  tenant_id TEXT NOT NULL,
+  supabase_url TEXT NOT NULL,
+  supabase_anon_key TEXT NOT NULL,
+  supabase_bucket TEXT DEFAULT 'uploads',
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- =============================================
+-- 5. CONFIGURAÇÃO: 100ms (Reuniões)
+-- =============================================
+CREATE TABLE IF NOT EXISTS hms_100ms_config (
+  id SERIAL PRIMARY KEY,
+  tenant_id TEXT NOT NULL,
+  app_access_key TEXT,
+  app_secret TEXT,
+  template_id TEXT,
+  room_id TEXT,
+  management_token TEXT,
+  subdomain TEXT,
+  company_slug TEXT,
+  is_owner BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- =============================================
+-- 6. CONFIGURAÇÃO: Supabase Revendedores
+-- =============================================
+CREATE TABLE IF NOT EXISTS reseller_supabase_configs (
+  id SERIAL PRIMARY KEY,
+  tenant_id TEXT NOT NULL,
+  supabase_url TEXT NOT NULL,
+  supabase_anon_key TEXT NOT NULL,
+  supabase_bucket TEXT DEFAULT 'uploads',
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- =============================================
+-- 7. CONFIGURAÇÃO: App Settings
+-- =============================================
+CREATE TABLE IF NOT EXISTS app_settings (
+  id SERIAL PRIMARY KEY,
+  tenant_id TEXT NOT NULL,
+  whatsapp_instance TEXT,
+  whatsapp_api_url TEXT,
+  whatsapp_api_key TEXT,
+  evolution_api_url TEXT,
+  evolution_api_key TEXT,
+  evolution_instance TEXT,
+  n8n_webhook_url TEXT,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+-- =============================================
+-- 8. OPERACIONAL: Leads (cache do Supabase)
+-- =============================================
+CREATE TABLE IF NOT EXISTS leads (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id TEXT NOT NULL,
+  telefone TEXT NOT NULL,
+  telefone_normalizado TEXT NOT NULL,
+  nome TEXT,
+  email TEXT,
+  cpf TEXT,
+  cpf_normalizado TEXT,
+  form_status TEXT DEFAULT 'not_sent',
+  cpf_check_id UUID,
+  cpf_status TEXT,
+  cpf_checked_at TIMESTAMP,
+  pipeline_status TEXT DEFAULT 'contato-inicial',
+  submission_id UUID,
+  whatsapp_label_id UUID,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_leads_telefone_norm_unique ON leads (telefone_normalizado);
+CREATE INDEX IF NOT EXISTS idx_leads_tenant ON leads (tenant_id);
+CREATE INDEX IF NOT EXISTS idx_leads_cpf_norm ON leads (cpf_normalizado);
+
+-- =============================================
+-- 9. FINANCEIRO: Wallets (local permanente)
+-- =============================================
+CREATE TABLE IF NOT EXISTS wallets (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id TEXT NOT NULL UNIQUE,
+  balance NUMERIC(10,2) NOT NULL DEFAULT 0.00,
+  currency VARCHAR(3) NOT NULL DEFAULT 'BRL',
+  is_frozen BOOLEAN NOT NULL DEFAULT FALSE,
+  auto_recharge BOOLEAN NOT NULL DEFAULT FALSE,
+  auto_recharge_trigger NUMERIC(10,2),
+  auto_recharge_amount NUMERIC(10,2),
+  saved_card_token TEXT,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_wallets_tenant ON wallets (tenant_id);
+
+-- =============================================
+-- 10. OPERACIONAL: Forms (cache do Supabase)
+-- =============================================
+CREATE TABLE IF NOT EXISTS forms (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title TEXT NOT NULL,
+  slug TEXT,
+  description TEXT,
+  welcome_title TEXT,
+  welcome_message TEXT,
+  welcome_config JSONB,
+  questions JSONB NOT NULL DEFAULT '[]'::jsonb,
+  elements JSONB,
+  passing_score INTEGER NOT NULL DEFAULT 0,
+  score_tiers JSONB,
+  design_config JSONB,
+  completion_page_id UUID,
+  tenant_id TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_forms_tenant ON forms (tenant_id);
+
+-- =============================================
+-- 11. OPERACIONAL: Form Submissions (cache do Supabase)
+-- =============================================
+CREATE TABLE IF NOT EXISTS form_submissions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  form_id UUID NOT NULL,
+  tenant_id TEXT NOT NULL,
+  contact_name TEXT,
+  contact_email TEXT,
+  contact_phone TEXT,
+  contact_cpf TEXT,
+  contact_cpf_normalizado TEXT,
+  answers JSONB NOT NULL DEFAULT '[]'::jsonb,
+  score INTEGER,
+  status TEXT DEFAULT 'pending',
+  pipeline_status TEXT DEFAULT 'contato-inicial',
+  meeting_status TEXT DEFAULT 'nao_agendada',
+  meeting_id TEXT,
+  participant_id TEXT,
+  cpf_check_id UUID,
+  cpf_status TEXT,
+  cpf_checked_at TIMESTAMP,
+  follow_up_status TEXT DEFAULT 'pendente',
+  follow_up_notes TEXT,
+  follow_up_encerrado BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_submissions_form_id ON form_submissions (form_id);
+CREATE INDEX IF NOT EXISTS idx_submissions_tenant ON form_submissions (tenant_id);
+CREATE INDEX IF NOT EXISTS idx_submissions_cpf ON form_submissions (contact_cpf);
+CREATE INDEX IF NOT EXISTS idx_submissions_phone ON form_submissions (contact_phone);
+
+-- =============================================
+-- 12. OPERACIONAL: Form Tenant Mapping (cache/mapeamento)
+-- =============================================
+CREATE TABLE IF NOT EXISTS form_tenant_mapping (
+  id SERIAL PRIMARY KEY,
+  form_id TEXT NOT NULL,
+  tenant_id TEXT NOT NULL,
+  supabase_url TEXT,
+  is_public BOOLEAN DEFAULT TRUE,
+  company_slug TEXT,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+-- =============================================
+-- 13. OPERACIONAL: Reuniões (local + sync para Supabase)
+-- =============================================
+CREATE TABLE IF NOT EXISTS reunioes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id TEXT NOT NULL,
+  usuario_id TEXT,
+  nome TEXT,
+  email TEXT,
+  telefone TEXT,
+  titulo TEXT,
+  descricao TEXT,
+  data_inicio TIMESTAMP NOT NULL,
+  data_fim TIMESTAMP NOT NULL,
+  duracao INTEGER,
+  room_id_100ms TEXT,
+  room_code_100ms TEXT,
+  link_reuniao TEXT,
+  link_publico TEXT,
+  status TEXT DEFAULT 'agendada',
+  participantes JSONB DEFAULT '[]'::jsonb,
+  gravacao_url TEXT,
+  metadata JSONB DEFAULT '{}'::jsonb,
+  compareceu BOOLEAN DEFAULT FALSE,
+  participant_id TEXT,
+  form_submission_id TEXT,
+  tipo_reuniao TEXT,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_reunioes_tenant ON reunioes (tenant_id);
+CREATE INDEX IF NOT EXISTS idx_reunioes_usuario ON reunioes (usuario_id);
+CREATE INDEX IF NOT EXISTS idx_reunioes_data_inicio ON reunioes (data_inicio);
+CREATE INDEX IF NOT EXISTS idx_reunioes_status ON reunioes (status);
+CREATE INDEX IF NOT EXISTS idx_reunioes_room_id ON reunioes (room_id_100ms);
+CREATE INDEX IF NOT EXISTS idx_reunioes_compareceu ON reunioes (compareceu);
+CREATE INDEX IF NOT EXISTS idx_reunioes_participant_id ON reunioes (participant_id);
+CREATE INDEX IF NOT EXISTS idx_reunioes_form_submission_id ON reunioes (form_submission_id);
+
+-- =============================================
+-- 14. OPERACIONAL: Histórico de Notificações
+-- =============================================
+CREATE TABLE IF NOT EXISTS notification_history (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id TEXT NOT NULL,
+  user_id TEXT NOT NULL,
+  type TEXT NOT NULL,
+  title TEXT NOT NULL,
+  body TEXT,
+  data JSONB,
+  devices_sent INTEGER DEFAULT 0,
+  success BOOLEAN DEFAULT TRUE,
+  read BOOLEAN DEFAULT FALSE,
+  read_at TIMESTAMP,
+  sent_at TIMESTAMP DEFAULT NOW(),
+  device_tokens JSONB
+);
+CREATE INDEX IF NOT EXISTS idx_notification_history_user ON notification_history (user_id);
+CREATE INDEX IF NOT EXISTS idx_notification_history_tenant ON notification_history (tenant_id);
+

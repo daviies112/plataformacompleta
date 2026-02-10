@@ -1,0 +1,306 @@
+<!-- 
+  ═══════════════════════════════════════════════════════════════
+  🚀 SNIPPET DE CORREÇÃO INSTANTÂNEA - TELA BRANCA
+  ═══════════════════════════════════════════════════════════════
+  
+  INSTRUÇÕES:
+  1. Abra o arquivo 'index.html' no Replit
+  2. Localize a linha: <div id="root"></div>
+  3. Substitua por TODO o conteúdo abaixo (incluindo os comentários)
+  4. Salve o arquivo
+  5. Recarregue a página pública
+  
+  RESULTADO ESPERADO:
+  - Skeleton azul aparece INSTANTANEAMENTE (< 100ms)
+  - Console mostra timestamps de cada etapa do carregamento
+  - Você saberá EXATAMENTE onde está o gargalo
+  
+  ═══════════════════════════════════════════════════════════════
+-->
+
+<div id="root">
+  <!-- ════════════════════════════════════════ -->
+  <!-- SKELETON INSTANTÂNEO (HTML Puro - 0ms)  -->
+  <!-- ════════════════════════════════════════ -->
+  <div id="instant-skeleton" style="
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  ">
+    <div style="
+      background: white;
+      border-radius: 20px;
+      padding: 48px 40px;
+      max-width: 480px;
+      width: 90%;
+      box-shadow: 0 25px 80px rgba(0,0,0,0.35);
+      text-align: center;
+    ">
+      <!-- Spinner Animado -->
+      <div style="
+        width: 64px;
+        height: 64px;
+        border: 5px solid #e2e8f0;
+        border-top-color: #667eea;
+        border-radius: 50%;
+        margin: 0 auto 28px;
+        animation: spin 0.8s linear infinite;
+      "></div>
+      
+      <!-- Título -->
+      <h2 style="
+        color: #1a202c;
+        font-size: 22px;
+        font-weight: 600;
+        margin: 0 0 12px 0;
+        letter-spacing: -0.5px;
+      ">Carregando...</h2>
+      
+      <!-- Descrição -->
+      <p style="
+        color: #718096;
+        font-size: 15px;
+        margin: 0 0 24px 0;
+        line-height: 1.5;
+      ">Preparando sua experiência</p>
+      
+      <!-- Barra de Progresso -->
+      <div style="
+        width: 100%;
+        height: 4px;
+        background: #e2e8f0;
+        border-radius: 2px;
+        overflow: hidden;
+      ">
+        <div id="progress-bar" style="
+          width: 0%;
+          height: 100%;
+          background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+          border-radius: 2px;
+          animation: progress 2s ease-in-out infinite;
+        "></div>
+      </div>
+      
+      <!-- Indicador de Tempo -->
+      <p id="loading-time" style="
+        color: #a0aec0;
+        font-size: 13px;
+        margin: 16px 0 0 0;
+      ">0s</p>
+    </div>
+  </div>
+  
+  <!-- ════════════════════════════════════════ -->
+  <!-- ESTILOS E ANIMAÇÕES                     -->
+  <!-- ════════════════════════════════════════ -->
+  <style>
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    @keyframes progress {
+      0% { width: 0%; }
+      50% { width: 70%; }
+      100% { width: 90%; }
+    }
+  </style>
+  
+  <!-- ════════════════════════════════════════ -->
+  <!-- SCRIPT DE MONITORAMENTO                 -->
+  <!-- ════════════════════════════════════════ -->
+  <script>
+    (function() {
+      // ─────────────────────────────────────
+      // 1. MARCA INÍCIO ABSOLUTO
+      // ─────────────────────────────────────
+      window.PERF_START = performance.now();
+      window.LOAD_TIMES = {};
+      
+      console.log('%c🚀 INÍCIO DO CARREGAMENTO', 'background: #667eea; color: white; padding: 4px 8px; border-radius: 3px; font-weight: bold;');
+      
+      // ─────────────────────────────────────
+      // 2. ATUALIZA TIMER VISUAL
+      // ─────────────────────────────────────
+      const timeDisplay = document.getElementById('loading-time');
+      const updateTimer = setInterval(() => {
+        const elapsed = ((performance.now() - window.PERF_START) / 1000).toFixed(1);
+        if (timeDisplay) {
+          timeDisplay.textContent = elapsed + 's';
+        }
+      }, 100);
+      
+      // ─────────────────────────────────────
+      // 3. INTERCEPTA CONSOLE.LOG
+      // ─────────────────────────────────────
+      const originalLog = console.log;
+      console.log = function(...args) {
+        const timestamp = ((performance.now() - window.PERF_START) / 1000).toFixed(2);
+        originalLog.apply(console, [`[${timestamp}s]`, ...args]);
+      };
+      
+      // ─────────────────────────────────────
+      // 4. MONITORA EVENTOS DO DOM
+      // ─────────────────────────────────────
+      const logEvent = (name, color) => {
+        const time = ((performance.now() - window.PERF_START) / 1000).toFixed(2);
+        window.LOAD_TIMES[name] = time;
+        console.log(`%c${name}: ${time}s`, `color: ${color}; font-weight: bold;`);
+      };
+      
+      document.addEventListener('DOMContentLoaded', () => {
+        logEvent('✅ DOMContentLoaded', '#10b981');
+      });
+      
+      window.addEventListener('load', () => {
+        logEvent('✅ Window Load', '#10b981');
+      });
+      
+      // ─────────────────────────────────────
+      // 5. DETECTA QUANDO REACT RENDERIZA
+      // ─────────────────────────────────────
+      const observer = new MutationObserver((mutations) => {
+        for (let mutation of mutations) {
+          if (mutation.addedNodes.length > 0) {
+            // Procura por sinais de que React renderizou
+            const reactDetected = document.querySelector(
+              '[data-formulario], [data-reuniao], [data-assinatura], .ant-spin, [class*="FormularioPublico"]'
+            );
+            
+            if (reactDetected) {
+              logEvent('⚛️  React Renderizou', '#61dafb');
+              removeSkeleton();
+              observer.disconnect();
+            }
+          }
+        }
+      });
+      
+      observer.observe(document.getElementById('root'), {
+        childList: true,
+        subtree: true
+      });
+      
+      // ─────────────────────────────────────
+      // 6. REMOVE SKELETON COM FADE
+      // ─────────────────────────────────────
+      function removeSkeleton() {
+        const skeleton = document.getElementById('instant-skeleton');
+        const progressBar = document.getElementById('progress-bar');
+        
+        if (skeleton) {
+          // Completa a barra primeiro
+          if (progressBar) {
+            progressBar.style.animation = 'none';
+            progressBar.style.width = '100%';
+          }
+          
+          // Fade out suave
+          setTimeout(() => {
+            skeleton.style.opacity = '0';
+            skeleton.style.transition = 'opacity 0.4s ease-out';
+            
+            setTimeout(() => {
+              skeleton.remove();
+              clearInterval(updateTimer);
+              
+              // Relatório final
+              console.log('\n%c📊 RELATÓRIO FINAL DE CARREGAMENTO', 'background: #667eea; color: white; padding: 4px 8px; border-radius: 3px; font-weight: bold;');
+              console.table(window.LOAD_TIMES);
+              
+              // Análise
+              const total = ((performance.now() - window.PERF_START) / 1000).toFixed(2);
+              if (total > 3) {
+                console.log('%c⚠️  LENTO: Carregamento levou ' + total + 's (ideal: <2s)', 'color: #f59e0b; font-weight: bold;');
+              } else if (total > 1.5) {
+                console.log('%c⚡ BOM: Carregamento levou ' + total + 's', 'color: #10b981;');
+              } else {
+                console.log('%c🚀 RÁPIDO: Carregamento levou ' + total + 's', 'color: #10b981; font-weight: bold;');
+              }
+            }, 400);
+          }, 100);
+        }
+      }
+      
+      // ─────────────────────────────────────
+      // 7. TIMEOUT DE SEGURANÇA (30s)
+      // ─────────────────────────────────────
+      setTimeout(() => {
+        if (document.getElementById('instant-skeleton')) {
+          console.log('%c⏱️ TIMEOUT: Removendo skeleton após 30s', 'color: #f59e0b; font-weight: bold;');
+          removeSkeleton();
+        }
+      }, 30000);
+      
+      // ─────────────────────────────────────
+      // 8. MONITORA RECURSOS CARREGADOS
+      // ─────────────────────────────────────
+      if (window.PerformanceObserver) {
+        try {
+          const perfObserver = new PerformanceObserver((list) => {
+            for (const entry of list.getEntries()) {
+              if (entry.initiatorType === 'script' && entry.duration > 100) {
+                const time = (entry.duration / 1000).toFixed(2);
+                console.log(`%c📦 Script lento [${time}s]: ${entry.name.split('/').pop()}`, 'color: #f59e0b;');
+              }
+            }
+          });
+          
+          perfObserver.observe({ entryTypes: ['resource'] });
+        } catch (e) {
+          // PerformanceObserver não suportado
+        }
+      }
+    })();
+  </script>
+</div>
+
+<!-- 
+  ═══════════════════════════════════════════════════════════════
+  📋 INTERPRETANDO OS RESULTADOS NO CONSOLE
+  ═══════════════════════════════════════════════════════════════
+  
+  Após recarregar a página, você verá algo como:
+  
+  🚀 INÍCIO DO CARREGAMENTO
+  [0.05s] ✅ DOMContentLoaded: 0.05s
+  [0.32s] 📦 Script lento [0.28s]: index-abc123.js
+  [1.20s] ✅ Window Load: 1.20s
+  [2.45s] ⚛️ React Renderizou: 2.45s
+  
+  📊 RELATÓRIO FINAL DE CARREGAMENTO
+  ┌─────────────────────┬────────┐
+  │ Evento              │ Tempo  │
+  ├─────────────────────┼────────┤
+  │ DOMContentLoaded    │ 0.05s  │
+  │ Window Load         │ 1.20s  │
+  │ React Renderizou    │ 2.45s  │
+  └─────────────────────┴────────┘
+  
+  🎯 COMO INTERPRETAR:
+  
+  1. Se DOMContentLoaded > 1s:
+     → Problema: HTML ou scripts bloqueantes
+     → Solução: Mover scripts para o final do body, usar defer/async
+  
+  2. Se Window Load > 3s:
+     → Problema: Recursos muito pesados (JS, CSS, imagens)
+     → Solução: Code splitting, lazy loading, otimizar assets
+  
+  3. Se React Renderizou > 5s:
+     → Problema: Componentes React pesados ou muitos imports
+     → Solução: React.lazy(), remover imports desnecessários
+  
+  4. Se aparecer "Script lento":
+     → Problema: Bundle JavaScript muito grande
+     → Solução: Dividir bundle (manualChunks no vite.config)
+  
+  ═══════════════════════════════════════════════════════════════
+-->

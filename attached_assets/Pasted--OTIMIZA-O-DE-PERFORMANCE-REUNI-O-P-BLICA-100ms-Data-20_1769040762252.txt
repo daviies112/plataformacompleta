@@ -1,0 +1,258 @@
+🚀 OTIMIZAÇÃO DE PERFORMANCE - REUNIÃO PÚBLICA (100ms)
+Data: 2026-01-21
+Objetivo: Reduzir tempo de carregamento da sala de reunião de ~4-6s para <2s
+
+📊 ARQUIVOS ANALISADOS
+Arquivo	Linhas	Localização
+PublicMeetingRoom.tsx
+505	src/pages/
+Meeting100ms.tsx
+1090	src/components/
+meetings.ts
+2492	server/routes/
+hms100ms.ts
+259	server/services/meetings/
+use100ms.ts
+32	src/hooks/
+⚠️ Arquivos DUPLICADOS (código morto)
+reuniao/client/src/components/Meeting100ms.tsx    [DUPLICATA]
+reuniao/client/src/pages/PublicMeetingRoom.tsx   [DUPLICATA]
+reuniao/client/src/components/MeetingLobby.tsx   [DUPLICATA]
+reuniao/client/src/hooks/useMeetingType.ts       [DUPLICATA]
+reuniao/client/src/stores/meetingStore.ts        [DUPLICATA]
+🔴 PROBLEMAS IDENTIFICADOS
+1. Bundle SDK 100ms Gigante (~400KB)
+// Meeting100ms.tsx - linha 2-18
+import {
+  useHMSStore, useHMSActions, useVideo, useHMSNotifications,
+  HMSNotificationTypes, selectPeers, selectIsConnectedToRoom,
+  selectIsLocalAudioEnabled, selectIsLocalVideoEnabled,
+  selectIsLocalScreenShared, selectRoom, selectRoomState,
+  HMSPeer, HMSRoomState, HMSRoomProvider,
+} from "@100mslive/react-sdk";
+SDK inteiro carregado mesmo para usuários no lobby
+Impacto: +300-400KB bundle, +2s parse
+2. 3 Fetches Sequenciais para Entrar
+1. GET /api/public/reuniao/:companySlug/:roomId  (dados da reunião)
+2. POST /token-public (gerar token)
+3. Opcional: GET /participant-data (após sair)
+Cada fetch adiciona 100-300ms de latência
+Impacto: +500ms total
+3. 100+ Console.logs em Produção
+// Meeting100ms.tsx - exemplos
+console.log("[Meeting100ms] 🔧 Ativando logs de debug do SDK 100ms...");
+console.log("[Meeting100ms] 📊 Room state atualizado:", {...});
+console.log("[Meeting100ms] 🔔 Notificação recebida:", ...);
+Performance degradada em produção
+Impacto: +50-100ms em cada interação
+4. Componente Monolítico (1090 linhas)
+Meeting100ms.tsx
+ faz tudo: video, audio, screen share, recording, error handling
+Impacto: Re-renders excessivos, manutenção difícil
+5. Nenhum Cache de Configuração
+// meetings.ts - linha 202-280
+// Cada acesso busca roomDesignConfig do PostgreSQL + Supabase fallback
+publicRoomDesignRouter.get('/reunioes/public/:companySlug/:roomId', async ...)
+Mesma configuração buscada a cada request
+Impacto: +100ms por request redundante
+6. Token Não Cacheado
+// MeetingWrapper - linhas 393-404
+const pubResponse = await fetch(`/api/public/reunioes/${reuniao.id}/token-public`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ userName: participantName || 'Convidado' })
+});
+Token JWT gerado a cada refresh de página
+Impacto: +200ms (geração JWT no servidor)
+7. 30s Timeout Muito Longo
+// Meeting100ms.tsx - linha 333-345
+joinTimeoutRef.current = setTimeout(() => {
+  // Só detecta problema após 30 segundos
+}, 30000);
+Usuário espera 30s antes de ver erro
+Impacto: UX ruim em falhas de conexão
+8. Arquivos Duplicados na Pasta reuniao/
+Toda a pasta reuniao/client/ parece ser código legado
+Componentes duplicados aumentam bundle se importados
+Impacto: Confusão de manutenção, possível bloat
+✅ CORREÇÕES PROPOSTAS
+CORREÇÃO 1: Lazy Load do SDK 100ms
+Já implementado em 
+PublicMeetingRoom.tsx
+ ✓
+
+const Meeting100msWithProvider = lazy(() => 
+  import("@/components/Meeting100ms").then(module => ({ 
+    default: module.Meeting100msWithProvider 
+  }))
+);
+Adicionar preload no lobby:
+
+// MeetingLobby.tsx - adicionar
+useEffect(() => {
+  // Preload do SDK enquanto usuário preenche nome
+  const preload = () => import("@/components/Meeting100ms");
+  preload();
+}, []);
+CORREÇÃO 2: Endpoint Unificado para Reunião + Token
+Criar: 
+server/routes/meetings.ts
+
+// NOVO ENDPOINT OTIMIZADO
+publicRoomDesignRouter.get('/reunioes/public/:companySlug/:roomId/full', async (req, res) => {
+  const { companySlug, roomId } = req.params;
+  const { userName } = req.query;
+  
+  try {
+    // 1. Buscar reunião (já faz isso)
+    const meeting = await findMeeting(companySlug, roomId);
+    if (!meeting) return res.status(404).json({ error: 'Reunião não encontrada' });
+    
+    // 2. Buscar config (com cache)
+    const cacheKey = `room-design:${meeting.tenantId}`;
+    let roomDesignConfig = cache.get(cacheKey);
+    if (!roomDesignConfig) {
+      roomDesignConfig = await getDesignConfig(meeting.tenantId);
+      cache.set(cacheKey, roomDesignConfig, 300); // 5 min cache
+    }
+    
+    // 3. Gerar token SE userName foi passado
+    let authToken = null;
+    if (userName) {
+      authToken = gerarTokenParticipante(
+        meeting.roomId100ms,
+        `user-${Date.now()}`,
+        'guest',
+        process.env.HMS_ACCESS_KEY!,
+        process.env.HMS_SECRET!
+      );
+    }
+    
+    // 4. Retornar tudo de uma vez
+    res.set('Cache-Control', 'private, max-age=60');
+    return res.json({
+      reuniao: meeting,
+      tenant: { id: meeting.tenantId, nome: meeting.tenantNome },
+      roomDesignConfig,
+      authToken // null se userName não foi passado
+    });
+  } catch (error) {
+    return res.status(500).json({ error: 'Erro interno' });
+  }
+});
+CORREÇÃO 3: Remover Console.logs em Produção
+Criar: src/lib/logger.ts
+
+const isDev = import.meta.env.DEV;
+export const meetingLogger = {
+  log: (...args: any[]) => isDev && console.log('[Meeting]', ...args),
+  warn: (...args: any[]) => isDev && console.warn('[Meeting]', ...args),
+  error: (...args: any[]) => console.error('[Meeting]', ...args), // Erros sempre
+};
+Substituir em 
+Meeting100ms.tsx
+:
+
+// ANTES:
+console.log("[Meeting100ms] 🔧 Ativando logs...");
+// DEPOIS:
+import { meetingLogger } from '@/lib/logger';
+meetingLogger.log("🔧 Ativando logs...");
+CORREÇÃO 4: Reduzir Timeout de Conexão
+Arquivo: 
+Meeting100ms.tsx
+
+ANTES (linha 333):
+
+joinTimeoutRef.current = setTimeout(() => { ... }, 30000);
+DEPOIS:
+
+joinTimeoutRef.current = setTimeout(() => { ... }, 10000); // 10s é suficiente
+CORREÇÃO 5: Adicionar Cache de Token no Frontend
+Arquivo: 
+PublicMeetingRoom.tsx
+ - 
+MeetingWrapper
+
+// Usar sessionStorage para cachear token
+const getCachedToken = (roomId: string, userName: string) => {
+  const cacheKey = `meeting-token:${roomId}:${userName}`;
+  const cached = sessionStorage.getItem(cacheKey);
+  if (cached) {
+    const { token, expiresAt } = JSON.parse(cached);
+    if (Date.now() < expiresAt) {
+      return token;
+    }
+  }
+  return null;
+};
+const setCachedToken = (roomId: string, userName: string, token: string) => {
+  const cacheKey = `meeting-token:${roomId}:${userName}`;
+  sessionStorage.setItem(cacheKey, JSON.stringify({
+    token,
+    expiresAt: Date.now() + (23 * 60 * 60 * 1000) // 23 horas
+  }));
+};
+// No useEffect de getToken:
+const cachedToken = getCachedToken(reuniao.roomId100ms, participantName);
+if (cachedToken) {
+  setAuthToken(cachedToken);
+  return;
+}
+// ... resto do código para buscar novo token
+setCachedToken(reuniao.roomId100ms, participantName, pubData.token);
+CORREÇÃO 6: Deletar Arquivos Duplicados
+Executar no terminal:
+
+# ATENÇÃO: Verificar se pasta reuniao/ não é usada antes de deletar
+rm -rf reuniao/client/
+Ou manter e adicionar ao 
+.gitignore
+:
+
+# Código legado - não usar
+reuniao/client/
+CORREÇÃO 7: Adicionar Cache Headers no Backend
+Arquivo: 
+server/routes/meetings.ts
+
+Adicionar após cada res.json():
+
+// Para roomDesignConfig (muda raramente)
+res.set('Cache-Control', 'public, max-age=300'); // 5 min
+return res.json({ roomDesignConfig, source: 'tenant' });
+// Para dados de reunião (muda mais)
+res.set('Cache-Control', 'private, max-age=60'); // 1 min
+return res.json({ reuniao, tenant, roomDesignConfig });
+CORREÇÃO 8: Code Split do Meeting100ms
+Dividir em:
+
+components/meeting/
+  ├── index.tsx           (export principal)
+  ├── MeetingRoom.tsx     (layout principal)
+  ├── PeerVideo.tsx       (vídeo de participante)
+  ├── ScreenShare.tsx     (compartilhamento de tela)
+  ├── ControlBar.tsx      (barra de controles)
+  ├── RecordingControls.tsx
+  └── hooks/
+      ├── useRoomConnection.ts
+      └── useMediaControls.ts
+📈 IMPACTO ESPERADO
+Métrica	Antes	Depois	Melhoria
+Time to Lobby	~2s	~0.8s	60%
+Time to Meeting	~4-6s	~2s	60%
+Bundle Size (SDK)	~400KB	~400KB (lazy)	-
+API Requests	2-3	1	66%
+Lighthouse Score	~50	~75	+25pts
+🎯 ORDEM DE IMPLEMENTAÇÃO
+IMEDIATO: Remover console.logs ou usar logger (30 min)
+IMEDIATO: Reduzir timeout de 30s para 10s (5 min)
+PRIORIDADE 1: Cache headers no backend (15 min)
+PRIORIDADE 2: Endpoint unificado /full (1 hora)
+PRIORIDADE 3: Cache de token no frontend (30 min)
+PRIORIDADE 4: Code split (2 horas)
+📁 VARIÁVEIS DE AMBIENTE 100ms
+HMS_ACCESS_KEY=xxxxxxxxxxxxxxxx
+HMS_SECRET=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+HMS_TEMPLATE_ID=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+FIM DO DOCUMENTO DE OTIMIZAÇÃO

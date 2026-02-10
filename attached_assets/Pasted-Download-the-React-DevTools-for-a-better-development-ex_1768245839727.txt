@@ -1,0 +1,252 @@
+Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+supabase.ts:37 🔄 Tentativa 1/5 de carregar credenciais Supabase...
+client.ts:14 [Supabase] No credentials provided. Using stub client.
+createSupabaseClient @ client.ts:14
+(anonymous) @ client.ts:27Understand this warning
+usePWAInstall.ts:112 📱 [PWA] Device Info: {platform: 'desktop', browser: 'chrome', isMobile: false, isTablet: false, isStandalone: false}browser: "chrome"isMobile: falseisStandalone: falseisTablet: falseplatform: "desktop"[[Prototype]]: Object
+usePWAInstall.ts:176 🧪 [PWA] Modo desenvolvimento detectado - botão sempre visível para testes
+AuthContext.tsx:69 [AuthContext] Checking session...
+usePWAInstall.ts:125 ✅ [PWA] Service Worker registrado: https://863db27b-299f-4f4f-ae93-4678cbe1589b-00-2521mi8n9pvo9.kirk.replit.dev/
+supabase.ts:86  GET https://863db27b-299f-4f4f-ae93-4678cbe1589b-00-2521mi8n9pvo9.kirk.replit.dev/api/config/supabase/credentials 401 (Unauthorized)
+(anonymous) @ supabase.ts:86
+fetchWithRetry @ supabase.ts:39
+fetchSupabaseConfig @ supabase.ts:85
+(anonymous) @ supabase.ts:180
+getSupabaseClient @ supabase.ts:216
+getItem @ workspaceStorage.ts:288
+(anonymous) @ zustand_middleware.js?v=5e55dc20:303
+hydrate @ zustand_middleware.js?v=5e55dc20:384
+(anonymous) @ zustand_middleware.js?v=5e55dc20:455
+createStoreImpl @ zustand.js?v=5e55dc20:27
+createStore @ zustand.js?v=5e55dc20:30
+createImpl @ zustand.js?v=5e55dc20:45
+(anonymous) @ notionStore.ts:178Understand this error
+supabase.ts:96 ℹ️ [SUPABASE] Usuário não autenticado - credenciais serão carregadas após login
+supabase.ts:185 ℹ️ [SUPABASE] Credenciais não disponíveis - usuário pode não estar autenticado
+workspaceStorage.ts:440 👤 Usuário não autenticado - usando localStorage
+workspaceStorage.ts:455 📭 Nenhum dado encontrado
+NotificationContext.tsx:86  GET https://863db27b-299f-4f4f-ae93-4678cbe1589b-00-2521mi8n9pvo9.kirk.replit.dev/api/notifications/vapid-public-key 401 (Unauthorized)
+fetchVapidKey @ NotificationContext.tsx:86
+initNotifications @ NotificationContext.tsx:175
+(anonymous) @ NotificationContext.tsx:194
+commitHookEffectListMount @ chunk-I3COAS7K.js?v=5e55dc20:16915
+commitPassiveMountOnFiber @ chunk-I3COAS7K.js?v=5e55dc20:18156
+commitPassiveMountEffects_complete @ chunk-I3COAS7K.js?v=5e55dc20:18129
+commitPassiveMountEffects_begin @ chunk-I3COAS7K.js?v=5e55dc20:18119
+commitPassiveMountEffects @ chunk-I3COAS7K.js?v=5e55dc20:18109
+flushPassiveEffectsImpl @ chunk-I3COAS7K.js?v=5e55dc20:19490
+flushPassiveEffects @ chunk-I3COAS7K.js?v=5e55dc20:19447
+performSyncWorkOnRoot @ chunk-I3COAS7K.js?v=5e55dc20:18868
+flushSyncCallbacks @ chunk-I3COAS7K.js?v=5e55dc20:9119
+commitRootImpl @ chunk-I3COAS7K.js?v=5e55dc20:19432
+commitRoot @ chunk-I3COAS7K.js?v=5e55dc20:19277
+finishConcurrentRender @ chunk-I3COAS7K.js?v=5e55dc20:18805
+performConcurrentWorkOnRoot @ chunk-I3COAS7K.js?v=5e55dc20:18718
+workLoop @ chunk-I3COAS7K.js?v=5e55dc20:197
+flushWork @ chunk-I3COAS7K.js?v=5e55dc20:176
+performWorkUntilDeadline @ chunk-I3COAS7K.js?v=5e55dc20:384Understand this error
+sentry.ts:34 ⚠️ Sentry não configurado - Monitoramento desativado
+AuthContext.tsx:73 [AuthContext] Session check response: {authenticated: false}
+AuthContext.tsx:129 [AuthContext] Setting isLoading to false
+NotificationContext.tsx:186 [Notifications] Não autenticado - limpando dados
+c8d44ec1-0b0d-4112-b9ed-d4318717ec80:1 <meta name="apple-mobile-web-app-capable" content="yes"> is deprecated. Please include <meta name="mobile-web-app-capable" content="yes">Understand this warning
+c8d44ec1-0b0d-4112-b9ed-d4318717ec80:1 Error while trying to use the following icon from the Manifest: https://863db27b-299f-4f4f-ae93-4678cbe1589b-00-2521mi8n9pvo9.kirk.replit.dev/icons/icon-192x192.png (Download error or resource isn't a valid image)Understand this warning
+MeetingLobby.tsx:64 ✅ Mídia inicializada no lobby
+MeetingLobby.tsx:127 🔄 Parando preview do lobby antes de entrar...
+MeetingLobby.tsx:130 ✅ Track parado: audio
+MeetingLobby.tsx:130 ✅ Track parado: video
+ReuniaoPublica.tsx:210 [ReuniaoPublica] Renderizando Meeting100ms com: {token: 'eyJhbGciOiJIUzI1NiIs...', roomId: '696549d8ced4c7d03313057f', userName: 'dasdads'}
+Meeting100ms.tsx:160 HMSui-components:  fetching full store without passing any selector may have a heavy performance impact on your website.
+log @ @100mslive_react-sdk.js?v=5e55dc20:332
+w @ @100mslive_react-sdk.js?v=5e55dc20:315
+(anonymous) @ @100mslive_react-sdk.js?v=5e55dc20:346
+Meeting100ms @ Meeting100ms.tsx:160
+renderWithHooks @ chunk-I3COAS7K.js?v=5e55dc20:11548
+mountIndeterminateComponent @ chunk-I3COAS7K.js?v=5e55dc20:14926
+beginWork @ chunk-I3COAS7K.js?v=5e55dc20:15914
+beginWork$1 @ chunk-I3COAS7K.js?v=5e55dc20:19753
+performUnitOfWork @ chunk-I3COAS7K.js?v=5e55dc20:19198
+workLoopSync @ chunk-I3COAS7K.js?v=5e55dc20:19137
+renderRootSync @ chunk-I3COAS7K.js?v=5e55dc20:19116
+performConcurrentWorkOnRoot @ chunk-I3COAS7K.js?v=5e55dc20:18678
+workLoop @ chunk-I3COAS7K.js?v=5e55dc20:197
+flushWork @ chunk-I3COAS7K.js?v=5e55dc20:176
+performWorkUntilDeadline @ chunk-I3COAS7K.js?v=5e55dc20:384Understand this warning
+Meeting100ms.tsx:160 HMSui-components:  fetching full store without passing any selector may have a heavy performance impact on your website.
+log @ @100mslive_react-sdk.js?v=5e55dc20:332
+w @ @100mslive_react-sdk.js?v=5e55dc20:315
+(anonymous) @ @100mslive_react-sdk.js?v=5e55dc20:346
+Meeting100ms @ Meeting100ms.tsx:160
+renderWithHooks @ chunk-I3COAS7K.js?v=5e55dc20:11548
+mountIndeterminateComponent @ chunk-I3COAS7K.js?v=5e55dc20:14926
+beginWork @ chunk-I3COAS7K.js?v=5e55dc20:15914
+callCallback2 @ chunk-I3COAS7K.js?v=5e55dc20:3674
+invokeGuardedCallbackDev @ chunk-I3COAS7K.js?v=5e55dc20:3699
+invokeGuardedCallback @ chunk-I3COAS7K.js?v=5e55dc20:3733
+beginWork$1 @ chunk-I3COAS7K.js?v=5e55dc20:19765
+performUnitOfWork @ chunk-I3COAS7K.js?v=5e55dc20:19198
+workLoopSync @ chunk-I3COAS7K.js?v=5e55dc20:19137
+renderRootSync @ chunk-I3COAS7K.js?v=5e55dc20:19116
+performConcurrentWorkOnRoot @ chunk-I3COAS7K.js?v=5e55dc20:18678
+workLoop @ chunk-I3COAS7K.js?v=5e55dc20:197
+flushWork @ chunk-I3COAS7K.js?v=5e55dc20:176
+performWorkUntilDeadline @ chunk-I3COAS7K.js?v=5e55dc20:384Understand this warning
+chunk-JM4EZM7D.js?v=5e55dc20:18203 Uncaught TypeError: n2 is not a function
+    at i2.getState (chunk-JM4EZM7D.js?v=5e55dc20:18203:32)
+    at useStore (@100mslive_react-sdk.js?v=5e55dc20:230:33)
+    at @100mslive_react-sdk.js?v=5e55dc20:349:26
+    at Meeting100ms (Meeting100ms.tsx:160:20)
+    at renderWithHooks (chunk-I3COAS7K.js?v=5e55dc20:11548:26)
+    at mountIndeterminateComponent (chunk-I3COAS7K.js?v=5e55dc20:14926:21)
+    at beginWork (chunk-I3COAS7K.js?v=5e55dc20:15914:22)
+    at HTMLUnknownElement.callCallback2 (chunk-I3COAS7K.js?v=5e55dc20:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-I3COAS7K.js?v=5e55dc20:3699:24)
+    at invokeGuardedCallback (chunk-I3COAS7K.js?v=5e55dc20:3733:39)
+i2.getState @ chunk-JM4EZM7D.js?v=5e55dc20:18203
+useStore @ @100mslive_react-sdk.js?v=5e55dc20:230
+(anonymous) @ @100mslive_react-sdk.js?v=5e55dc20:349
+Meeting100ms @ Meeting100ms.tsx:160
+renderWithHooks @ chunk-I3COAS7K.js?v=5e55dc20:11548
+mountIndeterminateComponent @ chunk-I3COAS7K.js?v=5e55dc20:14926
+beginWork @ chunk-I3COAS7K.js?v=5e55dc20:15914
+callCallback2 @ chunk-I3COAS7K.js?v=5e55dc20:3674
+invokeGuardedCallbackDev @ chunk-I3COAS7K.js?v=5e55dc20:3699
+invokeGuardedCallback @ chunk-I3COAS7K.js?v=5e55dc20:3733
+beginWork$1 @ chunk-I3COAS7K.js?v=5e55dc20:19765
+performUnitOfWork @ chunk-I3COAS7K.js?v=5e55dc20:19198
+workLoopSync @ chunk-I3COAS7K.js?v=5e55dc20:19137
+renderRootSync @ chunk-I3COAS7K.js?v=5e55dc20:19116
+performConcurrentWorkOnRoot @ chunk-I3COAS7K.js?v=5e55dc20:18678
+workLoop @ chunk-I3COAS7K.js?v=5e55dc20:197
+flushWork @ chunk-I3COAS7K.js?v=5e55dc20:176
+performWorkUntilDeadline @ chunk-I3COAS7K.js?v=5e55dc20:384Understand this error
+ReuniaoPublica.tsx:210 [ReuniaoPublica] Renderizando Meeting100ms com: {token: 'eyJhbGciOiJIUzI1NiIs...', roomId: '696549d8ced4c7d03313057f', userName: 'dasdads'}
+Meeting100ms.tsx:160 HMSui-components:  fetching full store without passing any selector may have a heavy performance impact on your website.
+log @ @100mslive_react-sdk.js?v=5e55dc20:332
+w @ @100mslive_react-sdk.js?v=5e55dc20:315
+(anonymous) @ @100mslive_react-sdk.js?v=5e55dc20:346
+Meeting100ms @ Meeting100ms.tsx:160
+renderWithHooks @ chunk-I3COAS7K.js?v=5e55dc20:11548
+mountIndeterminateComponent @ chunk-I3COAS7K.js?v=5e55dc20:14926
+beginWork @ chunk-I3COAS7K.js?v=5e55dc20:15914
+beginWork$1 @ chunk-I3COAS7K.js?v=5e55dc20:19753
+performUnitOfWork @ chunk-I3COAS7K.js?v=5e55dc20:19198
+workLoopSync @ chunk-I3COAS7K.js?v=5e55dc20:19137
+renderRootSync @ chunk-I3COAS7K.js?v=5e55dc20:19116
+recoverFromConcurrentError @ chunk-I3COAS7K.js?v=5e55dc20:18736
+performConcurrentWorkOnRoot @ chunk-I3COAS7K.js?v=5e55dc20:18684
+workLoop @ chunk-I3COAS7K.js?v=5e55dc20:197
+flushWork @ chunk-I3COAS7K.js?v=5e55dc20:176
+performWorkUntilDeadline @ chunk-I3COAS7K.js?v=5e55dc20:384Understand this warning
+Meeting100ms.tsx:160 HMSui-components:  fetching full store without passing any selector may have a heavy performance impact on your website.
+log @ @100mslive_react-sdk.js?v=5e55dc20:332
+w @ @100mslive_react-sdk.js?v=5e55dc20:315
+(anonymous) @ @100mslive_react-sdk.js?v=5e55dc20:346
+Meeting100ms @ Meeting100ms.tsx:160
+renderWithHooks @ chunk-I3COAS7K.js?v=5e55dc20:11548
+mountIndeterminateComponent @ chunk-I3COAS7K.js?v=5e55dc20:14926
+beginWork @ chunk-I3COAS7K.js?v=5e55dc20:15914
+callCallback2 @ chunk-I3COAS7K.js?v=5e55dc20:3674
+invokeGuardedCallbackDev @ chunk-I3COAS7K.js?v=5e55dc20:3699
+invokeGuardedCallback @ chunk-I3COAS7K.js?v=5e55dc20:3733
+beginWork$1 @ chunk-I3COAS7K.js?v=5e55dc20:19765
+performUnitOfWork @ chunk-I3COAS7K.js?v=5e55dc20:19198
+workLoopSync @ chunk-I3COAS7K.js?v=5e55dc20:19137
+renderRootSync @ chunk-I3COAS7K.js?v=5e55dc20:19116
+recoverFromConcurrentError @ chunk-I3COAS7K.js?v=5e55dc20:18736
+performConcurrentWorkOnRoot @ chunk-I3COAS7K.js?v=5e55dc20:18684
+workLoop @ chunk-I3COAS7K.js?v=5e55dc20:197
+flushWork @ chunk-I3COAS7K.js?v=5e55dc20:176
+performWorkUntilDeadline @ chunk-I3COAS7K.js?v=5e55dc20:384Understand this warning
+chunk-JM4EZM7D.js?v=5e55dc20:18203 Uncaught TypeError: n2 is not a function
+    at i2.getState (chunk-JM4EZM7D.js?v=5e55dc20:18203:32)
+    at useStore (@100mslive_react-sdk.js?v=5e55dc20:230:33)
+    at @100mslive_react-sdk.js?v=5e55dc20:349:26
+    at Meeting100ms (Meeting100ms.tsx:160:20)
+    at renderWithHooks (chunk-I3COAS7K.js?v=5e55dc20:11548:26)
+    at mountIndeterminateComponent (chunk-I3COAS7K.js?v=5e55dc20:14926:21)
+    at beginWork (chunk-I3COAS7K.js?v=5e55dc20:15914:22)
+    at HTMLUnknownElement.callCallback2 (chunk-I3COAS7K.js?v=5e55dc20:3674:22)
+    at Object.invokeGuardedCallbackDev (chunk-I3COAS7K.js?v=5e55dc20:3699:24)
+    at invokeGuardedCallback (chunk-I3COAS7K.js?v=5e55dc20:3733:39)
+i2.getState @ chunk-JM4EZM7D.js?v=5e55dc20:18203
+useStore @ @100mslive_react-sdk.js?v=5e55dc20:230
+(anonymous) @ @100mslive_react-sdk.js?v=5e55dc20:349
+Meeting100ms @ Meeting100ms.tsx:160
+renderWithHooks @ chunk-I3COAS7K.js?v=5e55dc20:11548
+mountIndeterminateComponent @ chunk-I3COAS7K.js?v=5e55dc20:14926
+beginWork @ chunk-I3COAS7K.js?v=5e55dc20:15914
+callCallback2 @ chunk-I3COAS7K.js?v=5e55dc20:3674
+invokeGuardedCallbackDev @ chunk-I3COAS7K.js?v=5e55dc20:3699
+invokeGuardedCallback @ chunk-I3COAS7K.js?v=5e55dc20:3733
+beginWork$1 @ chunk-I3COAS7K.js?v=5e55dc20:19765
+performUnitOfWork @ chunk-I3COAS7K.js?v=5e55dc20:19198
+workLoopSync @ chunk-I3COAS7K.js?v=5e55dc20:19137
+renderRootSync @ chunk-I3COAS7K.js?v=5e55dc20:19116
+recoverFromConcurrentError @ chunk-I3COAS7K.js?v=5e55dc20:18736
+performConcurrentWorkOnRoot @ chunk-I3COAS7K.js?v=5e55dc20:18684
+workLoop @ chunk-I3COAS7K.js?v=5e55dc20:197
+flushWork @ chunk-I3COAS7K.js?v=5e55dc20:176
+performWorkUntilDeadline @ chunk-I3COAS7K.js?v=5e55dc20:384Understand this error
+chunk-I3COAS7K.js?v=5e55dc20:14032 The above error occurred in the <Meeting100ms> component:
+
+    at Meeting100ms (https://863db27b-299f-4f4f-ae93-4678cbe1589b-00-2521mi8n9pvo9.kirk.replit.dev/src/components/Meeting100ms.tsx:171:32)
+    at ReuniaoPublica (https://863db27b-299f-4f4f-ae93-4678cbe1589b-00-2521mi8n9pvo9.kirk.replit.dev/src/pages/ReuniaoPublica.tsx:33:20)
+    at Suspense
+    at PlatformRouter (https://863db27b-299f-4f4f-ae93-4678cbe1589b-00-2521mi8n9pvo9.kirk.replit.dev/src/platforms/PlatformRouter.tsx:32:22)
+    at NotificationProvider (https://863db27b-299f-4f4f-ae93-4678cbe1589b-00-2521mi8n9pvo9.kirk.replit.dev/src/contexts/NotificationContext.tsx:34:40)
+    at AuthProvider (https://863db27b-299f-4f4f-ae93-4678cbe1589b-00-2521mi8n9pvo9.kirk.replit.dev/src/contexts/AuthContext.tsx:36:32)
+    at Router (https://863db27b-299f-4f4f-ae93-4678cbe1589b-00-2521mi8n9pvo9.kirk.replit.dev/node_modules/.vite/deps/react-router-dom.js?v=5e55dc20:4521:15)
+    at BrowserRouter (https://863db27b-299f-4f4f-ae93-4678cbe1589b-00-2521mi8n9pvo9.kirk.replit.dev/node_modules/.vite/deps/react-router-dom.js?v=5e55dc20:5267:5)
+    at Provider (https://863db27b-299f-4f4f-ae93-4678cbe1589b-00-2521mi8n9pvo9.kirk.replit.dev/node_modules/.vite/deps/chunk-7F4E7M4I.js?v=5e55dc20:44:15)
+    at TooltipProvider (https://863db27b-299f-4f4f-ae93-4678cbe1589b-00-2521mi8n9pvo9.kirk.replit.dev/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=5e55dc20:158:5)
+    at O (https://863db27b-299f-4f4f-ae93-4678cbe1589b-00-2521mi8n9pvo9.kirk.replit.dev/node_modules/.vite/deps/next-themes.js?v=5e55dc20:23:25)
+    at z (https://863db27b-299f-4f4f-ae93-4678cbe1589b-00-2521mi8n9pvo9.kirk.replit.dev/node_modules/.vite/deps/next-themes.js?v=5e55dc20:21:18)
+    at QueryClientProvider (https://863db27b-299f-4f4f-ae93-4678cbe1589b-00-2521mi8n9pvo9.kirk.replit.dev/node_modules/.vite/deps/@tanstack_react-query.js?v=5e55dc20:3096:3)
+    at l (https://863db27b-299f-4f4f-ae93-4678cbe1589b-00-2521mi8n9pvo9.kirk.replit.dev/node_modules/.vite/deps/@100mslive_react-sdk.js?v=5e55dc20:367:22)
+    at App
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+logCapturedError @ chunk-I3COAS7K.js?v=5e55dc20:14032
+update.callback @ chunk-I3COAS7K.js?v=5e55dc20:14052
+callCallback @ chunk-I3COAS7K.js?v=5e55dc20:11248
+commitUpdateQueue @ chunk-I3COAS7K.js?v=5e55dc20:11265
+commitLayoutEffectOnFiber @ chunk-I3COAS7K.js?v=5e55dc20:17093
+commitLayoutMountEffects_complete @ chunk-I3COAS7K.js?v=5e55dc20:17980
+commitLayoutEffects_begin @ chunk-I3COAS7K.js?v=5e55dc20:17969
+commitLayoutEffects @ chunk-I3COAS7K.js?v=5e55dc20:17920
+commitRootImpl @ chunk-I3COAS7K.js?v=5e55dc20:19353
+commitRoot @ chunk-I3COAS7K.js?v=5e55dc20:19277
+finishConcurrentRender @ chunk-I3COAS7K.js?v=5e55dc20:18760
+performConcurrentWorkOnRoot @ chunk-I3COAS7K.js?v=5e55dc20:18718
+workLoop @ chunk-I3COAS7K.js?v=5e55dc20:197
+flushWork @ chunk-I3COAS7K.js?v=5e55dc20:176
+performWorkUntilDeadline @ chunk-I3COAS7K.js?v=5e55dc20:384Understand this error
+chunk-I3COAS7K.js?v=5e55dc20:19413 Uncaught TypeError: n2 is not a function
+    at i2.getState (chunk-JM4EZM7D.js?v=5e55dc20:18203:32)
+    at useStore (@100mslive_react-sdk.js?v=5e55dc20:230:33)
+    at @100mslive_react-sdk.js?v=5e55dc20:349:26
+    at Meeting100ms (Meeting100ms.tsx:160:20)
+    at renderWithHooks (chunk-I3COAS7K.js?v=5e55dc20:11548:26)
+    at mountIndeterminateComponent (chunk-I3COAS7K.js?v=5e55dc20:14926:21)
+    at beginWork (chunk-I3COAS7K.js?v=5e55dc20:15914:22)
+    at beginWork$1 (chunk-I3COAS7K.js?v=5e55dc20:19753:22)
+    at performUnitOfWork (chunk-I3COAS7K.js?v=5e55dc20:19198:20)
+    at workLoopSync (chunk-I3COAS7K.js?v=5e55dc20:19137:13)
+i2.getState @ chunk-JM4EZM7D.js?v=5e55dc20:18203
+useStore @ @100mslive_react-sdk.js?v=5e55dc20:230
+(anonymous) @ @100mslive_react-sdk.js?v=5e55dc20:349
+Meeting100ms @ Meeting100ms.tsx:160
+renderWithHooks @ chunk-I3COAS7K.js?v=5e55dc20:11548
+mountIndeterminateComponent @ chunk-I3COAS7K.js?v=5e55dc20:14926
+beginWork @ chunk-I3COAS7K.js?v=5e55dc20:15914
+beginWork$1 @ chunk-I3COAS7K.js?v=5e55dc20:19753
+performUnitOfWork @ chunk-I3COAS7K.js?v=5e55dc20:19198
+workLoopSync @ chunk-I3COAS7K.js?v=5e55dc20:19137
+renderRootSync @ chunk-I3COAS7K.js?v=5e55dc20:19116
+recoverFromConcurrentError @ chunk-I3COAS7K.js?v=5e55dc20:18736
+performConcurrentWorkOnRoot @ chunk-I3COAS7K.js?v=5e55dc20:18684
+workLoop @ chunk-I3COAS7K.js?v=5e55dc20:197
+flushWork @ chunk-I3COAS7K.js?v=5e55dc20:176
+performWorkUntilDeadline @ chunk-I3COAS7K.js?v=5e55dc20:384Understand this error

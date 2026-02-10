@@ -1,0 +1,1278 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "content": "# CRIAR  REUNIÃO ",
+        "height": 80,
+        "width": 551.2183277924504,
+        "color": 5
+      },
+      "id": "b0414874-4dad-41e7-a70e-980e320c8a5f",
+      "name": "Sticky Note41",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        240,
+        3056
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "response",
+              "name": "response",
+              "value": "=Agendamento concluído para {{ $json.nome_cliente }}\n\n📅 Data: {{(() => { \n    const dataUTC = new Date($json.data_inicio);\n    const data = new Date(dataUTC.toLocaleString(\"en-US\", {timeZone: \"America/Sao_Paulo\"}));\n    const dia = String(data.getDate()).padStart(2, '0');\n    const meses = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];\n    const mes = meses[data.getMonth()];\n    const hora = String(data.getHours()).padStart(2, '0');\n    const minuto = String(data.getMinutes()).padStart(2, '0');\n    return `${dia} de ${mes} às ${hora}:${minuto}`;\n})()}}\n\n🔗 Link da reunião: {{ $json.meeting_url }}\n\nO link foi enviado para o email {{ $json.email_cliente }}",
+              "type": "string"
+            },
+            {
+              "id": "room_id",
+              "name": "room_id",
+              "value": "={{ $json.room_id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "0e38191b-14ac-4619-b5f8-4b971ffc59e9",
+      "name": "Preparar Resposta Agendamento",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1584,
+        3952
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://160ad8a0-cf7e-47e3-a046-f70f7ea948a8-00-xu3bcrpa0y1u.spock.replit.dev/api/n8n/reunioes",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-N8N-API-Key",
+              "value": "n8n_4bccf7acbfa77ccb1173f54ae7219f4aaa0d61ef783829b3cd21b5d499b4cf65"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"titulo\": \"{{ $node[\"Extrair Dados e Operação1\"].json.titulo }}\",\n  \"nome\": \"{{ $json.nome }}\",\n  \"email\": \"{{ $json.email }}\",\n  \"telefone\": \"{{ $node[\"Extrair Dados e Operação1\"].json.telefone }}\",\n  \"dataInicio\": \"{{ $node[\"Extrair Dados e Operação1\"].json.data_inicio }}\",\n  \"duracao\": 60\n}",
+        "options": {}
+      },
+      "id": "2aa81d1b-4988-402b-a69c-e6eceb812784",
+      "name": "Criar Reunião via Plataforma2",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1200,
+        3952
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.item.json;\nif (response.success && response.data) {\n  const data = response.data;\n  const dadosIniciais = $(\"Extrair Dados e Operação1\").first().json;\n  const dadosFormulario = $(\"Buscar Dados do Formulário1\").first().json;\n  \n  // Buscar nome: prioridade para o formulário, senão usa o que veio da extração\n  const nome = dadosFormulario?.contact_name || dadosIniciais.nome || data.titulo;\n  \n  // Buscar email: prioridade para o formulário, senão usa placeholder\n  const email = dadosFormulario?.contact_email || dadosIniciais.email || 'sem-email@placeholder.com';\n  \n  return [{ json: {\n      room_id: data.roomId100ms,\n      meeting_url: data.linkPublico,\n      join_url: data.linkPublico,\n      Remotejid: dadosIniciais.telefone,\n      nome_cliente: nome,\n      email_cliente: email,\n      data_inicio: data.dataInicio,\n      tenant_id: dadosFormulario?.tenant_id || dadosIniciais.tenant_id || 'dev-daviemericko_gmail_com',\n      Evento: 'agendamento'\n  }}];\n} else {\n  throw new Error('Falha ao criar reunião');\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1408,
+        3952
+      ],
+      "id": "b6c1fe30-522a-4a40-ac6f-774ddd9481ee",
+      "name": "Processar Resposta da Plataforma1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Pega os dados da busca inicial e os dados novos da API do Replit\nconst dadosBusca = $(\"Processar Resultado da Busca\").first().json;\nconst dadosApi = $(\"Atualizar Reunião via Plataforma1\").first().json;\n\nreturn [{ json: {\n    reuniao_id: dadosBusca.reuniao_id,\n    nova_data_inicio: dadosBusca.data_inicio,\n    // Ajustado para os nomes corretos vindos da sua API (veja o log)\n    link_reuniao: dadosApi.data.linkPublico, \n    room_id_100ms: dadosApi.data.roomId100ms,\n    telefone: dadosBusca.telefone\n}}];"
+      },
+      "id": "9360bef4-d36e-4a4a-be14-baf66bb6519b",
+      "name": "Preparar Dados Atualização1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1408,
+        3392
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "reunioes",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $json.reuniao_id }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "data_inicio",
+              "fieldValue": "={{ $json.nova_data_inicio }}"
+            },
+            {
+              "fieldId": "link_reuniao",
+              "fieldValue": "={{ $json.link_reuniao }}"
+            },
+            {
+              "fieldId": "room_id_100ms",
+              "fieldValue": "={{ $json.room_id_100ms }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "agendada"
+            }
+          ]
+        }
+      },
+      "id": "c0e8231e-c553-4d7d-8a71-c373d0089030",
+      "name": "Atualizar Reunião no Supabase2",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1568,
+        3392
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "huldkk2UMf07U3qF",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const dados = $(\"Preparar Dados Atualização1\").first().json;\n\n// Criar um objeto de data a partir da nova data de início\nconst data = new Date(dados.nova_data_inicio);\n\n// Formatar a data para o padrão brasileiro (Ex: 24 de janeiro às 20:00)\nconst dataFormatada = data.toLocaleString('pt-BR', {\n  day: 'numeric',\n  month: 'long',\n  hour: '2-digit',\n  minute: '2-digit',\n  timeZone: 'America/Sao_Paulo'\n});\n\nreturn [{ json: {\n    response: `✅ *Reagendamento Concluído!*\\n\\nSua reunião foi alterada com sucesso.\\n\\n📅 *Nova Data:* ${dataFormatada}\\n🔗 *Link da Reunião:* ${dados.link_reuniao}\\n\\nOs detalhes também foram atualizados no seu calendário.`,\n    Evento: 'reagendamento',\n    Remotejid: dados.telefone\n}}];"
+      },
+      "id": "7af3788b-3404-49b1-b140-b42f10c9509f",
+      "name": "Resposta - Reagendamento OK1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1760,
+        3392
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "chooseBranch"
+      },
+      "id": "949ee1ae-651e-41b0-a731-d1e88d017255",
+      "name": "Merge Respostas1",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        2048,
+        3408
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://160ad8a0-cf7e-47e3-a046-f70f7ea948a8-00-xu3bcrpa0y1u.spock.replit.dev/api/n8n/reunioes",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-N8N-API-Key",
+              "value": "n8n_4bccf7acbfa77ccb1173f54ae7219f4aaa0d61ef783829b3cd21b5d499b4cf65"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"titulo\": \"{{ $node[\"Extrair Dados e Operação1\"].json.titulo }}\",\n  \"nome\": \"{{ $node[\"Extrair Dados e Operação1\"].json.nome }}\",\n  \"email\": \"{{ $node[\"Extrair Dados e Operação1\"].json.email }}\",\n  \"telefone\": \"{{ $node[\"Extrair Dados e Operação1\"].json.telefone }}\",\n  \"dataInicio\": \"{{ $node[\"Extrair Dados e Operação1\"].json.data_inicio }}\",\n  \"duracao\": 60\n}",
+        "options": {}
+      },
+      "id": "8a83f68e-e594-4b5b-bebc-779b283cb17d",
+      "name": "Atualizar Reunião via Plataforma1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1200,
+        3392
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const dadosMesclados = $(\"Mesclar Dados do Formulário1\").first().json;\nconst busca = $input.all();\n\n// CORREÇÃO: Só considera que existe reunião se o item tiver um 'id' (que vem do banco).\n// Se for apenas o dado do formulário passando, ele não terá 'id' na raiz.\nconst reuniao = (busca.length > 0 && busca[0].json.id) ? busca[0].json : null;\n\n// Normalizar telefone para comparação\nfunction normalizarTelefone(tel) {\n    if (!tel) return '';\n    return tel\n        .replace('@s.whatsapp.net', '')\n        .replace('@c.us', '')\n        .replace(/\\D/g, '');\n}\n\nconst telefoneAtual = normalizarTelefone(dadosMesclados.telefone);\n\n// Verificar se a pessoa já está na lista de participantes\nlet jaParticipa = false;\nif (reuniao && reuniao.participantes && Array.isArray(reuniao.participantes)) {\n    jaParticipa = reuniao.participantes.some(p => {\n        const telParticipante = normalizarTelefone(p.telefone);\n        return telParticipante === telefoneAtual;\n    });\n}\n\nreturn [{\n    json: {\n        ...dadosMesclados,\n        existe_reuniao: !!reuniao,\n        reuniao_existente: reuniao,\n        reuniao_id: reuniao ? reuniao.id : null,\n        link_reuniao_existente: reuniao ? reuniao.link_reuniao : null,\n        room_id_existente: reuniao ? reuniao.room_id_100ms : null,\n        ja_participa: jaParticipa,\n        // Agora a lógica funcionará corretamente:\n        precisa_criar_nova: !reuniao,\n        pode_adicionar: !!(reuniao && !jaParticipa)\n    }\n}];"
+      },
+      "id": "e3a43873-6843-43a4-96bb-50914513a151",
+      "name": "Processar Resultado da Busca",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        592,
+        3472
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "horarios_disponiveis",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "tenant_id",
+              "condition": "eq",
+              "keyValue": "={{ $json.tenant_id }}"
+            },
+            {
+              "keyName": "ativo",
+              "condition": "eq",
+              "keyValue": "true"
+            }
+          ]
+        }
+      },
+      "id": "d3d8c8ab-a208-4232-8dac-51e6509262d2",
+      "name": "Buscar Horários Disponíveis",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        0,
+        3472
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "huldkk2UMf07U3qF",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const dadosMesclados = $(\"Mesclar Dados do Formulário1\").first().json;  // ← ADICIONADO \"1\"\nconst horarios = $input.all().map(item => item.json);\n\n// Agrupar horários por período\nconst periodos = {\n  manhã: [],\n  tarde: [],\n  noite: []\n};\n\nhorarios.forEach(h => {\n  const hora = h.horario.substring(0, 5); // '09:00'\n  if (h.periodo && periodos[h.periodo]) {\n    periodos[h.periodo].push({\n      hora: hora,\n      tipo: h.tipo_reuniao\n    });\n  }\n});\n\n// Criar mensagem formatada para Amanda\nlet mensagemHorarios = 'Horários disponíveis:\\n';\n\nif (periodos.manhã.length > 0) {\n  mensagemHorarios += `\\n🌅 Manhã: ${periodos.manhã.map(h => h.hora).join(', ')}`;\n}\nif (periodos.tarde.length > 0) {\n  mensagemHorarios += `\\n☀️ Tarde: ${periodos.tarde.map(h => h.hora).join(', ')}`;\n}\nif (periodos.noite.length > 0) {\n  mensagemHorarios += `\\n🌙 Noite: ${periodos.noite.map(h => h.hora).join(', ')}`;\n}\n\nreturn [{\n  json: {\n    ...dadosMesclados,\n    horarios_disponiveis: horarios,\n    mensagem_horarios: mensagemHorarios,\n    tem_horarios: horarios.length > 0\n  }\n}];"
+      },
+      "id": "9ca8d91d-a63b-4222-9c8a-5e6229199abe",
+      "name": "Formatar Horários para Amanda",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        176,
+        3472
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Buscar telefone formatado do node anterior\nconst telefoneFormatado = $('Extrair Dados e Operação1').item.json.telefone_formatado;\n\n// Buscar todos os formulários vindos do Supabase\nconst todosFormularios = $input.all();\n\n// Filtrar pelo telefone\nconst formularioEncontrado = todosFormularios.find(\n  item => item.json.contact_phone === telefoneFormatado\n);\n\n// Se encontrou, retorna o formulário\n// Se não encontrou, retorna objeto vazio para o próximo node lidar\nif (formularioEncontrado) {\n  return [formularioEncontrado];\n} else {\n  return [{\n    json: {\n      formulario_nao_encontrado: true,\n      telefone_buscado: telefoneFormatado\n    }\n  }];\n}"
+      },
+      "id": "9840eb97-d124-43f6-9bf0-155277260e46",
+      "name": "Filtrar Formulário por Telefone",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -352,
+        3472
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "form_submissions",
+        "returnAll": true
+      },
+      "id": "62e016db-2bd5-418f-afd5-dca906313939",
+      "name": "Buscar Dados do Formulário1",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -512,
+        3472
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "huldkk2UMf07U3qF",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const dadosIniciais = $(\"Extrair Dados e Operação1\").first().json;\nconst formulario = $input.first().json;\n\n// Verificar se encontrou o formulário\nconst formularioValido = !formulario.formulario_nao_encontrado;\n\n// Tratar \"empty\" como valor inválido\nconst emailInicial = (dadosIniciais.email === 'empty' || !dadosIniciais.email) ? '' : dadosIniciais.email;\n\n// Se encontrou formulário, usa os dados dele\nconst nome = dadosIniciais.nome !== 'Participante' ? dadosIniciais.nome : (formularioValido ? (formulario.contact_name || 'Participante') : 'Participante');\nconst email = emailInicial || (formularioValido ? formulario.contact_email : '') || '';\n\n// ✅ IMPORTANTE: Não lançar erro se não tiver email\n// Usar um placeholder ou deixar vazio\nconst emailFinal = email || 'sem-email@placeholder.com';\n\nreturn [{\n    json: {\n        ...dadosIniciais,\n        nome: nome,\n        email: emailFinal,\n        titulo: dadosIniciais.titulo || `Reunião com ${nome}`,\n        formulario_preenchido: formularioValido,\n        cpf: formularioValido ? (formulario.contact_cpf || null) : null,\n        instagram: formularioValido ? (formulario.instagram_handle || null) : null,\n        endereco: formularioValido ? {\n            cep: formulario.address_cep || null,\n            rua: formulario.address_street || null,\n            numero: formulario.address_number || null,\n            complemento: formulario.address_complement || null,\n            bairro: formulario.address_neighborhood || null,\n            cidade: formulario.address_city || null,\n            estado: formulario.address_state || null\n        } : null,\n        tenant_id: formularioValido ? (formulario.tenant_id || dadosIniciais.tenant_id || 'dev-daviemericko_gmail_com') : (dadosIniciais.tenant_id || 'dev-daviemericko_gmail_com'),\n        data_nascimento: formularioValido ? formulario.birth_date : null,\n        score_total: formularioValido ? formulario.total_score : null,\n        passou_qualificacao: formularioValido ? formulario.passed : false\n    }\n}];"
+      },
+      "id": "0135648a-9e92-4fdf-beb2-6b8a21402ca8",
+      "name": "Mesclar Dados do Formulário1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -192,
+        3472
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst query = input.query || {};\n\n// Identificar operação pelo campo Evento que vem das tools\nlet operacao = 'criar'; // padrão\n\nif (input.Evento === 'cancelamento') {\n    operacao = 'cancelar';\n} else if (input.Evento === 'reagendamento') {\n    operacao = 'atualizar';\n} else if (input.Evento === 'agendamento') {\n    operacao = 'criar';\n}\n\n// 🔥 Limpar telefone para buscar no banco\nconst telefoneCompleto = input.Remotejid || query.telefone || '';\nconst telefoneLimpo = telefoneCompleto\n    .replace('@s.whatsapp.net', '')\n    .replace('@c.us', '')\n    .replace(/\\D/g, ''); // Remove tudo que não é número\n\n// 🔥 FORMATAÇÃO CORRIGIDA\nlet telefoneFormatado = telefoneLimpo;\n\nif (telefoneLimpo.length >= 10) {\n    // Remove código do país se tiver (55)\n    let numeroSemPais = telefoneLimpo;\n    if (telefoneLimpo.startsWith('55') && telefoneLimpo.length > 10) {\n        numeroSemPais = telefoneLimpo.substring(2); // Remove 55\n    }\n    \n    // ✅ CORREÇÃO PRINCIPAL\n    if (numeroSemPais.length === 11) {\n        // Celular com 9: 31992267220 -> (31) 99226-7220\n        const ddd = numeroSemPais.substring(0, 2);\n        const parte1 = numeroSemPais.substring(2, 7);\n        const parte2 = numeroSemPais.substring(7);\n        telefoneFormatado = `(${ddd}) ${parte1}-${parte2}`;\n    } else if (numeroSemPais.length === 10) {\n        // Celular sem 9 ou fixo: 3192267220 -> (31) 9226-7220\n        const ddd = numeroSemPais.substring(0, 2);\n        const parte1 = numeroSemPais.substring(2, 6);\n        const parte2 = numeroSemPais.substring(6);\n        telefoneFormatado = `(${ddd}) ${parte1}-${parte2}`;\n    }\n}\n\n// 🔥 CORREÇÃO: Limpar \"empty\" do email\nconst emailLimpo = (query.email === 'empty' || !query.email) ? '' : query.email;\n\nreturn [{\n    json: {\n        ...input,\n        operacao,\n        telefone: telefoneCompleto,\n        telefone_limpo: telefoneLimpo,\n        telefone_formatado: telefoneFormatado,\n        email: emailLimpo,\n        nome: query.nome || 'Participante',\n        titulo: query.titulo || 'Reunião Automática',\n        data_inicio: query.start || null\n    }\n}];"
+      },
+      "id": "f7936ef8-075c-46e4-be71-c2426e995f9a",
+      "name": "Extrair Dados e Operação1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -688,
+        3472
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const dados = $input.first().json;\nconst reuniao = dados.reuniao_existente;\n\n// Pegar participantes atuais ou criar array vazio\nlet participantes = [];\nif (reuniao.participantes && Array.isArray(reuniao.participantes)) {\n    participantes = [...reuniao.participantes];\n}\n\n// Adicionar novo participante\nparticipantes.push({\n    nome: dados.nome,\n    email: dados.email,\n    telefone: dados.telefone,\n    telefone_formatado: dados.telefone_formatado,\n    cpf: dados.cpf || null,\n    instagram: dados.instagram || null,\n    adicionado_em: new Date().toISOString()\n});\n\nreturn [{\n    json: {\n        reuniao_id: reuniao.id,\n        participantes_atualizados: participantes,\n        link_reuniao: reuniao.link_reuniao,\n        room_id: reuniao.room_id_100ms,\n        nome_cliente: dados.nome,\n        email_cliente: dados.email,\n        data_inicio: reuniao.data_inicio,\n        Remotejid: dados.telefone,\n        response: `✅ Agendamento confirmado!\\n\\n📅 Data: ${new Date(reuniao.data_inicio).toLocaleString('pt-BR', {\n            day: '2-digit',\n            month: 'long',\n            hour: '2-digit',\n            minute: '2-digit',\n            timeZone: 'America/Sao_Paulo'\n        })}\\n\\n🔗 Link da reunião: ${reuniao.link_reuniao}\\n\\nVocê foi adicionado(a) à reunião. Nos vemos lá!`\n    }\n}];"
+      },
+      "id": "9118811c-aadd-4359-8f4c-6f9401e3338a",
+      "name": "Adicionar Participante à Reunião",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        3744
+      ],
+      "notes": "NOVO: Adiciona pessoa à reunião existente sem criar nova"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "reunioes",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $json.reuniao_id }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "participantes",
+              "fieldValue": "={{ $json.participantes_atualizados }}"
+            }
+          ]
+        }
+      },
+      "id": "4cfe8215-25d5-466c-950f-395f5335e57f",
+      "name": "Atualizar Participantes Supabase",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1424,
+        3744
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "huldkk2UMf07U3qF",
+          "name": "Supabase account"
+        }
+      },
+      "notes": "NOVO: Salva array de participantes atualizado"
+    },
+    {
+      "parameters": {
+        "jsCode": "const dados = $input.first().json;\nconst reuniao = dados.reuniao_existente;\n\n// Normalizar telefone\nfunction normalizarTelefone(tel) {\n    if (!tel) return '';\n    return tel\n        .replace('@s.whatsapp.net', '')\n        .replace('@c.us', '')\n        .replace(/\\D/g, '');\n}\n\nconst telefoneAtual = normalizarTelefone(dados.telefone);\n\n// Filtrar participantes removendo o atual\nlet participantes = [];\nif (reuniao.participantes && Array.isArray(reuniao.participantes)) {\n    participantes = reuniao.participantes.filter(p => {\n        const telParticipante = normalizarTelefone(p.telefone);\n        return telParticipante !== telefoneAtual;\n    });\n}\n\n// Se não sobrou ninguém, cancelar a reunião completa\nconst cancelarReuniao = participantes.length === 0;\n\nreturn [{\n    json: {\n        reuniao_id: reuniao.id,\n        participantes_atualizados: participantes,\n        cancelar_reuniao_completa: cancelarReuniao,\n        status_novo: cancelarReuniao ? 'cancelada' : 'agendada',\n        Remotejid: dados.telefone,\n        response: cancelarReuniao \n            ? '✅ Sua reunião foi cancelada com sucesso.' \n            : '✅ Você foi removido(a) da reunião. A reunião continua para os outros participantes.'\n    }\n}];"
+      },
+      "id": "c51de982-b64c-4fbc-b10d-9168d0a0f031",
+      "name": "Processar Cancelamento",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1392,
+        3024
+      ],
+      "notes": "NOVO: Remove participante ou cancela reunião se era o último"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.operacao }}",
+                    "rightValue": "cancelar",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Cancelar"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.operacao }}",
+                    "rightValue": "atualizar",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Reagendar"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.ja_participa }}",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "JaAgendado"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.pode_adicionar }}",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Adicionar"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.precisa_criar_nova }}",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Criar"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "46d284c1-ca1e-4da4-bbaf-7784991f46ce",
+      "name": "Switch - Qual Operação?1",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        800,
+        3424
+      ],
+      "notes": "MODIFICADO: Agora com 5 saídas (Cancelar, Reagendar, JaAgendado, Adicionar, Criar)"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "reunioes",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $json.reuniao_id }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "participantes",
+              "fieldValue": "={{ $json.participantes_atualizados }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "={{ $json.status_novo }}"
+            }
+          ]
+        }
+      },
+      "id": "e35c0b0b-93bb-4867-bf34-99683136921d",
+      "name": "Cancelar Reunião no Supabase",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1600,
+        3024
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "huldkk2UMf07U3qF",
+          "name": "Supabase account"
+        }
+      },
+      "notes": "MODIFICADO: Atualiza participantes E status"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "response",
+              "name": "response",
+              "value": "={{ $json.response }}",
+              "type": "string"
+            },
+            {
+              "id": "Evento",
+              "name": "Evento",
+              "value": "cancelamento",
+              "type": "string"
+            },
+            {
+              "id": "Remotejid",
+              "name": "Remotejid",
+              "value": "={{ $json.Remotejid }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "673aff6d-c8ba-47d1-b83c-1326c5349a9a",
+      "name": "Resposta - Cancelamento OK2",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1792,
+        3024
+      ],
+      "notes": "MODIFICADO: Passa a resposta do node anterior"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "leftValue": "={{ $json.existe_reuniao }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "6f7b937b-f9cf-45c4-808f-6138b08c525b",
+      "name": "IF - Existe Reunião para Cancelar?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1216,
+        3200
+      ],
+      "notes": "Verifica se existe reunião para cancelar"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "response",
+              "name": "response",
+              "value": "❌ Não encontrei nenhuma reunião agendada para cancelar.",
+              "type": "string"
+            },
+            {
+              "id": "Remotejid",
+              "name": "Remotejid",
+              "value": "={{ $json.telefone }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "2afed10b-825f-46bd-8e4d-9b6c38be0060",
+      "name": "Resposta - Não Existe para Cancelar",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1424,
+        3216
+      ],
+      "notes": "NOVO: Informa que não há reunião para cancelar"
+    },
+    {
+      "parameters": {
+        "jsCode": "const dados = $input.first().json;\n\nreturn [{\n    json: {\n        response: `ℹ️ Você já está agendado(a) para esta reunião!\\n\\n📅 Data: ${new Date(dados.reuniao_existente.data_inicio).toLocaleString('pt-BR', {day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit', timeZone: 'America/Sao_Paulo'})}\\n\\n🔗 Link: ${dados.link_reuniao_existente}`,\n        Remotejid: dados.telefone,\n        Evento: 'ja_agendado',\n        reuniao_id: dados.reuniao_id\n    }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        3600
+      ],
+      "id": "541be0b6-ab27-45b1-a3cd-dc7917232aaa",
+      "name": "Code in JavaScript7"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.reuniao_id_confirmacao }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              },
+              "id": "0eefed88-2359-4294-9168-9301a7bdb165"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b6b71c39-ff45-456e-9ff0-0fd279b3b317",
+      "name": "IF - Tem Reuniao ID?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2768,
+        3408
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "reunioes",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "id",
+              "condition": "eq",
+              "keyValue": "={{ $json.reuniao_id_confirmacao || $json.reuniao_id || $json.id }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "mensagem_enviada",
+              "fieldValue": "true"
+            }
+          ]
+        }
+      },
+      "id": "e13bda24-1f21-4847-82d6-30d18d8100f2",
+      "name": "Confirmar Envio Supabase1",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2976,
+        3264
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "huldkk2UMf07U3qF",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "teste",
+        "remoteJid": "={{ $('Processar Resultado da Busca').item.json.Remotejid }}",
+        "messageText": "={{ $json.response || $node[\"Preparar Resposta Agendamento\"].json.response }}",
+        "options_message": {}
+      },
+      "id": "4a1efd40-5c8f-4b6a-971c-8db3059d462a",
+      "name": "Enviar WhatsApp6",
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        2400,
+        3408
+      ],
+      "credentials": {
+        "evolutionApi": {
+          "id": "A8lJVGUjAAR1ZRfV",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "success",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "name": "response",
+              "value": "={{ $json.response }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4cefb2a0-ebaa-4b78-a99e-0764d8835932",
+      "name": "Output Final",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3136,
+        3424
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const dados = $input.first().json;\n\nlet reuniaoId = null;\n\nif ($('Salvar Reunião no Supabase').isExecuted) {\n  reuniaoId = $('Salvar Reunião no Supabase').item.json.id;\n} else if ($('Atualizar Participantes Supabase').isExecuted) {\n  reuniaoId = $('Atualizar Participantes Supabase').item.json.id;\n} else if ($('Cancelar Reunião no Supabase').isExecuted) {\n  reuniaoId = $('Cancelar Reunião no Supabase').item.json.id;\n} else if ($('Atualizar Reunião no Supabase2').isExecuted) {\n  reuniaoId = $('Atualizar Reunião no Supabase2').item.json.id;\n} else if ($('Code in JavaScript7').isExecuted) {\n  reuniaoId = $('Code in JavaScript7').item.json.reuniao_id;\n}\n\nif (!reuniaoId) {\n  reuniaoId = dados.reuniao_id || dados.id || null;\n}\n\nreturn [{\n  json: {\n    ...dados,\n    reuniao_id_confirmacao: reuniaoId\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2576,
+        3408
+      ],
+      "id": "4271deb6-28d8-4a88-ac85-09315c840974",
+      "name": "Code in JavaScript8"
+    },
+    {
+      "parameters": {
+        "jsCode": "const dados = $input.first().json;\n\nlet response = dados.response;\n\nif (!response && $(\"Adicionar Participante à Reunião\").isExecuted) {\n    response = $(\"Adicionar Participante à Reunião\").first().json.response;\n}\n\nif (!response && $(\"Processar Cancelamento\").isExecuted) {\n    response = $(\"Processar Cancelamento\").first().json.response;\n}\n\nif (!response && $(\"Code in JavaScript7\").isExecuted) {\n    response = $(\"Code in JavaScript7\").first().json.response;\n}\n\nif (!response && $(\"Resposta - Reagendamento OK1\").isExecuted) {\n    response = $(\"Resposta - Reagendamento OK1\").first().json.response;\n}\n\nif (!response && $(\"Resposta - Cancelamento OK2\").isExecuted) {\n    response = $(\"Resposta - Cancelamento OK2\").first().json.response;\n}\n\nif (!response && $(\"Resposta - Não Existe para Cancelar\").isExecuted) {\n    response = $(\"Resposta - Não Existe para Cancelar\").first().json.response;\n}\n\nif (!response && $(\"Preparar Resposta Agendamento\").isExecuted) {\n    response = $(\"Preparar Resposta Agendamento\").first().json.response;\n}\n\nif (!response) {\n    response = \"Operação realizada com sucesso!\";\n}\n\n// BUSCAR TELEFONE - ORDEM DE PRIORIDADE\nlet telefone = dados.Remotejid || dados.telefone;\n\n// 🔥 CORREÇÃO PRINCIPAL: Buscar ANTES do node que passa pelo Supabase\n// Se não encontrou, buscar do \"Processar Cancelamento\" (ANTES do Supabase)\nif (!telefone && $(\"Processar Cancelamento\").isExecuted) {\n    telefone = $(\"Processar Cancelamento\").first().json.Remotejid;\n}\n\n// Se não encontrou, buscar do \"Code in JavaScript7\" (fluxo JÁ AGENDADO)\nif (!telefone && $(\"Code in JavaScript7\").isExecuted) {\n    telefone = $(\"Code in JavaScript7\").first().json.Remotejid;\n}\n\n// Se não encontrou, buscar do \"Adicionar Participante\"\nif (!telefone && $(\"Adicionar Participante à Reunião\").isExecuted) {\n    telefone = $(\"Adicionar Participante à Reunião\").first().json.Remotejid;\n}\n\n// Se não encontrou, buscar do \"Resposta - Reagendamento OK1\"\nif (!telefone && $(\"Resposta - Reagendamento OK1\").isExecuted) {\n    telefone = $(\"Resposta - Reagendamento OK1\").first().json.Remotejid;\n}\n\n// 🔥 REMOVIDO: Linha \"Resposta - Cancelamento OK2\" porque vem DEPOIS do Supabase\n// A busca do Processar Cancelamento já resolve\n\n// Se não encontrou, buscar dos participantes\nif (!telefone && dados.participantes && Array.isArray(dados.participantes) && dados.participantes.length > 0) {\n    const ultimoParticipante = dados.participantes[dados.participantes.length - 1];\n    telefone = ultimoParticipante.telefone;\n}\n\nreturn [{\n    json: {\n        ...dados,\n        response: response,\n        Remotejid: telefone,\n        Evento: dados.Evento || 'operacao',\n        reuniao_id: dados.reuniao_id || dados.id\n    }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2224,
+        3408
+      ],
+      "id": "b1cdc58f-8c41-40f8-80ba-c67bb79c0d6b",
+      "name": "Code in JavaScript9"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "reunioes",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "tenant_id",
+              "fieldValue": "={{ $('Processar Resposta da Plataforma1').item.json.tenant_id }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "agendada"
+            },
+            {
+              "fieldId": "nome",
+              "fieldValue": "={{ $('Processar Resposta da Plataforma1').item.json.nome_cliente }}"
+            },
+            {
+              "fieldId": "telefone",
+              "fieldValue": "={{ $('Processar Resposta da Plataforma1').item.json.Remotejid }}"
+            },
+            {
+              "fieldId": "email",
+              "fieldValue": "={{ $('Processar Resposta da Plataforma1').item.json.email_cliente }}"
+            },
+            {
+              "fieldId": "titulo",
+              "fieldValue": "={{ $('Processar Resposta da Plataforma1').item.json.nome_cliente }}"
+            },
+            {
+              "fieldId": "data_inicio",
+              "fieldValue": "={{ $('Processar Resposta da Plataforma1').item.json.data_inicio }}"
+            },
+            {
+              "fieldId": "duracao",
+              "fieldValue": "60"
+            },
+            {
+              "fieldId": "room_id_100ms",
+              "fieldValue": "={{ $('Processar Resposta da Plataforma1').item.json.room_id }}"
+            },
+            {
+              "fieldId": "link_reuniao",
+              "fieldValue": "={{ $('Processar Resposta da Plataforma1').item.json.meeting_url }}"
+            },
+            {
+              "fieldId": "data_fim",
+              "fieldValue": "={{ new Date(new Date($('Processar Resposta da Plataforma1').item.json.data_inicio).getTime() + 60*60*1000).toISOString() }}"
+            },
+            {
+              "fieldId": "participantes",
+              "fieldValue": "={{ JSON.stringify([{nome: $('Processar Resposta da Plataforma1').item.json.nome_cliente, email: $('Processar Resposta da Plataforma1').item.json.email_cliente, telefone: $('Processar Resposta da Plataforma1').item.json.Remotejid, adicionado_em: new Date().toISOString()}]) }}"
+            },
+            {
+              "fieldId": "tipo_reuniao",
+              "fieldValue": "={{ $('Switch - Qual Operação?1').item.json.query.tipo_reuniao }}"
+            }
+          ]
+        }
+      },
+      "id": "fe572fe7-df3b-4e6e-b198-7c6dfcc4a6c3",
+      "name": "Salvar Reunião no Supabase",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1792,
+        3952
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "huldkk2UMf07U3qF",
+          "name": "Supabase account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Preparar Resposta Agendamento": {
+      "main": [
+        [
+          {
+            "node": "Salvar Reunião no Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Criar Reunião via Plataforma2": {
+      "main": [
+        [
+          {
+            "node": "Processar Resposta da Plataforma1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Processar Resposta da Plataforma1": {
+      "main": [
+        [
+          {
+            "node": "Preparar Resposta Agendamento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Dados Atualização1": {
+      "main": [
+        [
+          {
+            "node": "Atualizar Reunião no Supabase2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Atualizar Reunião no Supabase2": {
+      "main": [
+        [
+          {
+            "node": "Resposta - Reagendamento OK1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resposta - Reagendamento OK1": {
+      "main": [
+        [
+          {
+            "node": "Merge Respostas1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Respostas1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript9",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Atualizar Reunião via Plataforma1": {
+      "main": [
+        [
+          {
+            "node": "Preparar Dados Atualização1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Processar Resultado da Busca": {
+      "main": [
+        [
+          {
+            "node": "Switch - Qual Operação?1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Horários Disponíveis": {
+      "main": [
+        [
+          {
+            "node": "Formatar Horários para Amanda",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatar Horários para Amanda": {
+      "main": [
+        [
+          {
+            "node": "Processar Resultado da Busca",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtrar Formulário por Telefone": {
+      "main": [
+        [
+          {
+            "node": "Mesclar Dados do Formulário1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Dados do Formulário1": {
+      "main": [
+        [
+          {
+            "node": "Filtrar Formulário por Telefone",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mesclar Dados do Formulário1": {
+      "main": [
+        [
+          {
+            "node": "Buscar Horários Disponíveis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extrair Dados e Operação1": {
+      "main": [
+        [
+          {
+            "node": "Buscar Dados do Formulário1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Adicionar Participante à Reunião": {
+      "main": [
+        [
+          {
+            "node": "Atualizar Participantes Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Atualizar Participantes Supabase": {
+      "main": [
+        [
+          {
+            "node": "Merge Respostas1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Processar Cancelamento": {
+      "main": [
+        [
+          {
+            "node": "Cancelar Reunião no Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch - Qual Operação?1": {
+      "main": [
+        [
+          {
+            "node": "IF - Existe Reunião para Cancelar?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Atualizar Reunião via Plataforma1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code in JavaScript7",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Adicionar Participante à Reunião",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Criar Reunião via Plataforma2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cancelar Reunião no Supabase": {
+      "main": [
+        [
+          {
+            "node": "Resposta - Cancelamento OK2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resposta - Cancelamento OK2": {
+      "main": [
+        [
+          {
+            "node": "Merge Respostas1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Existe Reunião para Cancelar?": {
+      "main": [
+        [
+          {
+            "node": "Processar Cancelamento",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Resposta - Não Existe para Cancelar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resposta - Não Existe para Cancelar": {
+      "main": [
+        [
+          {
+            "node": "Merge Respostas1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript7": {
+      "main": [
+        [
+          {
+            "node": "Merge Respostas1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Tem Reuniao ID?": {
+      "main": [
+        [
+          {
+            "node": "Confirmar Envio Supabase1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Output Final",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Confirmar Envio Supabase1": {
+      "main": [
+        [
+          {
+            "node": "Output Final",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar WhatsApp6": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript8",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript8": {
+      "main": [
+        [
+          {
+            "node": "IF - Tem Reuniao ID?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript9": {
+      "main": [
+        [
+          {
+            "node": "Enviar WhatsApp6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Salvar Reunião no Supabase": {
+      "main": [
+        [
+          {
+            "node": "Merge Respostas1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "041fc3787017e7278f042d7c91fc560a5875bc5f4b072032b9b3ee5905f18f43"
+  }
+}

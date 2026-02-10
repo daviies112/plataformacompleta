@@ -1,0 +1,194 @@
+📦 GUIA DE INTEGRAÇÃO TOTAL EXPRESS
+Data: 2026-01-22
+Objetivo: Integrar API da Total Express na página de Envio ("Enviar") para cotação e registro de coletas.
+
+🏗️ ARQUITETURA PROPOSTA
+A integração será feita através de um novo serviço dedicado (TotalExpressService) que será consumido pelo já existente 
+EnvioService
+.
+
+1. Variáveis de Ambiente Necessárias (.env)
+TOTAL_EXPRESS_LOGIN=seu_login
+TOTAL_EXPRESS_PASSWORD=sua_senha
+TOTAL_EXPRESS_CNPJ=seu_cnpj (sem pontuação)
+TOTAL_EXPRESS_API_URL=https://edi.totalexpress.com.br/webservice_calculo_frete.php (Cotação)
+TOTAL_EXPRESS_API_REGISTRO_URL=https://edi.totalexpress.com.br/webservice_e_total.php (Registro)
+🛠️ IMPLEMENTAÇÃO BACKEND
+1. Novo Serviço: server/services/totalExpressService.ts
+Este serviço encapsulará toda a comunicação com a API da Total Express (que geralmente é SOAP ou REST/XML). Recomendamos usar axios e um parser XML se a resposta for XML.
+
+import axios from 'axios';
+// Instalar xml2js: npm install xml2js
+// npm install @types/xml2js
+import { parseStringPromise } from 'xml2js';
+export class TotalExpressService {
+  private login = process.env.TOTAL_EXPRESS_LOGIN;
+  private password = process.env.TOTAL_EXPRESS_PASSWORD;
+  private cnpj = process.env.TOTAL_EXPRESS_CNPJ;
+  // Cotação de Frete
+  async cotarFrete(dados: {
+    cepOrigem: string;
+    cepDestino: string;
+    peso: number; // kg
+    valorDeclarado: number;
+    tipoServico?: string; // Ex: 'EXP', 'STD'
+  }) {
+    // A API de cotação geralmente é GET com params
+    const url = process.env.TOTAL_EXPRESS_API_URL;
+    
+    try {
+      const response = await axios.get(url!, {
+        params: {
+          Usuario: this.login,
+          Senha: this.password,
+          Cnpj: this.cnpj,
+          TipoServico: dados.tipoServico || 'EXP', // Expresso como default
+          CepOrigem: dados.cepOrigem.replace(/\D/g, ''),
+          CepDestino: dados.cepDestino.replace(/\D/g, ''),
+          Peso: dados.peso,
+          ValorDeclarado: dados.valorDeclarado
+        }
+      });
+      // Se resposta for XML, fazer parse
+      // Exemplo simplificado (verificar documentação oficial para estrutura exata)
+      /* 
+      Respostas típicas TotalExpress:
+      <DadosFrete>
+        <Prazo>5</Prazo>
+        <Valor>25.50</Valor>
+        <Erro>0</Erro>
+      </DadosFrete>
+      */
+      
+      // Parse XML response here using xml2js
+      return response.data; // Adapte para retornar { valor: number, prazo: number }
+    } catch (error) {
+      console.error('[TotalExpress] Erro na cotação:', error);
+      throw error;
+    }
+  }
+  // Registro de Encomenda (Gerar Etiqueta/Coleta)
+  async registrarColeta(dadosEnvio: any) {
+    const url = process.env.TOTAL_EXPRESS_API_REGISTRO_URL;
+    
+    // Montar XML de solicitação conforme manual TotalExpress
+    const xmlBody = `
+      <hml>
+        <CnpjRemetente>${this.cnpj}</CnpjRemetente>
+        <Login>${this.login}</Login>
+        <Senha>${this.password}</Senha>
+        <Encomendas>
+           <Encomenda>
+             <Pedido>${dadosEnvio.contract_id}</Pedido>
+             <NomeDestinatario>${dadosEnvio.destinatario_nome}</NomeDestinatario>
+             ...
+           </Encomenda>
+        </Encomendas>
+      </hml>
+    `;
+    // POST request
+    // Lidar com resposta, salvar código de rastreio (Etiqueta/Awb)
+  }
+  
+  // Rastreamento (Webhook ou Polling)
+  // Recomenda-se configurar Webhook no painel da TotalExpress para receber POSTs em:
+  // https://sua-plataforma.com/api/webhooks/total-express
+}
+export const totalExpressService = new TotalExpressService();
+2. Atualizar 
+envioService.ts
+Modificar o método 
+calcularFrete
+ para incluir a Total Express:
+
+import { totalExpressService } from './totalExpressService';
+// Dentro de EnvioService.calcularFrete...
+async calcularFrete(...) {
+  // ... (código existente para outras transportadoras)
+  // Adicionar cotação Total Express
+  try {
+    const cotacaoTotal = await totalExpressService.cotarFrete({
+      cepOrigem: dados.cepOrigem,
+      cepDestino: dados.cepDestino,
+      peso: dados.peso,
+      valorDeclarado: dados.valorDeclarado
+    });
+    if (cotacaoTotal) {
+      // Adicionar ao array de cotações retornadas
+      cotacoes.push({
+        transportadora_nome: 'Total Express',
+        servico: 'Expresso',
+        valor_frete: cotacaoTotal.valor,
+        prazo_dias: cotacaoTotal.prazo,
+        // ...
+      });
+    }
+  } catch (e) {
+    console.error('Falha ao cotar Total Express', e);
+  }
+  return cotacoes.sort(...);
+}
+💻 IMPLEMENTAÇÃO FRONTEND
+EnvioEnviar.tsx
+A página já chama createEnvioMutation que usa /api/envio/envios. Para suportar múltiplas opções de frete (agora com TotalExpress), o fluxo ideal seria:
+
+Step 1: Preencher dados + Clicar em "Cotar Frete"
+
+Chama /api/envio/cotacoes/calcular
+Exibe lista de cotações (Correios, TotalExpress, JadLog...)
+Step 2: Selecionar a cotação desejada
+
+Step 3: Criar Envio Final
+
+Enviar cotacao_id selecionada
+Backend usa a transportadora correta para registrar o envio.
+Mudança necessária no UI:
+
+Adicionar botão "Calcular Frete" antes de "Criar Envio".
+Mostrar tabela de opções de frete retornadas.
+Usuário seleciona uma opção → Botão "Gerar Etiqueta" fica habilitado.
+🔄 RASTREAMENTO (TRACKING)
+Criação de Webhook Endpoint
+Para receber atualizações de status automáticas da Total Express:
+
+Novo arquivo: server/routes/webhooks/totalExpress.ts
+
+router.post('/total-express', async (req, res) => {
+  const { awb, status, dataEvento } = req.body; // Adaptar conforme payload real
+  
+  try {
+    // Buscar envio pelo código de rastreio (AWB)
+    const envio = await envioService.getEnvioByRastreio(awb);
+    
+    if (envio) {
+      await envioService.addRastreamentoEvento({
+        envio_id: envio.id,
+        status: status,
+        data_hora: dataEvento,
+        origem_api: true
+      });
+      
+      // Atualizar status principal do envio se necessário
+    }
+    
+    res.send('OK');
+  } catch (error) {
+    res.status(500).send('Erro');
+  }
+});
+📝 PASSO A PASSO PARA EXECUÇÃO
+Obter Credenciais: Solicitar acesso API Webservice ao gerente de contas TotalExpress.
+Backend:
+Criar server/services/totalExpressService.ts.
+Modificar 
+EnvioService
+ para chamar esse novo serviço.
+Criar rota de webhook.
+Frontend:
+Atualizar 
+EnvioEnviar.tsx
+ para permitir simulação de frete antes da criação.
+Testes:
+Testar cotação com CEPs reais.
+Gerar etiqueta em ambiente de homologação (HML).
+Observação: A documentação oficial da Total Express (Manual de Integração Webservice) deve ser consultada para os nomes exatos dos parâmetros XML, que podem variar conforme a versão da API contratada.

@@ -1,0 +1,106 @@
+Meeting100ms] 🔍 Estado de conexão atualizado: Object
+Meeting100ms.tsx:752 [Meeting100ms] 🔄 Estado atual: Object
+Meeting100ms.tsx:828 [Meeting100ms] Mostrando tela de conexão. isJoining: true isConnected: false
+Meeting100ms.tsx:189 [Meeting100ms] 📊 Room state atualizado: Object
+Meeting100ms.tsx:752 [Meeting100ms] 🔄 Estado atual: Object
+Meeting100ms.tsx:275 [Meeting100ms] 📡 Resposta API: 200 true
+Meeting100ms.tsx:279 [Meeting100ms] 📦 Dados recebidos: {
+  "id": "a299e39e-a2a0-48ad-8b78-269644fe2ff0",
+  "metadata": {
+    "source": "n8n",
+    "createdVia": "n8n-api",
+    "roomDesignConfig": {
+      "lobby": {
+        "title": "Pronto para participar?",
+        "subtitle": "",
+        "buttonText": "Participar agora",
+        "backgroundImage": null,
+        "showCameraPreview": true,
+        "showDeviceSelectors": true
+      },
+      "colors": {
+        "avatarText": "#ffffff",
+        "background": "#0f172a",
+        "controlsText": "#ffffff",
+        "dangerButton": "#ef4444",
+        "primaryButton": "#3b82f6",
+        "avatarBackground": "#3b82f6",
+        "controlsBackground": "#18181b",
+        "participantNameText": "#ffffff",
+        "participantNameBackground": "rgba(0, 0, 0, 0.6)"
+      },
+      "meeting": {
+        "enableChat": true,
+        "enableRaiseHand": true,
+        "enableReactions": true,
+        "showMeetingCode": true,
+        "enableScreenShare": true,
+        "showParticipantCount": true,
+        "showRecordingIndicator": true
+      },
+      "branding": {
+        "logo": null,
+        "logoSize": 40,
+        "companyName": "",
+        "logoPosition": "left",
+        "showLogoInEnd": true,
+        "showCompanyName": true,
+        "showLogoInLobby": true,
+        "showLogoInMeeting": true
+      },
+      "endScreen": {
+        "title": "Reunião Encerrada",
+        "message": "Obrigado por participar!",
+        "redirectUrl": null,
+        "showFeedback": false
+      }
+    },
+    "formSubmissionId": null
+  }
+}
+Meeting100ms.tsx:282 [Meeting100ms] ✅ hasFormSubmission: false formSubmissionId: null
+Meeting100ms.tsx:828 [Meeting100ms] Mostrando tela de conexão. isJoining: true isConnected: false
+/api/100ms/recording/6980b0ceced4c7d0331d0abf:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+Meeting100ms.tsx:828 [Meeting100ms] Mostrando tela de conexão. isJoining: true isConnected: false
+Meeting100ms.tsx:189 [Meeting100ms] 📊 Room state atualizado: Object
+Meeting100ms.tsx:752 [Meeting100ms] 🔄 Estado atual: Object
+Meeting100ms.tsx:828 [Meeting100ms] Mostrando tela de conexão. isJoining: true isConnected: true
+Meeting100ms.tsx:189 [Meeting100ms] 📊 Room state atualizado: Object
+Meeting100ms.tsx:454 [Meeting100ms] 🔍 Estado de conexão atualizado: Object
+Meeting100ms.tsx:457 [Meeting100ms] ✅ CONEXÃO CONFIRMADA! Removendo spinner de loading...
+Meeting100ms.tsx:476 [Meeting100ms] 📋 Registrando presença automática na sala: 6980b0ceced4c7d0331d0abf
+Meeting100ms.tsx:752 [Meeting100ms] 🔄 Estado atual: Object
+Meeting100ms.tsx:454 [Meeting100ms] 🔍 Estado de conexão atualizado: Object
+Meeting100ms.tsx:467 [Meeting100ms] 👥 Conexão estável com 1 participante(s)
+Meeting100ms.tsx:752 [Meeting100ms] 🔄 Estado atual: Object
+Meeting100ms.tsx:189 [Meeting100ms] 📊 Room state atualizado: Object
+Meeting100ms.tsx:752 [Meeting100ms] 🔄 Estado atual: Object
+/api/public/reunioes/registrar-presenca:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+Meeting100ms.tsx:501 [Meeting100ms] ⚠️ Falha ao registrar presença: Endpoint não encontrado
+(anonymous) @ Meeting100ms.tsx:501Understand this warning
+Meeting100ms.tsx:189 [Meeting100ms] 📊 Room state atualizado: Object
+Meeting100ms.tsx:300 [Meeting100ms] 🔔 Notificação recebida: TRACK_ADDED Object
+Meeting100ms.tsx:454 [Meeting100ms] 🔍 Estado de conexão atualizado: Object
+Meeting100ms.tsx:467 [Meeting100ms] 👥 Conexão estável com 1 participante(s)
+Meeting100ms.tsx:752 [Meeting100ms] 🔄 Estado atual: Object
+Meeting100ms.tsx:413 [Meeting100ms] ✅ join() resolveu com sucesso!
+Meeting100ms.tsx:189 [Meeting100ms] 📊 Room state atualizado: Object
+Meeting100ms.tsx:300 [Meeting100ms] 🔔 Notificação recebida: TRACK_ADDED Object
+Meeting100ms.tsx:454 [Meeting100ms] 🔍 Estado de conexão atualizado: Object
+Meeting100ms.tsx:467 [Meeting100ms] 👥 Conexão estável com 1 participante(s)
+Meeting100ms.tsx:752 [Meeting100ms] 🔄 Estado atual: Object
+Meeting100ms.tsx:417 [Meeting100ms] 📊 Estado 2s após join - verificando conexão...
+Meeting100ms.tsx:189 [Meeting100ms] 📊 Room state atualizado: Object
+Meeting100ms.tsx:752 [Meeting100ms] 🔄 Estado atual: Object
+Meeting100ms.tsx:989 [Meeting100ms] Click Vídeo Direto
+Meeting100ms.tsx:531 [Meeting100ms] Executando toggle vídeo... Estado atual: false
+Meeting100ms.tsx:533 [Meeting100ms] SDK Processou Vídeo
+Meeting100ms.tsx:189 [Meeting100ms] 📊 Room state atualizado: Object
+Meeting100ms.tsx:300 [Meeting100ms] 🔔 Notificação recebida: TRACK_UNMUTED Object
+Meeting100ms.tsx:752 [Meeting100ms] 🔄 Estado atual: Object
+Meeting100ms.tsx:1050 [Meeting100ms] Click Assinar Contrato
+Meeting100ms.tsx:1067 [Meeting100ms] Meeting ID extraído da URL: a299e39e-a2a0-48ad-8b78-269644fe2ff0
+Meeting100ms.tsx:1115 [Meeting100ms] formSubmissionId final: undefined
+Meeting100ms.tsx:1050 [Meeting100ms] Click Assinar Contrato
+Meeting100ms.tsx:1067 [Meeting100ms] Meeting ID extraído da URL: a299e39e-a2a0-48ad-8b78-269644fe2ff0
+Meeting100ms.tsx:1115 [Meeting100ms] formSubmissionId final: undefined

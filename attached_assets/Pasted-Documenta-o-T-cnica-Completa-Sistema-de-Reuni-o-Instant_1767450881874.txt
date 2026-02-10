@@ -1,0 +1,588 @@
+Documentação Técnica Completa: Sistema de Reunião Instantânea
+📋 Índice
+Visão Geral do Fluxo
+Passo 1: Criação da Reunião (Dashboard)
+Passo 2: Modal de Sucesso
+Passo 3: Interface de Vídeo (Sala)
+Passo 4: Gravação da Reunião
+Passo 5: Visualização de Gravações
+Arquitetura Backend
+Checklist de Replicação
+Visão Geral do Fluxo
+Clica 'Reunião Instantânea'
+Clica 'Participar agora'
+Interface de Vídeo
+Clica Gravar
+Clica Parar
+Webhook/Sync
+Clica Assistir
+Dashboard
+API cria sala 100ms
+Modal de Sucesso
+Sala de Reunião
+Meeting100ms Component
+Inicia Gravação
+Para Gravação
+Status: Completed
+Página Gravações
+Player de Vídeo
+Passo 1: Criação da Reunião
+Dashboard (
+client/src/pages/Dashboard.tsx
+)
+Botão Verde "Reunião Instantânea":
+
+<Button 
+  onClick={handleInstantMeeting} 
+  disabled={isCreatingInstant}
+  className="gap-2 bg-green-600 hover:bg-green-700"
+>
+  {isCreatingInstant ? (
+    <Loader2 className="h-4 w-4 animate-spin" />
+  ) : (
+    <Zap className="h-4 w-4" />
+  )}
+  Reunião Instantânea
+</Button>
+Handler:
+
+const handleInstantMeeting = async () => {
+  try {
+    // Chama API para criar reunião
+    const meeting = await createInstantMeeting({ titulo: 'Reunião Instantânea' });
+    
+    // Armazena dados da reunião criada
+    setCreatedMeeting({
+      id: meeting.id,
+      linkReuniao: meeting.linkReuniao,
+      titulo: meeting.titulo,
+    });
+    
+    // Abre modal de sucesso
+    setShowMeetingModal(true);
+  } catch (error) {
+    toast({ title: "Erro", description: error.message });
+  }
+};
+Backend Endpoint (
+server/routes.ts
+):
+
+app.post("/api/reunioes/instantanea", requireAuth, requireTenant, async (req, res) => {
+  // 1. Criar sala no 100ms
+  const sala = await criarSala(
+    `instantanea-${Date.now()}`,
+    hmsTemplateId,
+    hmsAccessKey,
+    hmsAppSecret
+  );
+  
+  // 2. Gerar link público
+  const linkReuniao = `https://${domain}/reuniao/${tenant.slug}/${sala.id}`;
+  
+  // 3. Salvar no banco
+  const [novaReuniao] = await db.insert(reunioes).values({
+    titulo: 'Reunião Instantânea',
+    roomId100ms: sala.id,
+    linkReuniao,
+    status: 'em_andamento',
+    dataInicio: new Date(),
+    dataFim: new Date(Date.now() + 60 * 60000), // +60min
+  }).returning();
+  
+  return res.status(201).json(novaReuniao);
+});
+Passo 2: Modal de Sucesso
+InstantMeetingModal (
+client/src/components/InstantMeetingModal.tsx
+)
+Design do Modal:
+
+✅ Ícone de check verde
+📋 Campo de input com o link (read-only)
+📋 Botão "Copiar" ao lado do input
+👥 Botão "Convidar" (abre formulário de email)
+🔵 Botão principal "Participar agora" (azul, grande)
+Código do Botão Principal:
+
+<Button 
+  onClick={handleJoinNow} 
+  className="w-full h-14 rounded-2xl bg-blue-600 hover:bg-blue-700 shadow-lg"
+>
+  Participar agora
+  <ArrowRight className="h-5 w-5" />
+</Button>
+Handler de Participação:
+
+const handleJoinNow = () => {
+  if (meeting?.linkReuniao) {
+    // Abre link em nova aba
+    const url = meeting.linkReuniao.startsWith('http') 
+      ? meeting.linkReuniao 
+      : `${window.location.origin}${meeting.linkReuniao}`;
+    
+    window.open(url, "_blank");
+    onClose();
+  }
+};
+Passo 3: Interface de Vídeo
+Meeting100ms Component (
+client/src/components/Meeting100ms.tsx
+)
+Estrutura da Interface:
+
+┌─────────────────────────────────────────┐
+│ Header (Logo + Status de Gravação)     │
+├─────────────────────────────────────────┤
+│                                         │
+│   Grid de Vídeos (PeerVideo)           │
+│   ┌──────┐  ┌──────┐                   │
+│   │Peer 1│  │Peer 2│                   │
+│   └──────┘  └──────┘                   │
+│                                         │
+├─────────────────────────────────────────┤
+│ Footer (Controles)                      │
+│ [🎤] [📹] [🖥️] [⚫] [Sair]             │
+└─────────────────────────────────────────┘
+Componente PeerVideo (linhas 36-112):
+
+function PeerVideo({ peer, config, totalPeers }) {
+  const { videoRef } = useVideo({ trackId: peer.videoTrack });
+  const isVideoOff = !peer.videoTrack;
+  return (
+    <Card className="relative aspect-video bg-zinc-900">
+      {/* Avatar (quando vídeo está off) */}
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="w-20 h-20 rounded-full bg-blue-600 text-white">
+          {peer.name?.charAt(0).toUpperCase()}
+        </div>
+      </div>
+      {/* Vídeo */}
+      <video
+        ref={videoRef}
+        autoPlay
+        muted={peer.isLocal}
+        playsInline
+        className="absolute inset-0 w-full h-full object-cover"
+      />
+      {/* Nome do participante */}
+      <div className="absolute bottom-3 left-3 px-3 py-1.5 rounded-lg bg-black/60 text-white">
+        {peer.name} {peer.isLocal && "(Você)"}
+        {!peer.audioTrack && <MicOff className="w-3 h-3 text-red-500" />}
+      </div>
+    </Card>
+  );
+}
+Header com Indicador de Gravação (linhas 454-486):
+
+<header className="h-14 px-6 border-b bg-zinc-900/40 backdrop-blur-xl">
+  <div className="flex items-center gap-3">
+    <div className="w-7 h-7 bg-blue-600 rounded-lg">
+      <Video className="h-4 w-4 text-white" />
+    </div>
+    <div>
+      <span className="font-bold text-white">MeetFlow</span>
+      {isRecordingOn && (
+        <div className="flex items-center gap-1 animate-pulse">
+          <Circle className="h-1.5 w-1.5 fill-red-500 text-red-500" />
+          <span className="text-red-500 font-bold">GRAVANDO</span>
+        </div>
+      )}
+    </div>
+  </div>
+  
+  <div className="flex items-center gap-4">
+    <Button onClick={copyLink}>COPIAR LINK</Button>
+    <div>{peers.length} PARTICIPANTES</div>
+  </div>
+</header>
+Controles (Footer) (linhas 501-572):
+
+<footer className="h-24 px-6 flex items-center justify-center">
+  <div className="px-6 py-3 rounded-3xl bg-zinc-900/90 backdrop-blur-2xl">
+    {/* Microfone */}
+    <Button onClick={toggleAudio} className={isAudioEnabled ? "bg-zinc-800" : "bg-red-500"}>
+      {isAudioEnabled ? <Mic /> : <MicOff />}
+    </Button>
+    {/* Câmera */}
+    <Button onClick={toggleVideo} className={isVideoEnabled ? "bg-zinc-800" : "bg-red-500"}>
+      {isVideoEnabled ? <Video /> : <VideoOff />}
+    </Button>
+    {/* Compartilhar Tela */}
+    <Button onClick={toggleScreenShare} className={isScreenShared ? "bg-blue-600" : "bg-zinc-800"}>
+      {isScreenShared ? <MonitorOff /> : <MonitorUp />}
+    </Button>
+    {/* Gravar */}
+    <Button 
+      onClick={handleToggleRecording} 
+      className={isRecording ? "bg-red-500 shadow-lg" : "bg-zinc-800"}
+    >
+      <Circle className={isRecording && "fill-white animate-pulse"} />
+    </Button>
+    {/* Sair */}
+    <Button onClick={handleLeave} variant="destructive">
+      Sair
+    </Button>
+  </div>
+</footer>
+Conexão com 100ms (linhas 184-215):
+
+useEffect(() => {
+  const joinRoom = async () => {
+    try {
+      await hmsActions.join({
+        userName,
+        authToken,
+        settings: { isAudioMuted: false, isVideoMuted: false },
+        rememberDeviceSelection: true
+      });
+      setIsJoining(false);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+  joinRoom();
+}, [hmsActions, authToken, userName]);
+Passo 4: Gravação da Reunião
+Iniciar Gravação (Frontend)
+Handler (linhas 370-406):
+
+const handleToggleRecording = async () => {
+  const currentRoomId = roomId || window.location.pathname.split('/').pop();
+  
+  if (!isRecording) {
+    // Iniciar
+    setIsRecording(true);
+    const response = await fetch('/api/100ms/recording/start', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ roomId: currentRoomId }),
+    });
+    if (!response.ok) {
+      setIsRecording(false);
+      throw new Error('Erro ao iniciar gravação');
+    }
+    const data = await response.json();
+    setRecordingId(data.recordingId);
+    toast.success("✅ Gravação iniciada!");
+  } else {
+    // Parar
+    await fetch('/api/100ms/recording/stop', {
+      method: 'POST',
+      body: JSON.stringify({ roomId: currentRoomId }),
+    });
+    setIsRecording(false);
+    toast.success("⏸️ Gravação parada! O vídeo será processado.");
+  }
+};
+Backend: Iniciar Gravação
+Endpoint (
+server/routes.ts
+, linhas 195-245):
+
+app.post("/api/100ms/recording/start", requireAuth, requireTenant, async (req, res) => {
+  const { roomId } = req.body;
+  
+  // 1. Gerar token para o bot
+  const token = gerarTokenParticipante(
+    roomId, 
+    "beam-" + Date.now(), 
+    "__internal_recorder", // Role especial
+    appAccessKey, 
+    appSecret
+  );
+  
+  // 2. Construir URL de gravação
+  const publicUrl = process.env.PUBLIC_URL || `https://${process.env.REPLIT_DEV_DOMAIN}`;
+  const recordingUrl = `${publicUrl}/recording/${roomId}?token=${token}&auto_join=true&skip_preview=true&skip_device_selection=true`;
+  
+  // 3. Chamar API 100ms Beam
+  const result = await iniciarGravacao(roomId, appAccessKey, appSecret, recordingUrl);
+  
+  // 4. Salvar no banco
+  await db.insert(gravacoes).values({
+    reuniaoId: reuniao.id,
+    tenantId: req.tenant.id,
+    roomId100ms: roomId,
+    recordingId100ms: result.id,
+    status: "recording",
+  });
+  res.json({ success: true, recordingId: result.id });
+});
+Backend: Parar Gravação
+Endpoint (linhas 247-272):
+
+app.post("/api/100ms/recording/stop", requireAuth, requireTenant, async (req, res) => {
+  const { roomId } = req.body;
+  
+  // 1. Chamar API 100ms
+  await pararGravacao(roomId, appAccessKey, appSecret);
+  
+  // 2. Atualizar status no banco
+  await db.update(gravacoes)
+    .set({ status: "processing", stoppedAt: new Date() })
+    .where(and(
+      eq(gravacoes.roomId100ms, roomId), 
+      eq(gravacoes.status, "recording")
+    ));
+  res.json({ success: true });
+});
+Webhook de Conclusão
+Endpoint (linhas 286-309):
+
+app.post("/api/webhooks/100ms", async (req, res) => {
+  const event = req.body;
+  
+  if (event.type === "beam.recording.success") {
+    const { id, asset } = event.data;
+    
+    await db.update(gravacoes)
+      .set({ 
+        status: "completed", 
+        fileUrl: asset?.location,
+        fileSize: asset?.size,
+        duration: asset?.duration,
+        updatedAt: new Date()
+      })
+      .where(eq(gravacoes.recordingId100ms, id));
+  }
+  res.json({ success: true });
+});
+Passo 5: Visualização de Gravações
+Página Gravações (
+client/src/pages/Gravacoes.tsx
+)
+Estrutura:
+
+┌─────────────────────────────────────────┐
+│ Título: "Gravações"                     │
+├─────────────────────────────────────────┤
+│ Tabela de Gravações:                    │
+│ ┌─────────────────────────────────────┐ │
+│ │ Reunião | Data | Status | Ações    │ │
+│ ├─────────────────────────────────────┤ │
+│ │ Reunião 1 | 02/01 | ✅ | [Assistir]│ │
+│ │ Reunião 2 | 01/01 | 🟡 | Processando│ │
+│ └─────────────────────────────────────┘ │
+└─────────────────────────────────────────┘
+Listagem (linhas 76-82):
+
+const { data: gravacoes = [], isLoading } = useQuery<Gravacao[]>({
+  queryKey: ["gravacoes"],
+  queryFn: async () => {
+    const response = await api.get("/api/gravacoes");
+    return response.data;
+  },
+});
+Badges de Status (linhas 131-163):
+
+const getStatusBadge = (status: string) => {
+  switch (status) {
+    case "recording":
+      return <Badge className="bg-red-100 text-red-700 animate-pulse">Gravando</Badge>;
+    case "completed":
+      return <Badge className="bg-green-100 text-green-700">Concluída</Badge>;
+    case "processing":
+      return <Badge className="bg-yellow-100 text-yellow-700">Processando</Badge>;
+    case "failed":
+      return <Badge className="bg-red-100 text-red-700">Falhou</Badge>;
+  }
+};
+Botão Assistir (linhas 272-279):
+
+{gravacao.status === "completed" && (
+  <Button onClick={() => handlePlayRecording(gravacao)}>
+    <Play className="h-4 w-4 mr-1" />
+    Assistir
+  </Button>
+)}
+Handler de Reprodução (linhas 104-129):
+
+const handlePlayRecording = async (gravacao: Gravacao) => {
+  setSelectedGravacao(gravacao);
+  setIsLoadingPlayback(true);
+  try {
+    // Buscar URL pré-assinada do 100ms
+    const response = await api.get(`/api/gravacoes/${gravacao.id}/url`);
+    setPlaybackUrl(response.data.url);
+  } catch (error) {
+    toast({ title: "Erro", description: "Não foi possível carregar a gravação." });
+    setSelectedGravacao(null);
+  } finally {
+    setIsLoadingPlayback(false);
+  }
+};
+Modal de Player (linhas 332-358):
+
+<Dialog open={!!selectedGravacao} onOpenChange={() => setSelectedGravacao(null)}>
+  <DialogContent className="max-w-4xl">
+    <DialogHeader>
+      <DialogTitle>{selectedGravacao?.reuniao?.titulo}</DialogTitle>
+    </DialogHeader>
+    <div className="aspect-video bg-black rounded-lg">
+      {isLoadingPlayback ? (
+        <Loader2 className="h-8 w-8 animate-spin" />
+      ) : playbackUrl ? (
+        <video src={playbackUrl} controls autoPlay className="w-full h-full" />
+      ) : (
+        <p>Não foi possível carregar o vídeo</p>
+      )}
+    </div>
+  </DialogContent>
+</Dialog>
+Arquitetura Backend
+Endpoints Principais
+Método	Rota	Descrição
+POST	/api/reunioes/instantanea	Cria reunião e sala 100ms
+POST	/api/100ms/recording/start	Inicia gravação via Beam
+POST	/api/100ms/recording/stop	Para gravação
+GET	/api/100ms/recording/:roomId	Lista gravações de uma sala
+POST	/api/webhooks/100ms	Recebe eventos do 100ms
+GET	/api/gravacoes	Lista todas as gravações
+GET	/api/gravacoes/:id/url	Gera URL pré-assinada
+Serviços
+server/services/hms100ms.ts
+:
+
+criarSala()
+: Cria sala no 100ms
+gerarTokenParticipante()
+: Gera JWT para acesso
+iniciarGravacao()
+: Inicia Beam recording
+pararGravacao()
+: Para gravação
+obterGravacao()
+: Busca dados da gravação
+obterUrlPresignadaAsset()
+: Gera URL temporária
+Checklist de Replicação
+1. Backend
+ Copiar 
+server/routes.ts
+ (todos os endpoints)
+ Copiar 
+server/services/hms100ms.ts
+ Copiar server/services/n8n.ts
+ Copiar 
+shared/schema.ts
+ (tabelas)
+ Configurar .env:
+HMS_APP_ACCESS_KEY=your_key
+HMS_APP_SECRET=your_secret
+HMS_TEMPLATE_ID=your_template_id
+DATABASE_URL=postgresql://...
+PUBLIC_URL=https://your-domain.com
+2. Frontend - Componentes
+ 
+client/src/pages/Dashboard.tsx
+ 
+client/src/components/InstantMeetingModal.tsx
+ 
+client/src/pages/Reuniao.tsx
+ 
+client/src/components/Meeting100ms.tsx
+ ⭐ (Interface de vídeo)
+ 
+client/src/pages/RecordingView.tsx
+ (View do bot)
+ 
+client/src/pages/Gravacoes.tsx
+ ⭐ (Página de gravações)
+3. Frontend - Hooks e Utils
+ 
+client/src/hooks/useReuniao.ts
+ client/src/lib/api.ts
+ client/src/types/reuniao.ts
+4. Dependências
+# Backend
+npm install drizzle-orm pg axios jsonwebtoken bcryptjs
+# Frontend
+npm install @100mslive/react-sdk @100mslive/hms-video-store
+npm install @tanstack/react-query wouter date-fns
+npm install sonner lucide-react
+5. Banco de Dados
+npm run db:push
+6. Configuração 100ms
+ Criar template com roles: host, guest, __internal_recorder
+ Configurar permissões de browserRecording para host
+ Configurar subscribeToRoles do __internal_recorder para ver host e guest
+ Obter credenciais (App Access Key e Secret)
+7. Teste Completo
+ Clicar "Reunião Instantânea" no dashboard
+ Ver modal com link
+ Clicar "Participar agora"
+ Ver interface de vídeo com controles
+ Clicar botão de gravação (⚫)
+ Ver indicador "GRAVANDO" no header
+ Clicar novamente para parar
+ Executar npx tsx script/sync-recordings.ts
+ Ir em "Gravações" no menu
+ Ver gravação com status "Concluída"
+ Clicar "Assistir"
+ Ver vídeo no player
+Fluxo Visual Completo
+┌─────────────────┐
+│   DASHBOARD     │  1. Usuário clica "Reunião Instantânea"
+│  [🟢 Reunião    │
+│   Instantânea]  │
+└────────┬────────┘
+         │
+         v
+┌─────────────────┐
+│  MODAL SUCESSO  │  2. Modal mostra link + botão "Participar agora"
+│  ✅ Criada!     │
+│  📋 Link        │
+│  [Participar]   │
+└────────┬────────┘
+         │
+         v
+┌─────────────────┐
+│  SALA REUNIÃO   │  3. Interface de vídeo carrega
+│ ┌─────┐ ┌─────┐ │
+│ │Você │ │Guest│ │
+│ └─────┘ └─────┘ │
+│ [🎤][📹][⚫]    │  4. Controles disponíveis
+└────────┬────────┘
+         │
+         v (clica ⚫)
+┌─────────────────┐
+│  🔴 GRAVANDO    │  5. Indicador vermelho aparece
+│ ┌─────┐ ┌─────┐ │
+│ │Você │ │Guest│ │
+│ └─────┘ └─────┘ │
+│ [🎤][📹][⚫]    │
+└────────┬────────┘
+         │
+         v (clica ⚫ novamente)
+┌─────────────────┐
+│  Processando... │  6. Gravação para e processa
+└────────┬────────┘
+         │
+         v (webhook ou sync)
+┌─────────────────┐
+│   GRAVAÇÕES     │  7. Página lista gravações
+│ ┌─────────────┐ │
+│ │Reunião 1 ✅ │ │
+│ │[Assistir]   │ │
+│ └─────────────┘ │
+└────────┬────────┘
+         │
+         v (clica Assistir)
+┌─────────────────┐
+│  PLAYER VÍDEO   │  8. Modal com player de vídeo
+│  ▶️ [=========] │
+└─────────────────┘
+Troubleshooting
+Tela Preta na Gravação
+Verificar filtro !p.isLocal no 
+RecordingView.tsx
+Verificar parâmetros auto_join, skip_preview na URL
+Gravação Presa em "Processando"
+Executar npx tsx script/sync-recordings.ts
+Vídeo Não Carrega na Página de Gravações
+Verificar se fileUrl está salvo no banco
+Verificar se URL pré-assinada está sendo gerada corretamente
+Controles Não Funcionam
+Verificar permissões da role no template 100ms
+Verificar logs do console (F12)

@@ -1,0 +1,193 @@
+🧪 [PWA] Modo desenvolvimento detectado - botão sempre visível para testes
+AuthContext.tsx:113 [AuthContext] Checking session...
+usePWAInstall.ts:125 ✅ [PWA] Service Worker registrado: https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/
+AuthContext.tsx:117 [AuthContext] Session check response: Object
+AuthContext.tsx:141 [AuthContext] Session tenantId: dev-daviemericko_gmail_com clientId: dev-daviemericko_gmail_com
+AuthContext.tsx:181 [AuthContext] Setting isLoading to false
+supabase.ts:101 ✅ Credenciais Supabase carregadas da API (runtime)
+AuthContext.tsx:266 🔄 Recarregando workspace do Supabase...
+notionStore.ts:899 🔄 Recarregando workspace do Supabase...
+workspaceStorage.ts:320 🔄 Usuário autenticado - carregando workspace do Supabase...
+NotificationContext.tsx:186 [Notifications] Não autenticado - limpando dados
+workspaceStorage.ts:332 📊 Dados do Supabase: Object
+workspaceStorage.ts:336 ✅ Parseando dados do Supabase com suporte a JSON escapado...
+workspaceStorage.ts:337 🔒 GARANTIA: Estes dados do Supabase NUNCA serão deletados automaticamente
+3workspaceStorage.ts:344 📄 Página "Nova Página": 1 blocos, 0 databases
+workspaceStorage.ts:456 ✅ Workspace carregado do Supabase: Object
+notionStore.ts:905 ✅ Dados carregados do Supabase: Object
+workspaceStorage.ts:499 💾 Workspace salvo localmente (cache)
+workspaceStorage.ts:503 📤 Sincronizando com Supabase (apenas insert/update)...
+workspaceStorage.ts:107 🔒 [SYNC] Iniciando sincronização com Supabase...
+workspaceStorage.ts:129 🔑 IDs extraídos do localStorage: Object
+workspaceStorage.ts:161 🔒 Preparando para salvar 3 páginas no Supabase...
+workspaceStorage.ts:184 📄 Dados das páginas: Array(3)
+workspaceStorage.ts:189 ✅ Páginas salvas no Supabase com sucesso!
+workspaceStorage.ts:195 🔒 Preparando para salvar 1 boards no Supabase...
+workspaceStorage.ts:213 📋 Dados dos boards: Array(1)
+workspaceStorage.ts:218 ✅ Boards salvos no Supabase com sucesso!
+workspaceStorage.ts:262 📤 Workspace sincronizado com Supabase (background): Object
+google_calendar:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+n8n:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+pluggy:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+settings:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+settings:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+credentials:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+credentials:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+settings:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+credentials:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+credentials:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+pluggy:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+n8n:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+chunk-NFC5BX5N.js?v=b376166c:521 Warning: Unknown event handler property `onCheckedChange`. It will be ignored.
+    at input
+    at div
+    at label
+    at _c (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/src/platforms/shared/premium/PremiumSwitch.tsx:24:63)
+    at div
+    at div
+    at div
+    at div
+    at https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/node_modules/.vite/deps/chunk-YJKVY2FQ.js?v=b376166c:230:13
+    at https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/node_modules/.vite/deps/chunk-GMZJDMCZ.js?v=b376166c:107:11
+    at Presence (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/node_modules/.vite/deps/chunk-QA5FWYHH.js?v=b376166c:24:11)
+    at https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/node_modules/.vite/deps/chunk-GMZJDMCZ.js?v=b376166c:100:13
+    at div
+    at _c (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/src/platforms/shared/premium/PremiumCard.tsx:24:61)
+    at div
+    at https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/node_modules/.vite/deps/chunk-YJKVY2FQ.js?v=b376166c:230:13
+    at Provider (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/node_modules/.vite/deps/chunk-YJKVY2FQ.js?v=b376166c:55:15)
+    at https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/node_modules/.vite/deps/chunk-GMZJDMCZ.js?v=b376166c:40:7
+    at CollapsibleSection (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/src/pages/SettingsPage.tsx:44:31)
+    at div
+    at main
+    at div
+    at SettingsPage (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/src/pages/SettingsPage.tsx:148:92)
+    at SettingsPageWrapper
+    at div
+    at main
+    at div
+    at DesktopLayout (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/src/platforms/desktop/layouts/DesktopLayout.tsx:27:30)
+    at ProtectedRoute (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/src/components/ProtectedRoute.tsx:25:34)
+    at RenderedRoute (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/node_modules/.vite/deps/react-router-dom.js?v=08a3d021:4108:5)
+    at Routes (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/node_modules/.vite/deps/react-router-dom.js?v=08a3d021:4578:5)
+    at DesktopApp
+    at PlatformRouter (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/src/platforms/PlatformRouter.tsx:67:22)
+    at NotificationProvider (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/src/contexts/NotificationContext.tsx:34:40)
+    at AuthProvider (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/src/contexts/AuthContext.tsx:49:32)
+    at AppRoutes (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/src/App.tsx:286:22)
+    at Router (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/node_modules/.vite/deps/react-router-dom.js?v=08a3d021:4521:15)
+    at BrowserRouter (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/node_modules/.vite/deps/react-router-dom.js?v=08a3d021:5267:5)
+    at Provider (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/node_modules/.vite/deps/chunk-YJKVY2FQ.js?v=b376166c:55:15)
+    at TooltipProvider (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=08a3d021:158:5)
+    at O (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/node_modules/.vite/deps/next-themes.js?v=08a3d021:23:25)
+    at z (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/node_modules/.vite/deps/next-themes.js?v=08a3d021:21:18)
+    at QueryClientProvider (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/node_modules/.vite/deps/@tanstack_react-query.js?v=08a3d021:3096:3)
+    at App
+printWarning @ chunk-NFC5BX5N.js?v=b376166c:521Understand this error
+chunk-NFC5BX5N.js?v=b376166c:521 Warning: You provided a `checked` prop to a form field without an `onChange` handler. This will render a read-only field. If the field should be mutable use `defaultChecked`. Otherwise, set either `onChange` or `readOnly`.
+    at input
+    at div
+    at label
+    at _c (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/src/platforms/shared/premium/PremiumSwitch.tsx:24:63)
+    at div
+    at div
+    at div
+    at div
+    at https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/node_modules/.vite/deps/chunk-YJKVY2FQ.js?v=b376166c:230:13
+    at https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/node_modules/.vite/deps/chunk-GMZJDMCZ.js?v=b376166c:107:11
+    at Presence (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/node_modules/.vite/deps/chunk-QA5FWYHH.js?v=b376166c:24:11)
+    at https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/node_modules/.vite/deps/chunk-GMZJDMCZ.js?v=b376166c:100:13
+    at div
+    at _c (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/src/platforms/shared/premium/PremiumCard.tsx:24:61)
+    at div
+    at https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/node_modules/.vite/deps/chunk-YJKVY2FQ.js?v=b376166c:230:13
+    at Provider (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/node_modules/.vite/deps/chunk-YJKVY2FQ.js?v=b376166c:55:15)
+    at https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/node_modules/.vite/deps/chunk-GMZJDMCZ.js?v=b376166c:40:7
+    at CollapsibleSection (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/src/pages/SettingsPage.tsx:44:31)
+    at div
+    at main
+    at div
+    at SettingsPage (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/src/pages/SettingsPage.tsx:148:92)
+    at SettingsPageWrapper
+    at div
+    at main
+    at div
+    at DesktopLayout (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/src/platforms/desktop/layouts/DesktopLayout.tsx:27:30)
+    at ProtectedRoute (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/src/components/ProtectedRoute.tsx:25:34)
+    at RenderedRoute (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/node_modules/.vite/deps/react-router-dom.js?v=08a3d021:4108:5)
+    at Routes (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/node_modules/.vite/deps/react-router-dom.js?v=08a3d021:4578:5)
+    at DesktopApp
+    at PlatformRouter (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/src/platforms/PlatformRouter.tsx:67:22)
+    at NotificationProvider (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/src/contexts/NotificationContext.tsx:34:40)
+    at AuthProvider (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/src/contexts/AuthContext.tsx:49:32)
+    at AppRoutes (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/src/App.tsx:286:22)
+    at Router (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/node_modules/.vite/deps/react-router-dom.js?v=08a3d021:4521:15)
+    at BrowserRouter (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/node_modules/.vite/deps/react-router-dom.js?v=08a3d021:5267:5)
+    at Provider (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/node_modules/.vite/deps/chunk-YJKVY2FQ.js?v=b376166c:55:15)
+    at TooltipProvider (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=08a3d021:158:5)
+    at O (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/node_modules/.vite/deps/next-themes.js?v=08a3d021:23:25)
+    at z (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/node_modules/.vite/deps/next-themes.js?v=08a3d021:21:18)
+    at QueryClientProvider (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/node_modules/.vite/deps/@tanstack_react-query.js?v=08a3d021:3096:3)
+    at App
+printWarning @ chunk-NFC5BX5N.js?v=b376166c:521Understand this error
+pluggy:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+n8n:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+chunk-NFC5BX5N.js?v=b376166c:521 Warning: You provided a `checked` prop to a form field without an `onChange` handler. This will render a read-only field. If the field should be mutable use `defaultChecked`. Otherwise, set either `onChange` or `readOnly`.
+    at input
+    at div
+    at label
+    at _c (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/src/platforms/shared/premium/PremiumSwitch.tsx:24:63)
+    at div
+    at div
+    at div
+    at div
+    at https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/node_modules/.vite/deps/chunk-YJKVY2FQ.js?v=b376166c:230:13
+    at https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/node_modules/.vite/deps/chunk-GMZJDMCZ.js?v=b376166c:107:11
+    at Presence (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/node_modules/.vite/deps/chunk-QA5FWYHH.js?v=b376166c:24:11)
+    at https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/node_modules/.vite/deps/chunk-GMZJDMCZ.js?v=b376166c:100:13
+    at div
+    at _c (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/src/platforms/shared/premium/PremiumCard.tsx:24:61)
+    at div
+    at https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/node_modules/.vite/deps/chunk-YJKVY2FQ.js?v=b376166c:230:13
+    at Provider (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/node_modules/.vite/deps/chunk-YJKVY2FQ.js?v=b376166c:55:15)
+    at https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/node_modules/.vite/deps/chunk-GMZJDMCZ.js?v=b376166c:40:7
+    at CollapsibleSection (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/src/pages/SettingsPage.tsx:44:31)
+    at div
+    at main
+    at div
+    at SettingsPage (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/src/pages/SettingsPage.tsx:148:92)
+    at SettingsPageWrapper
+    at div
+    at main
+    at div
+    at DesktopLayout (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/src/platforms/desktop/layouts/DesktopLayout.tsx:27:30)
+    at ProtectedRoute (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/src/components/ProtectedRoute.tsx:25:34)
+    at RenderedRoute (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/node_modules/.vite/deps/react-router-dom.js?v=08a3d021:4108:5)
+    at Routes (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/node_modules/.vite/deps/react-router-dom.js?v=08a3d021:4578:5)
+    at DesktopApp
+    at PlatformRouter (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/src/platforms/PlatformRouter.tsx:67:22)
+    at NotificationProvider (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/src/contexts/NotificationContext.tsx:34:40)
+    at AuthProvider (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/src/contexts/AuthContext.tsx:49:32)
+    at AppRoutes (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/src/App.tsx:286:22)
+    at Router (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/node_modules/.vite/deps/react-router-dom.js?v=08a3d021:4521:15)
+    at BrowserRouter (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/node_modules/.vite/deps/react-router-dom.js?v=08a3d021:5267:5)
+    at Provider (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/node_modules/.vite/deps/chunk-YJKVY2FQ.js?v=b376166c:55:15)
+    at TooltipProvider (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/node_modules/.vite/deps/@radix-ui_react-tooltip.js?v=08a3d021:158:5)
+    at O (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/node_modules/.vite/deps/next-themes.js?v=08a3d021:23:25)
+    at z (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/node_modules/.vite/deps/next-themes.js?v=08a3d021:21:18)
+    at QueryClientProvider (https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/node_modules/.vite/deps/@tanstack_react-query.js?v=08a3d021:3096:3)
+    at App
+printWarning @ chunk-NFC5BX5N.js?v=b376166c:521Understand this error
+usePWAInstall.ts:112 📱 [PWA] Device Info: Object
+usePWAInstall.ts:176 🧪 [PWA] Modo desenvolvimento detectado - botão sempre visível para testes
+usePWAInstall.ts:125 ✅ [PWA] Service Worker registrado: https://3c9bd31c-5dc2-4ad2-8c3c-6f587723eaa9-00-2tk36o2ovulvs.picard.replit.dev/
+google_calendar:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+n8n:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+pluggy:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+credentials:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+credentials:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+credentials:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+settings:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+settings:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+credentials:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+settings:1  Failed to load resource: the server responded with a status of 404 (Not Found)

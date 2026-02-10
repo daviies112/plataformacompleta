@@ -1,0 +1,47 @@
+create table public.cpf_compliance_results (
+  id uuid not null default gen_random_uuid (),
+  cpf character varying(14) not null,
+  nome text null,
+  status character varying(50) not null,
+  dados boolean null default false,
+  risco numeric(4, 2) null default 0,
+  processos integer null default 0,
+  aprovado boolean null default false,
+  data_consulta timestamp with time zone null default now(),
+  check_id uuid null,
+  created_at timestamp with time zone null default now(),
+  telefone character varying(20) null,
+  processado_whatsapp boolean null default false,
+  agendou_reuniao boolean null default false,
+  data_agendamento timestamp with time zone null,
+  follow_up_count integer null default 0,
+  ultimo_follow_up timestamp with time zone null,
+  follow_up_encerrado boolean null default false,
+  processado_whatsapp_n8n boolean null default false,
+  observacao text null,
+  constraint cpf_compliance_results_pkey primary key (id)
+) TABLESPACE pg_default;
+
+create index IF not exists idx_cpf_compliance_results_n8n on public.cpf_compliance_results using btree (processado_whatsapp_n8n) TABLESPACE pg_default;
+
+create index IF not exists idx_cpf_compliance_results_cpf on public.cpf_compliance_results using btree (cpf) TABLESPACE pg_default;
+
+create index IF not exists idx_cpf_compliance_results_status on public.cpf_compliance_results using btree (status) TABLESPACE pg_default;
+
+create index IF not exists idx_cpf_compliance_results_aprovado on public.cpf_compliance_results using btree (aprovado) TABLESPACE pg_default;
+
+create index IF not exists idx_cpf_compliance_results_data on public.cpf_compliance_results using btree (data_consulta desc) TABLESPACE pg_default;
+
+create index IF not exists idx_cpf_compliance_telefone on public.cpf_compliance_results using btree (telefone) TABLESPACE pg_default
+where
+  (telefone is not null);
+
+create index IF not exists idx_cpf_compliance_processado on public.cpf_compliance_results using btree (processado_whatsapp) TABLESPACE pg_default
+where
+  (processado_whatsapp = false);
+
+create index IF not exists idx_cpf_agendou on public.cpf_compliance_results using btree (agendou_reuniao) TABLESPACE pg_default;
+
+create index IF not exists idx_cpf_compliance_results_telefone on public.cpf_compliance_results using btree (telefone) TABLESPACE pg_default;
+
+create index IF not exists idx_cpf_compliance_results_processado on public.cpf_compliance_results using btree (processado_whatsapp) TABLESPACE pg_default;

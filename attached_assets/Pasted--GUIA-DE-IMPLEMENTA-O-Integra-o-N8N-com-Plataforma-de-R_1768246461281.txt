@@ -1,0 +1,627 @@
+🔧 GUIA DE IMPLEMENTAÇÃO: Integração N8N com Plataforma de Reuniões
+Destinatário: Equipe Replit
+Objetivo: Corrigir integração entre N8N e plataforma para que reuniões criadas pelo N8N tenham todas as funcionalidades customizadas
+Data: 12 de Janeiro de 2026
+
+📋 SUMÁRIO EXECUTIVO
+Problema Identificado
+Atualmente, o workflow N8N está criando reuniões diretamente na API do 100ms, gerando URLs nativas como:
+
+https://nexus-videoconf-1805.app.100ms.live/meeting/69626f1fced4c7d03312493e
+Consequências:
+
+❌ Reuniões não aparecem no banco de dados da plataforma
+❌ Sem lobby personalizado (branding, cores, logos)
+❌ Sem integração com sistema de assinatura de contratos
+❌ Sem gravação controlada pela plataforma
+❌ Sem sincronização com Supabase
+❌ Sem Room Design Config aplicado
+❌ Sem multi-tenancy (isolamento por cliente)
+Solução Proposta
+Criar endpoint dedicado na plataforma para o N8N criar reuniões, garantindo que todas as funcionalidades customizadas sejam aplicadas e gerando URLs da plataforma:
+
+https://sua-plataforma.replit.dev/reuniao/cf6fab48-29a2-4eb5-8694-9234f5ebf5df
+🏗️ ARQUITETURA DA SOLUÇÃO
+Fluxo Atual (Problemático)
+Chama Diretamente
+Retorna
+Sem Customização
+N8N Workflow
+100ms API
+URL Nativa 100ms
+Interface Genérica
+Fluxo Corrigido (Proposto)
+POST /api/n8n/reunioes
+Cria Sala
+Retorna Room ID
+Salva no DB
+Sincroniza
+Retorna
+Com Todas Funcionalidades
+N8N Workflow
+Plataforma Backend
+100ms API
+PostgreSQL
+Supabase
+URL Customizada
+Interface Personalizada
+💻 IMPLEMENTAÇÃO - CÓDIGO COMPLETO
+1. Criar Novo Endpoint para N8N
+Arquivo: server/routes/n8n.ts (NOVO ARQUIVO)
+
+import { Router, Request, Response } from 'express';
+import { db } from '../db';
+import { reunioes, hms100msConfig } from '../../shared/db-schema';
+import { eq } from 'drizzle-orm';
+import { decrypt } from '../lib/credentialsManager';
+import { criarSala, gerarTokenParticipante } from '../services/meetings/hms100ms';
+import { getClientSupabaseClient } from '../lib/multiTenantSupabase';
+import { z } from 'zod';
+export const n8nRouter = Router();
+// Schema de validação
+const createMeetingSchema = z.object({
+  tenantId: z.string().uuid('tenantId deve ser um UUID válido'),
+  titulo: z.string().min(1, 'Título é obrigatório'),
+  nome: z.string().optional(),
+  email: z.string().email().optional(),
+  telefone: z.string().optional(),
+  dataInicio: z.string().optional(), // ISO 8601
+  duracao: z.number().min(15).max(480).optional().default(60), // 15min a 8h
+  apiKey: z.string().min(32, 'API Key inválida')
+});
+// Middleware de autenticação por API Key
+async function authenticateN8N(req: Request, res: Response, next: Function) {
+  const apiKey = req.headers['x-n8n-api-key'] as string;
+  
+  if (!apiKey) {
+    return res.status(401).json({ 
+      error: 'API Key não fornecida',
+      message: 'Inclua o header X-N8N-API-Key na requisição'
+    });
+  }
+  
+  // Validar API Key (você deve armazenar isso em variável de ambiente)
+  const validApiKey = process.env.N8N_API_KEY;
+  
+  if (apiKey !== validApiKey) {
+    return res.status(401).json({ 
+      error: 'API Key inválida',
+      message: 'A API Key fornecida não é válida'
+    });
+  }
+  
+  next();
+}
+// Helper: Obter credenciais 100ms do tenant
+async function get100msCredentials(tenantId: string) {
+  try {
+    const [config] = await db.select().from(hms100msConfig)
+      .where(eq(hms100msConfig.tenantId, tenantId))
+      .limit(1);
+    if (!config) {
+      console.warn(`[N8N] Configuração 100ms não encontrada para tenant: ${tenantId}`);
+      return null;
+    }
+    if (!config.appAccessKey || !config.appSecret || config.appAccessKey === 'pending_configuration') {
+      console.warn(`[N8N] Credenciais 100ms pendentes para tenant: ${tenantId}`);
+      return null;
+    }
+    const appAccessKey = decrypt(config.appAccessKey);
+    const appSecret = decrypt(config.appSecret);
+    if (!appAccessKey || !appSecret) {
+      return null;
+    }
+    return {
+      appAccessKey,
+      appSecret,
+      templateId: config.templateId
+    };
+  } catch (error) {
+    console.error('[N8N] Erro ao obter credenciais 100ms:', error);
+    return null;
+  }
+}
+// Helper: Sincronizar com Supabase
+async function syncMeetingToSupabase(tenantId: string, meeting: any) {
+  try {
+    const supabase = await getClientSupabaseClient(tenantId);
+    if (!supabase) {
+      console.log(`[N8N Sync] Supabase não configurado para tenant ${tenantId}`);
+      return;
+    }
+    const supabaseData = {
+      id: meeting.id,
+      tenant_id: tenantId,
+      titulo: meeting.titulo,
+      nome: meeting.nome || '',
+      email: meeting.email || '',
+      telefone: meeting.telefone || '',
+      data_inicio: meeting.dataInicio instanceof Date ? meeting.dataInicio.toISOString() : meeting.dataInicio,
+      data_fim: meeting.dataFim instanceof Date ? meeting.dataFim.toISOString() : meeting.dataFim,
+      duracao: meeting.duracao,
+      status: meeting.status,
+      tipo: 'online',
+      room_id_100ms: meeting.roomId100ms,
+      link_reuniao: meeting.linkReuniao,
+      created_at: meeting.createdAt instanceof Date ? meeting.createdAt.toISOString() : new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+    const { error } = await supabase
+      .from('reunioes')
+      .upsert(supabaseData, { onConflict: 'id' });
+    if (error) {
+      console.error(`[N8N Sync] Erro ao sincronizar reunião ${meeting.id}:`, error);
+    } else {
+      console.log(`[N8N Sync] Reunião ${meeting.id} sincronizada com Supabase`);
+    }
+  } catch (err) {
+    console.error(`[N8N Sync] Erro inesperado:`, err);
+  }
+}
+/**
+ * POST /api/n8n/reunioes
+ * Cria uma nova reunião via N8N com todas as funcionalidades da plataforma
+ */
+n8nRouter.post('/reunioes', authenticateN8N, async (req: Request, res: Response) => {
+  try {
+    console.log('[N8N] Recebendo requisição para criar reunião:', req.body);
+    
+    // Validar dados de entrada
+    const validationResult = createMeetingSchema.safeParse(req.body);
+    
+    if (!validationResult.success) {
+      return res.status(400).json({
+        error: 'Dados inválidos',
+        details: validationResult.error.errors
+      });
+    }
+    
+    const { tenantId, titulo, nome, email, telefone, dataInicio, duracao } = validationResult.data;
+    
+    // 1. Obter credenciais 100ms do tenant
+    const credentials = await get100msCredentials(tenantId);
+    if (!credentials) {
+      return res.status(400).json({
+        error: 'Credenciais do 100ms não configuradas',
+        message: `O tenant ${tenantId} não possui credenciais 100ms configuradas. Configure em /configuracoes`
+      });
+    }
+    
+    // 2. Criar sala no 100ms
+    console.log(`[N8N] Criando sala no 100ms para tenant ${tenantId}...`);
+    const sala = await criarSala(
+      titulo,
+      credentials.templateId || '',
+      credentials.appAccessKey,
+      credentials.appSecret
+    );
+    
+    console.log(`[N8N] Sala criada no 100ms: ${sala.id}`);
+    
+    // 3. Calcular datas
+    const dataInicioDate = dataInicio ? new Date(dataInicio) : new Date();
+    const dataFimDate = new Date(dataInicioDate.getTime() + (duracao * 60 * 1000));
+    
+    // 4. Obter URL base da plataforma
+    const baseUrl = process.env.REPLIT_DOMAINS?.split(',')[0] || 'localhost:5000';
+    
+    // 5. Salvar reunião no banco de dados
+    const [newMeeting] = await db.insert(reunioes).values({
+      tenantId,
+      titulo,
+      nome: nome || 'Participante N8N',
+      email: email || '',
+      telefone: telefone || '',
+      dataInicio: dataInicioDate,
+      dataFim: dataFimDate,
+      duracao: duracao,
+      status: 'agendada',
+      tipo: 'online',
+      roomId100ms: sala.id,
+      linkReuniao: '', // Será atualizado após obter o ID
+    }).returning();
+    
+    // 6. Atualizar com URL customizada usando o UUID gerado
+    const linkReuniao = `https://${baseUrl}/reuniao/${newMeeting.id}`;
+    await db.update(reunioes)
+      .set({ linkReuniao })
+      .where(eq(reunioes.id, newMeeting.id));
+    
+    newMeeting.linkReuniao = linkReuniao;
+    
+    console.log(`[N8N] Reunião salva no banco: ${newMeeting.id}`);
+    
+    // 7. Sincronizar com Supabase (async, não-bloqueante)
+    syncMeetingToSupabase(tenantId, newMeeting).catch(console.error);
+    
+    // 8. Gerar token de acesso para o host (opcional, para uso futuro)
+    const hostToken = gerarTokenParticipante(
+      sala.id,
+      nome || 'Host',
+      'host',
+      credentials.appAccessKey,
+      credentials.appSecret
+    );
+    
+    // 9. Retornar resposta completa
+    res.status(201).json({
+      success: true,
+      message: 'Reunião criada com sucesso',
+      data: {
+        meetingId: newMeeting.id,
+        roomId100ms: sala.id,
+        titulo: newMeeting.titulo,
+        linkReuniao: linkReuniao,
+        dataInicio: newMeeting.dataInicio,
+        dataFim: newMeeting.dataFim,
+        duracao: newMeeting.duracao,
+        status: newMeeting.status,
+        hostToken: hostToken, // Token para o host entrar diretamente
+        createdAt: newMeeting.createdAt
+      }
+    });
+    
+    console.log(`[N8N] Reunião criada com sucesso: ${linkReuniao}`);
+    
+  } catch (error: any) {
+    console.error('[N8N] Erro ao criar reunião:', error);
+    res.status(500).json({
+      error: 'Erro ao criar reunião',
+      message: error.message,
+      details: error.response?.data || null
+    });
+  }
+});
+/**
+ * GET /api/n8n/reunioes/:id
+ * Obtém detalhes de uma reunião criada
+ */
+n8nRouter.get('/reunioes/:id', authenticateN8N, async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    
+    const [meeting] = await db.select().from(reunioes)
+      .where(eq(reunioes.id, id))
+      .limit(1);
+    
+    if (!meeting) {
+      return res.status(404).json({
+        error: 'Reunião não encontrada',
+        message: `Nenhuma reunião encontrada com ID ${id}`
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: meeting
+    });
+    
+  } catch (error: any) {
+    console.error('[N8N] Erro ao buscar reunião:', error);
+    res.status(500).json({
+      error: 'Erro ao buscar reunião',
+      message: error.message
+    });
+  }
+});
+/**
+ * GET /api/n8n/health
+ * Verifica se o endpoint está funcionando
+ */
+n8nRouter.get('/health', (req: Request, res: Response) => {
+  res.json({
+    status: 'ok',
+    message: 'N8N API endpoint está funcionando',
+    timestamp: new Date().toISOString()
+  });
+});
+2. Registrar Rota no Servidor Principal
+Arquivo: server/index.ts (MODIFICAR)
+
+// ... imports existentes ...
+import { n8nRouter } from './routes/n8n';
+// ... código existente ...
+// Registrar rotas N8N (ADICIONAR ESTA LINHA)
+app.use('/api/n8n', n8nRouter);
+// ... resto do código ...
+3. Adicionar Variável de Ambiente
+Arquivo: .env (ADICIONAR)
+
+# API Key para autenticação do N8N
+N8N_API_KEY=sua_chave_secreta_aqui_minimo_32_caracteres_alfanumericos
+IMPORTANT
+
+Gere uma API Key segura usando:
+
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+🔧 CONFIGURAÇÃO DO N8N
+Passo 1: Modificar Workflow N8N
+No workflow "100ms - Sistema Completo de Reuniões", substitua a chamada direta ao 100ms por uma chamada à plataforma:
+
+ANTES (Chamada Direta ao 100ms):
+{
+  "node": "HTTP Request",
+  "parameters": {
+    "url": "https://api.100ms.live/v2/rooms",
+    "method": "POST",
+    "headers": {
+      "Authorization": "Bearer {{$node[\"Generate Token\"].json[\"token\"]}}"
+    },
+    "body": {
+      "name": "{{$json.titulo}}",
+      "template_id": "{{$credentials.hms_template_id}}"
+    }
+  }
+}
+DEPOIS (Chamada à Plataforma):
+{
+  "node": "HTTP Request - Criar Reunião na Plataforma",
+  "parameters": {
+    "url": "https://sua-plataforma.replit.dev/api/n8n/reunioes",
+    "method": "POST",
+    "headers": {
+      "Content-Type": "application/json",
+      "X-N8N-API-Key": "{{$credentials.n8n_api_key}}"
+    },
+    "body": {
+      "tenantId": "{{$json.tenant_id}}",
+      "titulo": "{{$json.titulo}}",
+      "nome": "{{$json.nome_cliente}}",
+      "email": "{{$json.email_cliente}}",
+      "telefone": "{{$json.telefone}}",
+      "duracao": 60
+    }
+  }
+}
+Passo 2: Adicionar Credencial no N8N
+Vá em Credentials no N8N
+Crie nova credencial tipo "Header Auth"
+Nome: N8N Platform API Key
+Header Name: X-N8N-API-Key
+Header Value: [sua_chave_gerada_no_passo_3]
+Passo 3: Atualizar Nós do Workflow
+Substitua os seguintes nós:
+
+Nó Atual	Novo Nó	Ação
+Generate Management Token	❌ Remover	Não é mais necessário
+Create Room 100ms	Criar Reunião na Plataforma	Chamar /api/n8n/reunioes
+Get Room URL	❌ Remover	URL já vem na resposta
+Passo 4: Mapear Resposta
+A resposta da plataforma será:
+
+{
+  "success": true,
+  "message": "Reunião criada com sucesso",
+  "data": {
+    "meetingId": "cf6fab48-29a2-4eb5-8694-9234f5ebf5df",
+    "roomId100ms": "69626f1fced4c7d03312493e",
+    "titulo": "Reunião de Vendas",
+    "linkReuniao": "https://sua-plataforma.replit.dev/reuniao/cf6fab48-29a2-4eb5-8694-9234f5ebf5df",
+    "dataInicio": "2026-01-12T14:00:00.000Z",
+    "dataFim": "2026-01-12T15:00:00.000Z",
+    "duracao": 60,
+    "status": "agendada",
+    "hostToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "createdAt": "2026-01-12T14:00:00.000Z"
+  }
+}
+Use {{$json.data.linkReuniao}} para enviar o link ao cliente.
+
+📝 EXEMPLO DE USO NO N8N
+Workflow Completo Atualizado
+┌─────────────────┐
+│  Webhook/Trigger│
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────────────────────┐
+│ HTTP Request                     │
+│ POST /api/n8n/reunioes          │
+│                                  │
+│ Body:                            │
+│ {                                │
+│   "tenantId": "uuid-do-tenant",  │
+│   "titulo": "Reunião Vendas",    │
+│   "nome": "João Silva",          │
+│   "email": "joao@email.com",     │
+│   "telefone": "+5511999999999",  │
+│   "duracao": 60                  │
+│ }                                │
+└────────┬────────────────────────┘
+         │
+         ▼
+┌─────────────────────────────────┐
+│ Set Variable                     │
+│ linkReuniao = {{$json.data.     │
+│               linkReuniao}}      │
+└────────┬────────────────────────┘
+         │
+         ▼
+┌─────────────────────────────────┐
+│ Send WhatsApp Message            │
+│ "Sua reunião foi agendada:       │
+│  {{$node.linkReuniao}}"          │
+└─────────────────────────────────┘
+✅ PLANO DE TESTES
+Teste 1: Criar Reunião via N8N
+Request:
+
+curl -X POST https://sua-plataforma.replit.dev/api/n8n/reunioes \
+  -H "Content-Type: application/json" \
+  -H "X-N8N-API-Key: sua_api_key_aqui" \
+  -d '{
+    "tenantId": "f5d8c8d9-7c9e-4b8a-9c7d-4e3b8a9c7d4e",
+    "titulo": "Teste N8N",
+    "nome": "Cliente Teste",
+    "email": "teste@email.com",
+    "duracao": 60
+  }'
+Resposta Esperada:
+
+{
+  "success": true,
+  "message": "Reunião criada com sucesso",
+  "data": {
+    "meetingId": "...",
+    "linkReuniao": "https://sua-plataforma.replit.dev/reuniao/..."
+  }
+}
+Teste 2: Verificar no Banco de Dados
+SELECT id, titulo, link_reuniao, room_id_100ms, status
+FROM reunioes
+WHERE titulo = 'Teste N8N';
+Resultado Esperado:
+
+✅ Registro existe no banco
+✅ link_reuniao aponta para a plataforma
+✅ room_id_100ms está preenchido
+Teste 3: Acessar URL da Reunião
+Copie o linkReuniao da resposta
+Abra em um navegador
+Verifique:
+✅ Lobby personalizado aparece
+✅ Cores e branding aplicados
+✅ Botão "Assinar Contrato" visível
+✅ Pode entrar na reunião
+Teste 4: Verificar Sincronização Supabase
+-- No Supabase do cliente
+SELECT id, titulo, link_reuniao
+FROM reunioes
+WHERE titulo = 'Teste N8N';
+Resultado Esperado:
+
+✅ Registro sincronizado no Supabase
+🔒 SEGURANÇA
+Recomendações
+API Key Forte
+
+Mínimo 32 caracteres
+Alfanumérico + símbolos
+Armazenar em variável de ambiente
+Rate Limiting
+
+import rateLimit from 'express-rate-limit';
+const n8nLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minuto
+  max: 10, // 10 requisições por minuto
+  message: 'Muitas requisições, tente novamente em 1 minuto'
+});
+app.use('/api/n8n', n8nLimiter);
+Logs de Auditoria
+
+Registrar todas as chamadas do N8N
+Incluir timestamp, tenant, e resultado
+Validação de Tenant
+
+Verificar se tenantId existe
+Verificar se tenant tem credenciais 100ms configuradas
+📊 MONITORAMENTO
+Métricas a Acompanhar
+Taxa de Sucesso
+
+Reuniões criadas com sucesso vs erros
+Meta: > 99%
+Tempo de Resposta
+
+Tempo médio para criar reunião
+Meta: < 2 segundos
+Sincronização Supabase
+
+Taxa de sincronização bem-sucedida
+Meta: 100%
+Logs Importantes
+console.log('[N8N] Reunião criada:', {
+  meetingId: newMeeting.id,
+  tenantId: tenantId,
+  titulo: titulo,
+  timestamp: new Date().toISOString()
+});
+🐛 TROUBLESHOOTING
+Erro: "Credenciais do 100ms não configuradas"
+Causa: Tenant não tem credenciais 100ms no banco
+
+Solução:
+
+Acesse /configuracoes na plataforma
+Vá para aba "100ms"
+Configure App Access Key e App Secret
+Clique em "Salvar e Testar"
+Erro: "API Key inválida"
+Causa: API Key no N8N não corresponde à configurada no .env
+
+Solução:
+
+Verifique N8N_API_KEY no .env
+Atualize credencial no N8N
+Teste novamente
+Erro: "Erro ao criar sala no 100ms"
+Causa: Credenciais 100ms inválidas ou template ID incorreto
+
+Solução:
+
+Teste credenciais em /configuracoes
+Verifique Template ID no dashboard do 100ms
+Atualize se necessário
+📚 DOCUMENTAÇÃO ADICIONAL
+Endpoints Criados
+Endpoint	Método	Descrição
+/api/n8n/reunioes	POST	Criar nova reunião
+/api/n8n/reunioes/:id	GET	Obter detalhes da reunião
+/api/n8n/health	GET	Health check
+Estrutura de Resposta Padrão
+{
+  success: boolean;
+  message?: string;
+  data?: any;
+  error?: string;
+  details?: any;
+}
+✅ CHECKLIST DE IMPLEMENTAÇÃO
+Backend (Replit)
+ Criar arquivo server/routes/n8n.ts
+ Adicionar código do endpoint completo
+ Registrar rota em server/index.ts
+ Adicionar N8N_API_KEY no .env
+ Gerar API Key segura
+ Testar endpoint com curl/Postman
+ Verificar logs no console
+ Confirmar salvamento no banco de dados
+ Confirmar sincronização com Supabase
+N8N
+ Adicionar credencial "N8N Platform API Key"
+ Atualizar workflow para chamar /api/n8n/reunioes
+ Remover nós desnecessários (Generate Token, etc)
+ Mapear resposta corretamente
+ Testar workflow completo
+ Verificar envio de mensagem com link correto
+Validação Final
+ Criar reunião via N8N
+ Verificar registro no banco de dados
+ Acessar URL da reunião
+ Confirmar lobby personalizado
+ Confirmar Room Design Config aplicado
+ Testar entrada na reunião
+ Verificar gravação (se aplicável)
+ Confirmar sincronização Supabase
+🎯 RESULTADO ESPERADO
+Após a implementação, reuniões criadas pelo N8N terão:
+
+✅ URL da Plataforma: https://sua-plataforma.replit.dev/reuniao/:id
+✅ Lobby Personalizado: Com logo, cores e branding do cliente
+✅ Room Design Config: Totalmente customizado
+✅ Integração com Contratos: Botão de assinatura disponível
+✅ Gravação Controlada: Via API da plataforma
+✅ Banco de Dados: Registro completo salvo
+✅ Supabase: Sincronização automática
+✅ Multi-tenancy: Isolamento por cliente
+
+📞 SUPORTE
+Se encontrar problemas durante a implementação:
+
+Verifique logs do servidor: console.log em server/routes/n8n.ts
+Teste endpoint isoladamente com curl/Postman
+Verifique credenciais 100ms em /configuracoes
+Confirme API Key no .env e N8N
+Documento preparado por: Antigravity AI
+Versão: 1.0
+Data: 12 de Janeiro de 2026

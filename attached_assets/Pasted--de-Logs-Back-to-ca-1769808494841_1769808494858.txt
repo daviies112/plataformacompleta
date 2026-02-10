@@ -1,0 +1,160 @@
+
+de
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Logs
+Back to canvas
+
+
+Input
+
+Processar Resposta da Plataforma1
+1 item
+reuniao_id
+65a6e4a4-b32b-484b-ba05-72c321832147
+room_id
+697d21ffced4c7d0331c0fac
+meeting_url
+https://160ad8a0-cf7e-47e3-a046-f70f7ea948a8-00-xu3bcrpa0y1u.spock.replit.dev/reuniao-publica/65a6e4a4-b32b-484b-ba05-72c321832147?fsid=578ba62b-345d-40c4-ace4-59e6f03983bb
+nome_cliente
+Davi Emerick
+email_cliente
+daviemericko03@gmail.com
+Remotejid
+553192267220@s.whatsapp.net
+data_inicio
+2026-01-31T12:00:00.000Z
+tenant_id
+dev-daviemericko_gmail_com
+form_submission_id
+578ba62b-345d-40c4-ace4-59e6f03983bb
+
+Criar Reunião via Plataforma2
+1 item
+success
+true
+message
+Reunião criada com sucesso
+data
+meetingId
+65a6e4a4-b32b-484b-ba05-72c321832147
+roomId100ms
+697d21ffced4c7d0331c0fac
+titulo
+Reunião Automática
+linkReuniao
+https://160ad8a0-cf7e-47e3-a046-f70f7ea948a8-00-xu3bcrpa0y1u.spock.replit.dev/reuniao/65a6e4a4-b32b-484b-ba05-72c321832147?fsid=578ba62b-345d-40c4-ace4-59e6f03983bb
+linkPublico
+https://160ad8a0-cf7e-47e3-a046-f70f7ea948a8-00-xu3bcrpa0y1u.spock.replit.dev/reuniao-publica/65a6e4a4-b32b-484b-ba05-72c321832147?fsid=578ba62b-345d-40c4-ace4-59e6f03983bb
+dataInicio
+2026-01-31T12:00:00.000Z
+dataFim
+2026-01-31T13:00:00.000Z
+duracao
+60
+status
+agendada
+hostToken
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3Nfa2V5IjoiNjkzODhlZWJiZDBkYWI1ZjlhMDE0YmRlIiwicm9vbV9pZCI6IjY5N2QyMWZmY2VkNGM3ZDAzMzFjMGZhYyIsInVzZXJfaWQiOiJEYXZpIEVtZXJpY2siLCJyb2xlIjoiaG9zdCIsInR5cGUiOiJhcHAiLCJ2ZXJzaW9uIjoyLCJpYXQiOjE3Njk4MDgzODMsIm5iZiI6MTc2OTgwODM4MywiZXhwIjoxNzY5ODk0NzgzLCJqdGkiOiJlYWJiOGIwNy02YzZlLTRkZmEtOTcxMi05Nzc5MDRiOTUxYmIifQ.oISjTx_TaCiaeCmdIBSnuuPZnsZ5EbqVb7w91BeZBdw
+tenantId
+dev-daviemericko_gmail_com
+hasCustomDesign
+true
+createdAt
+2026-01-30T21:26:23.898Z
+participantId
+pid_z-dgg3W-MS
+formSubmissionId
+578ba62b-345d-40c4-ace4-59e6f03983bb
+Switch - Qual Operação?1
+1 item
+query
+start
+2026-01-31T09:00:00-03:00
+
+Output
+1 item
+response
+Agendamento concluído para Davi Emerick\n\n📅 Data: 31 de janeiro às 09:00\n\n🔗 Link da reunião: https://160ad8a0-cf7e-47e3-a046-f70f7ea948a8-00-xu3bcrpa0y1u.spock.replit.dev/reuniao-publica/65a6e4a4-b32b-484b-ba05-72c321832147?fsid=578ba62b-345d-40c4-ace4-59e6f03983bb\n\nO link foi enviado para o email daviemericko03@gmail.com
+room_id
+697d21ffced4c7d0331c0fac
+
+Parameters
+Settings
+Docs 
+Mode
+Manual Mapping
+Fields to Set
+response
+String
+=
+Agendamento concluído para {{ $json.nome_cliente }}
+
+📅 Data: {{(() => { 
+    const dataUTC = new Date($json.data_inicio);
+    const data = new Date(dataUTC.toLocaleString("en-US", {timeZone: "America/Sao_Paulo"}));
+    const dia = String(data.getDate()).padStart(2, '0');
+    const meses = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+    const mes = meses[data.getMonth()];
+    const hora = String(data.getHours()).padStart(2, '0');
+    const minuto = String(data.getMinutes()).padStart(2, '0');
+    return `${dia} de ${mes} às ${hora}:${minuto}`;
+})()}}
+
+🔗 Link da reunião: {{ $json.meeting_url }}
+
+O link foi enviado para o email {{ $json.email_cliente }}
+ 
+Agendamento concluído para Davi Emerick 📅 Data: 31 de janeiro às 09:00 🔗 Link da reunião: https://160ad8a0-cf7e-47e3-a046-f70f7ea948a8-00-xu3bcrpa0y1u.spock.replit.dev/reuniao-publica/65a6e4a4-b32b-484b-ba05-72c321832147?fsid=578ba62b-345d-40c4-ace4-59e6f03983bb O link foi enviado para o email daviemericko03@gmail.com
+room_id
+String
+=
+{{ $json.room_id }}
+ 
+697d21ffced4c7d0331c0fac
+Drag input fields here
+or
+Add Field
+Include Other Input Fields
+
+Options
+No properties
+Add option
+ I wish this node would...

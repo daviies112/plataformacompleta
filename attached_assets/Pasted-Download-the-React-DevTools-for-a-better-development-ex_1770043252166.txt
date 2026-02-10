@@ -1,0 +1,107 @@
+Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+a299e39e-a2a0-48ad-8b78-269644fe2ff0:1 Error while trying to use the following icon from the Manifest: https://99412c63-4fd3-4565-af35-a17c802db02e-00-e7dtsg90prcp.janeway.replit.dev/icons/icon-192x192.png (Download error or resource isn't a valid image)Understand this warning
+Meeting100ms.tsx:828 [Meeting100ms] Mostrando tela de conexão. isJoining: true isConnected: false
+Meeting100ms.tsx:175 [Meeting100ms] 🔧 Ativando logs de debug do SDK 100ms...
+Meeting100ms.tsx:180 [Meeting100ms] ✅ Log level setado para debug
+Meeting100ms.tsx:189 [Meeting100ms] 📊 Room state atualizado: Object
+Meeting100ms.tsx:272 [Meeting100ms] 🔍 Verificando formSubmission - meetingId: a299e39e-a2a0-48ad-8b78-269644fe2ff0 fsid: null fullUrl: https://99412c63-4fd3-4565-af35-a17c802db02e-00-e7dtsg90prcp.janeway.replit.dev/reuniao-publica/a299e39e-a2a0-48ad-8b78-269644fe2ff0
+Meeting100ms.tsx:441 [Meeting100ms] 🎬 Iniciando processo de join...
+Meeting100ms.tsx:377 [Meeting100ms] 🚀 Tentativa 1 de entrar na sala...
+Meeting100ms.tsx:378 [Meeting100ms] Token válido: eyJhbGciOiJIUzI1NiIsInR5cCI6Ik...
+Meeting100ms.tsx:379 [Meeting100ms] userName: Davi Emerick
+Meeting100ms.tsx:380 [Meeting100ms] roomId: 6980b0ceced4c7d0331d0abf
+Meeting100ms.tsx:400 [Meeting100ms] Chamando hmsActions.join()...
+Meeting100ms.tsx:454 [Meeting100ms] 🔍 Estado de conexão atualizado: Object
+Meeting100ms.tsx:752 [Meeting100ms] 🔄 Estado atual: Object
+Meeting100ms.tsx:828 [Meeting100ms] Mostrando tela de conexão. isJoining: true isConnected: false
+Meeting100ms.tsx:189 [Meeting100ms] 📊 Room state atualizado: Object
+Meeting100ms.tsx:752 [Meeting100ms] 🔄 Estado atual: Object
+Meeting100ms.tsx:275 [Meeting100ms] 📡 Resposta API: 200 true
+Meeting100ms.tsx:279 [Meeting100ms] 📦 Dados recebidos: {
+  "id": "a299e39e-a2a0-48ad-8b78-269644fe2ff0",
+  "metadata": {
+    "source": "n8n",
+    "createdVia": "n8n-api",
+    "roomDesignConfig": {
+      "lobby": {
+        "title": "Pronto para participar?",
+        "subtitle": "",
+        "buttonText": "Participar agora",
+        "backgroundImage": null,
+        "showCameraPreview": true,
+        "showDeviceSelectors": true
+      },
+      "colors": {
+        "avatarText": "#ffffff",
+        "background": "#0f172a",
+        "controlsText": "#ffffff",
+        "dangerButton": "#ef4444",
+        "primaryButton": "#3b82f6",
+        "avatarBackground": "#3b82f6",
+        "controlsBackground": "#18181b",
+        "participantNameText": "#ffffff",
+        "participantNameBackground": "rgba(0, 0, 0, 0.6)"
+      },
+      "meeting": {
+        "enableChat": true,
+        "enableRaiseHand": true,
+        "enableReactions": true,
+        "showMeetingCode": true,
+        "enableScreenShare": true,
+        "showParticipantCount": true,
+        "showRecordingIndicator": true
+      },
+      "branding": {
+        "logo": null,
+        "logoSize": 40,
+        "companyName": "",
+        "logoPosition": "left",
+        "showLogoInEnd": true,
+        "showCompanyName": true,
+        "showLogoInLobby": true,
+        "showLogoInMeeting": true
+      },
+      "endScreen": {
+        "title": "Reunião Encerrada",
+        "message": "Obrigado por participar!",
+        "redirectUrl": null,
+        "showFeedback": false
+      }
+    },
+    "formSubmissionId": null
+  }
+}
+Meeting100ms.tsx:282 [Meeting100ms] ✅ hasFormSubmission: false formSubmissionId: null
+Meeting100ms.tsx:828 [Meeting100ms] Mostrando tela de conexão. isJoining: true isConnected: false
+/api/100ms/recording/6980b0ceced4c7d0331d0abf:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+Meeting100ms.tsx:828 [Meeting100ms] Mostrando tela de conexão. isJoining: true isConnected: false
+Meeting100ms.tsx:189 [Meeting100ms] 📊 Room state atualizado: Object
+Meeting100ms.tsx:752 [Meeting100ms] 🔄 Estado atual: Object
+Meeting100ms.tsx:828 [Meeting100ms] Mostrando tela de conexão. isJoining: true isConnected: true
+Meeting100ms.tsx:189 [Meeting100ms] 📊 Room state atualizado: Object
+Meeting100ms.tsx:454 [Meeting100ms] 🔍 Estado de conexão atualizado: Object
+Meeting100ms.tsx:457 [Meeting100ms] ✅ CONEXÃO CONFIRMADA! Removendo spinner de loading...
+Meeting100ms.tsx:476 [Meeting100ms] 📋 Registrando presença automática na sala: 6980b0ceced4c7d0331d0abf
+Meeting100ms.tsx:752 [Meeting100ms] 🔄 Estado atual: Object
+Meeting100ms.tsx:454 [Meeting100ms] 🔍 Estado de conexão atualizado: Object
+Meeting100ms.tsx:467 [Meeting100ms] 👥 Conexão estável com 1 participante(s)
+Meeting100ms.tsx:752 [Meeting100ms] 🔄 Estado atual: Object
+Meeting100ms.tsx:189 [Meeting100ms] 📊 Room state atualizado: Object
+Meeting100ms.tsx:752 [Meeting100ms] 🔄 Estado atual: Object
+/api/public/reunioes/registrar-presenca:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+Meeting100ms.tsx:501 [Meeting100ms] ⚠️ Falha ao registrar presença: Endpoint não encontrado
+(anonymous) @ Meeting100ms.tsx:501Understand this warning
+Meeting100ms.tsx:189 [Meeting100ms] 📊 Room state atualizado: Object
+Meeting100ms.tsx:300 [Meeting100ms] 🔔 Notificação recebida: TRACK_ADDED Object
+Meeting100ms.tsx:454 [Meeting100ms] 🔍 Estado de conexão atualizado: Object
+Meeting100ms.tsx:467 [Meeting100ms] 👥 Conexão estável com 1 participante(s)
+Meeting100ms.tsx:752 [Meeting100ms] 🔄 Estado atual: Object
+Meeting100ms.tsx:413 [Meeting100ms] ✅ join() resolveu com sucesso!
+Meeting100ms.tsx:189 [Meeting100ms] 📊 Room state atualizado: Object
+Meeting100ms.tsx:300 [Meeting100ms] 🔔 Notificação recebida: TRACK_ADDED Object
+Meeting100ms.tsx:454 [Meeting100ms] 🔍 Estado de conexão atualizado: Object
+Meeting100ms.tsx:467 [Meeting100ms] 👥 Conexão estável com 1 participante(s)
+Meeting100ms.tsx:752 [Meeting100ms] 🔄 Estado atual: Object
+Meeting100ms.tsx:417 [Meeting100ms] 📊 Estado 2s após join - verificando conexão...
+Meeting100ms.tsx:189 [Meeting100ms] 📊 Room state atualizado: {roomId: '6980b0ceced4c7d0331d0abf', roomName: 'instantanea-1770041549935', roomState: 'Connected', sessionId: '6980b765da13001fc35fed8a', isConnected: true, …}
+Meeting100ms.tsx:752 [Meeting100ms] 🔄 Estado atual: {isJoining: false, isConnected: true, hasError: false, errorMessage: null, peersCount: 1, …}

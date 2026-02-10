@@ -1,0 +1,912 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "cond-disponivel",
+              "leftValue": "={{ $json.disponivel }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "87b6b3f0-c0b3-4d45-863f-5b0befaebd26",
+      "name": "IF - Horário Disponível?1",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2256,
+        3168
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.100ms.live/v2/rooms",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE3NjgwNTUxMDYsImV4cCI6MTc2ODY1OTkwNiwianRpIjoiYmQ5MTE1MzYtZGEwMS00MWZhLWJiMjUtMTRjMmM3YjFkZWVmIiwidHlwZSI6Im1hbmFnZW1lbnQiLCJ2ZXJzaW9uIjoyLCJuYmYiOjE3NjgwNTUxMDYsImFjY2Vzc19rZXkiOiI2OTM4OGVlYmJkMGRhYjVmOWEwMTRiZGUifQ.7NZqvk3nPv4IjQLVsIrBsTT6HsmBtvV6BrPhbdUuHVo"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"name\": \"{{ $json.query.nome }}\",\n  \"template_id\": \"69388f23033903926e62efcd\"\n}",
+        "options": {}
+      },
+      "id": "31e91e77-729b-400c-9771-163786d164be",
+      "name": "Criar Sala 100ms1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        2464,
+        3072
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "s1SBGMDAnWugtz0V",
+          "name": "Header Auth account"
+        }
+      },
+      "notes": "⚠️ IMPORTANTE: Substitua SEU_TOKEN_100MS pelo token real do 100ms"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "response",
+              "name": "response",
+              "value": "==Agendamento concluído para {{ $json.nome_cliente }}\n\n📅 Data: {{(() => { \n    const data = new Date($json.data_inicio);\n    const dia = String(data.getDate()).padStart(2, '0');\n    const meses = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];\n    const mes = meses[data.getMonth()];\n    const hora = String(data.getHours()).padStart(2, '0');\n    const minuto = String(data.getMinutes()).padStart(2, '0');\n    return `${dia} de ${mes} às ${hora}:${minuto}`;\n})()}}\n\n🔗 Link da reunião: {{ $json.meeting_url }}\n\nO link foi enviado para o email {{ $json.email_cliente }}",
+              "type": "string"
+            },
+            {
+              "id": "room_id",
+              "name": "room_id",
+              "value": "={{ $json.room_id }}",
+              "type": "string"
+            },
+            {
+              "id": "room_url",
+              "name": "room_url",
+              "value": "={{ $json.join_url }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "22b674e9-ba06-416b-8f3c-5338a66f9dbf",
+      "name": "Preparar Resposta Agendamento1",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2864,
+        3072
+      ]
+    },
+    {
+      "parameters": {
+        "tableId": "reunioes",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "room_id_100ms",
+              "fieldValue": "={{ $json.room_id }}"
+            },
+            {
+              "fieldId": "data_inicio",
+              "fieldValue": "={{ $('Gerar Link de Acesso 100ms').item.json.data_inicio }}"
+            },
+            {
+              "fieldId": "data_fim",
+              "fieldValue": "={{ $('Gerar Link de Acesso 100ms').item.json.data_fim }}"
+            },
+            {
+              "fieldId": "nome",
+              "fieldValue": "={{ $('Gerar Link de Acesso 100ms').item.json.nome_cliente }}"
+            },
+            {
+              "fieldId": "email",
+              "fieldValue": "={{ $('Gerar Link de Acesso 100ms').item.json.email_cliente }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "=agendada"
+            },
+            {
+              "fieldId": "room_code_100ms",
+              "fieldValue": "={{ $('Gerar Link de Acesso 100ms').item.json.room_id }}"
+            },
+            {
+              "fieldId": "link_reuniao",
+              "fieldValue": "={{ $('Gerar Link de Acesso 100ms').item.json.join_url }}"
+            },
+            {
+              "fieldId": "telefone",
+              "fieldValue": "={{ $('Gerar Link de Acesso 100ms').item.json.Remotejid }}"
+            },
+            {
+              "fieldId": "tipo_reuniao",
+              "fieldValue": "videoconferencia"
+            },
+            {
+              "fieldId": "nome",
+              "fieldValue": "={{ $('Gerar Link de Acesso 100ms').item.json.nome_cliente }}"
+            },
+            {
+              "fieldId": "compareceu",
+              "fieldValue": "false"
+            },
+            {
+              "fieldId": "follow_up_encerrado",
+              "fieldValue": "false"
+            },
+            {
+              "fieldId": "follow_up_count",
+              "fieldValue": "0"
+            }
+          ]
+        }
+      },
+      "id": "2066ee9c-4c9a-4cc8-a6c3-6094473b523b",
+      "name": "Salvar Reunião no Supabase1",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        3072,
+        3072
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "huldkk2UMf07U3qF",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "response",
+              "name": "response",
+              "value": "Horário não disponível. Por favor, escolha outro horário.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "47825e2f-c136-4f0d-9f12-f6eb3597dede",
+      "name": "Resposta - Horário Indisponível1",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2464,
+        3264
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $item(\"0\").$node[\"Execute Workflow Trigger\"].json[\"Evento\"] }}",
+                    "rightValue": "agendamento",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "cond-agendamento"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "agendamento"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "cond-cancelamento",
+                    "leftValue": "={{ $item(\"0\").$node[\"Execute Workflow Trigger\"].json[\"Evento\"] }}",
+                    "rightValue": "cancelamento",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "cancelamento"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "cond-reagendamento",
+                    "leftValue": "={{ $item(\"0\").$node[\"Execute Workflow Trigger\"].json[\"Evento\"] }}",
+                    "rightValue": "reagendamento",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "reagendamento"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "0dc6452d-aff5-40c8-8cdb-d27c964e4cdd",
+      "name": "Switch - Tipo de Evento2",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        1360,
+        3392
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Node: Mock - Verificar Disponibilidade\nconst dataInicio = $input.item.json.data_inicio || $input.item.json.query?.start;\nconst dataFim = $input.item.json.data_fim || $input.item.json.query?.end;\n\n// Se não vier nos dados, gerar\nlet inicio, fim;\nif (dataInicio && dataFim) {\n  inicio = new Date(dataInicio);\n  fim = new Date(dataFim);\n} else {\n  const agora = new Date();\n  inicio = new Date(agora.getTime() + 60 * 60 * 1000);\n  fim = new Date(inicio.getTime() + 60 * 60 * 1000);\n}\n\n// Lógica de verificação: sempre retorna disponível se for no futuro\nconst agora = new Date();\nconst disponivel = inicio > agora;\n\n// Retornar dados originais + resposta da verificação\nreturn [{\n  json: {\n    ...$input.item.json,\n    disponivel: disponivel,\n    data_inicio: inicio.toISOString(),\n    data_fim: fim.toISOString(),\n    mensagem: disponivel ? 'Horário disponível' : 'Horário não disponível'\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1568,
+        3280
+      ],
+      "id": "32138f98-30d2-49cd-ace7-29c9fc19a8ed",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Node: Gerar Link de Acesso 100ms\nconst roomId = $input.item.json.id;\n\n// 1. Pegar os dados que a IA enviou (estão no primeiro nó do fluxo)\nconst dadosIniciais = $('Execute Workflow Trigger').first().json;\n\n// 2. Extrair Nome, Email e Telefone com prioridade total para o que a IA capturou\n// No seu n8n, a ferramenta 'criar_reuniao' coloca os dados dentro de 'query'\nconst nomeCapturado = dadosIniciais.query?.nome || dadosIniciais.nome;\nconst emailCapturado = dadosIniciais.query?.email || dadosIniciais.email;\nconst remotejid = dadosIniciais.Remotejid || dadosIniciais.query?.Remotejid || \"\";\n\n// 3. Formatar os dados finais\n// Se o nome capturado existir, usamos ele. Se não, usamos o backup do número.\nconst nomeFinal = nomeCapturado ? nomeCapturado : `Cliente ${remotejid.split('@')[0]}`;\nconst emailFinal = emailCapturado ? emailCapturado : \"cliente@email.com\";\n\n// 4. Pegar as datas (do nó de disponibilidade ou da IA)\nlet dInicio = \"\";\nlet dFim = \"\";\ntry {\n  const disp = $('IF - Horário Disponível?1').item.json;\n  dInicio = disp.data_inicio;\n  dFim = disp.data_fim;\n} catch (e) {\n  dInicio = dadosIniciais.query?.start || \"\";\n  dFim = dadosIniciais.query?.end || \"\";\n}\n\nconst subdomain = \"nexus-videoconf-1805\";\nconst meetingUrl = `https://${subdomain}.app.100ms.live/meeting/${roomId}`;\n\nreturn [{\n  json: {\n    ...$input.item.json,\n    room_id: roomId,\n    meeting_url: meetingUrl,\n    join_url: meetingUrl,\n    Remotejid: remotejid,\n    nome_cliente: nomeFinal,\n    email_cliente: emailFinal,\n    data_inicio: dInicio,\n    data_fim: dFim,\n    tipo_reuniao: dadosIniciais.query?.tipo_reuniao || \"online\",\n    Evento: 'agendamento'\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2672,
+        3072
+      ],
+      "id": "11d3c0e4-97f8-4a26-a264-94e314c9e460",
+      "name": "Gerar Link de Acesso 100ms"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "reunioes",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "telefone",
+              "condition": "eq",
+              "keyValue": "={{ $json.Remotejid }}"
+            },
+            {
+              "keyName": "status",
+              "condition": "eq",
+              "keyValue": "agendada"
+            }
+          ]
+        }
+      },
+      "id": "b44779ad-f84d-4b99-8c79-a330edffeef1",
+      "name": "Buscar Reunião Ativa",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2048,
+        3440
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "huldkk2UMf07U3qF",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "tem-reuniao",
+              "leftValue": "={{ $json.id_reuniao }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "aaf32e3e-a92a-4fc1-8943-7d008b30ed6f",
+      "name": "IF - Tem Reunião?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2240,
+        3440
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "response",
+              "name": "response",
+              "value": "=Reunião cancelada com sucesso.\n\n📅 Data que foi cancelada: {{(() => { \n    const data = new Date($json.data_inicio);\n    const dia = String(data.getDate()).padStart(2, '0');\n    const meses = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];\n    const mes = meses[data.getMonth()];\n    const hora = String(data.getHours()).padStart(2, '0');\n    const minuto = String(data.getMinutes()).padStart(2, '0');\n    return `${dia} de ${mes} às ${hora}:${minuto}`;\n})()}}\n\nEstamos sempre à disposição para um novo agendamento.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "629537e2-b0d0-4897-a998-0a16144d1fa5",
+      "name": "Preparar Resposta Cancelamento",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2656,
+        3408
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "reunioes",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "room_id_100ms",
+              "condition": "eq",
+              "keyValue": "={{ $('Buscar Reunião Ativa').item.json.id_reuniao }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "status",
+              "fieldValue": "=cancelada"
+            }
+          ]
+        }
+      },
+      "id": "e8f837f7-a9af-436e-afff-d2a9b301379f",
+      "name": "Marcar Como Cancelada",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2848,
+        3408
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "huldkk2UMf07U3qF",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Node: Preparar Dados Reagendamento\nconst dadosRecebidos = $('Execute Workflow Trigger').item.json;\n\n// Gerar nova data/hora para reagendamento (2 horas a partir de agora)\nconst agora = new Date();\nconst dataInicio = new Date(agora.getTime() + 2 * 60 * 60 * 1000); // +2 horas\nconst dataFim = new Date(dataInicio.getTime() + 60 * 60 * 1000); // +1 hora depois\n\n// Formatar datas no formato ISO\nconst start = dataInicio.toISOString();\nconst end = dataFim.toISOString();\n\nconst remotejid = dadosRecebidos.Remotejid || '';\nconst telefone = dadosRecebidos.telefone || null;\n\nreturn [{\n  json: {\n    ...dadosRecebidos,\n    Remotejid: remotejid,\n    telefone: telefone,\n    data_inicio: start,\n    data_fim: end,\n    Evento: 'reagendamento'\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2048,
+        3696
+      ],
+      "id": "f882634a-4f34-4628-8e8d-363b9b5a7dd8",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "reunioes"
+      },
+      "id": "714a7f01-c14e-4ed1-9d0c-14a00cccea2f",
+      "name": "Buscar Reunião para Reagendar",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2240,
+        3696
+      ],
+      "credentials": {
+        "supabaseApi": {
+          "id": "huldkk2UMf07U3qF",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://api.100ms.live/v2/rooms/{{ $json.id_reuniao }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE3NjY3ODMxMDMsImV4cCI6MTc2NzM4NzkwMywianRpIjoiZjM4M2MzMDctNDBhMC00YWRlLTk5ZjctODkxYWQ2NGU0MzBmIiwidHlwZSI6Im1hbmFnZW1lbnQiLCJ2ZXJzaW9uIjoyLCJuYmYiOjE3NjY3ODMxMDMsImFjY2Vzc19rZXkiOiI2OTM4OGVlYmJkMGRhYjVmOWEwMTRiZGUifQ.em10f0IWqbRi7Eb6iJuOAuz99DwXMwzs76JANVjw77Q"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ { description: 'Reagendado para ' + $('Code in JavaScript1').item.json.data_inicio } }}",
+        "options": {}
+      },
+      "id": "2d66c459-67ba-4418-93a9-07c3e139802f",
+      "name": "Atualizar Sala 100ms",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        2640,
+        3664
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "s1SBGMDAnWugtz0V",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "response",
+              "name": "response",
+              "value": "=Sua reunião foi reagendada com sucesso!\n\n📅 Nova data: {{(() => { \n    const data = new Date($('Code in JavaScript1').item.json.data_inicio);\n    const dia = String(data.getDate()).padStart(2, '0');\n    const meses = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];\n    const mes = meses[data.getMonth()];\n    const hora = String(data.getHours()).padStart(2, '0');\n    const minuto = String(data.getMinutes()).padStart(2, '0');\n    return `${dia} de ${mes} às ${hora}:${minuto}`;\n})()}}\n\n🔗 Link da reunião: {{ $('Buscar Reunião para Reagendar').item.json.link_reuniao }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "cc56d241-59aa-4f8e-b5a8-ae7643b1b5c5",
+      "name": "Preparar Resposta Reagendamento",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2832,
+        3664
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "tableId": "reunioes",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "room_id_100ms",
+              "condition": "eq",
+              "keyValue": "={{ $('Buscar Reunião para Reagendar').item.json.id_reuniao }}"
+            }
+          ]
+        },
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "data_inicio",
+              "fieldValue": "={{ $('Code in JavaScript1').item.json.data_inicio }}"
+            },
+            {
+              "fieldId": "data_fim",
+              "fieldValue": "={{ $('Code in JavaScript1').item.json.data_fim }}"
+            },
+            {
+              "fieldId": "status",
+              "fieldValue": "=reagendada"
+            }
+          ]
+        }
+      },
+      "id": "ac8f4848-7d4e-4ace-9495-a81ea10425e8",
+      "name": "Atualizar Reunião no Supabase",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        3024,
+        3664
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "huldkk2UMf07U3qF",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "tem-reuniao-reagendar",
+              "leftValue": "={{ $json.id_reuniao }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a351cf12-86af-42da-8e58-2c3094ea3bf3",
+      "name": "IF - Tem Reunião?1",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2432,
+        3696
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "response",
+              "name": "response",
+              "value": "Você não possui reuniões agendadas para reagendar.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "04eba952-830f-412d-9dd8-980bd116f28d",
+      "name": "Resposta - Sem Reunião1",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2640,
+        3760
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "response",
+              "name": "response",
+              "value": "Você não possui reuniões agendadas para cancelar.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fdb1a00c-bc17-4e67-af67-35f33771f2d2",
+      "name": "Resposta - Sem Reunião",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2464,
+        3552
+      ]
+    },
+    {
+      "parameters": {
+        "method": "DELETE",
+        "url": "https://api.100ms.live/v2/rooms/{{ $json.id_reuniao }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpYXQiOjE3NjY3ODMxMDMsImV4cCI6MTc2NzM4NzkwMywianRpIjoiZjM4M2MzMDctNDBhMC00YWRlLTk5ZjctODkxYWQ2NGU0MzBmIiwidHlwZSI6Im1hbmFnZW1lbnQiLCJ2ZXJzaW9uIjoyLCJuYmYiOjE3NjY3ODMxMDMsImFjY2Vzc19rZXkiOiI2OTM4OGVlYmJkMGRhYjVmOWEwMTRiZGUifQ.em10f0IWqbRi7Eb6iJuOAuz99DwXMwzs76JANVjw77Q"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "730d16f6-5b41-46c7-ab6c-0878f2f6cb43",
+      "name": "Cancelar Sala 100ms2",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        2464,
+        3408
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "s1SBGMDAnWugtz0V",
+          "name": "Header Auth account"
+        }
+      },
+      "notes": "⚠️ IMPORTANTE: Substitua SEU_TOKEN_100MS pelo token real do 100ms"
+    }
+  ],
+  "connections": {
+    "IF - Horário Disponível?1": {
+      "main": [
+        [
+          {
+            "node": "Criar Sala 100ms1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Resposta - Horário Indisponível1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Criar Sala 100ms1": {
+      "main": [
+        [
+          {
+            "node": "Gerar Link de Acesso 100ms",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Resposta Agendamento1": {
+      "main": [
+        [
+          {
+            "node": "Salvar Reunião no Supabase1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch - Tipo de Evento2": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Buscar Reunião Ativa",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "IF - Horário Disponível?1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gerar Link de Acesso 100ms": {
+      "main": [
+        [
+          {
+            "node": "Preparar Resposta Agendamento1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Reunião Ativa": {
+      "main": [
+        [
+          {
+            "node": "IF - Tem Reunião?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Tem Reunião?": {
+      "main": [
+        [
+          {
+            "node": "Cancelar Sala 100ms2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Resposta - Sem Reunião",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Resposta Cancelamento": {
+      "main": [
+        [
+          {
+            "node": "Marcar Como Cancelada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Buscar Reunião para Reagendar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar Reunião para Reagendar": {
+      "main": [
+        [
+          {
+            "node": "IF - Tem Reunião?1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Atualizar Sala 100ms": {
+      "main": [
+        [
+          {
+            "node": "Preparar Resposta Reagendamento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Resposta Reagendamento": {
+      "main": [
+        [
+          {
+            "node": "Atualizar Reunião no Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF - Tem Reunião?1": {
+      "main": [
+        [
+          {
+            "node": "Atualizar Sala 100ms",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Resposta - Sem Reunião1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cancelar Sala 100ms2": {
+      "main": [
+        [
+          {
+            "node": "Preparar Resposta Cancelamento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "instanceId": "041fc3787017e7278f042d7c91fc560a5875bc5f4b072032b9b3ee5905f18f43"
+  }
+}

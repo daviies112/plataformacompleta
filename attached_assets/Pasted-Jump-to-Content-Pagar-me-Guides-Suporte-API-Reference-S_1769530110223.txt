@@ -1,0 +1,303 @@
+Jump to Content
+Pagar.me
+Guides
+Suporte
+API Reference
+
+Search
+CTRL-K
+JUMP TO
+CTRL-/
+Pagar.me API
+Introdução
+Segurança
+
+Autenticação
+Erros
+Paginação
+Metadata
+Telefones
+Entregas
+Facilitadores de pagamento (Dados de Subadquirente)
+Carteira de clientes
+Clientes
+
+Cartões
+
+Endereços
+
+BIN
+
+Pagamentos
+Visão Geral sobre Pagamento
+
+Pedidos
+
+Criar pedido
+post
+Incluir cobrança no pedido
+post
+Criar pedido multimeios
+post
+Criar pedido multicompradores
+post
+Obter pedido
+get
+Fechar um pedido
+patch
+Listar pedidos
+get
+Item do pedido
+
+Cobranças
+
+Antifraude
+Visão Geral sobre Antifraude
+
+Link de Pagamento
+Link de Pagamento
+
+Criar link de pagamento
+post
+Obter link de pagamento
+get
+Obter links de pagamento
+get
+Ativar link de pagamento em construção
+patch
+Cancelar link de pagamento
+patch
+Recorrência
+Precificação
+
+Planos
+
+Assinaturas
+
+Item da assinatura
+
+Uso de um item da assinatura
+
+Item do plano
+
+Desconto
+
+Incremento
+
+Faturas
+
+Ciclos
+
+Split
+
+Recebedores
+Recebedores
+
+Conta bancária
+
+Saldo
+
+Saque
+Configurações de transferência
+
+Configurações de antecipação automática
+
+financeiro
+Recebíveis
+
+Operações de Saldo
+
+Marketplace
+Visão Geral do Marketplace
+Split
+
+Res.264/349: Interface Eletrônica para Sellers
+
+Tokenizecard JS
+Tokenizecard JS
+Alternativas ao Tokenizecard JS
+
+Webhook
+Visão geral sobre Webhooks
+
+Pagar.me API - Register V5
+Getting Started With Your API
+Antecipações
+Objeto antecipação
+Criando uma antecipação
+post
+Simulando uma Antecipação Spot
+get
+Obtendo os limites de antecipação
+get
+Cancelando uma antecipação pending
+post
+Retornando antecipações
+get
+Liquidações
+Objeto Settlements
+Retornando pagamentos
+get
+Retornando pagamentos por recebedor
+get
+Retornando um pagamento
+get
+Transferências
+Objeto Transferência
+Criando uma transferência
+post
+Retornando transferências
+get
+Retornando uma transferência
+get
+Cancelando uma transferência
+post
+Retornando o comprovante de uma transferência
+post
+Powered by 
+
+Criar pedido
+post
+https://api.pagar.me/core/v5/orders
+
+Essa funcionalidade está disponível para clientes Gateway e PSP Pagar.me
+
+Recent Requests
+Log in to see full request history
+Time	Status	User Agent	
+Make a request to see history.
+0 Requests This Month
+
+❗️
+NÃO ENVIE DADOS ABERTOS DO CARTÃO DO COMPRADOR
+
+Para poder trafegar dados de cartão abertos em seu servidor, você deve ser PCI Compliance. Por isso, recomendamos fortemente que as requisições sejam enviadas sempre usando o card_id ou card_token, de forma que você não precise trafegar os dados de cartão no seu servidor.
+
+Apenas clientes Gateway estão aptos a utilizar o card_token na Criação do Pedido, caso seja cliente PSP, recomendamos usar o card_id
+
+❗️
+DADOS DO COMPRADOR SÃO OBRIGATÓRIOS
+
+Caso seja informado o customer_id, não é necessário incluir o objeto customer. Entretanto, é obrigatório que um desses parâmetros seja informado.
+
+Para clientes Pagar.me PSP, é obrigatório preencher todos os campos do objeto customer, incluindo endereço e telefone. Veja mais em Carteira de Clientes.
+
+🚧
+Envio do CVV
+
+Em transações recorrentes, o CVV só deve ser enviado na primeira transação de recorrência (recurrence_cycle = first).
+
+Body Params
+code
+string
+Referência do pedido: Identificador do pedido no sistema da loja.
+
+customer
+object
+required
+Dados do cliente. Obrigatório caso o customer_id não seja informado.
+
+
+customer object
+customer_id
+string
+required
+Código do cliente. Obrigatório, caso não seja informado o objeto customer
+
+items
+array of objects
+required
+Itens do pedido.
+
+
+ADD object
+shipping
+object
+Dados para entrega.
+
+
+shipping object
+payments
+array of objects
+required
+Dados de pagamento. Billing adress obrigatório.
+
+
+ADD object
+closed
+boolean
+Informa se o pedido será criado aberto ou fechado.
+
+
+ip
+string
+Endereço IP do dispositivo que solicitou a compra no formato: IPV4 e IPV6
+
+session_id
+string
+Código da sessão do usuário
+
+antifraud_enabled
+boolean
+Indica se o pedido passará ou não pelo antifraude. Se não for enviado, será considerada a configuração da conta
+
+
+SubMerchant
+object
+Dados de facilitadores de pagamento.
+
+
+SubMerchant object
+Responses
+
+200
+200
+
+
+400
+400
+
+Updated about 1 month ago
+
+Pedidos
+Incluir cobrança no pedido
+Did this page help you?
+Language
+
+Shell
+
+Node
+
+Ruby
+
+PHP
+
+Python
+Credentials
+Basic
+base64
+username
+:
+password
+
+1
+curl --request POST \
+2
+     --url https://api.pagar.me/core/v5/orders \
+3
+     --header 'accept: application/json' \
+4
+     --header 'content-type: application/json'
+
+Try It!
+Response
+Click Try It! to start a request and see the response here! Or choose an example:
+application/json
+
+200 - Result
+
+200 - Using Network Token (Credit Card)
+
+200 - Using Network Token (Debit Card)
+
+400 - Result

@@ -1,0 +1,289 @@
+🚀 OTIMIZAÇÃO DE PERFORMANCE - FORMULÁRIO PÚBLICO
+Data: 2026-01-21
+Objetivo: Reduzir tempo de carregamento do formulário público de ~3-5s para <1s
+
+📊 DIAGNÓSTICO ATUAL
+Arquivos Analisados
+Arquivo	Linhas	Problema Principal
+FormularioPublico.tsx
+1168	Componente muito pesado, não lazy
+FormularioPublicoWrapper.tsx
+115	Dupla camada de roteamento
+formularios-complete.ts
+4518	API com múltiplos fallbacks
+formularios/routes.ts
+2899	Lógica duplicada
+Fluxo Atual (LENTO)
+URL /f/:token
+    ↓
+PlatformRouter.tsx (verifica device)
+    ↓
+DesktopApp/MobileApp (NÃO lazy, carrega TUDO)
+    ↓
+FormularioPublicoWrapper (QueryClient + SupabaseProvider + Router)
+    ↓
+FormularioPublico (1168 linhas, 2-3 fetch calls)
+🔴 PROBLEMAS IDENTIFICADOS
+1. Componente Gigante (1168 linhas)
+FormularioPublico.tsx
+ tem 1168 linhas em UM ÚNICO arquivo
+Carrega TODAS as funcionalidades mesmo sem necessidade
+Impacto: +500ms no parse/compile do JS
+2. Dupla Camada de Roteamento
+React Router + Wouter rodando juntos
+FormularioPublicoWrapper.tsx
+ recria contextos desnecessários
+Impacto: +200ms overhead
+3. Múltiplos Fetch em Cascata
+// Linha 318 - FormularioPublico.tsx
+const response = await fetch('/api/leads/validar-token', ...);
+// DEPOIS
+const formResponse = await fetch(`/api/forms/public/${data.data.lead.formularioId}`);
+Dois requests sequenciais em vez de paralelos
+Impacto: +300-500ms (latência de rede)
+4. API com Fallbacks Excessivos
+// formularios-complete.ts - linhas 488-600+
+const tenantId = await resolvePublicFormTenant(...);
+// Se não encontrar: fallback local
+// Se não encontrar: fallback storage
+// Se não encontrar: busca em TODOS os tenants
+Até 4 níveis de fallback no backend
+Impacto: +200-1000ms por fallback
+5. Nenhum Cache HTTP
+Headers de cache não configurados para forms públicos
+Cada acesso = request completo ao servidor
+Impacto: +100% de requests desnecessários
+6. Import de Componentes UI Pesados
+// FormularioPublico.tsx - linhas 1-20
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "../components/ui/card";
+// ... + 10 outros imports de UI
+Todos os componentes UI carregados upfront
+Impacto: +100ms bundle parse
+7. useEffect com Múltiplas Dependências
+// Linha 407-421
+useEffect(() => {
+  // Atualiza progresso a cada mudança de campo
+}, [questionAnswers, personalData, addressData, form, atualizarProgresso]);
+Triggers excessivos causando re-renders
+Impacto: Lentidão na interação
+8. Validação Zod Síncrona no Render
+Schemas criados fora do componente (OK)
+Mas validação mode: "onChange" é cara
+Impacto: +50ms por keystroke
+✅ SOLUÇÕES PROPOSTAS
+CORREÇÃO 1: Rota Dedicada para Formulário Público
+Problema: Formulário público passa por PlatformRouter → DesktopApp → FormularioPublicoWrapper
+Solução: Criar entrada direta no App.tsx
+
+Arquivo: 
+src/App.tsx
+
+import { lazy, Suspense } from 'react';
+// Lazy load APENAS para rotas de formulário público
+const FormularioPublico = lazy(() => import('./features/formularios-platform/pages/FormularioPublico'));
+function App() {
+  return (
+    <Routes>
+      {/* ROTA DIRETA - sem passar por PlatformRouter */}
+      <Route 
+        path="/f/:token" 
+        element={
+          <Suspense fallback={<FormLoader />}>
+            <FormularioPublico />
+          </Suspense>
+        } 
+      />
+      <Route 
+        path="/form/:id" 
+        element={
+          <Suspense fallback={<FormLoader />}>
+            <FormularioPublico />
+          </Suspense>
+        } 
+      />
+      {/* Outras rotas continuam com PlatformRouter */}
+      <Route path="/*" element={<PlatformRouter />} />
+    </Routes>
+  );
+}
+CORREÇÃO 2: Componente de Loading Otimizado
+Criar: src/components/FormLoader.tsx
+
+export function FormLoader() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-white to-slate-50">
+      <div className="text-center">
+        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+        <p className="text-slate-500">Carregando...</p>
+      </div>
+    </div>
+  );
+}
+CORREÇÃO 3: API Endpoint Otimizado com Cache
+Arquivo: 
+server/routes/formularios-complete.ts
+
+Adicionar antes do return do endpoint /api/forms/public/:id:
+
+app.get("/api/forms/public/:id", async (req, res) => {
+  // ADICIONAR: Cache headers para formulários públicos
+  res.set({
+    'Cache-Control': 'public, max-age=300', // 5 minutos
+    'CDN-Cache-Control': 'public, max-age=3600', // 1 hora no CDN
+  });
+  
+  // ... resto do código existente
+});
+CORREÇÃO 4: Unificar Fetch de Token + Form
+Problema: 2 requests sequenciais
+Solução: Endpoint único que retorna tudo
+
+Criar endpoint: 
+server/routes/formularios-complete.ts
+
+// NOVO ENDPOINT OTIMIZADO
+app.get("/api/forms/public/with-token/:token", async (req, res) => {
+  const { token } = req.params;
+  
+  try {
+    // 1. Validar token e obter dados do lead
+    const leadData = await leadTrackingService.validateToken(token);
+    if (!leadData) {
+      return res.status(404).json({ error: 'Token inválido' });
+    }
+    
+    // 2. Buscar formulário (PARALELO)
+    const formPromise = storage.getFormById(leadData.formularioId);
+    const sessionPromise = Promise.resolve(leadData.sessao);
+    
+    const [form, sessao] = await Promise.all([formPromise, sessionPromise]);
+    
+    if (!form) {
+      return res.status(404).json({ error: 'Formulário não encontrado' });
+    }
+    
+    // 3. Retornar tudo de uma vez
+    res.set('Cache-Control', 'private, max-age=60');
+    return res.json({
+      success: true,
+      form: reconstructFormDataFromSupabase(form),
+      sessao,
+      leadData: {
+        telefone: leadData.telefone,
+        nome: leadData.nome
+      }
+    });
+  } catch (error) {
+    console.error('[OPTIMIZED] Error:', error);
+    return res.status(500).json({ error: 'Erro interno' });
+  }
+});
+CORREÇÃO 5: Atualizar FormularioPublico para Usar Novo Endpoint
+Arquivo: 
+FormularioPublico.tsx
+ - Substituir 
+carregarFormulario
+:
+
+const carregarFormulario = async () => {
+  try {
+    // CASO 1: Token - usar endpoint otimizado
+    if (token) {
+      const response = await fetch(`/api/forms/public/with-token/${token}`);
+      if (!response.ok) throw new Error('Token inválido');
+      
+      const data = await response.json();
+      setForm(data.form);
+      setSessao(data.sessao);
+      
+      // Preencher telefone se disponível
+      if (data.leadData?.telefone) {
+        const formatted = formatarTelefone(data.leadData.telefone);
+        setPersonalData(prev => ({ ...prev, phone: formatted }));
+        setTelefoneBloqueado(true);
+      }
+      
+      setIsLoading(false);
+      return;
+    }
+    
+    // CASO 2: ID/Slug - continua igual (já otimizado com cache)
+    // ...código existente...
+  } catch (error) {
+    // ...
+  }
+};
+CORREÇÃO 6: Remover Wouter - Usar Apenas React Router
+Arquivo: 
+FormularioPublico.tsx
+
+ANTES (linha 2):
+
+import { useParams } from "wouter";
+DEPOIS:
+
+import { useParams } from "react-router-dom";
+Também remover 
+FormularioPublicoWrapper.tsx
+ e apontar direto para o componente.
+
+CORREÇÃO 7: Code Split do Componente
+Dividir 
+FormularioPublico.tsx
+ em:
+
+FormularioPublico/
+  ├── index.tsx          (50 linhas - orquestrador)
+  ├── WelcomePage.tsx    (100 linhas)
+  ├── PersonalDataPage.tsx (150 linhas)
+  ├── AddressPage.tsx    (150 linhas)
+  ├── QuestionPage.tsx   (200 linhas)
+  ├── CompletionPage.tsx (100 linhas)
+  └── hooks/
+      ├── useFormLoader.ts
+      └── useFormSubmission.ts
+CORREÇÃO 8: Debounce no Progresso
+Arquivo: 
+FormularioPublico.tsx
+
+ANTES (linhas 407-421):
+
+useEffect(() => {
+  const timeoutId = setTimeout(() => {
+    atualizarProgresso(camposPreenchidos);
+  }, 1000);
+  return () => clearTimeout(timeoutId);
+}, [questionAnswers, personalData, addressData, form, atualizarProgresso]);
+DEPOIS:
+
+// Aumentar debounce e usar useCallback com deps mínimas
+const debouncedProgress = useCallback(
+  debounce((campos: Record<string, any>) => {
+    atualizarProgresso(campos);
+  }, 3000), // 3 segundos
+  [token] // Apenas token como dependência
+);
+useEffect(() => {
+  const campos = { ...questionAnswers, ...personalData, ...addressData };
+  if (Object.keys(campos).length > 0) {
+    debouncedProgress(campos);
+  }
+}, [questionAnswers, personalData, addressData]);
+📈 IMPACTO ESPERADO
+Métrica	Antes	Depois	Melhoria
+Time to First Paint	~2s	~0.5s	75%
+Time to Interactive	~4s	~1s	75%
+Bundle Size (form)	~500KB	~100KB	80%
+API Requests	2-4	1	75%
+Lighthouse Score	~45	~85	+40pts
+🎯 ORDEM DE IMPLEMENTAÇÃO
+IMEDIATO: Adicionar cache headers no endpoint (5 min)
+PRIORIDADE 1: Criar endpoint otimizado /with-token (30 min)
+PRIORIDADE 2: Rota direta no App.tsx com lazy load (15 min)
+PRIORIDADE 3: Remover Wouter, usar só React Router (20 min)
+PRIORIDADE 4: Code split do componente (2 horas)
+⚠️ RISCOS
+Wouter → React Router: Testar exaustivamente URLs com parâmetros
+Cache: Garantir invalidação quando form for editado
+Code Split: Manter compatibilidade com estados compartilhados
+FIM DO DOCUMENTO DE OTIMIZAÇÃO

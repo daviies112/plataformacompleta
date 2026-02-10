@@ -1,0 +1,27 @@
+lockdown-install.js:1 SES Removing unpermitted intrinsics
+chunk-I3COAS7K.js?v=f6ab8f40:21551 Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+sentry.ts:34 ⚠️ Sentry não configurado - Monitoramento desativado
+6dc1a06c-fa1e-42a5-857a-c4e189f092bb?fsid=578ba62b-345d-40c4-ace4-59e6f03983bb:1 Error while trying to use the following icon from the Manifest: https://160ad8a0-cf7e-47e3-a046-f70f7ea948a8-00-xu3bcrpa0y1u.spock.replit.dev/icons/icon-192x192.png (Download error or resource isn't a valid image)Understand this warning
+MeetingLobby.tsx:64 ✅ Mídia inicializada no lobby
+MeetingLobby.tsx:132 🔄 Parando preview do lobby antes de entrar...
+MeetingLobby.tsx:135 ✅ Track parado: audio
+MeetingLobby.tsx:135 ✅ Track parado: video
+ReuniaoPublica.tsx:144 [ReuniaoPublica] Usuário público - usando endpoint público para role guest
+/api/public/reunioes/6dc1a06c-fa1e-42a5-857a-c4e189f092bb/token-public:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+ReuniaoPublica.tsx:158 [ReuniaoPublica] Erro ao buscar token 100ms: AxiosError
+(anonymous) @ ReuniaoPublica.tsx:158Understand this error
+MeetingLobby.tsx:64 ✅ Mídia inicializada no lobby
+MeetingLobby.tsx:132 🔄 Parando preview do lobby antes de entrar...
+MeetingLobby.tsx:135 ✅ Track parado: audio
+MeetingLobby.tsx:135 ✅ Track parado: video
+ReuniaoPublica.tsx:144 [ReuniaoPublica] Usuário público - usando endpoint público para role guest
+/api/public/reunioes/6dc1a06c-fa1e-42a5-857a-c4e189f092bb/token-public:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+ReuniaoPublica.tsx:158 [ReuniaoPublica] Erro ao buscar token 100ms: AxiosError
+(anonymous) @ ReuniaoPublica.tsx:158Understand this error
+MeetingLobby.tsx:64 ✅ Mídia inicializada no lobby
+MeetingLobby.tsx:132 🔄 Parando preview do lobby antes de entrar...
+MeetingLobby.tsx:135 ✅ Track parado: audio
+MeetingLobby.tsx:135 ✅ Track parado: video
+ReuniaoPublica.tsx:144 [ReuniaoPublica] Usuário público - usando endpoint público para role guest
+/api/public/reunioes/6dc1a06c-fa1e-42a5-857a-c4e189f092bb/token-public:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+ReuniaoPublica.tsx:158 [ReuniaoPublica] Erro ao buscar token 100ms: AxiosError

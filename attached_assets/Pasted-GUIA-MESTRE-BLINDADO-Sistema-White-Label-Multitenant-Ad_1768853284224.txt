@@ -1,0 +1,140 @@
+GUIA MESTRE BLINDADO: Sistema White-Label Multitenant (Admin + Revendedora)
+PARA O USUÁRIO: Este documento foi refinado para ser "à prova de erros". Ele contém não apenas a teoria, mas os códigos exatos de configuração e uma estratégia de Prompts Sequenciais para você enviar ao Replit.
+
+🗺️ Estratégia de Execução (O Segredo do Sucesso)
+Não peça para o Replit "fazer tudo de uma vez". Use a estratégia de 4 Prompts. Envie um por um e espere ele terminar.
+📋 Prompt 1: Reestruturação Monorepo
+(Copie e cole isso primeiro)
+"Atue como Arquiteto de Software Sênior. Sua tarefa é transformar o projeto atual em um Monorepo usando Turborepo e npm workspaces.
+Crie a pasta packages/.
+Mova o código atual (admin) para packages/admin.
+Crie um novo app React Vite limpo em packages/revendedora.
+Crie um pacote compartilhado em packages/shared.
+Configure o 
+package.json raiz e o turbo.json conforme as especificações abaixo.
+Certifique-se de que o backend (server/) continue na raiz mas acessível.
+Especificação do package.json raiz:
+{
+ "name": "plataforma-multitenant",
+ "private": true,
+ "workspaces": [
+   "packages/*"
+ ],
+ "scripts": {
+   "dev": "turbo run dev",
+   "build": "turbo run build",
+   "start": "node server/index.ts"
+ },
+ "devDependencies": {
+   "turbo": "latest"
+ }
+}
+Não apague nenhum código funcional do admin, apenas mova."
+
+📋 Prompt 2: Core Compartilhado (Auth & Theme)
+(Envie este após o Prompt 1 terminar)
+"Agora vamos configurar o pacote packages/shared. Preciso que você crie o núcleo da nossa lógica multitenant.
+Em packages/shared/src, crie:
+contexts/AuthContext.tsx: Deve aceitar um userType ('admin' | 'reseller') e conectar no endpoint /api/auth/login.
+contexts/ThemeContext.tsx: Deve ler a config do tenant e prover cores/logo.
+Requisito Crítico do AuthContext: O login deve retornar { token, tenantConfig, supabaseCredentials }. Use as credenciais retornadas para instanciar o cliente Supabase dinamicamente, não use variáveis de ambiente fixas.
+Requisito Crítico do ThemeContext: Deve injetar CSS variables no :root do documento: document.documentElement.style.setProperty('--primary', theme.colors.primary);"
+
+📋 Prompt 3: Backend Master
+(Envie este após o Prompt 2)
+"Vamos atualizar o Backend (server/) para suportar a arquitetura Master.
+Crie/Atualize o schema SQL no Supabase Principal com as tabelas admins (com configurações de app) e resellers.
+Crie a rota POST /api/auth/login-unified que:
+Recebe { email, password, appSlug, userType }.
+Se userType === 'admin', busca na tabela admins.
+Se userType === 'reseller', busca na tabela resellers E busca os dados do admin relacionado (cores, supbase_url).
+Retorna o JSON unificado com credenciais do Supabase dedicado.
+Crie a rota GET /api/public-config/:slug para o app mobile saber as cores antes do login."
+
+📋 Prompt 4: Adaptação dos Apps
+(Envie este por último)
+"Hora de conectar as pontas.
+No packages/admin:
+Envolva o App com AuthProvider (userType='admin') e ThemeProvider.
+Crie a página ConfiguracoesApp para editar logo/cores na tabela admins.
+No packages/revendedora:
+Use o AuthProvider (userType='reseller').
+Crie uma tela de Login que verifica o subdomínio ou slug para carregar o tema antes de logar.
+Garanta que ele usa o cliente Supabase dinâmico (do contexto) para todas as chamadas de dados."
+
+🛠️ Especificações Técnicas (Para a IA consultar)
+1. Estrutura de Pastas Esperada
+/
+├── package.json (Workspaces configurado)
+├── turbo.json
+├── server/
+│   └── (Código backend existente + novas rotas auth)
+└── packages/
+   ├── admin/ (Código antigo movido)
+   │   ├── package.json (name: "@plataforma/admin")
+   │   └── vite.config.ts
+   ├── revendedora/ (Novo app)
+   │   ├── package.json (name: "@plataforma/revendedora")
+   │   ├── vite.config.ts
+   │   └── src/App.tsx
+   └── shared/ (Libs comuns)
+       ├── package.json (name: "@plataforma/shared")
+       ├── src/contexts/
+       └── src/hooks/
+2. Código Vital: Auth Unificado (server)
+Este é o coração da lógica. A IA deve implementar algo próximo a isso:
+// server/routes/auth-unified.ts
+router.post('/login-unified', async (req, res) => {
+ const { email, password, userType, slug } = req.body;
+ let tenantConfig;
+ let user;
+ if (userType === 'admin') {
+   // Busca no Supabase MASTER
+   user = await findAdmin(email, password);
+   if (!user) return authError();
+  
+   tenantConfig = {
+     supabaseUrl: user.supabase_url,
+     supabaseKey: user.supabase_anon_key,
+     theme: { primary: user.primary_color, logo: user.logo_url }
+   };
+ }
+  else if (userType === 'reseller') {
+   // 1. Busca revendedora
+   const reseller = await findReseller(email, password);
+   if (!reseller) return authError();
+  
+   // 2. Busca o admin (dono) para pegar as configs
+   const admin = await findAdminById(reseller.admin_id);
+  
+   tenantConfig = {
+     supabaseUrl: admin.supabase_url, // USA O SUPABASE DO ADMIN!
+     supabaseKey: admin.supabase_anon_key,
+     theme: { primary: admin.primary_color, logo: admin.logo_url } // USA O TEMA DO ADMIN!
+   };
+   user = reseller;
+ }
+ // Gera token com payload contendo as configs necessárias para o frontend
+ const token = signJwt({ ...user, tenantConfig });
+ res.json({ token, user, tenantConfig });
+});
+3. Código Vital: Mobile Config (capacitor.config.json)
+Instrução para quando você for gerar os APKS. Cada cliente terá um arquivo desse na hora do build.
+{
+ "appId": "com.cliente.app",
+ "appName": "Nome do Cliente",
+ "webDir": "dist",
+ "server": {
+   "url": "https://suaplataforma.com/revenda?slug=cliente_x",
+   "allowNavigation": ["*"]
+ }
+}
+
+✅ Checklist de Sucesso
+Antes de considerar pronto, verifique:
+ O Admin consegue logar e vê suas cores?
+ A Revendedora consegue logar e vê as cores do Admin dela?
+ A Revendedora vê os produtos/dados do Admin dela (Supabase conectado certo)?
+ O arquivo packages/shared está sendo usado pelos dois apps?
+Entregue este documento ao Replit e use os Prompts Sequenciais para garantir que ele não se perca na complexidade.
+

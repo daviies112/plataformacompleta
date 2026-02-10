@@ -1,0 +1,105 @@
+create table public.contracts (
+  id uuid not null default extensions.uuid_generate_v4 (),
+  user_id uuid null,
+  contract_html text not null,
+  contract_pdf_url text null,
+  status character varying(50) null default 'pending'::character varying,
+  created_at timestamp with time zone null default now(),
+  signed_at timestamp with time zone null,
+  protocol_number character varying(50) null,
+  client_name character varying(255) not null default ''::character varying,
+  client_cpf character varying(14) not null default ''::character varying,
+  client_email character varying(255) not null default ''::character varying,
+  client_phone character varying(20) null,
+  access_token uuid null default extensions.uuid_generate_v4 (),
+  logo_url text null,
+  primary_color character varying(7) null,
+  secondary_color character varying(7) null,
+  font_family character varying(100) null,
+  font_size character varying(20) null,
+  company_name character varying(255) null,
+  footer_text text null,
+  logo_size character varying(20) null default 'medium'::character varying,
+  logo_position character varying(20) null default 'center'::character varying,
+  whatsapp_enviado boolean null default false,
+  signature_url text null,
+  whatsapp_enviado_at timestamp with time zone null,
+  follow_up_count integer null default 0,
+  selfie_photo text null,
+  document_photo text null,
+  document_back_photo text null,
+  address_street text null,
+  address_number text null,
+  address_complement text null,
+  address_city text null,
+  address_state text null,
+  address_zipcode text null,
+  signed_contract_html text null,
+  text_color text null default '#333333'::text,
+  verification_primary_color text null,
+  verification_text_color text null,
+  verification_welcome_text text null,
+  verification_instructions text null,
+  verification_footer_text text null,
+  verification_security_text text null,
+  verification_header_company_name text null,
+  verification_header_background_color text null,
+  progress_title text null,
+  progress_subtitle text null,
+  progress_step1_title text null,
+  progress_step1_description text null,
+  progress_step2_title text null,
+  progress_step2_description text null,
+  progress_step3_title text null,
+  progress_step3_description text null,
+  progress_card_color text null,
+  progress_button_color text null,
+  progress_text_color text null,
+  progress_font_family text null,
+  progress_button_text text null,
+  parabens_title text null,
+  parabens_subtitle text null,
+  parabens_description text null,
+  parabens_button_text text null,
+  parabens_button_color text null,
+  parabens_card_color text null,
+  parabens_background_color text null,
+  app_store_url text null,
+  google_play_url text null,
+  updated_at timestamp with time zone null default now(),
+  residence_proof_validated boolean null default false,
+  residence_proof_confidence numeric(3, 2) null,
+  residence_proof_extracted_address text null,
+  residence_proof_date timestamp with time zone null,
+  residence_proof_manual_review boolean null default false,
+  residence_proof_photo text null,
+  virou_revendedora boolean null default false,
+  data_virou_revendedora timestamp with time zone null,
+  constraint contracts_pkey primary key (id),
+  constraint contracts_access_token_key unique (access_token),
+  constraint contracts_protocol_number_key unique (protocol_number),
+  constraint contracts_user_id_fkey foreign KEY (user_id) references users (id) on delete CASCADE
+) TABLESPACE pg_default;
+
+create index IF not exists idx_contracts_whatsapp_pendente on public.contracts using btree (whatsapp_enviado) TABLESPACE pg_default
+where
+  (whatsapp_enviado = false);
+
+create index IF not exists idx_contracts_whatsapp_enviado on public.contracts using btree (whatsapp_enviado) TABLESPACE pg_default;
+
+create index IF not exists idx_contracts_client_phone on public.contracts using btree (client_phone) TABLESPACE pg_default;
+
+create index IF not exists idx_contracts_access_token on public.contracts using btree (access_token) TABLESPACE pg_default;
+
+create index IF not exists idx_contracts_status on public.contracts using btree (status) TABLESPACE pg_default;
+
+create trigger on_contract_signed
+after INSERT
+or
+update on contracts for EACH row
+execute FUNCTION handle_signed_contract ();
+
+create trigger trg_queue_reseller
+after
+update on contracts for EACH row
+execute FUNCTION queue_new_reseller ();

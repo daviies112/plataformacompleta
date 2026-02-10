@@ -1,0 +1,1176 @@
+Jump to Content
+
+GuidesSuporteAPI Reference
+Split
+Search
+CTRL-K
+Conhecendo o Pagar.me
+Bem-vindo ao Pagar.me!
+Quickstart Pagar.me
+Chaves de acesso
+Segurança na Integração
+IP Allowlist
+REGULATÓRIO
+Bandeiras
+Banco Central
+Facilitadores de pagamento (Dados de Subadquirente)
+Gestão de Clientes
+Carteira de Clientes
+Carteira de Cartões
+Card Updater
+Pagamentos
+Pedido
+Cobrança
+Multimeios
+Multicompradores
+Pedidos abertos
+Meios de pagamento
+Mais funcionalidades
+Cancelamento Garantido
+Retentativa
+Idempotência
+Token de Bandeira
+Manual de Integração 3DS
+tokenizecard.js
+Tokenizecard.js
+Checkout
+Checkout
+Shop
+Overview Shop
+Pedido no Shop
+Recorrência no Shop (venda digitada)
+Recorrências
+Overview Recorrência
+Assinaturas
+Planos
+Esquemas de precificação dos itens
+Faturas
+Marketplace
+Overview Marketplace
+Split
+Recebedores
+Simuladores
+O que é um simulador?
+Webhooks
+O que são?
+SDKs
+Bibliotecas
+HUB
+Overview HUB
+Lojista
+Parceiros
+Integrações Plataformas Pagar.me
+Plataformas Overview
+Magento 2 (Adobe Commerce)
+Shopify
+Vtex
+Nuvemshop
+Woocommerce
+Integrações Extras Pagar.me
+NFe.io
+Slack
+Doações
+Powered by 
+Split
+Suggest Edits
+Utilizando a funcionalidade de Split, você pode criar um pedido que terá mais de um recebedor. Tais recebedores terão acesso a parte do valor da compra. Cada pedido na Pagar.me pode ser informados os valores ou as porcentagens que serão destinados a cada um dos recebedores.
+⚠️ Esta funcionalidade está disponível apenas para clientes PSP. ⚠️
+Para dar prosseguimento a esse tipo de pedido, é necessário que dentro de payments seja indicado que está sendo feito um Split com os seguintes dados:
+type(Tipo de Split. Pode ser feita em valores (flat) ou em porcentagem (percentage))
+amount(Valor destinado a cada recebedor)
+recipient_id (Identificação do recebedor)
+Além disso, é necessária a criação dos recebedores e de suas contas bancárias para que os valores lhes sejam destinados corretamente. Como ações relativas a Split, temos:
+1) Criar recebedor
+2) Editar recebedor
+3) Criar pedido com Split
+Exemplo:
+Valter anunciou seu carro em um Marketplace com o valor de R$15.000,00. Felizmente, a venda foi concluída com sucesso, mas ao final da negociação, ele só recebeu R$14.850,00. Isso porque o Markplace havia acertado, via API Pagar.me, que 1% da venda (R$150,00) deveria ser enviada para sua conta e o restante (99%) para a conta de Valter.
+Saiba mais sobre pedidos com Split através de nossa API Reference!
+Updated over 2 years ago
+
+Próximo
+Recebedores
+Did this page help you?
+
+Jump to Content
+
+GuidesSuporteAPI Reference
+Search
+CTRL-K
+JUMP TOCTRL-/
+Pagar.me API
+Introdução
+Segurança
+Autenticação
+Erros
+Paginação
+Metadata
+Telefones
+Entregas
+Facilitadores de pagamento (Dados de Subadquirente)
+Carteira de clientes
+Clientes
+Cartões
+Endereços
+BIN
+Pagamentos
+Visão Geral sobre Pagamento
+Pedidos
+Item do pedido
+Cobranças
+Antifraude
+Visão Geral sobre Antifraude
+Link de Pagamento
+Link de Pagamento
+Criar link de pagamento
+post
+Obter link de pagamento
+get
+Obter links de pagamento
+get
+Ativar link de pagamento em construção
+patch
+Cancelar link de pagamento
+patch
+Recorrência
+Precificação
+Planos
+Assinaturas
+Item da assinatura
+Uso de um item da assinatura
+Item do plano
+Desconto
+Incremento
+Faturas
+Ciclos
+Split
+Recebedores
+Recebedores
+Criar recebedor
+post
+Criar link de de Prova de Vida (KYC)
+post
+Editar recebedor
+put
+Obter recebedor
+get
+Listar recebedores
+get
+Editar code de recebedor
+patch
+Conta bancária
+Saldo
+Saque
+Configurações de transferência
+Configurações de antecipação automática
+financeiro
+Recebíveis
+Operações de Saldo
+Marketplace
+Visão Geral do Marketplace
+Split
+Res.264/349: Interface Eletrônica para Sellers
+Tokenizecard JS
+Tokenizecard JS
+Alternativas ao Tokenizecard JS
+Webhook
+Visão geral sobre Webhooks
+Pagar.me API - Register V5
+Getting Started With Your API
+Antecipações
+Objeto antecipação
+Criando uma antecipação
+post
+Simulando uma Antecipação Spot
+get
+Obtendo os limites de antecipação
+get
+Cancelando uma antecipação pending
+post
+Retornando antecipações
+get
+Liquidações
+Objeto Settlements
+Retornando pagamentos
+get
+Retornando pagamentos por recebedor
+get
+Retornando um pagamento
+get
+Transferências
+Objeto Transferência
+Criando uma transferência
+post
+Retornando transferências
+get
+Retornando uma transferência
+get
+Cancelando uma transferência
+post
+Retornando o comprovante de uma transferência
+post
+Powered by 
+Criar recebedor
+post
+https://api.pagar.me/core/v5/recipients
+Rota para criar um recebedor, definindo os dados do recebedor, transferência e qual a conta bancária que será utilizada para envio dos pagamentos.
+Recent Requests
+Log in to see full request history
+Time
+Status
+User Agent
+
+
+Make a request to see history.
+
+0 Requests This Month
+🚧
+Atenção - Mudanças no contrato de recebedores
+Com objetivo de atender as diretrizes dispostas na Circular 3.978/20 do Banco Central sobre os procedimentos a serem adotados para prevenção à lavagem de dinheiro e financiamento ao terrorismo é imprescindível o envio de dados mínimos de cadastro para os sellers dos marketplaces.
+O novo contrato para a criação de recebedores entrou em vigor em Fevereiro de 2024. Para obter mais informações, consulte o artigo Mudanças de contrato na criação de Recebedores.
+Body Params
+code
+string
+Referencia externa única por recebedor
+register_information
+object
+required
+Dados cadastrais do recebedor. O objeto deve ser preenchido de acordo com o tipo do recebedor, Pessoa Física [PF] ou Pessoa Jurídica [PJ].
+register_information object
+default_bank_account
+object
+required
+Dados da conta bancária do recebedor.
+default_bank_account object
+transfer_settings
+object
+Informações de transferência do recebedor
+transfer_settings object
+automatic_anticipation_settings
+object
+Informações de antecipação automática do recebedor
+automatic_anticipation_settings object
+metadata
+string
+Objeto chave/valor utilizado para armazenar informações adicionais sobre o recebedor.
+Responses
+200
+200
+400
+400
+Updated about 1 year ago
+
+Recebedores
+Criar link de de Prova de Vida (KYC)
+Did this page help you?
+Language
+Shell
+Node
+Ruby
+PHP
+Python
+Credentials
+Basic
+base64
+:
+1
+curl --request POST \
+2
+    --url https://api.pagar.me/core/v5/recipients \
+3
+    --header 'accept: application/json' \
+4
+    --header 'content-type: application/json'
+Try It!
+Response
+Click Try It! to start a request and see the response here! Or choose an example:
+application/json
+200 - Result400 - Result
+
+Jump to Content
+
+GuidesSuporteAPI Reference
+Search
+CTRL-K
+JUMP TOCTRL-/
+Pagar.me API
+Introdução
+Segurança
+Autenticação
+Erros
+Paginação
+Metadata
+Telefones
+Entregas
+Facilitadores de pagamento (Dados de Subadquirente)
+Carteira de clientes
+Clientes
+Cartões
+Endereços
+BIN
+Pagamentos
+Visão Geral sobre Pagamento
+Pedidos
+Item do pedido
+Cobranças
+Antifraude
+Visão Geral sobre Antifraude
+Link de Pagamento
+Link de Pagamento
+Criar link de pagamento
+post
+Obter link de pagamento
+get
+Obter links de pagamento
+get
+Ativar link de pagamento em construção
+patch
+Cancelar link de pagamento
+patch
+Recorrência
+Precificação
+Planos
+Assinaturas
+Item da assinatura
+Uso de um item da assinatura
+Item do plano
+Desconto
+Incremento
+Faturas
+Ciclos
+Split
+Recebedores
+Recebedores
+Criar recebedor
+post
+Criar link de de Prova de Vida (KYC)
+post
+Editar recebedor
+put
+Obter recebedor
+get
+Listar recebedores
+get
+Editar code de recebedor
+patch
+Conta bancária
+Saldo
+Saque
+Configurações de transferência
+Configurações de antecipação automática
+financeiro
+Recebíveis
+Operações de Saldo
+Marketplace
+Visão Geral do Marketplace
+Split
+Res.264/349: Interface Eletrônica para Sellers
+Tokenizecard JS
+Tokenizecard JS
+Alternativas ao Tokenizecard JS
+Webhook
+Visão geral sobre Webhooks
+Pagar.me API - Register V5
+Getting Started With Your API
+Antecipações
+Objeto antecipação
+Criando uma antecipação
+post
+Simulando uma Antecipação Spot
+get
+Obtendo os limites de antecipação
+get
+Cancelando uma antecipação pending
+post
+Retornando antecipações
+get
+Liquidações
+Objeto Settlements
+Retornando pagamentos
+get
+Retornando pagamentos por recebedor
+get
+Retornando um pagamento
+get
+Transferências
+Objeto Transferência
+Criando uma transferência
+post
+Retornando transferências
+get
+Retornando uma transferência
+get
+Cancelando uma transferência
+post
+Retornando o comprovante de uma transferência
+post
+Powered by 
+Editar recebedor
+put
+https://api.pagar.me/core/v5/recipients/{recipient_id}
+Rota para editar um recebedor, definindo os dados do recebedor, transferência e qual a conta bancária que será utilizada para envio dos pagamentos.
+Recent Requests
+Log in to see full request history
+Time
+Status
+User Agent
+
+
+Make a request to see history.
+
+0 Requests This Month
+🚧
+Atenção - Mudanças no contrato de recebedores
+Com objetivo de atender as diretrizes dispostas na Circular 3.978/20 do Banco Central sobre os procedimentos a serem adotados para prevenção à lavagem de dinheiro e financiamento ao terrorismo é imprescindível o envio de dados mínimos de cadastro para os sellers dos marketplaces.
+O novo contrato para a criação de recebedores entrou em vigor em Fevereiro de 2024. Para obter mais informações, consulte o artigo Mudanças de contrato na criação de Recebedores.
+Body Params
+register_information
+object
+Dados cadastrais do recebedor. O objeto deve ser preenchido de acordo com o tipo do recebedor, Pessoa Física [PF] ou Pessoa Jurídica [PJ].
+register_information object
+metadata
+string
+Objeto chave/valor utilizado para armazenar informações adicionais sobre o recebedor.
+Responses
+200
+200
+400
+400
+Updated 3 months ago
+
+Criar link de de Prova de Vida (KYC)
+Obter recebedor
+Did this page help you?
+Language
+Shell
+Node
+Ruby
+PHP
+Python
+Credentials
+Basic
+base64
+:
+1
+curl --request PUT \
+2
+    --url https://api.pagar.me/core/v5/recipients/recipient_id \
+3
+    --header 'accept: application/json' \
+4
+    --header 'content-type: application/json'
+Try It!
+Response
+Click Try It! to start a request and see the response here! Or choose an example:
+application/json
+400 - Result
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Jump to Content
+
+GuidesSuporteAPI Reference
+Search
+CTRL-K
+JUMP TOCTRL-/
+Pagar.me API
+Introdução
+Segurança
+Autenticação
+Erros
+Paginação
+Metadata
+Telefones
+Entregas
+Facilitadores de pagamento (Dados de Subadquirente)
+Carteira de clientes
+Clientes
+Cartões
+Endereços
+BIN
+Pagamentos
+Visão Geral sobre Pagamento
+Pedidos
+Item do pedido
+Cobranças
+Antifraude
+Visão Geral sobre Antifraude
+Link de Pagamento
+Link de Pagamento
+Criar link de pagamento
+post
+Obter link de pagamento
+get
+Obter links de pagamento
+get
+Ativar link de pagamento em construção
+patch
+Cancelar link de pagamento
+patch
+Recorrência
+Precificação
+Planos
+Assinaturas
+Item da assinatura
+Uso de um item da assinatura
+Item do plano
+Desconto
+Incremento
+Faturas
+Ciclos
+Split
+Recebedores
+Recebedores
+Conta bancária
+Saldo
+Saque
+Configurações de transferência
+Configurações de antecipação automática
+financeiro
+Recebíveis
+Operações de Saldo
+Marketplace
+Visão Geral do Marketplace
+Split
+Criar pedido com split
+post
+Capturar cobrança com split
+post
+Cancelar cobrança com split
+del
+Res.264/349: Interface Eletrônica para Sellers
+Tokenizecard JS
+Tokenizecard JS
+Alternativas ao Tokenizecard JS
+Webhook
+Visão geral sobre Webhooks
+Pagar.me API - Register V5
+Getting Started With Your API
+Antecipações
+Objeto antecipação
+Criando uma antecipação
+post
+Simulando uma Antecipação Spot
+get
+Obtendo os limites de antecipação
+get
+Cancelando uma antecipação pending
+post
+Retornando antecipações
+get
+Liquidações
+Objeto Settlements
+Retornando pagamentos
+get
+Retornando pagamentos por recebedor
+get
+Retornando um pagamento
+get
+Transferências
+Objeto Transferência
+Criando uma transferência
+post
+Retornando transferências
+get
+Retornando uma transferência
+get
+Cancelando uma transferência
+post
+Retornando o comprovante de uma transferência
+post
+Powered by 
+Criar pedido com split
+post
+https://api.pagar.me/core/v5/orders
+Para realizar pedidos com split, você deve criar um objeto order com o objeto split.
+Para formar o objeto split, você deve primeiramente cadastrar recebedores.
+O objeto order com split possui os seguintes atributos:
+Recent Requests
+Log in to see full request history
+Time
+Status
+User Agent
+
+
+Make a request to see history.
+
+0 Requests This Month
+❗️
+Pedidos com análise de fraude
+Para pedidos com split que serão submetidos a análise de fraude o envio do billing_address é obrigatório.
+Body Params
+code
+string
+Código identificador do pedido no sistema da loja. Max: 52 caracteres.
+items
+array of objects
+required
+Itens do pedido. Saiba mais sobre itens do pedido
+ADD object
+customer_id
+string
+Código do cliente.
+customer
+object
+Dados do cliente. Obrigatório caso o customer_id não seja informado. Saiba mais sobre clientes
+customer object
+shipping
+object
+Dados para entrega.
+shipping object
+payments
+array of objects
+required
+Lista de dados de pagamento. Saiba mais sobre pagamentos.
+ADD object
+closed
+boolean
+Informa se o pedido será criado aberto ou fechado
+truefalse
+metadata
+string
+Objeto chave/valor utilizado para armazenar informações adicionais sobre o pedido.
+Responses
+200
+200
+400
+400
+Updated over 2 years ago
+
+Split
+Capturar cobrança com split
+Did this page help you?
+Language
+Shell
+Node
+Ruby
+PHP
+Python
+Credentials
+Basic
+base64
+:
+1
+curl --request POST \
+2
+    --url https://api.pagar.me/core/v5/orders \
+3
+    --header 'accept: application/json' \
+4
+    --header 'content-type: application/json'
+Try It!
+Response
+Click Try It! to start a request and see the response here! Or choose an example:
+application/json
+200 - Result400 - Result
+
+
+
+Jump to Content
+
+GuidesSuporteAPI Reference
+Search
+CTRL-K
+JUMP TOCTRL-/
+Pagar.me API
+Introdução
+Segurança
+Autenticação
+Erros
+Paginação
+Metadata
+Telefones
+Entregas
+Facilitadores de pagamento (Dados de Subadquirente)
+Carteira de clientes
+Clientes
+Cartões
+Endereços
+BIN
+Pagamentos
+Visão Geral sobre Pagamento
+Pedidos
+Item do pedido
+Cobranças
+Antifraude
+Visão Geral sobre Antifraude
+Link de Pagamento
+Link de Pagamento
+Criar link de pagamento
+post
+Obter link de pagamento
+get
+Obter links de pagamento
+get
+Ativar link de pagamento em construção
+patch
+Cancelar link de pagamento
+patch
+Recorrência
+Precificação
+Planos
+Assinaturas
+Item da assinatura
+Uso de um item da assinatura
+Item do plano
+Desconto
+Incremento
+Faturas
+Ciclos
+Split
+Recebedores
+Recebedores
+Conta bancária
+Saldo
+Saque
+Configurações de transferência
+Configurações de antecipação automática
+financeiro
+Recebíveis
+Operações de Saldo
+Marketplace
+Visão Geral do Marketplace
+Split
+Criar pedido com split
+post
+Capturar cobrança com split
+post
+Cancelar cobrança com split
+del
+Res.264/349: Interface Eletrônica para Sellers
+Tokenizecard JS
+Tokenizecard JS
+Alternativas ao Tokenizecard JS
+Webhook
+Visão geral sobre Webhooks
+Pagar.me API - Register V5
+Getting Started With Your API
+Antecipações
+Objeto antecipação
+Criando uma antecipação
+post
+Simulando uma Antecipação Spot
+get
+Obtendo os limites de antecipação
+get
+Cancelando uma antecipação pending
+post
+Retornando antecipações
+get
+Liquidações
+Objeto Settlements
+Retornando pagamentos
+get
+Retornando pagamentos por recebedor
+get
+Retornando um pagamento
+get
+Transferências
+Objeto Transferência
+Criando uma transferência
+post
+Retornando transferências
+get
+Retornando uma transferência
+get
+Cancelando uma transferência
+post
+Retornando o comprovante de uma transferência
+post
+Powered by 
+Capturar cobrança com split
+post
+https://api.pagar.me/core/v5/charges/{charge_id}/capture
+Rota para capturar uma cobrança com split, definindo a regra de split e os recebedor que irão participar da divisão dos pagamentos.
+Recent Requests
+Log in to see full request history
+Time
+Status
+User Agent
+
+
+Make a request to see history.
+
+0 Requests This Month
+📘
+Capturar pedidos com Split
+Apenas cobranças criadas e autorizadas sem Split podem ser capturadas com regras de Split.
+O envio de novas regras de Split, diferentes das regras enviadas na autorização, não irão sobrescrever as regras enviadas anteriormente.
+Path Params
+charge_id
+string
+required
+Código da cobrança.
+Body Params
+amount
+int32
+Valor a ser capturado. Caso não seja informado, será considerado o valor total da cobrança.
+split
+array of objects
+Lista de regras de split.
+ADD object
+Responses
+200
+200
+400
+400
+Updated over 4 years ago
+
+Criar pedido com split
+Cancelar cobrança com split
+Did this page help you?
+Language
+Shell
+Node
+Ruby
+PHP
+Python
+Credentials
+Basic
+base64
+:
+1
+curl --request POST \
+2
+    --url https://api.pagar.me/core/v5/charges/charge_id/capture \
+3
+    --header 'accept: application/json' \
+4
+    --header 'content-type: application/json'
+Try It!
+Response
+Click Try It! to start a request and see the response here! Or choose an example:
+application/json
+200 - Result400 - Result
+
+
+
+Jump to Content
+
+GuidesSuporteAPI Reference
+Search
+CTRL-K
+JUMP TOCTRL-/
+Pagar.me API
+Introdução
+Segurança
+Autenticação
+Erros
+Paginação
+Metadata
+Telefones
+Entregas
+Facilitadores de pagamento (Dados de Subadquirente)
+Carteira de clientes
+Clientes
+Cartões
+Endereços
+BIN
+Pagamentos
+Visão Geral sobre Pagamento
+Pedidos
+Item do pedido
+Cobranças
+Antifraude
+Visão Geral sobre Antifraude
+Link de Pagamento
+Link de Pagamento
+Criar link de pagamento
+post
+Obter link de pagamento
+get
+Obter links de pagamento
+get
+Ativar link de pagamento em construção
+patch
+Cancelar link de pagamento
+patch
+Recorrência
+Precificação
+Planos
+Assinaturas
+Item da assinatura
+Uso de um item da assinatura
+Item do plano
+Desconto
+Incremento
+Faturas
+Ciclos
+Split
+Recebedores
+Recebedores
+Conta bancária
+Saldo
+Saque
+Configurações de transferência
+Configurações de antecipação automática
+financeiro
+Recebíveis
+Operações de Saldo
+Marketplace
+Visão Geral do Marketplace
+Split
+Criar pedido com split
+post
+Capturar cobrança com split
+post
+Cancelar cobrança com split
+del
+Res.264/349: Interface Eletrônica para Sellers
+Tokenizecard JS
+Tokenizecard JS
+Alternativas ao Tokenizecard JS
+Webhook
+Visão geral sobre Webhooks
+Pagar.me API - Register V5
+Getting Started With Your API
+Antecipações
+Objeto antecipação
+Criando uma antecipação
+post
+Simulando uma Antecipação Spot
+get
+Obtendo os limites de antecipação
+get
+Cancelando uma antecipação pending
+post
+Retornando antecipações
+get
+Liquidações
+Objeto Settlements
+Retornando pagamentos
+get
+Retornando pagamentos por recebedor
+get
+Retornando um pagamento
+get
+Transferências
+Objeto Transferência
+Criando uma transferência
+post
+Retornando transferências
+get
+Retornando uma transferência
+get
+Cancelando uma transferência
+post
+Retornando o comprovante de uma transferência
+post
+Powered by 
+Cancelar cobrança com split
+delete
+https://api.pagar.me/core/v5/charges/{charge_id}
+Rota para cancelar uma cobrança com split, definindo a regra de split e os recebedor que irão participar da divisão dos pagamentos.
+Recent Requests
+Log in to see full request history
+Time
+Status
+User Agent
+
+
+Make a request to see history.
+
+0 Requests This Month
+📘
+Cancelamento de uma cobrança com split
+Apenas cobranças capturadas com Split podem ser canceladas com regras de Split.
+O envio de novas regras de Split, diferentes das regras enviadas na autorização/captura de uma cobrança irão sobrescrever as regras enviadas na autorização.
+🚧
+Cancelamento parcial
+O envio das regras de split no cancelamento parcial de cobranças realizadas com split é fundamental, do contrário, as regras definas na autorização/captura da cobrança serão aplicadas de forma automática ao cancelamento.
+Path Params
+charge_id
+string
+required
+Código da cobrança.
+Body Params
+amount
+int32
+Valor a ser cancelado. Caso não seja informado, será considerado o valor total da cobrança.
+split
+array of objects
+Lista de regras de split.
+ADD object
+bank_account
+object
+Dados da conta bancária do comprador. Somente utilizado para estorno de boleto, onde é um parâmetro obrigatório.
+bank_account object
+Responses
+200
+200
+400
+400
+Updated over 2 years ago
+
+Capturar cobrança com split
+Res.264/349: Interface Eletrônica para Sellers
+Did this page help you?
+Language
+Shell
+Node
+Ruby
+PHP
+Python
+Credentials
+Basic
+base64
+:
+1
+curl --request DELETE \
+2
+    --url https://api.pagar.me/core/v5/charges/charge_id \
+3
+    --header 'accept: application/json' \
+4
+    --header 'content-type: application/json'
+Try It!
+Response
+Click Try It! to start a request and see the response here! Or choose an example:
+application/json
+200 - Result400 - Result
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

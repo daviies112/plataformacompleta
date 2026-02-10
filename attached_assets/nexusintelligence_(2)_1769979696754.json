@@ -1,0 +1,1034 @@
+{
+    "template_id": "69388f23033903926e62efcd",
+    "name": "nexusintelligence",
+    "default": "",
+    "region": "in",
+    "id": "69388f23033903926e62efcd",
+    "customerId": "69388eebbd0dab5f9a014bdc",
+    "appId": "69388eebbd0dab5f9a014bdd",
+    "roles": {
+        "__internal_recorder": {
+            "name": "__internal_recorder",
+            "role_id": "c886e123-a657-4822-a78f-34aeaf7e0762",
+            "publishParams": {
+                "allowed": [],
+                "audio": {
+                    "bitRate": 32,
+                    "codec": "opus"
+                },
+                "video": {
+                    "bitRate": 300,
+                    "codec": "vp8",
+                    "frameRate": 15,
+                    "width": 480,
+                    "height": 360
+                },
+                "screen": {
+                    "codec": "vp8",
+                    "frameRate": 10,
+                    "width": 1920,
+                    "height": 1080
+                },
+                "simulcast": {
+                    "video": {},
+                    "screen": {}
+                },
+                "videoSimulcastLayers": {},
+                "screenSimulcastLayers": {}
+            },
+            "subscribeParams": {
+                "subscribeToRoles": [
+                    "guest",
+                    "host"
+                ],
+                "maxSubsBitRate": 3200,
+                "subscribeDegradation": {
+                    "packetLossThreshold": 25,
+                    "degradeGracePeriodSeconds": 1,
+                    "recoverGracePeriodSeconds": 4
+                }
+            },
+            "permissions": {
+                "hlsStreaming": false,
+                "rtmpStreaming": false,
+                "browserRecording": false,
+                "sendRoomState": true
+            },
+            "priority": 1,
+            "maxPeerCount": 0
+        },
+        "guest": {
+            "name": "guest",
+            "role_id": "e2895802-fa8e-47f9-8856-c0bf7c72daea",
+            "publishParams": {
+                "allowed": [
+                    "audio",
+                    "video",
+                    "screen"
+                ],
+                "audio": {
+                    "bitRate": 32,
+                    "codec": "opus"
+                },
+                "video": {
+                    "bitRate": 850,
+                    "codec": "vp8",
+                    "frameRate": 15,
+                    "width": 1280,
+                    "height": 720
+                },
+                "screen": {
+                    "codec": "vp8",
+                    "frameRate": 10,
+                    "width": 1920,
+                    "height": 1080
+                },
+                "simulcast": {
+                    "video": {
+                        "layers": [
+                            {
+                                "rid": "f",
+                                "scaleResolutionDownBy": 1,
+                                "maxBitrate": 850,
+                                "maxFramerate": 15
+                            },
+                            {
+                                "rid": "h",
+                                "scaleResolutionDownBy": 2,
+                                "maxBitrate": 300,
+                                "maxFramerate": 15
+                            },
+                            {
+                                "rid": "q",
+                                "scaleResolutionDownBy": 4,
+                                "maxBitrate": 120,
+                                "maxFramerate": 15
+                            }
+                        ]
+                    },
+                    "screen": {}
+                },
+                "videoSimulcastLayers": {},
+                "screenSimulcastLayers": {}
+            },
+            "subscribeParams": {
+                "subscribeToRoles": [
+                    "host",
+                    "guest"
+                ],
+                "maxSubsBitRate": 3200,
+                "subscribeDegradation": {
+                    "packetLossThreshold": 25,
+                    "degradeGracePeriodSeconds": 1,
+                    "recoverGracePeriodSeconds": 4
+                }
+            },
+            "permissions": {
+                "hlsStreaming": true,
+                "rtmpStreaming": true,
+                "browserRecording": true,
+                "sendRoomState": true,
+                "endRoom": true,
+                "removeOthers": true,
+                "mute": true,
+                "unmute": true,
+                "changeRole": true,
+                "pollWrite": true,
+                "pollRead": true
+            },
+            "priority": 1,
+            "maxPeerCount": 0
+        },
+        "host": {
+            "name": "host",
+            "role_id": "0d1ec5f7-3ca6-4fb5-a166-dea1066d2218",
+            "publishParams": {
+                "allowed": [
+                    "audio",
+                    "video",
+                    "screen"
+                ],
+                "audio": {
+                    "bitRate": 32,
+                    "codec": "opus"
+                },
+                "video": {
+                    "bitRate": 850,
+                    "codec": "vp8",
+                    "frameRate": 15,
+                    "width": 1280,
+                    "height": 720
+                },
+                "screen": {
+                    "codec": "vp8",
+                    "frameRate": 10,
+                    "width": 1920,
+                    "height": 1080
+                },
+                "simulcast": {
+                    "video": {
+                        "layers": [
+                            {
+                                "rid": "f",
+                                "scaleResolutionDownBy": 1,
+                                "maxBitrate": 850,
+                                "maxFramerate": 15
+                            },
+                            {
+                                "rid": "h",
+                                "scaleResolutionDownBy": 2,
+                                "maxBitrate": 300,
+                                "maxFramerate": 15
+                            },
+                            {
+                                "rid": "q",
+                                "scaleResolutionDownBy": 4,
+                                "maxBitrate": 120,
+                                "maxFramerate": 15
+                            }
+                        ]
+                    },
+                    "screen": {}
+                },
+                "videoSimulcastLayers": {},
+                "screenSimulcastLayers": {}
+            },
+            "subscribeParams": {
+                "subscribeToRoles": [
+                    "host",
+                    "guest"
+                ],
+                "maxSubsBitRate": 3200,
+                "subscribeDegradation": {
+                    "packetLossThreshold": 25,
+                    "degradeGracePeriodSeconds": 1,
+                    "recoverGracePeriodSeconds": 4
+                }
+            },
+            "permissions": {
+                "hlsStreaming": false,
+                "rtmpStreaming": false,
+                "browserRecording": true,
+                "sendRoomState": true,
+                "endRoom": true,
+                "removeOthers": true,
+                "mute": true,
+                "unmute": true,
+                "changeRole": true,
+                "pollWrite": true,
+                "pollRead": true
+            },
+            "priority": 1,
+            "maxPeerCount": 0
+        },
+        "viewer-near-realtime": {
+            "name": "viewer-near-realtime",
+            "role_id": "e096d720-3f86-4113-8e4c-ec40f30612e7",
+            "publishParams": {
+                "allowed": [],
+                "audio": {
+                    "bitRate": 32,
+                    "codec": "opus"
+                },
+                "video": {
+                    "bitRate": 300,
+                    "codec": "vp8",
+                    "frameRate": 15,
+                    "width": 480,
+                    "height": 360
+                },
+                "screen": {
+                    "codec": "vp8",
+                    "frameRate": 10,
+                    "width": 1920,
+                    "height": 1080
+                },
+                "simulcast": {
+                    "video": {},
+                    "screen": {}
+                },
+                "videoSimulcastLayers": {},
+                "screenSimulcastLayers": {}
+            },
+            "subscribeParams": {
+                "maxSubsBitRate": 3200,
+                "subscribeDegradation": {
+                    "packetLossThreshold": 25,
+                    "degradeGracePeriodSeconds": 1,
+                    "recoverGracePeriodSeconds": 4
+                }
+            },
+            "permissions": {
+                "hlsStreaming": false,
+                "rtmpStreaming": false,
+                "browserRecording": false,
+                "sendRoomState": true
+            },
+            "priority": 1,
+            "maxPeerCount": 0
+        }
+    },
+    "settings": {
+        "region": "in",
+        "subscribeDegradation": {},
+        "recording": null,
+        "roomState": {
+            "messageInterval": 5,
+            "sendPeerList": true,
+            "stopRoomStateOnJoin": true,
+            "enabled": true
+        },
+        "retry": {}
+    },
+    "destinations": {
+        "browserRecordings": {
+            "3419d519-b211-4974-802d-a194740e2502": {
+                "name": "3419d519-b211-4974-802d-a194740e2502",
+                "role": "__internal_recorder",
+                "width": 1280,
+                "height": 720,
+                "maxDuration": 14400,
+                "thumbnails": {
+                    "width": 0,
+                    "height": 0
+                },
+                "presignDuration": 259200,
+                "autoStopTimeout": 0
+            }
+        },
+        "rtmpDestinations": {
+            "default": {
+                "name": "default",
+                "role": "__internal_recorder",
+                "width": 1280,
+                "height": 720,
+                "maxDuration": 14400,
+                "rtmpUrls": null,
+                "recordingEnabled": true
+            }
+        },
+        "hlsDestinations": {
+            "05ff00d1-bc2f-40bd-956e-47433b7dff11": {
+                "name": "05ff00d1-bc2f-40bd-956e-47433b7dff11",
+                "role": "__internal_recorder",
+                "maxDuration": 14400,
+                "layers": [
+                    {
+                        "width": 1280,
+                        "height": 720,
+                        "videoBitrate": 1500,
+                        "audioBitrate": 64
+                    },
+                    {
+                        "width": 960,
+                        "height": 540,
+                        "videoBitrate": 1000,
+                        "audioBitrate": 64
+                    },
+                    {
+                        "width": 852,
+                        "height": 480,
+                        "videoBitrate": 850,
+                        "audioBitrate": 64
+                    },
+                    {
+                        "width": 640,
+                        "height": 360,
+                        "videoBitrate": 450,
+                        "audioBitrate": 64
+                    }
+                ],
+                "playlistType": "live",
+                "numPlaylistSegments": 300,
+                "videoFrameRate": 25,
+                "recording": {
+                    "hlsVod": true,
+                    "layers": [
+                        {
+                            "width": 1280,
+                            "height": 720,
+                            "videoBitrate": 1500,
+                            "audioBitrate": 64
+                        },
+                        {
+                            "width": 960,
+                            "height": 540,
+                            "videoBitrate": 1000,
+                            "audioBitrate": 64
+                        },
+                        {
+                            "width": 852,
+                            "height": 480,
+                            "videoBitrate": 850,
+                            "audioBitrate": 64
+                        },
+                        {
+                            "width": 640,
+                            "height": 360,
+                            "videoBitrate": 450,
+                            "audioBitrate": 64
+                        }
+                    ],
+                    "thumbnails": {
+                        "width": 1280,
+                        "height": 720,
+                        "offsets": [
+                            60
+                        ]
+                    },
+                    "presignDuration": 259200,
+                    "singleFilePerLayerRecording": {},
+                    "HLSVodRecording": {},
+                    "enableZipUpload": false
+                }
+            }
+        },
+        "transcriptions": {
+            "52d2642d-2ccf-4e90-98b9-f342fdcc4d24": {
+                "name": "52d2642d-2ccf-4e90-98b9-f342fdcc4d24",
+                "role": "__internal_recorder",
+                "modes": [
+                    "live"
+                ],
+                "language": "en",
+                "summary": {
+                    "sections": [
+                        {
+                            "title": "Agenda",
+                            "format": "bullets"
+                        },
+                        {
+                            "title": "Key Points Discussed",
+                            "format": "bullets"
+                        },
+                        {
+                            "title": "Follow Up Action Items",
+                            "format": "bullets"
+                        },
+                        {
+                            "title": "Short Summary",
+                            "format": "paragraph"
+                        }
+                    ],
+                    "temperature": 0.5
+                }
+            }
+        }
+    },
+    "plugins": {
+        "whiteboard": {
+            "permissions": {
+                "admin": [
+                    "host"
+                ],
+                "reader": [
+                    "__internal_recorder"
+                ],
+                "writer": [
+                    "host"
+                ]
+            }
+        },
+        "noiseCancellation": {
+            "enabled": true
+        }
+    },
+    "createdAt": "2025-12-09T21:05:39.553Z",
+    "updatedAt": "2026-01-12T19:05:30.147Z",
+    "_id": "69388f23033903926e62efcd",
+    "customer": "69388eebbd0dab5f9a014bdc",
+    "recordings": [
+        {
+            "name": "3419d519-b211-4974-802d-a194740e2502",
+            "role": "__internal_recorder",
+            "maxDuration": 14400,
+            "thumbnails": {
+                "width": 0,
+                "height": 0
+            },
+            "presignDuration": 259200,
+            "compositeRecording": {
+                "browserComposite": {
+                    "enabled": true,
+                    "autoStopTimeout": 0,
+                    "width": 1280,
+                    "height": 720
+                },
+                "customComposite": {}
+            },
+            "trackRecording": {},
+            "streamRecording": {
+                "enabled": true,
+                "width": 1280,
+                "height": 720
+            },
+            "chatRecording": {}
+        }
+    ],
+    "subdomain": "nexusintelligence.app.100ms.live",
+    "cmsId": 1,
+    "ts_template_id": 1,
+    "room_id": "697fbc4558b83c59b56cfe69",
+    "room_enabled": true,
+    "role_layouts": {
+        "host": {
+            "id": "69388f247ccce9b6517fc27b",
+            "role_id": "0d1ec5f7-3ca6-4fb5-a166-dea1066d2218",
+            "template_id": "69388f23033903926e62efcd",
+            "app_id": "69388eebbd0dab5f9a014bdd",
+            "themes": [
+                {
+                    "name": "default",
+                    "default": true,
+                    "palette": {
+                        "primary_default": "#2572ED",
+                        "primary_bright": "#538DFF",
+                        "primary_dim": "#002D6D",
+                        "primary_disabled": "#004299",
+                        "on_primary_high": "#FFFFFF",
+                        "on_primary_medium": "#CCDAFF",
+                        "on_primary_low": "#84AAFF",
+                        "secondary_default": "#444954",
+                        "secondary_bright": "#70778B",
+                        "secondary_dim": "#293042",
+                        "secondary_disabled": "#404759",
+                        "on_secondary_high": "#FFFFFF",
+                        "on_secondary_medium": "#D3D9F0",
+                        "on_secondary_low": "#A4ABC0",
+                        "background_default": "#0B0E15",
+                        "background_dim": "#000000",
+                        "surface_default": "#191B23",
+                        "surface_bright": "#272A31",
+                        "surface_brighter": "#2E3038",
+                        "surface_dim": "#11131A",
+                        "on_surface_high": "#EFF0FA",
+                        "on_surface_medium": "#C5C6D0",
+                        "on_surface_low": "#8F9099",
+                        "border_default": "#1D1F27",
+                        "border_bright": "#272A31",
+                        "alert_success": "#36B37E",
+                        "alert_warning": "#FFAB00",
+                        "alert_error_default": "#C74E5B",
+                        "alert_error_bright": "#FFB2B6",
+                        "alert_error_brighter": "#FFEDEC",
+                        "alert_error_dim": "#270005"
+                    }
+                }
+            ],
+            "typography": {
+                "font_family": "Inter"
+            },
+            "logo": {
+                "url": "https://storage.googleapis.com/100ms-cms-prod/cms/100ms_18a29f69f2/100ms_18a29f69f2.png"
+            },
+            "screens": {
+                "preview": {
+                    "default": {
+                        "elements": {
+                            "preview_header": {
+                                "title": "Get Started",
+                                "sub_title": "Setup your audio and video before joining"
+                            },
+                            "join_form": {
+                                "join_btn_type": "JOIN_BTN_TYPE_JOIN_ONLY",
+                                "join_btn_label": "Join Now",
+                                "go_live_btn_label": "Go Live"
+                            },
+                            "virtual_background": {
+                                "background_media": [
+                                    {
+                                        "url": "https://img-vb.100ms.live/layouts/defaults/vb-1.jpg",
+                                        "media_type": "IMAGE"
+                                    },
+                                    {
+                                        "url": "https://img-vb.100ms.live/layouts/defaults/vb-2.jpg",
+                                        "media_type": "IMAGE"
+                                    },
+                                    {
+                                        "url": "https://img-vb.100ms.live/layouts/defaults/vb-3.png",
+                                        "media_type": "IMAGE"
+                                    },
+                                    {
+                                        "url": "https://img-vb.100ms.live/layouts/defaults/vb-4.jpg",
+                                        "media_type": "IMAGE"
+                                    },
+                                    {
+                                        "url": "https://img-vb.100ms.live/layouts/defaults/vb-5.jpg",
+                                        "media_type": "IMAGE"
+                                    },
+                                    {
+                                        "url": "https://img-vb.100ms.live/layouts/defaults/vb-6.jpg",
+                                        "media_type": "IMAGE"
+                                    },
+                                    {
+                                        "url": "https://img-vb.100ms.live/layouts/defaults/vb-7.jpg",
+                                        "media_type": "IMAGE"
+                                    },
+                                    {
+                                        "url": "https://img-vb.100ms.live/layouts/defaults/vb-8.jpg",
+                                        "media_type": "IMAGE"
+                                    },
+                                    {
+                                        "url": "https://img-vb.100ms.live/layouts/defaults/vb-9.jpg",
+                                        "media_type": "IMAGE"
+                                    },
+                                    {
+                                        "url": "https://img-vb.100ms.live/layouts/defaults/vb-10.jpg",
+                                        "media_type": "IMAGE"
+                                    },
+                                    {
+                                        "url": "https://img-vb.100ms.live/layouts/defaults/vb-11.jpg",
+                                        "media_type": "IMAGE"
+                                    },
+                                    {
+                                        "url": "https://img-vb.100ms.live/layouts/defaults/vb-12.jpg",
+                                        "media_type": "IMAGE"
+                                    }
+                                ]
+                            },
+                            "noise_cancellation": {
+                                "enabled_by_default": true
+                            }
+                        }
+                    }
+                },
+                "conferencing": {
+                    "default": {
+                        "elements": {
+                            "chat": {
+                                "initial_state": "CHAT_STATE_CLOSE",
+                                "allow_pinning_messages": true,
+                                "public_chat_enabled": true,
+                                "roles_whitelist": [
+                                    "guest",
+                                    "host"
+                                ],
+                                "private_chat_enabled": true,
+                                "chat_title": "Chat",
+                                "message_placeholder": "Say something...",
+                                "real_time_controls": {
+                                    "can_disable_chat": true,
+                                    "can_block_user": true,
+                                    "can_hide_message": true
+                                }
+                            },
+                            "participant_list": {},
+                            "video_tile_layout": {
+                                "grid": {
+                                    "enable_local_tile_inset": true,
+                                    "tiles_in_view": 9
+                                }
+                            },
+                            "emoji_reactions": {},
+                            "brb": {},
+                            "hand_raise": {},
+                            "virtual_background": {
+                                "background_media": [
+                                    {
+                                        "url": "https://img-vb.100ms.live/layouts/defaults/vb-1.jpg",
+                                        "media_type": "IMAGE"
+                                    },
+                                    {
+                                        "url": "https://img-vb.100ms.live/layouts/defaults/vb-2.jpg",
+                                        "media_type": "IMAGE"
+                                    },
+                                    {
+                                        "url": "https://img-vb.100ms.live/layouts/defaults/vb-3.png",
+                                        "media_type": "IMAGE"
+                                    },
+                                    {
+                                        "url": "https://img-vb.100ms.live/layouts/defaults/vb-4.jpg",
+                                        "media_type": "IMAGE"
+                                    },
+                                    {
+                                        "url": "https://img-vb.100ms.live/layouts/defaults/vb-5.jpg",
+                                        "media_type": "IMAGE"
+                                    },
+                                    {
+                                        "url": "https://img-vb.100ms.live/layouts/defaults/vb-6.jpg",
+                                        "media_type": "IMAGE"
+                                    },
+                                    {
+                                        "url": "https://img-vb.100ms.live/layouts/defaults/vb-7.jpg",
+                                        "media_type": "IMAGE"
+                                    },
+                                    {
+                                        "url": "https://img-vb.100ms.live/layouts/defaults/vb-8.jpg",
+                                        "media_type": "IMAGE"
+                                    },
+                                    {
+                                        "url": "https://img-vb.100ms.live/layouts/defaults/vb-9.jpg",
+                                        "media_type": "IMAGE"
+                                    },
+                                    {
+                                        "url": "https://img-vb.100ms.live/layouts/defaults/vb-10.jpg",
+                                        "media_type": "IMAGE"
+                                    },
+                                    {
+                                        "url": "https://img-vb.100ms.live/layouts/defaults/vb-11.jpg",
+                                        "media_type": "IMAGE"
+                                    },
+                                    {
+                                        "url": "https://img-vb.100ms.live/layouts/defaults/vb-12.jpg",
+                                        "media_type": "IMAGE"
+                                    }
+                                ]
+                            },
+                            "noise_cancellation": {
+                                "enabled_by_default": true
+                            }
+                        }
+                    }
+                },
+                "leave": {}
+            },
+            "role": "host"
+        },
+        "guest": {
+            "id": "69388f24fff8cd0eddde6966",
+            "role_id": "e2895802-fa8e-47f9-8856-c0bf7c72daea",
+            "template_id": "69388f23033903926e62efcd",
+            "app_id": "69388eebbd0dab5f9a014bdd",
+            "themes": [
+                {
+                    "name": "default",
+                    "default": true,
+                    "palette": {
+                        "primary_default": "#2572ED",
+                        "primary_bright": "#538DFF",
+                        "primary_dim": "#002D6D",
+                        "primary_disabled": "#004299",
+                        "on_primary_high": "#FFFFFF",
+                        "on_primary_medium": "#CCDAFF",
+                        "on_primary_low": "#84AAFF",
+                        "secondary_default": "#444954",
+                        "secondary_bright": "#70778B",
+                        "secondary_dim": "#293042",
+                        "secondary_disabled": "#404759",
+                        "on_secondary_high": "#FFFFFF",
+                        "on_secondary_medium": "#D3D9F0",
+                        "on_secondary_low": "#A4ABC0",
+                        "background_default": "#0B0E15",
+                        "background_dim": "#000000",
+                        "surface_default": "#191B23",
+                        "surface_bright": "#272A31",
+                        "surface_brighter": "#2E3038",
+                        "surface_dim": "#11131A",
+                        "on_surface_high": "#EFF0FA",
+                        "on_surface_medium": "#C5C6D0",
+                        "on_surface_low": "#8F9099",
+                        "border_default": "#1D1F27",
+                        "border_bright": "#272A31",
+                        "alert_success": "#36B37E",
+                        "alert_warning": "#FFAB00",
+                        "alert_error_default": "#C74E5B",
+                        "alert_error_bright": "#FFB2B6",
+                        "alert_error_brighter": "#FFEDEC",
+                        "alert_error_dim": "#270005"
+                    }
+                }
+            ],
+            "typography": {
+                "font_family": "Inter"
+            },
+            "logo": {
+                "url": "https://storage.googleapis.com/100ms-cms-prod/cms/100ms_18a29f69f2/100ms_18a29f69f2.png"
+            },
+            "screens": {
+                "preview": {
+                    "default": {
+                        "elements": {
+                            "preview_header": {
+                                "title": "Get Started",
+                                "sub_title": "Setup your audio and video before joining"
+                            },
+                            "join_form": {
+                                "join_btn_type": "JOIN_BTN_TYPE_JOIN_ONLY",
+                                "join_btn_label": "Join Now",
+                                "go_live_btn_label": "Go Live"
+                            },
+                            "virtual_background": {
+                                "background_media": [
+                                    {
+                                        "url": "https://img-vb.100ms.live/layouts/defaults/vb-1.jpg",
+                                        "media_type": "IMAGE"
+                                    },
+                                    {
+                                        "url": "https://img-vb.100ms.live/layouts/defaults/vb-2.jpg",
+                                        "media_type": "IMAGE"
+                                    },
+                                    {
+                                        "url": "https://img-vb.100ms.live/layouts/defaults/vb-3.png",
+                                        "media_type": "IMAGE"
+                                    },
+                                    {
+                                        "url": "https://img-vb.100ms.live/layouts/defaults/vb-4.jpg",
+                                        "media_type": "IMAGE"
+                                    },
+                                    {
+                                        "url": "https://img-vb.100ms.live/layouts/defaults/vb-5.jpg",
+                                        "media_type": "IMAGE"
+                                    },
+                                    {
+                                        "url": "https://img-vb.100ms.live/layouts/defaults/vb-6.jpg",
+                                        "media_type": "IMAGE"
+                                    },
+                                    {
+                                        "url": "https://img-vb.100ms.live/layouts/defaults/vb-7.jpg",
+                                        "media_type": "IMAGE"
+                                    },
+                                    {
+                                        "url": "https://img-vb.100ms.live/layouts/defaults/vb-8.jpg",
+                                        "media_type": "IMAGE"
+                                    },
+                                    {
+                                        "url": "https://img-vb.100ms.live/layouts/defaults/vb-9.jpg",
+                                        "media_type": "IMAGE"
+                                    },
+                                    {
+                                        "url": "https://img-vb.100ms.live/layouts/defaults/vb-10.jpg",
+                                        "media_type": "IMAGE"
+                                    },
+                                    {
+                                        "url": "https://img-vb.100ms.live/layouts/defaults/vb-11.jpg",
+                                        "media_type": "IMAGE"
+                                    },
+                                    {
+                                        "url": "https://img-vb.100ms.live/layouts/defaults/vb-12.jpg",
+                                        "media_type": "IMAGE"
+                                    }
+                                ]
+                            },
+                            "noise_cancellation": {
+                                "enabled_by_default": true
+                            }
+                        }
+                    }
+                },
+                "conferencing": {
+                    "default": {
+                        "elements": {
+                            "chat": {
+                                "initial_state": "CHAT_STATE_CLOSE",
+                                "public_chat_enabled": true,
+                                "roles_whitelist": [
+                                    "host"
+                                ],
+                                "private_chat_enabled": true,
+                                "chat_title": "Chat",
+                                "message_placeholder": "Say something...",
+                                "real_time_controls": {}
+                            },
+                            "participant_list": {},
+                            "video_tile_layout": {
+                                "grid": {
+                                    "enable_local_tile_inset": true,
+                                    "tiles_in_view": 9
+                                }
+                            },
+                            "emoji_reactions": {},
+                            "hand_raise": {},
+                            "virtual_background": {
+                                "background_media": [
+                                    {
+                                        "url": "https://img-vb.100ms.live/layouts/defaults/vb-1.jpg",
+                                        "media_type": "IMAGE"
+                                    },
+                                    {
+                                        "url": "https://img-vb.100ms.live/layouts/defaults/vb-2.jpg",
+                                        "media_type": "IMAGE"
+                                    },
+                                    {
+                                        "url": "https://img-vb.100ms.live/layouts/defaults/vb-3.png",
+                                        "media_type": "IMAGE"
+                                    },
+                                    {
+                                        "url": "https://img-vb.100ms.live/layouts/defaults/vb-4.jpg",
+                                        "media_type": "IMAGE"
+                                    },
+                                    {
+                                        "url": "https://img-vb.100ms.live/layouts/defaults/vb-5.jpg",
+                                        "media_type": "IMAGE"
+                                    },
+                                    {
+                                        "url": "https://img-vb.100ms.live/layouts/defaults/vb-6.jpg",
+                                        "media_type": "IMAGE"
+                                    },
+                                    {
+                                        "url": "https://img-vb.100ms.live/layouts/defaults/vb-7.jpg",
+                                        "media_type": "IMAGE"
+                                    },
+                                    {
+                                        "url": "https://img-vb.100ms.live/layouts/defaults/vb-8.jpg",
+                                        "media_type": "IMAGE"
+                                    },
+                                    {
+                                        "url": "https://img-vb.100ms.live/layouts/defaults/vb-9.jpg",
+                                        "media_type": "IMAGE"
+                                    },
+                                    {
+                                        "url": "https://img-vb.100ms.live/layouts/defaults/vb-10.jpg",
+                                        "media_type": "IMAGE"
+                                    },
+                                    {
+                                        "url": "https://img-vb.100ms.live/layouts/defaults/vb-11.jpg",
+                                        "media_type": "IMAGE"
+                                    },
+                                    {
+                                        "url": "https://img-vb.100ms.live/layouts/defaults/vb-12.jpg",
+                                        "media_type": "IMAGE"
+                                    }
+                                ]
+                            },
+                            "noise_cancellation": {
+                                "enabled_by_default": true
+                            }
+                        }
+                    }
+                },
+                "leave": {}
+            },
+            "role": "guest"
+        },
+        "viewer-near-realtime": {
+            "id": "696545b8fff8cd0edddf142a",
+            "role_id": "e096d720-3f86-4113-8e4c-ec40f30612e7",
+            "template_id": "69388f23033903926e62efcd",
+            "app_id": "69388eebbd0dab5f9a014bdd",
+            "themes": [
+                {
+                    "name": "default",
+                    "default": true,
+                    "palette": {
+                        "primary_default": "#2572ED",
+                        "primary_bright": "#538DFF",
+                        "primary_dim": "#002D6D",
+                        "primary_disabled": "#004299",
+                        "on_primary_high": "#FFFFFF",
+                        "on_primary_medium": "#CCDAFF",
+                        "on_primary_low": "#84AAFF",
+                        "secondary_default": "#444954",
+                        "secondary_bright": "#70778B",
+                        "secondary_dim": "#293042",
+                        "secondary_disabled": "#404759",
+                        "on_secondary_high": "#FFFFFF",
+                        "on_secondary_medium": "#D3D9F0",
+                        "on_secondary_low": "#A4ABC0",
+                        "background_default": "#0B0E15",
+                        "background_dim": "#000000",
+                        "surface_default": "#191B23",
+                        "surface_bright": "#272A31",
+                        "surface_brighter": "#2E3038",
+                        "surface_dim": "#11131A",
+                        "on_surface_high": "#EFF0FA",
+                        "on_surface_medium": "#C5C6D0",
+                        "on_surface_low": "#8F9099",
+                        "border_default": "#1D1F27",
+                        "border_bright": "#272A31",
+                        "alert_success": "#36B37E",
+                        "alert_warning": "#FFAB00",
+                        "alert_error_default": "#C74E5B",
+                        "alert_error_bright": "#FFB2B6",
+                        "alert_error_brighter": "#FFEDEC",
+                        "alert_error_dim": "#270005"
+                    }
+                }
+            ],
+            "typography": {
+                "font_family": "Inter"
+            },
+            "logo": {
+                "url": "https://storage.googleapis.com/100ms-cms-prod/cms/100ms_18a29f69f2/100ms_18a29f69f2.png"
+            },
+            "screens": {
+                "preview": {
+                    "default": {
+                        "elements": {
+                            "preview_header": {
+                                "title": "Get Started",
+                                "sub_title": "Enter your name before joining"
+                            },
+                            "join_form": {
+                                "join_btn_type": "JOIN_BTN_TYPE_JOIN_ONLY",
+                                "join_btn_label": "Join Now",
+                                "go_live_btn_label": "Go Live"
+                            },
+                            "virtual_background": {
+                                "background_media": [
+                                    {
+                                        "url": "https://img-vb.100ms.live/layouts/defaults/vb-1.jpg",
+                                        "media_type": "IMAGE"
+                                    },
+                                    {
+                                        "url": "https://img-vb.100ms.live/layouts/defaults/vb-2.jpg",
+                                        "media_type": "IMAGE"
+                                    },
+                                    {
+                                        "url": "https://img-vb.100ms.live/layouts/defaults/vb-3.png",
+                                        "media_type": "IMAGE"
+                                    },
+                                    {
+                                        "url": "https://img-vb.100ms.live/layouts/defaults/vb-4.jpg",
+                                        "media_type": "IMAGE"
+                                    },
+                                    {
+                                        "url": "https://img-vb.100ms.live/layouts/defaults/vb-5.jpg",
+                                        "media_type": "IMAGE"
+                                    },
+                                    {
+                                        "url": "https://img-vb.100ms.live/layouts/defaults/vb-6.jpg",
+                                        "media_type": "IMAGE"
+                                    },
+                                    {
+                                        "url": "https://img-vb.100ms.live/layouts/defaults/vb-7.jpg",
+                                        "media_type": "IMAGE"
+                                    },
+                                    {
+                                        "url": "https://img-vb.100ms.live/layouts/defaults/vb-8.jpg",
+                                        "media_type": "IMAGE"
+                                    },
+                                    {
+                                        "url": "https://img-vb.100ms.live/layouts/defaults/vb-9.jpg",
+                                        "media_type": "IMAGE"
+                                    },
+                                    {
+                                        "url": "https://img-vb.100ms.live/layouts/defaults/vb-10.jpg",
+                                        "media_type": "IMAGE"
+                                    },
+                                    {
+                                        "url": "https://img-vb.100ms.live/layouts/defaults/vb-11.jpg",
+                                        "media_type": "IMAGE"
+                                    },
+                                    {
+                                        "url": "https://img-vb.100ms.live/layouts/defaults/vb-12.jpg",
+                                        "media_type": "IMAGE"
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                },
+                "conferencing": {
+                    "hls_live_streaming": {
+                        "elements": {
+                            "chat": {
+                                "initial_state": "CHAT_STATE_OPEN",
+                                "is_overlay": true,
+                                "public_chat_enabled": true,
+                                "chat_title": "Chat",
+                                "message_placeholder": "Send a message...",
+                                "real_time_controls": {}
+                            },
+                            "participant_list": {},
+                            "emoji_reactions": {},
+                            "header": {},
+                            "hand_raise": {}
+                        }
+                    }
+                },
+                "leave": {}
+            },
+            "role": "viewer-near-realtime"
+        }
+    }
+}

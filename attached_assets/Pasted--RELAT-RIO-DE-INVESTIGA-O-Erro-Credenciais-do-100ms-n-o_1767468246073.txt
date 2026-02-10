@@ -1,0 +1,334 @@
+🔍 RELATÓRIO DE INVESTIGAÇÃO: Erro "Credenciais do 100ms não configuradas"
+Data: 03 de Janeiro de 2026
+Erro: 400: {"success":false,"message":"Credenciais do 100ms não configuradas"}
+Status: ✅ Problemas Identificados
+
+📊 RESUMO EXECUTIVO
+Após análise exaustiva do código, identifiquei 4 problemas principais que causam o erro de credenciais não configuradas, mesmo após você ter salvo as configurações.
+
+🔴 PROBLEMA #1: DIVERGÊNCIA DE TENANT IDs
+Descrição
+O sistema está usando IDs diferentes para salvar e buscar as credenciais.
+
+Evidências no Código
+Quando você SALVA (via /configuracoes):
+
+// Arquivo: server/routes/config.ts (linha 21)
+import { hms100msConfig } from "../../shared/db-schema";
+// O endpoint de salvamento usa o tenantId da sessão atual
+const tenantId = req.user!.tenantId; // Ex: "dev-daviemericko_gmail_com"
+Quando o sistema BUSCA (ao criar reunião):
+
+// Arquivo: server/routes/meetings.ts (linhas 33-42)
+async function getHMS100msCredentials(tenantId: string) {
+  console.log(`[MEETINGS] Buscando credenciais para tenantId: "${tenantId}"`);
+  
+  // Normaliza para UUID fixo em desenvolvimento
+  const syncedTenantId = (tenantId === 'dev-daviemericko_gmail_com' || tenantId === 'system')
+    ? 'f5d8c8d9-7c9e-4b8a-9c7d-4e3b8a9c7d4e'  // ← UUID fixo
+    : tenantId;
+  console.log(`[MEETINGS] TenantId sincronizado: "${syncedTenantId}"`);
+  
+  // Busca na tabela hms_100ms_config
+  const [config] = await db
+    .select()
+    .from(hms100msConfig)
+    .where(eq(hms100msConfig.tenantId, syncedTenantId)); // ← Busca com UUID
+Problema
+Você salva com tenantId = "dev-daviemericko_gmail_com"
+Sistema busca com tenantId = "f5d8c8d9-7c9e-4b8a-9c7d-4e3b8a9c7d4e"
+Resultado: Credenciais não encontradas! ❌
+🔴 PROBLEMA #2: ENDPOINT DE CONFIGURAÇÃO 100MS NÃO EXISTE
+Descrição
+A tabela hms_100ms_config existe no schema, mas NÃO HÁ ENDPOINT para salvar credenciais nela!
+
+Evidências
+Tabela existe:
+
+// Arquivo: shared/db-schema.ts (linha 217)
+export const hms100msConfig = pgTable('hms_100ms_config', {
+  id: serial('id').primaryKey(),
+  tenantId: text('tenant_id').notNull(),
+  appAccessKey: text('app_access_key').notNull(),
+  appSecret: text('app_secret').notNull(),
+  managementToken: text('management_token'),
+  templateId: text('template_id'),
+  // ...
+});
+Mas o endpoint NÃO existe:
+
+// Arquivo: server/routes/config.ts
+// ❌ NÃO HÁ:
+// app.post("/api/config/hms-100ms", ...)
+// app.get("/api/config/hms-100ms", ...)
+// ✅ Existem para outras integrações:
+app.post("/api/config/redis", ...)
+app.post("/api/config/sentry", ...)
+app.post("/api/config/resend", ...)
+// ... mas 100ms está FALTANDO!
+Consequência
+Você está salvando as credenciais em outro lugar (provavelmente via frontend direto), mas o backend de reuniões busca na tabela hms_100ms_config que está vazia.
+
+🔴 PROBLEMA #3: NORMALIZAÇÃO INCONSISTENTE
+Descrição
+A normalização de tenant ID acontece em momentos diferentes e de formas diferentes.
+
+Evidências
+No middleware de autenticação:
+
+// Arquivo: server/routes/meetings.ts (linhas 89-121)
+router.use((req: Request, res: Response, next) =\u003e {
+  if (!req.session?.userId) {
+    if (process.env.NODE_ENV === 'development') {
+      // Usa UUID fixo para desenvolvimento
+      const DEV_TENANT_ID = 'f5d8c8d9-7c9e-4b8a-9c7d-4e3b8a9c7d4e';
+      (req as any).user = { 
+        id: DEV_TENANT_ID, 
+        tenantId: DEV_TENANT_ID,  // ← Já normalizado aqui
+        // ...
+      };
+      return next();
+    }
+    return res.status(401).json({ success: false, message: 'Não autenticado' });
+  }
+  
+  const tenantIdFromSession = req.session.tenantId || 'f5d8c8d9-7c9e-4b8a-9c7d-4e3b8a9c7d4e';
+  
+  // Normaliza NOVAMENTE
+  const syncedTenantId = tenantIdFromSession === 'dev-daviemericko_gmail_com'
+    ? 'f5d8c8d9-7c9e-4b8a-9c7d-4e3b8a9c7d4e'
+    : tenantIdFromSession;
+  
+  // ...
+});
+Na função de busca de credenciais:
+
+// Arquivo: server/routes/meetings.ts (linhas 37-39)
+// Normaliza PELA TERCEIRA VEZ!
+const syncedTenantId = (tenantId === 'dev-daviemericko_gmail_com' || tenantId === 'system')
+  ? 'f5d8c8d9-7c9e-4b8a-9c7d-4e3b8a9c7d4e'
+  : tenantId;
+Problema
+Normalização acontece em 3 lugares diferentes
+Se a sessão vier com dev-daviemericko_gmail_com, mas a função espera system, a normalização falha
+Inconsistência entre salvamento e busca
+🔴 PROBLEMA #4: VALIDAÇÃO UUID PREMATURA
+Descrição
+O código aborta a busca se o tenant ID não for um UUID válido, mesmo antes de tentar normalizar.
+
+Evidências
+// Arquivo: server/routes/meetings.ts (linhas 58-64)
+// Verifica se é UUID ANTES de tentar buscar
+const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(tenantId);
+if (!isUuid) {
+  console.warn(`[MEETINGS] tenantId "${tenantId}" is not a valid UUID, skipping meeting_tenants lookup`);
+  return null;  // ← RETORNA NULL PREMATURAMENTE!
+}
+Problema
+Se tenantId = "dev-daviemericko_gmail_com" (não é UUID)
+Código normaliza para UUID: f5d8c8d9-...
+MAS depois valida o UUID do tenantId ORIGINAL (não normalizado)
+Falha na validação e retorna null
+Sistema diz "credenciais não configuradas"
+🔍 FLUXO COMPLETO DO ERRO
+1. Usuário salva credenciais 100ms via /configuracoes
+   ↓
+   tenantId da sessão: "dev-daviemericko_gmail_com"
+   ↓
+   ❌ PROBLEMA: Não há endpoint /api/config/hms-100ms
+   ↓
+   Credenciais salvam em lugar ERRADO ou NÃO salvam
+2. Usuário tenta criar reunião instantânea
+   ↓
+   POST /api/reunioes/instantanea
+   ↓
+   Middleware normaliza: "dev-daviemericko_gmail_com" → "f5d8c8d9-..."
+   ↓
+   Chama getHMS100msCredentials("f5d8c8d9-...")
+   ↓
+   Normaliza NOVAMENTE (redundante)
+   ↓
+   Busca na tabela hms_100ms_config com UUID
+   ↓
+   ❌ NÃO ENCONTRA (porque salvou com outro ID ou não salvou)
+   ↓
+   Tenta fallback em meeting_tenants
+   ↓
+   Valida se tenantId é UUID
+   ↓
+   ❌ FALHA (porque validou o ID original, não o normalizado)
+   ↓
+   return null;
+   ↓
+   Sistema retorna: "Credenciais do 100ms não configuradas"
+📋 LOGS ESPERADOS
+Com base no código, os logs devem mostrar:
+
+[MEETINGS] Buscando credenciais para tenantId: "f5d8c8d9-7c9e-4b8a-9c7d-4e3b8a9c7d4e"
+[MEETINGS] TenantId sincronizado: "f5d8c8d9-7c9e-4b8a-9c7d-4e3b8a9c7d4e"
+[MEETINGS] tenantId "dev-daviemericko_gmail_com" is not a valid UUID, skipping meeting_tenants lookup
+POST /api/reunioes/instantanea 400 ... {"success":false,"message":"Credenciais do 100ms não configuradas"}
+✅ SOLUÇÕES RECOMENDADAS
+Solução 1: Criar Endpoint de Configuração 100ms
+// Adicionar em server/routes/config.ts
+app.post("/api/config/hms-100ms", authenticateConfig, async (req: AuthRequest, res) =\u003e {
+  try {
+    const { appAccessKey, appSecret, templateId } = req.body;
+    const tenantId = req.user!.tenantId;
+    
+    // Normalizar tenant ID AQUI (mesma lógica de meetings.ts)
+    const syncedTenantId = (tenantId === 'dev-daviemericko_gmail_com' || tenantId === 'system')
+      ? 'f5d8c8d9-7c9e-4b8a-9c7d-4e3b8a9c7d4e'
+      : tenantId;
+    
+    if (!appAccessKey || !appSecret) {
+      return res.status(400).json({
+        error: "appAccessKey e appSecret são obrigatórios",
+      });
+    }
+    
+    const encryptedKey = encrypt(appAccessKey);
+    const encryptedSecret = encrypt(appSecret);
+    
+    const existingConfig = await db.select().from(hms100msConfig)
+      .where(eq(hms100msConfig.tenantId, syncedTenantId))
+      .limit(1);
+    
+    if (existingConfig[0]) {
+      await db.update(hms100msConfig)
+        .set({
+          appAccessKey: encryptedKey,
+          appSecret: encryptedSecret,
+          templateId: templateId || null,
+          updatedAt: new Date(),
+        })
+        .where(eq(hms100msConfig.id, existingConfig[0].id));
+      
+      console.log(`✅ Configuração 100ms atualizada para tenant ${syncedTenantId}`);
+      return res.json({
+        success: true,
+        message: "Credenciais atualizadas com sucesso",
+      });
+    } else {
+      await db.insert(hms100msConfig).values({
+        tenantId: syncedTenantId,
+        appAccessKey: encryptedKey,
+        appSecret: encryptedSecret,
+        templateId: templateId || null,
+      });
+      
+      console.log(`✅ Configuração 100ms salva para tenant ${syncedTenantId}`);
+      return res.json({
+        success: true,
+        message: "Credenciais salvas com sucesso",
+      });
+    }
+  } catch (error) {
+    console.error("Erro ao salvar configuração 100ms:", error);
+    return res.status(500).json({
+      error: "Erro ao salvar configuração",
+      message: error instanceof Error ? error.message : "Erro desconhecido",
+    });
+  }
+});
+Solução 2: Centralizar Normalização de Tenant ID
+// Criar função helper em server/lib/tenantUtils.ts
+export function normalizeTenantId(tenantId: string): string {
+  // Lista de IDs de desenvolvimento que devem ser normalizados
+  const DEV_TENANT_IDS = [
+    'dev-daviemericko_gmail_com',
+    'system',
+    'development'
+  ];
+  
+  const DEV_UUID = 'f5d8c8d9-7c9e-4b8a-9c7d-4e3b8a9c7d4e';
+  
+  // Se for ID de dev, retorna UUID fixo
+  if (DEV_TENANT_IDS.includes(tenantId)) {
+    return DEV_UUID;
+  }
+  
+  // Caso contrário, retorna o próprio ID
+  return tenantId;
+}
+// Usar em TODOS os lugares:
+// - server/routes/meetings.ts
+// - server/routes/config.ts
+// - server/middleware/auth.ts
+Solução 3: Remover Validação UUID Prematura
+// Em server/routes/meetings.ts (linha 58-64)
+// REMOVER ou mover DEPOIS da normalização:
+async function getHMS100msCredentials(tenantId: string) {
+  console.log(`[MEETINGS] Buscando credenciais para tenantId: "${tenantId}"`);
+  
+  // Normalizar PRIMEIRO
+  const syncedTenantId = normalizeTenantId(tenantId);
+  console.log(`[MEETINGS] TenantId sincronizado: "${syncedTenantId}"`);
+  
+  // Buscar na tabela hms_100ms_config
+  const [config] = await db
+    .select()
+    .from(hms100msConfig)
+    .where(eq(hms100msConfig.tenantId, syncedTenantId));
+  if (config) {
+    return {
+      appAccessKey: decrypt(config.appAccessKey),
+      appSecret: decrypt(config.appSecret),
+      templateId: config.templateId,
+    };
+  }
+  // Validar UUID SOMENTE para fallback
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(syncedTenantId);
+  
+  if (!isUuid) {
+    console.warn(`[MEETINGS] Tenant ID normalizado "${syncedTenantId}" não é UUID válido`);
+    return null;
+  }
+  // Fallback para meeting_tenants
+  const [tenant] = await db
+    .select()
+    .from(meetingTenants)
+    .where(eq(meetingTenants.id, syncedTenantId));
+  // ... resto do código
+}
+Solução 4: Adicionar Logs Detalhados
+// Adicionar em getHMS100msCredentials:
+console.log(`[MEETINGS] 🔍 Debug de credenciais:`);
+console.log(`[MEETINGS]    - Tenant ID original: "${tenantId}"`);
+console.log(`[MEETINGS]    - Tenant ID normalizado: "${syncedTenantId}"`);
+console.log(`[MEETINGS]    - É UUID válido: ${isUuid}`);
+console.log(`[MEETINGS]    - Buscando em hms_100ms_config...`);
+const [config] = await db.select().from(hms100msConfig)
+  .where(eq(hms100msConfig.tenantId, syncedTenantId));
+console.log(`[MEETINGS]    - Resultado hms_100ms_config: ${config ? '✅ ENCONTRADO' : '❌ NÃO ENCONTRADO'}`);
+if (!config) {
+  console.log(`[MEETINGS]    - Tentando fallback em meeting_tenants...`);
+  // ... resto do código
+}
+🎯 AÇÃO IMEDIATA RECOMENDADA
+Verificar onde as credenciais foram salvas:
+
+-- No banco de dados PostgreSQL
+SELECT * FROM hms_100ms_config;
+SELECT * FROM meeting_tenants WHERE id = 'f5d8c8d9-7c9e-4b8a-9c7d-4e3b8a9c7d4e';
+SELECT * FROM meeting_tenants WHERE id = 'dev-daviemericko_gmail_com';
+Criar endpoint /api/config/hms-100ms (Solução 1)
+
+Salvar credenciais novamente usando o endpoint correto
+
+Testar criação de reunião e verificar logs
+
+📊 CONCLUSÃO
+O erro ocorre devido a uma combinação de 4 problemas:
+
+❌ Divergência de IDs - Salva com um ID, busca com outro
+❌ Endpoint faltando - Não há rota para salvar credenciais 100ms
+❌ Normalização inconsistente - Acontece em múltiplos lugares
+❌ Validação prematura - Aborta antes de normalizar
+Causa raiz: O sistema foi projetado para multi-tenant com UUIDs, mas o desenvolvimento usa IDs de texto (dev-daviemericko_gmail_com). A normalização existe, mas está mal implementada e inconsistente.
+
+Solução: Implementar as 4 soluções acima para garantir que:
+
+Credenciais sejam salvas no lugar certo
+Normalização aconteça de forma consistente
+Validações não bloqueiem prematuramente

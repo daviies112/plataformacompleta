@@ -1,0 +1,118 @@
+🛡️ SISTEMA DE CRÉDITOS & WALLET (ANTI-CALOTE)
+Objetivo: Eliminar a inadimplência transformando a plataforma em um modelo PRÉ-PAGO. NENHUM serviço oneroso (consulta CPF, envio SMS, criação de contrato) é executado sem saldo prévio.
+
+1. 🏗️ ARQUITETURA DO BANCO DE DADOS
+Precisamos de duas novas tabelas essenciais no Supabase para gerenciar o dinheiro dos clientes.
+
+Tabela: wallets
+Armazena o saldo atual de cada cliente/tenant.
+
+CREATE TABLE wallets (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  tenant_id UUID NOT NULL REFERENCES tenants(id),
+  balance DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+  currency VARCHAR(3) DEFAULT 'BRL',
+  is_frozen BOOLEAN DEFAULT FALSE, -- Para bloqueios administrativos
+  auto_recharge BOOLEAN DEFAULT FALSE,
+  auto_recharge_trigger DECIMAL(10, 2), -- Quando saldo < X
+  auto_recharge_amount DECIMAL(10, 2), -- Recarregar Y
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+-- Index para busca rápida por tenant
+CREATE UNIQUE INDEX idx_wallets_tenant ON wallets(tenant_id);
+Tabela: transactions
+Histórico imutável de todas as movimentações (Auditoria Financeira).
+
+CREATE TABLE transactions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  wallet_id UUID NOT NULL REFERENCES wallets(id),
+  type VARCHAR(20) NOT NULL CHECK (type IN ('CREDIT', 'DEBIT', 'REFUND', 'BONUS')),
+  amount DECIMAL(10, 2) NOT NULL, -- Valores positivos. O tipo define se soma ou subtrai.
+  description TEXT NOT NULL, -- Ex: "Consulta CPF 123...", "Recarga PIX"
+  reference_id VARCHAR(100), -- ID externo (Order ID Pagarme, ID da Consulta)
+  reference_type VARCHAR(50), -- 'PAGARME_ORDER', 'CONSULTA_CPF', 'ENVIO_SMS'
+  status VARCHAR(20) DEFAULT 'COMPLETED', -- 'PENDING' (para boletos), 'COMPLETED', 'FAILED'
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  metadata JSONB -- Dados extras
+);
+2. 🚦 MIDDLEWARE DE PROTEÇÃO (O GUARDIÃO)
+Antes de executar qualquer ação custosa, o backend deve verificar o saldo. NÃO confie no frontend.
+
+Arquivo: server/middleware/checkBalance.ts
+
+export const checkBalance = (cost: number) => {
+  return async (req, res, next) => {
+    const tenantId = req.user.tenantId;
+    
+    // 1. Buscar Carteira
+    const wallet = await db.wallets.findOne({ tenant_id: tenantId });
+    
+    // 2. Validar Saldo
+    if (!wallet || wallet.balance < cost) {
+      return res.status(402).json({
+        error: "INSUFFICIENT_FUNDS",
+        message: "Saldo insuficiente para realizar esta operação.",
+        required: cost,
+        current: wallet?.balance || 0
+      });
+    }
+    // 3. Adicionar wallet ao request para uso posterior
+    req.wallet = wallet;
+    next();
+  };
+};
+// USO NAS ROTAS:
+router.post('/consultas/cpf', checkBalance(5.00), async (req, res) => {
+    // Se chegou aqui, tem saldo (mas ainda não debitou!)
+    
+    // 1. Tenta executar o serviço externo
+    const resultado = await apiExterna.consultar(req.body.cpf);
+    
+    // 2. SE SUCESSO: Debita
+    await walletService.debit(req.wallet.id, 5.00, 'Consulta CPF ABC');
+    
+    res.json(resultado);
+});
+3. 💳 FLUXO DE RECARGA (PAGAR.ME V5)
+O cliente precisa colocar dinheiro para usar.
+
+Interface de Recarga:
+
+Modal "Adicionar Créditos".
+Opções: R$ 50, R$ 100, R$ 500, Outro.
+Método: PIX (Instantâneo) ou Cartão.
+Processamento (Backend):
+
+Cria Order na Pagar.me.
+Retorna QR Code Pix ou Status Cartão.
+Webhook (Crítico):
+
+O Backend recebe order.paid da Pagar.me.
+AUTOMATICAMENTE adiciona crédito na wallets.
+Cria registro em transactions (Type: CREDIT).
+4. 🔄 AUTO-RECARGA (O SEGREDO DA RECEITA RECORRENTE)
+Para evitar que o serviço pare no meio do dia:
+
+Cliente salva cartão (Tokenização Pagar.me).
+Configura: "Se saldo < R$ 20,00, recarregar R$ 100,00 automaticamente".
+Cronjob/Trigger:
+A cada débito, verificar if (novoSaldo < trigger && autoRecharge).
+Se sim, disparar cobrança no cartão salvo.
+Se aprovado, creditar na hora.
+5. 🖥️ IMPLEMENTAÇÃO NA PLATAFORMA (Checklist)
+Fase 1: Fundação (Backend)
+ Criar Migrations SQL (wallets, transactions).
+ Criar WalletService (addFunds, debitFunds, getBalance).
+ Criar Middleware checkBalance.
+Fase 2: Integração Financeira
+ Rota /api/wallet/recharge (Integração Pagar.me V5).
+ Webhook Handler para processar order.paid e creditar saldo.
+Fase 3: Frontend (UX)
+ Header: Mostrar saldo atual (ex: R$ 150,00). Mudar cor se baixo.
+ Página Financeiro: Extrato detalhado (Entradas/Saídas).
+ Botão Recarregar: Modal com QR Code Pix instantâneo.
+ Bloqueio de UI: Desabilitar botões "Consultar" se saldo for zero.
+💡 POR QUE ISSO ELIMINA O CALOTE?
+Risco Zero: Você recebe ANTES de gastar com o fornecedor (API de consulta, SMS, etc).
+Fluxo de Caixa Positivo: O dinheiro entra na sua conta antes de sair.
+Sem Cobrança: Não precisa ligar cobrando fatura atrasada. Se não pagar, o serviço simplesmente para de funcionar (soft block).

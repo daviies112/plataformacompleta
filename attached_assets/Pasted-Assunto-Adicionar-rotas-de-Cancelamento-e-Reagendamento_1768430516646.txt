@@ -1,0 +1,74 @@
+Assunto: Adicionar rotas de Cancelamento e Reagendamento na API existente (Node.js/Express) mantendo integridade do Supabase e 100ms.
+
+Contexto: Já tenho uma API rodando neste projeto que cria reuniões, integra com o 100ms (vídeo) e salva os dados no Supabase. O fluxo de criação (POST) funciona perfeitamente. Agora preciso adicionar funcionalidade para Cancelar e Reagendar, centralizando a lógica aqui no backend e tirando do n8n.
+
+Estrutura de Dados (Tabela Supabase: reunioes): A tabela possui, entre outras, as seguintes colunas importantes que devem ser manipuladas:
+
+id (UUID, chave primária)
+
+room_id_100ms (String, ID da sala na plataforma 100ms)
+
+status (String: 'agendada', 'cancelada', 'reagendada')
+
+data_inicio (Timestamp)
+
+data_fim (Timestamp)
+
+updated_at (Timestamp)
+
+O que preciso que você implemente:
+
+Crie dois novos endpoints na API (Express) seguindo as boas práticas e mantendo o código existente intacto:
+
+1. Rota de Cancelamento
+Método: DELETE Rota: /api/n8n/reunioes/:id Lógica:
+
+Receber o id da reunião via parâmetro de URL.
+
+Buscar a reunião no Supabase para obter o room_id_100ms.
+
+Ação no 100ms: Chamar a API do 100ms (https://api.100ms.live/v2/rooms/<room_id>) com método POST no endpoint de "end room" ou desativar a sala (verificar documentação do 100ms para setar active: false ou encerrar sessão), para garantir que o link não funcione mais.
+
+Ação no Supabase: Atualizar o registro:
+
+Mudar status para 'cancelada'.
+
+Atualizar updated_at para agora.
+
+Retornar JSON de sucesso: { success: true, message: "Reunião cancelada" }.
+
+2. Rota de Reagendamento
+Método: PATCH (ou PUT) Rota: /api/n8n/reunioes/:id Body esperado: { "dataInicio": "ISO_DATE", "dataFim": "ISO_DATE" } Lógica:
+
+Receber o id via URL e as novas datas via Body.
+
+Ação no Supabase: Atualizar o registro:
+
+data_inicio = nova data inicio.
+
+data_fim = nova data fim.
+
+status = 'reagendada'.
+
+updated_at = agora.
+
+Ação no 100ms: Chamar a API do 100ms (https://api.100ms.live/v2/rooms/<room_id>) via POST/PATCH para atualizar a description da sala com a nova data (opcional, mas recomendado para manter sincronia).
+
+Retornar JSON de sucesso com os dados atualizados.
+
+Requisitos Importantes:
+
+Não apague nenhuma rota existente (POST /criar-reuniao deve continuar funcionando).
+
+Utilize a mesma instância do cliente Supabase já configurada no projeto.
+
+Utilize o mesmo Token de Gerenciamento (Management Token) do 100ms que já é usado na criação para autenticar as chamadas de update/delete no 100ms.
+
+Adicione tratamento de erro (ex: se o ID não existir no banco, retornar 404; se a API do 100ms falhar, logar o erro mas garantir que o banco fique consistente).
+
+Verifique se a autenticação X-N8N-API-Key (se houver middleware de proteção) também se aplica a essas novas rotas.
+
+Por favor, gere o código para adicionar ao meu arquivo principal (index.js ou server.js).
+
+Dica para você (Usuário):
+Ao enviar isso, o Replit vai gerar o código. Antes de "Aceitar" ou rodar, verifique se ele está usando o token correto do 100ms (ele deve pegar das variáveis de ambiente, algo como process.env.HMS_TOKEN ou gerar um token JWT novo, dependendo de como seu código atual faz).

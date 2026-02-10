@@ -1,0 +1,275 @@
+🚀 OTIMIZAÇÃO DE PERFORMANCE - ASSINATURA DIGITAL
+Data: 2026-01-21
+Objetivo: Reduzir tempo de carregamento do fluxo de assinatura de ~3-5s para <1.5s
+
+📊 ARQUIVOS ANALISADOS
+Arquivo	Linhas	Localização
+AssinaturaClientPage.tsx
+529	src/pages/
+AssinaturaPage.tsx
+1800+	src/pages/ (admin)
+assinatura.ts
+1280	server/routes/
+assinatura-supabase.ts
+~300	server/services/
+VerificationFlow.tsx
+473	src/components/assinatura/verification/
+Componentes do Wizard (6 steps)
+Step 0: Loading (transição)
+Step 1: VerificationFlow (câmera + selfie)
+Step 2: ContractStep (visualizar + assinar)
+Step 3: ResellerWelcomeStep (parabéns)
+Step 4: AppPromotionStep (baixar app)
+Step 5: SuccessStep (final)
+🔴 PROBLEMAS IDENTIFICADOS
+1. 2 Fetches Sequenciais no Carregamento
+// AssinaturaClientPage.tsx - linhas 227-263
+const { data: contract } = useQuery({
+  queryKey: ['/api/assinatura/public/contracts', token],
+});
+const { data: participantData } = useQuery({
+  queryKey: ['participant-data'],
+  enabled: !!token && !!contract, // Espera o primeiro terminar
+});
+Segundo fetch só inicia APÓS o primeiro terminar
+Impacto: +200-300ms sequencial
+2. VerificationFlow Carrega Câmera Upfront
+// VerificationFlow.tsx - linha 1-17
+import { AnimatePresence, motion } from 'framer-motion';
+import { SelfieCapture } from './SelfieCapture';
+import { DocumentCapture } from './DocumentCapture';
+Componentes de câmera carregados mesmo antes do usuário clicar
+APIs de câmera (MediaDevices) são pesadas
+Impacto: +400-500ms em bundle + acesso a hardware
+3. Sem Lazy Loading para Steps
+// AssinaturaClientPage.tsx - linhas 9-13
+import { VerificationFlow } from '@/components/assinatura/verification/VerificationFlow';
+import { ContractStep } from '@/components/assinatura/steps/ContractStep';
+import { ResellerWelcomeStep } from '@/components/assinatura/steps/ResellerWelcomeStep';
+import { AppPromotionStep } from '@/components/assinatura/steps/AppPromotionStep';
+import { SuccessStep } from '@/components/assinatura/steps/SuccessStep';
+TODOS os 5 steps carregados mesmo se usuário só vai usar 1
+Impacto: +300KB bundle desnecessário
+4. 50+ Console.logs em Produção
+// assinatura.ts - exemplos
+console.log(`[Assinatura] Buscando contrato por token/id: ${token}`);
+console.log(`[Assinatura] Contrato encontrado no Supabase por access_token`);
+console.log(`[Assinatura] Form_submission encontrado por telefone`);
+Performance degradada em cada request
+Impacto: +30-50ms por request
+5. Múltiplos Fallbacks no Backend (Supabase → Local)
+// assinatura.ts - linhas 448-486
+if (assinaturaSupabaseService.isConnected()) {
+  let contract = await assinaturaSupabaseService.getContractByToken(token);
+  if (!contract) {
+    contract = await assinaturaSupabaseService.getContractById(token);
+  }
+}
+// Fallback para local
+let contract = Array.from(localContractsStore.values()).find(...);
+if (!contract) {
+  contract = localContractsStore.get(token);
+}
+Até 4 tentativas para encontrar um contrato
+Impacto: +100-400ms por fallback
+6. GlobalConfig Buscada a Cada Request
+// assinatura.ts - linhas 591
+const globalConfig = localGlobalConfig;
+// Mas loadLocalGlobalConfig() lê de arquivo em CADA request
+Arquivo JSON lido do disco a cada request
+Impacto: +20-50ms I/O
+7. ProgressTrackerDisplay Re-renderiza Sempre
+// AssinaturaClientPage.tsx - linhas 89-195
+const ProgressTrackerDisplay = ({ currentStep, contract }) => {
+  const [isExpanded, setIsExpanded] = useState(true);
+  // ...recalcula steps a cada render
+}
+Componente fixo que re-renderiza a cada mudança de step
+Impacto: Re-renders desnecessários
+8. Sem Cache HTTP nos Endpoints
+// assinatura.ts - todas as rotas
+res.json(contract); // Sem headers de cache
+Cada acesso = request novo ao servidor
+Impacto: 100% requests duplicados
+✅ CORREÇÕES PROPOSTAS
+CORREÇÃO 1: Fetch Paralelo com Promise.all ou staleTime
+Opção A: Usar staleTime do React Query
+
+// AssinaturaClientPage.tsx
+const { data: contract } = useQuery({
+  queryKey: ['/api/assinatura/public/contracts', token],
+  staleTime: 5 * 60 * 1000, // 5 minutos cache
+});
+const { data: participantData } = useQuery({
+  queryKey: ['participant-data', token],
+  enabled: !!token, // Não espera contract!
+  staleTime: 5 * 60 * 1000,
+});
+Opção B: Endpoint Unificado
+
+// server/routes/assinatura.ts
+router.get('/public/contracts/:token/full', async (req, res) => {
+  const { token } = req.params;
+  
+  const [contract, participantData] = await Promise.all([
+    getContractByToken(token),
+    getParticipantData(token)
+  ]);
+  
+  res.set('Cache-Control', 'private, max-age=300');
+  return res.json({ contract, participantData });
+});
+CORREÇÃO 2: Lazy Load para Steps do Wizard
+Arquivo: 
+AssinaturaClientPage.tsx
+
+import { lazy, Suspense } from 'react';
+// Lazy load de TODOS os steps
+const VerificationFlow = lazy(() => import('@/components/assinatura/verification/VerificationFlow'));
+const ContractStep = lazy(() => import('@/components/assinatura/steps/ContractStep'));
+const ResellerWelcomeStep = lazy(() => import('@/components/assinatura/steps/ResellerWelcomeStep'));
+const AppPromotionStep = lazy(() => import('@/components/assinatura/steps/AppPromotionStep'));
+const SuccessStep = lazy(() => import('@/components/assinatura/steps/SuccessStep'));
+// Loader simples
+const StepLoader = () => (
+  <div className="flex items-center justify-center min-h-[200px]">
+    <Loader2 className="w-8 h-8 animate-spin" />
+  </div>
+);
+// Usar com Suspense
+{currentStep === 1 && (
+  <Suspense fallback={<StepLoader />}>
+    <VerificationFlow ... />
+  </Suspense>
+)}
+CORREÇÃO 3: Preload do Próximo Step
+Arquivo: 
+AssinaturaClientPage.tsx
+
+// Preload do próximo step durante o step atual
+useEffect(() => {
+  if (currentStep === 0) {
+    // Preload VerificationFlow enquanto mostra loading
+    import('@/components/assinatura/verification/VerificationFlow');
+  } else if (currentStep === 1) {
+    // Preload ContractStep enquanto usuário faz selfie
+    import('@/components/assinatura/steps/ContractStep');
+  } else if (currentStep === 2) {
+    // Preload ResellerWelcomeStep enquanto assina
+    import('@/components/assinatura/steps/ResellerWelcomeStep');
+  }
+}, [currentStep]);
+CORREÇÃO 4: Cache de GlobalConfig em Memória
+Arquivo: 
+server/routes/assinatura.ts
+
+// Cache em memória com TTL
+let globalConfigCache: { data: AssinaturaGlobalConfig; expiresAt: number } | null = null;
+function getGlobalConfigCached(): AssinaturaGlobalConfig {
+  const now = Date.now();
+  if (globalConfigCache && globalConfigCache.expiresAt > now) {
+    return globalConfigCache.data;
+  }
+  
+  const config = loadLocalGlobalConfig();
+  globalConfigCache = {
+    data: config,
+    expiresAt: now + (5 * 60 * 1000) // 5 minutos
+  };
+  return config;
+}
+CORREÇÃO 5: Remover Console.logs ou Usar Logger
+Criar: server/lib/logger.ts (se não existir)
+
+const isProd = process.env.NODE_ENV === 'production';
+export const assinaturaLogger = {
+  log: (...args: any[]) => !isProd && console.log('[Assinatura]', ...args),
+  error: (...args: any[]) => console.error('[Assinatura]', ...args), // Erros sempre
+};
+Substituir em 
+assinatura.ts
+:
+
+// ANTES:
+console.log(`[Assinatura] Buscando contrato por token/id: ${token}`);
+// DEPOIS:
+import { assinaturaLogger } from '../lib/logger';
+assinaturaLogger.log(`Buscando contrato por token/id: ${token}`);
+CORREÇÃO 6: Cache Headers no Backend
+Arquivo: 
+server/routes/assinatura.ts
+
+// Para GET de contrato público
+router.get('/public/contracts/:token', async (req, res) => {
+  // ...buscar contrato...
+  
+  res.set({
+    'Cache-Control': 'private, max-age=300', // 5 min
+    'ETag': `"${contract.id}-${contract.status}"` // Invalidar quando status mudar
+  });
+  return res.json(contract);
+});
+// Para globalConfig (muda raramente)
+router.get('/global-config', async (req, res) => {
+  res.set('Cache-Control', 'public, max-age=3600'); // 1 hora
+  return res.json(config);
+});
+CORREÇÃO 7: Memoizar ProgressTrackerDisplay
+Arquivo: 
+AssinaturaClientPage.tsx
+
+import { memo, useMemo } from 'react';
+const ProgressTrackerDisplay = memo(({ currentStep, contract }: ProgressTrackerDisplayProps) => {
+  const steps = useMemo(() => [
+    { num: 1, title: contract?.progress_step1_title || '1. Reconhecimento Facial', ... },
+    { num: 2, title: contract?.progress_step2_title || '2. Assinar Contrato', ... },
+    { num: 3, title: contract?.progress_step3_title || '3. Baixar Aplicativo', ... },
+  ], [contract?.progress_step1_title, contract?.progress_step2_title, contract?.progress_step3_title]);
+  
+  // ...resto do componente
+});
+CORREÇÃO 8: Rota Direta no App.tsx (Bypass PlatformRouter)
+Arquivo: 
+src/App.tsx
+
+import { lazy, Suspense } from 'react';
+const AssinaturaClientPage = lazy(() => import('./pages/AssinaturaClientPage'));
+function App() {
+  return (
+    <Routes>
+      {/* Rota direta para assinatura - sem passar por PlatformRouter */}
+      <Route 
+        path="/assinar/:token" 
+        element={
+          <Suspense fallback={<LoadingSpinner />}>
+            <AssinaturaClientPage />
+          </Suspense>
+        } 
+      />
+      {/* Outras rotas */}
+      <Route path="/*" element={<PlatformRouter />} />
+    </Routes>
+  );
+}
+📈 IMPACTO ESPERADO
+Métrica	Antes	Depois	Melhoria
+Time to First Paint	~1.5s	~0.5s	67%
+Time to Interactive	~3-5s	~1.5s	60%
+Bundle Size (page)	~400KB	~100KB	75%
+API Requests	2+	1	50%
+Lighthouse Score	~55	~80	+25pts
+🎯 ORDEM DE IMPLEMENTAÇÃO
+IMEDIATO: Cache headers no backend (15 min)
+IMEDIATO: Lazy load dos steps (30 min)
+PRIORIDADE 1: Endpoint unificado /full (1 hora)
+PRIORIDADE 2: Preload do próximo step (20 min)
+PRIORIDADE 3: Remover console.logs (30 min)
+PRIORIDADE 4: Memoizar ProgressTracker (15 min)
+📁 CHECKLIST FINAL
+ npm run build sem erros
+ Lazy loading dos 5 steps funcionando
+ Preload do VerificationFlow no step 0
+ Cache-Control configurado em rotas públicas
+ GlobalConfig cacheada em memória
+ Console.logs removidos ou condicionais
+FIM DO DOCUMENTO DE OTIMIZAÇÃO
