@@ -54,7 +54,6 @@ const HeaderNavigation = () => {
       icon: Layers,
       active: location.pathname === "/workspace"
     },
-
     {
       path: "/whatsapp-platform",
       label: "WhatsApp",
@@ -65,19 +64,65 @@ const HeaderNavigation = () => {
       path: "/produto",
       label: "Etiqueta",
       icon: Package,
-      active: location.pathname.startsWith("/produto") || location.pathname.startsWith("/vendas/tags")
+      active: location.pathname.startsWith("/produto") || location.pathname.startsWith("/vendas/tags"),
+      children: [
+        {
+          label: "Etiqueta",
+          path: "/produto/admin/tags",
+          icon: Tag
+        },
+        {
+          label: "Produtos",
+          path: "/produto/admin/products",
+          icon: Package
+        },
+        {
+          label: "Solicitações",
+          path: "/produto/admin/product-requests",
+          icon: ClipboardList
+        }
+      ]
     },
     {
-      path: "/produto/admin/branding",
+      path: "/revendedoras",
       label: "Revendedoras",
       icon: Users,
-      active: location.pathname.startsWith("/produto/admin/resellers") || location.pathname.startsWith("/produto/admin/commission-config") || location.pathname.startsWith("/produto/admin/branding")
+      active: location.pathname.startsWith("/produto/admin/resellers") || location.pathname.startsWith("/produto/admin/commission-config"),
+      children: [
+        {
+          label: "Revendedores",
+          path: "/produto/admin/resellers",
+          icon: Users
+        },
+        {
+          label: "Configurar Comissões",
+          path: "/produto/admin/commission-config",
+          icon: Percent
+        }
+      ]
     },
     {
-      path: "/vendas/analytics",
+      path: "/vendas",
       label: "Vendas",
       icon: Crown,
-      active: location.pathname.startsWith("/vendas") && !location.pathname.startsWith("/vendas/tags")
+      active: location.pathname.startsWith("/vendas") && !location.pathname.startsWith("/vendas/tags"),
+      children: [
+        {
+          label: "Dashboard",
+          path: "/vendas/dashboard",
+          icon: LayoutDashboard
+        },
+        {
+          label: "Dados Bancários",
+          path: "/vendas/dados-bancarios",
+          icon: Banknote
+        },
+        {
+          label: "Analytics",
+          path: "/vendas/analytics",
+          icon: BarChart3
+        }
+      ]
     },
     {
       path: "/kanban",
@@ -171,7 +216,6 @@ const HeaderNavigation = () => {
 
           {/* Wallet Balance & Settings */}
           <div className="flex items-center gap-2 flex-shrink-0">
-
             <WalletBadge />
             <Button
               onClick={() => navigate("/settings")}
