@@ -19,7 +19,7 @@ import { Input } from "./ui/input";
 import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 import { Label } from "./ui/label";
 import { Progress } from "./ui/progress";
-import { ArrowRight, Send, CheckCircle2, XCircle, Award, Sparkles } from "lucide-react";
+import { ArrowRight, Send, CheckCircle2, XCircle, Award, Sparkles, ArrowLeft } from "lucide-react";
 
 interface FormPreviewProps {
   config: FormConfig;
@@ -65,6 +65,9 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
       titleSize: "2xl",
       textSize: "base"
     },
+    logo: null,
+    logoAlign: 'center',
+    logoSize: 120,
     spacing: "comfortable"
   };
 
@@ -108,10 +111,10 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
     spacing: baseDesign.spacing || defaultDesign.spacing
   };
 
-  const welcomeConfig = config.welcomeConfig ?? {
+  const welcomeConfig = config.welcomePageConfig ?? {
     title: config.title || "Bem-vindo!",
     description: config.description || "Por favor, preencha o formulário a seguir.",
-    imageUrl: null
+    logo: null
   };
 
   const colors = design.colors;
@@ -545,9 +548,9 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
       <div className="min-h-[500px] flex items-center justify-center p-4" style={{ background: `linear-gradient(to bottom right, ${colors.background}, ${colors.secondary})` }}>
         <Card className="w-full max-w-2xl shadow-xl" style={{ backgroundColor: colors.containerBackground, borderColor: `${colors.primary}30` }}>
           <CardHeader className="text-center pb-8">
-            {welcomeConfig.imageUrl && (
+            {design.logo && (
               <div className="mb-6">
-                <img src={welcomeConfig.imageUrl} alt="Welcome" className="max-w-xs mx-auto rounded-lg" />
+                <img src={design.logo} alt="Logo" className="max-w-xs mx-auto rounded-lg" style={{ maxHeight: '120px' }} />
               </div>
             )}
             <CardTitle className="text-4xl font-bold mb-4" style={{ color: colors.titleColor }}>

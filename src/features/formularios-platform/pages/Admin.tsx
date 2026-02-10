@@ -16,12 +16,13 @@ import type { CompletionPage } from "../../../../shared/db-schema";
 
 const defaultDesign: DesignConfig = {
   colors: {
-    primary: "hsl(221, 83%, 53%)",
-    secondary: "hsl(210, 40%, 96%)",
-    background: "hsl(0, 0%, 100%)",
-    text: "hsl(222, 47%, 11%)",
-    button: "hsl(221, 83%, 53%)",
-    buttonText: "hsl(0, 0%, 100%)"
+    titleColor: "hsl(222, 47%, 11%)",
+    textColor: "hsl(222, 47%, 11%)",
+    pageBackground: "hsl(0, 0%, 100%)",
+    containerBackground: "hsl(210, 40%, 96%)",
+    buttonColor: "hsl(221, 83%, 53%)",
+    buttonTextColor: "hsl(0, 0%, 100%)",
+    progressBarColor: "hsl(221, 83%, 53%)"
   },
   typography: {
     fontFamily: "Inter",

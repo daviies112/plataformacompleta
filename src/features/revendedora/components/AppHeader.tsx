@@ -37,19 +37,19 @@ interface AppHeaderProps {
 
 const getAdminItems = (basePath: string) => ({
   etiqueta: [
-    { title: 'Etiqueta', url: `${basePath}/tags`, icon: Tag },
-    { title: 'Produtos', url: `${basePath}/products`, icon: Package },
-    { title: 'Solicitações', url: `${basePath}/product-requests`, icon: ClipboardList },
+    { title: 'Etiqueta', url: '/produto/admin/tags', icon: Tag },
+    { title: 'Produtos', url: '/produto/admin/products', icon: Package },
+    { title: 'Solicitações', url: '/produto/admin/product-requests', icon: ClipboardList },
   ],
   revendedoras: [
-    { title: 'Revendedores', url: `${basePath}/resellers`, icon: Users },
-    { title: 'Configurar Comissões', url: `${basePath}/commission-config`, icon: Percent },
-    { title: 'Personalização', url: `${basePath}/branding`, icon: Palette },
+    { title: 'Revendedores', url: '/produto/admin/resellers', icon: Users },
+    { title: 'Configurar Comissões', url: '/produto/admin/commission-config', icon: Percent },
+    { title: 'Personalização', url: '/produto/admin/branding', icon: Palette },
   ],
   vendas: [
-    { title: 'Dashboard', url: `${basePath}/dashboard`, icon: LayoutDashboard },
-    { title: 'Dados Bancários', url: `${basePath}/dados-bancarios`, icon: Banknote },
-    { title: 'Analytics', url: `${basePath}/analytics`, icon: BarChart3 },
+    { title: 'Dashboard', url: '/vendas/dashboard', icon: LayoutDashboard },
+    { title: 'Dados Bancários', url: '/vendas/dados-bancarios', icon: Banknote },
+    { title: 'Analytics', url: '/vendas/analytics', icon: BarChart3 },
   ],
 });
 

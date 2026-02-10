@@ -385,59 +385,59 @@ export const DesignCustomizer = ({ design, onChange }: DesignCustomizerProps) =>
           <h4 className="font-medium">Cores</h4>
           <div className="grid grid-cols-2 gap-4">
             <ColorPicker
-              label="Cor Primária"
-              color={design.colors.primary}
+              label="Cor do Título"
+              color={design.colors.titleColor || design.colors.primary || "hsl(222, 47%, 11%)"}
               onChange={(color) => onChange({
                 ...design,
-                colors: { ...design.colors, primary: color }
-              })}
-            />
-            <ColorPicker
-              label="Cor Secundária"
-              color={design.colors.secondary}
-              onChange={(color) => onChange({
-                ...design,
-                colors: { ...design.colors, secondary: color }
-              })}
-            />
-            <ColorPicker
-              label="Cor de Fundo"
-              color={design.colors.background}
-              onChange={(color) => onChange({
-                ...design,
-                colors: { ...design.colors, background: color }
+                colors: { ...design.colors, titleColor: color }
               })}
             />
             <ColorPicker
               label="Cor do Texto"
-              color={design.colors.text}
+              color={design.colors.textColor || design.colors.text || "hsl(222, 47%, 11%)"}
               onChange={(color) => onChange({
                 ...design,
-                colors: { ...design.colors, text: color }
+                colors: { ...design.colors, textColor: color }
+              })}
+            />
+            <ColorPicker
+              label="Cor do Fundo"
+              color={design.colors.pageBackground || design.colors.background || "hsl(0, 0%, 100%)"}
+              onChange={(color) => onChange({
+                ...design,
+                colors: { ...design.colors, pageBackground: color }
+              })}
+            />
+            <ColorPicker
+              label="Cor do Container"
+              color={design.colors.containerBackground || design.colors.secondary || "hsl(210, 40%, 96%)"}
+              onChange={(color) => onChange({
+                ...design,
+                colors: { ...design.colors, containerBackground: color }
               })}
             />
             <ColorPicker
               label="Cor do Botão"
-              color={design.colors.button}
+              color={design.colors.buttonColor || design.colors.button || "hsl(221, 83%, 53%)"}
               onChange={(color) => onChange({
                 ...design,
-                colors: { ...design.colors, button: color }
+                colors: { ...design.colors, buttonColor: color }
               })}
             />
             <ColorPicker
               label="Cor do Texto do Botão"
-              color={design.colors.buttonText}
+              color={design.colors.buttonTextColor || design.colors.buttonText || "hsl(0, 0%, 100%)"}
               onChange={(color) => onChange({
                 ...design,
-                colors: { ...design.colors, buttonText: color }
+                colors: { ...design.colors, buttonTextColor: color }
               })}
             />
             <ColorPicker
               label="Cor da Barra de Progresso"
-              color={design.colors.progressBar || design.colors.primary}
+              color={design.colors.progressBarColor || design.colors.progressBar || design.colors.primary || "hsl(221, 83%, 53%)"}
               onChange={(color) => onChange({
                 ...design,
-                colors: { ...design.colors, progressBar: color }
+                colors: { ...design.colors, progressBarColor: color }
               })}
             />
           </div>
