@@ -730,7 +730,7 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
       imageUrl,
       buttonText,
       titleSize: config.titleSize || "2xl",
-      logoAlign: config.logoAlign || "center"
+  }, [form, design.logo]);
     };
   }, [form, design.logo]);
 
