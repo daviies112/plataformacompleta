@@ -84,51 +84,91 @@ export const DesignCustomizer = ({ design, onChange }: DesignCustomizerProps) =>
       return;
     }
 
-    setUploading(true);
-    try {
-      const logoUrl = await api.uploadLogo(file);
-      onChange({ ...design, logo: logoUrl, logoSize: design.logoSize || 64 });
-      
-      toast({
-        title: "Sucesso!",
-        description: "Logo enviada com sucesso. Extraindo cores..."
-      });
+    // First, extract colors from the File object (before uploading)
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const dataUrl = event.target?.result as string;
 
+      // Extract colors from base64 dataUrl (works locally in browser)
       setExtractingColors(true);
       try {
-        const colors = await extractColorsFromImage(logoUrl, 5);
-        onChange({ 
-          ...design, 
-          logo: logoUrl, 
-          extractedColors: colors,
-          logoSize: design.logoSize || 64
-        });
-        
+        const colors = await extractColorsFromImage(dataUrl, 5);
+
         toast({
           title: "Cores extraídas!",
-          description: `${colors.length} cores encontradas na logo. Veja as sugestões abaixo.`,
-          duration: 5000
+          description: `${colors.length} cores encontradas. Fazendo upload da logo...`
         });
+
+        // Now upload the logo to server
+        setUploading(true);
+        try {
+          const logoUrl = await api.uploadLogo(file);
+
+          // Update design with both logo URL and extracted colors
+          onChange({
+            ...design,
+            logo: logoUrl,
+            extractedColors: colors,
+            logoSize: design.logoSize || 64
+          });
+
+          toast({
+            title: "Sucesso!",
+            description: "Logo enviada e cores aplicadas. Veja as sugestões abaixo.",
+            duration: 5000
+          });
+        } catch (uploadError) {
+          console.error('Error uploading logo:', uploadError);
+          toast({
+            title: "Erro",
+            description: "Erro ao fazer upload da logo",
+            variant: "destructive"
+          });
+        } finally {
+          setUploading(false);
+        }
       } catch (colorError) {
         console.error('Error extracting colors:', colorError);
         toast({
           title: "Aviso",
-          description: "Logo carregada, mas não foi possível extrair cores automaticamente",
+          description: "Não foi possível extrair cores. Tentando fazer upload...",
           variant: "default"
         });
+
+        // Even if color extraction fails, still upload the logo
+        setUploading(true);
+        try {
+          const logoUrl = await api.uploadLogo(file);
+          onChange({ ...design, logo: logoUrl, logoSize: design.logoSize || 64 });
+
+          toast({
+            title: "Logo enviada",
+            description: "Logo carregada, mas cores não foram extraídas automaticamente"
+          });
+        } catch (uploadError) {
+          console.error('Error uploading logo:', uploadError);
+          toast({
+            title: "Erro",
+            description: "Erro ao fazer upload da logo",
+            variant: "destructive"
+          });
+        } finally {
+          setUploading(false);
+        }
       } finally {
         setExtractingColors(false);
       }
-    } catch (error) {
-      console.error('Error uploading logo:', error);
+    };
+
+    reader.onerror = () => {
       toast({
         title: "Erro",
-        description: "Erro ao fazer upload da logo",
+        description: "Erro ao ler o arquivo",
         variant: "destructive"
       });
-    } finally {
-      setUploading(false);
-    }
+    };
+
+    reader.readAsDataURL(file);
   };
 
   const removeLogo = () => {
@@ -148,7 +188,7 @@ export const DesignCustomizer = ({ design, onChange }: DesignCustomizerProps) =>
         buttonText: variation.background
       }
     });
-    
+
     toast({
       title: "Paleta aplicada!",
       description: `${variation.name} aplicada com sucesso`,
@@ -160,16 +200,16 @@ export const DesignCustomizer = ({ design, onChange }: DesignCustomizerProps) =>
     <Card className="p-6 space-y-6 bg-card border-border">
       <div>
         <h3 className="text-lg font-semibold mb-4">Personalização Visual</h3>
-        
+
         {/* Logo Upload */}
         <div className="space-y-2 mb-6">
           <Label>Logo</Label>
           {design.logo ? (
             <div className="space-y-4">
               <div className="flex items-center gap-3">
-                <div 
+                <div
                   className="relative rounded-lg border border-border overflow-hidden"
-                  style={{ 
+                  style={{
                     background: 'repeating-conic-gradient(#e5e5e5 0% 25%, #f5f5f5 0% 50%) 50% / 16px 16px',
                     minWidth: '64px',
                     minHeight: '64px',
@@ -179,11 +219,11 @@ export const DesignCustomizer = ({ design, onChange }: DesignCustomizerProps) =>
                     padding: '8px'
                   }}
                 >
-                  <img 
-                    src={design.logo} 
-                    alt="Logo" 
+                  <img
+                    src={design.logo}
+                    alt="Logo"
                     style={{ height: `${design.logoSize || 64}px`, maxWidth: '200px' }}
-                    className="object-contain" 
+                    className="object-contain"
                     onError={(e) => {
                       console.error('Logo failed to load:', design.logo);
                       (e.target as HTMLImageElement).style.display = 'none';
@@ -202,7 +242,7 @@ export const DesignCustomizer = ({ design, onChange }: DesignCustomizerProps) =>
                   <X className="h-4 w-4" />
                 </Button>
               </div>
-              
+
               {/* Logo Size Slider */}
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
@@ -218,7 +258,7 @@ export const DesignCustomizer = ({ design, onChange }: DesignCustomizerProps) =>
                   className="w-full"
                 />
               </div>
-              
+
               {/* Logo Alignment */}
               <div>
                 <Label>Alinhamento da Logo</Label>
@@ -424,7 +464,7 @@ export const DesignCustomizer = ({ design, onChange }: DesignCustomizerProps) =>
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div>
               <Label>Tamanho do Título</Label>
               <Select
@@ -446,7 +486,7 @@ export const DesignCustomizer = ({ design, onChange }: DesignCustomizerProps) =>
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div>
               <Label>Tamanho do Texto</Label>
               <Select

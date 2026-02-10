@@ -147,13 +147,13 @@ export default function RoomDesignSettings() {
   const saveMutation = useMutation({
     mutationFn: async (newConfig: RoomDesignConfig) => {
       console.log('[Design] Salvando configurações...');
-      
+
       // Chamada para a API local que agora gerencia o sync com Supabase de forma segura no backend
       const response = await api.patch("/api/reunioes/room-design", { roomDesignConfig: newConfig });
-      
+
       // Opcional: Tentativa de salvamento direto se o backend falhar ou para redundância
       // Removido para evitar conflitos de tenantId e focar na rota segura do backend
-      
+
       return response.data;
     },
     onSuccess: () => {
@@ -202,7 +202,7 @@ export default function RoomDesignSettings() {
         if (!supabase) return;
 
         console.log("[Design] Configurando Realtime para 'hms_100ms_config'...");
-        
+
         channel = supabase
           .channel('design-config-changes')
           .on(
@@ -274,82 +274,168 @@ export default function RoomDesignSettings() {
       return;
     }
 
-    setIsUploading(true);
-    try {
-      const formData = new FormData();
-      formData.append("logo", file);
+    // First, extract colors from the File object (before uploading)
+    const reader = new FileReader();
+    reader.onload = async (readerEvent) => {
+      const dataUrl = readerEvent.target?.result as string;
 
-      const response = await api.post("/api/upload/logo", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      // Extract colors from base64 dataUrl (works locally in browser)
+      setExtractingColors(true);
+      try {
+        console.log('[ColorExtract] Starting extraction from base64 dataUrl');
+        const colors = await extractColorsFromImage(dataUrl, 5);
+        console.log('[ColorExtract] Colors extracted:', colors);
 
-      if (response.data.url) {
-        const logoUrl = response.data.url;
-        setConfig((prev) => ({
-          ...prev,
-          branding: {
-            ...prev.branding,
-            logo: logoUrl,
-            logoSize: prev.branding.logoSize || 60,
-          },
-        }));
-        toast({ title: "Logo enviado!", description: "Extraindo cores da logo..." });
+        if (colors && colors.length > 0) {
+          toast({
+            title: "Cores extraídas!",
+            description: `${colors.length} cores encontradas. Fazendo upload da logo...`
+          });
 
-        setExtractingColors(true);
+          // Now upload the logo to server
+          setIsUploading(true);
+          try {
+            const formData = new FormData();
+            formData.append("logo", file);
+
+            const response = await api.post("/api/upload/logo", formData, {
+              headers: { "Content-Type": "multipart/form-data" },
+            });
+
+            if (response.data.url) {
+              const logoUrl = response.data.url;
+
+              // Update config with both logo URL and extracted colors
+              setConfig((prev) => ({
+                ...prev,
+                branding: {
+                  ...prev.branding,
+                  logo: logoUrl,
+                  extractedColors: colors,
+                  logoSize: prev.branding.logoSize || 60,
+                },
+              }));
+
+              toast({
+                title: "Sucesso!",
+                description: "Logo enviada e cores aplicadas. Veja as sugestões de paleta.",
+                duration: 5000,
+              });
+            }
+          } catch (uploadError: any) {
+            console.error('[Upload] Error uploading logo:', uploadError);
+            toast({
+              variant: "destructive",
+              title: "Erro",
+              description: uploadError.response?.data?.message || "Não foi possível enviar o logo.",
+            });
+          } finally {
+            setIsUploading(false);
+            if (fileInputRef.current) {
+              fileInputRef.current.value = "";
+            }
+          }
+        } else {
+          console.warn('[ColorExtract] No colors extracted');
+          toast({
+            title: "Aviso",
+            description: "Não foram encontradas cores significativas. Tentando fazer upload...",
+          });
+
+          // Even if no colors, still upload the logo
+          setIsUploading(true);
+          try {
+            const formData = new FormData();
+            formData.append("logo", file);
+
+            const response = await api.post("/api/upload/logo", formData, {
+              headers: { "Content-Type": "multipart/form-data" },
+            });
+
+            if (response.data.url) {
+              setConfig((prev) => ({
+                ...prev,
+                branding: {
+                  ...prev.branding,
+                  logo: response.data.url,
+                  logoSize: prev.branding.logoSize || 60,
+                },
+              }));
+              toast({
+                title: "Logo enviado!",
+                description: "Logo carregada, mas cores não foram extraídas"
+              });
+            }
+          } catch (uploadError: any) {
+            toast({
+              variant: "destructive",
+              title: "Erro",
+              description: uploadError.response?.data?.message || "Não foi possível enviar o logo.",
+            });
+          } finally {
+            setIsUploading(false);
+            if (fileInputRef.current) {
+              fileInputRef.current.value = "";
+            }
+          }
+        }
+      } catch (colorError) {
+        console.error("[ColorExtract] Error extracting colors:", colorError);
+        toast({
+          title: "Aviso",
+          description: "Não foi possível extrair cores. Tentando fazer upload...",
+        });
+
+        // Even if color extraction fails, still upload the logo
+        setIsUploading(true);
         try {
-          // Garantir URL absoluta para extração de cores
-          const absoluteUrl = logoUrl.startsWith('http') 
-            ? logoUrl 
-            : `${window.location.origin}${logoUrl}`;
-          
-          console.log('[ColorExtract] Starting extraction from:', absoluteUrl);
-          const colors = await extractColorsFromImage(absoluteUrl, 5);
-          console.log('[ColorExtract] Colors extracted:', colors);
-          
-          if (colors && colors.length > 0) {
+          const formData = new FormData();
+          formData.append("logo", file);
+
+          const response = await api.post("/api/upload/logo", formData, {
+            headers: { "Content-Type": "multipart/form-data" },
+          });
+
+          if (response.data.url) {
             setConfig((prev) => ({
               ...prev,
               branding: {
                 ...prev.branding,
-                logo: logoUrl,
-                extractedColors: colors,
+                logo: response.data.url,
                 logoSize: prev.branding.logoSize || 60,
               },
             }));
             toast({
-              title: "Cores extraídas!",
-              description: `${colors.length} cores encontradas na logo. Veja as sugestões de paleta.`,
-              duration: 5000,
-            });
-          } else {
-            console.warn('[ColorExtract] No colors extracted');
-            toast({
-              title: "Aviso",
-              description: "Logo carregada, mas não foram encontradas cores significativas",
+              title: "Logo enviado!",
+              description: "Logo carregada, mas cores não foram extraídas automaticamente"
             });
           }
-        } catch (colorError) {
-          console.error("[ColorExtract] Error extracting colors:", colorError);
+        } catch (uploadError: any) {
           toast({
-            title: "Aviso",
-            description: "Logo carregada, mas não foi possível extrair cores automaticamente",
+            variant: "destructive",
+            title: "Erro",
+            description: uploadError.response?.data?.message || "Não foi possível enviar o logo.",
           });
         } finally {
-          setExtractingColors(false);
+          setIsUploading(false);
+          if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+          }
         }
+      } finally {
+        setExtractingColors(false);
       }
-    } catch (error: any) {
+    };
+
+    reader.onerror = () => {
       toast({
         variant: "destructive",
         title: "Erro",
-        description: error.response?.data?.message || "Não foi possível enviar o logo.",
+        description: "Erro ao ler o arquivo",
       });
-    } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-    }
+    };
+
+    reader.readAsDataURL(file);
   };
 
   const handleRemoveLogo = () => {
@@ -372,14 +458,14 @@ export default function RoomDesignSettings() {
       }
       return color;
     };
-    
+
     const hexPrimary = toHex(variation.primary);
     const hexSecondary = toHex(variation.secondary);
     const hexBackground = toHex(variation.background);
     const hexText = toHex(variation.text);
     const hexButton = variation.button ? toHex(variation.button) : hexPrimary;
     const hexButtonText = variation.buttonText ? toHex(variation.buttonText) : hexText;
-    
+
     setConfig((prev) => ({
       ...prev,
       colors: {
@@ -488,8 +574,8 @@ export default function RoomDesignSettings() {
                                 config.branding.logoPosition === "center"
                                   ? "center"
                                   : config.branding.logoPosition === "right"
-                                  ? "flex-end"
-                                  : "flex-start",
+                                    ? "flex-end"
+                                    : "flex-start",
                             }}
                           >
                             <img
@@ -910,30 +996,29 @@ export default function RoomDesignSettings() {
 
               <div className="flex-1 min-h-0 flex flex-col items-center justify-center p-2 bg-zinc-900/50 rounded-lg border border-zinc-800/50">
                 <div
-                  className={`relative border rounded-lg overflow-hidden bg-black transition-all duration-300 shadow-2xl ${
-                    devicePreview === "mobile" ? "w-[240px] aspect-[9/16]" : "w-full max-w-full aspect-video"
-                  }`}
+                  className={`relative border rounded-lg overflow-hidden bg-black transition-all duration-300 shadow-2xl ${devicePreview === "mobile" ? "w-[240px] aspect-[9/16]" : "w-full max-w-full aspect-video"
+                    }`}
                   style={{ backgroundColor: config.colors.background }}
                 >
                   {/* Lobby Preview */}
                   {previewMode === "lobby" && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-white space-y-6">
                       {config.branding.logo && config.branding.showLogoInLobby !== false && (
-                        <div 
+                        <div
                           className="flex items-center gap-2 w-full"
                           style={{
-                            justifyContent: config.branding.logoPosition === "left" 
-                              ? "flex-start" 
-                              : config.branding.logoPosition === "right" 
-                              ? "flex-end" 
-                              : "center"
+                            justifyContent: config.branding.logoPosition === "left"
+                              ? "flex-start"
+                              : config.branding.logoPosition === "right"
+                                ? "flex-end"
+                                : "center"
                           }}
                         >
-                          <img 
-                            src={config.branding.logo} 
-                            alt="Logo" 
+                          <img
+                            src={config.branding.logo}
+                            alt="Logo"
                             className="object-contain"
-                            style={{ 
+                            style={{
                               height: `${(config.branding.logoSize || 60) * 0.5}px`,
                               maxWidth: "150px"
                             }}
@@ -963,21 +1048,21 @@ export default function RoomDesignSettings() {
                     <div className="absolute inset-0 flex flex-col text-white">
                       <header className="p-4 flex items-center justify-between">
                         {config.branding.logo && config.branding.showLogoInMeeting !== false && (
-                          <div 
+                          <div
                             className="flex items-center gap-2"
                             style={{
-                              justifyContent: config.branding.logoPosition === "left" 
-                                ? "flex-start" 
-                                : config.branding.logoPosition === "right" 
-                                ? "flex-end" 
-                                : "center"
+                              justifyContent: config.branding.logoPosition === "left"
+                                ? "flex-start"
+                                : config.branding.logoPosition === "right"
+                                  ? "flex-end"
+                                  : "center"
                             }}
                           >
-                            <img 
-                              src={config.branding.logo} 
-                              alt="Logo" 
+                            <img
+                              src={config.branding.logo}
+                              alt="Logo"
                               className="object-contain"
-                              style={{ 
+                              style={{
                                 height: `${(config.branding.logoSize || 60) * 0.4}px`,
                                 maxWidth: "100px"
                               }}
