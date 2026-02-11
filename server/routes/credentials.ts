@@ -312,7 +312,8 @@ router.put('/:integrationType', authenticateToken, async (req, res) => {
           appAccessKey: credentials.app_access_key,
           appSecret: credentials.app_secret,
           managementToken: credentials.management_token,
-          templateId: credentials.template_id
+          templateId: credentials.template_id,
+          apiBaseUrl: credentials.api_base_url || 'https://api.100ms.live/v2'
         }).execute();
       } else if (integrationType === 'total_express') {
         await db.delete(totalExpressConfig).where(eq(totalExpressConfig.tenantId, tenantId)).execute();
@@ -368,7 +369,13 @@ router.get('/:integrationType', authenticateToken, async (req, res) => {
       if (config) dbCredentials = { token_id: decrypt(config.tokenId), chave_token: decrypt(config.chaveToken) };
     } else if (integrationType === 'hms_100ms') {
       const config = await db!.query.hms100msConfig.findFirst({ where: eq(hms100msConfig.tenantId, tenantId) });
-      if (config) dbCredentials = { app_access_key: config.appAccessKey, app_secret: config.appSecret, management_token: config.managementToken, template_id: config.templateId };
+      if (config) dbCredentials = { 
+        app_access_key: config.appAccessKey, 
+        app_secret: config.appSecret, 
+        management_token: config.managementToken, 
+        template_id: config.templateId,
+        api_base_url: config.apiBaseUrl
+      };
     } else if (integrationType === 'total_express') {
       const config = await db!.query.totalExpressConfig.findFirst({ where: eq(totalExpressConfig.tenantId, tenantId) });
       if (config) dbCredentials = { user: config.user, password: config.password, reid: config.reid, service: config.service, test_mode: config.testMode };
