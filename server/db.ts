@@ -85,6 +85,17 @@ function initializeDatabase(): void {
               created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW()
             );
             CREATE UNIQUE INDEX IF NOT EXISTS idx_supabase_master_tenant_unique ON supabase_master_config (tenant_id);
+            CREATE TABLE IF NOT EXISTS hms_100ms_config (
+              id SERIAL PRIMARY KEY, tenant_id TEXT NOT NULL, app_access_key TEXT, app_secret TEXT,
+              template_id TEXT, room_id TEXT, management_token TEXT, subdomain TEXT, company_slug TEXT,
+              is_owner BOOLEAN DEFAULT FALSE, created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW()
+            );
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_hms_100ms_tenant_unique ON hms_100ms_config (tenant_id);
+            CREATE TABLE IF NOT EXISTS evolution_api_config (
+              id SERIAL PRIMARY KEY, tenant_id TEXT NOT NULL, api_url TEXT NOT NULL, api_key TEXT NOT NULL,
+              instance TEXT DEFAULT 'nexus-whatsapp', created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW()
+            );
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_evolution_api_tenant_unique ON evolution_api_config (tenant_id);
             CREATE TABLE IF NOT EXISTS total_express_config (
               id SERIAL PRIMARY KEY, tenant_id TEXT NOT NULL, "user" TEXT NOT NULL, password TEXT NOT NULL,
               reid TEXT NOT NULL, service TEXT DEFAULT 'EXP', test_mode BOOLEAN DEFAULT TRUE,
@@ -92,7 +103,6 @@ function initializeDatabase(): void {
               created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW()
             );
             CREATE UNIQUE INDEX IF NOT EXISTS idx_total_express_tenant_unique ON total_express_config (tenant_id);
-            CREATE TABLE IF NOT EXISTS leads (
               id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
               tenant_id TEXT NOT NULL,
               telefone TEXT NOT NULL,

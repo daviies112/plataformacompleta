@@ -205,112 +205,69 @@ export function AppHeader({
           )}
         </nav>
 
-        {(type === 'admin' || role === 'admin') && (
-          <Sheet>
-            <SheetTrigger asChild className="lg:hidden">
-              <Button variant="outline" size="sm">
-                <Menu className="h-4 w-4" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="right" className="w-[280px]">
-              <SheetHeader>
-                <SheetTitle className="text-left">Menu</SheetTitle>
-              </SheetHeader>
-              <div className="flex flex-col gap-4 mt-6">
-                {isRevendedoraAdmin ? (
-                  <div className="space-y-2">
-                    {adminSections.revendedoras.filter(item => item.id).map((item: any) => {
-                      const Icon = item.icon;
-                      const active = isActive(item.url);
-                      return (
-                        <button
-                          key={item.url}
-                          onClick={() => {
-                            window.dispatchEvent(new CustomEvent('navigate-admin', { detail: item.id }));
-                          }}
-                          className={cn(
-                            'flex items-center gap-3 px-3 py-2 w-full text-sm font-medium rounded-md transition-colors',
-                            active
-                              ? 'bg-primary text-white shadow-sm font-bold'
-                              : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                          )}
-                        >
-                          <Icon className="h-4 w-4" />
-                          {item.title}
-                        </button>
-                      );
-                    })}
+        <div className="flex lg:hidden items-center gap-2 px-2 py-1 rounded-md ml-2">
+          {isRevendedoraAdmin ? (
+            adminSections.revendedoras.filter(item => item.id).map((item: any) => {
+              const Icon = item.icon;
+              const active = isActive(item.url);
+              return (
+                <button
+                  key={item.url}
+                  onClick={() => {
+                    window.dispatchEvent(new CustomEvent('navigate-admin', { detail: item.id }));
+                  }}
+                  className={cn(
+                    'flex items-center gap-2 px-3 py-2 text-xs font-bold rounded-md transition-all whitespace-nowrap shadow-sm',
+                    active
+                      ? 'bg-primary text-white ring-2 ring-primary/30 scale-105'
+                      : 'bg-muted/20 text-white hover:bg-white/20 hover:scale-105'
+                  )}
+                >
+                  <Icon className="h-3 w-3" />
+                  {item.title}
+                </button>
+              );
+            })
+          ) : (
+             (type === 'admin' || role === 'admin') && (
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Menu className="h-4 w-4" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="right" className="w-[280px]">
+                  <SheetHeader>
+                    <SheetTitle className="text-left">Menu</SheetTitle>
+                  </SheetHeader>
+                  <div className="flex flex-col gap-4 mt-6">
+                    <div className="space-y-2">
+                      {adminSections.etiqueta.map((item) => (
+                        <NavLink key={item.url} to={item.url} className={cn('flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md', isActive(item.url) ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-accent')}>
+                          <item.icon className="h-4 w-4" /> {item.title}
+                        </NavLink>
+                      ))}
+                    </div>
+                    <div className="space-y-2">
+                      {adminSections.revendedoras.map((item: any) => (
+                        <NavLink key={item.url} to={item.url} className={cn('flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md', isActive(item.url) ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-accent')}>
+                          <item.icon className="h-4 w-4" /> {item.title}
+                        </NavLink>
+                      ))}
+                    </div>
+                    <div className="space-y-2">
+                      {adminSections.vendas.map((item) => (
+                        <NavLink key={item.url} to={item.url} className={cn('flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md', isActive(item.url) ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-accent')}>
+                          <item.icon className="h-4 w-4" /> {item.title}
+                        </NavLink>
+                      ))}
+                    </div>
                   </div>
-                ) : (
-                  <>
-                    <div className="space-y-2">
-                      {adminSections.etiqueta.map((item) => {
-                        const Icon = item.icon;
-                        return (
-                          <NavLink
-                            key={item.url}
-                            to={item.url}
-                            className={cn(
-                              'flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors',
-                              isActive(item.url)
-                                ? 'bg-primary/10 text-primary'
-                                : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                            )}
-                          >
-                            <Icon className="h-4 w-4" />
-                            {item.title}
-                          </NavLink>
-                        );
-                      })}
-                    </div>
-
-                    <div className="space-y-2">
-                      {adminSections.revendedoras.map((item: any) => {
-                        const Icon = item.icon;
-                        return (
-                          <NavLink
-                            key={item.url}
-                            to={item.url}
-                            className={cn(
-                              'flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors',
-                              isActive(item.url)
-                                ? 'bg-primary/10 text-primary'
-                                : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                            )}
-                          >
-                            <Icon className="h-4 w-4" />
-                            {item.title}
-                          </NavLink>
-                        );
-                      })}
-                    </div>
-
-                    <div className="space-y-2">
-                      {adminSections.vendas.map((item) => {
-                        const Icon = item.icon;
-                        return (
-                          <NavLink
-                            key={item.url}
-                            to={item.url}
-                            className={cn(
-                              'flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors',
-                              isActive(item.url)
-                                ? 'bg-primary/10 text-primary'
-                                : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                            )}
-                          >
-                            <Icon className="h-4 w-4" />
-                            {item.title}
-                          </NavLink>
-                        );
-                      })}
-                    </div>
-                  </>
-                )}
-              </div>
-            </SheetContent>
-          </Sheet>
-        )}
+                </SheetContent>
+              </Sheet>
+            )
+          )}
+        </div>
 
         <div className="flex items-center gap-2 ml-auto">
           {type === 'reseller' && (
