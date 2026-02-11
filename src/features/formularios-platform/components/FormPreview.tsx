@@ -119,6 +119,35 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
 
   const colors = design.colors;
 
+  // Apply colors to CSS variables for preview
+  useEffect(() => {
+    const root = document.documentElement;
+    if (isLivePreview) {
+      root.style.setProperty('--form-title-color', colors.titleColor);
+      root.style.setProperty('--form-text-color', colors.textColor);
+      root.style.setProperty('--form-page-bg', colors.pageBackground);
+      root.style.setProperty('--form-container-bg', colors.containerBackground);
+      root.style.setProperty('--form-button-color', colors.buttonColor);
+      root.style.setProperty('--form-button-text-color', colors.buttonTextColor);
+      root.style.setProperty('--form-progress-color', colors.progressBarColor);
+      root.style.setProperty('--form-input-bg', colors.inputBackground);
+      root.style.setProperty('--form-border-color', colors.borderColor);
+    }
+    return () => {
+      if (isLivePreview) {
+        root.style.removeProperty('--form-title-color');
+        root.style.removeProperty('--form-text-color');
+        root.style.removeProperty('--form-page-bg');
+        root.style.removeProperty('--form-container-bg');
+        root.style.removeProperty('--form-button-color');
+        root.style.removeProperty('--form-button-text-color');
+        root.style.removeProperty('--form-progress-color');
+        root.style.removeProperty('--form-input-bg');
+        root.style.removeProperty('--form-border-color');
+      }
+    };
+  }, [colors, isLivePreview]);
+
   const spacingClasses = {
     compact: "space-y-4",
     comfortable: "space-y-6",
@@ -349,7 +378,7 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
         <HeadingTag
           className={`${fontSizeClasses[fontSize]} ${fontWeightClasses[fontWeight]} ${alignmentClasses[alignment]}`}
           style={{
-            color: design.colors.text,
+            color: colors.titleColor,
             fontStyle: italic ? 'italic' : 'normal',
             textDecoration
           }}
@@ -404,7 +433,7 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
         <p
           className={`leading-relaxed ${fontSizeClasses[fontSize]} ${fontWeightClasses[fontWeight]} ${alignmentClasses[alignment]}`}
           style={{
-            color: design.colors.text,
+            color: colors.textColor,
             opacity: 0.9,
             fontStyle: italic ? 'italic' : 'normal',
             textDecoration
@@ -424,13 +453,13 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
         {element.showLine && (
           <hr
             className="border-t-2"
-            style={{ borderColor: design.colors.titleColor + '30' }}
+            style={{ borderColor: colors.titleColor + '30' }}
           />
         )}
         {element.label && (
           <p
             className="text-center text-sm mt-2"
-            style={{ color: design.colors.text, opacity: 0.6 }}
+            style={{ color: colors.textColor, opacity: 0.6 }}
           >
             {element.label}
           </p>
@@ -450,16 +479,16 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
         ref={(el) => { questionRefs.current[element.id] = el; }}
         className="space-y-4 transition-all duration-300 rounded-lg p-4"
         style={isActiveQuestion ? {
-          boxShadow: `0 0 0 2px ${design.colors.primary}`,
-          backgroundColor: `${design.colors.primary}0d`
+          boxShadow: `0 0 0 2px ${colors.buttonColor}`,
+          backgroundColor: `${colors.buttonColor}0d`
         } : undefined}
       >
         <div className="flex items-start gap-3">
           <span
             className="font-semibold px-3 py-1 rounded-full text-sm shrink-0"
             style={{
-              backgroundColor: `${design.colors.primary}20`,
-              color: design.colors.primary
+              backgroundColor: `${colors.buttonColor}20`,
+              color: colors.buttonColor
             }}
           >
             {questionNumber}
@@ -467,7 +496,7 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
           <div className="flex-1">
             <h3
               className={`font-medium ${textSizeClasses[design.typography.textSize as keyof typeof textSizeClasses]} mb-4`}
-              style={{ color: design.colors.text }}
+              style={{ color: colors.textColor }}
             >
               {element.text}
             </h3>
@@ -488,16 +517,16 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
                     key={option.id}
                     className="flex items-center space-x-3 p-4 rounded-lg border transition-all duration-200 cursor-pointer hover:shadow-md"
                     style={{
-                      backgroundColor: design.colors.secondary,
-                      borderColor: design.colors.titleColor + '30',
-                      color: design.colors.text
+                      backgroundColor: colors.inputBackground,
+                      borderColor: `${colors.buttonColor}30`,
+                      color: colors.textColor
                     }}
                   >
                     <RadioGroupItem value={option.id} id={`${element.id}-${option.id}`} />
                     <Label
                       htmlFor={`${element.id}-${option.id}`}
                       className="flex-1 cursor-pointer font-normal"
-                      style={{ color: design.colors.text }}
+                      style={{ color: colors.textColor }}
                     >
                       {option.text}
                     </Label>
@@ -513,9 +542,9 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
                 placeholder="Digite sua resposta..."
                 className="resize-none"
                 style={{
-                  backgroundColor: design.colors.secondary,
-                  borderColor: design.colors.titleColor + '30',
-                  color: design.colors.text
+                  backgroundColor: colors.inputBackground,
+                  borderColor: `${colors.buttonColor}30`,
+                  color: colors.textColor
                 }}
                 rows={4}
               />
@@ -545,8 +574,8 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
 
   const renderWizardWelcome = () => {
     return (
-      <div className="min-h-[500px] flex items-center justify-center p-4" style={{ background: `linear-gradient(to bottom right, ${colors.background}, ${colors.secondary})` }}>
-        <Card className="w-full max-w-2xl shadow-xl" style={{ backgroundColor: colors.containerBackground, borderColor: `${colors.primary}30` }}>
+      <div className="min-h-[500px] flex items-center justify-center p-4" style={{ background: colors.pageBackground }}>
+        <Card className="w-full max-w-2xl shadow-xl" style={{ backgroundColor: colors.containerBackground, borderColor: colors.borderColor }}>
           <CardHeader className="text-center pb-8">
             {design.logo && (
               <div className="mb-6">
@@ -556,7 +585,7 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
             <CardTitle className="text-4xl font-bold mb-4" style={{ color: colors.titleColor }}>
               {welcomeConfig.title}
             </CardTitle>
-            <CardDescription className="text-lg" style={{ color: `${colors.text}99` }}>
+            <CardDescription className="text-lg" style={{ color: colors.textColor, opacity: 0.8 }}>
               {welcomeConfig.description}
             </CardDescription>
           </CardHeader>
@@ -578,78 +607,78 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
 
   const renderWizardPersonalData = () => {
     return (
-      <div className="min-h-[500px] p-4" style={{ background: `linear-gradient(to bottom right, ${colors.background}, ${colors.secondary})` }}>
+      <div className="min-h-[500px] p-4" style={{ background: colors.pageBackground }}>
         <div className="max-w-3xl mx-auto pt-4">
           <div className="mb-6">
-            <div className="w-full rounded-full h-2 mb-2" style={{ backgroundColor: colors.secondary }}>
+            <div className="w-full rounded-full h-2 mb-2" style={{ backgroundColor: colors.inputBackground }}>
               <div
                 className="h-2 rounded-full transition-all duration-300"
                 style={{ width: `${wizardProgress}%`, backgroundColor: colors.progressBarColor }}
               />
             </div>
-            <p className="text-sm text-right" style={{ color: colors.text }}>{wizardProgress}% completo</p>
+            <p className="text-sm text-right" style={{ color: colors.textColor }}>{wizardProgress}% completo</p>
           </div>
 
-          <Card className="shadow-lg" style={{ backgroundColor: colors.containerBackground, borderColor: `${colors.primary}30` }}>
+          <Card className="shadow-lg" style={{ backgroundColor: colors.containerBackground, borderColor: colors.borderColor }}>
             <CardHeader>
-              <CardTitle className="text-2xl" style={{ color: colors.text }}>Dados Pessoais</CardTitle>
-              <CardDescription style={{ color: `${colors.text}99` }}>Por favor, preencha suas informações de contato</CardDescription>
+              <CardTitle className="text-2xl" style={{ color: colors.textColor }}>Dados Pessoais</CardTitle>
+              <CardDescription style={{ color: colors.textColor, opacity: 0.8 }}>Por favor, preencha suas informações de contato</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label style={{ color: colors.text }}>Nome completo *</Label>
+                <Label style={{ color: colors.textColor }}>Nome completo *</Label>
                 <Input
                   placeholder="Digite seu nome"
                   className="mt-1"
                   disabled
                   value="João da Silva"
-                  style={{ backgroundColor: colors.inputBackground, borderColor: `${colors.primary}30`, color: colors.text }}
+                  style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.textColor }}
                 />
               </div>
               <div>
-                <Label style={{ color: colors.text }}>Email *</Label>
+                <Label style={{ color: colors.textColor }}>Email *</Label>
                 <Input
                   type="email"
                   placeholder="seu@email.com"
                   className="mt-1"
                   disabled
                   value="joao@email.com"
-                  style={{ backgroundColor: colors.inputBackground, borderColor: `${colors.primary}30`, color: colors.text }}
+                  style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.textColor }}
                 />
               </div>
               <div>
-                <Label style={{ color: colors.text }}>CPF *</Label>
+                <Label style={{ color: colors.textColor }}>CPF *</Label>
                 <Input
                   placeholder="000.000.000-00"
                   maxLength={14}
                   className="mt-1"
                   disabled
                   value="123.456.789-00"
-                  style={{ backgroundColor: colors.inputBackground, borderColor: `${colors.primary}30`, color: colors.text }}
+                  style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.textColor }}
                 />
               </div>
               <div>
-                <Label style={{ color: colors.text }}>Telefone</Label>
+                <Label style={{ color: colors.textColor }}>Telefone</Label>
                 <Input
                   type="tel"
                   placeholder="(00) 00000-0000"
                   className="mt-1"
                   disabled
                   value="(11) 99999-9999"
-                  style={{ backgroundColor: colors.inputBackground, borderColor: `${colors.primary}30`, color: colors.text }}
+                  style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.textColor }}
                 />
               </div>
               <div>
-                <Label style={{ color: colors.text }}>Instagram</Label>
+                <Label style={{ color: colors.textColor }}>Instagram</Label>
                 <Input
                   placeholder="@seuinstagram"
                   className="mt-1"
                   disabled
                   value="@joaosilva"
-                  style={{ backgroundColor: colors.inputBackground, borderColor: `${colors.primary}30`, color: colors.text }}
+                  style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.textColor }}
                 />
               </div>
-              <p className="text-xs italic" style={{ color: `${colors.text}80` }}>* Campos simulados para preview</p>
+              <p className="text-xs italic" style={{ color: colors.textColor, opacity: 0.6 }}>* Campos simulados para preview</p>
             </CardContent>
             <CardFooter className="flex justify-end">
               <Button onClick={handleWizardNext} style={{ backgroundColor: colors.buttonColor, color: colors.buttonTextColor }}>
