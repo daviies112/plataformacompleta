@@ -120,7 +120,6 @@ export function AppHeader({
             (type === 'admin' || role === 'admin') ? (
               <>
                 <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-muted/30">
-                  <span className="text-xs font-semibold text-muted-foreground px-2">Etiqueta</span>
                   {adminSections.etiqueta.map((item) => {
                     const Icon = item.icon;
                     return (
@@ -142,7 +141,6 @@ export function AppHeader({
                 </div>
 
                 <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-muted/30 ml-2">
-                  <span className="text-xs font-semibold text-muted-foreground px-2">Revendedoras</span>
                   {adminSections.revendedoras.map((item) => {
                     const Icon = item.icon;
                     return (
@@ -164,7 +162,6 @@ export function AppHeader({
                 </div>
 
                 <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-muted/30 ml-2">
-                  <span className="text-xs font-semibold text-muted-foreground px-2">Vendas</span>
                   {adminSections.vendas.map((item) => {
                     const Icon = item.icon;
                     return (
@@ -222,7 +219,6 @@ export function AppHeader({
               <div className="flex flex-col gap-4 mt-6">
                 {!isRevendedoraAdmin && (
                   <div className="space-y-2">
-                    <h3 className="text-xs font-semibold text-muted-foreground px-3">ETIQUETA</h3>
                     {adminSections.etiqueta.map((item) => {
                       const Icon = item.icon;
                       return (
@@ -245,7 +241,6 @@ export function AppHeader({
                 )}
 
                 <div className="space-y-2">
-                  {!isRevendedoraAdmin && <h3 className="text-xs font-semibold text-muted-foreground px-3">REVENDEDORAS</h3>}
                   {adminSections.revendedoras.filter(item => !isRevendedoraAdmin || item.id).map((item: any) => {
                     const Icon = item.icon;
                     const active = isActive(item.url);
@@ -275,7 +270,6 @@ export function AppHeader({
 
                 {!isRevendedoraAdmin && (
                   <div className="space-y-2">
-                    <h3 className="text-xs font-semibold text-muted-foreground px-3">VENDAS</h3>
                     {adminSections.vendas.map((item) => {
                       const Icon = item.icon;
                       return (
