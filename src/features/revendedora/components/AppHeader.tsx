@@ -119,6 +119,7 @@ export function AppHeader({
           ) : (
             (type === 'admin' || role === 'admin') ? (
               <>
+                {/* Etiqueta Section */}
                 <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-muted/30">
                   {adminSections.etiqueta.map((item) => {
                     const Icon = item.icon;
@@ -140,6 +141,7 @@ export function AppHeader({
                   })}
                 </div>
 
+                {/* Revendedoras Section */}
                 <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-muted/30 ml-2">
                   {adminSections.revendedoras.map((item) => {
                     const Icon = item.icon;
@@ -161,6 +163,7 @@ export function AppHeader({
                   })}
                 </div>
 
+                {/* Vendas Section */}
                 <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-muted/30 ml-2">
                   {adminSections.vendas.map((item) => {
                     const Icon = item.icon;
@@ -217,112 +220,130 @@ export function AppHeader({
                 <SheetTitle className="text-left">Menu</SheetTitle>
               </SheetHeader>
               <div className="flex flex-col gap-4 mt-6">
-                {!isRevendedoraAdmin && (
+                {isRevendedoraAdmin ? (
                   <div className="space-y-2">
-                    {adminSections.etiqueta.map((item) => {
+                    {adminSections.revendedoras.filter(item => item.id).map((item: any) => {
                       const Icon = item.icon;
+                      const active = isActive(item.url);
                       return (
-                        <NavLink
+                        <button
                           key={item.url}
-                          to={item.url}
+                          onClick={() => {
+                            window.dispatchEvent(new CustomEvent('navigate-admin', { detail: item.id }));
+                          }}
                           className={cn(
-                            'flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors',
-                            isActive(item.url)
-                              ? 'bg-primary/10 text-primary'
+                            'flex items-center gap-3 px-3 py-2 w-full text-sm font-medium rounded-md transition-colors',
+                            active
+                              ? 'bg-primary text-white shadow-sm font-bold'
                               : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                           )}
                         >
                           <Icon className="h-4 w-4" />
                           {item.title}
-                        </NavLink>
+                        </button>
                       );
                     })}
                   </div>
+                ) : (
+                  <>
+                    <div className="space-y-2">
+                      {adminSections.etiqueta.map((item) => {
+                        const Icon = item.icon;
+                        return (
+                          <NavLink
+                            key={item.url}
+                            to={item.url}
+                            className={cn(
+                              'flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors',
+                              isActive(item.url)
+                                ? 'bg-primary/10 text-primary'
+                                : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                            )}
+                          >
+                            <Icon className="h-4 w-4" />
+                            {item.title}
+                          </NavLink>
+                        );
+                      })}
+                    </div>
+
+                    <div className="space-y-2">
+                      {adminSections.revendedoras.map((item: any) => {
+                        const Icon = item.icon;
+                        return (
+                          <NavLink
+                            key={item.url}
+                            to={item.url}
+                            className={cn(
+                              'flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors',
+                              isActive(item.url)
+                                ? 'bg-primary/10 text-primary'
+                                : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                            )}
+                          >
+                            <Icon className="h-4 w-4" />
+                            {item.title}
+                          </NavLink>
+                        );
+                      })}
+                    </div>
+
+                    <div className="space-y-2">
+                      {adminSections.vendas.map((item) => {
+                        const Icon = item.icon;
+                        return (
+                          <NavLink
+                            key={item.url}
+                            to={item.url}
+                            className={cn(
+                              'flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors',
+                              isActive(item.url)
+                                ? 'bg-primary/10 text-primary'
+                                : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                            )}
+                          >
+                            <Icon className="h-4 w-4" />
+                            {item.title}
+                          </NavLink>
+                        );
+                      })}
+                    </div>
+                  </>
                 )}
-
-                <div className="space-y-2">
-                  {adminSections.revendedoras.filter(item => !isRevendedoraAdmin || item.id).map((item: any) => {
-                    const Icon = item.icon;
-                    const active = isActive(item.url);
-                    return (
-                      <button
-                        key={item.url}
-                        onClick={() => {
-                          if (item.id) {
-                            window.dispatchEvent(new CustomEvent('navigate-admin', { detail: item.id }));
-                          } else {
-                            navigate(item.url);
-                          }
-                        }}
-                        className={cn(
-                          'flex items-center gap-3 px-3 py-2 w-full text-sm font-medium rounded-md transition-colors',
-                          active
-                            ? 'bg-primary text-white shadow-sm font-bold'
-                            : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                        )}
-                      >
-                        <Icon className="h-4 w-4" />
-                        {item.title}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {!isRevendedoraAdmin && (
-                  <div className="space-y-2">
-                    {adminSections.vendas.map((item) => {
-                      const Icon = item.icon;
-                      return (
-                        <NavLink
-                          key={item.url}
-                          to={item.url}
-                          className={cn(
-                            'flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors',
-                            isActive(item.url)
-                              ? 'bg-primary/10 text-primary'
-                              : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                        )}
-                      >
-                        <Icon className="h-4 w-4" />
-                        {item.title}
-                      </NavLink>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </SheetContent>
-        </Sheet>
-      )}
-
-      <div className="flex items-center gap-2 ml-auto">
-        {type === 'reseller' && (
-          <>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate('/revendedora/reseller/settings')}
-              title="Configurações"
-              data-testid="button-settings"
-            >
-              <Settings className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => {
-                clearResellerToken();
-                navigate('/revendedora/login', { replace: true });
-              }}
-              title="Sair"
-              data-testid="button-logout"
-            >
-              <LogOut className="h-4 w-4" />
-            </Button>
-          </>
+              </div>
+            </SheetContent>
+          </Sheet>
         )}
+
+        <div className="flex items-center gap-2 ml-auto">
+          {type === 'reseller' && (
+            <>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate('/revendedora/reseller/settings')}
+                title="Configurações"
+                data-testid="button-settings"
+              >
+                <Settings className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  clearResellerToken();
+                  navigate('/revendedora/login', { replace: true });
+                }}
+                title="Sair"
+                data-testid="button-logout"
+                data-testid="button-logout"
+              >
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </>
+          )}
+        </div>
       </div>
-    </div>
-  </header>
+    </header>
   );
 }
