@@ -113,7 +113,7 @@ export function AppHeader({
               </div>
 
               {/* Revendedoras Section */}
-              <div className="flex items-center gap-1 px-2 py-1 rounded-md ml-2">
+              <div className="flex items-center gap-2 px-2 py-1 rounded-md ml-2">
                 {adminSections.revendedoras.filter(item => item.id).map((item: any) => {
                   const Icon = item.icon;
                   const active = isActive(item.url);
@@ -124,10 +124,10 @@ export function AppHeader({
                         window.dispatchEvent(new CustomEvent('navigate-admin', { detail: item.id }));
                       }}
                       className={cn(
-                        'flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap',
+                        'flex items-center gap-2 px-4 py-2 text-sm font-bold rounded-md transition-all whitespace-nowrap shadow-sm',
                         active
-                          ? 'bg-primary text-white font-bold shadow-sm'
-                          : 'text-gray-200 hover:bg-white/10 hover:text-white'
+                          ? 'bg-primary text-white ring-2 ring-primary/30 scale-105'
+                          : 'bg-muted/20 text-white hover:bg-white/20 hover:scale-105'
                       )}
                     >
                       <Icon className="h-4 w-4" />
