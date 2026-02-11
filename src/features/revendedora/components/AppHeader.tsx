@@ -80,7 +80,15 @@ export function AppHeader({
 
   const items = type === 'admin' || role === 'admin' ? allAdminItems : resellerItems;
 
-  const isActive = (url: string) => location.pathname === url || location.pathname.startsWith(url);
+  const isActive = (url: string) => {
+    // Se for rota de revendedora admin, não deve ativar etiqueta ou vendas
+    if (location.pathname.includes('/revendedora/admin') && !url.includes('/revendedora/admin')) {
+      return false;
+    }
+    return location.pathname === url || location.pathname.startsWith(url);
+  };
+
+  const isRevendedoraAdmin = location.pathname.includes('/revendedora/admin');
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -90,27 +98,29 @@ export function AppHeader({
           {(type === 'admin' || role === 'admin') ? (
             <>
               {/* Etiqueta Section */}
-              <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-muted/30">
-                <span className="text-xs font-semibold text-muted-foreground px-2">Etiqueta</span>
-                {adminSections.etiqueta.map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <NavLink
-                      key={item.url}
-                      to={item.url}
-                      className={cn(
-                        'flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap',
-                        isActive(item.url)
-                          ? 'bg-primary/10 text-primary'
-                          : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                      )}
-                    >
-                      <Icon className="h-4 w-4" />
-                      {item.title}
-                    </NavLink>
-                  );
-                })}
-              </div>
+              {!isRevendedoraAdmin && (
+                <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-muted/30">
+                  <span className="text-xs font-semibold text-muted-foreground px-2">Etiqueta</span>
+                  {adminSections.etiqueta.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <NavLink
+                        key={item.url}
+                        to={item.url}
+                        className={cn(
+                          'flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap',
+                          isActive(item.url)
+                            ? 'bg-primary/10 text-primary'
+                            : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                        )}
+                      >
+                        <Icon className="h-4 w-4" />
+                        {item.title}
+                      </NavLink>
+                    );
+                  })}
+                </div>
+              )}
 
               {/* Revendedoras Section */}
               <div className="flex items-center gap-2 px-2 py-1 rounded-md ml-2">
@@ -138,27 +148,29 @@ export function AppHeader({
               </div>
 
               {/* Vendas Section */}
-              <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-muted/30 ml-2">
-                <span className="text-xs font-semibold text-muted-foreground px-2">Vendas</span>
-                {adminSections.vendas.map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <NavLink
-                      key={item.url}
-                      to={item.url}
-                      className={cn(
-                        'flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap',
-                        isActive(item.url)
-                          ? 'bg-primary/10 text-primary'
-                          : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                      )}
-                    >
-                      <Icon className="h-4 w-4" />
-                      {item.title}
-                    </NavLink>
-                  );
-                })}
-              </div>
+              {!isRevendedoraAdmin && (
+                <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-muted/30 ml-2">
+                  <span className="text-xs font-semibold text-muted-foreground px-2">Vendas</span>
+                  {adminSections.vendas.map((item) => {
+                    const Icon = item.icon;
+                    return (
+                      <NavLink
+                        key={item.url}
+                        to={item.url}
+                        className={cn(
+                          'flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap',
+                          isActive(item.url)
+                            ? 'bg-primary/10 text-primary'
+                            : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                        )}
+                      >
+                        <Icon className="h-4 w-4" />
+                        {item.title}
+                      </NavLink>
+                    );
+                  })}
+                </div>
+              )}
             </>
           ) : (
             items.filter(item => item.title !== 'Dashboard').map((item) => {
