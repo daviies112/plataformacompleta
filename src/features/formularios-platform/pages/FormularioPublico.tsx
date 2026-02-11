@@ -724,10 +724,6 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
     } catch (error: any) {
       console.error('❌ Erro ao enviar formulário:', error);
       toast.error(error.message || "Erro ao enviar formulário");
-      setIsSubmitting(false);
-    }
-  };
-      toast.error(error.message || "Erro ao enviar formulário");
     } finally {
       setIsSubmitting(false);
     }
