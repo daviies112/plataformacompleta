@@ -80,7 +80,7 @@
     "totalNewClientsDetected": 0,
     "totalEventsCreated": 0,
     "totalErrors": 0,
-    "uptime": 240
+    "uptime": 299
   },
   "settings": {
     "detectionIntervalMinutes": 2,
