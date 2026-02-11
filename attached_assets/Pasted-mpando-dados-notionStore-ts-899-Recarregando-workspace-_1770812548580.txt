@@ -1,0 +1,95 @@
+mpando dados
+notionStore.ts:899 🔄 Recarregando workspace do Supabase...
+workspaceStorage.ts:320 🔄 Usuário autenticado - carregando workspace do Supabase...
+workspaceStorage.ts:332 📊 Dados do Supabase: Object
+workspaceStorage.ts:336 ✅ Parseando dados do Supabase com suporte a JSON escapado...
+workspaceStorage.ts:337 🔒 GARANTIA: Estes dados do Supabase NUNCA serão deletados automaticamente
+3workspaceStorage.ts:344 📄 Página "Nova Página": 1 blocos, 0 databases
+workspaceStorage.ts:456 ✅ Workspace carregado do Supabase: Object
+notionStore.ts:905 ✅ Dados carregados do Supabase: Object
+workspaceStorage.ts:499 💾 Workspace salvo localmente (cache)
+workspaceStorage.ts:503 📤 Sincronizando com Supabase (apenas insert/update)...
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/notifications/settings:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/credentials:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/credentials/google_calendar:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/config/pluggy:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+workspaceStorage.ts:107 🔒 [SYNC] Iniciando sincronização com Supabase...
+workspaceStorage.ts:129 🔑 IDs extraídos do localStorage: Object
+workspaceStorage.ts:161 🔒 Preparando para salvar 3 páginas no Supabase...
+workspaceStorage.ts:184 📄 Dados das páginas: Array(3)
+workspaceStorage.ts:189 ✅ Páginas salvas no Supabase com sucesso!
+workspaceStorage.ts:195 🔒 Preparando para salvar 1 boards no Supabase...
+workspaceStorage.ts:213 📋 Dados dos boards: Array(1)
+workspaceStorage.ts:218 ✅ Boards salvos no Supabase com sucesso!
+workspaceStorage.ts:262 📤 Workspace sincronizado com Supabase (background): Object
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/credentials/evolution_api:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/whatsapp/qrcode:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/config/n8n:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/config/cache/settings:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/config/monitoring/settings:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/config/redis/credentials:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/config/optimizer/settings:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/config/sentry/credentials:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/config/cloudflare/credentials:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/config/better-stack/credentials:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/config/bigdatacorp/credentials:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/config/supabase-master/credentials:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/n8n/api-key/status:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/config/hms100ms/credentials:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/credentials/google_calendar:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/credentials:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/config/n8n:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/config/pluggy:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/whatsapp/qrcode:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/config/redis/credentials:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/credentials/evolution_api:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/config/better-stack/credentials:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/config/sentry/credentials:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/config/cloudflare/credentials:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/config/bigdatacorp/credentials:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/config/supabase-master/credentials:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/config/hms100ms/credentials:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/n8n/api-key/status:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/credentials/google_calendar:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/credentials:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/config/n8n:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/config/pluggy:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/credentials/evolution_api:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/whatsapp/qrcode:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/config/redis/credentials:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/config/sentry/credentials:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/config/better-stack/credentials:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/config/cloudflare/credentials:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/config/bigdatacorp/credentials:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/config/supabase-master/credentials:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/config/hms100ms/credentials:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/n8n/api-key/status:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/credentials:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/credentials/google_calendar:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/config/pluggy:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/config/n8n:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/whatsapp/qrcode:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/config/sentry/credentials:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/config/better-stack/credentials:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/config/cloudflare/credentials:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/config/redis/credentials:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/credentials/evolution_api:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/config/bigdatacorp/credentials:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/config/supabase-master/credentials:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/config/hms100ms/credentials:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/n8n/api-key/status:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/credentials:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/credentials/google_calendar:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/config/n8n:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/config/pluggy:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/credentials/evolution_api:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/whatsapp/qrcode:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/config/redis/credentials:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/config/sentry/credentials:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/config/cloudflare/credentials:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/config/better-stack/credentials:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/config/bigdatacorp/credentials:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/config/supabase-master/credentials:1  Failed to load resource: the server responded with a status of 404 (Not Found)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/config/hms100ms/credentials:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/n8n/api-key/status:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)Understand this error
+ba0cd0f9-5a1d-42cc-b72d-a791e93b59a0-00-3by7jf2xopfkx.kirk.replit.dev/api/config/hms100ms:1  Failed to load resource: the server responded with a status of 500 (Internal Server Error)
