@@ -1,7 +1,24 @@
-import { Package, ShoppingCart, Users, TrendingUp } from 'lucide-react';
+import { Package, ShoppingCart, Users, TrendingUp, Percent } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useState, useEffect } from 'react';
+import AdminResellers from './Resellers';
+import AdminCommissionConfiguration from './CommissionConfiguration';
 
 export default function AdminDashboard() {
+  const [view, setView] = useState<'dashboard' | 'resellers' | 'commissions'>('dashboard');
+
+  useEffect(() => {
+    const handleNavigate = (e: any) => {
+      if (e.detail === 'admin-resellers') setView('resellers');
+      if (e.detail === 'admin-commissions') setView('commissions');
+    };
+    window.addEventListener('navigate-admin', handleNavigate);
+    return () => window.removeEventListener('navigate-admin', handleNavigate);
+  }, []);
+
+  if (view === 'resellers') return <AdminResellers />;
+  if (view === 'commissions') return <AdminCommissionConfiguration />;
+
   return (
     <div className="space-y-8">
       <div>

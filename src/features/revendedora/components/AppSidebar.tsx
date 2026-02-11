@@ -45,9 +45,9 @@ const adminSections = {
     { title: 'Solicitações', url: '/admin/product-requests', icon: Package },
   ],
   revendedoras: [
-    { title: 'Revendedores', url: '/admin/resellers', icon: Users },
-    { title: 'Configurar Comissões', url: '/admin/commission-config', icon: Percent },
-    { title: 'Personalização', url: '/admin/branding', icon: Palette },
+    { title: 'Revendedores', url: '/revendedora/admin/resellers', icon: Users, id: 'admin-resellers' },
+    { title: 'Configurar Comissões', url: '/revendedora/admin/commission-config', icon: Percent, id: 'admin-commissions' },
+    { title: 'Personalização', url: '/revendedora/admin/branding', icon: Palette },
   ],
   vendas: [
     { title: 'Dashboard', url: '/admin/dashboard', icon: LayoutDashboard },
@@ -114,13 +114,21 @@ export function AppSidebar({ type = 'reseller', role, companyName = 'UP Vendas',
               <SidebarGroupLabel>Revendedoras</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  {adminSections.revendedoras.map((item) => (
+                  {adminSections.revendedoras.map((item: any) => (
                     <SidebarMenuItem key={item.url}>
-                      <NavLink
-                        to={item.url}
-                        icon={item.icon}
-                        label={item.title}
-                      />
+                      <button
+                        onClick={() => {
+                          if (item.id) {
+                            window.dispatchEvent(new CustomEvent('navigate-admin', { detail: item.id }));
+                          } else {
+                            navigate(item.url);
+                          }
+                        }}
+                        className="flex items-center gap-3 px-3 py-2 w-full text-sm font-medium rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+                      >
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.title}</span>
+                      </button>
                     </SidebarMenuItem>
                   ))}
                 </SidebarMenu>

@@ -41,9 +41,9 @@ const getAdminItems = (basePath: string) => ({
     { title: 'Solicitações', url: '/produto/admin/product-requests', icon: ClipboardList },
   ],
   revendedoras: [
-    { title: 'Revendedores', url: '/produto/admin/resellers', icon: Users },
-    { title: 'Configurar Comissões', url: '/produto/admin/commission-config', icon: Percent },
-    { title: 'Personalização', url: '/produto/admin/branding', icon: Palette },
+    { title: 'Revendedores', url: '/revendedora/admin/resellers', icon: Users, id: 'admin-resellers' },
+    { title: 'Configurar Comissões', url: '/revendedora/admin/commission-config', icon: Percent, id: 'admin-commissions' },
+    { title: 'Personalização', url: '/revendedora/admin/branding', icon: Palette },
   ],
   vendas: [
     { title: 'Dashboard', url: '/vendas/dashboard', icon: LayoutDashboard },
@@ -115,12 +115,19 @@ export function AppHeader({
               {/* Revendedoras Section */}
               <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-muted/30 ml-2">
                 <span className="text-xs font-semibold text-muted-foreground px-2">Revendedoras</span>
-                {adminSections.revendedoras.map((item) => {
+                {adminSections.revendedoras.map((item: any) => {
                   const Icon = item.icon;
                   return (
-                    <NavLink
+                    <button
                       key={item.url}
-                      to={item.url}
+                      onClick={() => {
+                        if (item.id) {
+                          // Se tiver ID, emitimos evento para navegação interna
+                          window.dispatchEvent(new CustomEvent('navigate-admin', { detail: item.id }));
+                        } else {
+                          navigate(item.url);
+                        }
+                      }}
                       className={cn(
                         'flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap',
                         isActive(item.url)
@@ -130,7 +137,7 @@ export function AppHeader({
                     >
                       <Icon className="h-4 w-4" />
                       {item.title}
-                    </NavLink>
+                    </button>
                   );
                 })}
               </div>
