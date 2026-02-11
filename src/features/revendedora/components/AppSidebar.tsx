@@ -111,18 +111,13 @@ export function AppSidebar({ type = 'reseller', role, companyName = 'UP Vendas',
 
             {/* Revendedoras Section */}
             <SidebarGroup>
-              <SidebarGroupLabel>Revendedoras</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  {adminSections.revendedoras.map((item: any) => (
+                  {adminSections.revendedoras.filter(item => item.id).map((item: any) => (
                     <SidebarMenuItem key={item.url}>
                       <button
                         onClick={() => {
-                          if (item.id) {
-                            window.dispatchEvent(new CustomEvent('navigate-admin', { detail: item.id }));
-                          } else {
-                            navigate(item.url);
-                          }
+                          window.dispatchEvent(new CustomEvent('navigate-admin', { detail: item.id }));
                         }}
                         className="flex items-center gap-3 px-3 py-2 w-full text-sm font-medium rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
                       >

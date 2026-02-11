@@ -113,20 +113,14 @@ export function AppHeader({
               </div>
 
               {/* Revendedoras Section */}
-              <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-muted/30 ml-2">
-                <span className="text-xs font-semibold text-muted-foreground px-2">Revendedoras</span>
-                {adminSections.revendedoras.map((item: any) => {
+              <div className="flex items-center gap-1 px-2 py-1 rounded-md ml-2">
+                {adminSections.revendedoras.filter(item => item.id).map((item: any) => {
                   const Icon = item.icon;
                   return (
                     <button
                       key={item.url}
                       onClick={() => {
-                        if (item.id) {
-                          // Se tiver ID, emitimos evento para navegação interna
-                          window.dispatchEvent(new CustomEvent('navigate-admin', { detail: item.id }));
-                        } else {
-                          navigate(item.url);
-                        }
+                        window.dispatchEvent(new CustomEvent('navigate-admin', { detail: item.id }));
                       }}
                       className={cn(
                         'flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap',
