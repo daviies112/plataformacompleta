@@ -10,6 +10,8 @@ import { ResellerForm } from "@/features/produto/components/Resellers/ResellerFo
 import { CategoryList } from "@/features/produto/components/Categories/CategoryList";
 import { CategoryForm } from "@/features/produto/components/Categories/CategoryForm";
 import { PrintQueueList } from "@/features/produto/components/PrintQueue/PrintQueueList";
+import AdminProducts from "@/features/revendedora/pages/admin/Products";
+import AdminProductRequests from "@/features/revendedora/pages/admin/ProductRequests";
 import { BottomNav } from "@/features/produto/components/Layout/BottomNav";
 import { MobileHeader } from "@/features/produto/components/Layout/MobileHeader";
 import { MobileProductList } from "@/features/produto/components/Mobile/MobileProductList";
@@ -307,6 +309,10 @@ const ProdutoPage = () => {
         return "Listar Categorias";
       case "produto-print-queue":
         return "Fila de Impressão";
+      case "produto-admin-products":
+        return "Produtos";
+      case "produto-admin-requests":
+        return "Solicitações";
       case "dashboard":
         return "Painel de Controle";
       default:
@@ -412,6 +418,10 @@ const ProdutoPage = () => {
         );
       case "produto-print-queue":
         return <PrintQueueList />;
+      case "produto-admin-products":
+        return <AdminProducts />;
+      case "produto-admin-requests":
+        return <AdminProductRequests />;
       case "printer-config":
         return (
           <PrinterConfig
@@ -543,6 +553,10 @@ const ProdutoPage = () => {
         );
       case "produto-print-queue":
         return <MobilePrintQueueList />;
+      case "produto-admin-products":
+        return <AdminProducts />;
+      case "produto-admin-requests":
+        return <AdminProductRequests />;
       case "printer-config":
         return (
           <PrinterConfig
