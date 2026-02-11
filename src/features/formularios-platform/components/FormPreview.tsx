@@ -248,113 +248,10 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
     return questionCount;
   };
 
-  useEffect(() => {
-    if (design.typography.fontFamily && design.typography.fontFamily !== "Inter") {
-      const link = document.createElement('link');
-      link.href = `https://fonts.googleapis.com/css2?family=${design.typography.fontFamily.replace(' ', '+')}:wght@400;500;600;700&display=swap`;
-      link.rel = 'stylesheet';
-      document.head.appendChild(link);
-      return () => {
-        document.head.removeChild(link);
-      };
-    }
-  }, [design.typography.fontFamily]);
-
-  useEffect(() => {
-    if (activeQuestionId && questionRefs.current[activeQuestionId]) {
-      const element = questionRefs.current[activeQuestionId];
-      element?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-  }, [activeQuestionId]);
-
-  const handleAnswer = (questionId: string, answer: string, points: number) => {
-    const newAnswers = {
-      ...answers,
-      [questionId]: { questionId, answer, points }
-    };
-    setAnswers(newAnswers);
-  };
-
-  const handleNextPage = () => {
-    if (currentPageIndex < pages.length - 1) {
-      setCurrentPageIndex(prev => prev + 1);
-    }
-  };
-
-  const handlePrevPage = () => {
-    if (currentPageIndex > 0) {
-      setCurrentPageIndex(prev => prev - 1);
-    }
-  };
-
-  const handleWizardNext = () => {
-    if (wizardStep < totalWizardSteps - 1) {
-      setWizardStep(prev => prev + 1);
-    }
-  };
-
-  const handleWizardBack = () => {
-    if (wizardStep > 0) {
-      setWizardStep(prev => prev - 1);
-    }
-  };
-
-  const handleStartWizard = () => {
-    setWizardStep(1);
-  };
-
-  const handleSubmit = () => {
-    const answerArray = Object.values(answers);
-    const totalScore = answerArray.reduce((sum, ans) => sum + ans.points, 0);
-
-    let passed = totalScore >= config.passingScore;
-
-    if (config.scoreTiers && config.scoreTiers.length > 0) {
-      const tier = config.scoreTiers.find(
-        t => totalScore >= t.minScore && totalScore <= t.maxScore
-      );
-      passed = tier?.qualifies || false;
-    }
-
-    setResult({
-      answers: answerArray,
-      totalScore,
-      passed
-    });
-
-    if (shouldUseWizard) {
-      setWizardStep(totalWizardSteps - 1);
-    }
-  };
-
-  const getCurrentTier = (score: number): ScoreTier | undefined => {
-    return config.scoreTiers?.find(
-      tier => score >= tier.minScore && score <= tier.maxScore
-    );
-  };
-
   const renderHeading = (element: FormElement) => {
     if (!isHeadingElement(element)) return null;
 
     const HeadingTag = `h${element.level}` as keyof JSX.IntrinsicElements;
-
-    const fontSizeClasses = {
-      'xs': 'text-xs',
-      'sm': 'text-sm',
-      'base': 'text-base',
-      'lg': 'text-lg',
-      'xl': 'text-xl',
-      '2xl': 'text-2xl',
-      '3xl': 'text-3xl',
-      '4xl': 'text-4xl'
-    };
-
-    const fontWeightClasses = {
-      'normal': 'font-normal',
-      'medium': 'font-medium',
-      'semibold': 'font-semibold',
-      'bold': 'font-bold'
-    };
 
     const alignmentClasses = {
       'left': 'text-left',
@@ -377,7 +274,7 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
     return (
       <div key={element.id} className="space-y-2">
         <HeadingTag
-          className={`${fontSizeClasses[fontSize]} ${fontWeightClasses[fontWeight]} ${alignmentClasses[alignment]}`}
+          className={`${titleSizeClasses[fontSize as keyof typeof titleSizeClasses]} font-${fontWeight} ${alignmentClasses[alignment as keyof typeof alignmentClasses]}`}
           style={{
             color: colors.titleColor,
             fontStyle: italic ? 'italic' : 'normal',
@@ -392,24 +289,6 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
 
   const renderText = (element: FormElement) => {
     if (!isTextElement(element)) return null;
-
-    const fontSizeClasses = {
-      'xs': 'text-xs',
-      'sm': 'text-sm',
-      'base': 'text-base',
-      'lg': 'text-lg',
-      'xl': 'text-xl',
-      '2xl': 'text-2xl',
-      '3xl': 'text-3xl',
-      '4xl': 'text-4xl'
-    };
-
-    const fontWeightClasses = {
-      'normal': 'font-normal',
-      'medium': 'font-medium',
-      'semibold': 'font-semibold',
-      'bold': 'font-bold'
-    };
 
     const alignmentClasses = {
       'left': 'text-left',
@@ -432,7 +311,7 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
     return (
       <div key={element.id} className="space-y-2">
         <p
-          className={`leading-relaxed ${fontSizeClasses[fontSize]} ${fontWeightClasses[fontWeight]} ${alignmentClasses[alignment]}`}
+          className={`leading-relaxed ${textSizeClasses[fontSize as keyof typeof textSizeClasses]} font-${fontWeight} ${alignmentClasses[alignment as keyof typeof alignmentClasses]}`}
           style={{
             color: colors.textColor,
             opacity: 0.9,
@@ -454,7 +333,7 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
         {element.showLine && (
           <hr
             className="border-t-2"
-            style={{ borderColor: colors.titleColor + '30' }}
+            style={{ borderColor: colors.borderColor }}
           />
         )}
         {element.label && (
@@ -489,7 +368,7 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
             className="font-semibold px-3 py-1 rounded-full text-sm shrink-0"
             style={{
               backgroundColor: `${colors.buttonColor}20`,
-              color: colors.buttonColor
+              color: colors.titleColor
             }}
           >
             {questionNumber}
@@ -516,10 +395,10 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
                 {element.options.map((option) => (
                   <div
                     key={option.id}
-                    className="flex items-center space-x-3 p-4 rounded-lg border transition-all duration-200 cursor-pointer hover:shadow-md"
+                    className="flex items-center space-x-3 p-4 rounded-lg border transition-all duration-200 cursor-pointer hover-elevate"
                     style={{
                       backgroundColor: colors.inputBackground,
-                      borderColor: `${colors.buttonColor}30`,
+                      borderColor: colors.borderColor,
                       color: colors.textColor
                     }}
                   >
@@ -544,7 +423,7 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
                 className="resize-none"
                 style={{
                   backgroundColor: colors.inputBackground,
-                  borderColor: `${colors.buttonColor}30`,
+                  borderColor: colors.borderColor,
                   color: colors.textColor
                 }}
                 rows={4}

@@ -235,6 +235,103 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
   const [questionAnswers, setQuestionAnswers] = useState<Record<string, any>>({});
   const [result, setResult] = useState<any>(null);
 
+  // Default design configuration (mirrors FormPreview.tsx)
+  const defaultDesign = useMemo(() => ({
+    colors: {
+      titleColor: "hsl(221, 83%, 53%)",
+      textColor: "hsl(222, 47%, 11%)",
+      pageBackground: "linear-gradient(135deg, hsl(210, 40%, 96%), hsl(0, 0%, 100%))",
+      containerBackground: "hsl(0, 0%, 100%)",
+      buttonColor: "hsl(221, 83%, 53%)",
+      buttonTextColor: "hsl(0, 0%, 100%)",
+      progressBarColor: "hsl(221, 83%, 53%)",
+      inputBackground: "hsl(210, 40%, 96%)",
+      borderColor: "hsl(214, 32%, 91%)",
+      // Deprecated fields
+      primary: "hsl(221, 83%, 53%)",
+      secondary: "hsl(210, 40%, 96%)",
+      background: "hsl(0, 0%, 100%)",
+      text: "hsl(222, 47%, 11%)",
+      button: "hsl(221, 83%, 53%)",
+      buttonText: "hsl(0, 0%, 100%)"
+    },
+    typography: {
+      fontFamily: "Inter",
+      titleSize: "2xl",
+      textSize: "base"
+    },
+    logo: null,
+    logoAlign: 'center',
+    logoSize: 120,
+    spacing: "comfortable"
+  }), []);
+
+  // Function to migrate colors (mirrors FormPreview.tsx)
+  const migrateColors = useCallback((oldColors: any) => {
+    if (!oldColors) return defaultDesign.colors;
+    return {
+      titleColor: oldColors.titleColor || oldColors.primary || defaultDesign.colors.titleColor,
+      textColor: oldColors.textColor || oldColors.text || defaultDesign.colors.textColor,
+      pageBackground: oldColors.pageBackground ||
+        `linear-gradient(135deg, ${oldColors.secondary || defaultDesign.colors.inputBackground}, ${oldColors.background || defaultDesign.colors.containerBackground})`,
+      containerBackground: oldColors.containerBackground || oldColors.background || defaultDesign.colors.containerBackground,
+      buttonColor: oldColors.buttonColor || oldColors.button || defaultDesign.colors.buttonColor,
+      buttonTextColor: oldColors.buttonTextColor || oldColors.buttonText || defaultDesign.colors.buttonTextColor,
+      progressBarColor: oldColors.progressBarColor || oldColors.progressBar || oldColors.primary || defaultDesign.colors.progressBarColor,
+      inputBackground: oldColors.inputBackground || oldColors.secondary || defaultDesign.colors.inputBackground,
+      borderColor: oldColors.borderColor || defaultDesign.colors.borderColor,
+      primary: oldColors.primary,
+      secondary: oldColors.secondary,
+      background: oldColors.background,
+      text: oldColors.text,
+      button: oldColors.button,
+      buttonText: oldColors.buttonText,
+      progressBar: oldColors.progressBar
+    };
+  }, [defaultDesign]);
+
+  const design = useMemo(() => {
+    const baseDesign = (form?.designConfig as any) || {};
+    return {
+      ...defaultDesign,
+      ...baseDesign,
+      colors: migrateColors(baseDesign.colors),
+      typography: {
+        ...defaultDesign.typography,
+        ...(baseDesign.typography || {})
+      },
+      spacing: baseDesign.spacing || defaultDesign.spacing
+    };
+  }, [form, defaultDesign, migrateColors]);
+
+  const colors = design.colors;
+
+  // Apply colors to CSS variables
+  useEffect(() => {
+    const root = document.documentElement;
+    root.style.setProperty('--form-title-color', colors.titleColor);
+    root.style.setProperty('--form-text-color', colors.textColor);
+    root.style.setProperty('--form-page-bg', colors.pageBackground);
+    root.style.setProperty('--form-container-bg', colors.containerBackground);
+    root.style.setProperty('--form-button-color', colors.buttonColor);
+    root.style.setProperty('--form-button-text-color', colors.buttonTextColor);
+    root.style.setProperty('--form-progress-color', colors.progressBarColor);
+    root.style.setProperty('--form-input-bg', colors.inputBackground);
+    root.style.setProperty('--form-border-color', colors.borderColor);
+
+    return () => {
+      root.style.removeProperty('--form-title-color');
+      root.style.removeProperty('--form-text-color');
+      root.style.removeProperty('--form-page-bg');
+      root.style.removeProperty('--form-container-bg');
+      root.style.removeProperty('--form-button-color');
+      root.style.removeProperty('--form-button-text-color');
+      root.style.removeProperty('--form-progress-color');
+      root.style.removeProperty('--form-input-bg');
+      root.style.removeProperty('--form-border-color');
+    };
+  }, [colors]);
+
   // 🔥 FIX: Formulários de validação com telefone da URL como defaultValue
   const personalForm = useForm({
     resolver: zodResolver(personalDataSchema),
@@ -621,10 +718,15 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
         qualificacao
       });
 
+      const totalSteps = 3 + questionPages.length + 1;
       setCurrentStep(totalSteps - 1);
       toast.success("Formulário enviado com sucesso!");
     } catch (error: any) {
       console.error('❌ Erro ao enviar formulário:', error);
+      toast.error(error.message || "Erro ao enviar formulário");
+      setIsSubmitting(false);
+    }
+  };
       toast.error(error.message || "Erro ao enviar formulário");
     } finally {
       setIsSubmitting(false);
@@ -814,7 +916,7 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
             <CardTitle className="text-4xl font-bold mb-4" style={{ color: colors.titleColor }}>
               {welcomeConfig.title}
             </CardTitle>
-            <CardDescription className="text-lg" style={{ color: `${colors.textColor}99` }}>
+            <CardDescription className="text-lg" style={{ color: colors.textColor, opacity: 0.8 }}>
               {welcomeConfig.description}
             </CardDescription>
           </CardHeader>
@@ -822,7 +924,7 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
             <Button
               size="lg"
               onClick={handleStartWizard}
-              style={{ backgroundColor: colors.buttonColor, color: colors.buttonTextColorColor }}
+              style={{ backgroundColor: colors.buttonColor, color: colors.buttonTextColor }}
               className="px-8"
             >
               <Sparkles className="mr-2 h-5 w-5" />
@@ -837,23 +939,23 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
   // PÁGINA DE DADOS PESSOAIS (Step 1)
   if (currentStep === 1) {
     return (
-      <div className="min-h-screen p-4" style={{ background: `linear-gradient(to bottom right, ${colors.background}, ${colors.secondary})` }}>
+      <div className="min-h-screen p-4" style={{ background: colors.pageBackground }}>
         <div className="max-w-3xl mx-auto pt-8">
           <div className="mb-6">
             <div className="h-2 rounded-full overflow-hidden mb-2" style={{ backgroundColor: colors.inputBackground }}>
               <div className="h-full transition-all duration-300" style={{ width: `${progress}%`, backgroundColor: colors.progressBarColor }} />
             </div>
-            <p className="text-sm text-right" style={{ color: colors.text }}>{progress}% completo</p>
+            <p className="text-sm text-right" style={{ color: colors.textColor }}>{progress}% completo</p>
           </div>
 
           <Card className="shadow-lg" style={{ backgroundColor: colors.containerBackground, borderColor: colors.borderColor }}>
             <CardHeader>
-              <CardTitle className="text-2xl" style={{ color: colors.text }}>Dados Pessoais</CardTitle>
-              <CardDescription style={{ color: `${colors.text}99` }}>Por favor, preencha suas informações de contato</CardDescription>
+              <CardTitle className="text-2xl" style={{ color: colors.textColor }}>Dados Pessoais</CardTitle>
+              <CardDescription style={{ color: colors.textColor, opacity: 0.8 }}>Por favor, preencha suas informações de contato</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label style={{ color: colors.text }}>Nome completo *</Label>
+                <Label style={{ color: colors.textColor }}>Nome completo *</Label>
                 <Input
                   {...personalForm.register("name")}
                   placeholder="Digite seu nome"
@@ -862,12 +964,12 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
                 />
                 {personalForm.formState.errors.name && (
                   <p className="text-sm mt-1" style={{ color: '#ef4444' }}>
-                    {personalForm.formState.errors.name.message}
+                    {personalForm.formState.errors.name.message as string}
                   </p>
                 )}
               </div>
               <div>
-                <Label style={{ color: colors.text }}>Email *</Label>
+                <Label style={{ color: colors.textColor }}>Email *</Label>
                 <Input
                   type="email"
                   {...personalForm.register("email")}
@@ -877,12 +979,12 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
                 />
                 {personalForm.formState.errors.email && (
                   <p className="text-sm mt-1" style={{ color: '#ef4444' }}>
-                    {personalForm.formState.errors.email.message}
+                    {personalForm.formState.errors.email.message as string}
                   </p>
                 )}
               </div>
               <div>
-                <Label style={{ color: colors.text }}>CPF *</Label>
+                <Label style={{ color: colors.textColor }}>CPF *</Label>
                 <Input
                   {...personalForm.register("cpf")}
                   placeholder="000.000.000-00"
@@ -900,13 +1002,13 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
                 />
                 {personalForm.formState.errors.cpf && (
                   <p className="text-sm mt-1" style={{ color: '#ef4444' }}>
-                    {personalForm.formState.errors.cpf.message}
+                    {personalForm.formState.errors.cpf.message as string}
                   </p>
                 )}
               </div>
               <div>
-                <Label style={{ color: colors.text }}>
-                  Telefone
+                <Label style={{ color: colors.textColor }}>
+                  Telefone (WhatsApp) *
                   {telefoneBloqueado && (
                     <span className="ml-2 text-xs" style={{ color: '#22c55e' }}>
                       ✓ WhatsApp verificado
@@ -921,7 +1023,7 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
                   readOnly={telefoneBloqueado}
                   style={{
                     backgroundColor: colors.inputBackground,
-                    borderColor: telefoneBloqueado ? '#22c55e' : `${colors.primary}30`,
+                    borderColor: telefoneBloqueado ? '#22c55e' : colors.borderColor,
                     color: colors.textColor,
                     cursor: telefoneBloqueado ? 'not-allowed' : 'text',
                     borderWidth: telefoneBloqueado ? '2px' : '1px'
@@ -929,12 +1031,12 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
                 />
               </div>
               <div>
-                <Label style={{ color: colors.text }}>Instagram</Label>
+                <Label style={{ color: colors.textColor }}>Instagram</Label>
                 <Input
                   {...personalForm.register("instagram")}
                   placeholder="@seuinstagram"
                   className="mt-1"
-                  style={{ backgroundColor: colors.inputBackground, borderColor: `${colors.primary}30`, color: colors.text }}
+                  style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.textColor }}
                   onChange={(e) => {
                     let value = e.target.value;
                     if (value && !value.startsWith('@')) {
@@ -960,121 +1062,121 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
   // PÁGINA DE ENDEREÇO (Step 2)
   if (currentStep === 2) {
     return (
-      <div className="min-h-screen p-4" style={{ background: `linear-gradient(to bottom right, ${colors.background}, ${colors.secondary})` }}>
+      <div className="min-h-screen p-4" style={{ background: colors.pageBackground }}>
         <div className="max-w-3xl mx-auto pt-8">
           <div className="mb-6">
-            <div className="h-2 rounded-full overflow-hidden mb-2" style={{ backgroundColor: colors.secondary }}>
+            <div className="h-2 rounded-full overflow-hidden mb-2" style={{ backgroundColor: colors.inputBackground }}>
               <div className="h-full transition-all duration-300" style={{ width: `${progress}%`, backgroundColor: colors.progressBarColor }} />
             </div>
-            <p className="text-sm text-right" style={{ color: colors.text }}>{progress}% completo</p>
+            <p className="text-sm text-right" style={{ color: colors.textColor }}>{progress}% completo</p>
           </div>
 
-          <Card className="shadow-lg" style={{ backgroundColor: colors.containerBackground, borderColor: `${colors.primary}30` }}>
+          <Card className="shadow-lg" style={{ backgroundColor: colors.containerBackground, borderColor: colors.borderColor }}>
             <CardHeader>
-              <CardTitle className="text-2xl" style={{ color: colors.text }}>Dados de Endereço</CardTitle>
-              <CardDescription style={{ color: `${colors.text}99` }}>Preencha seu endereço completo</CardDescription>
+              <CardTitle className="text-2xl" style={{ color: colors.textColor }}>Dados de Endereço</CardTitle>
+              <CardDescription style={{ color: colors.textColor, opacity: 0.8 }}>Preencha seu endereço completo</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2 sm:col-span-1">
-                  <Label style={{ color: colors.text }}>CEP *</Label>
+                  <Label style={{ color: colors.textColor }}>CEP *</Label>
                   <Input
                     {...addressForm.register("cep")}
                     placeholder="00000-000"
                     maxLength={9}
                     className="mt-1"
-                    style={{ backgroundColor: colors.inputBackground, borderColor: `${colors.primary}30`, color: colors.text }}
+                    style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.textColor }}
                   />
                   {addressForm.formState.errors.cep && (
                     <p className="text-sm mt-1" style={{ color: '#ef4444' }}>
-                      {addressForm.formState.errors.cep.message}
+                      {addressForm.formState.errors.cep.message as string}
                     </p>
                   )}
                 </div>
                 <div className="col-span-2 sm:col-span-1">
-                  <Label style={{ color: colors.text }}>Estado *</Label>
+                  <Label style={{ color: colors.textColor }}>Estado *</Label>
                   <Input
                     {...addressForm.register("state")}
                     placeholder="SP"
                     maxLength={2}
                     className="mt-1 uppercase"
-                    style={{ backgroundColor: colors.inputBackground, borderColor: `${colors.primary}30`, color: colors.text }}
+                    style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.textColor }}
                   />
                   {addressForm.formState.errors.state && (
                     <p className="text-sm mt-1" style={{ color: '#ef4444' }}>
-                      {addressForm.formState.errors.state.message}
+                      {addressForm.formState.errors.state.message as string}
                     </p>
                   )}
                 </div>
               </div>
 
               <div>
-                <Label style={{ color: colors.text }}>Rua *</Label>
+                <Label style={{ color: colors.textColor }}>Rua *</Label>
                 <Input
                   {...addressForm.register("street")}
                   placeholder="Nome da rua"
                   className="mt-1"
-                  style={{ backgroundColor: colors.inputBackground, borderColor: `${colors.primary}30`, color: colors.text }}
+                  style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.textColor }}
                 />
                 {addressForm.formState.errors.street && (
                   <p className="text-sm mt-1" style={{ color: '#ef4444' }}>
-                    {addressForm.formState.errors.street.message}
+                    {addressForm.formState.errors.street.message as string}
                   </p>
                 )}
               </div>
 
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <Label style={{ color: colors.text }}>Número *</Label>
+                  <Label style={{ color: colors.textColor }}>Número *</Label>
                   <Input
                     {...addressForm.register("number")}
                     placeholder="123"
                     className="mt-1"
-                    style={{ backgroundColor: colors.inputBackground, borderColor: `${colors.primary}30`, color: colors.text }}
+                    style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.textColor }}
                   />
                   {addressForm.formState.errors.number && (
                     <p className="text-sm mt-1" style={{ color: '#ef4444' }}>
-                      {addressForm.formState.errors.number.message}
+                      {addressForm.formState.errors.number.message as string}
                     </p>
                   )}
                 </div>
                 <div className="col-span-2">
-                  <Label style={{ color: colors.text }}>Complemento</Label>
+                  <Label style={{ color: colors.textColor }}>Complemento</Label>
                   <Input
                     {...addressForm.register("complement")}
                     placeholder="Apto, bloco, etc."
                     className="mt-1"
-                    style={{ backgroundColor: colors.inputBackground, borderColor: `${colors.primary}30`, color: colors.text }}
+                    style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.textColor }}
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label style={{ color: colors.text }}>Bairro *</Label>
+                  <Label style={{ color: colors.textColor }}>Bairro *</Label>
                   <Input
                     {...addressForm.register("neighborhood")}
                     placeholder="Nome do bairro"
                     className="mt-1"
-                    style={{ backgroundColor: colors.inputBackground, borderColor: `${colors.primary}30`, color: colors.text }}
+                    style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.textColor }}
                   />
                   {addressForm.formState.errors.neighborhood && (
                     <p className="text-sm mt-1" style={{ color: '#ef4444' }}>
-                      {addressForm.formState.errors.neighborhood.message}
+                      {addressForm.formState.errors.neighborhood.message as string}
                     </p>
                   )}
                 </div>
                 <div>
-                  <Label style={{ color: colors.text }}>Cidade *</Label>
+                  <Label style={{ color: colors.textColor }}>Cidade *</Label>
                   <Input
                     {...addressForm.register("city")}
                     placeholder="Nome da cidade"
                     className="mt-1"
-                    style={{ backgroundColor: colors.inputBackground, borderColor: `${colors.primary}30`, color: colors.text }}
+                    style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.textColor }}
                   />
                   {addressForm.formState.errors.city && (
                     <p className="text-sm mt-1" style={{ color: '#ef4444' }}>
-                      {addressForm.formState.errors.city.message}
+                      {addressForm.formState.errors.city.message as string}
                     </p>
                   )}
                 </div>
@@ -1098,6 +1200,8 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
     const currentPage = questionPages[pageIndex];
     const isLastPage = pageIndex === questionPages.length - 1;
     const pageQuestions = currentPage?.questions || [];
+    const totalSteps = 3 + questionPages.length + 1;
+    const progress = Math.round(((currentStep) / (totalSteps - 1)) * 100);
 
     if (!currentPage || pageQuestions.length === 0) return null;
 
@@ -1172,16 +1276,16 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
     };
 
     return (
-      <div className="min-h-screen p-4" style={{ background: `linear-gradient(to bottom right, ${colors.background}, ${colors.secondary})` }}>
+      <div className="min-h-screen p-4" style={{ background: colors.pageBackground }}>
         <div className="max-w-3xl mx-auto pt-8">
           <div className="mb-6">
-            <div className="h-2 rounded-full overflow-hidden mb-2" style={{ backgroundColor: colors.secondary }}>
+            <div className="h-2 rounded-full overflow-hidden mb-2" style={{ backgroundColor: colors.inputBackground }}>
               <div className="h-full transition-all duration-300" style={{ width: `${progress}%`, backgroundColor: colors.progressBarColor }} />
             </div>
-            <p className="text-sm text-right" style={{ color: colors.text }}>{progress}% completo</p>
+            <p className="text-sm text-right" style={{ color: colors.textColor }}>{progress}% completo</p>
           </div>
 
-          <Card className="shadow-lg" style={{ backgroundColor: colors.containerBackground, borderColor: `${colors.primary}30` }}>
+          <Card className="shadow-lg" style={{ backgroundColor: colors.containerBackground, borderColor: colors.borderColor }}>
             <CardContent className="space-y-6 pt-6">
               {pageQuestions.map((question: any, idx: number) => renderQuestionInput(question, idx))}
             </CardContent>

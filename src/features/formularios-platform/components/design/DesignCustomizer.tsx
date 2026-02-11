@@ -63,14 +63,33 @@ export const DesignCustomizer = ({ design, onChange }: DesignCustomizerProps) =>
     name: string;
   }>>([]);
 
+  // Prevenir crash se design.colors estiver indefinido
+  const safeDesign = {
+    ...design,
+    colors: design?.colors || {
+      titleColor: "hsl(222, 47%, 11%)",
+      textColor: "hsl(222, 47%, 11%)",
+      pageBackground: "hsl(0, 0%, 100%)",
+      containerBackground: "hsl(210, 40%, 96%)",
+      buttonColor: "hsl(221, 83%, 53%)",
+      buttonTextColor: "hsl(0, 0%, 100%)",
+      progressBarColor: "hsl(221, 83%, 53%)"
+    },
+    typography: design?.typography || {
+      fontFamily: "Inter",
+      titleSize: "2xl",
+      textSize: "base"
+    }
+  };
+
   useEffect(() => {
-    if (design.logo && design.extractedColors && design.extractedColors.length > 0) {
-      const variations = generateColorVariations(design.extractedColors);
+    if (safeDesign.logo && safeDesign.extractedColors && safeDesign.extractedColors.length > 0) {
+      const variations = generateColorVariations(safeDesign.extractedColors);
       setColorVariations(variations);
     } else {
       setColorVariations([]);
     }
-  }, [design.extractedColors]);
+  }, [safeDesign.extractedColors, safeDesign.logo]);
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -184,6 +203,15 @@ export const DesignCustomizer = ({ design, onChange }: DesignCustomizerProps) =>
     onChange({
       ...design,
       colors: {
+        titleColor: variation.text,
+        textColor: variation.text,
+        pageBackground: variation.background,
+        containerBackground: variation.secondary,
+        buttonColor: variation.primary,
+        buttonTextColor: variation.background,
+        progressBarColor: variation.primary,
+        borderColor: `${variation.primary}30`,
+        // Mantendo deprecated por segurança
         primary: variation.primary,
         secondary: variation.secondary,
         background: variation.background,
@@ -386,58 +414,58 @@ export const DesignCustomizer = ({ design, onChange }: DesignCustomizerProps) =>
           <div className="grid grid-cols-2 gap-4">
             <ColorPicker
               label="Cor do Título"
-              color={design.colors.titleColor || design.colors.primary || "hsl(222, 47%, 11%)"}
+              color={safeDesign.colors.titleColor || safeDesign.colors.primary || "hsl(222, 47%, 11%)"}
               onChange={(color) => onChange({
-                ...design,
-                colors: { ...design.colors, titleColor: color }
+                ...safeDesign,
+                colors: { ...safeDesign.colors, titleColor: color }
               })}
             />
             <ColorPicker
               label="Cor do Texto"
-              color={design.colors.textColor || design.colors.text || "hsl(222, 47%, 11%)"}
+              color={safeDesign.colors.textColor || safeDesign.colors.text || "hsl(222, 47%, 11%)"}
               onChange={(color) => onChange({
-                ...design,
-                colors: { ...design.colors, textColor: color }
+                ...safeDesign,
+                colors: { ...safeDesign.colors, textColor: color }
               })}
             />
             <ColorPicker
               label="Cor do Fundo"
-              color={design.colors.pageBackground || design.colors.background || "hsl(0, 0%, 100%)"}
+              color={safeDesign.colors.pageBackground || safeDesign.colors.background || "hsl(0, 0%, 100%)"}
               onChange={(color) => onChange({
-                ...design,
-                colors: { ...design.colors, pageBackground: color }
+                ...safeDesign,
+                colors: { ...safeDesign.colors, pageBackground: color }
               })}
             />
             <ColorPicker
               label="Cor do Container"
-              color={design.colors.containerBackground || design.colors.secondary || "hsl(210, 40%, 96%)"}
+              color={safeDesign.colors.containerBackground || safeDesign.colors.secondary || "hsl(210, 40%, 96%)"}
               onChange={(color) => onChange({
-                ...design,
-                colors: { ...design.colors, containerBackground: color }
+                ...safeDesign,
+                colors: { ...safeDesign.colors, containerBackground: color }
               })}
             />
             <ColorPicker
               label="Cor do Botão"
-              color={design.colors.buttonColor || design.colors.button || "hsl(221, 83%, 53%)"}
+              color={safeDesign.colors.buttonColor || safeDesign.colors.button || "hsl(221, 83%, 53%)"}
               onChange={(color) => onChange({
-                ...design,
-                colors: { ...design.colors, buttonColor: color }
+                ...safeDesign,
+                colors: { ...safeDesign.colors, buttonColor: color }
               })}
             />
             <ColorPicker
               label="Cor do Texto do Botão"
-              color={design.colors.buttonTextColor || design.colors.buttonText || "hsl(0, 0%, 100%)"}
+              color={safeDesign.colors.buttonTextColor || safeDesign.colors.buttonText || "hsl(0, 0%, 100%)"}
               onChange={(color) => onChange({
-                ...design,
-                colors: { ...design.colors, buttonTextColor: color }
+                ...safeDesign,
+                colors: { ...safeDesign.colors, buttonTextColor: color }
               })}
             />
             <ColorPicker
               label="Cor da Barra de Progresso"
-              color={design.colors.progressBarColor || design.colors.progressBar || design.colors.primary || "hsl(221, 83%, 53%)"}
+              color={safeDesign.colors.progressBarColor || safeDesign.colors.progressBar || safeDesign.colors.primary || "hsl(221, 83%, 53%)"}
               onChange={(color) => onChange({
-                ...design,
-                colors: { ...design.colors, progressBarColor: color }
+                ...safeDesign,
+                colors: { ...safeDesign.colors, progressBarColor: color }
               })}
             />
           </div>
@@ -450,10 +478,10 @@ export const DesignCustomizer = ({ design, onChange }: DesignCustomizerProps) =>
             <div>
               <Label>Fonte</Label>
               <Select
-                value={design.typography.fontFamily}
+                value={safeDesign.typography.fontFamily}
                 onValueChange={(value) => onChange({
-                  ...design,
-                  typography: { ...design.typography, fontFamily: value }
+                  ...safeDesign,
+                  typography: { ...safeDesign.typography, fontFamily: value }
                 })}
               >
                 <SelectTrigger>
@@ -472,10 +500,10 @@ export const DesignCustomizer = ({ design, onChange }: DesignCustomizerProps) =>
             <div>
               <Label>Tamanho do Título</Label>
               <Select
-                value={design.typography.titleSize}
+                value={safeDesign.typography.titleSize}
                 onValueChange={(value) => onChange({
-                  ...design,
-                  typography: { ...design.typography, titleSize: value }
+                  ...safeDesign,
+                  typography: { ...safeDesign.typography, titleSize: value }
                 })}
               >
                 <SelectTrigger>
@@ -494,10 +522,10 @@ export const DesignCustomizer = ({ design, onChange }: DesignCustomizerProps) =>
             <div>
               <Label>Tamanho do Texto</Label>
               <Select
-                value={design.typography.textSize}
+                value={safeDesign.typography.textSize}
                 onValueChange={(value) => onChange({
-                  ...design,
-                  typography: { ...design.typography, textSize: value }
+                  ...safeDesign,
+                  typography: { ...safeDesign.typography, textSize: value }
                 })}
               >
                 <SelectTrigger>
@@ -519,8 +547,8 @@ export const DesignCustomizer = ({ design, onChange }: DesignCustomizerProps) =>
         <div className="space-y-2">
           <Label>Espaçamento</Label>
           <Select
-            value={design.spacing}
-            onValueChange={(value: any) => onChange({ ...design, spacing: value })}
+            value={safeDesign.spacing}
+            onValueChange={(value: any) => onChange({ ...safeDesign, spacing: value })}
           >
             <SelectTrigger>
               <SelectValue />
