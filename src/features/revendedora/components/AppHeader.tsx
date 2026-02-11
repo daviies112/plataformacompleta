@@ -119,7 +119,6 @@ export function AppHeader({
           ) : (
             (type === 'admin' || role === 'admin') ? (
               <>
-                {/* Etiqueta Section */}
                 <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-muted/30">
                   {adminSections.etiqueta.map((item) => {
                     const Icon = item.icon;
@@ -141,7 +140,6 @@ export function AppHeader({
                   })}
                 </div>
 
-                {/* Revendedoras Section */}
                 <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-muted/30 ml-2">
                   {adminSections.revendedoras.map((item) => {
                     const Icon = item.icon;
@@ -163,7 +161,6 @@ export function AppHeader({
                   })}
                 </div>
 
-                {/* Vendas Section */}
                 <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-muted/30 ml-2">
                   {adminSections.vendas.map((item) => {
                     const Icon = item.icon;
@@ -335,7 +332,6 @@ export function AppHeader({
                   navigate('/revendedora/login', { replace: true });
                 }}
                 title="Sair"
-                data-testid="button-logout"
                 data-testid="button-logout"
               >
                 <LogOut className="h-4 w-4" />
