@@ -1,72 +1,80 @@
-# Documentação Técnica: Sistema de Branding (Logos e Cores) - ExecutiveAI Pro
+# Documentação Técnica: Sistema de Branding e Preview NEXUS
 
-Este documento detalha a implementação do sistema de personalização visual (Branding) para o formulário e reuniões, permitindo a sincronização de logos e cores em tempo real.
+Este documento detalha a implementação técnica do sistema de branding que permite a personalização em tempo real de logos, cores e fontes no preview dos formulários e reuniões.
 
-## 1. Sistema de Cores do Formulário (Form Preview)
+## 1. Mapeamento e Normalização de Cores (FormPreview.tsx)
 
-O sistema de cores do formulário foi projetado para permitir que o usuário veja as alterações instantaneamente enquanto edita.
-
-### Mapeamento de Cores
-As cores são gerenciadas no objeto `designConfig.colors`. Utilizamos uma função `migrateColors` no componente `FormPreview.tsx` para garantir que temas antigos continuem funcionando enquanto novos campos são adicionados.
-
-**Convenção de Nomes:**
-- `titleColor`: Cor dos títulos.
-- `textColor`: Cor dos textos e labels.
-- `pageBackground`: Fundo da página (gradiente ou cor).
-- `containerBackground`: Fundo do card central.
-- `buttonColor`: Cor do botão de ação.
-- `buttonTextColor`: Cor do texto do botão.
-- `progressBarColor`: Cor da barra de progresso.
-- `inputBackground`: Fundo dos inputs.
-- `borderColor`: Cor das bordas.
-
-### Sincronização em Tempo Real (Live Preview)
-A visualização em tempo real funciona através de **Variáveis CSS** injetadas dinamicamente via JavaScript:
-
-1. **Injeção:** No `FormPreview.tsx`, usamos um `useEffect` que observa o objeto de cores.
-2. **Atribuição:** Quando o modo `isLivePreview` está ativo, as cores são injetadas no `document.documentElement`.
-3. **Aplicação:** Os componentes utilizam essas variáveis ou estilos inline diretos para refletir a mudança sem recarregar a página.
+Para suportar temas antigos e novos, utilizamos a função `migrateColors`. Ela traduz as cores do banco de dados (que podem estar no formato legado) para o novo sistema de tokens:
 
 ```typescript
-// Exemplo de injeção no FormPreview.tsx
-useEffect(() => {
-  const root = document.documentElement;
-  if (isLivePreview) {
-    root.style.setProperty('--form-title-color', colors.titleColor);
-    root.style.setProperty('--form-page-bg', colors.pageBackground);
-    // ...
-  }
-}, [colors, isLivePreview]);
+const migrateColors = (designColors: any) => {
+  return {
+    titleColor: designColors.titleColor || designColors.primary || '#000000',
+    textColor: designColors.textColor || designColors.text || '#374151',
+    pageBackground: designColors.pageBackground || designColors.background || '#ffffff',
+    containerBackground: designColors.containerBackground || designColors.background || '#ffffff',
+    buttonColor: designColors.buttonColor || designColors.primary || '#000000',
+    buttonTextColor: designColors.buttonTextColor || designColors.buttonText || '#ffffff',
+    progressBarColor: designColors.progressBarColor || designColors.primary || '#000000',
+    inputBackground: designColors.inputBackground || '#ffffff',
+    borderColor: designColors.borderColor || (designColors.primary ? `${designColors.primary}33` : '#e5e7eb'),
+  };
+};
 ```
 
----
+## 2. Injeção de Variáveis CSS para Preview em Tempo Real
 
-## 2. Implementação de Logos
+No builder de formulários, as alterações de cor são refletidas instantaneamente através de variáveis CSS injetadas no container do preview:
 
-### No Formulário
-O logo é exibido no topo do formulário com as seguintes capacidades:
-- **Alinhamento:** Suporta esquerda, centro e direita via `logoAlign`.
-- **Dimensionamento:** O tamanho é controlado dinamicamente via `logoSize`.
-- **Renderização:** O componente `FormPreview` aplica essas propriedades via estilos inline para garantir que o preview seja idêntico ao resultado final.
+```typescript
+useEffect(() => {
+  if (isLivePreview && colors) {
+    const root = document.documentElement;
+    root.style.setProperty('--form-title-color', colors.titleColor);
+    root.style.setProperty('--form-text-color', colors.textColor);
+    // ... outras propriedades
+  }
+}, [isLivePreview, colors]);
+```
 
-### Na Reunião (Video Conferencing)
-O sistema de reuniões (`RoomDesignSettings.tsx`) possui uma integração avançada com logos:
-1. **Extração de Cores:** Ao fazer upload de uma imagem, o sistema extrai automaticamente as cores predominantes para sugerir uma paleta de cores que combine com a marca.
-2. **Branding da Sala:** O logo é aplicado no lobby e dentro da sala de reunião, seguindo as configurações de tamanho e posição definidas pelo administrador.
+## 3. Estilização Dinâmica dos Componentes
 
----
+Aplicamos estilos inline diretamente nos componentes do Shadcn para garantir que o preview ignore o tema global da aplicação e use o tema do cliente:
 
-## 3. Branding Global (CompanyContext)
+- **Cards:** `<Card style={{ backgroundColor: colors.containerBackground, borderColor: colors.borderColor }}>`
+- **Títulos:** `<h1 style={{ color: colors.titleColor }}>`
+- **Botões:** `<Button style={{ backgroundColor: colors.buttonColor, color: colors.buttonTextColor }}>`
 
-Para garantir que a identidade visual seja consistente em toda a plataforma NEXUS, utilizamos o `CompanyContext.tsx`:
-- **Persistência:** As cores e o logo da empresa são salvos no Supabase (tabela `companies`).
-- **Distribuição:** O contexto disponibiliza o `branding` para todos os componentes autenticados.
-- **Variáveis CSS:** As cores globais da empresa são aplicadas ao root (`--brand-primary`, etc.), permitindo que qualquer parte do sistema consuma a identidade da marca do locatário (tenant).
+## 4. Sistema de Logos e Alinhamento
 
----
+O logo é renderizado dinamicamente com suporte a alinhamento flexível:
 
-## Como Replicar
-1. **Defina o Objeto de Design:** Crie um estado no seu componente de builder que armazene o objeto de cores.
-2. **Use Estilos Inline no Preview:** No componente de preview, aplique o objeto de cores diretamente na prop `style` dos elementos.
-3. **Injete Variáveis CSS:** Para componentes que dependem de classes globais, use o método `root.style.setProperty` dentro de um `useEffect`.
-4. **Trate o Logo:** Armazene a URL do logo e aplique `justify-content` dinâmico com base na preferência de alinhamento.
+```tsx
+{design.logo && (
+  <div className={`mb-8 flex ${
+    design.logoAlign === 'center' ? 'justify-center' : 
+    design.logoAlign === 'right' ? 'justify-end' : 'justify-start'
+  }`}>
+    <img
+      src={design.logo}
+      alt="Logo"
+      style={{ height: `${design.logoSize || 120}px` }}
+      className="rounded-lg object-contain"
+    />
+  </div>
+)}
+```
+
+## 5. Extração Automática de Cores (Reuniões/Meetings)
+
+Para o sistema de reuniões (`RoomDesignSettings.tsx`), implementamos um extrator que analisa o logo enviado:
+
+1. **Canvas Analysis:** O logo é desenhado em um canvas oculto.
+2. **Dominant Color:** O sistema identifica a cor mais presente.
+3. **Palette Generation:** Gera variações de tons para botões, bordas e fundos automaticamente, garantindo harmonia visual sem que o usuário precise configurar cada detalhe.
+
+## 6. Sincronização e Persistência
+
+- **Supabase Sync:** Todas as alterações são salvas na tabela `companies` do Supabase para persistência global.
+- **Cache Local:** O backend mantém um cache de 60 segundos para as rotas públicas de branding para garantir performance ultra-rápida no checkout e páginas de login.
+- **CompanyContext:** Centraliza o estado de branding no frontend, injetando as variáveis CSS no `:root` no momento do login.
