@@ -5,11 +5,11 @@
     "system-system": {
       "clientId": "system",
       "tenantId": "system",
-      "lastRun": "2026-02-11T12:52:09.520Z",
-      "lastSuccess": "2026-02-11T12:52:09.520Z",
+      "lastRun": "2026-02-11T13:04:09.521Z",
+      "lastSuccess": "2026-02-11T13:04:09.521Z",
       "lastError": null,
       "consecutiveErrors": 0,
-      "totalExecutions": 148,
+      "totalExecutions": 154,
       "totalNewClientsDetected": 0,
       "totalEventsCreated": 0,
       "status": "running"
@@ -76,11 +76,11 @@
     }
   },
   "globalStats": {
-    "totalExecutions": 909,
+    "totalExecutions": 915,
     "totalNewClientsDetected": 0,
     "totalEventsCreated": 0,
     "totalErrors": 0,
-    "uptime": 120
+    "uptime": 899
   },
   "settings": {
     "detectionIntervalMinutes": 2,
