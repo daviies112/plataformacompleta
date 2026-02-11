@@ -726,10 +726,6 @@ export const SimplifiedFormWizard = ({
               <FileText className="h-4 w-4 mr-2" />
               Conteúdo
             </TabsTrigger>
-            <TabsTrigger value="scoring" className="min-h-[44px] md:min-h-0">
-              <Target className="h-4 w-4 mr-2" />
-              Pontuação
-            </TabsTrigger>
             <TabsTrigger value="design" className="min-h-[44px] md:min-h-0">
               <Palette className="h-4 w-4 mr-2" />
               Design
@@ -861,7 +857,7 @@ export const SimplifiedFormWizard = ({
         <Tabs defaultValue="content" className="w-full">
           <TabsList className="grid w-full grid-cols-3 mb-4">
             <TabsTrigger value="content" className="min-h-[44px] md:min-h-0">
-              <Target className="h-4 w-4 mr-2" />
+              <FileText className="h-4 w-4 mr-2" />
               Perguntas
             </TabsTrigger>
             <TabsTrigger value="design" className="min-h-[44px] md:min-h-0">
