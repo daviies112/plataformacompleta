@@ -28,9 +28,10 @@ interface FormPreviewProps {
   activePageId?: string | null;
   activeQuestionId?: string | null;
   wizardMode?: boolean;
+  device?: 'desktop' | 'mobile';
 }
 
-export const FormPreview = ({ config, onBack, isLivePreview = false, activePageId, activeQuestionId, wizardMode = false }: FormPreviewProps) => {
+export const FormPreview = ({ config, onBack, isLivePreview = false, activePageId, activeQuestionId, wizardMode = false, device = 'desktop' }: FormPreviewProps) => {
   const [answers, setAnswers] = useState<Record<string, FormAnswer>>({});
   const [result, setResult] = useState<FormSubmission | null>(null);
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
@@ -658,9 +659,8 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
                 />
               </div>
               <div>
-                <Label style={{ color: colors.textColor }}>Telefone</Label>
+                <Label style={{ color: colors.textColor }}>WhatsApp (Celular) *</Label>
                 <Input
-                  type="tel"
                   placeholder="(00) 00000-0000"
                   className="mt-1"
                   disabled
@@ -668,25 +668,20 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
                   style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.textColor }}
                 />
               </div>
-              <div>
-                <Label style={{ color: colors.textColor }}>Instagram</Label>
-                <Input
-                  placeholder="@seuinstagram"
-                  className="mt-1"
-                  disabled
-                  value="@joaosilva"
-                  style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.textColor }}
-                />
-              </div>
-              <p className="text-xs italic" style={{ color: colors.textColor, opacity: 0.6 }}>* Campos simulados para preview</p>
             </CardContent>
-            <CardFooter className="flex justify-end">
+            <CardFooter className="flex justify-between border-t pt-6 mt-6">
+              <Button
+                variant="outline"
+                onClick={handleWizardBack}
+                style={{ borderColor: colors.borderColor, color: colors.textColor }}
+              >
+                Voltar
+              </Button>
               <Button
                 onClick={handleWizardNext}
                 style={{ backgroundColor: colors.buttonColor, color: colors.buttonTextColor }}
               >
                 Próximo
-                <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </CardFooter>
           </Card>
@@ -695,126 +690,11 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
     );
   };
 
-  const renderWizardAddress = () => {
-    return (
-      <div className="min-h-[500px] p-4" style={{ background: colors.pageBackground }}>
-        <div className="max-w-3xl mx-auto pt-4">
-          <div className="mb-6">
-            <div className="w-full rounded-full h-2 mb-2" style={{ backgroundColor: colors.inputBackground }}>
-              <div
-                className="h-2 rounded-full transition-all duration-300"
-                style={{ width: `${wizardProgress}%`, backgroundColor: colors.progressBarColor }}
-              />
-            </div>
-            <p className="text-sm text-right" style={{ color: colors.textColor }}>{wizardProgress}% completo</p>
-          </div>
+  const renderWizardQuestion = () => {
+    const questionIndex = wizardStep - 2;
+    const currentQuestion = questionElements[questionIndex];
 
-          <Card className="shadow-lg" style={{ backgroundColor: colors.containerBackground, borderColor: colors.borderColor }}>
-            <CardHeader>
-              <CardTitle className="text-2xl" style={{ color: colors.textColor }}>Dados de Endereço</CardTitle>
-              <CardDescription style={{ color: colors.textColor, opacity: 0.8 }}>Preencha seu endereço completo</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="col-span-2 sm:col-span-1">
-                  <Label style={{ color: colors.textColor }}>CEP *</Label>
-                  <Input
-                    placeholder="00000-000"
-                    maxLength={9}
-                    className="mt-1"
-                    disabled
-                    value="01310-100"
-                    style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.textColor }}
-                  />
-                </div>
-                <div className="col-span-2 sm:col-span-1">
-                  <Label style={{ color: colors.textColor }}>Estado *</Label>
-                  <Input
-                    placeholder="SP"
-                    maxLength={2}
-                    className="mt-1 uppercase"
-                    disabled
-                    value="SP"
-                    style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.textColor }}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <Label style={{ color: colors.textColor }}>Rua *</Label>
-                <Input
-                  placeholder="Nome da rua"
-                  className="mt-1"
-                  disabled
-                  value="Av. Paulista"
-                  style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.textColor }}
-                />
-              </div>
-
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <Label style={{ color: colors.textColor }}>Número *</Label>
-                  <Input
-                    placeholder="123"
-                    className="mt-1"
-                    disabled
-                    value="1000"
-                    style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.textColor }}
-                  />
-                </div>
-                <div className="col-span-2">
-                  <Label style={{ color: colors.textColor }}>Complemento</Label>
-                  <Input
-                    placeholder="Apto, bloco, etc."
-                    className="mt-1"
-                    disabled
-                    value="Sala 501"
-                    style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.textColor }}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label style={{ color: colors.textColor }}>Bairro *</Label>
-                  <Input
-                    placeholder="Nome do bairro"
-                    className="mt-1"
-                    disabled
-                    value="Bela Vista"
-                    style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.textColor }}
-                  />
-                </div>
-                <div>
-                  <Label style={{ color: colors.textColor }}>Cidade *</Label>
-                  <Input
-                    placeholder="Nome da cidade"
-                    className="mt-1"
-                    disabled
-                    value="São Paulo"
-                    style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.textColor }}
-                  />
-                </div>
-              </div>
-              <p className="text-xs italic" style={{ color: colors.textColor, opacity: 0.6 }}>* Campos simulados para preview</p>
-            </CardContent>
-            <CardFooter className="flex justify-end">
-              <Button onClick={handleWizardNext} style={{ backgroundColor: colors.buttonColor, color: colors.buttonTextColor }}>
-                Próximo
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </CardFooter>
-          </Card>
-        </div>
-      </div>
-    );
-  };
-
-  const renderWizardQuestion = (questionIndex: number) => {
-    const question = questionElements[questionIndex];
-    if (!question) return null;
-
-    const isLastQuestion = questionIndex === questionElements.length - 1;
+    if (!currentQuestion) return null;
 
     return (
       <div className="min-h-[500px] p-4" style={{ background: colors.pageBackground }}>
@@ -830,78 +710,31 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
           </div>
 
           <Card className="shadow-lg" style={{ backgroundColor: colors.containerBackground, borderColor: colors.borderColor }}>
-            <CardHeader>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium" style={{ color: colors.textColor, opacity: 0.6 }}>
-                  Pergunta {questionIndex + 1} de {questionElements.length}
-                </span>
-                {question.required && (
-                  <span className="text-sm font-medium" style={{ color: '#ef4444' }}>* Obrigatória</span>
-                )}
-              </div>
-              <CardTitle className="text-2xl" style={{ color: colors.textColor }}>{question.text}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {question.questionType === 'multiple-choice' && question.options && (
-                <RadioGroup
-                  value={answers[question.id]?.answer || ""}
-                  onValueChange={(value) => {
-                    const option = question.options?.find(o => o.text === value);
-                    if (option) {
-                      handleAnswer(question.id, value, option.points);
-                    }
-                  }}
-                  className="space-y-3"
-                >
-                  {question.options.map((option, optIndex) => (
-                    <div
-                      key={optIndex}
-                      className="flex items-center space-x-3 p-3 rounded-lg border transition-colors"
-                      style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.textColor }}
-                    >
-                      <RadioGroupItem value={option.text} id={`${question.id}-${optIndex}`} />
-                      <Label htmlFor={`${question.id}-${optIndex}`} className="font-normal cursor-pointer flex-1" style={{ color: colors.textColor }}>
-                        {option.text}
-                      </Label>
-                    </div>
-                  ))}
-                </RadioGroup>
-              )}
-
-              {(question.questionType === 'long-text') && (
-                <Textarea
-                  value={answers[question.id]?.answer || ""}
-                  onChange={(e) => handleAnswer(question.id, e.target.value, question.points || 0)}
-                  placeholder="Digite sua resposta"
-                  rows={6}
-                  className="text-base"
-                  style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.textColor }}
-                />
-              )}
-
-              {(question.questionType === 'text' || question.questionType === 'short-text') && (
-                <Input
-                  value={answers[question.id]?.answer || ""}
-                  onChange={(e) => handleAnswer(question.id, e.target.value, question.points || 0)}
-                  placeholder="Digite sua resposta"
-                  className="text-base"
-                  style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.textColor }}
-                />
-              )}
+            <CardContent className="pt-8">
+              {renderQuestion(currentQuestion, questionIndex + 1)}
             </CardContent>
-            <CardFooter className="flex justify-end">
-              {isLastQuestion ? (
+            <CardFooter className="flex justify-between border-t pt-6 mt-6">
+              <Button
+                variant="outline"
+                onClick={handleWizardBack}
+                style={{ borderColor: colors.borderColor, color: colors.textColor }}
+              >
+                Voltar
+              </Button>
+
+              {questionIndex === totalQuestions - 1 ? (
                 <Button
                   onClick={handleSubmit}
                   style={{ backgroundColor: colors.buttonColor, color: colors.buttonTextColor }}
                 >
-                  <CheckCircle2 className="mr-2 h-4 w-4" />
-                  Ver Resultado
+                  Finalizar
                 </Button>
               ) : (
-                <Button onClick={handleWizardNext} style={{ backgroundColor: colors.buttonColor, color: colors.buttonTextColor }}>
+                <Button
+                  onClick={handleWizardNext}
+                  style={{ backgroundColor: colors.buttonColor, color: colors.buttonTextColor }}
+                >
                   Próximo
-                  <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               )}
             </CardFooter>
@@ -911,334 +744,104 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
     );
   };
 
-  const renderWizardCompletion = () => {
-    const currentTier = result ? getCurrentTier(result.totalScore) : undefined;
-    const useTiers = config.scoreTiers && config.scoreTiers.length > 0;
-    const passed = result?.passed ?? false;
-    const totalScore = result?.totalScore ?? 0;
+  const renderWizardResult = () => {
+    if (!result) return null;
+
+    const tier = getCurrentTier(result.totalScore);
+    const completion = config.completionPageConfig || {
+      successTitle: "Parabéns!",
+      successMessage: "Sua inscrição foi concluída com sucesso.",
+      failureTitle: "Quase lá!",
+      failureMessage: "Infelizmente você não atingiu a pontuação mínima."
+    };
 
     return (
       <div className="min-h-[500px] flex items-center justify-center p-4" style={{ background: colors.pageBackground }}>
-        <Card className="w-full max-w-2xl p-8 text-center shadow-xl" style={{ backgroundColor: colors.containerBackground, borderColor: colors.borderColor }}>
-          <div
-            className="inline-flex items-center justify-center w-20 h-20 rounded-full mx-auto mb-6"
-            style={{
-              backgroundColor: passed ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)',
-              color: passed ? '#22c55e' : '#ef4444'
-            }}
-          >
-            {passed ? (
-              <CheckCircle2 className="h-10 w-10" />
-            ) : (
-              <XCircle className="h-10 w-10" />
-            )}
-          </div>
-
-          <h2 className="text-4xl font-bold mb-4" style={{ color: colors.titleColor }}>
-            Agradecemos sua resposta!
-          </h2>
-
-          <p className="text-xl mb-8" style={{ color: colors.textColor, opacity: 0.8 }}>
-            {passed
-              ? "Você está qualificado! Nossa equipe analisará suas informações e retornaremos em breve pelo WhatsApp."
-              : "Obrigado pela sua participação. Infelizmente você não atingiu a pontuação mínima."}
-          </p>
-
-          {useTiers && currentTier ? (
-            <div className="space-y-4 mb-6">
-              <div className="flex items-center justify-center gap-3 p-4 rounded-lg" style={{ backgroundColor: `${colors.buttonColor}15`, borderColor: colors.borderColor, borderWidth: 1 }}>
-                <Award className="h-6 w-6" style={{ color: colors.buttonColor }} />
-                <div className="text-left">
-                  <div className="font-bold text-lg" style={{ color: colors.buttonColor }}>
-                    {currentTier.label}
-                  </div>
-                  <div className="text-sm" style={{ color: colors.textColor, opacity: 0.8 }}>
-                    {currentTier.description}
-                  </div>
+        <Card className="w-full max-w-2xl shadow-xl overflow-hidden" style={{ backgroundColor: colors.containerBackground, borderColor: colors.borderColor }}>
+          <div className="h-2 w-full" style={{ backgroundColor: result.passed ? '#22c55e' : '#ef4444' }} />
+          <CardHeader className="text-center pt-8">
+            <div className="flex justify-center mb-6">
+              {result.passed ? (
+                <div className="bg-green-100 p-4 rounded-full">
+                  <CheckCircle2 className="h-12 w-12 text-green-600" />
                 </div>
-              </div>
-
-              <div className="p-6 rounded-xl" style={{ backgroundColor: colors.inputBackground }}>
-                <p className="text-sm mb-2" style={{ color: colors.textColor, opacity: 0.6 }}>Sua pontuação</p>
-                <p className="text-5xl font-bold" style={{ color: colors.titleColor }}>{totalScore}</p>
-              </div>
+              ) : (
+                <div className="bg-red-100 p-4 rounded-full">
+                  <XCircle className="h-12 w-12 text-red-600" />
+                </div>
+              )}
             </div>
-          ) : (
-            <div className="p-6 rounded-xl mb-6" style={{ backgroundColor: colors.inputBackground }}>
-              <p className="text-sm mb-2" style={{ color: colors.textColor, opacity: 0.6 }}>Sua pontuação</p>
-              <p className="text-5xl font-bold" style={{ color: colors.titleColor }}>{totalScore}</p>
-              <p className="text-sm mt-2" style={{ color: colors.textColor, opacity: 0.6 }}>/ {config.passingScore} necessário</p>
+            <CardTitle className="text-3xl font-bold mb-2" style={{ color: colors.titleColor }}>
+              {result.passed ? completion.successTitle : completion.failureTitle}
+            </CardTitle>
+            <CardDescription className="text-lg" style={{ color: colors.textColor, opacity: 0.8 }}>
+              {result.passed ? completion.successMessage : completion.failureMessage}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="text-center pb-8">
+            <div className="bg-muted/30 rounded-xl p-6 inline-block min-w-[200px]" style={{ backgroundColor: colors.inputBackground }}>
+              <p className="text-sm font-medium uppercase tracking-wider mb-1" style={{ color: colors.textColor, opacity: 0.6 }}>Pontuação Final</p>
+              <p className="text-4xl font-black" style={{ color: colors.titleColor }}>{result.totalScore}</p>
+              {tier && (
+                <div className="mt-4 flex items-center justify-center gap-2">
+                  <Award className="h-5 w-5" style={{ color: colors.buttonColor }} />
+                  <span className="font-bold text-lg" style={{ color: colors.textColor }}>{tier.label}</span>
+                </div>
+              )}
             </div>
-          )}
-
-          <div className="text-sm mb-6" style={{ color: colors.textColor, opacity: 0.6 }}>
-            <p>Seus dados foram salvos com sucesso.</p>
-            <p>Em breve você receberá um retorno por email.</p>
-          </div>
-
-          {!isLivePreview && (
-            <Button onClick={onBack} variant="outline" className="gap-2" style={{ borderColor: colors.borderColor, color: colors.textColor }}>
-              <ArrowLeft className="h-4 w-4" />
-              Voltar ao Editor
+          </CardContent>
+          <CardFooter className="flex justify-center pb-12">
+            <Button
+              size="lg"
+              onClick={() => setWizardStep(0)}
+              variant="outline"
+              style={{ borderColor: colors.borderColor, color: colors.textColor }}
+            >
+              Recomeçar
             </Button>
-          )}
+          </CardFooter>
         </Card>
       </div>
     );
   };
 
-  if (shouldUseWizard) {
-    if (wizardStep === 0) {
-      return renderWizardWelcome();
-    }
-    if (wizardStep === 1) {
-      return renderWizardPersonalData();
-    }
-    if (wizardStep === 2) {
-      return renderWizardAddress();
-    }
-    if (wizardStep >= 3 && wizardStep < 3 + totalQuestions) {
-      const questionIndex = wizardStep - 3;
-      return renderWizardQuestion(questionIndex);
-    }
-    if (wizardStep >= totalWizardSteps - 1 || result) {
-      return renderWizardCompletion();
-    }
-    return null;
-  }
-
-  if (result) {
-    const currentTier = getCurrentTier(result.totalScore);
-    const useTiers = config.scoreTiers && config.scoreTiers.length > 0;
-
+  if (isLivePreview) {
     return (
-      <div
-        className={isLivePreview ? "min-h-full p-4 rounded-lg" : "max-w-2xl mx-auto"}
-        style={{
-          fontFamily: design.typography.fontFamily,
-          background: isLivePreview ? colors.pageBackground : undefined
-        }}
-      >
-        {!isLivePreview && (
-          <Button onClick={onBack} variant="ghost" className="gap-2 mb-4">
-            <ArrowLeft className="h-4 w-4" />
-            Voltar ao Editor
-          </Button>
-        )}
-        <Card
-          className="p-8 shadow-xl"
-          style={{
-            backgroundColor: colors.containerBackground,
-            color: colors.textColor,
-            borderColor: colors.borderColor
-          }}
-        >
-          <div className="text-center space-y-6">
-            <div
-              className="inline-flex items-center justify-center w-20 h-20 rounded-full"
-              style={{
-                backgroundColor: result.passed ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)',
-                color: result.passed ? '#22c55e' : '#ef4444'
-              }}
-            >
-              {result.passed ? (
-                <CheckCircle2 className="h-10 w-10" />
-              ) : (
-                <XCircle className="h-10 w-10" />
-              )}
-            </div>
-
-            <div>
-              <h2 className="text-3xl font-bold mb-2" style={{ color: colors.titleColor }}>
-                {result.passed ? 'Agradecemos sua resposta!' : 'Agradecemos sua resposta!'}
-              </h2>
-              <p className="text-lg" style={{ color: colors.textColor, opacity: 0.8 }}>
-                {result.passed
-                  ? 'Você está qualificado! Nossa equipe analisará suas informações e retornaremos em breve pelo WhatsApp.'
-                  : 'Obrigado pela sua participação. Infelizmente você não atingiu a pontuação mínima.'}
-              </p>
-            </div>
-
-            {useTiers && currentTier ? (
-              <div className="space-y-4">
-                <div
-                  className="flex items-center justify-center gap-3 p-4 rounded-lg"
-                  style={{
-                    backgroundColor: `${colors.buttonColor}1a`,
-                    border: `1px solid ${colors.borderColor}`
-                  }}
-                >
-                  <Award className="h-6 w-6" style={{ color: colors.buttonColor }} />
-                  <div className="text-left">
-                    <div className="font-bold text-lg" style={{ color: colors.buttonColor }}>
-                      {currentTier.label}
-                    </div>
-                    <div className="text-sm" style={{ color: colors.textColor, opacity: 0.8 }}>
-                      {currentTier.description}
-                    </div>
-                  </div>
-                </div>
-
-                <div
-                  className="flex items-center justify-center gap-8 py-6 border-y"
-                  style={{ borderColor: colors.borderColor }}
-                >
-                  <div className="text-center">
-                    <div className="text-4xl font-bold" style={{ color: colors.buttonColor }}>
-                      {result.totalScore}
-                    </div>
-                    <div className="text-sm" style={{ color: colors.textColor, opacity: 0.8 }}>Sua Pontuação</div>
-                  </div>
-                  <div className="text-2xl" style={{ color: colors.textColor, opacity: 0.8 }}>/</div>
-                  <div className="text-center">
-                    <div className="text-4xl font-bold" style={{ color: colors.titleColor }}>
-                      {currentTier.maxScore}
-                    </div>
-                    <div className="text-sm" style={{ color: colors.textColor, opacity: 0.8 }}>Máximo desta faixa</div>
-                  </div>
-                </div>
-              </div>
+      <div className={`transition-all duration-300 ease-in-out shadow-2xl rounded-xl overflow-hidden bg-background ${
+        device === 'mobile' ? 'w-[375px] h-[667px] mx-auto my-8 border-[12px] border-slate-800 rounded-[3rem]' : 'w-full'
+      }`}>
+        <div className="h-full overflow-auto" style={{ backgroundColor: colors.containerBackground }}>
+          <div className="p-4 md:p-8">
+            {shouldUseWizard ? (
+              wizardStep === 0 ? renderWizardWelcome() :
+              wizardStep === 1 ? renderWizardPersonalData() :
+              wizardStep === totalWizardSteps - 1 ? renderWizardResult() :
+              renderWizardQuestion()
             ) : (
-              <div
-                className="flex items-center justify-center gap-8 py-6 border-y"
-                style={{ borderColor: colors.borderColor }}
-              >
-                <div className="text-center">
-                  <div className="text-4xl font-bold" style={{ color: colors.buttonColor }}>
-                    {result.totalScore}
-                  </div>
-                  <div className="text-sm" style={{ color: colors.textColor, opacity: 0.8 }}>Sua Pontuação</div>
-                </div>
-                <div className="text-2xl" style={{ color: colors.textColor, opacity: 0.8 }}>/</div>
-                <div className="text-center">
-                  <div className="text-4xl font-bold" style={{ color: colors.titleColor }}>
-                    {config.passingScore}
-                  </div>
-                  <div className="text-sm" style={{ color: colors.textColor, opacity: 0.8 }}>Necessário</div>
-                </div>
+              <div className={spacingClasses[design.spacing as keyof typeof spacingClasses]}>
+                {elements.map((element, index) => renderElement(element, index))}
               </div>
             )}
-
-            {result.passed && (
-              <div
-                className="p-4 rounded-lg"
-                style={{
-                  backgroundColor: `${colors.buttonColor}1a`,
-                  border: `1px solid ${colors.borderColor}`
-                }}
-              >
-                <p className="text-sm" style={{ color: colors.textColor }}>
-                  Em breve, nossa equipe entrará em contato para agendar sua reunião.
-                </p>
-              </div>
-            )}
-
-            <Button
-              onClick={onBack}
-              variant="outline"
-              className="gap-2"
-              style={{ borderColor: colors.borderColor, color: colors.textColor }}
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Voltar ao Editor
-            </Button>
           </div>
-        </Card>
+        </div>
       </div>
     );
   }
 
   return (
-    <div
-      className={isLivePreview ? "min-h-full p-4 rounded-lg" : "max-w-2xl mx-auto space-y-6"}
-      style={{
-        fontFamily: design.typography.fontFamily,
-        background: isLivePreview ? colors.pageBackground : undefined
-      }}
-    >
-      {!isLivePreview && (
-        <Button onClick={onBack} variant="ghost" className="gap-2">
-          <ArrowLeft className="h-4 w-4" />
-          Voltar ao Editor
-        </Button>
-      )}
-
-      <Card
-        className={`p-8 shadow-xl ${spacingClasses[design.spacing]}`}
-        style={{
-          backgroundColor: colors.containerBackground,
-          color: colors.textColor,
-          borderColor: colors.borderColor
-        }}
-      >
-        {design.logo && (
-          <div className={`mb-8 ${design.logoAlign === 'center' ? 'flex justify-center' : design.logoAlign === 'right' ? 'flex justify-end' : ''}`}>
-            <img
-              src={design.logo}
-              alt="Logo"
-              style={{ height: `${design.logoSize || 64}px` }}
-              className="object-contain"
-              onError={(e) => {
-                console.error('Logo failed to load in preview:', design.logo);
-                (e.target as HTMLImageElement).style.display = 'none';
-              }}
-            />
+    <Card className="shadow-lg overflow-hidden" style={{ backgroundColor: colors.containerBackground, borderColor: colors.borderColor }}>
+      <CardContent className="p-4 md:p-8">
+        {shouldUseWizard ? (
+          wizardStep === 0 ? renderWizardWelcome() :
+          wizardStep === 1 ? renderWizardPersonalData() :
+          wizardStep === totalWizardSteps - 1 ? renderWizardResult() :
+          renderWizardQuestion()
+        ) : (
+          <div className={spacingClasses[design.spacing as keyof typeof spacingClasses]}>
+            {elements.map((element, index) => renderElement(element, index))}
           </div>
         )}
-
-        {(() => {
-          const firstElement = elements[0];
-          const isDuplicateHeading = firstElement &&
-            isHeadingElement(firstElement) &&
-            firstElement.text.trim() === config.title.trim();
-
-          if (isDuplicateHeading) return null;
-
-          return (
-            <div className="space-y-2 mb-8">
-              <h1
-                className={`${titleSizeClasses[design.typography.titleSize as keyof typeof titleSizeClasses]} font-bold`}
-                style={{ color: colors.titleColor }}
-              >
-                {config.title}
-              </h1>
-              <p
-                className={textSizeClasses[design.typography.textSize as keyof typeof textSizeClasses]}
-                style={{ color: colors.textColor, opacity: 0.8 }}
-              >
-                {config.description}
-              </p>
-            </div>
-          );
-        })()}
-
-        <div className={spacingClasses[design.spacing]}>
-          {elements.map((element, index) => {
-            return (
-              <div key={element.id}>
-                {renderElement(element, index)}
-              </div>
-            );
-          })}
-        </div>
-
-        {!isLivePreview && (
-          <div className="mt-8 pt-8 border-t" style={{ borderColor: colors.borderColor + '30' }}>
-            <Button
-              onClick={handleSubmit}
-              className="w-full gap-2 py-6 text-base"
-              style={{
-                backgroundColor: colors.buttonColor,
-                color: colors.buttonTextColor
-              }}
-              disabled={Object.keys(answers).length !== totalQuestions}
-            >
-              <Send className="h-5 w-5" />
-              Enviar Respostas
-            </Button>
-          </div>
-        )}
-      </Card>
-    </div>
+      </CardContent>
+    </Card>
   );
 };
