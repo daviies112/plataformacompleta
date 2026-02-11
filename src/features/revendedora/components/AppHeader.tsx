@@ -116,6 +116,7 @@ export function AppHeader({
               <div className="flex items-center gap-1 px-2 py-1 rounded-md ml-2">
                 {adminSections.revendedoras.filter(item => item.id).map((item: any) => {
                   const Icon = item.icon;
+                  const active = isActive(item.url);
                   return (
                     <button
                       key={item.url}
@@ -124,9 +125,9 @@ export function AppHeader({
                       }}
                       className={cn(
                         'flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap',
-                        isActive(item.url)
-                          ? 'bg-primary/10 text-primary'
-                          : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                        active
+                          ? 'bg-primary text-white font-bold shadow-sm'
+                          : 'text-gray-200 hover:bg-white/10 hover:text-white'
                       )}
                     >
                       <Icon className="h-4 w-4" />
