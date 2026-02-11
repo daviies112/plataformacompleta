@@ -30,7 +30,7 @@ let supabaseOwnerKey = process.env.SUPABASE_OWNER_SERVICE_KEY || process.env.SUP
 
 // Log para debug
 if (supabaseOwnerUrl && supabaseOwnerKey) {
-  console.log('[SUPABASE_OWNER] Usando credenciais dos secrets SUPABASE_OWNER_URL/KEY');
+  console.log('[SUPABASE_OWNER] ✅ Conectado com sucesso via secrets SUPABASE_OWNER_URL/KEY');
 } else {
   // Fallback para arquivo de configuracao APENAS se não houver secrets
   const fileConfig = loadSupabaseConfigFromFile();
