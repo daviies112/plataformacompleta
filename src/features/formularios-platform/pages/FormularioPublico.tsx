@@ -729,82 +729,12 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
     }
   };
 
-  // IMPORTANTE: Mover useMemo ANTES dos retornos condicionais para evitar violação de regras de Hooks
   const questionPages = useMemo(() => form ? groupQuestionsByPages(form) : [], [form]);
   const allQuestions = useMemo(() => questionPages.flatMap(p => p.questions), [questionPages]);
 
-  // 🔥 FIX: Move ALL useMemo hooks BEFORE conditional returns to avoid Hooks order violation
-  const defaultDesign = {
-    colors: {
-      // ✅ NEW: Clear color naming
-      titleColor: "hsl(221, 83%, 53%)",
-      textColor: "hsl(222, 47%, 11%)",
-      pageBackground: "linear-gradient(135deg, hsl(210, 40%, 96%), hsl(0, 0%, 100%))",
-      containerBackground: "hsl(0, 0%, 100%)",
-      buttonColor: "hsl(221, 83%, 53%)",
-      buttonTextColor: "hsl(0, 0%, 100%)",
-      progressBarColor: "hsl(221, 83%, 53%)",
-      inputBackground: "hsl(210, 40%, 96%)",
-      borderColor: "hsl(214, 32%, 91%)",
-
-      // DEPRECATED: Para retrocompatibilidade
-      primary: "hsl(221, 83%, 53%)",
-      secondary: "hsl(210, 40%, 96%)",
-      background: "hsl(0, 0%, 100%)",
-      text: "hsl(222, 47%, 11%)",
-      button: "hsl(221, 83%, 53%)",
-      buttonText: "hsl(0, 0%, 100%)"
-    },
-    typography: {
-      fontFamily: "Inter",
-      titleSize: "2xl",
-      textSize: "base"
-    },
-    spacing: "comfortable"
-  };
-
-  // Função para migrar cores antigas para novo formato
-  const migrateColors = useCallback((oldColors: any) => {
-    if (!oldColors) return defaultDesign.colors;
-
-    return {
-      // Novas cores (prioridade para novos campos)
-      titleColor: oldColors.titleColor || oldColors.primary || defaultDesign.colors.titleColor,
-      textColor: oldColors.textColor || oldColors.text || defaultDesign.colors.textColor,
-      pageBackground: oldColors.pageBackground ||
-        `linear-gradient(135deg, ${oldColors.secondary || defaultDesign.colors.inputBackground}, ${oldColors.background || defaultDesign.colors.containerBackground})`,
-      containerBackground: oldColors.containerBackground || oldColors.background || defaultDesign.colors.containerBackground,
-      buttonColor: oldColors.buttonColor || oldColors.button || defaultDesign.colors.buttonColor,
-      buttonTextColor: oldColors.buttonTextColor || oldColors.buttonText || defaultDesign.colors.buttonTextColor,
-      progressBarColor: oldColors.progressBarColor || oldColors.progressBar || oldColors.primary || defaultDesign.colors.progressBarColor,
-      inputBackground: oldColors.inputBackground || oldColors.secondary || defaultDesign.colors.inputBackground,
-      borderColor: oldColors.borderColor || defaultDesign.colors.borderColor,
-
-      // Manter deprecated para compatibilidade
-      primary: oldColors.primary,
-      secondary: oldColors.secondary,
-      background: oldColors.background,
-      text: oldColors.text,
-      button: oldColors.button,
-      buttonText: oldColors.buttonText,
-      progressBar: oldColors.progressBar
-    };
-  }, []);
-
-  const design = useMemo(() => {
-    if (!form) return defaultDesign;
-    const baseDesign = (form.designConfig as any) ?? {};
-    return {
-      ...defaultDesign,
-      ...baseDesign,
-      colors: migrateColors(baseDesign.colors),
-      typography: {
-        ...defaultDesign.typography,
-        ...(baseDesign.typography || {})
-      },
-      spacing: baseDesign.spacing || defaultDesign.spacing
-    };
-  }, [form, migrateColors]);
+  const colors = design.colors;
+  const totalSteps = 1 + 1 + 1 + questionPages.length + 1; // welcome + personal + address + pages de perguntas + completion
+  const progress = currentStep === 0 ? 0 : Math.min(100, Math.round(((currentStep) / (totalSteps - 1)) * 100));
 
   const welcomeConfig = useMemo(() => {
     if (!form) return { title: "Bem-vindo!", description: "Por favor, preencha o formulário a seguir.", imageUrl: null, buttonText: "Começar", titleSize: "2xl", logoAlign: "center" };
@@ -831,10 +761,6 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
       logoAlign: config.logoAlign || "center"
     };
   }, [form, design.logo]);
-
-  const colors = design.colors;
-  const totalSteps = 1 + 1 + 1 + questionPages.length + 1; // welcome + personal + address + pages de perguntas + completion
-  const progress = currentStep === 0 ? 0 : Math.min(100, Math.round(((currentStep) / (totalSteps - 1)) * 100));
 
   // ✅ OTIMIZAÇÃO: Mostrar skeleton ultra-leve quando carregando
   if (!form) {
