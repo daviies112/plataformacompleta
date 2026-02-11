@@ -74,26 +74,31 @@ class AdminAuthService {
       // Tenta login via banco de dados LOCAL
       try {
         const { db } = await import('../db');
-        const { adminUsers } = await import('../../shared/db-schema');
+        const schema = await import('../../shared/db-schema');
         const { eq, and } = await import('drizzle-orm');
 
         console.log(`[AdminAuth] Tentando login local para: ${email}`);
-        const [localUser] = await db.select()
-          .from(adminUsers)
-          .where(and(
-            eq(adminUsers.email, email),
-            eq(adminUsers.isActive, true)
-          ))
-          .limit(1);
+        
+        // Check if adminUsers exists in schema, otherwise skip local login
+        const adminUsersTable = (schema as any).adminUsers;
+        if (adminUsersTable) {
+          const [localUser] = await db.select()
+            .from(adminUsersTable)
+            .where(and(
+              eq(adminUsersTable.email, email),
+              eq(adminUsersTable.isActive, true)
+            ))
+            .limit(1);
 
-        if (localUser) {
-          const isValidPassword = await bcrypt.compare(password, localUser.passwordHash);
-          if (isValidPassword) {
-            console.log('[AdminAuth] ✅ Login local bem-sucedido');
-            return this.generateLoginResponse(localUser);
+          if (localUser) {
+            const isValidPassword = await bcrypt.compare(password, localUser.passwordHash);
+            if (isValidPassword) {
+              console.log('[AdminAuth] ✅ Login local bem-sucedido');
+              return this.generateLoginResponse(localUser);
+            }
+            console.log('[AdminAuth] Senha local inválida');
+            return { success: false, error: 'Credenciais inválidas' };
           }
-          console.log('[AdminAuth] Senha local inválida');
-          return { success: false, error: 'Credenciais inválidas' };
         }
       } catch (localError) {
         console.error('[AdminAuth] Erro ao consultar banco local:', localError);
