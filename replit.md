@@ -41,6 +41,7 @@ ExecutiveAI Pro utilizes a modern web stack with a multi-tenant, API-driven arch
 - **Wallet / Credit System:** A pre-paid credit system for services, with atomic balance updates and webhook idempotency.
 - **Pagar.me Split Payment:** Implements dynamic payment splitting between the platform and resellers based on sales volume tiers.
 - **Performance Optimizations:** Critical fixes for public routes using static imports, ultra-lightweight public apps, multi-layer caching, component preloading, and mobile-specific CSS optimizations.
+- **Branding Documentation:** Detailed implementation guide for logos and form/meeting color systems can be found in `docs/branding-implementation.md`.
 - **Dynamic Branding System:** `CompanyContext` provides centralized branding synchronization from Supabase for real-time theming via CSS variables.
 - **Platform Analytics:** Comprehensive dashboard for admins showing platform-wide sales metrics and reseller performance.
 - **Commission Configuration System:** Dynamic commission tiers configurable via an admin page.

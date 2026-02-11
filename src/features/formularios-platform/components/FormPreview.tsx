@@ -681,7 +681,10 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
               <p className="text-xs italic" style={{ color: colors.textColor, opacity: 0.6 }}>* Campos simulados para preview</p>
             </CardContent>
             <CardFooter className="flex justify-end">
-              <Button onClick={handleWizardNext} style={{ backgroundColor: colors.buttonColor, color: colors.buttonTextColor }}>
+              <Button
+                onClick={handleWizardNext}
+                style={{ backgroundColor: colors.buttonColor, color: colors.buttonTextColor }}
+              >
                 Próximo
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
@@ -694,106 +697,106 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
 
   const renderWizardAddress = () => {
     return (
-      <div className="min-h-[500px] p-4" style={{ background: `linear-gradient(to bottom right, ${colors.background}, ${colors.secondary})` }}>
+      <div className="min-h-[500px] p-4" style={{ background: colors.pageBackground }}>
         <div className="max-w-3xl mx-auto pt-4">
           <div className="mb-6">
-            <div className="w-full rounded-full h-2 mb-2" style={{ backgroundColor: colors.secondary }}>
+            <div className="w-full rounded-full h-2 mb-2" style={{ backgroundColor: colors.inputBackground }}>
               <div
                 className="h-2 rounded-full transition-all duration-300"
                 style={{ width: `${wizardProgress}%`, backgroundColor: colors.progressBarColor }}
               />
             </div>
-            <p className="text-sm text-right" style={{ color: colors.text }}>{wizardProgress}% completo</p>
+            <p className="text-sm text-right" style={{ color: colors.textColor }}>{wizardProgress}% completo</p>
           </div>
 
-          <Card className="shadow-lg" style={{ backgroundColor: colors.containerBackground, borderColor: `${colors.primary}30` }}>
+          <Card className="shadow-lg" style={{ backgroundColor: colors.containerBackground, borderColor: colors.borderColor }}>
             <CardHeader>
-              <CardTitle className="text-2xl" style={{ color: colors.text }}>Dados de Endereço</CardTitle>
-              <CardDescription style={{ color: `${colors.text}99` }}>Preencha seu endereço completo</CardDescription>
+              <CardTitle className="text-2xl" style={{ color: colors.textColor }}>Dados de Endereço</CardTitle>
+              <CardDescription style={{ color: colors.textColor, opacity: 0.8 }}>Preencha seu endereço completo</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2 sm:col-span-1">
-                  <Label style={{ color: colors.text }}>CEP *</Label>
+                  <Label style={{ color: colors.textColor }}>CEP *</Label>
                   <Input
                     placeholder="00000-000"
                     maxLength={9}
                     className="mt-1"
                     disabled
                     value="01310-100"
-                    style={{ backgroundColor: colors.inputBackground, borderColor: `${colors.primary}30`, color: colors.text }}
+                    style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.textColor }}
                   />
                 </div>
                 <div className="col-span-2 sm:col-span-1">
-                  <Label style={{ color: colors.text }}>Estado *</Label>
+                  <Label style={{ color: colors.textColor }}>Estado *</Label>
                   <Input
                     placeholder="SP"
                     maxLength={2}
                     className="mt-1 uppercase"
                     disabled
                     value="SP"
-                    style={{ backgroundColor: colors.inputBackground, borderColor: `${colors.primary}30`, color: colors.text }}
+                    style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.textColor }}
                   />
                 </div>
               </div>
 
               <div>
-                <Label style={{ color: colors.text }}>Rua *</Label>
+                <Label style={{ color: colors.textColor }}>Rua *</Label>
                 <Input
                   placeholder="Nome da rua"
                   className="mt-1"
                   disabled
                   value="Av. Paulista"
-                  style={{ backgroundColor: colors.inputBackground, borderColor: `${colors.primary}30`, color: colors.text }}
+                  style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.textColor }}
                 />
               </div>
 
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <Label style={{ color: colors.text }}>Número *</Label>
+                  <Label style={{ color: colors.textColor }}>Número *</Label>
                   <Input
                     placeholder="123"
                     className="mt-1"
                     disabled
                     value="1000"
-                    style={{ backgroundColor: colors.inputBackground, borderColor: `${colors.primary}30`, color: colors.text }}
+                    style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.textColor }}
                   />
                 </div>
                 <div className="col-span-2">
-                  <Label style={{ color: colors.text }}>Complemento</Label>
+                  <Label style={{ color: colors.textColor }}>Complemento</Label>
                   <Input
                     placeholder="Apto, bloco, etc."
                     className="mt-1"
                     disabled
                     value="Sala 501"
-                    style={{ backgroundColor: colors.inputBackground, borderColor: `${colors.primary}30`, color: colors.text }}
+                    style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.textColor }}
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label style={{ color: colors.text }}>Bairro *</Label>
+                  <Label style={{ color: colors.textColor }}>Bairro *</Label>
                   <Input
                     placeholder="Nome do bairro"
                     className="mt-1"
                     disabled
                     value="Bela Vista"
-                    style={{ backgroundColor: colors.inputBackground, borderColor: `${colors.primary}30`, color: colors.text }}
+                    style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.textColor }}
                   />
                 </div>
                 <div>
-                  <Label style={{ color: colors.text }}>Cidade *</Label>
+                  <Label style={{ color: colors.textColor }}>Cidade *</Label>
                   <Input
                     placeholder="Nome da cidade"
                     className="mt-1"
                     disabled
                     value="São Paulo"
-                    style={{ backgroundColor: colors.inputBackground, borderColor: `${colors.primary}30`, color: colors.text }}
+                    style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.textColor }}
                   />
                 </div>
               </div>
-              <p className="text-xs italic" style={{ color: `${colors.text}80` }}>* Campos simulados para preview</p>
+              <p className="text-xs italic" style={{ color: colors.textColor, opacity: 0.6 }}>* Campos simulados para preview</p>
             </CardContent>
             <CardFooter className="flex justify-end">
               <Button onClick={handleWizardNext} style={{ backgroundColor: colors.buttonColor, color: colors.buttonTextColor }}>
@@ -814,29 +817,29 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
     const isLastQuestion = questionIndex === questionElements.length - 1;
 
     return (
-      <div className="min-h-[500px] p-4" style={{ background: `linear-gradient(to bottom right, ${colors.background}, ${colors.secondary})` }}>
+      <div className="min-h-[500px] p-4" style={{ background: colors.pageBackground }}>
         <div className="max-w-3xl mx-auto pt-4">
           <div className="mb-6">
-            <div className="w-full rounded-full h-2 mb-2" style={{ backgroundColor: colors.secondary }}>
+            <div className="w-full rounded-full h-2 mb-2" style={{ backgroundColor: colors.inputBackground }}>
               <div
                 className="h-2 rounded-full transition-all duration-300"
                 style={{ width: `${wizardProgress}%`, backgroundColor: colors.progressBarColor }}
               />
             </div>
-            <p className="text-sm text-right" style={{ color: colors.text }}>{wizardProgress}% completo</p>
+            <p className="text-sm text-right" style={{ color: colors.textColor }}>{wizardProgress}% completo</p>
           </div>
 
-          <Card className="shadow-lg" style={{ backgroundColor: colors.containerBackground, borderColor: `${colors.primary}30` }}>
+          <Card className="shadow-lg" style={{ backgroundColor: colors.containerBackground, borderColor: colors.borderColor }}>
             <CardHeader>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium" style={{ color: `${colors.text}80` }}>
+                <span className="text-sm font-medium" style={{ color: colors.textColor, opacity: 0.6 }}>
                   Pergunta {questionIndex + 1} de {questionElements.length}
                 </span>
                 {question.required && (
                   <span className="text-sm font-medium" style={{ color: '#ef4444' }}>* Obrigatória</span>
                 )}
               </div>
-              <CardTitle className="text-2xl" style={{ color: colors.text }}>{question.text}</CardTitle>
+              <CardTitle className="text-2xl" style={{ color: colors.textColor }}>{question.text}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {question.questionType === 'multiple-choice' && question.options && (
@@ -854,10 +857,10 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
                     <div
                       key={optIndex}
                       className="flex items-center space-x-3 p-3 rounded-lg border transition-colors"
-                      style={{ backgroundColor: colors.inputBackground, borderColor: `${colors.primary}30`, color: colors.text }}
+                      style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.textColor }}
                     >
                       <RadioGroupItem value={option.text} id={`${question.id}-${optIndex}`} />
-                      <Label htmlFor={`${question.id}-${optIndex}`} className="font-normal cursor-pointer flex-1" style={{ color: colors.text }}>
+                      <Label htmlFor={`${question.id}-${optIndex}`} className="font-normal cursor-pointer flex-1" style={{ color: colors.textColor }}>
                         {option.text}
                       </Label>
                     </div>
@@ -872,7 +875,7 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
                   placeholder="Digite sua resposta"
                   rows={6}
                   className="text-base"
-                  style={{ backgroundColor: colors.inputBackground, borderColor: `${colors.primary}30`, color: colors.text }}
+                  style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.textColor }}
                 />
               )}
 
@@ -882,7 +885,7 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
                   onChange={(e) => handleAnswer(question.id, e.target.value, question.points || 0)}
                   placeholder="Digite sua resposta"
                   className="text-base"
-                  style={{ backgroundColor: colors.inputBackground, borderColor: `${colors.primary}30`, color: colors.text }}
+                  style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.textColor }}
                 />
               )}
             </CardContent>
@@ -915,8 +918,8 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
     const totalScore = result?.totalScore ?? 0;
 
     return (
-      <div className="min-h-[500px] flex items-center justify-center p-4" style={{ background: `linear-gradient(to bottom right, ${colors.background}, ${colors.secondary})` }}>
-        <Card className="w-full max-w-2xl p-8 text-center shadow-xl" style={{ backgroundColor: colors.containerBackground, borderColor: `${colors.primary}30` }}>
+      <div className="min-h-[500px] flex items-center justify-center p-4" style={{ background: colors.pageBackground }}>
+        <Card className="w-full max-w-2xl p-8 text-center shadow-xl" style={{ backgroundColor: colors.containerBackground, borderColor: colors.borderColor }}>
           <div
             className="inline-flex items-center justify-center w-20 h-20 rounded-full mx-auto mb-6"
             style={{
@@ -931,11 +934,11 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
             )}
           </div>
 
-          <h2 className="text-4xl font-bold mb-4" style={{ color: colors.text }}>
+          <h2 className="text-4xl font-bold mb-4" style={{ color: colors.titleColor }}>
             Agradecemos sua resposta!
           </h2>
 
-          <p className="text-xl mb-8" style={{ color: `${colors.text}80` }}>
+          <p className="text-xl mb-8" style={{ color: colors.textColor, opacity: 0.8 }}>
             {passed
               ? "Você está qualificado! Nossa equipe analisará suas informações e retornaremos em breve pelo WhatsApp."
               : "Obrigado pela sua participação. Infelizmente você não atingiu a pontuação mínima."}
@@ -943,38 +946,38 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
 
           {useTiers && currentTier ? (
             <div className="space-y-4 mb-6">
-              <div className="flex items-center justify-center gap-3 p-4 rounded-lg" style={{ backgroundColor: `${colors.primary}15`, borderColor: `${colors.primary}30`, borderWidth: 1 }}>
-                <Award className="h-6 w-6" style={{ color: colors.titleColor }} />
+              <div className="flex items-center justify-center gap-3 p-4 rounded-lg" style={{ backgroundColor: `${colors.buttonColor}15`, borderColor: colors.borderColor, borderWidth: 1 }}>
+                <Award className="h-6 w-6" style={{ color: colors.buttonColor }} />
                 <div className="text-left">
-                  <div className="font-bold text-lg" style={{ color: colors.titleColor }}>
+                  <div className="font-bold text-lg" style={{ color: colors.buttonColor }}>
                     {currentTier.label}
                   </div>
-                  <div className="text-sm" style={{ color: `${colors.text}80` }}>
+                  <div className="text-sm" style={{ color: colors.textColor, opacity: 0.8 }}>
                     {currentTier.description}
                   </div>
                 </div>
               </div>
 
-              <div className="p-6 rounded-xl" style={{ backgroundColor: colors.secondary }}>
-                <p className="text-sm mb-2" style={{ color: `${colors.text}80` }}>Sua pontuação</p>
+              <div className="p-6 rounded-xl" style={{ backgroundColor: colors.inputBackground }}>
+                <p className="text-sm mb-2" style={{ color: colors.textColor, opacity: 0.6 }}>Sua pontuação</p>
                 <p className="text-5xl font-bold" style={{ color: colors.titleColor }}>{totalScore}</p>
               </div>
             </div>
           ) : (
-            <div className="p-6 rounded-xl mb-6" style={{ backgroundColor: colors.secondary }}>
-              <p className="text-sm mb-2" style={{ color: `${colors.text}80` }}>Sua pontuação</p>
+            <div className="p-6 rounded-xl mb-6" style={{ backgroundColor: colors.inputBackground }}>
+              <p className="text-sm mb-2" style={{ color: colors.textColor, opacity: 0.6 }}>Sua pontuação</p>
               <p className="text-5xl font-bold" style={{ color: colors.titleColor }}>{totalScore}</p>
-              <p className="text-sm mt-2" style={{ color: `${colors.text}80` }}>/ {config.passingScore} necessário</p>
+              <p className="text-sm mt-2" style={{ color: colors.textColor, opacity: 0.6 }}>/ {config.passingScore} necessário</p>
             </div>
           )}
 
-          <div className="text-sm mb-6" style={{ color: `${colors.text}80` }}>
+          <div className="text-sm mb-6" style={{ color: colors.textColor, opacity: 0.6 }}>
             <p>Seus dados foram salvos com sucesso.</p>
             <p>Em breve você receberá um retorno por email.</p>
           </div>
 
           {!isLivePreview && (
-            <Button onClick={onBack} variant="outline" className="gap-2" style={{ borderColor: `${colors.primary}30`, color: colors.text }}>
+            <Button onClick={onBack} variant="outline" className="gap-2" style={{ borderColor: colors.borderColor, color: colors.textColor }}>
               <ArrowLeft className="h-4 w-4" />
               Voltar ao Editor
             </Button>
@@ -1013,7 +1016,7 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
         className={isLivePreview ? "min-h-full p-4 rounded-lg" : "max-w-2xl mx-auto"}
         style={{
           fontFamily: design.typography.fontFamily,
-          background: isLivePreview ? `linear-gradient(to bottom right, ${colors.background}, ${colors.secondary})` : undefined
+          background: isLivePreview ? colors.pageBackground : undefined
         }}
       >
         {!isLivePreview && (
@@ -1027,7 +1030,7 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
           style={{
             backgroundColor: colors.containerBackground,
             color: colors.textColor,
-            borderColor: `${colors.primary}30`
+            borderColor: colors.borderColor
           }}
         >
           <div className="text-center space-y-6">
@@ -1046,10 +1049,10 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
             </div>
 
             <div>
-              <h2 className="text-3xl font-bold mb-2" style={{ color: design.colors.text }}>
+              <h2 className="text-3xl font-bold mb-2" style={{ color: colors.titleColor }}>
                 {result.passed ? 'Agradecemos sua resposta!' : 'Agradecemos sua resposta!'}
               </h2>
-              <p className="text-lg" style={{ color: `${design.colors.text}80` }}>
+              <p className="text-lg" style={{ color: colors.textColor, opacity: 0.8 }}>
                 {result.passed
                   ? 'Você está qualificado! Nossa equipe analisará suas informações e retornaremos em breve pelo WhatsApp.'
                   : 'Obrigado pela sua participação. Infelizmente você não atingiu a pontuação mínima.'}
@@ -1061,16 +1064,16 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
                 <div
                   className="flex items-center justify-center gap-3 p-4 rounded-lg"
                   style={{
-                    backgroundColor: `${design.colors.primary}1a`,
-                    border: `1px solid ${design.colors.primary}33`
+                    backgroundColor: `${colors.buttonColor}1a`,
+                    border: `1px solid ${colors.borderColor}`
                   }}
                 >
-                  <Award className="h-6 w-6" style={{ color: design.colors.primary }} />
+                  <Award className="h-6 w-6" style={{ color: colors.buttonColor }} />
                   <div className="text-left">
-                    <div className="font-bold text-lg" style={{ color: design.colors.primary }}>
+                    <div className="font-bold text-lg" style={{ color: colors.buttonColor }}>
                       {currentTier.label}
                     </div>
-                    <div className="text-sm" style={{ color: `${design.colors.text}80` }}>
+                    <div className="text-sm" style={{ color: colors.textColor, opacity: 0.8 }}>
                       {currentTier.description}
                     </div>
                   </div>
@@ -1078,40 +1081,40 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
 
                 <div
                   className="flex items-center justify-center gap-8 py-6 border-y"
-                  style={{ borderColor: `${design.colors.primary}30` }}
+                  style={{ borderColor: colors.borderColor }}
                 >
                   <div className="text-center">
-                    <div className="text-4xl font-bold" style={{ color: design.colors.primary }}>
+                    <div className="text-4xl font-bold" style={{ color: colors.buttonColor }}>
                       {result.totalScore}
                     </div>
-                    <div className="text-sm" style={{ color: `${design.colors.text}80` }}>Sua Pontuação</div>
+                    <div className="text-sm" style={{ color: colors.textColor, opacity: 0.8 }}>Sua Pontuação</div>
                   </div>
-                  <div className="text-2xl" style={{ color: `${design.colors.text}80` }}>/</div>
+                  <div className="text-2xl" style={{ color: colors.textColor, opacity: 0.8 }}>/</div>
                   <div className="text-center">
-                    <div className="text-4xl font-bold" style={{ color: design.colors.text }}>
+                    <div className="text-4xl font-bold" style={{ color: colors.titleColor }}>
                       {currentTier.maxScore}
                     </div>
-                    <div className="text-sm" style={{ color: `${design.colors.text}80` }}>Máximo desta faixa</div>
+                    <div className="text-sm" style={{ color: colors.textColor, opacity: 0.8 }}>Máximo desta faixa</div>
                   </div>
                 </div>
               </div>
             ) : (
               <div
                 className="flex items-center justify-center gap-8 py-6 border-y"
-                style={{ borderColor: `${design.colors.primary}30` }}
+                style={{ borderColor: colors.borderColor }}
               >
                 <div className="text-center">
-                  <div className="text-4xl font-bold" style={{ color: design.colors.primary }}>
+                  <div className="text-4xl font-bold" style={{ color: colors.buttonColor }}>
                     {result.totalScore}
                   </div>
-                  <div className="text-sm" style={{ color: `${design.colors.text}80` }}>Sua Pontuação</div>
+                  <div className="text-sm" style={{ color: colors.textColor, opacity: 0.8 }}>Sua Pontuação</div>
                 </div>
-                <div className="text-2xl" style={{ color: `${design.colors.text}80` }}>/</div>
+                <div className="text-2xl" style={{ color: colors.textColor, opacity: 0.8 }}>/</div>
                 <div className="text-center">
-                  <div className="text-4xl font-bold" style={{ color: design.colors.text }}>
+                  <div className="text-4xl font-bold" style={{ color: colors.titleColor }}>
                     {config.passingScore}
                   </div>
-                  <div className="text-sm" style={{ color: `${design.colors.text}80` }}>Necessário</div>
+                  <div className="text-sm" style={{ color: colors.textColor, opacity: 0.8 }}>Necessário</div>
                 </div>
               </div>
             )}
@@ -1120,11 +1123,11 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
               <div
                 className="p-4 rounded-lg"
                 style={{
-                  backgroundColor: `${design.colors.primary}1a`,
-                  border: `1px solid ${design.colors.primary}33`
+                  backgroundColor: `${colors.buttonColor}1a`,
+                  border: `1px solid ${colors.borderColor}`
                 }}
               >
-                <p className="text-sm" style={{ color: design.colors.text }}>
+                <p className="text-sm" style={{ color: colors.textColor }}>
                   Em breve, nossa equipe entrará em contato para agendar sua reunião.
                 </p>
               </div>
@@ -1134,7 +1137,7 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
               onClick={onBack}
               variant="outline"
               className="gap-2"
-              style={{ borderColor: `${design.colors.primary}30`, color: design.colors.text }}
+              style={{ borderColor: colors.borderColor, color: colors.textColor }}
             >
               <ArrowLeft className="h-4 w-4" />
               Voltar ao Editor
@@ -1150,7 +1153,7 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
       className={isLivePreview ? "min-h-full p-4 rounded-lg" : "max-w-2xl mx-auto space-y-6"}
       style={{
         fontFamily: design.typography.fontFamily,
-        background: isLivePreview ? `linear-gradient(to bottom right, ${colors.background}, ${colors.secondary})` : undefined
+        background: isLivePreview ? colors.pageBackground : undefined
       }}
     >
       {!isLivePreview && (
@@ -1165,7 +1168,7 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
         style={{
           backgroundColor: colors.containerBackground,
           color: colors.textColor,
-          borderColor: `${colors.primary}30`
+          borderColor: colors.borderColor
         }}
       >
         {design.logo && (
@@ -1195,13 +1198,13 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
             <div className="space-y-2 mb-8">
               <h1
                 className={`${titleSizeClasses[design.typography.titleSize as keyof typeof titleSizeClasses]} font-bold`}
-                style={{ color: design.colors.primary }}
+                style={{ color: colors.titleColor }}
               >
                 {config.title}
               </h1>
               <p
                 className={textSizeClasses[design.typography.textSize as keyof typeof textSizeClasses]}
-                style={{ color: design.colors.text, opacity: 0.8 }}
+                style={{ color: colors.textColor, opacity: 0.8 }}
               >
                 {config.description}
               </p>
@@ -1220,13 +1223,13 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
         </div>
 
         {!isLivePreview && (
-          <div className="mt-8 pt-8 border-t" style={{ borderColor: design.colors.titleColor + '30' }}>
+          <div className="mt-8 pt-8 border-t" style={{ borderColor: colors.borderColor + '30' }}>
             <Button
               onClick={handleSubmit}
               className="w-full gap-2 py-6 text-base"
               style={{
-                backgroundColor: design.colors.button || design.colors.primary,
-                color: design.colors.buttonText || design.colors.background
+                backgroundColor: colors.buttonColor,
+                color: colors.buttonTextColor
               }}
               disabled={Object.keys(answers).length !== totalQuestions}
             >
