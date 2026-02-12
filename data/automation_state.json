@@ -5,11 +5,19 @@
     "system-system": {
       "clientId": "system",
       "tenantId": "system",
+<<<<<<< HEAD
       "lastRun": "2026-02-12T18:34:26.916Z",
       "lastSuccess": "2026-02-12T18:34:26.916Z",
       "lastError": "Invalid supabaseUrl: Must be a valid HTTP or HTTPS URL.",
       "consecutiveErrors": 0,
       "totalExecutions": 517,
+=======
+      "lastRun": "2026-02-12T12:07:02.024Z",
+      "lastSuccess": "2026-02-12T12:07:02.024Z",
+      "lastError": "Invalid supabaseUrl: Must be a valid HTTP or HTTPS URL.",
+      "consecutiveErrors": 0,
+      "totalExecutions": 377,
+>>>>>>> 4d793f4d84a2204ab2dcf026863c0538a40ddced
       "totalNewClientsDetected": 0,
       "totalEventsCreated": 0,
       "status": "running"
@@ -17,11 +25,19 @@
     "dev-daviemericko_gmail_com-dev-daviemericko_gmail_com": {
       "clientId": "dev-daviemericko_gmail_com",
       "tenantId": "dev-daviemericko_gmail_com",
+<<<<<<< HEAD
       "lastRun": "2026-02-12T18:34:27.556Z",
       "lastSuccess": "2026-02-12T18:34:27.556Z",
       "lastError": "Invalid supabaseUrl: Must be a valid HTTP or HTTPS URL.",
       "consecutiveErrors": 0,
       "totalExecutions": 731,
+=======
+      "lastRun": "2026-02-12T12:07:02.042Z",
+      "lastSuccess": "2026-02-12T12:07:02.042Z",
+      "lastError": "Invalid supabaseUrl: Must be a valid HTTP or HTTPS URL.",
+      "consecutiveErrors": 0,
+      "totalExecutions": 591,
+>>>>>>> 4d793f4d84a2204ab2dcf026863c0538a40ddced
       "totalNewClientsDetected": 0,
       "totalEventsCreated": 0,
       "status": "running"
@@ -77,22 +93,38 @@
     "b25cf69e-def4-4cea-afbf-0b93eabb77b2-b25cf69e-def4-4cea-afbf-0b93eabb77b2": {
       "clientId": "b25cf69e-def4-4cea-afbf-0b93eabb77b2",
       "tenantId": "b25cf69e-def4-4cea-afbf-0b93eabb77b2",
+<<<<<<< HEAD
       "lastRun": "2026-02-12T18:34:27.552Z",
       "lastSuccess": "2026-02-12T18:34:27.552Z",
       "lastError": null,
       "consecutiveErrors": 0,
       "totalExecutions": 313,
+=======
+      "lastRun": "2026-02-12T12:07:02.033Z",
+      "lastSuccess": "2026-02-12T12:07:02.033Z",
+      "lastError": null,
+      "consecutiveErrors": 0,
+      "totalExecutions": 173,
+>>>>>>> 4d793f4d84a2204ab2dcf026863c0538a40ddced
       "totalNewClientsDetected": 0,
       "totalEventsCreated": 0,
       "status": "running"
     }
   },
   "globalStats": {
+<<<<<<< HEAD
     "totalExecutions": 1951,
     "totalNewClientsDetected": 0,
     "totalEventsCreated": 0,
     "totalErrors": 12,
     "uptime": 65411
+=======
+    "totalExecutions": 1531,
+    "totalNewClientsDetected": 0,
+    "totalEventsCreated": 0,
+    "totalErrors": 12,
+    "uptime": 42165
+>>>>>>> 4d793f4d84a2204ab2dcf026863c0538a40ddced
   },
   "settings": {
     "detectionIntervalMinutes": 2,

@@ -1,6 +1,11 @@
 {
+<<<<<<< HEAD
   "lastPolledAt": "2026-02-12T18:34:26.374Z",
   "totalProcessed": 4,
+=======
+  "lastPolledAt": "2026-02-12T12:07:02.101Z",
+  "totalProcessed": 3,
+>>>>>>> 4d793f4d84a2204ab2dcf026863c0538a40ddced
   "totalErrors": 0,
   "lastError": null
 }
