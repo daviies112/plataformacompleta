@@ -16,8 +16,6 @@ interface DocumentCaptureProps {
   titleColor?: string;
   textColor?: string;
   backgroundColor?: string;
-  logoUrl?: string;
-  logoSize?: 'small' | 'medium' | 'large';
 }
 
 const documentTypes: { type: DocumentType; label: string; icon: typeof CreditCard }[] = [
@@ -27,36 +25,34 @@ const documentTypes: { type: DocumentType; label: string; icon: typeof CreditCar
   { type: 'PASSPORT', label: 'Passaporte', icon: FileText },
 ];
 
-export const DocumentCapture = ({ 
-  onCapture, 
-  onBack, 
-  primaryColor = '#2c3e50', 
+export const DocumentCapture = ({
+  onCapture,
+  onBack,
+  primaryColor = '#2c3e50',
   buttonColor,
   buttonTextColor = '#ffffff',
   iconColor,
   titleColor,
   textColor,
   backgroundColor,
-  logoUrl = '', 
-  logoSize = 'medium' 
 }: DocumentCaptureProps) => {
   const effectiveButtonColor = buttonColor || primaryColor;
   const effectiveIconColor = iconColor || primaryColor;
   const effectiveTextColor = textColor || undefined;
   const effectiveTitleColor = titleColor || undefined;
 
-  const { 
-    videoRef, 
-    isReady, 
+  const {
+    videoRef,
+    isReady,
     isInitializing,
-    error: cameraError, 
-    startCamera, 
-    stopCamera, 
+    error: cameraError,
+    startCamera,
+    stopCamera,
     switchCamera,
     facingMode,
-    captureImage 
+    captureImage
   } = useCamera({ facingMode: 'environment' });
-  
+
   const [selectedDocType, setSelectedDocType] = useState<DocumentType | null>(null);
   const [detectionResult, setDetectionResult] = useState<DocumentDetectionResult | null>(null);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
@@ -91,33 +87,33 @@ export const DocumentCapture = ({
     if (!isReady || capturedImage || !selectedDocType) return;
 
     console.log('DocumentCapture: Starting detection interval');
-    
+
     detectionIntervalRef.current = setInterval(() => {
       const quality = 60 + Math.random() * 40;
       const detected = quality > 65;
-      
+
       const result: DocumentDetectionResult = {
         detected,
         fullyVisible: detected && quality > 70,
         goodFocus: detected && quality > 75,
         noGlare: detected && quality > 68,
         quality,
-        message: detected 
-          ? quality >= 75 
-            ? 'Perfeito! Capturando...' 
-            : quality >= 70 
-              ? 'Ajuste levemente o ângulo' 
+        message: detected
+          ? quality >= 75
+            ? 'Perfeito! Capturando...'
+            : quality >= 70
+              ? 'Ajuste levemente o ângulo'
               : 'Aproxime o documento'
           : 'Posicione o documento na moldura',
       };
-      
+
       setDetectionResult(result);
-      
-      const isIdeal = result.detected && 
-        result.fullyVisible && 
-        result.goodFocus && 
+
+      const isIdeal = result.detected &&
+        result.fullyVisible &&
+        result.goodFocus &&
         result.quality >= 75;
-      
+
       if (isIdeal && !autoCapture) {
         console.log('DocumentCapture: Conditions ideal, starting auto-capture...');
         setAutoCapture(true);
@@ -204,13 +200,13 @@ export const DocumentCapture = ({
                 transition={{ delay: index * 0.1 }}
                 onClick={() => setSelectedDocType(doc.type)}
                 className="flex flex-col items-center gap-3 p-6 rounded-xl transition-all duration-200"
-                style={{ 
+                style={{
                   backgroundColor: effectiveButtonColor,
                   border: `1px solid ${effectiveButtonColor}`
                 }}
               >
-                <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ backgroundColor: `${backgroundColor || '#954728'}33` }}>
-                  <Icon className="w-6 h-6" style={{ color: backgroundColor || '#954728' }} />
+                <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}>
+                  <Icon className="w-6 h-6" style={{ color: '#ffffff' }} />
                 </div>
                 <span className="font-medium" style={{ color: '#ffffff' }}>{doc.label}</span>
               </motion.button>
@@ -311,12 +307,12 @@ export const DocumentCapture = ({
                 playsInline
                 muted
                 className="w-full h-full object-cover"
-                style={{ 
+                style={{
                   display: isReady ? 'block' : 'none',
                   transform: facingMode === 'user' ? 'scaleX(-1)' : 'none'
                 }}
               />
-              
+
               {showLoading && (
                 <div className="absolute inset-0 flex items-center justify-center bg-background">
                   <div className="flex flex-col items-center gap-4">
@@ -326,14 +322,14 @@ export const DocumentCapture = ({
                         {isInitializing ? 'Acessando câmera traseira...' : 'Iniciando câmera...'}
                       </p>
                       <p className="text-xs text-muted-foreground max-w-xs">
-                        {isInitializing 
+                        {isInitializing
                           ? 'Permita o acesso à câmera quando solicitado'
                           : 'Preparando visualização'}
                       </p>
                     </div>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={handleRetryCamera}
                       className="mt-2"
                     >
@@ -343,10 +339,10 @@ export const DocumentCapture = ({
                   </div>
                 </div>
               )}
-              
+
               {isReady && (
-                <DocumentGuideOverlay 
-                  detectionResult={detectionResult} 
+                <DocumentGuideOverlay
+                  detectionResult={detectionResult}
                   isCapturing={isCapturing}
                   buttonColor={effectiveButtonColor}
                   textColor={effectiveTextColor}
@@ -372,6 +368,7 @@ export const DocumentCapture = ({
                 size="lg"
                 onClick={handleRetake}
                 className="flex-1 h-14"
+                style={{ color: titleColor || primaryColor, borderColor: titleColor || primaryColor }}
               >
                 <RotateCcw className="w-5 h-5 mr-2" />
                 Tirar Outra
@@ -394,9 +391,9 @@ export const DocumentCapture = ({
               exit={{ opacity: 0, y: -20 }}
             >
               <p className="text-center text-sm text-muted-foreground mb-4">
-                {!isReady 
+                {!isReady
                   ? 'Aguardando câmera...'
-                  : autoCapture 
+                  : autoCapture
                     ? 'Capturando automaticamente...'
                     : 'Posicione o documento e aguarde a captura automática'}
               </p>

@@ -65,7 +65,7 @@ export function ChatArea({ conversation, messages, onSendMessage, onSendAudio, o
   const checkIfNearBottom = () => {
     const container = scrollContainerRef.current;
     if (!container) return true;
-    
+
     const { scrollTop, scrollHeight, clientHeight } = container;
     const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
     return distanceFromBottom < 100; // 100px do fim
@@ -98,10 +98,10 @@ export function ChatArea({ conversation, messages, onSendMessage, onSendAudio, o
 
   const handleTagsChange = (newTagIds: string[]) => {
     if (!conversation) return;
-    
+
     setConversationTags(newTagIds);
     configManager.setConversationTags(conversation.id, newTagIds);
-    
+
     if (onTagsChange) {
       onTagsChange(conversation.id, newTagIds);
     }
@@ -109,7 +109,7 @@ export function ChatArea({ conversation, messages, onSendMessage, onSendAudio, o
 
   const handleCheckConnection = async () => {
     if (!onCheckConnection) return;
-    
+
     setIsCheckingConnection(true);
     try {
       const state = await onCheckConnection();
@@ -151,7 +151,7 @@ export function ChatArea({ conversation, messages, onSendMessage, onSendAudio, o
     } catch (error) {
       console.error("Erro ao enviar mensagem:", error);
       const errorMsg = error instanceof Error ? error.message : "Erro desconhecido";
-      
+
       if (errorMsg.includes("não está conectado") || errorMsg.includes("Connection Closed")) {
         toast.error("WhatsApp desconectado", {
           description: "Reconecte sua instância no Evolution API Manager",
@@ -236,10 +236,7 @@ export function ChatArea({ conversation, messages, onSendMessage, onSendAudio, o
             </div>
           </div>
 
-          {/* QR Code Component */}
-          <div className="mt-8">
-            <QRCodeDisplay />
-          </div>
+
         </div>
       </div>
     );
@@ -301,12 +298,12 @@ export function ChatArea({ conversation, messages, onSendMessage, onSendAudio, o
               )}
             </div>
             <p className="text-xs text-muted-foreground">{conversation.numero}</p>
-            
+
             {/* Status do Lead (Formulário/Qualificação) */}
             <div className="mt-2">
               <LeadStatusLabel phoneNumber={conversation.numero} refreshInterval={10000} />
             </div>
-            
+
             {/* Tags da conversa */}
             {conversationTags.length > 0 && (
               <div className="flex flex-wrap gap-1 mt-1">
@@ -334,11 +331,11 @@ export function ChatArea({ conversation, messages, onSendMessage, onSendAudio, o
             variant="ghost"
             size="sm"
           />
-          
+
           {connectionState && (
-            <Button 
+            <Button
               variant={connectionState.connected ? "ghost" : "destructive"}
-              size="icon" 
+              size="icon"
               title={connectionState.connected ? "WhatsApp Conectado" : "WhatsApp Desconectado - Clique para verificar"}
               onClick={handleCheckConnection}
               disabled={isCheckingConnection}
@@ -394,8 +391,8 @@ export function ChatArea({ conversation, messages, onSendMessage, onSendAudio, o
                 Você pode ver conversas antigas, mas não pode enviar mensagens.
               </p>
             </div>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
               onClick={handleCheckConnection}
               disabled={isCheckingConnection}
@@ -409,7 +406,7 @@ export function ChatArea({ conversation, messages, onSendMessage, onSendAudio, o
             </Button>
           </div>
         )}
-        
+
         <div className="flex items-end gap-2 max-w-5xl mx-auto">
           {onSendMedia && (
             <MediaSender
@@ -418,15 +415,15 @@ export function ChatArea({ conversation, messages, onSendMessage, onSendAudio, o
             />
           )}
           {onSendAudio && (
-            <AudioRecorder 
+            <AudioRecorder
               onSendAudio={onSendAudio}
               disabled={connectionState && !connectionState.connected}
             />
           )}
           <Input
             placeholder={
-              connectionState && !connectionState.connected 
-                ? "Não é possível enviar (desconectado)" 
+              connectionState && !connectionState.connected
+                ? "Não é possível enviar (desconectado)"
                 : "Digite sua mensagem..."
             }
             value={messageInput}
@@ -449,8 +446,8 @@ export function ChatArea({ conversation, messages, onSendMessage, onSendAudio, o
           </Button>
         </div>
         <p className="text-xs text-muted-foreground mt-2 text-center">
-          {connectionState && !connectionState.connected 
-            ? "Conecte o WhatsApp no Evolution API Manager para enviar" 
+          {connectionState && !connectionState.connected
+            ? "Conecte o WhatsApp no Evolution API Manager para enviar"
             : "Pressione Enter para enviar ou clique no microfone para gravar áudio"}
         </p>
       </div>

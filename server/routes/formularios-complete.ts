@@ -422,6 +422,78 @@ const upload = multer({
 });
 
 /**
+ * Helper: Gera URL dinâmica do formulário baseada no domínio atual
+ * NÃO armazena URL estática - sempre gera baseado no ambiente atual
+ */
+function generateDynamicFormUrl(companySlug: string, formSlug: string): string {
+  const domain = process.env.APP_DOMAIN || process.env.REPLIT_DOMAINS?.split(',')[0] ||
+    (process.env.REPL_SLUG && process.env.REPL_OWNER ?
+      `${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` :
+      'localhost:5000');
+  const protocol = domain.includes('localhost') ? 'http' : 'https';
+  return `${protocol}://${domain}/formulario/${companySlug}/form/${formSlug}`;
+}
+
+/**
+ * Helper: Busca ou cria configurações no PostgreSQL LOCAL
+ */
+async function getOrCreateLocalAppSettings(tenantId?: string) {
+  const existing = await db.select().from(appSettings).limit(1);
+
+  if (existing.length > 0) {
+    return existing[0];
+  }
+
+  const effectiveTenantId = tenantId || 'default';
+  const newSettings = await db.insert(appSettings).values({
+    tenantId: effectiveTenantId,
+    companyName: 'Minha Empresa',
+    companySlug: 'empresa',
+  }).returning();
+
+  return newSettings[0];
+}
+
+import { SupabaseClient } from '@supabase/supabase-js';
+
+/**
+ * Busca ou cria configurações no SUPABASE (não PostgreSQL local)
+ */
+async function getOrCreateAppSettingsInSupabase(supabase: SupabaseClient) {
+  // Buscar primeira configuração existente no Supabase (sem depender de ID específico)
+  const { data, error } = await supabase
+    .from('app_settings')
+    .select('*')
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.warn('⚠️ [FORMS/ativo] Erro ao buscar do Supabase:', error);
+    throw error;
+  }
+
+  // Se não existir, criar no Supabase
+  if (!data) {
+    const { data: newData, error: insertError } = await supabase
+      .from('app_settings')
+      .insert({
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+
+    if (insertError) {
+      throw insertError;
+    }
+
+    return newData;
+  }
+
+  return data;
+}
+
+/**
  * Helper function to check if a tenant has Supabase configured
  * 🔐 MULTI-TENANT: Verifica se o tenant tem credenciais Supabase configuradas
  * 🚀 PERFORMANCE: Uses in-memory cache to avoid DB query on every request
@@ -1951,6 +2023,32 @@ export function registerFormulariosCompleteRoutes(app: Express) {
         const parsedData = parseJsonbFields(camelData, ['questions', 'designConfig', 'scoreTiers', 'tags']);
         const reconstructedData = reconstructFormDataFromSupabase(parsedData);
 
+
+        // 🌟 LÓGICA DE PRIMEIRO FORMULÁRIO ATIVO (SUPABASE)
+        if (existingSlugs.length === 0) {
+          console.log('🌟 [POST] Primeiro formulário criado (Supabase) - definindo como Ativo por padrão');
+          try {
+            const supabaseSettings = await getOrCreateAppSettingsInSupabase(supabase);
+            const formUrl = generateDynamicFormUrl(companySlug, uniqueSlug);
+
+            const { error: activeError } = await supabase
+              .from('app_settings')
+              .update({
+                active_form_id: data.id,
+                active_form_url: formUrl,
+                company_slug: companySlug,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', supabaseSettings.id);
+
+            if (!activeError) {
+              console.log('✅ [POST] Formulário definido como ativo automaticamente!');
+            }
+          } catch (activeErr) {
+            console.warn('⚠️ [POST] Erro ao definir primeiro formulário como ativo:', activeErr);
+          }
+        }
+
         return res.status(201).json(reconstructedData);
       }
 
@@ -1990,6 +2088,28 @@ export function registerFormulariosCompleteRoutes(app: Express) {
       }
 
       res.status(201).json(form);
+
+      // 🌟 LÓGICA DE PRIMEIRO FORMULÁRIO ATIVO (LOCAL)
+      if (existingSlugs.length === 0) {
+        console.log('🌟 [POST] Primeiro formulário criado (Local) - definindo como Ativo por padrão');
+        try {
+          const settings = await getOrCreateLocalAppSettings(tenantId);
+          const formUrl = generateDynamicFormUrl(companySlug, uniqueSlug);
+
+          await db.update(appSettings)
+            .set({
+              activeFormId: form.id,
+              activeFormUrl: formUrl,
+              companySlug: companySlug,
+              updatedAt: new Date()
+            })
+            .where(eq(appSettings.id, settings.id));
+
+          console.log('✅ [POST] Formulário definido como ativo automaticamente (Local)!');
+        } catch (activeErr) {
+          console.warn('⚠️ [POST] Erro ao definir primeiro formulário como ativo (Local):', activeErr);
+        }
+      }
     } catch (error: any) {
       res.status(400).json({ error: error.message });
     }

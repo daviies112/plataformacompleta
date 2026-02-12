@@ -323,8 +323,8 @@ const PublicForm = () => {
     questions: form.questions as any,
     passingScore: form.passingScore,
     scoreTiers: form.scoreTiers as ScoreTier[] || [],
-    designConfig: form.designConfig as any,
-    completionPageConfig: form.completionPageConfig as any
+    designConfig: (form.designConfig as any) || (form as any).design_config,
+    completionPageConfig: (form.completionPageConfig as any) || (form as any).completion_page_config
   } : null;
 
   // Usar MESMA lógica de merge de cores do FormPreview.tsx
@@ -347,6 +347,13 @@ const PublicForm = () => {
   };
 
   const baseDesign = (config?.designConfig as any) ?? {};
+
+  // 🔍 DEBUG: Log raw received design config in PublicForm
+  if (config) {
+    console.log('🎨 [PublicForm] Raw Config:', config);
+    console.log('🎨 [PublicForm] Design Config:', config.designConfig);
+  }
+
   const design = {
     ...defaultDesign,
     ...baseDesign,
@@ -361,6 +368,12 @@ const PublicForm = () => {
     spacing: baseDesign.spacing || defaultDesign.spacing,
     logo: baseDesign.logo || defaultDesign.logo
   };
+
+  // 🔍 DEBUG: Log final computed design
+  useEffect(() => {
+    console.log('🎨 [PublicForm] Design Computado:', design);
+    console.log('🎨 [PublicForm] Cores Finais:', design.colors);
+  }, [design]);
 
   // Load Google Fonts
   useEffect(() => {
@@ -638,7 +651,11 @@ const PublicForm = () => {
           </Card>
         )}
 
-        <Card className={`p-8 mb-6 ${spacingClasses[design.spacing as keyof typeof spacingClasses]}`} style={{ backgroundColor: colors.background, borderColor: `${colors.primary}30` }}>
+        <Card className={`p-8 mb-6 ${spacingClasses[design.spacing as keyof typeof spacingClasses]}`} style={{ backgroundColor: colors.background, borderColor: `${colors.primary}30`, border: '5px solid purple' }}>
+          {/* 🔍 DEBUG: VISUAL INDICATOR - PUBLIC FORM FILE */}
+          <div style={{ background: 'purple', color: 'white', padding: '10px', marginBottom: '20px', fontWeight: 'bold' }}>
+            DEBUG MODE: ARQUIVO PUBLICFORM.TSX (Borda Roxa)
+          </div>
           {design.logo && (
             <div className={`mb-8 ${design.logoAlign === 'center' ? 'flex justify-center' : design.logoAlign === 'right' ? 'flex justify-end' : ''}`}>
               <img

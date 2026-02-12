@@ -1,8 +1,15 @@
+
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+
+// 🔍 DEBUG LOGGER - Rastreamento de Renderização e Design
+const logDesignDebug = (stage: string, data: any) => {
+  console.log(`%c[FormularioPublico] ${stage}`, 'background: #222; color: #bada55; padding: 4px; font-weight: bold;', data);
+};
+
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
 import { Input } from "../components/ui/input";
@@ -274,7 +281,7 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
       textColor: oldColors.textColor || oldColors.text || defaultDesign.colors.textColor,
       pageBackground: oldColors.pageBackground ||
         `linear-gradient(135deg, ${oldColors.secondary || defaultDesign.colors.inputBackground}, ${oldColors.background || defaultDesign.colors.containerBackground})`,
-      containerBackground: oldColors.containerBackground || oldColors.background || defaultDesign.colors.containerBackground,
+      containerBackground: oldColors.containerBackground || oldColors.secondary || oldColors.background || defaultDesign.colors.containerBackground,
       buttonColor: oldColors.buttonColor || oldColors.button || defaultDesign.colors.buttonColor,
       buttonTextColor: oldColors.buttonTextColor || oldColors.buttonText || defaultDesign.colors.buttonTextColor,
       progressBarColor: oldColors.progressBarColor || oldColors.progressBar || oldColors.primary || defaultDesign.colors.progressBarColor,
@@ -291,7 +298,10 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
   }, [defaultDesign]);
 
   const design = useMemo(() => {
-    const baseDesign = (form?.designConfig as any) || {};
+    // 🔍 DEBUG: Log raw received design config
+    console.log('🎨 [FormularioPublico] Raw Form Design Config:', baseDesign);
+    console.log('🎨 [FormularioPublico] Raw Colors:', baseDesign.colors);
+
     return {
       ...defaultDesign,
       ...baseDesign,
@@ -305,6 +315,13 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
   }, [form, defaultDesign, migrateColors]);
 
   const colors = design.colors;
+
+  // 🔍 DEBUG: Log final processed colors
+  useEffect(() => {
+    console.log('🎨 [FormularioPublico] FINAL APPLIED COLORS:', colors);
+    console.log('🎨 [FormularioPublico] Container Background:', colors.containerBackground);
+    console.log('🎨 [FormularioPublico] Secondary (Fallback):', colors.secondary);
+  }, [colors]);
 
   // Apply colors to CSS variables
   useEffect(() => {
@@ -732,14 +749,13 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
   const questionPages = useMemo(() => form ? groupQuestionsByPages(form) : [], [form]);
   const allQuestions = useMemo(() => questionPages.flatMap(p => p.questions), [questionPages]);
 
-  const colors = design.colors;
   const totalSteps = 1 + 1 + 1 + questionPages.length + 1; // welcome + personal + address + pages de perguntas + completion
   const progress = currentStep === 0 ? 0 : Math.min(100, Math.round(((currentStep) / (totalSteps - 1)) * 100));
 
   const welcomeConfig = useMemo(() => {
     if (!form) return { title: "Bem-vindo!", description: "Por favor, preencha o formulário a seguir.", imageUrl: null, buttonText: "Começar", titleSize: "2xl", logoAlign: "center" };
 
-    const config = ((form as any).welcomePageConfig) || (form.welcomeConfig as any) || {};
+    const config = ((form as any).welcomePageConfig) || (form.welcomeConfig as any) || (form as any).welcome_page_config || (form as any).welcome_config || {};
     const elements = (form.questions as any[] | null) || (form.elements as any[] | null) || [];
 
     const heading = elements.find((el: any) => el.type === 'heading' && el.level === 1);
@@ -1244,153 +1260,40 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
   }
 
   // PÁGINA DE CONCLUSÃO (Step final)
-  // Mostrar loader enquanto está submetendo
-  if (isSubmitting) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4" style={{ background: `linear-gradient(to bottom right, ${colors.background}, ${colors.secondary})` }}>
-        <Card className="w-full max-w-2xl p-8 text-center shadow-xl" style={{ backgroundColor: colors.containerBackground, borderColor: `${colors.primary}30` }}>
-          <Loader2 className="h-16 w-16 animate-spin mx-auto mb-6" style={{ color: colors.titleColor }} />
-          <h2 className="text-2xl font-bold mb-4" style={{ color: colors.text }}>
-            Enviando formulário...
-          </h2>
-          <p style={{ color: `${colors.text}99` }}>
-            Por favor, aguarde enquanto processamos suas informações.
-          </p>
-        </Card>
-      </div>
-    );
-  }
-
-  // Renderizar tela de conclusão APENAS se result existir
   if (result) {
-    // Get completion page configuration from form
-    const completionConfig = (form.completionPageConfig as any) || {
-      title: "Agradecemos sua resposta!",
-      subtitle: "",
-      message: "Obrigado por preencher o formulário. Nossa equipe já está analisando e em breve você receberá a mensagem no seu WhatsApp.",
-      logo: null,
-      logoAlign: "center",
-      design: {
-        colors: {
-          primary: colors.titleColor,
-          secondary: colors.inputBackground,
-          background: colors.containerBackground,
-          text: colors.textColor,
-          icon: "hsl(221, 83%, 53%)"
-        },
-        typography: {
-          fontFamily: design.typography.fontFamily,
-          titleSize: "3xl",
-          textSize: "base"
-        },
-        spacing: "comfortable"
-      }
-    };
-
-    // Use completion page design if available, otherwise fall back to form design
-    const completionDesign = completionConfig.design || {};
-    const completionColors = completionDesign.colors || {};
-    const completionTypography = completionDesign.typography || design.typography;
-
-    // Determine colors with fallback chain: completionConfig.design.colors > form.designConfig.colors > defaults
-    // 6 VARIAÇÕES DE CORES:
-    const titleColor = completionColors.primary || colors.titleColor || "hsl(221, 83%, 53%)"; // 1. Cor do Título
-    const textColor = completionColors.text || colors.textColor || "hsl(222, 47%, 11%)"; // 2. Cor do Texto
-    const bgColor = completionColors.background || colors.containerBackground || "hsl(0, 0%, 100%)"; // 3. Fundo do Container
-    const pageBg = colors.pageBackground || `linear-gradient(to bottom right, ${colors.background}, ${colors.secondary})`; // 4. Fundo da Página
-    const buttonColor = colors.buttonColor || "hsl(221, 83%, 53%)"; // 5. Cor do Botão
-    const buttonTextColor = colors.buttonTextColor || "hsl(0, 0%, 100%)"; // 6. Cor do Texto do Botão
-    const iconColor = completionColors.icon || completionColors.primary || titleColor;
-
-    // Get messages - usando campo único "message" em vez de successMessage/failureMessage
-    const displayTitle = completionConfig.title || "Agradecemos sua resposta!";
-    const displaySubtitle = completionConfig.subtitle || "";
-    const displayMessage = completionConfig.message ||
-      completionConfig.successMessage ||
-      "Obrigado por preencher o formulário. Nossa equipe já está analisando e em breve você receberá a mensagem no seu WhatsApp.";
-    const additionalText = completionConfig.additionalThankYouText || "";
-
-    // Get logo configuration - buscar primeiro do design.logo (igual Assinatura)
-    const completionLogo = design.logo || completionConfig.logo || completionDesign.logo || null;
-    const logoAlign = completionConfig.logoAlign || completionDesign.logoAlign || "center";
-
-    // Title size mapping
-    const titleSizeMap: Record<string, string> = {
-      'xs': 'text-xs',
-      'sm': 'text-sm',
-      'base': 'text-base',
-      'lg': 'text-lg',
-      'xl': 'text-xl',
-      '2xl': 'text-2xl',
-      '3xl': 'text-3xl',
-      '4xl': 'text-4xl'
-    };
-    const titleSizeClass = titleSizeMap[completionTypography.titleSize] || 'text-3xl';
-
-    // Logo alignment classes
-    const logoAlignClass = logoAlign === 'left' ? 'justify-start' : logoAlign === 'right' ? 'justify-end' : 'justify-center';
+    const titleColor = colors.titleColor || "#151f29";
+    const textColor = colors.textColor || "#1e293b";
+    const bgColor = colors.containerBackground || "#ffffff";
+    const pageBg = colors.pageBackground || "linear-gradient(to bottom right, #f8fafc, #ffffff)";
+    const iconColor = colors.buttonColor || "#10b981";
 
     return (
       <div className="min-h-screen flex items-center justify-center p-4" style={{ background: pageBg }}>
-        <Card className="w-full max-w-2xl p-8 text-center shadow-xl" style={{ backgroundColor: bgColor, borderColor: `${titleColor}30` }}>
-          {/* Logo */}
-          {completionLogo && (
-            <div className={`flex ${logoAlignClass} mb-6`}>
-              <img src={completionLogo} alt="Logo" className="h-16 object-contain" />
+        <Card className="w-full max-w-lg p-10 text-center shadow-xl border-none" style={{ backgroundColor: bgColor }}>
+          {design.logo && (
+            <div className={`flex justify-center mb-8`}>
+              <img src={design.logo} alt="Logo" className="h-12 object-contain" />
             </div>
           )}
 
-          {/* Icon Genérico - sem diferenciar sucesso/falha */}
-          <CheckCircle2 className="h-20 w-20 mx-auto mb-6" style={{ color: iconColor }} />
+          <div className="mb-8 flex justify-center">
+            <div className="rounded-full p-4" style={{ backgroundColor: `${iconColor}15` }}>
+              <CheckCircle2 className="h-12 w-12" style={{ color: iconColor }} />
+            </div>
+          </div>
 
-          {/* Title */}
-          <h2 className={`${titleSizeClass} font-bold mb-2`} style={{ color: titleColor, fontFamily: completionTypography.fontFamily }}>
-            {displayTitle}
+          <h2 className="text-3xl font-bold mb-4" style={{ color: titleColor, fontFamily: design.typography.fontFamily }}>
+            Obrigado!
           </h2>
 
-          {/* Subtitle */}
-          {displaySubtitle && (
-            <p className="text-lg mb-4" style={{ color: `${textColor}90`, fontFamily: completionTypography.fontFamily }}>
-              {displaySubtitle}
-            </p>
-          )}
-
-          {/* Main Message - SEMPRE a mesma mensagem genérica */}
-          <p className="text-xl mb-6" style={{ color: `${textColor}99`, fontFamily: completionTypography.fontFamily }}>
-            {displayMessage}
+          <p className="text-lg leading-relaxed mb-8" style={{ color: `${textColor}e6`, fontFamily: design.typography.fontFamily }}>
+            Nossa equipe já está analisando e em breve você irá receber o resultado no seu whatsapp.
           </p>
 
-          {/* Additional Thank You Text */}
-          {additionalText && (
-            <p className="text-base mb-6" style={{ color: `${textColor}90`, fontFamily: completionTypography.fontFamily }}>
-              {additionalText}
+          <div className="pt-6 border-t" style={{ borderColor: `${textColor}15` }}>
+            <p className="text-sm font-medium" style={{ color: `${textColor}80` }}>
+              Seus dados foram salvos com segurança.
             </p>
-          )}
-
-          {/* CTA Button */}
-          {completionConfig.ctaText && completionConfig.ctaUrl && (
-            <div className="mb-6">
-              <a href={completionConfig.ctaUrl} target="_blank" rel="noopener noreferrer">
-                <Button size="lg" style={{ backgroundColor: buttonColor, color: buttonTextColor }}>
-                  {completionConfig.ctaText}
-                </Button>
-              </a>
-            </div>
-          )}
-
-          {/* Custom Content */}
-          {completionConfig.customContent && (
-            <div
-              className="mt-6 text-sm"
-              style={{ color: textColor }}
-              dangerouslySetInnerHTML={{ __html: completionConfig.customContent }}
-            />
-          )}
-
-          {/* Footer Text */}
-          <div className="text-sm mt-6" style={{ color: `${textColor}80` }}>
-            <p>Seus dados foram salvos com sucesso.</p>
-            <p>Em breve você receberá um retorno pelo WhatsApp.</p>
           </div>
         </Card>
       </div>

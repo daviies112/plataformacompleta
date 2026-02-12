@@ -586,6 +586,9 @@ export const SimplifiedFormWizard = ({
       const finalElements = buildFinalElements();
       onElementsChange(finalElements);
       handleSaveProgress();
+      setCurrentStep(3);
+    } else if (currentStep === 3) {
+      handleSaveProgress();
     }
   };
 
@@ -798,7 +801,7 @@ export const SimplifiedFormWizard = ({
             </TabsContent>
 
             <TabsContent value="design">
-              <DesignCustomizer config={designConfig} onChange={onDesignChange} />
+              <DesignCustomizer design={designConfig} onChange={onDesignChange} />
             </TabsContent>
           </Tabs>
         </div>
@@ -999,7 +1002,7 @@ export const SimplifiedFormWizard = ({
             </TabsContent>
 
             <TabsContent value="design">
-              <DesignCustomizer config={designConfig} onChange={onDesignChange} />
+              <DesignCustomizer design={designConfig} onChange={onDesignChange} />
             </TabsContent>
 
             <TabsContent value="pontuacao">
@@ -1089,14 +1092,10 @@ export const SimplifiedFormWizard = ({
       {currentStep === 3 && (
         <div className="space-y-6">
           <Tabs value={step3ActiveTab} onValueChange={(v: any) => setStep3ActiveTab(v)} className="w-full">
-            <TabsList className="grid w-full grid-cols-3 mb-6 h-12">
+            <TabsList className="grid w-full grid-cols-2 mb-6 h-12">
               <TabsTrigger value="design" className="gap-2 text-base">
                 <Palette className="h-4 w-4" />
                 Design Global
-              </TabsTrigger>
-              <TabsTrigger value="completion" className="gap-2 text-base">
-                <CheckCircle2 className="h-4 w-4" />
-                Conclusão
               </TabsTrigger>
               <TabsTrigger value="scoring" className="gap-2 text-base">
                 <Target className="h-4 w-4" />
@@ -1105,16 +1104,7 @@ export const SimplifiedFormWizard = ({
             </TabsList>
 
             <TabsContent value="design">
-              <DesignCustomizer config={designConfig} onChange={onDesignChange} />
-            </TabsContent>
-
-            <TabsContent value="completion">
-              {completionPageConfig && onCompletionPageChange && (
-                <CompletionPageCustomizer
-                  config={completionPageConfig}
-                  onChange={onCompletionPageChange}
-                />
-              )}
+              <DesignCustomizer design={designConfig} onChange={onDesignChange} />
             </TabsContent>
 
             <TabsContent value="scoring">
@@ -1162,7 +1152,7 @@ export const SimplifiedFormWizard = ({
   );
 
   const previewPanel = (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col">
       <div className="mb-4 flex items-center justify-between gap-4 flex-shrink-0">
         <div className="flex-1">
           <h2 className="text-lg md:text-xl font-bold flex items-center gap-2">
@@ -1216,8 +1206,8 @@ export const SimplifiedFormWizard = ({
         </div>
       </div>
 
-      <div className="border-2 border-dashed border-gray-300 rounded-lg flex-1 overflow-hidden flex flex-col" style={{ backgroundColor: '#f8fafc' }}>
-        <div className="overflow-y-auto flex-1 p-4 md:p-6 flex justify-center items-start">
+      <div className="rounded-lg flex flex-col">
+        <div className="p-4 md:p-6 flex justify-center items-start">
           {currentStep === 3 && step3ActiveTab === 'completion' && completionPageConfig ? (
             <CompletionPagePreview
               config={completionPageConfig}
@@ -1323,7 +1313,7 @@ export const SimplifiedFormWizard = ({
           <PanelResizeHandle className="w-2 bg-border hover:bg-primary/50 transition-colors rounded-full cursor-col-resize" />
 
           <Panel defaultSize={50} minSize={30}>
-            <div className="sticky top-4 h-[calc(100vh-14rem)]">
+            <div className="sticky top-4">
               {previewPanel}
             </div>
           </Panel>

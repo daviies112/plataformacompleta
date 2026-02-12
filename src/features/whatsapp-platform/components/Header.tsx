@@ -1,14 +1,15 @@
-import { RefreshCw, Tag, Wifi, WifiOff } from "lucide-react";
+import { RefreshCw, Tag, Wifi, WifiOff, QrCode, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface HeaderProps {
   onRefreshAll?: () => void;
   onRefreshLabels?: () => void;
+  onConnect?: () => void;
   isRefreshing?: boolean;
   connectionState?: { connected: boolean; state: string };
 }
 
-export function Header({ onRefreshAll, onRefreshLabels, isRefreshing = false, connectionState }: HeaderProps = {}) {
+export function Header({ onRefreshAll, onRefreshLabels, onConnect, isRefreshing = false, connectionState }: HeaderProps = {}) {
   const isConnected = connectionState?.connected && connectionState?.state === 'open';
 
   return (
@@ -31,25 +32,47 @@ export function Header({ onRefreshAll, onRefreshLabels, isRefreshing = false, co
 
       <div className="flex items-center gap-2">
         {/* Indicador de Status da Conexão */}
+        {/* Indicador de Status da Conexão */}
         {connectionState && (
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border bg-card">
+          <>
             {isConnected ? (
-              <>
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border bg-card">
                 <Wifi className="h-4 w-4 text-green-500 animate-pulse" />
                 <span className="text-sm font-medium text-green-600 dark:text-green-400">Conectado</span>
-              </>
+              </div>
             ) : connectionState.state === 'connecting' ? (
-              <>
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border bg-card">
                 <RefreshCw className="h-4 w-4 text-yellow-500 animate-spin" />
                 <span className="text-sm font-medium text-yellow-600 dark:text-yellow-400">Conectando...</span>
-              </>
+              </div>
             ) : (
-              <>
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg border bg-card border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-900/10">
                 <WifiOff className="h-4 w-4 text-red-500" />
                 <span className="text-sm font-medium text-red-600 dark:text-red-400">Desconectado</span>
-              </>
+              </div>
             )}
-          </div>
+          </>
+        )}
+
+        {/* Botão Conectar (Manual) */}
+        {onConnect && (
+          <Button
+            variant={isConnected ? "outline" : "outline"}
+            size="sm"
+            onClick={onConnect}
+            className={`gap-2 ${isConnected
+                ? "border-emerald-500 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800 dark:hover:bg-emerald-950/50"
+                : ""
+              }`}
+            title={isConnected ? "Gerenciar Conexão / Ver QR Code" : "Conectar novo aparelho via QR Code"}
+          >
+            {isConnected ? (
+              <Check className="h-4 w-4" />
+            ) : (
+              <QrCode className="h-4 w-4" />
+            )}
+            <span className="hidden md:inline">{isConnected ? "Conexão Ativa" : "Conectar"}</span>
+          </Button>
         )}
 
         {/* Botão Atualizar Etiquetas */}
@@ -68,7 +91,7 @@ export function Header({ onRefreshAll, onRefreshLabels, isRefreshing = false, co
         )}
 
         {/* Botão Atualizar Tudo */}
-        {onRefreshAll && isConnected && (
+        {onRefreshAll && (
           <Button
             variant="outline"
             size="sm"

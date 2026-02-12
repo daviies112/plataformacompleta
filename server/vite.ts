@@ -18,15 +18,15 @@ export function log(message: string) {
 
 export async function setupVite(app: Express, server: Server) {
   console.log('[VITE] Creating Vite server...');
-  
+
   // Configure HMR for Replit environment
   // In middleware mode, we attach HMR to the existing HTTP server
   // For Replit, we configure the client to connect via WSS to the proxy
   const isReplit = process.env.REPL_ID || process.env.REPLIT_DEV_DOMAIN;
-  
+
   console.log('[VITE] Environment:', isReplit ? 'Replit' : 'Local');
   console.log('[VITE] REPLIT_DEV_DOMAIN:', process.env.REPLIT_DEV_DOMAIN || 'not set');
-  
+
   // Add timeout protection
   const vitePromise = createViteServer({
     server: {
@@ -41,25 +41,30 @@ export async function setupVite(app: Express, server: Server) {
     clearScreen: false,
     logLevel: 'info',
   });
-  
+
   const timeoutPromise = new Promise((_, reject) => {
     setTimeout(() => reject(new Error('Vite server creation timed out after 30 seconds')), 30000);
   });
-  
+
   const vite = await Promise.race([vitePromise, timeoutPromise]);
   console.log('[VITE] Vite server created successfully');
 
   // Use Vite middleware only for non-API routes
   // API routes are registered BEFORE this middleware in server/index.ts, so they have priority
   app.use(vite.middlewares);
-  
+
   // HTML fallback handler for SPA - skip API routes!
   app.use((req, res, next) => {
     // CRITICAL: Skip API routes - they're already handled by Express routers
     if (req.path.startsWith('/api/')) {
       return res.status(404).json({ error: 'API endpoint not found - reached SPA fallback' });
     }
-    
+
+    // CRITICAL: Skip static assets - prevent returning HTML for JS/CSS files (MIME type error)
+    if (req.path.match(/\.(js|jsx|ts|tsx|css|png|jpg|jpeg|gif|ico|svg|json|woff|woff2|ttf|eot|map)$/)) {
+      return next();
+    }
+
     const url = req.originalUrl;
 
     try {
@@ -67,19 +72,19 @@ export async function setupVite(app: Express, server: Server) {
       let template = fs.readFileSync(clientTemplate, "utf-8");
       vite.transformIndexHtml(url, template).then(transformedTemplate => {
         // Headers for iframe embedding (Replit preview) and no-cache
-        const headers: Record<string, string> = { 
+        const headers: Record<string, string> = {
           "Content-Type": "text/html",
           "Cache-Control": "no-cache, no-store, must-revalidate",
           "Pragma": "no-cache",
           "Expires": "0"
         };
-        
+
         // Allow iframe embedding for Replit preview
         const isReplit = process.env.REPL_ID || process.env.REPLIT_DEV_DOMAIN;
         if (isReplit) {
           headers["Content-Security-Policy"] = "frame-ancestors 'self' *.replit.com *.replit.dev *.repl.co *.picard.replit.dev replit.com replit.dev";
         }
-        
+
         res.status(200).set(headers).end(transformedTemplate);
       }).catch(e => {
         vite.ssrFixStacktrace(e as Error);

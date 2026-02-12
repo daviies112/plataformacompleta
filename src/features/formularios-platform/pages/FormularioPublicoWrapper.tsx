@@ -6,19 +6,19 @@ import FormularioPublico from "./FormularioPublico";
 
 // Skeleton ultra-leve inline - aparece IMEDIATAMENTE sem depender de imports
 const FormSkeleton = () => (
-  <div style={{ 
-    minHeight: '100vh', 
-    display: 'flex', 
-    alignItems: 'center', 
+  <div style={{
+    minHeight: '100vh',
+    display: 'flex',
+    alignItems: 'center',
     justifyContent: 'center',
     padding: '16px',
     background: 'linear-gradient(to bottom right, #87CEEB, #E0F4FF)'
   }}>
-    <div style={{ 
-      width: '100%', 
+    <div style={{
+      width: '100%',
       maxWidth: '600px',
-      backgroundColor: '#ffffff', 
-      borderRadius: '16px', 
+      backgroundColor: '#ffffff',
+      borderRadius: '16px',
       padding: '32px',
       boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
     }}>
@@ -75,32 +75,36 @@ const FormSkeleton = () => (
  */
 const FormularioPublicoWrapper = () => {
   const location = useReactRouterLocation();
-  
+
   // Hook customizado para Wouter que usa o pathname atual do React Router
   const customHook = useMemo(() => {
-    return () => [location.pathname, () => {}] as const;
+    return () => [location.pathname, () => { }] as const;
   }, [location.pathname]);
-  
+
   return (
     <Router hook={customHook as any}>
+      {/* 🔍 DEBUG WRAPPER: If this shows, App.tsx is correctly mounting this wrapper */}
+      <div style={{ background: 'blue', color: 'white', padding: '10px', textAlign: 'center', zIndex: 9999, position: 'relative' }}>
+        DEBUG: WRAPPER COMPONENT MOUNTED
+      </div>
       <Switch>
-          <Route path="/f/:token">
-            <FormularioPublico />
-          </Route>
-          <Route path="/form/:companySlug/:id">
-            <FormularioPublico />
-          </Route>
-          <Route path="/formulario/:companySlug/form/:id">
-            <FormularioPublico />
-          </Route>
-          <Route path="/:companySlug/form/:id">
-            <FormularioPublico />
-          </Route>
-          <Route>
-            <FormularioPublico />
-          </Route>
-        </Switch>
-      </Router>
+        <Route path="/f/:token">
+          <FormularioPublico />
+        </Route>
+        <Route path="/form/:companySlug/:id">
+          <FormularioPublico />
+        </Route>
+        <Route path="/formulario/:companySlug/form/:id">
+          <FormularioPublico />
+        </Route>
+        <Route path="/:companySlug/form/:id">
+          <FormularioPublico />
+        </Route>
+        <Route>
+          <FormularioPublico />
+        </Route>
+      </Switch>
+    </Router>
   );
 };
 

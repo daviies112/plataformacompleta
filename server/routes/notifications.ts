@@ -15,12 +15,12 @@ export function registerNotificationRoutes(app: Express) {
     try {
       // Verificar autenticação para garantir multi-tenant isolation
       if (!(req.session as any)?.userId && !(req.session as any)?.tenantId) {
-        return res.status(401).json({ success: false, error: 'Não autenticado' });
+        return res.json({ success: false, error: 'Não autenticado' });
       }
-      
+
       const publicKey = NotificationService.getVapidPublicKey();
       if (!publicKey) {
-        return res.status(500).json({ error: 'VAPID keys not configured' });
+        return res.json({ success: false, error: 'VAPID keys not configured' });
       }
       res.json({ publicKey });
     } catch (error: any) {
@@ -32,11 +32,11 @@ export function registerNotificationRoutes(app: Express) {
   app.post('/api/notifications/devices/register', async (req: Request, res: Response) => {
     try {
       const { subscription, deviceInfo } = req.body;
-      
+
       // MULTI-TENANT: Obter userId e tenantId da sessão
       const userId = (req.session as any)?.userId;
       const tenantId = (req.session as any)?.tenantId;
-      
+
       if (!userId || !tenantId) {
         return res.status(401).json({ success: false, error: 'Não autenticado' });
       }
@@ -67,7 +67,7 @@ export function registerNotificationRoutes(app: Express) {
       // MULTI-TENANT SECURITY: Obter userId e tenantId da sessão
       const userId = (req.session as any)?.userId;
       const tenantId = (req.session as any)?.tenantId;
-      
+
       if (!userId || !tenantId) {
         return res.status(401).json({ success: false, error: 'Não autenticado' });
       }
@@ -89,11 +89,11 @@ export function registerNotificationRoutes(app: Express) {
       // MULTI-TENANT: Obter userId e tenantId da sessão
       const userId = (req.session as any)?.userId;
       const tenantId = (req.session as any)?.tenantId;
-      
+
       if (!userId || !tenantId) {
         return res.status(401).json({ success: false, error: 'Não autenticado' });
       }
-      
+
       const settings = await NotificationService.getUserSettings(userId, tenantId);
       res.json(settings);
     } catch (error: any) {
@@ -107,11 +107,11 @@ export function registerNotificationRoutes(app: Express) {
       // MULTI-TENANT: Obter userId e tenantId da sessão
       const userId = (req.session as any)?.userId;
       const tenantId = (req.session as any)?.tenantId;
-      
+
       if (!userId || !tenantId) {
         return res.status(401).json({ success: false, error: 'Não autenticado' });
       }
-      
+
       const settings = req.body;
       const result = await NotificationService.updateUserSettings(userId, tenantId, settings);
       res.json(result);
@@ -128,11 +128,11 @@ export function registerNotificationRoutes(app: Express) {
       // MULTI-TENANT: Obter userId e tenantId da sessão
       const userId = (req.session as any)?.userId;
       const tenantId = (req.session as any)?.tenantId;
-      
+
       if (!userId || !tenantId) {
         return res.status(401).json({ success: false, error: 'Não autenticado' });
       }
-      
+
       const limit = parseInt(req.query.limit as string) || 50;
       const history = await NotificationService.getNotificationHistory(userId, tenantId, limit);
       res.json(history);
@@ -147,7 +147,7 @@ export function registerNotificationRoutes(app: Express) {
       // MULTI-TENANT SECURITY: Obter userId e tenantId da sessão
       const userId = (req.session as any)?.userId;
       const tenantId = (req.session as any)?.tenantId;
-      
+
       if (!userId || !tenantId) {
         return res.status(401).json({ success: false, error: 'Não autenticado' });
       }
@@ -169,11 +169,11 @@ export function registerNotificationRoutes(app: Express) {
       // MULTI-TENANT SECURITY: Exigir autenticação válida (sem fallback dev_user)
       const userId = (req.session as any)?.userId;
       const tenantId = (req.session as any)?.tenantId;
-      
+
       if (!userId || !tenantId) {
         return res.status(401).json({ success: false, error: 'Não autenticado' });
       }
-      
+
       const result = await NotificationService.sendNotification(userId, tenantId, {
         type: 'SYSTEM_ALERT',
         title: '🔔 Notificação de Teste',
@@ -198,12 +198,12 @@ export function registerNotificationRoutes(app: Express) {
   app.post('/api/notifications/webhooks/pluggy', async (req: Request, res: Response) => {
     try {
       const event = req.body;
-      
+
       log(`💰 Webhook Pluggy recebido - Event: ${event.event}`);
-      
+
       // Responder imediatamente
       res.status(200).send('OK');
-      
+
       // Processar em background
       setImmediate(() => {
         IntegrationListeners.handlePluggyWebhook(event);
@@ -222,13 +222,13 @@ export function registerNotificationRoutes(app: Express) {
       // MULTI-TENANT SECURITY: Exigir autenticação válida (sem fallback dev_user)
       const userId = (req.session as any)?.userId;
       const tenantId = (req.session as any)?.tenantId;
-      
+
       if (!userId || !tenantId) {
         return res.status(401).json({ success: false, error: 'Não autenticado' });
       }
 
       const { itemId, connectorId, connectorName } = req.body;
-      
+
       // MULTI-TENANT: Passar tenantId para o método
       const result = await IntegrationListeners.registerPluggyConnection(
         userId,
@@ -237,7 +237,7 @@ export function registerNotificationRoutes(app: Express) {
         connectorId,
         connectorName
       );
-      
+
       res.json(result);
     } catch (error: any) {
       log(`❌ Erro ao registrar conexão Pluggy: ${error.message}`);
@@ -251,14 +251,14 @@ export function registerNotificationRoutes(app: Express) {
       // MULTI-TENANT SECURITY: Exigir autenticação válida (sem fallback dev_user)
       const userId = (req.session as any)?.userId;
       const tenantId = (req.session as any)?.tenantId;
-      
+
       if (!userId || !tenantId) {
         return res.status(401).json({ success: false, error: 'Não autenticado' });
       }
 
       // MULTI-TENANT: Passar tenantId para o método
       await IntegrationListeners.setupSupabaseListeners(userId, tenantId);
-      
+
       res.json({ success: true, message: 'Supabase listeners configurados' });
     } catch (error: any) {
       log(`❌ Erro ao configurar listeners do Supabase: ${error.message}`);
@@ -274,15 +274,15 @@ export function registerNotificationRoutes(app: Express) {
       // MULTI-TENANT SECURITY: Exigir autenticação válida (sem fallback dev_user)
       const userId = (req.session as any)?.userId;
       const tenantId = (req.session as any)?.tenantId;
-      
+
       if (!userId || !tenantId) {
         return res.status(401).json({ success: false, error: 'Não autenticado' });
       }
 
       const { type, channels } = req.body;
-      
+
       let result;
-      
+
       switch (type) {
         case 'pluggy':
           result = await UnifiedNotificationService.sendPluggyNotification(
@@ -291,7 +291,7 @@ export function registerNotificationRoutes(app: Express) {
             -250.50
           );
           break;
-          
+
         case 'dashboard':
           result = await UnifiedNotificationService.sendDashboardAlert(
             userId,
@@ -300,7 +300,7 @@ export function registerNotificationRoutes(app: Express) {
             100000
           );
           break;
-          
+
         case 'client':
           result = await UnifiedNotificationService.sendClientNotification(
             userId,
@@ -308,7 +308,7 @@ export function registerNotificationRoutes(app: Express) {
             'Novo cliente adicionado'
           );
           break;
-          
+
         case 'system':
           result = await UnifiedNotificationService.sendSystemAlert(
             userId,
@@ -317,7 +317,7 @@ export function registerNotificationRoutes(app: Express) {
             'high'
           );
           break;
-          
+
         default:
           // Envio personalizado
           result = await UnifiedNotificationService.send({
@@ -353,13 +353,13 @@ export function registerNotificationRoutes(app: Express) {
       // MULTI-TENANT SECURITY: Exigir autenticação válida (sem fallback dev_user)
       const userId = (req.session as any)?.userId;
       const tenantId = (req.session as any)?.tenantId;
-      
+
       if (!userId || !tenantId) {
         return res.status(401).json({ success: false, error: 'Não autenticado' });
       }
 
       const { type, title, body, priority, channels, data, email } = req.body;
-      
+
       const result = await UnifiedNotificationService.send({
         userId,
         type: type || 'SYSTEM',
@@ -386,13 +386,13 @@ export function registerNotificationRoutes(app: Express) {
       // MULTI-TENANT SECURITY: Exigir autenticação válida (sem fallback dev_user)
       const userId = (req.session as any)?.userId;
       const tenantId = (req.session as any)?.tenantId;
-      
+
       if (!userId || !tenantId) {
         return res.status(401).json({ success: false, error: 'Não autenticado' });
       }
 
       const { email, phone, emailEnabled, whatsappEnabled } = req.body;
-      
+
       // MULTI-TENANT SECURITY: Buscar configuração existente filtrando por userId AND tenantId
       const [existing] = await db.select()
         .from(notificationSettings)
@@ -400,7 +400,7 @@ export function registerNotificationRoutes(app: Express) {
           eq(notificationSettings.userId, userId),
           eq(notificationSettings.tenantId, tenantId)
         ));
-      
+
       if (existing) {
         // MULTI-TENANT SECURITY: Atualizar apenas dados do tenant correto
         await db.update(notificationSettings)
@@ -426,10 +426,10 @@ export function registerNotificationRoutes(app: Express) {
           whatsappEnabled: whatsappEnabled ?? 'false'
         });
       }
-      
-      res.json({ 
-        success: true, 
-        message: 'Canais de notificação configurados com sucesso' 
+
+      res.json({
+        success: true,
+        message: 'Canais de notificação configurados com sucesso'
       });
     } catch (error: any) {
       log(`❌ Erro ao configurar canais: ${error.message}`);
@@ -443,7 +443,7 @@ export function registerNotificationRoutes(app: Express) {
       // MULTI-TENANT SECURITY: Exigir autenticação válida (sem fallback dev_user)
       const userId = (req.session as any)?.userId;
       const tenantId = (req.session as any)?.tenantId;
-      
+
       if (!userId || !tenantId) {
         return res.status(401).json({ success: false, error: 'Não autenticado' });
       }
@@ -455,7 +455,7 @@ export function registerNotificationRoutes(app: Express) {
           eq(notificationSettings.userId, userId),
           eq(notificationSettings.tenantId, tenantId)
         ));
-      
+
       res.json({
         email: settings?.email ?? null,
         phone: settings?.phone ?? null,

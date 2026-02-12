@@ -154,7 +154,31 @@ export async function getQRCode(config: EvolutionConfig): Promise<QRCodeResponse
     const data = await qrResponse.json();
     console.log('✅ QR code obtido com sucesso');
 
-    return data;
+    // Normalize response structure (Evolution API v2 can return diverse formats)
+    // Format 1: { qrcode: { base64: "...", code: "..." }, instance: "..." }
+    // Format 2: { base64: "...", code: "...", instance: "..." }
+    // Format 3: { qrcode: "base64string", ... }
+
+    let normalizedQRCode: any = {};
+
+    if (data.qrcode && typeof data.qrcode === 'object' && data.qrcode.base64) {
+      normalizedQRCode = data.qrcode;
+    } else if (data.base64) {
+      normalizedQRCode = {
+        base64: data.base64,
+        code: data.code || data.pairingCode
+      };
+    } else if (typeof data.qrcode === 'string') {
+      normalizedQRCode = {
+        base64: data.qrcode,
+        code: data.code
+      };
+    }
+
+    return {
+      ...data,
+      qrcode: normalizedQRCode
+    };
   } catch (error) {
     console.error('❌ Erro ao obter QR code:', error);
     throw error;

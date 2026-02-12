@@ -65,7 +65,7 @@ interface VerificationFlowProps {
   titleColor?: string;
 }
 
-export const VerificationFlow = ({ 
+export const VerificationFlow = ({
   primaryColor = '#2c3e50',
   secondaryColor = '#d9534f',
   fontFamily = 'Arial, sans-serif',
@@ -164,7 +164,7 @@ export const VerificationFlow = ({
     try {
       console.log('Starting advanced face comparison...');
       const result = await compareFacesAdvanced(selfieImage, documentImage);
-      
+
       const verificationResult: VerificationResult = {
         passed: result.passed,
         score: result.similarity,
@@ -199,7 +199,7 @@ export const VerificationFlow = ({
       setVerificationResult(verificationResult);
       completeVerification(result.similarity, result.passed, verificationResult);
       goToStep('result');
-      
+
       if (onComplete && result.passed) {
         if (autoAdvanceTimeoutRef.current) {
           clearTimeout(autoAdvanceTimeoutRef.current);
@@ -230,7 +230,7 @@ export const VerificationFlow = ({
       clearTimeout(autoAdvanceTimeoutRef.current);
       autoAdvanceTimeoutRef.current = null;
     }
-    
+
     setSelfieImage(null);
     setDocumentImage(null);
     setVerificationResult(null);
@@ -255,19 +255,19 @@ export const VerificationFlow = ({
   const handleComplete = useCallback(() => {
     if (verificationResult && verificationResult.passed && onComplete && !hasCompletedCallbackRef.current) {
       hasCompletedCallbackRef.current = true;
-      
+
       if (autoAdvanceTimeoutRef.current) {
         clearTimeout(autoAdvanceTimeoutRef.current);
         autoAdvanceTimeoutRef.current = null;
       }
-      
+
       const selfie = selfieImage;
       const document = documentImage;
-      
+
       setSelfieImage(null);
       setDocumentImage(null);
       setVerificationResult(null);
-      
+
       onComplete({
         success: true,
         selfie,
@@ -302,38 +302,9 @@ export const VerificationFlow = ({
           onContinue={handleBrandingContinue}
         />
       )}
-      
+
       {!showBranding && (
-        <div className="min-h-screen flex flex-col" style={{fontFamily, fontSize, color: textColor, backgroundColor}}>
-          {logoUrl && (
-            <div style={{
-              position: 'fixed',
-              top: '12px',
-              left: '12px',
-              zIndex: 50,
-              pointerEvents: 'none'
-            }} className="hidden md:block">
-              <img src={logoUrl} alt="Logo" style={{
-                height: logoSize === 'small' ? '36px' : logoSize === 'large' ? '56px' : '44px',
-                width: 'auto',
-                objectFit: 'contain'
-              }} />
-            </div>
-          )}
-          {logoUrl && (
-            <div style={{
-              display: 'flex',
-              justifyContent: 'center',
-              padding: '8px 0',
-              pointerEvents: 'none'
-            }} className="md:hidden">
-              <img src={logoUrl} alt="Logo" style={{
-                height: logoSize === 'small' ? '32px' : logoSize === 'large' ? '48px' : '40px',
-                width: 'auto',
-                objectFit: 'contain'
-              }} />
-            </div>
-          )}
+        <div className="min-h-screen flex flex-col" style={{ fontFamily, fontSize, color: textColor, backgroundColor }}>
           {((headerLogoUrl && headerLogoUrl.trim() !== '') || (headerCompanyName && headerCompanyName.trim() !== '')) && (
             <div style={{
               backgroundColor: headerBackgroundColor,
@@ -362,8 +333,8 @@ export const VerificationFlow = ({
               )}
             </div>
           )}
-          <ProgressIndicator 
-            currentStep={currentStep} 
+          <ProgressIndicator
+            currentStep={currentStep}
             primaryColor={primaryColor}
             textColor={textColor}
             iconColor={iconColor}
@@ -371,173 +342,165 @@ export const VerificationFlow = ({
             inactiveCircleColor={inactiveCircleColor}
             inactiveTextColor={inactiveTextColor}
           />
-          
+
           <div className="flex-1 max-w-4xl mx-auto w-full">
             <AnimatePresence mode="wait">
-          {currentStep === 'welcome' && (
-            <WelcomeScreen 
-              key="welcome" 
-              onStart={handleStart}
-              primaryColor={primaryColor}
-              secondaryColor={secondaryColor}
-              textColor={textColor}
-              backgroundColor={backgroundColor}
-              welcomeText={welcomeText}
-              instructionText={instructionText}
-              securityText={securityText}
-              companyName={companyName}
-              logoUrl={logoUrl}
-              logoSize={logoSize}
-              iconColor={iconColor}
-              buttonTextColor={buttonTextColor}
-            />
-          )}
-          
-          {currentStep === 'selfie' && (
-            <SelfieCapture
-              key="selfie"
-              onCapture={handleSelfieCapture}
-              onBack={() => goToStep('welcome')}
-              primaryColor={primaryColor}
-              backgroundColor={backgroundColor}
-              textColor={textColor}
-              iconColor={iconColor}
-              buttonColor={primaryColor}
-              buttonTextColor={buttonTextColor}
-              logoUrl={logoUrl}
-              logoSize={logoSize}
-              captureButtonText={captureButtonText}
-              retakeButtonText={retakeButtonText}
-              confirmButtonText={confirmButtonText}
-              waitingInstructionText={waitingInstructionText}
-              detectionDefaultMessage={detectionDefaultMessage}
-              detectionCenterMessage={detectionCenterMessage}
-              detectionLightingMessage={detectionLightingMessage}
-              detectionQualityMessage={detectionQualityMessage}
-              detectionPerfectMessage={detectionPerfectMessage}
-            />
-          )}
-          
-          {currentStep === 'document' && (
-            <DocumentCapture
-              key="document"
-              onCapture={handleDocumentCapture}
-              onBack={() => goToStep('selfie')}
-              primaryColor={primaryColor}
-              buttonColor={primaryColor}
-              buttonTextColor={buttonTextColor}
-              iconColor={iconColor}
-              titleColor={titleColor}
-              textColor={textColor}
-              backgroundColor={backgroundColor}
-              logoUrl={logoUrl}
-              logoSize={logoSize}
-            />
-          )}
-          
-          {currentStep === 'processing' && selfieImage && documentImage && (
-            <ProcessingScreen
-              key="processing"
-              selfieImage={selfieImage}
-              documentImage={documentImage}
-              onComplete={handleProcessingComplete}
-              primaryColor={primaryColor}
-              buttonColor={primaryColor}
-              buttonTextColor={buttonTextColor}
-              iconColor={iconColor}
-              textColor={textColor}
-              titleColor={titleColor}
-              backgroundColor={backgroundColor}
-              logoUrl={logoUrl}
-              logoSize={logoSize}
-            />
-          )}
-          
-          {currentStep === 'result' && session && (
-            <ResultScreen
-              key="result"
-              session={session}
-              verificationResult={verificationResult}
-              onRetry={handleRetry}
-              onComplete={handleComplete}
-              primaryColor={primaryColor}
-              buttonColor={primaryColor}
-              buttonTextColor={buttonTextColor}
-              iconColor={iconColor}
-              textColor={textColor}
-              logoUrl={logoUrl}
-              logoSize={logoSize}
-            />
-          )}
-          {currentStep === 'result' && !session && (
-            <motion.div
-              key="result-fallback"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="flex flex-col items-center justify-center min-h-[80vh] px-6 py-8"
-              data-testid="verification-result-fallback"
-            >
-              {verificationResult?.passed ? (
-                <>
-                  <div 
-                    className="w-28 h-28 rounded-full flex items-center justify-center mb-8" 
-                    style={{ backgroundColor: `${primaryColor}1A` }}
-                    data-testid="status-verification-passed"
-                  >
-                    <CheckCircle className="w-16 h-16" style={{ color: primaryColor }} />
-                  </div>
-                  <h1 className="text-2xl font-bold mb-2" style={{ color: primaryColor }} data-testid="text-verification-title">
-                    Verificação Aprovada!
-                  </h1>
-                  <p className="text-center max-w-md mb-8" style={{ color: textColor, opacity: 0.7 }} data-testid="text-verification-message">
-                    Sua identidade foi verificada com sucesso.
-                  </p>
-                  <Button 
-                    onClick={handleComplete} 
-                    style={{ backgroundColor: primaryColor, color: buttonTextColor }}
-                    data-testid="button-continue-verification"
-                  >
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    Continuar
-                  </Button>
-                </>
-              ) : verificationResult && !verificationResult.passed ? (
-                <>
-                  <div className="w-28 h-28 rounded-full flex items-center justify-center mb-8 bg-destructive/10" data-testid="status-verification-failed">
-                    <XCircle className="w-16 h-16 text-destructive" />
-                  </div>
-                  <h1 className="text-2xl font-bold mb-2 text-destructive" data-testid="text-verification-failed-title">
-                    Verificação Não Aprovada
-                  </h1>
-                  <p className="text-center max-w-md mb-8" style={{ color: textColor, opacity: 0.7 }} data-testid="text-verification-failed-message">
-                    Não foi possível verificar sua identidade. Tente novamente com melhor iluminação.
-                  </p>
-                  <Button onClick={handleRetry} data-testid="button-retry-verification">
-                    Tentar Novamente
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <div 
-                    className="w-16 h-16 border-4 border-muted-foreground rounded-full animate-spin mb-8" 
-                    style={{ borderTopColor: primaryColor }}
-                    data-testid="status-verification-processing" 
-                  />
-                  <h1 className="text-xl font-semibold mb-2" style={{ color: textColor }} data-testid="text-processing-title">
-                    Processando resultado...
-                  </h1>
-                  <p className="text-center max-w-md mb-6" style={{ color: textColor, opacity: 0.7 }} data-testid="text-processing-message">
-                    Aguarde enquanto finalizamos a verificação.
-                  </p>
-                  <Button variant="outline" onClick={handleRetry} data-testid="button-retry-processing">
-                    Tentar Novamente
-                  </Button>
-                </>
+              {currentStep === 'welcome' && (
+                <WelcomeScreen
+                  key="welcome"
+                  onStart={handleStart}
+                  primaryColor={primaryColor}
+                  secondaryColor={secondaryColor}
+                  textColor={textColor}
+                  titleColor={titleColor}
+                  backgroundColor={backgroundColor}
+                  welcomeText={welcomeText}
+                  instructionText={instructionText}
+                  securityText={securityText}
+                  iconColor={iconColor}
+                  buttonTextColor={buttonTextColor}
+                />
               )}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
+
+              {currentStep === 'selfie' && (
+                <SelfieCapture
+                  key="selfie"
+                  onCapture={handleSelfieCapture}
+                  onBack={() => goToStep('welcome')}
+                  primaryColor={primaryColor}
+                  backgroundColor={backgroundColor}
+                  textColor={textColor}
+                  titleColor={titleColor}
+                  iconColor={iconColor}
+                  buttonColor={primaryColor}
+                  buttonTextColor={buttonTextColor}
+                  captureButtonText={captureButtonText}
+                  retakeButtonText={retakeButtonText}
+                  confirmButtonText={confirmButtonText}
+                  waitingInstructionText={waitingInstructionText}
+                  detectionDefaultMessage={detectionDefaultMessage}
+                  detectionCenterMessage={detectionCenterMessage}
+                  detectionLightingMessage={detectionLightingMessage}
+                  detectionQualityMessage={detectionQualityMessage}
+                  detectionPerfectMessage={detectionPerfectMessage}
+                />
+              )}
+
+              {currentStep === 'document' && (
+                <DocumentCapture
+                  key="document"
+                  onCapture={handleDocumentCapture}
+                  onBack={() => goToStep('selfie')}
+                  primaryColor={primaryColor}
+                  buttonColor={primaryColor}
+                  buttonTextColor={buttonTextColor}
+                  iconColor={iconColor}
+                  titleColor={titleColor}
+                  textColor={textColor}
+                  backgroundColor={backgroundColor}
+                />
+              )}
+
+              {currentStep === 'processing' && selfieImage && documentImage && (
+                <ProcessingScreen
+                  key="processing"
+                  selfieImage={selfieImage}
+                  documentImage={documentImage}
+                  onComplete={handleProcessingComplete}
+                  primaryColor={primaryColor}
+                  buttonColor={primaryColor}
+                  buttonTextColor={buttonTextColor}
+                  iconColor={iconColor}
+                  textColor={textColor}
+                  titleColor={titleColor}
+                  backgroundColor={backgroundColor}
+                />
+              )}
+
+              {currentStep === 'result' && session && (
+                <ResultScreen
+                  key="result"
+                  session={session}
+                  verificationResult={verificationResult}
+                  onRetry={handleRetry}
+                  onComplete={handleComplete}
+                  primaryColor={primaryColor}
+                  buttonColor={primaryColor}
+                  buttonTextColor={buttonTextColor}
+                  iconColor={iconColor}
+                  textColor={textColor}
+                  titleColor={titleColor}
+                />
+              )}
+              {currentStep === 'result' && !session && (
+                <motion.div
+                  key="result-fallback"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="flex flex-col items-center justify-center min-h-[80vh] px-6 py-8"
+                  data-testid="verification-result-fallback"
+                >
+                  {verificationResult?.passed ? (
+                    <>
+                      <div
+                        className="w-28 h-28 rounded-full flex items-center justify-center mb-8"
+                        style={{ backgroundColor: `${primaryColor}1A` }}
+                        data-testid="status-verification-passed"
+                      >
+                        <CheckCircle className="w-16 h-16" style={{ color: primaryColor }} />
+                      </div>
+                      <h1 className="text-2xl font-bold mb-2" style={{ color: titleColor || primaryColor }} data-testid="text-verification-title">
+                        Verificação Aprovada!
+                      </h1>
+                      <p className="text-center max-w-md mb-8" style={{ color: textColor, opacity: 0.7 }} data-testid="text-verification-message">
+                        Sua identidade foi verificada com sucesso.
+                      </p>
+                      <Button
+                        onClick={handleComplete}
+                        style={{ backgroundColor: primaryColor, color: buttonTextColor }}
+                        data-testid="button-continue-verification"
+                      >
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        Continuar
+                      </Button>
+                    </>
+                  ) : verificationResult && !verificationResult.passed ? (
+                    <>
+                      <div className="w-28 h-28 rounded-full flex items-center justify-center mb-8 bg-destructive/10" data-testid="status-verification-failed">
+                        <XCircle className="w-16 h-16 text-destructive" />
+                      </div>
+                      <h1 className="text-2xl font-bold mb-2" style={{ color: titleColor || primaryColor }} data-testid="text-verification-failed-title">
+                        Verificação Não Aprovada
+                      </h1>
+                      <p className="text-center max-w-md mb-8" style={{ color: textColor, opacity: 0.7 }} data-testid="text-verification-failed-message">
+                        Não foi possível verificar sua identidade. Tente novamente com melhor iluminação.
+                      </p>
+                      <Button onClick={handleRetry} data-testid="button-retry-verification">
+                        Tentar Novamente
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <div
+                        className="w-16 h-16 border-4 border-muted-foreground rounded-full animate-spin mb-8"
+                        style={{ borderTopColor: primaryColor }}
+                        data-testid="status-verification-processing"
+                      />
+                      <h1 className="text-xl font-semibold mb-2" style={{ color: textColor }} data-testid="text-processing-title">
+                        Processando resultado...
+                      </h1>
+                      <p className="text-center max-w-md mb-6" style={{ color: textColor, opacity: 0.7 }} data-testid="text-processing-message">
+                        Aguarde enquanto finalizamos a verificação.
+                      </p>
+                      <Button variant="outline" onClick={handleRetry} data-testid="button-retry-processing">
+                        Tentar Novamente
+                      </Button>
+                    </>
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
 
           {footerText && (
             <div style={{

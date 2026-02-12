@@ -67,13 +67,13 @@ const HeaderNavigation = () => {
       active: location.pathname.startsWith("/produto")
     },
     {
-      path: "/produto/admin/branding",
+      path: "/revendedora/admin",
       label: "Revendedoras",
       icon: Users,
-      active: location.pathname.startsWith("/produto/admin/branding") || location.pathname.startsWith("/produto/admin/resellers") || location.pathname.startsWith("/produto/admin/commission-config")
+      active: location.pathname.startsWith("/revendedora/admin")
     },
     {
-      path: "/vendas/analytics",
+      path: "/vendas",
       label: "Vendas",
       icon: Crown,
       active: location.pathname.startsWith("/vendas")

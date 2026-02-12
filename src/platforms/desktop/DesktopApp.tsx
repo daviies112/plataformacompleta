@@ -63,6 +63,8 @@ import AdminBranding from "@/features/revendedora/pages/admin/Branding";
 
 import AdminGamification from "@/features/revendedora/pages/admin/Gamification";
 import { AdminTags } from "@/features/revendedora/pages/admin/Tags";
+import RevendedorasHub from "@/features/revendedora/pages/admin/RevendedorasHub";
+import VendasHub from "@/features/revendedora/pages/admin/VendasHub";
 
 /**
  * Desktop App - Versão completa para desktop
@@ -185,7 +187,9 @@ const DesktopApp = () => {
         element={
           <ProtectedRoute>
             <DesktopLayout>
-              <WhatsAppPage />
+              <LeadStatusProvider>
+                <WhatsAppPlatformPage />
+              </LeadStatusProvider>
             </DesktopLayout>
           </ProtectedRoute>
         }
@@ -210,6 +214,22 @@ const DesktopApp = () => {
           <ProtectedRoute>
             <DesktopLayout>
               <ProdutoPage />
+            </DesktopLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Revendedora Hub - Consolida Personalização, Revendedores e Comissões */}
+      <Route
+        path="/revendedora/admin"
+        element={
+          <ProtectedRoute>
+            <DesktopLayout>
+              <AdminSupabaseProvider>
+                <CompanyProvider>
+                  <AdminLayout><RevendedorasHub /></AdminLayout>
+                </CompanyProvider>
+              </AdminSupabaseProvider>
             </DesktopLayout>
           </ProtectedRoute>
         }
@@ -385,9 +405,11 @@ const DesktopApp = () => {
         element={
           <ProtectedRoute>
             <DesktopLayout>
-              <CompanyProvider>
-                <AdminLayout basePath="/vendas"><AdminDashboard /></AdminLayout>
-              </CompanyProvider>
+              <AdminSupabaseProvider>
+                <CompanyProvider>
+                  <AdminLayout basePath="/vendas"><VendasHub /></AdminLayout>
+                </CompanyProvider>
+              </AdminSupabaseProvider>
             </DesktopLayout>
           </ProtectedRoute>
         }

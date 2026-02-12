@@ -1,5 +1,4 @@
 import { ReactNode } from 'react';
-import { AppHeader } from '@/features/revendedora/components/AppHeader';
 import { useCompanyBranding } from '@/features/revendedora/hooks/useCompanyBranding';
 import { useCompany } from '@/features/revendedora/contexts/CompanyContext';
 
@@ -22,12 +21,6 @@ export function AdminLayout({ children, basePath = '/produto/admin' }: AdminLayo
 
   return (
     <div className="min-h-screen flex flex-col">
-      <AppHeader 
-        type="admin"
-        basePath={basePath}
-        companyName={company?.company_name}
-        companyLogo={company?.logo_url}
-      />
       <main className="flex-1">
         {children}
       </main>

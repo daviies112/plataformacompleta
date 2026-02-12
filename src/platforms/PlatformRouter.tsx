@@ -8,9 +8,12 @@ import { Loader2 } from 'lucide-react';
 import DesktopApp from './desktop/DesktopApp';
 import MobileApp from './mobile/MobileApp';
 
+// ✅ CRITICAL FIX: FormularioPublicoWrapper MUST use static import
+// Lazy loading was causing a separate bundle that wasn't updated by HMR
+import FormularioPublicoWrapper from '@/features/formularios-platform/pages/FormularioPublicoWrapper';
+
 // Rotas públicas - lazy loading para performance (carregam separadamente)
 const ReuniaoPublica = lazy(() => import('@/pages/ReuniaoPublica'));
-const FormularioPublicoWrapper = lazy(() => import('@/features/formularios-platform/pages/FormularioPublicoWrapper'));
 
 // Fallback loading simples e leve
 const LoadingFallback = () => (

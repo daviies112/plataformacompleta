@@ -16,8 +16,6 @@ interface SelfieCaptureProps {
   iconColor?: string;
   buttonColor?: string;
   buttonTextColor?: string;
-  logoUrl?: string;
-  logoSize?: 'small' | 'medium' | 'large';
   captureButtonText?: string;
   retakeButtonText?: string;
   confirmButtonText?: string;
@@ -27,19 +25,18 @@ interface SelfieCaptureProps {
   detectionLightingMessage?: string;
   detectionQualityMessage?: string;
   detectionPerfectMessage?: string;
+  titleColor?: string;
 }
 
-export const SelfieCapture = ({ 
-  onCapture, 
-  onBack, 
-  primaryColor = '#2c3e50', 
+export const SelfieCapture = ({
+  onCapture,
+  onBack,
+  primaryColor = '#2c3e50',
   backgroundColor,
   textColor,
   iconColor,
   buttonColor,
   buttonTextColor = '#ffffff',
-  logoUrl = '', 
-  logoSize = 'medium',
   captureButtonText = 'Capturar Agora',
   retakeButtonText = 'Tirar Outra',
   confirmButtonText = 'Confirmar',
@@ -48,20 +45,21 @@ export const SelfieCapture = ({
   detectionCenterMessage = 'Centralize seu rosto',
   detectionLightingMessage = 'Melhore a iluminação',
   detectionQualityMessage = 'Aproxime seu rosto',
-  detectionPerfectMessage = 'Perfeito! Capturando...'
+  detectionPerfectMessage = 'Perfeito! Capturando...',
+  titleColor
 }: SelfieCaptureProps) => {
   const effectiveButtonColor = buttonColor || primaryColor;
 
-  const { 
-    videoRef, 
-    isReady, 
-    isInitializing, 
-    error: cameraError, 
-    startCamera, 
-    stopCamera, 
-    captureImage 
+  const {
+    videoRef,
+    isReady,
+    isInitializing,
+    error: cameraError,
+    startCamera,
+    stopCamera,
+    captureImage
   } = useCamera({ facingMode: 'user' });
-  
+
   const { isModelLoaded, isLoading: modelLoading, detectFace } = useFaceDetection();
   const [detectionResult, setDetectionResult] = useState<FaceDetectionResult | null>(null);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
@@ -97,13 +95,13 @@ export const SelfieCapture = ({
     }
 
     console.log('Starting face detection interval');
-    
+
     detectionIntervalRef.current = setInterval(async () => {
       const video = videoRef.current;
       if (video && video.readyState >= 2 && video.videoWidth > 0) {
         try {
           const result = await detectFace(video);
-          
+
           let message = detectionDefaultMessage;
           if (result.detected) {
             if (!result.centered) message = detectionCenterMessage;
@@ -111,15 +109,15 @@ export const SelfieCapture = ({
             else if (result.quality < 75) message = detectionQualityMessage;
             else message = detectionPerfectMessage;
           }
-          
+
           const updatedResult = { ...result, message };
           setDetectionResult(updatedResult);
-          
-          const isIdeal = result.detected && 
-            result.centered && 
-            result.goodLighting && 
+
+          const isIdeal = result.detected &&
+            result.centered &&
+            result.goodLighting &&
             result.quality >= 75;
-          
+
           if (isIdeal && !autoCapture) {
             console.log('SelfieCapture: Conditions ideal, starting auto-capture...');
             setAutoCapture(true);
@@ -194,7 +192,7 @@ export const SelfieCapture = ({
         <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mb-6">
           <AlertCircle className="w-8 h-8 text-destructive" />
         </div>
-        <h2 className="text-xl font-semibold text-foreground mb-2">Erro na Câmera</h2>
+        <h2 className="text-xl font-semibold mb-2" style={{ color: titleColor || primaryColor }}>Erro na Câmera</h2>
         <p className="text-muted-foreground text-center mb-6 max-w-sm">{cameraError}</p>
         <div className="flex gap-3">
           <Button onClick={onBack} variant="outline">
@@ -260,12 +258,12 @@ export const SelfieCapture = ({
                 playsInline
                 muted
                 className="w-full h-full object-cover"
-                style={{ 
+                style={{
                   transform: 'scaleX(-1)',
                   display: isReady ? 'block' : 'none'
                 }}
               />
-              
+
               {showLoading && (
                 <div className="absolute inset-0 flex items-center justify-center bg-background">
                   <div className="flex flex-col items-center gap-4">
@@ -275,16 +273,17 @@ export const SelfieCapture = ({
                         {isInitializing ? 'Acessando câmera...' : 'Iniciando câmera...'}
                       </p>
                       <p className="text-xs text-muted-foreground max-w-xs">
-                        {isInitializing 
+                        {isInitializing
                           ? 'Aguarde a permissão ser processada'
                           : 'Preparando visualização'}
                       </p>
                     </div>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={handleRetryCamera}
                       className="mt-2"
+                      style={{ color: titleColor || primaryColor, borderColor: titleColor || primaryColor }}
                     >
                       <RefreshCw className="w-4 h-4 mr-2" />
                       Reiniciar Câmera
@@ -303,10 +302,10 @@ export const SelfieCapture = ({
                   </div>
                 </div>
               )}
-              
+
               {isReady && isModelLoaded && (
-                <FaceGuideOverlay 
-                  detectionResult={detectionResult} 
+                <FaceGuideOverlay
+                  detectionResult={detectionResult}
                   isCapturing={isCapturing}
                   buttonColor={effectiveButtonColor}
                   textColor={textColor}
@@ -332,6 +331,7 @@ export const SelfieCapture = ({
                 size="lg"
                 onClick={handleRetake}
                 className="flex-1 h-14"
+                style={{ color: titleColor || primaryColor, borderColor: titleColor || primaryColor }}
               >
                 <RotateCcw className="w-5 h-5 mr-2" />
                 {retakeButtonText}
@@ -354,10 +354,10 @@ export const SelfieCapture = ({
               exit={{ opacity: 0, y: -20 }}
             >
               <p className="text-center text-sm text-muted-foreground mb-4">
-                {!isReady 
+                {!isReady
                   ? 'Aguardando câmera...'
-                  : autoCapture 
-                    ? 'Capturando automaticamente...' 
+                  : autoCapture
+                    ? 'Capturando automaticamente...'
                     : waitingInstructionText}
               </p>
               <Button

@@ -666,20 +666,51 @@ const SettingsPage = () => {
       return response.json();
     },
     onSuccess: (data) => {
-      if (data.success && data.qrcode?.base64) {
-        setEvolutionQRCode(data.qrcode.base64);
-        setEvolutionStatus('ready');
-        setEvolutionTimeRemaining(60);
-        setEvolutionPollingActive(true);
-        toast({
-          title: "QR Code gerado",
-          description: "Escaneie o QR Code com seu WhatsApp para conectar.",
-        });
+      if (data.success) {
+        if (data.alreadyConnected) {
+          setEvolutionStatus('connected');
+          setEvolutionQRCode(null);
+          setEvolutionPollingActive(false);
+          toast({
+            title: "WhatsApp conectado!",
+            description: "Sua conexão já está ativa.",
+          });
+          return;
+        }
+
+        if (data.qrcode?.base64 || data.qrcode) {
+          // Handle both structure formats (direct string or object)
+          const qrCodeBase64 = typeof data.qrcode === 'string' ? data.qrcode : data.qrcode.base64;
+
+          setEvolutionQRCode(qrCodeBase64);
+          setEvolutionStatus('ready');
+          setEvolutionTimeRemaining(60);
+          setEvolutionPollingActive(true);
+
+          if (data.pairingCode) {
+            toast({
+              title: "Código de Pareamento",
+              description: `Seu código é: ${data.pairingCode}`,
+            });
+          } else {
+            toast({
+              title: "QR Code gerado",
+              description: "Escaneie o QR Code com seu WhatsApp para conectar.",
+            });
+          }
+        } else {
+          setEvolutionStatus('error');
+          toast({
+            title: "Erro",
+            description: data.error || "QR Code não disponível na resposta",
+            variant: "destructive",
+          });
+        }
       } else {
         setEvolutionStatus('error');
         toast({
           title: "Erro",
-          description: data.error || "QR Code não disponível",
+          description: data.error || "Falha ao gerar QR Code",
           variant: "destructive",
         });
       }
@@ -2329,192 +2360,124 @@ const SettingsPage = () => {
             icon={MessageSquare}
           >
             <div className="space-y-4">
-              <div className="flex items-center gap-2 mb-4">
-                {evolutionCredentials?.success && (
-                  <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300">
-                    Configurado
-                  </Badge>
-                )}
-              </div>
-
               <PremiumInput
                 label="URL da API"
-                value={integrationForms.evolution_api.api_url}
-                onChange={(e) => setIntegrationForms({
-                  ...integrationForms,
-                  evolution_api: { ...integrationForms.evolution_api, api_url: e.target.value }
-                })}
-                placeholder="https://api.evolutionapi.com"
+                value={integrationForms.evolution_api.apiUrl}
+                onChange={(e) =>
+                  setIntegrationForms((prev) => ({
+                    ...prev,
+                    evolution_api: { ...prev.evolution_api, apiUrl: e.target.value },
+                  }))
+                }
+                placeholder="https://api.seu-dominio.com"
                 data-testid="input-evolution-url"
               />
 
               <PremiumInput
                 label="API Key"
                 type="password"
-                value={integrationForms.evolution_api.api_key}
-                onChange={(e) => setIntegrationForms({
-                  ...integrationForms,
-                  evolution_api: { ...integrationForms.evolution_api, api_key: e.target.value }
-                })}
-                placeholder="Sua API Key"
+                value={integrationForms.evolution_api.apiKey}
+                onChange={(e) =>
+                  setIntegrationForms((prev) => ({
+                    ...prev,
+                    evolution_api: { ...prev.evolution_api, apiKey: e.target.value },
+                  }))
+                }
+                placeholder="Sua chave de API global"
                 data-testid="input-evolution-api-key"
               />
 
               <PremiumInput
                 label="Nome da Instância"
                 value={integrationForms.evolution_api.instance}
-                onChange={(e) => setIntegrationForms({
-                  ...integrationForms,
-                  evolution_api: { ...integrationForms.evolution_api, instance: e.target.value }
-                })}
-                placeholder="nexus-whatsapp"
+                onChange={(e) =>
+                  setIntegrationForms((prev) => ({
+                    ...prev,
+                    evolution_api: { ...prev.evolution_api, instance: e.target.value },
+                  }))
+                }
+                placeholder="Ex: MinhaEmpresa"
                 data-testid="input-evolution-instance"
               />
 
-              {/* QR Code Section - Live from Evolution API */}
-              <div className="space-y-4 pt-4 border-t border-border/50">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label className="text-base font-semibold">Conexão WhatsApp</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Gere o QR Code para conectar seu WhatsApp
-                    </p>
-                  </div>
-                  {evolutionStatus === 'connected' && (
-                    <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300">
-                      <Check className="w-3 h-3 mr-1" />
-                      Conectado
-                    </Badge>
-                  )}
-                </div>
-
-                {/* Status: Loading */}
-                {evolutionStatus === 'loading' && (
-                  <PremiumCard variant="outlined" padding="lg" className="text-center">
-                    <RefreshCw className="w-12 h-12 mx-auto mb-4 text-primary animate-spin" />
-                    <p className="text-muted-foreground">Gerando QR Code...</p>
-                  </PremiumCard>
-                )}
-
-                {/* Status: Ready - Show QR Code */}
-                {evolutionStatus === 'ready' && evolutionQRCode && (
-                  <PremiumCard variant="outlined" padding="lg" className="text-center">
-                    <div className="mb-4">
-                      <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-2">
-                        <span className="text-2xl font-bold text-primary">{evolutionTimeRemaining}</span>
-                      </div>
-                      <p className="text-sm text-muted-foreground">segundos restantes</p>
-                    </div>
-                    <img
-                      src={evolutionQRCode}
-                      alt="WhatsApp QR Code"
-                      className="max-w-[280px] mx-auto rounded-lg border-4 border-primary/20 mb-4"
-                      data-testid="img-evolution-qrcode"
-                    />
-                    <div className="bg-muted/50 rounded-lg p-4 text-left">
-                      <p className="font-medium mb-2">Como conectar:</p>
-                      <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
-                        <li>Abra o WhatsApp no seu celular</li>
-                        <li>Toque em Configurações → Aparelhos conectados</li>
-                        <li>Toque em "Conectar um aparelho"</li>
-                        <li>Aponte a câmera para este QR Code</li>
-                      </ol>
-                    </div>
-                    <PremiumButton
-                      variant="secondary"
-                      onClick={handleGenerateEvolutionQR}
-                      className="mt-4"
-                      data-testid="button-refresh-qr"
-                    >
-                      <RefreshCw className="w-4 h-4 mr-2" />
-                      Gerar Novo QR Code
-                    </PremiumButton>
-                  </PremiumCard>
-                )}
-
-                {/* Status: Connected */}
-                {evolutionStatus === 'connected' && (
-                  <PremiumCard variant="outlined" padding="lg" className="text-center bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800">
-                    <Check className="w-16 h-16 mx-auto mb-4 text-emerald-500" />
-                    <p className="text-lg font-semibold text-emerald-700 dark:text-emerald-400">WhatsApp Conectado!</p>
-                    <p className="text-sm text-emerald-600 dark:text-emerald-500">Sua conexão foi estabelecida com sucesso.</p>
-                  </PremiumCard>
-                )}
-
-                {/* Status: Idle or Error - Show Generate Button */}
-                {(evolutionStatus === 'idle' || evolutionStatus === 'error') && (
-                  <PremiumButton
-                    variant="secondary"
-                    onClick={handleGenerateEvolutionQR}
-                    disabled={!evolutionCredentials?.success || fetchEvolutionQRCodeMutation.isPending}
-                    className="w-full"
-                    data-testid="button-generate-qr"
-                  >
-                    <MessageSquare className="w-4 h-4 mr-2" />
-                    {fetchEvolutionQRCodeMutation.isPending ? 'Gerando...' : 'Gerar QR Code para Conectar'}
-                  </PremiumButton>
-                )}
-
-                {!evolutionCredentials?.success && (
-                  <p className="text-sm text-amber-600 dark:text-amber-400">
-                    Salve as configurações primeiro para gerar o QR Code.
-                  </p>
+              <div className="flex items-center gap-2 mb-4">
+                {evolutionCredentials?.success && (
+                  <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300">
+                    <Check className="w-3 h-3 mr-1" />
+                    Configurado
+                  </Badge>
                 )}
               </div>
 
-              {/* Legacy Upload Section - Keep for compatibility */}
-              {whatsappQRCode && (
-                <div className="space-y-3 pt-4 border-t border-border/50">
-                  <Label className="text-base font-semibold">QR Code (Upload Manual)</Label>
-                  <PremiumCard variant="outlined" padding="md">
-                    <img
-                      src={whatsappQRCode}
-                      alt="WhatsApp QR Code"
-                      className="w-full max-w-xs mx-auto rounded-lg"
-                    />
-                  </PremiumCard>
-                </div>
-              )}
-
-              <div className="space-y-3 pt-4 border-t border-border/50">
-                <Label className="text-sm text-muted-foreground">Upload Manual (opcional)</Label>
-                <input
-                  id="qr-code-upload"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleQRCodeUpload}
-                  disabled={uploadingQRCode}
-                  className="hidden"
-                />
-                <PremiumButton
-                  variant="outline"
-                  size="sm"
-                  onClick={() => document.getElementById('qr-code-upload')?.click()}
-                  disabled={uploadingQRCode}
-                  className="w-full sm:w-auto"
-                >
-                  {uploadingQRCode ? 'Enviando...' : 'Escolher arquivo'}
-                </PremiumButton>
-              </div>
-
-              <div className="flex flex-wrap gap-3 pt-4 border-t border-border/50">
-                <PremiumButton
-                  onClick={() => handleSaveIntegration('evolution_api')}
-                  isLoading={saveEvolutionApiMutation.isPending}
-                  data-testid="button-save-evolution"
-                  variant="primary"
-                >
-                  Salvar Configuração
-                </PremiumButton>
+              <div className="p-4 rounded-lg bg-muted/50 border border-border text-center flex flex-col items-center gap-4">
+                <p className="text-sm text-muted-foreground">
+                  Para conectar e escanear o QR Code, acesse o menu <b>WhatsApp</b> no painel esquerdo.
+                </p>
                 <PremiumButton
                   variant="secondary"
-                  onClick={() => handleTestConnection('evolution_api')}
-                  disabled={!evolutionCredentials?.success}
-                  data-testid="button-test-evolution"
+                  size="sm"
+                  onClick={() => {
+                    window.location.href = '/whatsapp';
+                  }}
                 >
-                  Testar Conexão
+                  <MessageSquare className="w-4 h-4 mr-2" />
+                  Ir para WhatsApp
                 </PremiumButton>
               </div>
+            </div>
+
+            {/* Legacy Upload Section - Keep for compatibility */}
+            {whatsappQRCode && (
+              <div className="space-y-3 pt-4 border-t border-border/50">
+                <Label className="text-base font-semibold">QR Code (Upload Manual)</Label>
+                <PremiumCard variant="outlined" padding="md">
+                  <img
+                    src={whatsappQRCode}
+                    alt="WhatsApp QR Code"
+                    className="w-full max-w-xs mx-auto rounded-lg"
+                  />
+                </PremiumCard>
+              </div>
+            )}
+
+            <div className="space-y-3 pt-4 border-t border-border/50">
+              <Label className="text-sm text-muted-foreground">Upload Manual (opcional)</Label>
+              <input
+                id="qr-code-upload"
+                type="file"
+                accept="image/*"
+                onChange={handleQRCodeUpload}
+                disabled={uploadingQRCode}
+                className="hidden"
+              />
+              <PremiumButton
+                variant="outline"
+                size="sm"
+                onClick={() => document.getElementById('qr-code-upload')?.click()}
+                disabled={uploadingQRCode}
+                className="w-full sm:w-auto"
+              >
+                {uploadingQRCode ? 'Enviando...' : 'Escolher arquivo'}
+              </PremiumButton>
+            </div>
+
+            <div className="flex flex-wrap gap-3 pt-4 border-t border-border/50">
+              <PremiumButton
+                onClick={() => handleSaveIntegration('evolution_api')}
+                isLoading={saveEvolutionApiMutation.isPending}
+                data-testid="button-save-evolution"
+                variant="primary"
+              >
+                Salvar Configuração
+              </PremiumButton>
+              <PremiumButton
+                variant="secondary"
+                onClick={() => handleTestConnection('evolution_api')}
+                disabled={!evolutionCredentials?.success}
+                data-testid="button-test-evolution"
+              >
+                Testar Conexão
+              </PremiumButton>
             </div>
           </CollapsibleSection>
 
@@ -3786,11 +3749,11 @@ const SettingsPage = () => {
           </PremiumCard>
 
         </div>
-      </main>
+      </main >
 
       {/* Mobile Bottom Navigation */}
       {isMobile && <BottomNav />}
-    </div>
+    </div >
   );
 };
 

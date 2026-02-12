@@ -113,7 +113,7 @@ const PublicFormApp = () => {
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  
+
   // Extract telefone from URL query params
   const extractTelefoneFromUrl = useCallback(() => {
     try {
@@ -121,43 +121,43 @@ const PublicFormApp = () => {
       const params = new URLSearchParams(window.location.search);
       const tel = params.get('telefone');
       if (tel) return tel;
-      
+
       // Method 2: Check if encoded in href (%3F = ?)
       const href = window.location.href;
       const match = href.match(/[?&]telefone=([^&]+)/);
       if (match) return decodeURIComponent(match[1]);
-      
+
       // Method 3: Check pathname (some frameworks encode query in path)
       const pathMatch = window.location.pathname.match(/[?]telefone=([^&]+)/);
       if (pathMatch) return decodeURIComponent(pathMatch[1]);
-      
+
       return null;
     } catch (e) {
       console.warn('[PublicFormApp] Error extracting telefone:', e);
       return null;
     }
   }, []);
-  
+
   const telefoneFromUrl = useMemo(() => extractTelefoneFromUrl(), [extractTelefoneFromUrl]);
   const [phoneLocked, setPhoneLocked] = useState(!!telefoneFromUrl);
-  
+
   // Format telefone from URL
   const formatTelefoneFromUrl = useCallback((tel: string): string => {
     const digits = tel.replace(/\D/g, '');
     // Remove country code 55 if present
-    const cleanDigits = digits.startsWith('55') && digits.length > 11 
-      ? digits.slice(2) 
+    const cleanDigits = digits.startsWith('55') && digits.length > 11
+      ? digits.slice(2)
       : digits;
     return formatPhone(cleanDigits);
   }, []);
-  
+
   const initialPhone = telefoneFromUrl ? formatTelefoneFromUrl(telefoneFromUrl) : '';
-  
+
   const [personalData, setPersonalData] = useState<PersonalData>({
     name: '', email: '', cpf: '', phone: initialPhone, instagram: ''
   });
   const [personalErrors, setPersonalErrors] = useState<Partial<PersonalData>>({});
-  
+
   const [addressData, setAddressData] = useState<AddressData>({
     cep: '', street: '', number: '', complement: '', neighborhood: '', city: '', state: ''
   });
@@ -175,7 +175,7 @@ const PublicFormApp = () => {
     }
     return cleanPath;
   }, [rawPath]);
-  
+
   // Log telefone extraction for debugging
   useEffect(() => {
     if (telefoneFromUrl) {
@@ -191,7 +191,7 @@ const PublicFormApp = () => {
       /^\/formulario\/([^/]+)\/form\/([^/]+)$/,
       /^\/([^/]+)\/form\/([^/]+)$/,
     ];
-    
+
     for (const pattern of patterns) {
       const match = path.match(pattern);
       if (match) {
@@ -228,7 +228,7 @@ const PublicFormApp = () => {
 
         const response = await fetch(url);
         if (!response.ok) throw new Error('Formulário não encontrado');
-        
+
         const data = await response.json();
         setForm(data);
       } catch (err) {
@@ -256,7 +256,7 @@ const PublicFormApp = () => {
   const lookupCep = async (cep: string) => {
     const cleanCep = cep.replace(/\D/g, '');
     if (cleanCep.length !== 8) return;
-    
+
     setLoadingCep(true);
     try {
       const response = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
@@ -330,7 +330,7 @@ const PublicFormApp = () => {
     try {
       const params = extractParams();
       const companySlug = params && 'companySlug' in params ? params.companySlug : undefined;
-      
+
       // Use the correct public submission endpoint
       const response = await fetch(`/api/forms/${form.id}/submit`, {
         method: 'POST',
@@ -359,6 +359,44 @@ const PublicFormApp = () => {
     }
   };
 
+  // 🎨 Função de migração de cores (igual ao FormularioPublico.tsx)
+  const migrateColors = useCallback((oldColors: any) => {
+    if (!oldColors) {
+      return {
+        titleColor: '#3b82f6',
+        textColor: '#1a1a1a',
+        pageBackground: 'linear-gradient(135deg, #f8fafc, #ffffff)',
+        containerBackground: '#ffffff',
+        buttonColor: '#3b82f6',
+        buttonTextColor: '#ffffff',
+        progressBarColor: '#3b82f6',
+        inputBackground: '#f8fafc',
+        borderColor: '#e2e8f0'
+      };
+    }
+
+    return {
+      titleColor: oldColors.titleColor || oldColors.primary || '#3b82f6',
+      textColor: oldColors.textColor || oldColors.text || '#1a1a1a',
+      pageBackground: oldColors.pageBackground ||
+        `linear-gradient(135deg, ${oldColors.secondary || '#f8fafc'}, ${oldColors.background || '#ffffff'})`,
+      containerBackground: oldColors.containerBackground || oldColors.secondary || oldColors.background || '#ffffff',
+      buttonColor: oldColors.buttonColor || oldColors.button || oldColors.primary || '#3b82f6',
+      buttonTextColor: oldColors.buttonTextColor || oldColors.buttonText || '#ffffff',
+      progressBarColor: oldColors.progressBarColor || oldColors.progressBar || oldColors.primary || '#3b82f6',
+      inputBackground: oldColors.inputBackground || oldColors.secondary || '#f8fafc',
+      borderColor: oldColors.borderColor || '#e2e8f0',
+      // Manter campos legados para compatibilidade
+      primary: oldColors.primary,
+      secondary: oldColors.secondary,
+      background: oldColors.background,
+      text: oldColors.text,
+      button: oldColors.button,
+      buttonText: oldColors.buttonText,
+      progressBar: oldColors.progressBar
+    };
+  }, []);
+
   // Memoize derived values to prevent recalculation on every render
   const {
     questions,
@@ -371,38 +409,51 @@ const PublicFormApp = () => {
     buttonTextColor,
     textColor,
     secondaryColor,
+    containerBackground,
+    pageBackground,
     progressBarColor,
     welcomeConfig
   } = useMemo(() => {
     const questions = getQuestions();
     const totalSteps = 3 + questions.length;
     const progressStep = currentStep === 3 ? 3 + currentQuestionPage : currentStep;
-    const colors = form?.designConfig?.colors;
-    const primaryColor = colors?.primary || '#e91e63';
-    
+
+    // Aplicar migração de cores
+    const rawColors = form?.designConfig?.colors;
+    const migratedColors = migrateColors(rawColors);
+
+    const primaryColor = migratedColors.titleColor || '#e91e63';
+
+    // A logo está salva em designConfig.logo, não em welcomeConfig.logo (calculado fora do useMemo agora)
+
     return {
       questions,
       currentQuestion: questions[currentQuestionPage],
       totalSteps,
       progressPercent: Math.round(((progressStep + 1) / totalSteps) * 100),
-      colors,
+      colors: migratedColors,
       primaryColor,
-      buttonColor: colors?.button || primaryColor,
-      buttonTextColor: colors?.buttonText || '#ffffff',
-      textColor: colors?.text || '#1a1a1a',
-      secondaryColor: colors?.secondary || '#f1f5f9',
-      progressBarColor: colors?.progressBar || primaryColor,
+      buttonColor: migratedColors.buttonColor,
+      buttonTextColor: migratedColors.buttonTextColor,
+      textColor: migratedColors.textColor,
+      secondaryColor: migratedColors.inputBackground,
+      containerBackground: migratedColors.containerBackground,
+      pageBackground: migratedColors.pageBackground,
+      progressBarColor: migratedColors.progressBarColor,
       welcomeConfig: form?.welcomeConfig
     };
-  }, [form, currentStep, currentQuestionPage, getQuestions]);
+  }, [form, currentStep, currentQuestionPage, getQuestions, migrateColors]);
+
+  // Definir logo fora do useMemo para simplificar o acesso
+  const logo = form?.designConfig?.logo || form?.welcomeConfig?.logo;
 
   // Use CSS classes for mobile optimization (defined in index.html)
   // This reduces JavaScript style recalculations significantly on mobile
-  
+
   if (loading) {
     return (
-      <div className="pf-container" style={{ background: `linear-gradient(135deg, ${colors?.background || '#e0f7fa'} 0%, ${colors?.secondary || '#b2ebf2'} 100%)` }}>
-        <div className="pf-card">
+      <div className="pf-container" style={{ background: pageBackground || 'linear-gradient(135deg, #f8fafc, #ffffff)' }}>
+        <div className="pf-card" style={{ backgroundColor: containerBackground }}>
           <div style={styles.skeleton} />
           <div style={{ ...styles.skeleton, width: '70%', marginTop: 16 }} />
           <div style={{ ...styles.skeleton, height: 48, marginTop: 32 }} />
@@ -413,8 +464,8 @@ const PublicFormApp = () => {
 
   if (error) {
     return (
-      <div className="pf-container" style={{ background: `linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%)` }}>
-        <div className="pf-card">
+      <div className="pf-container" style={{ background: pageBackground || 'linear-gradient(135deg, #f8fafc, #ffffff)' }}>
+        <div className="pf-card" style={{ backgroundColor: containerBackground }}>
           <h2 style={styles.errorTitle}>Erro</h2>
           <p style={styles.errorText}>{error}</p>
         </div>
@@ -425,8 +476,8 @@ const PublicFormApp = () => {
   if (submitted) {
     const thankYou = form?.thank_you_screen;
     return (
-      <div className="pf-container" style={{ background: `linear-gradient(135deg, ${colors?.background || '#e0f7fa'} 0%, ${colors?.secondary || '#b2ebf2'} 100%)` }}>
-        <div className="pf-card">
+      <div className="pf-container" style={{ background: pageBackground }}>
+        <div className="pf-card" style={{ backgroundColor: containerBackground }}>
           <div style={{ ...styles.successIcon, backgroundColor: buttonColor }}>✓</div>
           <h2 style={{ ...styles.successTitle, color: primaryColor }}>
             {thankYou?.title || 'Obrigado!'}
@@ -440,9 +491,56 @@ const PublicFormApp = () => {
   }
 
   if (currentStep === 0) {
+    const alignMap: Record<string, string> = {
+      left: 'flex-start',
+      center: 'center',
+      right: 'flex-end'
+    };
+    const desktopAlign = alignMap[form?.designConfig?.logoAlign || 'left'] || 'flex-start';
+
     return (
-      <div className="pf-container" style={{ background: `linear-gradient(135deg, ${colors?.background || '#e0f7fa'} 0%, ${colors?.secondary || '#b2ebf2'} 100%)` }}>
-        <div className="pf-card" style={{ textAlign: 'center' }}>
+      <div className="pf-container" style={{
+        background: pageBackground,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '100vh',
+        padding: '16px'
+      }}>
+        <style>{`
+          .pf-logo-wrapper {
+            display: flex;
+            justify-content: center;
+            width: 100%;
+            max-width: 42rem; /* max-w-2xl to match card */
+            margin-bottom: 32px;
+          }
+          @media (min-width: 768px) {
+            .pf-logo-wrapper {
+              justify-content: var(--desktop-align, flex-start);
+            }
+          }
+        `}</style>
+
+        {logo && (
+          <div
+            className="pf-logo-wrapper"
+            style={{ '--desktop-align': desktopAlign } as React.CSSProperties}
+          >
+            <img
+              src={logo}
+              alt="Logo"
+              style={{
+                maxWidth: '200px',
+                maxHeight: '120px',
+                objectFit: 'contain'
+              }}
+            />
+          </div>
+        )}
+
+        <div className="pf-card" style={{ textAlign: 'center', backgroundColor: containerBackground, width: '100%' }}>
           <h1 style={{ ...styles.welcomeTitle, color: primaryColor }}>
             {welcomeConfig?.title || form?.title || 'Bem-vindo!'}
           </h1>
@@ -465,16 +563,16 @@ const PublicFormApp = () => {
 
   if (currentStep === 1) {
     return (
-      <div className="pf-container" style={{ background: `linear-gradient(135deg, ${colors?.background || '#e0f7fa'} 0%, ${colors?.secondary || '#b2ebf2'} 100%)` }}>
-        <div className="pf-card">
+      <div className="pf-container" style={{ background: pageBackground }}>
+        <div className="pf-card" style={{ backgroundColor: containerBackground }}>
           <div className="pf-progress" style={{ backgroundColor: secondaryColor }}>
             <div className="pf-progress-bar" style={{ width: `${progressPercent}%`, backgroundColor: progressBarColor }} />
           </div>
           <p style={styles.stepLabel}>{progressPercent}% completo</p>
-          
+
           <h2 style={styles.sectionTitle}>Dados Pessoais</h2>
           <p style={styles.sectionDesc}>Por favor, preencha suas informações de contato</p>
-          
+
           <div style={styles.formGroup}>
             <label style={styles.label}>Nome completo *</label>
             <input
@@ -487,7 +585,7 @@ const PublicFormApp = () => {
             />
             {personalErrors.name && <span style={styles.errorMsg}>{personalErrors.name}</span>}
           </div>
-          
+
           <div style={styles.formGroup}>
             <label style={styles.label}>Email *</label>
             <input
@@ -500,7 +598,7 @@ const PublicFormApp = () => {
             />
             {personalErrors.email && <span style={styles.errorMsg}>{personalErrors.email}</span>}
           </div>
-          
+
           <div style={styles.formGroup}>
             <label style={styles.label}>CPF *</label>
             <input
@@ -513,14 +611,14 @@ const PublicFormApp = () => {
             />
             {personalErrors.cpf && <span style={styles.errorMsg}>{personalErrors.cpf}</span>}
           </div>
-          
+
           <div style={styles.formGroup}>
             <label style={styles.label}>
               Telefone
               {phoneLocked && (
-                <span style={{ 
-                  marginLeft: '8px', 
-                  color: '#22c55e', 
+                <span style={{
+                  marginLeft: '8px',
+                  color: '#22c55e',
                   fontSize: '12px',
                   fontWeight: 'normal'
                 }}>
@@ -532,7 +630,7 @@ const PublicFormApp = () => {
               <input
                 type="text"
                 className="pf-input"
-                style={{ 
+                style={{
                   backgroundColor: phoneLocked ? '#f0fdf4' : secondaryColor,
                   borderColor: phoneLocked ? '#22c55e' : undefined,
                   borderWidth: phoneLocked ? '2px' : '1px',
@@ -545,10 +643,10 @@ const PublicFormApp = () => {
                 readOnly={phoneLocked}
               />
               {phoneLocked && (
-                <span style={{ 
-                  position: 'absolute', 
-                  right: '12px', 
-                  top: '50%', 
+                <span style={{
+                  position: 'absolute',
+                  right: '12px',
+                  top: '50%',
                   transform: 'translateY(-50%)',
                   color: '#22c55e',
                   fontSize: '18px'
@@ -558,7 +656,7 @@ const PublicFormApp = () => {
               )}
             </div>
           </div>
-          
+
           <div style={styles.formGroup}>
             <label style={styles.label}>Instagram</label>
             <input
@@ -570,7 +668,7 @@ const PublicFormApp = () => {
               placeholder="@joaosilva"
             />
           </div>
-          
+
           <div style={styles.buttonRow}>
             <button className="pf-btn" style={{ backgroundColor: '#f1f5f9', color: '#333' }} onClick={handleBack}>Voltar</button>
             <button className="pf-btn" style={{ backgroundColor: buttonColor, color: buttonTextColor }} onClick={handleNext}>
@@ -584,16 +682,16 @@ const PublicFormApp = () => {
 
   if (currentStep === 2) {
     return (
-      <div className="pf-container" style={{ background: `linear-gradient(135deg, ${colors?.background || '#e0f7fa'} 0%, ${colors?.secondary || '#b2ebf2'} 100%)` }}>
-        <div className="pf-card">
+      <div className="pf-container" style={{ background: pageBackground }}>
+        <div className="pf-card" style={{ backgroundColor: containerBackground }}>
           <div className="pf-progress" style={{ backgroundColor: secondaryColor }}>
             <div className="pf-progress-bar" style={{ width: `${progressPercent}%`, backgroundColor: progressBarColor }} />
           </div>
           <p style={styles.stepLabel}>{progressPercent}% completo</p>
-          
+
           <h2 style={styles.sectionTitle}>Dados de Endereço</h2>
           <p style={styles.sectionDesc}>Preencha seu endereço completo</p>
-          
+
           <div style={styles.row}>
             <div style={{ ...styles.formGroup, flex: 2 }}>
               <label style={styles.label}>CEP *</label>
@@ -622,7 +720,7 @@ const PublicFormApp = () => {
               />
             </div>
           </div>
-          
+
           <div style={styles.formGroup}>
             <label style={styles.label}>Rua * {loadingCep && <span style={{ color: '#888' }}>(buscando...)</span>}</label>
             <input
@@ -634,7 +732,7 @@ const PublicFormApp = () => {
             />
             {addressErrors.street && <span style={styles.errorMsg}>{addressErrors.street}</span>}
           </div>
-          
+
           <div style={styles.row}>
             <div style={{ ...styles.formGroup, flex: 1 }}>
               <label style={styles.label}>Número *</label>
@@ -657,7 +755,7 @@ const PublicFormApp = () => {
               />
             </div>
           </div>
-          
+
           <div style={styles.row}>
             <div style={{ ...styles.formGroup, flex: 1 }}>
               <label style={styles.label}>Bairro</label>
@@ -680,7 +778,7 @@ const PublicFormApp = () => {
               />
             </div>
           </div>
-          
+
           <div style={styles.buttonRow}>
             <button className="pf-btn" style={{ backgroundColor: '#f1f5f9', color: '#333' }} onClick={handleBack}>Voltar</button>
             <button className="pf-btn" style={{ backgroundColor: buttonColor, color: buttonTextColor }} onClick={handleNext}>
@@ -695,8 +793,8 @@ const PublicFormApp = () => {
   if (currentStep === 3) {
     if (!currentQuestion) {
       return (
-        <div className="pf-container" style={{ background: `linear-gradient(135deg, ${colors?.background || '#e0f7fa'} 0%, ${colors?.secondary || '#b2ebf2'} 100%)` }}>
-          <div className="pf-card">
+        <div className="pf-container" style={{ background: pageBackground }}>
+          <div className="pf-card" style={{ backgroundColor: containerBackground }}>
             <p>Carregando perguntas...</p>
           </div>
         </div>
@@ -706,15 +804,15 @@ const PublicFormApp = () => {
     const isLastQuestion = currentQuestionPage === questions.length - 1;
 
     return (
-      <div className="pf-container" style={{ background: `linear-gradient(135deg, ${colors?.background || '#e0f7fa'} 0%, ${colors?.secondary || '#b2ebf2'} 100%)` }}>
-        <div className="pf-card">
+      <div className="pf-container" style={{ background: pageBackground }}>
+        <div className="pf-card" style={{ backgroundColor: containerBackground }}>
           <div className="pf-progress" style={{ backgroundColor: secondaryColor }}>
             <div className="pf-progress-bar" style={{ width: `${progressPercent}%`, backgroundColor: progressBarColor }} />
           </div>
           <p style={styles.stepLabel}>{progressPercent}% completo</p>
-          
+
           <p style={styles.counter}>{currentQuestionPage + 1} de {questions.length}</p>
-          
+
           <h2 style={styles.questionTitle}>
             {currentQuestion.text}
             {currentQuestion.required && <span style={styles.required}>*</span>}
@@ -726,7 +824,7 @@ const PublicFormApp = () => {
 
           <div style={styles.buttonRow}>
             <button className="pf-btn" style={{ backgroundColor: '#f1f5f9', color: '#333' }} onClick={handleBack}>Voltar</button>
-            
+
             {isLastQuestion ? (
               <button
                 className="pf-btn"
@@ -756,7 +854,7 @@ const PublicFormApp = () => {
 
 const renderInput = (question: any, value: any, onChange: (v: any) => void) => {
   const type = question.questionType || question.type;
-  
+
   if (type === 'text' || type === 'short-text') {
     return (
       <input
@@ -768,7 +866,7 @@ const renderInput = (question: any, value: any, onChange: (v: any) => void) => {
       />
     );
   }
-  
+
   if (type === 'textarea' || type === 'long-text') {
     return (
       <textarea
@@ -780,7 +878,7 @@ const renderInput = (question: any, value: any, onChange: (v: any) => void) => {
       />
     );
   }
-  
+
   if (type === 'multiple-choice' || type === 'radio') {
     const options = question.options || [];
     return (

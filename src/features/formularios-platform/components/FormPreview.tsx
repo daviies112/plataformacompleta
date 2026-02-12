@@ -100,7 +100,26 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
     };
   };
 
-  const baseDesign = config.designConfig ?? {};
+  const baseDesign = config.designConfig ?? {
+    colors: {
+      titleColor: "hsl(221, 83%, 53%)",
+      textColor: "hsl(222, 47%, 11%)",
+      pageBackground: "linear-gradient(135deg, hsl(210, 40%, 96%), hsl(0, 0%, 100%))",
+      containerBackground: "hsl(0, 0%, 100%)",
+      buttonColor: "hsl(221, 83%, 53%)",
+      buttonTextColor: "hsl(0, 0%, 100%)",
+      progressBarColor: "hsl(221, 83%, 53%)",
+      inputBackground: "hsl(210, 40%, 96%)",
+      borderColor: "hsl(214, 32%, 91%)"
+    },
+    typography: {
+      fontFamily: "Inter",
+      titleSize: "2xl",
+      textSize: "base"
+    },
+    spacing: "comfortable" as const
+  };
+
   const design = {
     ...defaultDesign,
     ...baseDesign,
@@ -452,42 +471,106 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
     return null;
   };
 
+  const handleAnswer = (questionId: string, answer: string, points: number) => {
+    setAnswers(prev => ({
+      ...prev,
+      [questionId]: {
+        questionId,
+        answer,
+        points,
+        questionText: questionElements.find(q => q.id === questionId)?.text || ''
+      }
+    }));
+  };
+
+  const handleStartWizard = () => {
+    setWizardStep(1);
+  };
+
+  const handleWizardNext = () => {
+    setWizardStep(prev => Math.min(prev + 1, totalWizardSteps - 1));
+  };
+
+  const handleWizardBack = () => {
+    setWizardStep(prev => Math.max(prev - 1, 0));
+  };
+
+  const handleSubmit = () => {
+    const answerArray = Object.values(answers);
+    const totalScore = answerArray.reduce((sum, ans) => sum + (ans.points || 0), 0);
+    const passingScore = config.passingScore || 0;
+    const passed = totalScore >= passingScore;
+
+    setResult({
+      answers: answerArray,
+      totalScore,
+      passed
+    });
+
+    setWizardStep(totalWizardSteps - 1);
+  };
+
+  const getCurrentTier = (score: number): ScoreTier | null => {
+    if (!config.scoreTiers || config.scoreTiers.length === 0) return null;
+
+    const sortedTiers = [...config.scoreTiers].sort((a, b) => b.minScore - a.minScore);
+    return sortedTiers.find(tier => score >= tier.minScore) || null;
+  };
+
   const renderWizardWelcome = () => {
+    const isMobileDevice = device === 'mobile';
+    const alignMap: Record<string, string> = {
+      left: 'justify-start',
+      center: 'justify-center',
+      right: 'justify-end'
+    };
+
+    // Desktop: User config (default left), Mobile: Always center
+    const logoAlignment = isMobileDevice ? 'justify-center' : (alignMap[design.logoAlign] || 'justify-start');
+
     return (
-      <div className="min-h-[500px] flex items-center justify-center p-4" style={{ background: colors.pageBackground }}>
-        <Card className="w-full max-w-2xl shadow-xl" style={{ backgroundColor: colors.containerBackground, borderColor: colors.borderColor }}>
-          <CardHeader className="text-center pb-8">
-            {design.logo && (
-              <div className="mb-6">
-                <img src={design.logo} alt="Logo" className="max-w-xs mx-auto rounded-lg" style={{ maxHeight: '120px' }} />
-              </div>
-            )}
-            <CardTitle className="text-4xl font-bold mb-4" style={{ color: colors.titleColor }}>
-              {welcomeConfig.title}
-            </CardTitle>
-            <CardDescription className="text-lg" style={{ color: colors.textColor, opacity: 0.8 }}>
-              {welcomeConfig.description}
-            </CardDescription>
-          </CardHeader>
-          <CardFooter className="flex justify-center pb-8">
-            <Button
-              size="lg"
-              onClick={handleStartWizard}
-              style={{ backgroundColor: colors.buttonColor, color: colors.buttonTextColor }}
-              className="px-8"
-            >
-              <Sparkles className="mr-2 h-5 w-5" />
-              Começar
-            </Button>
-          </CardFooter>
-        </Card>
+      <div className="min-h-[500px] flex flex-col relative" style={{ background: colors.pageBackground }}>
+        {design.logo && (
+          <div className={`absolute top-0 left-0 w-full flex ${logoAlignment} p-4 md:p-8 z-10`}>
+            <img
+              src={design.logo}
+              alt="Logo"
+              className="max-w-[200px] object-contain rounded-lg"
+              style={{ maxHeight: `${design.logoSize || 120}px` }}
+            />
+          </div>
+        )}
+
+        <div className="flex-1 flex items-center justify-center p-4 pt-32">
+          <Card className="w-full max-w-2xl shadow-xl" style={{ backgroundColor: colors.containerBackground, borderColor: colors.borderColor }}>
+            <CardHeader className="text-center pb-8">
+              <CardTitle className="text-4xl font-bold mb-4" style={{ color: colors.titleColor }}>
+                {welcomeConfig.title}
+              </CardTitle>
+              <CardDescription className="text-lg" style={{ color: colors.textColor, opacity: 0.8 }}>
+                {welcomeConfig.description}
+              </CardDescription>
+            </CardHeader>
+            <CardFooter className="flex justify-center pb-8">
+              <Button
+                size="lg"
+                onClick={handleStartWizard}
+                style={{ backgroundColor: colors.buttonColor, color: colors.buttonTextColor }}
+                className="px-8"
+              >
+                <Sparkles className="mr-2 h-5 w-5" />
+                Começar
+              </Button>
+            </CardFooter>
+          </Card>
+        </div>
       </div>
     );
   };
 
   const renderWizardPersonalData = () => {
     return (
-      <div className="min-h-[500px] p-4" style={{ background: colors.pageBackground }}>
+      <div className="min-h-[500px] p-4 font-sans" style={{ background: colors.pageBackground }}>
         <div className="max-w-3xl mx-auto pt-4">
           <div className="mb-6">
             <div className="w-full rounded-full h-2 mb-2" style={{ backgroundColor: colors.inputBackground }}>
@@ -628,11 +711,19 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
 
     const tier = getCurrentTier(result.totalScore);
     const completion = config.completionPageConfig || {
-      successTitle: "Parabéns!",
+      title: "Resultado",
+      message: "Formulário concluído com sucesso.",
       successMessage: "Sua inscrição foi concluída com sucesso.",
-      failureTitle: "Quase lá!",
       failureMessage: "Infelizmente você não atingiu a pontuação mínima."
     };
+
+    const displayTitle = result.passed
+      ? (completion.title || "Parabéns!")
+      : (completion.title || "Quase lá!");
+
+    const displayMessage = result.passed
+      ? (completion.successMessage || completion.message || "Sua inscrição foi concluída com sucesso.")
+      : (completion.failureMessage || completion.message || "Infelizmente você não atingiu a pontuação mínima.");
 
     return (
       <div className="min-h-[500px] flex items-center justify-center p-4" style={{ background: colors.pageBackground }}>
@@ -651,10 +742,10 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
               )}
             </div>
             <CardTitle className="text-3xl font-bold mb-2" style={{ color: colors.titleColor }}>
-              {result.passed ? completion.successTitle : completion.failureTitle}
+              {displayTitle}
             </CardTitle>
             <CardDescription className="text-lg" style={{ color: colors.textColor, opacity: 0.8 }}>
-              {result.passed ? completion.successMessage : completion.failureMessage}
+              {displayMessage}
             </CardDescription>
           </CardHeader>
           <CardContent className="text-center pb-8">
@@ -686,16 +777,16 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
 
   if (isLivePreview) {
     return (
-      <div className={`transition-all duration-300 ease-in-out shadow-2xl rounded-xl overflow-hidden bg-background ${
-        device === 'mobile' ? 'w-[375px] h-[667px] mx-auto my-8 border-[12px] border-slate-800 rounded-[3rem]' : 'w-full'
-      }`}>
-        <div className="h-full overflow-auto" style={{ backgroundColor: colors.containerBackground }}>
+      <div className={`transition-all duration-300 ease-in-out shadow-2xl rounded-xl overflow-hidden ${device === 'mobile' ? 'w-[375px] h-[667px] mx-auto my-8 border-[12px] border-slate-800 rounded-[3rem]' : 'w-full'
+        }`}
+        style={{ backgroundColor: colors.pageBackground }}>
+        <div className="h-full overflow-auto">
           <div className="p-4 md:p-8">
             {shouldUseWizard ? (
               wizardStep === 0 ? renderWizardWelcome() :
-              wizardStep === 1 ? renderWizardPersonalData() :
-              wizardStep === totalWizardSteps - 1 ? renderWizardResult() :
-              renderWizardQuestion()
+                wizardStep === 1 ? renderWizardPersonalData() :
+                  wizardStep === totalWizardSteps - 1 ? renderWizardResult() :
+                    renderWizardQuestion()
             ) : (
               <div className={spacingClasses[design.spacing as keyof typeof spacingClasses]}>
                 {elements.map((element, index) => renderElement(element, index))}
@@ -712,9 +803,9 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
       <CardContent className="p-4 md:p-8">
         {shouldUseWizard ? (
           wizardStep === 0 ? renderWizardWelcome() :
-          wizardStep === 1 ? renderWizardPersonalData() :
-          wizardStep === totalWizardSteps - 1 ? renderWizardResult() :
-          renderWizardQuestion()
+            wizardStep === 1 ? renderWizardPersonalData() :
+              wizardStep === totalWizardSteps - 1 ? renderWizardResult() :
+                renderWizardQuestion()
         ) : (
           <div className={spacingClasses[design.spacing as keyof typeof spacingClasses]}>
             {elements.map((element, index) => renderElement(element, index))}

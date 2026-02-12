@@ -1,6 +1,6 @@
 import { TooltipProvider } from "./components/ui/tooltip";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { Route, Switch, Router } from "wouter";
+import { Route, Switch, Router, Redirect } from "wouter";
 import { FormularioLayout } from "./components/FormularioLayout";
 import { SupabaseConfigProvider } from "./contexts/SupabaseConfigContext";
 import { queryClient } from "./lib/queryClient";
@@ -35,43 +35,41 @@ const App = () => (
                 <EditarFormulario />
               </FormularioLayout>
             </Route>
-            
+
             <Route path="/admin/formularios/:id/respostas">
               <FormularioLayout>
                 <FormularioRespostas />
               </FormularioLayout>
             </Route>
-            
+
             <Route path="/admin/formularios">
               <FormularioLayout>
                 <VerFormularios />
               </FormularioLayout>
             </Route>
-            
+
             <Route path="/admin/paginas-final">
               <FormularioLayout>
                 <VerPaginasFinal />
               </FormularioLayout>
             </Route>
-            
+
             <Route path="/admin/dashboard">
               <FormularioLayout>
                 <Dashboard />
               </FormularioLayout>
             </Route>
-            
+
             <Route path="/admin">
               <FormularioLayout>
                 <Admin />
               </FormularioLayout>
             </Route>
-            
+
             <Route path="/">
-              <FormularioLayout>
-                <Admin />
-              </FormularioLayout>
+              <Redirect to="/admin/formularios" />
             </Route>
-            
+
             <Route path="/preview-temp" component={PreviewTemp} />
             <Suspense fallback={<FormLoader />}>
               <Route path="/:companySlug/form/:id">

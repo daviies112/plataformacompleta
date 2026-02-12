@@ -4,7 +4,7 @@ import { authenticateConfig } from '../middleware/configAuth';
 import { credentialsStorage, encrypt, decrypt, saveCredentialsToFile } from '../lib/credentialsManager';
 import { clearSupabaseClientCache, testDynamicSupabaseConnection, invalidateConnectionTestCache } from '../lib/multiTenantSupabase';
 import { db } from '../db';
-import { pluggyConfig, supabaseConfig, n8nConfig, evolutionApiConfig, hms100msConfig, totalExpressConfig, bigdatacorpConfig, forms, leads, formSubmissions, formTenantMapping } from '../../shared/db-schema.js';
+import { pluggyConfig, supabaseConfig, n8nConfig, evolutionApiConfig, hms100msConfig, totalExpressConfig, bigdatacorpConfig, googleCalendarConfig, forms, leads, formSubmissions, formTenantMapping } from '../../shared/db-schema.js';
 import { eq } from 'drizzle-orm';
 import { getSupabaseCredentials, getSupabaseCredentialsStrict, getPluggyCredentials, getN8nCredentials, getEvolutionApiCredentials } from '../lib/credentialsDb';
 import { resetAllPollerStates } from '../lib/stateReset';
@@ -267,7 +267,7 @@ router.put('/:integrationType', authenticateToken, async (req, res) => {
 
     if (!tenantId) return res.status(401).json({ success: false, error: 'Tenant ID ausente' });
 
-    const validTypes = ['supabase', 'google_meet', 'whatsapp', 'evolution_api', 'n8n', 'pluggy', 'bigdatacorp', 'hms_100ms', 'total_express'];
+    const validTypes = ['supabase', 'google_meet', 'google_calendar', 'whatsapp', 'evolution_api', 'n8n', 'pluggy', 'bigdatacorp', 'hms_100ms', 'total_express'];
     if (!validTypes.includes(integrationType)) return res.status(400).json({ success: false, error: 'Tipo inválido' });
 
     const validationResult = validateCredentials(integrationType, credentials);
@@ -284,7 +284,7 @@ router.put('/:integrationType', authenticateToken, async (req, res) => {
         await db.insert(pluggyConfig).values({ tenantId, clientId: credentials.client_id, clientSecret: credentials.client_secret }).execute();
       } else if (integrationType === 'supabase') {
         await db.delete(supabaseConfig).where(eq(supabaseConfig.tenantId, tenantId)).execute();
-        await db.insert(supabaseConfig).values({ tenantId, supabaseUrl: encrypt(credentials.url), supabaseAnonKey: encrypt(credentials.anon_key), bucket: credentials.bucket || '' }).execute();
+        await db.insert(supabaseConfig).values({ tenantId, supabaseUrl: encrypt(credentials.url), supabaseAnonKey: encrypt(credentials.anon_key), supabaseBucket: credentials.bucket || '' }).execute();
         syncAdminCredentialsToOwner(req.user!.userId || tenantId, {
           supabase_url: credentials.url,
           supabase_anon_key: credentials.anon_key,
@@ -324,6 +324,13 @@ router.put('/:integrationType', authenticateToken, async (req, res) => {
           reid: credentials.reid,
           service: credentials.service || 'EXP',
           testMode: credentials.test_mode !== undefined ? credentials.test_mode : true
+        }).execute();
+      } else if (integrationType === 'google_calendar') {
+        await db.delete(googleCalendarConfig).where(eq(googleCalendarConfig.tenantId, tenantId)).execute();
+        await db.insert(googleCalendarConfig).values({
+          tenantId,
+          clientId: credentials.client_id,
+          clientSecret: credentials.client_secret,
         }).execute();
       }
     } catch (dbError) {
@@ -369,16 +376,19 @@ router.get('/:integrationType', authenticateToken, async (req, res) => {
       if (config) dbCredentials = { token_id: decrypt(config.tokenId), chave_token: decrypt(config.chaveToken) };
     } else if (integrationType === 'hms_100ms') {
       const config = await db!.query.hms100msConfig.findFirst({ where: eq(hms100msConfig.tenantId, tenantId) });
-      if (config) dbCredentials = { 
-        app_access_key: config.appAccessKey, 
-        app_secret: config.appSecret, 
-        management_token: config.managementToken, 
+      if (config) dbCredentials = {
+        app_access_key: config.appAccessKey,
+        app_secret: config.appSecret,
+        management_token: config.managementToken,
         template_id: config.templateId,
         api_base_url: config.apiBaseUrl
       };
     } else if (integrationType === 'total_express') {
       const config = await db!.query.totalExpressConfig.findFirst({ where: eq(totalExpressConfig.tenantId, tenantId) });
       if (config) dbCredentials = { user: config.user, password: config.password, reid: config.reid, service: config.service, test_mode: config.testMode };
+    } else if (integrationType === 'google_calendar') {
+      const config = await db.select().from(googleCalendarConfig).where(eq(googleCalendarConfig.tenantId, tenantId)).limit(1);
+      if (config[0]) dbCredentials = { client_id: config[0].clientId, client_secret: config[0].clientSecret };
     }
 
     if (dbCredentials) {
@@ -388,33 +398,198 @@ router.get('/:integrationType', authenticateToken, async (req, res) => {
       return res.json({ success: true, credentials: dbCredentials });
     }
 
-    res.status(404).json({ success: false, error: 'Não encontrado' });
+    // Retornar null em vez de 404 para evitar erros no console do frontend
+    return res.json({ success: true, credentials: null });
   } catch (error) {
     console.error('Erro ao buscar credenciais:', error);
     res.status(500).json({ success: false, error: 'Erro interno' });
   }
 });
 
-// Evolution API QR Code
-router.post('/evolution-api/qrcode', authenticateToken, async (req, res) => {
+// ---------------------------------------------------------------
+// HELPER: Fluxo completo de conexão Evolution API
+// ---------------------------------------------------------------
+async function getEvolutionQRCode(
+  baseUrl: string,
+  apiKey: string,
+  instanceName: string
+): Promise<{
+  success: boolean;
+  status: 'already_connected' | 'qrcode_generated' | 'error';
+  qrcode?: string;
+  pairingCode?: string;
+  message?: string;
+  error?: string;
+}> {
+  const headers = {
+    'apikey': apiKey,
+    'Content-Type': 'application/json',
+  };
+
+  // ── PASSO 1: Verificar se a instância existe ──────────────────
+  console.log(`🔍 [EVOLUTION] Buscando instâncias em: ${baseUrl}/instance/fetchInstances`);
+  let instanceExists = false;
+  try {
+    const listRes = await fetch(`${baseUrl}/instance/fetchInstances`, { headers });
+    if (listRes.ok) {
+      const listData = await listRes.json();
+      // A resposta pode ser um array ou um objeto com array
+      const instances: any[] = Array.isArray(listData) ? listData : (listData.data ?? []);
+      instanceExists = instances.some(
+        (i: any) => (i.instance?.instanceName ?? i.name ?? i.instanceName) === instanceName
+      );
+      console.log(`📋 [EVOLUTION] Instância "${instanceName}" existe: ${instanceExists}`);
+    } else {
+      console.warn(`⚠️ [EVOLUTION] Não foi possível listar instâncias (${listRes.status}). Continuando...`);
+    }
+  } catch (e: any) {
+    console.warn(`⚠️ [EVOLUTION] Erro ao listar instâncias: ${e.message}. Continuando...`);
+  }
+
+  // ── PASSO 2: Criar instância se não existir ───────────────────
+  if (!instanceExists) {
+    console.log(`🆕 [EVOLUTION] Criando instância: ${instanceName}`);
+    try {
+      const createRes = await fetch(`${baseUrl}/instance/create`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          instanceName,
+          qrcode: true,
+          integration: 'WHATSAPP-BAILEYS',
+        }),
+      });
+      const createData = await createRes.json();
+      console.log(`✅ [EVOLUTION] Instância criada:`, JSON.stringify(createData).slice(0, 200));
+
+      // Se já veio o QR Code junto com a criação, aproveitar
+      const qrOnCreate =
+        createData?.qrcode?.base64 ??
+        createData?.base64 ??
+        createData?.qrCode ??
+        createData?.code;
+      if (qrOnCreate) {
+        console.log(`🎉 [EVOLUTION] QR Code obtido direto na criação!`);
+        return {
+          success: true,
+          status: 'qrcode_generated',
+          qrcode: qrOnCreate,
+          pairingCode: createData?.pairingCode,
+          message: 'QR Code gerado com sucesso',
+        };
+      }
+    } catch (e: any) {
+      console.error(`❌ [EVOLUTION] Erro ao criar instância: ${e.message}`);
+      return { success: false, status: 'error', error: `Falha ao criar instância: ${e.message}` };
+    }
+  }
+
+  // ── PASSO 3: Verificar estado da conexão ──────────────────────
+  console.log(`📡 [EVOLUTION] Verificando estado: ${baseUrl}/instance/connectionState/${instanceName}`);
+  try {
+    const stateRes = await fetch(`${baseUrl}/instance/connectionState/${instanceName}`, { headers });
+    if (stateRes.ok) {
+      const stateData = await stateRes.json();
+      const state: string =
+        stateData?.instance?.state ??
+        stateData?.state ??
+        stateData?.connectionStatus ??
+        '';
+      console.log(`🔌 [EVOLUTION] Estado atual da instância: "${state}"`);
+
+      if (state === 'open') {
+        console.log(`✅ [EVOLUTION] Instância já está conectada! Retornando sucesso.`);
+        return {
+          success: true,
+          status: 'already_connected',
+          message: 'WhatsApp já está conectado!',
+        };
+      }
+    } else {
+      console.warn(`⚠️ [EVOLUTION] Não foi possível checar estado (${stateRes.status}). Tentando conectar mesmo assim...`);
+    }
+  } catch (e: any) {
+    console.warn(`⚠️ [EVOLUTION] Erro ao checar estado: ${e.message}. Tentando conectar...`);
+  }
+
+  // ── PASSO 4: Solicitar QR Code ────────────────────────────────
+  console.log(`📲 [EVOLUTION] Solicitando QR Code: ${baseUrl}/instance/connect/${instanceName}`);
+  try {
+    const connectRes = await fetch(`${baseUrl}/instance/connect/${instanceName}`, { headers });
+    if (!connectRes.ok) {
+      const errText = await connectRes.text();
+      console.error(`❌ [EVOLUTION] Erro ao conectar (${connectRes.status}): ${errText}`);
+      return {
+        success: false,
+        status: 'error',
+        error: `Evolution API retornou ${connectRes.status}: ${errText}`,
+      };
+    }
+    const connectData = await connectRes.json();
+    console.log(`🎉 [EVOLUTION] Resposta de conexão:`, JSON.stringify(connectData).slice(0, 200));
+
+    // Normalizar campos do QR Code (a Evolution muda entre versões)
+    const qrcode =
+      connectData?.base64 ??
+      connectData?.qrcode?.base64 ??
+      connectData?.qrCode?.base64 ??
+      connectData?.code ??
+      connectData?.qrcode?.code ??
+      null;
+
+    if (!qrcode) {
+      console.warn(`⚠️ [EVOLUTION] QR Code não encontrado na resposta:`, connectData);
+      return {
+        success: false,
+        status: 'error',
+        error: 'QR Code não encontrado na resposta da Evolution API',
+      };
+    }
+
+    return {
+      success: true,
+      status: 'qrcode_generated',
+      qrcode,
+      pairingCode: connectData?.pairingCode ?? connectData?.code,
+      message: 'QR Code gerado com sucesso',
+    };
+  } catch (e: any) {
+    console.error(`❌ [EVOLUTION] Fetch error ao conectar: ${e.message}`);
+    return { success: false, status: 'error', error: e.message };
+  }
+}
+
+// ---------------------------------------------------------------
+// ENDPOINT: POST /api/credentials/evolution-api/qrcode
+// ---------------------------------------------------------------
+router.post('/evolution-api/qrcode', authenticateToken, async (req: any, res) => {
   try {
     const { getEvolutionApiCredentials } = await import('../lib/credentialsDb');
     const credentials = await getEvolutionApiCredentials(req.user!.tenantId);
-    if (!credentials || !credentials.apiUrl || !credentials.apiKey) return res.status(404).json({ success: false, error: 'Não configurado' });
+
+    if (!credentials?.apiUrl || !credentials?.apiKey) {
+      return res.status(404).json({ success: false, error: 'Evolution API não configurada. Insira a URL e a API Key.' });
+    }
 
     const { instance = 'nexus-whatsapp' } = req.body;
     const baseUrl = credentials.apiUrl.replace(/\/+$/, '');
-    const response = await fetch(`${baseUrl}/instance/connect/${instance}`, {
-      headers: { 'apiKey': credentials.apiKey, 'Content-Type': 'application/json' }
-    });
 
-    if (response.ok) {
-      const data = await response.json();
-      res.json({ success: true, qrcode: data.base64 || data.qrcode?.base64 || data.code, pairingCode: data.code || data.pairingCode, instance });
-    } else {
-      res.status(response.status).json({ success: false, error: 'Erro ao gerar QR Code' });
+    const result = await getEvolutionQRCode(baseUrl, credentials.apiKey, instance);
+
+    if (!result.success) {
+      return res.status(500).json(result);
     }
+
+    return res.json({
+      success: true,
+      alreadyConnected: result.status === 'already_connected',
+      qrcode: result.qrcode ?? null,
+      pairingCode: result.pairingCode ?? null,
+      instance,
+      message: result.message,
+    });
   } catch (error: any) {
+    console.error('❌ [EVOLUTION] Erro inesperado no endpoint de QR Code:', error);
     res.status(500).json({ success: false, error: error.message });
   }
 });
@@ -441,6 +616,140 @@ router.get('/evolution-api/status/:instance', authenticateToken, async (req, res
     }
   } catch (error: any) {
     res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// 🚀 Generic Credentials Test Endpoint
+router.post('/test/:integrationType', authenticateToken, async (req, res) => {
+  try {
+    const { integrationType } = req.params;
+    const credentials = req.body;
+
+    console.log(`🧪 [CREDENTIALS] Testing connection for ${integrationType}`);
+
+    if (integrationType === 'evolution_api') {
+      const { apiUrl, apiKey, instance } = req.body as any;
+
+      if (!apiUrl || !apiKey) {
+        return res.status(400).json({ success: false, error: 'URL da API e API Key são obrigatórios' });
+      }
+
+      const baseUrl = (apiUrl as string).replace(/\/+$/, '');
+      const instanceName: string = instance || 'nexus-whatsapp';
+
+      console.log(`🧪 [EVOLUTION] Testando conexão - URL: ${baseUrl} | Instância: ${instanceName}`);
+
+      // Tenta verificar estado primeiro (prova que a URL e a key estão corretas)
+      try {
+        const stateRes = await fetch(`${baseUrl}/instance/connectionState/${instanceName}`, {
+          method: 'GET',
+          headers: { 'apikey': apiKey, 'Content-Type': 'application/json' },
+          signal: AbortSignal.timeout(10000), // 10s timeout
+        });
+
+        if (stateRes.ok) {
+          const data = await stateRes.json();
+          const state = data?.instance?.state ?? data?.state ?? data?.connectionStatus ?? 'desconhecido';
+          return res.json({
+            success: true,
+            message: `Conexão com Evolution API OK! Estado: ${state}`,
+            data,
+          });
+        }
+
+        // 404 na instância não significa que a API está errada — pode ser instância inexistente
+        if (stateRes.status === 404) {
+          // Verificar se a API em si responde (endpoint público)
+          const pingRes = await fetch(`${baseUrl}/instance/fetchInstances`, {
+            headers: { 'apikey': apiKey },
+            signal: AbortSignal.timeout(10000),
+          }).catch(() => null);
+
+          if (pingRes?.ok) {
+            return res.json({
+              success: true,
+              message: `API conectada! Instância "${instanceName}" ainda não existe (será criada ao gerar QR Code).`,
+            });
+          }
+        }
+
+        const errText = await stateRes.text().catch(() => stateRes.statusText);
+        console.error(`❌ [EVOLUTION] Erro no teste (${stateRes.status}): ${errText}`);
+        return res.status(400).json({
+          success: false,
+          error: `Erro ao conectar na Evolution API: ${stateRes.status} ${stateRes.statusText}`,
+          details: errText,
+        });
+
+      } catch (fetchError: any) {
+        console.error(`❌ [EVOLUTION] Fetch error no teste:`, fetchError);
+
+        // Mensagem amigável por tipo de erro
+        let friendlyError = 'Não foi possível conectar ao servidor Evolution API.';
+        if (fetchError.name === 'TimeoutError') {
+          friendlyError = 'Timeout: o servidor não respondeu em 10 segundos. Verifique se a URL está correta e o servidor está online.';
+        } else if (fetchError.cause?.code === 'ECONNREFUSED') {
+          friendlyError = 'Conexão recusada. Verifique se o servidor Evolution API está rodando na porta correta.';
+        } else if (fetchError.cause?.code === 'ENOTFOUND') {
+          friendlyError = 'Host não encontrado. Verifique se a URL da API está correta.';
+        }
+
+        return res.status(500).json({
+          success: false,
+          error: friendlyError,
+          details: fetchError.message,
+        });
+      }
+    }
+
+    // Default handler for other types or mocks
+    // Google, Pluggy, etc can be implemented here as needed
+
+    return res.json({
+      success: true,
+      message: `Teste para ${integrationType} recebido com sucesso (Simulação)`
+    });
+
+  } catch (error: any) {
+    console.error(`❌ [CREDENTIALS] Test error:`, error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// List configured credentials status
+router.get('/', authenticateToken, async (req: any, res) => {
+  try {
+    const clientId = req.user!.clientId;
+    const clientCredentials = credentialsStorage.get(clientId);
+
+    // Check which credentials are configured (in memory or DB)
+    const status: Record<string, boolean> = {
+      supabase: false,
+      google_calendar: false,
+      whatsapp: false,
+      evolution_api: false,
+      pluggy: false,
+      n8n: false
+    };
+
+    // Check memory
+    if (clientCredentials) {
+      if (clientCredentials.has('supabase')) status.supabase = true;
+      if (clientCredentials.has('google_calendar') || clientCredentials.has('google_meet')) status.google_calendar = true;
+      if (clientCredentials.has('whatsapp')) status.whatsapp = true;
+      if (clientCredentials.has('evolution_api')) status.evolution_api = true;
+      if (clientCredentials.has('pluggy')) status.pluggy = true;
+      if (clientCredentials.has('n8n')) status.n8n = true;
+    }
+
+    // Check DB for missing ones (fallback)
+    // This is a simplified check, ideally we should query DB if not in memory
+    // For now, we return what's in memory or empty to force re-fetch if needed
+
+    res.json(status);
+  } catch (error) {
+    console.error('Erro ao listar status de credenciais:', error);
+    res.status(500).json({ success: false, error: 'Erro interno' });
   }
 });
 
