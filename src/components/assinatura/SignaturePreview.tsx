@@ -2,13 +2,13 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { 
-  ArrowLeft, 
-  ArrowRight, 
-  Camera, 
-  FileText, 
-  CheckCircle, 
-  Shield, 
+import {
+  ArrowLeft,
+  ArrowRight,
+  Camera,
+  FileText,
+  CheckCircle,
+  Shield,
   Award,
   User,
   Mail,
@@ -29,7 +29,7 @@ interface SignaturePreviewProps {
   clientCpf?: string;
   clientEmail?: string;
   clientPhone?: string;
-  
+
   primaryColor?: string;
   textColor?: string;
   fontFamily?: string;
@@ -39,7 +39,7 @@ interface SignaturePreviewProps {
   logoPosition?: 'center' | 'left' | 'right';
   companyName?: string;
   footerText?: string;
-  
+
   verificationPrimaryColor?: string;
   verificationTextColor?: string;
   verificationFontFamily?: string;
@@ -53,7 +53,7 @@ interface SignaturePreviewProps {
   securityText?: string;
   backgroundColor?: string;
   headerBackgroundColor?: string;
-  
+
   selfieStepTitle?: string;
   selfieStepDescription?: string;
   documentStepTitle?: string;
@@ -64,7 +64,7 @@ interface SignaturePreviewProps {
   resultStepDescription?: string;
   selfieButtonText?: string;
   selfieInstructionText?: string;
-  
+
   stepLabelSelfie?: string;
   stepLabelDocument?: string;
   stepLabelAnalysis?: string;
@@ -79,15 +79,15 @@ interface SignaturePreviewProps {
   detectionLightingMessage?: string;
   detectionQualityMessage?: string;
   detectionPerfectMessage?: string;
-  
+
   contractTitle?: string;
   clauses?: ContractClause[];
-  
+
   contractPrimaryColor?: string;
   contractTextColor?: string;
   contractBackgroundColor?: string;
   contractFontFamily?: string;
-  
+
   parabensTitle?: string;
   parabensSubtitle?: string;
   parabensDescription?: string;
@@ -97,7 +97,7 @@ interface SignaturePreviewProps {
   parabensTextColor?: string;
   parabensFontFamily?: string;
   parabensButtonText?: string;
-  
+
   progressCardColor?: string;
   progressButtonColor?: string;
   progressTextColor?: string;
@@ -108,7 +108,7 @@ interface SignaturePreviewProps {
   progressInactiveStepBg?: string;
   progressCheckIconColor?: string;
   progressInactiveCircleBg?: string;
-  
+
   wizardStep?: number;
   onStepChange?: (step: number) => void;
   verificationPreviewMode?: 'tela-inicial' | 'etapas-fluxo' | 'barra-navegacao' | 'botoes-captura' | 'mensagens-deteccao';
@@ -119,7 +119,7 @@ export const SignaturePreview = ({
   clientCpf = '123.456.789-00',
   clientEmail = 'cliente@email.com',
   clientPhone = '(11) 99999-9999',
-  
+
   primaryColor = '#2c3e50',
   textColor = '#333333',
   fontFamily = 'Arial, sans-serif',
@@ -129,7 +129,7 @@ export const SignaturePreview = ({
   logoPosition = 'center',
   companyName = 'Sua Empresa',
   footerText = 'Documento gerado eletronicamente',
-  
+
   verificationPrimaryColor,
   verificationTextColor,
   verificationFontFamily,
@@ -143,7 +143,7 @@ export const SignaturePreview = ({
   securityText = 'Suas informações são processadas de forma segura e criptografada',
   backgroundColor = '#ffffff',
   headerBackgroundColor = '#2c3e50',
-  
+
   selfieStepTitle = 'Tire uma selfie',
   selfieStepDescription = 'Posicione seu rosto na área indicada',
   documentStepTitle = 'Fotografe seu documento',
@@ -154,7 +154,7 @@ export const SignaturePreview = ({
   resultStepDescription = 'Sua identidade foi verificada com sucesso',
   selfieButtonText = 'Iniciar Verificação',
   selfieInstructionText = 'Posicione seu rosto e aguarde a captura automática',
-  
+
   stepLabelSelfie = 'Selfie',
   stepLabelDocument = 'Documento',
   stepLabelAnalysis = 'Análise',
@@ -169,19 +169,19 @@ export const SignaturePreview = ({
   detectionLightingMessage = 'Melhore a iluminação',
   detectionQualityMessage = 'Aproxime seu rosto',
   detectionPerfectMessage = 'Perfeito! Capturando...',
-  
+
   contractTitle = 'Contrato de Prestação de Serviços',
   clauses = [
     { title: 'Objeto do Contrato', content: 'O presente contrato tem por objeto estabelecer os termos e condições para a prestação de serviços entre as partes.' },
     { title: 'Obrigações das Partes', content: 'As partes comprometem-se a cumprir todas as disposições previstas neste instrumento, agindo sempre com boa-fé e transparência.' },
     { title: 'Prazo de Vigência', content: 'Este contrato terá vigência pelo prazo acordado entre as partes, podendo ser renovado mediante acordo mútuo.' }
   ],
-  
+
   contractPrimaryColor,
   contractTextColor,
   contractBackgroundColor,
   contractFontFamily,
-  
+
   parabensTitle = 'Parabéns!',
   parabensSubtitle = 'Processo concluído com sucesso!',
   parabensDescription = 'Sua documentação foi processada. Aguarde as próximas instruções.',
@@ -191,7 +191,7 @@ export const SignaturePreview = ({
   parabensTextColor = '#1e40af',
   parabensFontFamily = 'Arial, sans-serif',
   parabensButtonText = 'Confirmar e Continuar',
-  
+
   progressCardColor = '#dbeafe',
   progressButtonColor = '#22c55e',
   progressTextColor = '#1e40af',
@@ -202,15 +202,15 @@ export const SignaturePreview = ({
   progressInactiveStepBg = 'rgba(255,255,255,0.05)',
   progressCheckIconColor = '#22c55e',
   progressInactiveCircleBg = 'rgba(255,255,255,0.2)',
-  
+
   wizardStep: externalWizardStep,
   onStepChange,
   verificationPreviewMode
 }: SignaturePreviewProps) => {
   const [internalWizardStep, setInternalWizardStep] = useState(0);
-  
+
   const wizardStep = externalWizardStep !== undefined ? externalWizardStep : internalWizardStep;
-  
+
   const handleStepChange = (step: number) => {
     if (onStepChange) {
       onStepChange(step);
@@ -269,7 +269,7 @@ export const SignaturePreview = ({
     const vLogoSize = verificationLogoSize || logoSize;
     const vLogoPosition = verificationLogoPosition || logoPosition;
     const vFooterText = verificationFooterText || footerText;
-    
+
     const getVerificationLogoSize = () => {
       switch (vLogoSize) {
         case 'small': return '80px';
@@ -277,7 +277,7 @@ export const SignaturePreview = ({
         default: return '140px';
       }
     };
-    
+
     const getVerificationLogoAlignment = () => {
       switch (vLogoPosition) {
         case 'left': return 'flex-start';
@@ -285,7 +285,7 @@ export const SignaturePreview = ({
         default: return 'center';
       }
     };
-    
+
     const stepLabels = [
       { label: stepLabelSelfie, icon: Camera },
       { label: stepLabelDocument, icon: FileText },
@@ -302,30 +302,30 @@ export const SignaturePreview = ({
     ];
 
     const renderTelaInicialPreview = () => (
-      <div 
+      <div
         className="min-h-[400px] flex flex-col items-center p-6"
         style={{ backgroundColor, fontFamily: vFontFamily }}
         data-testid="preview-tela-inicial"
       >
         {vLogoUrl && (
-          <div 
+          <div
             className="w-full mb-6"
             style={{ display: 'flex', justifyContent: getVerificationLogoAlignment() }}
           >
-            <img 
-              src={vLogoUrl} 
-              alt="Logo" 
+            <img
+              src={vLogoUrl}
+              alt="Logo"
               style={{ maxWidth: getVerificationLogoSize(), height: 'auto' }}
               data-testid="img-preview-logo"
             />
           </div>
         )}
 
-        <div 
+        <div
           className="w-24 h-24 rounded-full flex items-center justify-center mb-4 relative"
           style={{ backgroundColor: `${vPrimaryColor}15` }}
         >
-          <div 
+          <div
             className="w-16 h-16 rounded-full flex items-center justify-center"
             style={{ backgroundColor: `${vPrimaryColor}25` }}
           >
@@ -333,7 +333,7 @@ export const SignaturePreview = ({
           </div>
         </div>
 
-        <h1 
+        <h1
           className="text-2xl font-bold text-center mb-2"
           style={{ color: vTextColor }}
           data-testid="text-verification-title"
@@ -341,7 +341,7 @@ export const SignaturePreview = ({
           {welcomeText}
         </h1>
 
-        <p 
+        <p
           className="text-center mb-4 max-w-sm text-sm"
           style={{ color: vTextColor, opacity: 0.85 }}
           data-testid="text-verification-instructions"
@@ -359,19 +359,18 @@ export const SignaturePreview = ({
           <ArrowRight className="ml-2 w-4 h-4" />
         </Button>
 
-        <p 
+        <p
           className="text-xs text-center max-w-xs"
           style={{ color: vPrimaryColor }}
           data-testid="text-security"
         >
-          <Shield className="w-3 h-3 inline mr-1" />
           {securityText}
         </p>
       </div>
     );
 
     const renderEtapasFluxoPreview = () => (
-      <div 
+      <div
         className="min-h-[400px] relative p-6"
         style={{ backgroundColor, fontFamily: vFontFamily }}
         data-testid="preview-etapas-fluxo"
@@ -379,8 +378,8 @@ export const SignaturePreview = ({
         <div className="w-full h-full bg-gray-100 rounded-lg flex items-center justify-center" style={{ minHeight: '300px' }}>
           <p className="text-gray-400 text-sm">Área de Câmera</p>
         </div>
-        
-        <div 
+
+        <div
           className="absolute bottom-4 left-4 p-4 rounded-xl border shadow-lg max-w-xs"
           style={{ borderColor: `${vPrimaryColor}30`, backgroundColor: 'white' }}
           data-testid="progress-popup"
@@ -397,14 +396,14 @@ export const SignaturePreview = ({
                 <div
                   key={index}
                   className="flex items-center gap-3 p-2 rounded-lg"
-                  style={{ 
+                  style={{
                     backgroundColor: isActive ? `${vPrimaryColor}15` : 'transparent',
                     borderLeft: isActive ? `3px solid ${vPrimaryColor}` : '3px solid transparent'
                   }}
                 >
-                  <div 
+                  <div
                     className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
-                    style={{ 
+                    style={{
                       backgroundColor: isActive ? vPrimaryColor : progressIndicatorInactiveCircleColor,
                       color: isActive ? 'white' : progressIndicatorInactiveTextColor
                     }}
@@ -412,13 +411,13 @@ export const SignaturePreview = ({
                     <Icon className="w-3 h-3" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p 
+                    <p
                       className="text-xs font-medium truncate"
                       style={{ color: isActive ? vPrimaryColor : progressIndicatorInactiveTextColor }}
                     >
                       {step.title}
                     </p>
-                    <p 
+                    <p
                       className="text-xs truncate"
                       style={{ color: vTextColor, opacity: 0.6 }}
                     >
@@ -434,7 +433,7 @@ export const SignaturePreview = ({
     );
 
     const renderBarraNavegacaoPreview = () => (
-      <div 
+      <div
         className="min-h-[200px] flex flex-col items-center justify-center p-6"
         style={{ backgroundColor, fontFamily: vFontFamily }}
         data-testid="preview-barra-navegacao"
@@ -442,7 +441,7 @@ export const SignaturePreview = ({
         <p className="text-xs font-semibold mb-4 text-center opacity-70" style={{ color: vTextColor }}>
           Barra de Navegação (Etapas)
         </p>
-        <div 
+        <div
           className="w-full max-w-lg p-4 rounded-xl border"
           style={{ borderColor: `${vPrimaryColor}30`, backgroundColor: `${vPrimaryColor}05` }}
           data-testid="step-navigation-preview"
@@ -454,16 +453,16 @@ export const SignaturePreview = ({
               return (
                 <div key={index} className="flex items-center" data-testid={`step-nav-${index}`}>
                   <div className="flex flex-col items-center gap-1">
-                    <div 
+                    <div
                       className="w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold"
-                      style={{ 
+                      style={{
                         backgroundColor: isActive ? vPrimaryColor : progressIndicatorInactiveCircleColor,
                         color: isActive ? 'white' : progressIndicatorInactiveTextColor
                       }}
                     >
                       <Icon className="w-5 h-5" />
                     </div>
-                    <span 
+                    <span
                       className="text-sm font-medium text-center max-w-[80px]"
                       style={{ color: isActive ? vPrimaryColor : progressIndicatorInactiveTextColor }}
                     >
@@ -471,7 +470,7 @@ export const SignaturePreview = ({
                     </span>
                   </div>
                   {index < stepLabels.length - 1 && (
-                    <div 
+                    <div
                       className="h-0.5 flex-1 min-w-6 mx-2 -mt-6"
                       style={{ backgroundColor: progressIndicatorInactiveCircleColor }}
                     />
@@ -485,7 +484,7 @@ export const SignaturePreview = ({
     );
 
     const renderBotoesCapturasPreview = () => (
-      <div 
+      <div
         className="min-h-[200px] flex flex-col items-center justify-center p-6"
         style={{ backgroundColor, fontFamily: vFontFamily }}
         data-testid="preview-botoes-captura"
@@ -493,7 +492,7 @@ export const SignaturePreview = ({
         <p className="text-xs font-semibold mb-4 text-center opacity-70" style={{ color: vTextColor }}>
           Botões da Captura de Selfie
         </p>
-        <div 
+        <div
           className="w-full max-w-md p-6 rounded-xl border"
           style={{ borderColor: `${vPrimaryColor}30`, backgroundColor: `${vPrimaryColor}05` }}
           data-testid="selfie-capture-preview"
@@ -532,7 +531,7 @@ export const SignaturePreview = ({
     );
 
     const renderMensagensDeteccaoPreview = () => (
-      <div 
+      <div
         className="min-h-[300px] flex flex-col items-center justify-center p-6"
         style={{ backgroundColor, fontFamily: vFontFamily }}
         data-testid="preview-mensagens-deteccao"
@@ -540,20 +539,20 @@ export const SignaturePreview = ({
         <p className="text-xs font-semibold mb-4 text-center opacity-70" style={{ color: vTextColor }}>
           Mensagens de Detecção Facial
         </p>
-        <div 
+        <div
           className="w-full max-w-md p-4 rounded-xl border"
           style={{ borderColor: `${vPrimaryColor}30`, backgroundColor: `${vPrimaryColor}05` }}
           data-testid="detection-messages-preview"
         >
           <div className="space-y-3">
             {detectionMessages.map((item, index) => (
-              <div 
+              <div
                 key={index}
                 className="flex items-center gap-3 text-sm p-3 rounded-lg"
                 style={{ backgroundColor: `${vPrimaryColor}10` }}
                 data-testid={`detection-message-${index}`}
               >
-                <span 
+                <span
                   className="font-semibold min-w-[90px]"
                   style={{ color: vPrimaryColor }}
                 >
@@ -583,14 +582,14 @@ export const SignaturePreview = ({
           return renderTelaInicialPreview();
       }
     }
-    
+
     return (
-      <div 
+      <div
         className="min-h-[500px] flex flex-col items-center p-6"
         style={{ backgroundColor, fontFamily: vFontFamily }}
         data-testid="preview-verification-step"
       >
-        <div 
+        <div
           className="w-full max-w-md mb-6 p-4 rounded-xl border"
           style={{ borderColor: `${vPrimaryColor}30`, backgroundColor: `${vPrimaryColor}05` }}
           data-testid="step-navigation-preview"
@@ -605,16 +604,16 @@ export const SignaturePreview = ({
               return (
                 <div key={index} className="flex items-center" data-testid={`step-nav-${index}`}>
                   <div className="flex flex-col items-center gap-1">
-                    <div 
+                    <div
                       className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold"
-                      style={{ 
+                      style={{
                         backgroundColor: isActive ? vPrimaryColor : progressIndicatorInactiveCircleColor,
                         color: isActive ? 'white' : progressIndicatorInactiveTextColor
                       }}
                     >
                       <Icon className="w-4 h-4" />
                     </div>
-                    <span 
+                    <span
                       className="text-xs font-medium text-center max-w-[60px] truncate"
                       style={{ color: isActive ? vPrimaryColor : progressIndicatorInactiveTextColor }}
                     >
@@ -622,7 +621,7 @@ export const SignaturePreview = ({
                     </span>
                   </div>
                   {index < stepLabels.length - 1 && (
-                    <div 
+                    <div
                       className="h-0.5 flex-1 min-w-4 mx-1 -mt-4"
                       style={{ backgroundColor: progressIndicatorInactiveCircleColor }}
                     />
@@ -634,34 +633,34 @@ export const SignaturePreview = ({
         </div>
 
         {vLogoUrl && (
-          <div 
+          <div
             className="w-full mb-6"
             style={{ display: 'flex', justifyContent: getVerificationLogoAlignment() }}
           >
-            <img 
-              src={vLogoUrl} 
-              alt="Logo" 
+            <img
+              src={vLogoUrl}
+              alt="Logo"
               style={{ maxWidth: getVerificationLogoSize(), height: 'auto' }}
               data-testid="img-preview-logo"
             />
           </div>
         )}
 
-        <div 
+        <div
           className="w-32 h-32 rounded-full flex items-center justify-center mb-6 relative"
           style={{ backgroundColor: `${vPrimaryColor}15` }}
           data-testid="selfie-illustration"
         >
-          <div 
+          <div
             className="w-24 h-24 rounded-full flex items-center justify-center"
             style={{ backgroundColor: `${vPrimaryColor}25` }}
           >
-            <div 
+            <div
               className="w-16 h-16 rounded-full flex items-center justify-center relative"
               style={{ backgroundColor: `${vPrimaryColor}40` }}
             >
-              <svg 
-                viewBox="0 0 24 24" 
+              <svg
+                viewBox="0 0 24 24"
                 className="w-10 h-10"
                 fill="none"
                 stroke={vPrimaryColor}
@@ -672,7 +671,7 @@ export const SignaturePreview = ({
               </svg>
             </div>
           </div>
-          <div 
+          <div
             className="absolute -bottom-1 -right-1 w-10 h-10 rounded-full flex items-center justify-center shadow-lg"
             style={{ backgroundColor: vPrimaryColor }}
           >
@@ -680,7 +679,7 @@ export const SignaturePreview = ({
           </div>
         </div>
 
-        <h1 
+        <h1
           className="text-3xl font-bold text-center mb-3"
           style={{ color: vTextColor }}
           data-testid="text-verification-title"
@@ -688,7 +687,7 @@ export const SignaturePreview = ({
           {welcomeText}
         </h1>
 
-        <p 
+        <p
           className="text-center mb-8 max-w-md"
           style={{ color: vTextColor, opacity: 0.85 }}
           data-testid="text-verification-instructions"
@@ -706,7 +705,7 @@ export const SignaturePreview = ({
                 style={{ borderColor: `${vPrimaryColor}20` }}
                 data-testid={`card-verification-step-${index}`}
               >
-                <div 
+                <div
                   className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
                   style={{ backgroundColor: `${vPrimaryColor}20` }}
                 >
@@ -732,7 +731,7 @@ export const SignaturePreview = ({
           <ArrowRight className="ml-2 w-5 h-5" />
         </Button>
 
-        <p 
+        <p
           className="mt-4 text-sm text-center max-w-sm"
           style={{ color: vTextColor, opacity: 0.75 }}
           data-testid="text-selfie-instruction"
@@ -740,16 +739,15 @@ export const SignaturePreview = ({
           {selfieInstructionText}
         </p>
 
-        <p 
+        <p
           className="mt-4 text-xs text-center max-w-xs"
           style={{ color: vPrimaryColor }}
           data-testid="text-security"
         >
-          <Shield className="w-4 h-4 inline mr-1" />
           {securityText}
         </p>
 
-        <div 
+        <div
           className="w-full max-w-md mt-8 p-4 rounded-xl border"
           style={{ borderColor: `${vPrimaryColor}30`, backgroundColor: `${vPrimaryColor}05` }}
           data-testid="selfie-capture-preview"
@@ -785,7 +783,7 @@ export const SignaturePreview = ({
           </div>
         </div>
 
-        <div 
+        <div
           className="w-full max-w-md mt-4 p-4 rounded-xl border"
           style={{ borderColor: `${vPrimaryColor}30`, backgroundColor: `${vPrimaryColor}05` }}
           data-testid="detection-messages-preview"
@@ -795,13 +793,13 @@ export const SignaturePreview = ({
           </p>
           <div className="space-y-2">
             {detectionMessages.map((item, index) => (
-              <div 
+              <div
                 key={index}
                 className="flex items-center gap-2 text-xs p-2 rounded-lg"
                 style={{ backgroundColor: `${vPrimaryColor}10` }}
                 data-testid={`detection-message-${index}`}
               >
-                <span 
+                <span
                   className="font-semibold min-w-[70px]"
                   style={{ color: vPrimaryColor }}
                 >
@@ -812,9 +810,9 @@ export const SignaturePreview = ({
             ))}
           </div>
         </div>
-        
+
         {vFooterText && (
-          <p 
+          <p
             className="mt-4 text-xs text-center opacity-60"
             style={{ color: vTextColor }}
           >
@@ -830,28 +828,28 @@ export const SignaturePreview = ({
     const cTextColor = contractTextColor || textColor;
     const cBackgroundColor = contractBackgroundColor || backgroundColor;
     const cFontFamily = contractFontFamily || fontFamily;
-    
+
     return (
-      <div 
+      <div
         className="min-h-[500px] p-6"
         style={{ backgroundColor: cBackgroundColor, fontFamily: cFontFamily }}
         data-testid="preview-contract-step"
       >
         {logoUrl && (
-          <div 
+          <div
             className="w-full mb-6"
             style={{ display: 'flex', justifyContent: getLogoAlignment() }}
           >
-            <img 
-              src={logoUrl} 
-              alt="Logo" 
+            <img
+              src={logoUrl}
+              alt="Logo"
               style={{ maxWidth: getLogoSizeStyle(), height: 'auto' }}
             />
           </div>
         )}
 
         <div className="text-center mb-6">
-          <h2 
+          <h2
             className="text-2xl font-bold mb-2"
             style={{ color: cTextColor }}
             data-testid="text-contract-title"
@@ -912,16 +910,16 @@ export const SignaturePreview = ({
           <CardContent className="pt-6">
             <div className="text-center">
               <p className="text-sm mb-2" style={{ color: cTextColor, opacity: 0.7 }}>Assinado digitalmente por:</p>
-              <p 
+              <p
                 className="text-2xl mb-1"
-                style={{ 
-                  fontFamily: "'Brush Script MT', 'Segoe Script', cursive", 
-                  color: cPrimaryColor 
+                style={{
+                  fontFamily: "'Brush Script MT', 'Segoe Script', cursive",
+                  color: cPrimaryColor
                 }}
               >
                 {clientName}
               </p>
-              <div 
+              <div
                 className="w-48 h-0.5 mx-auto mb-2"
                 style={{ backgroundColor: cPrimaryColor }}
               />
@@ -932,7 +930,7 @@ export const SignaturePreview = ({
         </Card>
 
         {footerText && (
-          <p 
+          <p
             className="text-center text-xs"
             style={{ color: cTextColor, opacity: 0.6 }}
             data-testid="text-contract-footer"
@@ -966,32 +964,32 @@ export const SignaturePreview = ({
 
   const renderCongratulationsStep = () => {
     return (
-      <div 
+      <div
         className="min-h-[500px] flex flex-col items-center justify-center p-6"
         style={{ backgroundColor: parabensBackgroundColor, fontFamily: parabensFontFamily }}
         data-testid="preview-congratulations-step"
       >
         {logoUrl && (
-          <div 
+          <div
             className="w-full mb-6"
             style={{ display: 'flex', justifyContent: getLogoAlignment() }}
           >
-            <img 
-              src={logoUrl} 
-              alt="Logo" 
+            <img
+              src={logoUrl}
+              alt="Logo"
               style={{ maxWidth: getLogoSizeStyle(), height: 'auto' }}
             />
           </div>
         )}
 
-        <div 
+        <div
           className="w-24 h-24 rounded-full flex items-center justify-center mb-6"
           style={{ backgroundColor: `${parabensButtonColor}20` }}
         >
           <Award className="w-14 h-14" style={{ color: parabensButtonColor }} />
         </div>
 
-        <h1 
+        <h1
           className="text-4xl font-bold text-center mb-2"
           style={{ color: parabensTextColor }}
           data-testid="text-parabens-title"
@@ -999,7 +997,7 @@ export const SignaturePreview = ({
           {parabensTitle}
         </h1>
 
-        <h2 
+        <h2
           className="text-xl text-center mb-4"
           style={{ color: parabensTextColor, opacity: 0.9 }}
           data-testid="text-parabens-subtitle"
@@ -1007,7 +1005,7 @@ export const SignaturePreview = ({
           {parabensSubtitle}
         </h2>
 
-        <p 
+        <p
           className="text-center mb-8 max-w-md"
           style={{ color: parabensTextColor, opacity: 0.75 }}
           data-testid="text-parabens-description"
@@ -1015,7 +1013,7 @@ export const SignaturePreview = ({
           {parabensDescription}
         </p>
 
-        <Card 
+        <Card
           className="w-full max-w-md mb-6"
           style={{ backgroundColor: parabensCardColor, borderColor: `${parabensTextColor}30` }}
         >
@@ -1099,12 +1097,12 @@ export const SignaturePreview = ({
   const stepNames = ['Verificação', 'Contrato', 'Parabéns'];
 
   return (
-    <div 
+    <div
       className="w-full rounded-lg overflow-hidden border shadow-lg"
       style={{ fontFamily }}
       data-testid="signature-preview"
     >
-      <div 
+      <div
         className="p-4 border-b"
         style={{ backgroundColor: `${primaryColor}10`, borderColor: `${primaryColor}30` }}
       >
@@ -1116,14 +1114,14 @@ export const SignaturePreview = ({
             {progress}% completo
           </span>
         </div>
-        <Progress 
-          value={progress} 
+        <Progress
+          value={progress}
           className="h-2"
-          style={{ 
+          style={{
             backgroundColor: `${primaryColor}20`,
           }}
         />
-        
+
         <div className="flex justify-between mt-4">
           {stepNames.map((name, index) => (
             <button
@@ -1132,20 +1130,19 @@ export const SignaturePreview = ({
               className="flex flex-col items-center gap-1 transition-all"
               data-testid={`button-step-${index}`}
             >
-              <div 
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all ${
-                  index === wizardStep ? 'scale-110' : ''
-                }`}
-                style={{ 
+              <div
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all ${index === wizardStep ? 'scale-110' : ''
+                  }`}
+                style={{
                   backgroundColor: index <= wizardStep ? primaryColor : `${primaryColor}30`,
                   color: index <= wizardStep ? 'white' : (progressTextColor || textColor)
                 }}
               >
                 {index + 1}
               </div>
-              <span 
+              <span
                 className="text-xs font-medium"
-                style={{ 
+                style={{
                   color: index === wizardStep ? (progressTextColor || primaryColor) : `${progressTextColor || textColor}80`
                 }}
               >

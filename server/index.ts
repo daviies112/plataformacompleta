@@ -184,6 +184,8 @@ app.use((req, res, next) => {
   // Custom 404 handler for API routes - always return JSON
   app.use((req: Request, res: Response, next: NextFunction) => {
     if (req.path.startsWith('/api/')) {
+      console.log(`⚠️ [404] Route not found: ${req.method} ${req.path}`);
+
       return res.status(404).json({
         success: false,
         error: 'Endpoint não encontrado',

@@ -1,15 +1,15 @@
 {
   "isRunning": true,
-  "startedAt": "2026-02-08T12:07:00.204Z",
+  "startedAt": "2026-02-12T00:24:16.289Z",
   "lastExecutions": {
     "system-system": {
       "clientId": "system",
       "tenantId": "system",
-      "lastRun": "2026-02-07T22:14:24.650Z",
-      "lastSuccess": null,
-      "lastError": null,
+      "lastRun": "2026-02-12T18:34:26.916Z",
+      "lastSuccess": "2026-02-12T18:34:26.916Z",
+      "lastError": "Invalid supabaseUrl: Must be a valid HTTP or HTTPS URL.",
       "consecutiveErrors": 0,
-      "totalExecutions": 42,
+      "totalExecutions": 517,
       "totalNewClientsDetected": 0,
       "totalEventsCreated": 0,
       "status": "running"
@@ -17,11 +17,11 @@
     "dev-daviemericko_gmail_com-dev-daviemericko_gmail_com": {
       "clientId": "dev-daviemericko_gmail_com",
       "tenantId": "dev-daviemericko_gmail_com",
-      "lastRun": "2026-02-07T12:23:19.915Z",
-      "lastSuccess": "2026-02-06T20:24:49.124Z",
-      "lastError": null,
+      "lastRun": "2026-02-12T18:34:27.556Z",
+      "lastSuccess": "2026-02-12T18:34:27.556Z",
+      "lastError": "Invalid supabaseUrl: Must be a valid HTTP or HTTPS URL.",
       "consecutiveErrors": 0,
-      "totalExecutions": 371,
+      "totalExecutions": 731,
       "totalNewClientsDetected": 0,
       "totalEventsCreated": 0,
       "status": "running"
@@ -73,14 +73,26 @@
       "totalNewClientsDetected": 0,
       "totalEventsCreated": 0,
       "status": "running"
+    },
+    "b25cf69e-def4-4cea-afbf-0b93eabb77b2-b25cf69e-def4-4cea-afbf-0b93eabb77b2": {
+      "clientId": "b25cf69e-def4-4cea-afbf-0b93eabb77b2",
+      "tenantId": "b25cf69e-def4-4cea-afbf-0b93eabb77b2",
+      "lastRun": "2026-02-12T18:34:27.552Z",
+      "lastSuccess": "2026-02-12T18:34:27.552Z",
+      "lastError": null,
+      "consecutiveErrors": 0,
+      "totalExecutions": 313,
+      "totalNewClientsDetected": 0,
+      "totalEventsCreated": 0,
+      "status": "running"
     }
   },
   "globalStats": {
-    "totalExecutions": 803,
+    "totalExecutions": 1951,
     "totalNewClientsDetected": 0,
     "totalEventsCreated": 0,
-    "totalErrors": 0,
-    "uptime": 1497
+    "totalErrors": 12,
+    "uptime": 65411
   },
   "settings": {
     "detectionIntervalMinutes": 2,

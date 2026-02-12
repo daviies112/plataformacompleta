@@ -104,6 +104,27 @@ export const evolutionApi = {
     }
   },
 
+  // Logout / Desconectar
+  logout: async (): Promise<boolean> => {
+    try {
+      console.log('🚪 Requesting logout...');
+      const response = await apiRequest('/api/evolution/logout', {
+        method: 'POST',
+      });
+
+      if (!response?.success) {
+        console.error('Failed to logout:', response);
+        throw new Error(response?.error || 'Erro ao desconectar');
+      }
+
+      console.log('✅ Logout successful');
+      return true;
+    } catch (error) {
+      console.error('❌ Error during logout:', error);
+      throw error;
+    }
+  },
+
   // Buscar QR Code para conectar WhatsApp
   fetchQRCode: async (): Promise<{ qrcode?: string; pairingCode?: string; connected: boolean }> => {
     try {

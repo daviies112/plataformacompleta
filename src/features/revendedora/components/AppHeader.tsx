@@ -17,7 +17,6 @@ import {
   Trophy,
   Settings,
   Banknote,
-  Banknote,
   LogOut,
   Tag
 } from 'lucide-react';
@@ -42,9 +41,9 @@ const getAdminItems = (basePath: string) => ({
     { title: 'Solicitações', url: '/produto/admin/product-requests', icon: ClipboardList },
   ],
   revendedoras: [
-    { title: 'Revendedores', url: '/produto/admin/resellers', icon: Users },
-    { title: 'Configurar Comissões', url: '/produto/admin/commission-config', icon: Percent },
-    { title: 'Personalização', url: '/produto/admin/branding', icon: Palette },
+    { title: 'Revendedores', url: '/revendedora/admin/resellers', icon: Users, id: 'admin-resellers' },
+    { title: 'Configurar Comissões', url: '/revendedora/admin/commission-config', icon: Percent, id: 'admin-commissions' },
+    { title: 'Personalização', url: '/revendedora/admin/branding', icon: Palette },
   ],
   vendas: [
     { title: 'Dashboard', url: '/vendas/dashboard', icon: LayoutDashboard },
@@ -74,128 +73,53 @@ export function AppHeader({
   const location = useLocation();
   const adminSections = getAdminItems(basePath);
 
-  // Flatten all admin items for reseller view compatibility
+  const isRevendedoraAdmin = location.pathname.includes('/revendedora/admin');
+
+  const isActive = (url: string) => {
+    if (isRevendedoraAdmin && !url.includes('/revendedora/admin')) {
+      return false;
+    }
+    return location.pathname === url || location.pathname.startsWith(url);
+  };
+
   const allAdminItems = type === 'admin' || role === 'admin'
     ? [...adminSections.etiqueta, ...adminSections.revendedoras, ...adminSections.vendas]
     : [];
 
   const items = type === 'admin' || role === 'admin' ? allAdminItems : resellerItems;
 
-  const isActive = (url: string) => location.pathname === url || location.pathname.startsWith(url);
-
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex h-16 items-center px-4 gap-4">
-
         <nav className="hidden lg:flex flex-1 items-center gap-1 overflow-x-auto">
-          {(type === 'admin' || role === 'admin') ? (
-            <>
-              {/* Etiqueta Section */}
-              <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-muted/30">
-                <span className="text-xs font-semibold text-muted-foreground px-2">Etiqueta</span>
-                {adminSections.etiqueta.map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <NavLink
-                      key={item.url}
-                      to={item.url}
-                      className={cn(
-                        'flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap',
-                        isActive(item.url)
-                          ? 'bg-primary/10 text-primary'
-                          : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                      )}
-                    >
-                      <Icon className="h-4 w-4" />
-                      {item.title}
-                    </NavLink>
-                  );
-                })}
-              </div>
-
-              {/* Revendedoras Section */}
-              <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-muted/30 ml-2">
-                <span className="text-xs font-semibold text-muted-foreground px-2">Revendedoras</span>
-                {adminSections.revendedoras.map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <NavLink
-                      key={item.url}
-                      to={item.url}
-                      className={cn(
-                        'flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap',
-                        isActive(item.url)
-                          ? 'bg-primary/10 text-primary'
-                          : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                      )}
-                    >
-                      <Icon className="h-4 w-4" />
-                      {item.title}
-                    </NavLink>
-                  );
-                })}
-              </div>
-
-              {/* Vendas Section */}
-              <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-muted/30 ml-2">
-                <span className="text-xs font-semibold text-muted-foreground px-2">Vendas</span>
-                {adminSections.vendas.map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <NavLink
-                      key={item.url}
-                      to={item.url}
-                      className={cn(
-                        'flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap',
-                        isActive(item.url)
-                          ? 'bg-primary/10 text-primary'
-                          : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                      )}
-                    >
-                      <Icon className="h-4 w-4" />
-                      {item.title}
-                    </NavLink>
-                  );
-                })}
-              </div>
-            </>
+          {isRevendedoraAdmin ? (
+            <div className="flex items-center gap-2 px-2 py-1 rounded-md ml-2">
+              {adminSections.revendedoras.filter(item => item.id).map((item: any) => {
+                const Icon = item.icon;
+                const active = isActive(item.url);
+                return (
+                  <button
+                    key={item.url}
+                    onClick={() => {
+                      window.dispatchEvent(new CustomEvent('navigate-admin', { detail: item.id }));
+                    }}
+                    className={cn(
+                      'flex items-center gap-2 px-4 py-2 text-sm font-bold rounded-md transition-all whitespace-nowrap shadow-sm',
+                      active
+                        ? 'bg-primary text-white ring-2 ring-primary/30 scale-105'
+                        : 'bg-muted/20 text-white hover:bg-white/20 hover:scale-105'
+                    )}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {item.title}
+                  </button>
+                );
+              })}
+            </div>
           ) : (
-            items.filter(item => item.title !== 'Dashboard').map((item) => {
-              const Icon = item.icon;
-              return (
-                <NavLink
-                  key={item.url}
-                  to={item.url}
-                  className={cn(
-                    'flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap',
-                    isActive(item.url)
-                      ? 'bg-primary/10 text-primary'
-                      : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                  )}
-                >
-                  <Icon className="h-4 w-4" />
-                  {item.title}
-                </NavLink>
-              );
-            })
-          )}
-        </nav>
-
-        {(type === 'admin' || role === 'admin') && (
-          <Sheet>
-            <SheetTrigger asChild className="lg:hidden">
-              <Button variant="outline" size="sm">
-                <Menu className="h-4 w-4" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="right" className="w-[280px]">
-              <SheetHeader>
-                <SheetTitle className="text-left">Menu</SheetTitle>
-              </SheetHeader>
-              <div className="flex flex-col gap-4 mt-6">
-                {/* Etiqueta Section */}
-                <div className="space-y-2">
-                  <h3 className="text-xs font-semibold text-muted-foreground px-3">ETIQUETA</h3>
+            (type === 'admin' || role === 'admin') ? (
+              <>
+                <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-muted/30">
                   {adminSections.etiqueta.map((item) => {
                     const Icon = item.icon;
                     return (
@@ -203,7 +127,7 @@ export function AppHeader({
                         key={item.url}
                         to={item.url}
                         className={cn(
-                          'flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors',
+                          'flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap',
                           isActive(item.url)
                             ? 'bg-primary/10 text-primary'
                             : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
@@ -216,9 +140,7 @@ export function AppHeader({
                   })}
                 </div>
 
-                {/* Revendedoras Section */}
-                <div className="space-y-2">
-                  <h3 className="text-xs font-semibold text-muted-foreground px-3">REVENDEDORAS</h3>
+                <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-muted/30 ml-2">
                   {adminSections.revendedoras.map((item) => {
                     const Icon = item.icon;
                     return (
@@ -226,7 +148,7 @@ export function AppHeader({
                         key={item.url}
                         to={item.url}
                         className={cn(
-                          'flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors',
+                          'flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap',
                           isActive(item.url)
                             ? 'bg-primary/10 text-primary'
                             : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
@@ -239,9 +161,7 @@ export function AppHeader({
                   })}
                 </div>
 
-                {/* Vendas Section */}
-                <div className="space-y-2">
-                  <h3 className="text-xs font-semibold text-muted-foreground px-3">VENDAS</h3>
+                <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-muted/30 ml-2">
                   {adminSections.vendas.map((item) => {
                     const Icon = item.icon;
                     return (
@@ -249,7 +169,7 @@ export function AppHeader({
                         key={item.url}
                         to={item.url}
                         className={cn(
-                          'flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors',
+                          'flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap',
                           isActive(item.url)
                             ? 'bg-primary/10 text-primary'
                             : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
@@ -261,10 +181,93 @@ export function AppHeader({
                     );
                   })}
                 </div>
-              </div>
-            </SheetContent>
-          </Sheet>
-        )}
+              </>
+            ) : (
+              items.filter(item => item.title !== 'Dashboard').map((item) => {
+                const Icon = item.icon;
+                return (
+                  <NavLink
+                    key={item.url}
+                    to={item.url}
+                    className={cn(
+                      'flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md transition-colors whitespace-nowrap',
+                      isActive(item.url)
+                        ? 'bg-primary/10 text-primary'
+                        : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                    )}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {item.title}
+                  </NavLink>
+                );
+              })
+            )
+          )}
+        </nav>
+
+        <div className="flex lg:hidden items-center gap-2 px-2 py-1 rounded-md ml-2">
+          {isRevendedoraAdmin ? (
+            adminSections.revendedoras.filter(item => item.id).map((item: any) => {
+              const Icon = item.icon;
+              const active = isActive(item.url);
+              return (
+                <button
+                  key={item.url}
+                  onClick={() => {
+                    window.dispatchEvent(new CustomEvent('navigate-admin', { detail: item.id }));
+                  }}
+                  className={cn(
+                    'flex items-center gap-2 px-3 py-2 text-xs font-bold rounded-md transition-all whitespace-nowrap shadow-sm',
+                    active
+                      ? 'bg-primary text-white ring-2 ring-primary/30 scale-105'
+                      : 'bg-muted/20 text-white hover:bg-white/20 hover:scale-105'
+                  )}
+                >
+                  <Icon className="h-3 w-3" />
+                  {item.title}
+                </button>
+              );
+            })
+          ) : (
+             (type === 'admin' || role === 'admin') && (
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Menu className="h-4 w-4" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="right" className="w-[280px]">
+                  <SheetHeader>
+                    <SheetTitle className="text-left">Menu</SheetTitle>
+                  </SheetHeader>
+                  <div className="flex flex-col gap-4 mt-6">
+                    <div className="space-y-2">
+                      {adminSections.etiqueta.map((item) => (
+                        <NavLink key={item.url} to={item.url} className={cn('flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md', isActive(item.url) ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-accent')}>
+                          <item.icon className="h-4 w-4" /> {item.title}
+                        </NavLink>
+                      ))}
+                    </div>
+                    <div className="space-y-2">
+                      {adminSections.revendedoras.map((item: any) => (
+                        <NavLink key={item.url} to={item.url} className={cn('flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md', isActive(item.url) ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-accent')}>
+                          <item.icon className="h-4 w-4" /> {item.title}
+                        </NavLink>
+                      ))}
+                    </div>
+                    <div className="space-y-2">
+                      {adminSections.vendas.map((item) => (
+                        <NavLink key={item.url} to={item.url} className={cn('flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md', isActive(item.url) ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-accent')}>
+                          <item.icon className="h-4 w-4" /> {item.title}
+                        </NavLink>
+                      ))}
+                    </div>
+                  </div>
+                </SheetContent>
+              </Sheet>
+            )
+          )}
+        </div>
 
         <div className="flex items-center gap-2 ml-auto">
           {type === 'reseller' && (

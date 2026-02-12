@@ -7,13 +7,11 @@ interface WelcomeScreenProps {
   primaryColor?: string;
   secondaryColor?: string;
   textColor?: string;
+  titleColor?: string;
   backgroundColor?: string;
   welcomeText?: string;
   instructionText?: string;
   securityText?: string;
-  logoUrl?: string;
-  logoSize?: 'small' | 'medium' | 'large';
-  companyName?: string;
   iconColor?: string;
   buttonTextColor?: string;
 }
@@ -36,18 +34,16 @@ const steps = [
   },
 ];
 
-export const WelcomeScreen = ({ 
-  onStart, 
-  primaryColor = '#2c3e50', 
+export const WelcomeScreen = ({
+  onStart,
+  primaryColor = '#2c3e50',
   secondaryColor = '#d9534f',
   textColor = '#000000',
+  titleColor = '#000000',
   backgroundColor = '#ffffff',
   welcomeText = '',
   instructionText = '',
   securityText = 'Suas informações são processadas de forma segura e criptografada',
-  logoUrl = '',
-  logoSize = 'medium',
-  companyName = '',
   iconColor = '#2c3e50',
   buttonTextColor = '#ffffff'
 }: WelcomeScreenProps) => {
@@ -61,34 +57,34 @@ export const WelcomeScreen = ({
     >
       <div className="flex flex-col items-center w-full">
 
-          <motion.h1
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.2 }}
-            style={{ 
-              color: textColor, 
-              fontSize: '32px',
-              fontWeight: 'bold',
-              textAlign: 'center',
-              marginBottom: '12px'
-            }}
-          >
-            {welcomeText || 'Verificação de Identidade'}
-          </motion.h1>
+        <motion.h1
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.2 }}
+          style={{
+            color: titleColor,
+            fontSize: '32px',
+            fontWeight: 'bold',
+            textAlign: 'center',
+            marginBottom: '12px'
+          }}
+        >
+          {welcomeText || 'Verificação de Identidade'}
+        </motion.h1>
 
-          <motion.p
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.3 }}
-            style={{ 
-              color: textColor, 
-              textAlign: 'center',
-              maxWidth: '400px',
-              marginBottom: '40px'
-            }}
-          >
-            {instructionText || 'Processo seguro e rápido para confirmar sua identidade através de reconhecimento facial.'}
-          </motion.p>
+        <motion.p
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.3 }}
+          style={{
+            color: textColor,
+            textAlign: 'center',
+            maxWidth: '400px',
+            marginBottom: '40px'
+          }}
+        >
+          {instructionText || 'Processo seguro e rápido para confirmar sua identidade através de reconhecimento facial.'}
+        </motion.p>
 
         <div className="w-full max-w-sm space-y-3 mb-10">
           {steps.map((step, index) => {
@@ -138,7 +134,6 @@ export const WelcomeScreen = ({
           className="mt-6 text-xs text-center max-w-xs flex items-center gap-1 justify-center"
           style={{ color: `${textColor}99` }}
         >
-          <Shield className="w-3 h-3" style={{ color: iconColor }} />
           {securityText}
         </motion.p>
       </div>

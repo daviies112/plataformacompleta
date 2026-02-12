@@ -45,3 +45,9 @@ TOTAL_EXPRESS_TEST_MODE = "true"
 
 [userenv.production]
 NODE_ENV = "production"
+
+[userenv.shared]
+CLIENT_LOGIN_PASSWORD_HASH = "$2b$10$sxI6Ai8icfl0P3tKdF67wOsCmweeQvr314iAs/wIb3DDvowy60qP."
+CLIENT_USER_NAME = "Usuário NEXUS"
+JWT_SECRET = "nexus-secret-key-2026-fallback-dev-only-v1"
+CLIENT_LOGIN_EMAIL = "user@nexus.com.br"

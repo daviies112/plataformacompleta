@@ -1,18 +1,18 @@
 {
   "lastSyncedAt": null,
   "lastSyncedId": null,
-  "lastRunAt": "2026-02-08T12:33:00.212Z",
-  "totalSubmissionsProcessed": 6,
-  "totalErrors": 328,
+  "lastRunAt": "2026-02-12T18:34:26.709Z",
+  "totalSubmissionsProcessed": 15,
+  "totalErrors": 331,
   "lastError": null,
   "tenantStates": {
     "system": {
-      "lastSyncedAt": "2026-02-06T19:14:42.279572+00:00",
-      "lastSyncedId": "e3f0fdcd-6972-4348-b26e-d68959d0ee45"
+      "lastSyncedAt": "2026-02-12T12:10:11.667502+00:00",
+      "lastSyncedId": "55601de2-57eb-499f-ab63-7b642be94f1f"
     },
     "dev-daviemericko_gmail_com": {
-      "lastSyncedAt": "2026-02-06T19:14:42.279572+00:00",
-      "lastSyncedId": "e3f0fdcd-6972-4348-b26e-d68959d0ee45"
+      "lastSyncedAt": "2026-02-12T12:10:11.667502+00:00",
+      "lastSyncedId": "55601de2-57eb-499f-ab63-7b642be94f1f"
     },
     "babilo-tenant-001": {
       "lastSyncedAt": "2026-02-07T18:07:49.686948+00:00",
@@ -21,6 +21,10 @@
     "dev-davipiano_gmail_com": {
       "lastSyncedAt": "2026-02-08T00:06:01.491117+00:00",
       "lastSyncedId": "c4110bc3-2be8-4b06-8eec-525fcc0b0005"
+    },
+    "b25cf69e-def4-4cea-afbf-0b93eabb77b2": {
+      "lastSyncedAt": "2026-02-12T12:10:11.667502+00:00",
+      "lastSyncedId": "55601de2-57eb-499f-ab63-7b642be94f1f"
     }
   }
 }

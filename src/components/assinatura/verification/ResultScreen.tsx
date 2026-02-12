@@ -15,24 +15,24 @@ interface ResultScreenProps {
   iconColor?: string;
   logoUrl?: string;
   logoSize?: 'small' | 'medium' | 'large';
+  titleColor?: string;
 }
 
 interface ResultScreenWithTextColorProps extends ResultScreenProps {
   textColor?: string;
 }
 
-export const ResultScreen = ({ 
-  session, 
-  verificationResult, 
-  onRetry, 
-  onComplete, 
-  primaryColor = '#2c3e50', 
+export const ResultScreen = ({
+  session,
+  verificationResult,
+  onRetry,
+  onComplete,
+  primaryColor = '#2c3e50',
   buttonColor,
   buttonTextColor = '#ffffff',
   iconColor,
-  textColor = '#000000', 
-  logoUrl = '', 
-  logoSize = 'medium' 
+  textColor = '#000000',
+  titleColor,
 }: ResultScreenWithTextColorProps) => {
   const effectiveButtonColor = buttonColor || primaryColor;
   const effectiveIconColor = iconColor || primaryColor;
@@ -56,7 +56,7 @@ export const ResultScreen = ({
         document: verificationResult?.documentQuality,
       },
     };
-    
+
     const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -110,7 +110,7 @@ export const ResultScreen = ({
           fontSize: '24px',
           fontWeight: 'bold',
           marginBottom: '8px',
-          color: passed ? primaryColor : '#ef4444'
+          color: passed ? (titleColor || primaryColor) : '#ef4444'
         }}
       >
         {passed ? 'Verificação Aprovada!' : 'Verificação Não Aprovada'}
@@ -128,7 +128,7 @@ export const ResultScreen = ({
           opacity: 0.9
         }}
       >
-        {passed 
+        {passed
           ? 'Sua identidade foi verificada com sucesso. Todas as análises foram concluídas.'
           : 'Não foi possível verificar sua identidade. Tente novamente com melhor iluminação.'}
       </motion.p>
@@ -225,6 +225,7 @@ export const ResultScreen = ({
               size="lg"
               onClick={handleDownloadReport}
               className="w-full h-14"
+              style={{ color: titleColor || primaryColor, borderColor: titleColor || primaryColor }}
             >
               <Download className="w-5 h-5 mr-2" />
               Baixar Relatório

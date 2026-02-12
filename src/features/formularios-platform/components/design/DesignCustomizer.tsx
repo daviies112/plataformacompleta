@@ -63,14 +63,56 @@ export const DesignCustomizer = ({ design, onChange }: DesignCustomizerProps) =>
     name: string;
   }>>([]);
 
+  // Prevenir crash se design.colors estiver indefinido
+  // Cores padrão do sistema
+  const defaultColors = {
+    titleColor: "hsl(222, 47%, 11%)",
+    textColor: "hsl(222, 47%, 11%)",
+    pageBackground: "linear-gradient(135deg, hsl(0, 0%, 100%), hsl(210, 40%, 96%))",
+    containerBackground: "hsl(0, 0%, 100%)",
+    buttonColor: "hsl(221, 83%, 53%)",
+    buttonTextColor: "hsl(0, 0%, 100%)",
+    progressBarColor: "hsl(221, 83%, 53%)",
+    inputBackground: "hsl(210, 40%, 96%)",
+    borderColor: "hsl(214, 32%, 91%)"
+  };
+
+  // Prevenir crash e garantir defaults
+  const safeDesign = {
+    ...design,
+    colors: {
+      ...defaultColors,
+      ...(design?.colors || {})
+    },
+    typography: {
+      fontFamily: "Inter",
+      titleSize: "2xl",
+      textSize: "base",
+      ...(design?.typography || {})
+    },
+    spacing: design?.spacing || "comfortable"
+  };
+
+  // 🔍 MONITORAMENTO: Logar o estado atual do design recebido
   useEffect(() => {
-    if (design.logo && design.extractedColors && design.extractedColors.length > 0) {
-      const variations = generateColorVariations(design.extractedColors);
+    console.log('🎨 [DesignCustomizer] Design Recebido:', design);
+    console.log('🛡️ [DesignCustomizer] Design Seguro (com defaults):', safeDesign);
+  }, [design]);
+
+  // Função auxiliar para logar mudanças
+  const handleChange = (newDesign: any) => {
+    console.log('✏️ [DesignCustomizer] Enviando alteração:', newDesign);
+    onChange(newDesign);
+  };
+
+  useEffect(() => {
+    if (safeDesign.logo && safeDesign.extractedColors && safeDesign.extractedColors.length > 0) {
+      const variations = generateColorVariations(safeDesign.extractedColors);
       setColorVariations(variations);
     } else {
       setColorVariations([]);
     }
-  }, [design.extractedColors]);
+  }, [safeDesign.extractedColors, safeDesign.logo]);
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -109,11 +151,11 @@ export const DesignCustomizer = ({ design, onChange }: DesignCustomizerProps) =>
           const logoUrl = await api.uploadLogo(file);
 
           // Update design with both logo URL and extracted colors
-          onChange({
-            ...design,
+          handleChange({
+            ...safeDesign,
             logo: logoUrl,
             extractedColors: colors,
-            logoSize: design.logoSize || 64
+            logoSize: safeDesign.logoSize || 64
           });
 
           toast({
@@ -143,7 +185,7 @@ export const DesignCustomizer = ({ design, onChange }: DesignCustomizerProps) =>
         setUploading(true);
         try {
           const logoUrl = await api.uploadLogo(file);
-          onChange({ ...design, logo: logoUrl, logoSize: design.logoSize || 64 });
+          handleChange({ ...safeDesign, logo: logoUrl, logoSize: safeDesign.logoSize || 64 });
 
           toast({
             title: "Logo enviada",
@@ -176,14 +218,42 @@ export const DesignCustomizer = ({ design, onChange }: DesignCustomizerProps) =>
   };
 
   const removeLogo = () => {
-    onChange({ ...design, logo: null, extractedColors: undefined, logoSize: undefined });
+    handleChange({ ...safeDesign, logo: null, extractedColors: undefined, logoSize: undefined });
     setColorVariations([]);
   };
 
-  const applyColorVariation = (variation: typeof colorVariations[0]) => {
-    onChange({
+  const handleColorChange = (key: keyof typeof design.colors, value: string) => {
+    // 🔍 DEBUG: Log color change attempt
+    console.log(`🎨 [DesignCustomizer] Alterando cor: ${key} -> ${value}`);
+
+    const newDesign = {
       ...design,
       colors: {
+        ...design.colors,
+        [key]: value,
+        // Sync containerBackground with secondary for legacy compatibility
+        ...(key === 'containerBackground' ? { secondary: value } : {}),
+        ...(key === 'secondary' ? { containerBackground: value } : {})
+      }
+    };
+
+    console.log('🎨 [DesignCustomizer] Novo Estado do Design:', newDesign.colors);
+    onChange(newDesign);
+  };
+
+  const applyColorVariation = (variation: typeof colorVariations[0]) => {
+    handleChange({
+      ...safeDesign,
+      colors: {
+        titleColor: variation.text,
+        textColor: variation.text,
+        pageBackground: variation.background,
+        containerBackground: variation.secondary,
+        buttonColor: variation.primary,
+        buttonTextColor: variation.background,
+        progressBarColor: variation.primary,
+        borderColor: `${variation.primary}30`,
+        // Mantendo deprecated por segurança
         primary: variation.primary,
         secondary: variation.secondary,
         background: variation.background,
@@ -208,7 +278,7 @@ export const DesignCustomizer = ({ design, onChange }: DesignCustomizerProps) =>
         {/* Logo Upload */}
         <div className="space-y-2 mb-6">
           <Label>Logo</Label>
-          {design.logo ? (
+          {safeDesign.logo ? (
             <div className="space-y-4">
               <div className="flex items-center gap-3">
                 <div
@@ -224,12 +294,12 @@ export const DesignCustomizer = ({ design, onChange }: DesignCustomizerProps) =>
                   }}
                 >
                   <img
-                    src={logoPreview || design.logo}
+                    src={logoPreview || safeDesign.logo}
                     alt="Logo"
-                    style={{ height: `${design.logoSize || 64}px`, maxWidth: '200px' }}
+                    style={{ height: `${safeDesign.logoSize || 64}px`, maxWidth: '200px' }}
                     className="object-contain"
                     onError={(e) => {
-                      console.error('Logo failed to load:', logoPreview || design.logo);
+                      console.error('Logo failed to load:', logoPreview || safeDesign.logo);
                       (e.target as HTMLImageElement).style.display = 'none';
                     }}
                     onLoad={(e) => {
@@ -251,11 +321,11 @@ export const DesignCustomizer = ({ design, onChange }: DesignCustomizerProps) =>
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <Label>Tamanho da Logo</Label>
-                  <span className="text-sm text-muted-foreground">{design.logoSize || 64}px</span>
+                  <span className="text-sm text-muted-foreground">{safeDesign.logoSize || 64}px</span>
                 </div>
                 <Slider
-                  value={[design.logoSize || 64]}
-                  onValueChange={(values) => onChange({ ...design, logoSize: values[0] })}
+                  value={[safeDesign.logoSize || 64]}
+                  onValueChange={(values) => handleChange({ ...safeDesign, logoSize: values[0] })}
                   min={32}
                   max={200}
                   step={4}
@@ -267,8 +337,8 @@ export const DesignCustomizer = ({ design, onChange }: DesignCustomizerProps) =>
               <div>
                 <Label>Alinhamento da Logo</Label>
                 <Select
-                  value={design.logoAlign || "left"}
-                  onValueChange={(value: any) => onChange({ ...design, logoAlign: value })}
+                  value={safeDesign.logoAlign || "left"}
+                  onValueChange={(value: any) => handleChange({ ...safeDesign, logoAlign: value })}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -291,14 +361,14 @@ export const DesignCustomizer = ({ design, onChange }: DesignCustomizerProps) =>
                 </div>
               )}
 
-              {design.extractedColors && design.extractedColors.length > 0 && (
+              {safeDesign.extractedColors && safeDesign.extractedColors.length > 0 && (
                 <div className="space-y-3 p-4 bg-secondary/20 rounded-lg border border-border">
                   <div className="flex items-center gap-2">
                     <Sparkles className="h-4 w-4 text-primary" />
                     <Label className="text-sm font-semibold">Cores Extraídas da Logo</Label>
                   </div>
                   <div className="flex gap-2 flex-wrap">
-                    {design.extractedColors.map((color, index) => (
+                    {safeDesign.extractedColors.map((color, index) => (
                       <div
                         key={index}
                         className="w-10 h-10 rounded-md border-2 border-border shadow-sm"
@@ -386,58 +456,108 @@ export const DesignCustomizer = ({ design, onChange }: DesignCustomizerProps) =>
           <div className="grid grid-cols-2 gap-4">
             <ColorPicker
               label="Cor do Título"
-              color={design.colors.titleColor || design.colors.primary || "hsl(222, 47%, 11%)"}
-              onChange={(color) => onChange({
-                ...design,
-                colors: { ...design.colors, titleColor: color }
+              color={safeDesign.colors.titleColor || safeDesign.colors.primary || "hsl(222, 47%, 11%)"}
+              onChange={(color) => handleChange({
+                ...safeDesign,
+                colors: {
+                  ...safeDesign.colors,
+                  titleColor: color,
+                  primary: color
+                }
               })}
             />
             <ColorPicker
               label="Cor do Texto"
-              color={design.colors.textColor || design.colors.text || "hsl(222, 47%, 11%)"}
-              onChange={(color) => onChange({
-                ...design,
-                colors: { ...design.colors, textColor: color }
+              color={safeDesign.colors.textColor || safeDesign.colors.text || "hsl(222, 47%, 11%)"}
+              onChange={(color) => handleChange({
+                ...safeDesign,
+                colors: {
+                  ...safeDesign.colors,
+                  textColor: color,
+                  text: color
+                }
               })}
             />
             <ColorPicker
               label="Cor do Fundo"
-              color={design.colors.pageBackground || design.colors.background || "hsl(0, 0%, 100%)"}
-              onChange={(color) => onChange({
-                ...design,
-                colors: { ...design.colors, pageBackground: color }
+              color={safeDesign.colors.pageBackground || safeDesign.colors.background || "hsl(0, 0%, 100%)"}
+              onChange={(color) => handleChange({
+                ...safeDesign,
+                colors: {
+                  ...safeDesign.colors,
+                  pageBackground: color,
+                  background: color
+                }
               })}
             />
             <ColorPicker
               label="Cor do Container"
-              color={design.colors.containerBackground || design.colors.secondary || "hsl(210, 40%, 96%)"}
-              onChange={(color) => onChange({
-                ...design,
-                colors: { ...design.colors, containerBackground: color }
+              color={safeDesign.colors.containerBackground || safeDesign.colors.secondary || "hsl(210, 40%, 96%)"}
+              onChange={(color) => handleChange({
+                ...safeDesign,
+                colors: {
+                  ...safeDesign.colors,
+                  containerBackground: color,
+                  secondary: color
+                }
               })}
             />
             <ColorPicker
               label="Cor do Botão"
-              color={design.colors.buttonColor || design.colors.button || "hsl(221, 83%, 53%)"}
-              onChange={(color) => onChange({
-                ...design,
-                colors: { ...design.colors, buttonColor: color }
+              color={safeDesign.colors.buttonColor || safeDesign.colors.button || "hsl(221, 83%, 53%)"}
+              onChange={(color) => handleChange({
+                ...safeDesign,
+                colors: {
+                  ...safeDesign.colors,
+                  buttonColor: color,
+                  button: color
+                }
               })}
             />
             <ColorPicker
               label="Cor do Texto do Botão"
-              color={design.colors.buttonTextColor || design.colors.buttonText || "hsl(0, 0%, 100%)"}
-              onChange={(color) => onChange({
-                ...design,
-                colors: { ...design.colors, buttonTextColor: color }
+              color={safeDesign.colors.buttonTextColor || safeDesign.colors.buttonText || "hsl(0, 0%, 100%)"}
+              onChange={(color) => handleChange({
+                ...safeDesign,
+                colors: {
+                  ...safeDesign.colors,
+                  buttonTextColor: color,
+                  buttonText: color
+                }
               })}
             />
             <ColorPicker
               label="Cor da Barra de Progresso"
-              color={design.colors.progressBarColor || design.colors.progressBar || design.colors.primary || "hsl(221, 83%, 53%)"}
-              onChange={(color) => onChange({
-                ...design,
-                colors: { ...design.colors, progressBarColor: color }
+              color={safeDesign.colors.progressBarColor || safeDesign.colors.progressBar || safeDesign.colors.primary || "hsl(221, 83%, 53%)"}
+              onChange={(color) => handleChange({
+                ...safeDesign,
+                colors: {
+                  ...safeDesign.colors,
+                  progressBarColor: color,
+                  progressBar: color
+                }
+              })}
+            />
+            <ColorPicker
+              label="Cor da Borda"
+              color={safeDesign.colors.borderColor || "hsl(214, 32%, 91%)"}
+              onChange={(color) => handleChange({
+                ...safeDesign,
+                colors: {
+                  ...safeDesign.colors,
+                  borderColor: color
+                }
+              })}
+            />
+            <ColorPicker
+              label="Cor do Input"
+              color={safeDesign.colors.inputBackground || safeDesign.colors.secondary || "hsl(210, 40%, 96%)"}
+              onChange={(color) => handleChange({
+                ...safeDesign,
+                colors: {
+                  ...safeDesign.colors,
+                  inputBackground: color
+                }
               })}
             />
           </div>
@@ -450,10 +570,10 @@ export const DesignCustomizer = ({ design, onChange }: DesignCustomizerProps) =>
             <div>
               <Label>Fonte</Label>
               <Select
-                value={design.typography.fontFamily}
-                onValueChange={(value) => onChange({
-                  ...design,
-                  typography: { ...design.typography, fontFamily: value }
+                value={safeDesign.typography.fontFamily}
+                onValueChange={(value) => handleChange({
+                  ...safeDesign,
+                  typography: { ...safeDesign.typography, fontFamily: value }
                 })}
               >
                 <SelectTrigger>
@@ -472,10 +592,10 @@ export const DesignCustomizer = ({ design, onChange }: DesignCustomizerProps) =>
             <div>
               <Label>Tamanho do Título</Label>
               <Select
-                value={design.typography.titleSize}
-                onValueChange={(value) => onChange({
-                  ...design,
-                  typography: { ...design.typography, titleSize: value }
+                value={safeDesign.typography.titleSize}
+                onValueChange={(value) => handleChange({
+                  ...safeDesign,
+                  typography: { ...safeDesign.typography, titleSize: value }
                 })}
               >
                 <SelectTrigger>
@@ -494,10 +614,10 @@ export const DesignCustomizer = ({ design, onChange }: DesignCustomizerProps) =>
             <div>
               <Label>Tamanho do Texto</Label>
               <Select
-                value={design.typography.textSize}
-                onValueChange={(value) => onChange({
-                  ...design,
-                  typography: { ...design.typography, textSize: value }
+                value={safeDesign.typography.textSize}
+                onValueChange={(value) => handleChange({
+                  ...safeDesign,
+                  typography: { ...safeDesign.typography, textSize: value }
                 })}
               >
                 <SelectTrigger>
@@ -519,8 +639,8 @@ export const DesignCustomizer = ({ design, onChange }: DesignCustomizerProps) =>
         <div className="space-y-2">
           <Label>Espaçamento</Label>
           <Select
-            value={design.spacing}
-            onValueChange={(value: any) => onChange({ ...design, spacing: value })}
+            value={safeDesign.spacing}
+            onValueChange={(value: any) => handleChange({ ...safeDesign, spacing: value })}
           >
             <SelectTrigger>
               <SelectValue />

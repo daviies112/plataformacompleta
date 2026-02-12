@@ -85,6 +85,24 @@ function initializeDatabase(): void {
               created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW()
             );
             CREATE UNIQUE INDEX IF NOT EXISTS idx_supabase_master_tenant_unique ON supabase_master_config (tenant_id);
+            CREATE TABLE IF NOT EXISTS hms_100ms_config (
+              id SERIAL PRIMARY KEY, tenant_id TEXT NOT NULL, app_access_key TEXT, app_secret TEXT,
+              template_id TEXT, room_id TEXT, management_token TEXT, subdomain TEXT, company_slug TEXT,
+              is_owner BOOLEAN DEFAULT FALSE, created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW()
+            );
+            ALTER TABLE hms_100ms_config ADD COLUMN IF NOT EXISTS api_base_url TEXT DEFAULT 'https://api.100ms.live/v2';
+            ALTER TABLE hms_100ms_config ADD COLUMN IF NOT EXISTS room_design_config JSONB DEFAULT '{}'::jsonb;
+            ALTER TABLE hms_100ms_config ADD COLUMN IF NOT EXISTS n8n_api_key TEXT;
+            ALTER TABLE hms_100ms_config ADD COLUMN IF NOT EXISTS n8n_api_key_created_at TIMESTAMP;
+            
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_hms_100ms_tenant_unique ON hms_100ms_config (tenant_id);
+            
+            CREATE TABLE IF NOT EXISTS evolution_api_config (
+              id SERIAL PRIMARY KEY, tenant_id TEXT NOT NULL, api_url TEXT NOT NULL, api_key TEXT NOT NULL,
+              instance TEXT DEFAULT 'nexus-whatsapp', created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW()
+            );
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_evolution_api_tenant_unique ON evolution_api_config (tenant_id);
+            
             CREATE TABLE IF NOT EXISTS total_express_config (
               id SERIAL PRIMARY KEY, tenant_id TEXT NOT NULL, "user" TEXT NOT NULL, password TEXT NOT NULL,
               reid TEXT NOT NULL, service TEXT DEFAULT 'EXP', test_mode BOOLEAN DEFAULT TRUE,
@@ -92,7 +110,45 @@ function initializeDatabase(): void {
               created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW()
             );
             CREATE UNIQUE INDEX IF NOT EXISTS idx_total_express_tenant_unique ON total_express_config (tenant_id);
-            CREATE TABLE IF NOT EXISTS leads (
+            
+            CREATE TABLE IF NOT EXISTS cache_config (
+              id SERIAL PRIMARY KEY, progressive_ttl INTEGER, thresholds JSONB, default_ttl INTEGER,
+              batch_invalidation BOOLEAN, cache_warming BOOLEAN, compression BOOLEAN,
+              created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW()
+            );
+            CREATE TABLE IF NOT EXISTS optimizer_config (
+              id SERIAL PRIMARY KEY, field_set JSONB, page_size INTEGER, pagination_type TEXT,
+              query_caching BOOLEAN, aggregation BOOLEAN,
+              created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW()
+            );
+            CREATE TABLE IF NOT EXISTS monitoring_config (
+              id SERIAL PRIMARY KEY, redis_usage JSONB, supabase_usage JSONB, thresholds JSONB,
+              alerts JSONB, auto_actions JSONB,
+              created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW()
+            );
+            CREATE TABLE IF NOT EXISTS redis_config (
+              id SERIAL PRIMARY KEY, tenant_id TEXT NOT NULL, redis_url TEXT NOT NULL, redis_token TEXT,
+              created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW()
+            );
+            CREATE TABLE IF NOT EXISTS sentry_config (
+              id SERIAL PRIMARY KEY, tenant_id TEXT NOT NULL, dsn TEXT NOT NULL, auth_token TEXT,
+              organization TEXT, project TEXT, environment TEXT DEFAULT 'production',
+              traces_sample_rate TEXT DEFAULT '0.1',
+              created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW()
+            );
+            CREATE TABLE IF NOT EXISTS cloudflare_config (
+              id SERIAL PRIMARY KEY, tenant_id TEXT NOT NULL, zone_id TEXT NOT NULL, api_token TEXT NOT NULL,
+              created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW()
+            );
+            CREATE TABLE IF NOT EXISTS better_stack_config (
+              id SERIAL PRIMARY KEY, tenant_id TEXT NOT NULL, source_token TEXT NOT NULL,
+              ingesting_host TEXT DEFAULT 'in.logs.betterstack.com',
+              created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW()
+            );
+            CREATE TABLE IF NOT EXISTS whatsapp_qr_codes (
+              id SERIAL PRIMARY KEY, tenant_id TEXT NOT NULL, client_id TEXT NOT NULL,
+              qr_code_data TEXT NOT NULL, created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW()
+            );
               id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
               tenant_id TEXT NOT NULL,
               telefone TEXT NOT NULL,

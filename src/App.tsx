@@ -22,13 +22,16 @@ import FormularioPublicoWrapper from './features/formularios-platform/pages/Form
 const AssinaturaClientPage = lazy(() => import('./pages/AssinaturaClientPage'));
 const AssinaturaFromMeeting = lazy(() => import('./pages/AssinaturaFromMeeting'));
 const ReuniaoPublica = lazy(() => import('./pages/ReuniaoPublica'));
-const LoginPage = lazy(() => import('./pages/Index'));
+import LoginPage from './pages/Index';
 
 
 // ✅ Skeleton minimalista que renderiza em <50ms (apenas CSS, sem JS pesado)
 const MinimalSkeleton = () => (
   <div className="min-h-screen bg-background flex items-center justify-center">
     <div className="w-full max-w-md px-6 space-y-4">
+      <div className="text-center text-muted-foreground animate-pulse mb-4">
+        Conectado ao Antigravity localmente...
+      </div>
       <div className="h-16 bg-muted/20 rounded-lg animate-pulse" />
       <div className="h-48 bg-muted/20 rounded-lg animate-pulse" />
       <div className="h-12 bg-muted/20 rounded-lg animate-pulse" />
@@ -54,7 +57,7 @@ const isPublicRoute = (path: string): boolean => {
   return (
     path === '/' ||
     path === '/login' ||
-
+    path === '/auth/login' ||
     path.startsWith('/assinar/') ||
     path.startsWith('/assinatura/') ||
     path.startsWith('/f/') ||
@@ -128,9 +131,7 @@ const PublicRoutes = () => {
   if (path === '/login' || path === '/') {
     return (
       <AuthProvider>
-        <Suspense fallback={<MinimalSkeleton />}>
-          <LoginPage />
-        </Suspense>
+        <LoginPage />
       </AuthProvider>
     );
   }

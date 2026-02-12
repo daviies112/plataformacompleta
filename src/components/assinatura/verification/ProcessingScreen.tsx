@@ -14,8 +14,6 @@ interface ProcessingScreenProps {
   textColor?: string;
   titleColor?: string;
   backgroundColor?: string;
-  logoUrl?: string;
-  logoSize?: 'small' | 'medium' | 'large';
 }
 
 const processingSteps = [
@@ -24,19 +22,17 @@ const processingSteps = [
   { id: 'compare', label: 'Comparando características...', icon: CheckCircle },
 ];
 
-export const ProcessingScreen = ({ 
-  selfieImage, 
-  documentImage, 
-  onComplete, 
-  primaryColor = '#2c3e50', 
+export const ProcessingScreen = ({
+  selfieImage,
+  documentImage,
+  onComplete,
+  primaryColor = '#2c3e50',
   buttonColor,
   buttonTextColor = '#ffffff',
   iconColor,
   textColor,
   titleColor,
   backgroundColor,
-  logoUrl = '', 
-  logoSize = 'medium' 
 }: ProcessingScreenProps) => {
   const effectiveButtonColor = buttonColor || primaryColor;
   const effectiveIconColor = iconColor || primaryColor;
@@ -51,13 +47,13 @@ export const ProcessingScreen = ({
       try {
         setCurrentStep(0);
         setStatusMessage('Normalizando iluminação e contraste...');
-        
+
         const progressInterval = setInterval(() => {
           setProgress(prev => Math.min(prev + 1, 95));
         }, 100);
 
         const { useFaceDetection } = await import('@/hooks/assinatura/useFaceDetection');
-        
+
         setTimeout(() => {
           setCurrentStep(1);
           setStatusMessage('Analisando faces com SsdMobilenetv1...');
@@ -178,7 +174,7 @@ export const ProcessingScreen = ({
           const Icon = step.icon;
           const isActive = index === currentStep;
           const isComplete = index < currentStep;
-          
+
           return (
             <motion.div
               key={step.id}
@@ -192,7 +188,7 @@ export const ProcessingScreen = ({
               `}
               style={isActive ? { backgroundColor: `${effectiveButtonColor}1A` } : undefined}
             >
-              <div 
+              <div
                 className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${!isComplete && !isActive ? 'bg-muted text-muted-foreground' : ''}`}
                 style={isComplete ? { backgroundColor: effectiveButtonColor, color: buttonTextColor } : isActive ? { backgroundColor: effectiveButtonColor, color: buttonTextColor } : undefined}
               >
@@ -202,7 +198,7 @@ export const ProcessingScreen = ({
                   <Icon className={`w-4 h-4 ${isActive ? 'animate-pulse' : ''}`} />
                 )}
               </div>
-              <span 
+              <span
                 className={`text-sm transition-colors ${isActive ? 'font-medium' : 'text-muted-foreground'}`}
                 style={{ color: isActive ? effectiveTextColor : undefined }}
               >

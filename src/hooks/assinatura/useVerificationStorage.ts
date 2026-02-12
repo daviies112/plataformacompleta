@@ -34,6 +34,11 @@ export const useVerificationStorage = () => {
     deviceInfo?: string
   ): Promise<{ id: string } | null> => {
     try {
+      if (!supabase) {
+        console.warn('[useVerificationStorage] Supabase client not available, skipping database save.');
+        return { id: 'local-' + Date.now() };
+      }
+
       const { data, error } = await supabase
         .from('face_verifications')
         .insert({
@@ -134,8 +139,8 @@ export const useVerificationStorage = () => {
       const total = data.length;
       const passed = data.filter(v => v.passed).length;
       const failed = total - passed;
-      const avgScore = total > 0 
-        ? data.reduce((sum, v) => sum + (v.similarity_score || 0), 0) / total 
+      const avgScore = total > 0
+        ? data.reduce((sum, v) => sum + (v.similarity_score || 0), 0) / total
         : 0;
 
       return { total, passed, failed, avgScore: Math.round(avgScore) };

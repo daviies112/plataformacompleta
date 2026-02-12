@@ -46,9 +46,9 @@ export const Sidebar = ({ currentPage, onNavigate }: SidebarProps) => {
         { icon: Package, label: "Lista de Produtos", id: "produto-list" },
         { icon: FolderTree, label: "Categorias", id: "produto-category" },
         { icon: Printer, label: "Fila de Impressão", id: "produto-print-queue" },
+        { icon: Store, label: "Produtos", id: "produto-admin-products" },
+        { icon: ClipboardList, label: "Solicitações", id: "produto-admin-requests" },
         { icon: SettingsIcon, label: "Configurações", id: "printer-config" },
-        { icon: Store, label: "Produtos", path: "/produto/admin/products" },
-        { icon: ClipboardList, label: "Solicitações", path: "/produto/admin/product-requests" },
       ],
     },
   ];

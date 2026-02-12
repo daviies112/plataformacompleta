@@ -2,8 +2,14 @@ import { useState, useEffect, useRef } from 'react';
 import {
   Shield, Camera, FileText, CheckCircle, ArrowLeft,
   CreditCard, Scan, MapPin, Loader2, Check, Upload, RefreshCw,
-  Smartphone, Monitor
+  Download,
+  Home,
+  PenTool,
+  Smartphone,
+  Monitor,
+  ArrowRight
 } from 'lucide-react';
+import { LogoHeader } from './verification/LogoHeader';
 
 interface SignatureFlowPreviewProps {
   backgroundColor: string;
@@ -90,15 +96,13 @@ export function SignatureFlowPreview({
     }
   }, [currentStep]);
 
-  const logoEl = logoUrl ? (
-    <img
-      src={logoUrl}
-      alt="Logo"
-      style={{ height: logoSizeMap[logoSize], objectFit: 'contain' as const }}
-      className={isDesktop ? '' : 'mx-auto'}
-      data-testid="preview-flow-logo"
+  const logoHeader = (
+    <LogoHeader
+      logoUrl={logoUrl}
+      logoSize={logoSize}
+      logoPosition={isDesktop ? 'left' : 'center'}
     />
-  ) : null;
+  );
 
   const renderStepDots = () => (
     <div className="flex items-center justify-center gap-1.5 py-2">
@@ -131,32 +135,29 @@ export function SignatureFlowPreview({
   ) : null;
 
   const actionButton = (label: string, testId: string, onClick: () => void) => (
-    <button
-      onClick={onClick}
-      data-testid={testId}
-      className={`w-full rounded-lg font-semibold transition-all ${isDesktop ? 'py-3 text-sm max-w-md' : 'py-2.5 text-xs'}`}
-      style={{ backgroundColor: buttonColor, color: buttonTextColor }}
-    >
-      {label}
-    </button>
+    <div className="w-full bg-white p-4 mt-auto border-t border-border flex justify-center">
+      <button
+        onClick={onClick}
+        data-testid={testId}
+        className={`w-full rounded-md font-semibold transition-all ${isDesktop ? 'py-3 text-sm max-w-md' : 'py-2.5 text-xs'}`}
+        style={{ backgroundColor: buttonColor, color: buttonTextColor }}
+      >
+        {label}
+      </button>
+    </div>
   );
 
   const renderWelcome = () => (
-    <div className={`flex flex-col items-center text-center ${isDesktop ? 'space-y-5' : 'space-y-4'}`}>
-      {logoEl}
-      <div
-        className={`rounded-full flex items-center justify-center ${isDesktop ? 'w-16 h-16' : 'w-14 h-14'}`}
-        style={{ backgroundColor: buttonColor }}
-      >
-        <Shield className={isDesktop ? 'w-8 h-8' : 'w-7 h-7'} style={{ color: buttonTextColor }} />
-      </div>
-      <h2 className={`font-bold ${isDesktop ? 'text-xl' : 'text-base'}`} style={{ color: titleColor }} data-testid="preview-title">
+    <div className={`flex flex-col items-center text-center h-full ${isDesktop ? 'space-y-5' : 'space-y-4'}`}>
+      {!isDesktop && logoHeader}
+      {/* Removido o ícone de Shield conforme solicitação */}
+      <h2 className={`font-bold mt-12 ${isDesktop ? 'text-xl' : 'text-base'}`} style={{ color: titleColor }} data-testid="preview-title">
         Verificação de Identidade
       </h2>
-      <p className={`leading-relaxed ${isDesktop ? 'text-sm max-w-lg' : 'text-xs'}`} style={{ color: textColor }} data-testid="preview-text">
+      <p className={`leading-relaxed px-6 ${isDesktop ? 'text-sm max-w-lg' : 'text-xs'}`} style={{ color: textColor }} data-testid="preview-text">
         Processo seguro e rápido para confirmar sua identidade através de reconhecimento facial.
       </p>
-      <div className={`w-full space-y-2 ${isDesktop ? 'max-w-md' : ''}`}>
+      <div className={`w-full px-6 space-y-2 mt-4 ${isDesktop ? 'max-w-md' : ''}`}>
         {[
           { Icon: Camera, text: 'Tire uma selfie rápida' },
           { Icon: FileText, text: 'Fotografe seu documento' },
@@ -172,35 +173,36 @@ export function SignatureFlowPreview({
           </div>
         ))}
       </div>
-      {actionButton('Iniciar Verificação', 'preview-button-start', next)}
-      <p className={`flex items-center gap-1 ${isDesktop ? 'text-xs' : 'text-[10px]'}`} style={{ color: `${textColor}99` }}>
-        <Shield className="w-3 h-3" style={{ color: iconColor }} />
+      <p className={`flex items-center justify-center gap-1 mt-auto pb-4 ${isDesktop ? 'text-xs' : 'text-[10px]'}`} style={{ color: `${textColor}99` }}>
         Suas informações são processadas de forma segura
       </p>
+      {actionButton('Iniciar Verificação', 'preview-button-start', next)}
     </div>
   );
 
   const renderSelfie = () => (
-    <div className={`flex flex-col items-center text-center ${isDesktop ? 'space-y-5' : 'space-y-4'}`}>
-      {logoEl}
+    <div className={`flex flex-col items-center text-center h-full ${isDesktop ? 'space-y-5' : 'space-y-4'}`}>
+      {!isDesktop && logoHeader}
       {backButton}
-      <h2 className={`font-bold ${isDesktop ? 'text-xl' : 'text-base'}`} style={{ color: titleColor }}>Selfie</h2>
+      <h2 className={`font-bold mt-12 ${isDesktop ? 'text-xl' : 'text-base'}`} style={{ color: titleColor }}>Selfie</h2>
       <div
-        className={`rounded-full flex items-center justify-center ${isDesktop ? 'w-40 h-40' : 'w-32 h-32'}`}
-        style={{ border: `2px dashed ${iconColor}60` }}
+        className={`relative ${isDesktop ? 'w-48 h-64' : 'w-40 h-52'} bg-slate-200 rounded-2xl flex items-center justify-center overflow-hidden border-2 border-dashed mt-4`}
+        style={{ borderColor: iconColor }}
       >
-        <Camera className={isDesktop ? 'w-14 h-14' : 'w-10 h-10'} style={{ color: `${iconColor}80` }} />
+        <Camera className={isDesktop ? 'w-10 h-10' : 'w-8 h-8'} style={{ color: iconColor }} />
       </div>
-      <p className={isDesktop ? 'text-sm' : 'text-xs'} style={{ color: textColor }}>Posicione seu rosto na área indicada</p>
-      {actionButton('Capturar Selfie', 'preview-button-selfie', next)}
+      <p className={`px-6 mt-4 ${isDesktop ? 'text-sm' : 'text-xs'}`} style={{ color: textColor }}>
+        Posicione seu rosto na área indicada e aguarde a detecção
+      </p>
+      {actionButton('Capturar Selfie', 'preview-button-capture', next)}
     </div>
   );
 
   const renderDocument = () => (
-    <div className={`flex flex-col items-center text-center ${isDesktop ? 'space-y-5' : 'space-y-4'}`}>
-      {logoEl}
+    <div className={`flex flex-col items-center text-center h-full ${isDesktop ? 'space-y-5' : 'space-y-4'}`}>
+      {!isDesktop && logoHeader}
       {backButton}
-      <h2 className={`font-bold ${isDesktop ? 'text-xl' : 'text-base'}`} style={{ color: titleColor }}>Documento</h2>
+      <h2 className={`font-bold mt-12 ${isDesktop ? 'text-xl' : 'text-base'}`} style={{ color: titleColor }}>Documento</h2>
       <div className={`flex ${isDesktop ? 'gap-3' : 'gap-2'}`}>
         {['CNH', 'RG', 'RNE'].map((doc, i) => (
           <span
@@ -233,43 +235,36 @@ export function SignatureFlowPreview({
   ];
 
   const renderProcessing = () => (
-    <div className={`flex flex-col items-center text-center py-4 ${isDesktop ? 'space-y-5' : 'space-y-4'}`}>
-      {logoEl}
-      <h2 className={`font-bold ${isDesktop ? 'text-xl' : 'text-base'}`} style={{ color: titleColor }}>Processando...</h2>
+    <div className={`flex flex-col items-center text-center py-4 h-full ${isDesktop ? 'space-y-5' : 'space-y-4'}`}>
+      {!isDesktop && logoHeader}
+      <h2 className={`font-bold mt-12 ${isDesktop ? 'text-xl' : 'text-base'}`} style={{ color: titleColor }}>Processando...</h2>
       <Loader2
-        className={`animate-spin ${isDesktop ? 'w-12 h-12' : 'w-10 h-10'}`}
-        style={{ color: iconColor }}
+        className={`animate-spin mt-4 ${isDesktop ? 'w-12 h-12' : 'w-10 h-10'}`}
+        style={{ color: buttonColor }}
       />
-      <div className={`w-full space-y-2 ${isDesktop ? 'max-w-sm' : ''}`}>
-        {processingStepsList.map(({ label, Icon }, i) => (
-          <div key={label} className={`flex items-center gap-2 ${isDesktop ? 'text-sm' : 'text-xs'}`} style={{ color: textColor }}>
-            {processingChecks[i] ? (
-              <Check className={isDesktop ? 'w-5 h-5' : 'w-4 h-4'} style={{ color: buttonColor }} />
-            ) : (
-              <Icon className={isDesktop ? 'w-5 h-5' : 'w-4 h-4'} style={{ color: iconColor }} />
-            )}
-            <span>{label}</span>
-          </div>
-        ))}
+      <div className="space-y-1.5 px-6 mt-4">
+        <p className={isDesktop ? 'text-sm' : 'text-xs'} style={{ color: textColor }}>Analisando biometria facial</p>
+        <p className={isDesktop ? 'text-xs opacity-60' : 'text-[10px] opacity-60'} style={{ color: textColor }}>Isso pode levar alguns segundos</p>
       </div>
+      {actionButton('Ver Resultado', 'preview-button-proc', next)}
     </div>
   );
 
   const renderResult = () => (
-    <div className={`flex flex-col items-center text-center py-4 ${isDesktop ? 'space-y-5' : 'space-y-4'}`}>
-      {logoEl}
-      <CheckCircle className={isDesktop ? 'w-20 h-20' : 'w-16 h-16'} style={{ color: buttonColor }} />
-      <h2 className={`font-bold ${isDesktop ? 'text-xl' : 'text-base'}`} style={{ color: titleColor }}>Verificação Aprovada</h2>
+    <div className={`flex flex-col items-center text-center py-4 h-full ${isDesktop ? 'space-y-5' : 'space-y-4'}`}>
+      {!isDesktop && logoHeader}
+      <CheckCircle className={`mt-12 ${isDesktop ? 'w-20 h-20' : 'w-16 h-16'}`} style={{ color: buttonColor }} />
+      <h2 className={`font-bold mt-4 ${isDesktop ? 'text-xl' : 'text-base'}`} style={{ color: titleColor }}>Verificação Aprovada</h2>
       <p className={isDesktop ? 'text-sm' : 'text-xs'} style={{ color: textColor }}>Identidade confirmada com sucesso</p>
-      {actionButton('Continuar', 'preview-button-result', next)}
+      {actionButton('Continuar', 'preview-button-res', next)}
     </div>
   );
 
   const renderContract = () => (
-    <div className={`flex flex-col items-center text-center ${isDesktop ? 'space-y-4' : 'space-y-3'}`}>
-      {logoEl}
+    <div className={`flex flex-col items-center text-center h-full ${isDesktop ? 'space-y-4' : 'space-y-3'}`}>
+      {!isDesktop && logoHeader}
       {backButton}
-      <h2 className={`font-bold ${isDesktop ? 'text-xl' : 'text-base'}`} style={{ color: titleColor }}>Contrato</h2>
+      <h2 className={`font-bold mt-12 ${isDesktop ? 'text-xl' : 'text-base'}`} style={{ color: titleColor }}>Contrato</h2>
       {contractPreviewHtml ? (
         <div
           className={`w-full text-left leading-relaxed overflow-y-auto rounded-lg ${isDesktop ? 'text-xs p-3 max-w-lg' : 'text-[10px] p-2'}`}
@@ -303,29 +298,25 @@ export function SignatureFlowPreview({
   );
 
   const renderResidenceProof = () => (
-    <div className={`flex flex-col items-center text-center ${isDesktop ? 'space-y-5' : 'space-y-4'}`}>
-      {logoEl}
+    <div className={`flex flex-col items-center text-center h-full ${isDesktop ? 'space-y-5' : 'space-y-4'}`}>
+      {!isDesktop && logoHeader}
       {backButton}
-      <h2 className={`font-bold ${isDesktop ? 'text-xl' : 'text-base'}`} style={{ color: titleColor }}>Comprovante de Residência</h2>
-      <p className={isDesktop ? 'text-sm' : 'text-xs'} style={{ color: textColor }}>Tire uma foto de um comprovante recente</p>
-      <div
-        className={`w-full rounded-lg flex flex-col items-center justify-center gap-2 ${isDesktop ? 'h-36 max-w-md' : 'h-28'}`}
-        style={{ border: `2px dashed ${iconColor}60` }}
-      >
-        <Camera className={isDesktop ? 'w-10 h-10' : 'w-8 h-8'} style={{ color: `${iconColor}80` }} />
-        <span className={isDesktop ? 'text-xs' : 'text-[10px]'} style={{ color: `${textColor}80` }}>Toque para capturar</span>
+      <h2 className={`font-bold mt-12 ${isDesktop ? 'text-xl' : 'text-base'}`} style={{ color: titleColor }}>Comprovante de Residência</h2>
+      <p className={isDesktop ? 'text-sm mt-4' : 'text-xs mt-2'} style={{ color: textColor }}>Tire uma foto de um comprovante recente</p>
+      <div className={`w-full max-w-[200px] aspect-square bg-slate-100 rounded-xl border-2 border-dashed flex items-center justify-center mt-4`} style={{ borderColor: `${iconColor}40` }}>
+        <Home className={isDesktop ? 'w-10 h-10 text-slate-400' : 'w-8 h-8 text-slate-400'} />
       </div>
-      {actionButton('Capturar Comprovante', 'preview-button-residence', next)}
+      {actionButton('Capturar Comprovante', 'preview-button-res-proof', next)}
     </div>
   );
 
   const renderCongratulations = () => (
-    <div className={`flex flex-col items-center text-center py-6 ${isDesktop ? 'space-y-5' : 'space-y-4'}`}>
-      {logoEl}
-      <CheckCircle className={isDesktop ? 'w-20 h-20' : 'w-16 h-16'} style={{ color: buttonColor }} />
-      <h2 className={`font-bold ${isDesktop ? 'text-2xl' : 'text-lg'}`} style={{ color: titleColor }}>Parabéns!</h2>
+    <div className={`flex flex-col items-center text-center py-6 h-full ${isDesktop ? 'space-y-5' : 'space-y-4'}`}>
+      {!isDesktop && logoHeader}
+      <CheckCircle className={`mt-12 ${isDesktop ? 'w-20 h-20' : 'w-16 h-16'}`} style={{ color: buttonColor }} />
+      <h2 className={`font-bold mt-4 ${isDesktop ? 'text-2xl' : 'text-lg'}`} style={{ color: titleColor }}>Parabéns!</h2>
       <p className={isDesktop ? 'text-sm' : 'text-xs'} style={{ color: textColor }}>Processo concluído com sucesso</p>
-      {actionButton('Reiniciar Preview', 'preview-button-restart', () => goTo(0))}
+      {actionButton('Finalizar', 'preview-button-finish', () => setCurrentStep(0))}
     </div>
   );
 
@@ -341,12 +332,15 @@ export function SignatureFlowPreview({
   ];
 
   const desktopLogoHeader = isDesktop && logoUrl ? (
-    <div className="flex items-center px-6 py-3" style={{ borderBottom: `1px solid ${iconColor}15` }}>
-      <img
-        src={logoUrl}
-        alt="Logo"
-        style={{ height: 36, objectFit: 'contain' as const }}
-      />
+    <div style={{
+      position: 'absolute',
+      top: '44px',
+      left: '0',
+      right: '0',
+      zIndex: 50,
+      pointerEvents: 'none'
+    }}>
+      {logoHeader}
     </div>
   ) : null;
 
@@ -389,14 +383,14 @@ export function SignatureFlowPreview({
           className="rounded-lg border-2 border-foreground/20 overflow-hidden shadow-xl"
           data-testid="signature-flow-preview-desktop"
         >
-          <div className="bg-foreground/10 h-8 flex items-center gap-2 px-3">
+          <div className="bg-muted h-8 flex items-center gap-2 px-3">
             <div className="flex gap-1.5">
-              <div className="w-3 h-3 rounded-full bg-red-400/60" />
-              <div className="w-3 h-3 rounded-full bg-yellow-400/60" />
-              <div className="w-3 h-3 rounded-full bg-green-400/60" />
+              <div className="w-3 h-3 rounded-full bg-red-400" />
+              <div className="w-3 h-3 rounded-full bg-yellow-400" />
+              <div className="w-3 h-3 rounded-full bg-green-400" />
             </div>
             <div className="flex-1 flex justify-center">
-              <div className="bg-foreground/10 rounded-md px-3 py-0.5 text-[9px] text-muted-foreground max-w-[180px] truncate">
+              <div className="bg-background/50 rounded-md px-3 py-0.5 text-[9px] text-muted-foreground max-w-[180px] truncate">
                 app.seudominio.com/assinatura
               </div>
             </div>

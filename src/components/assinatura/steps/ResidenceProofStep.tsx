@@ -11,21 +11,18 @@ interface ResidenceProofStepProps {
   parabens_text_color?: string;
   parabens_font_family?: string;
   button_text_color?: string;
-  logo_url?: string;
-  logo_size?: string;
-  logo_position?: string;
 }
 
 export const ResidenceProofStep = (props: ResidenceProofStepProps = {}) => {
   const { setCurrentStep, addressData, setResidenceProofPhoto, setResidenceProofValidated } = useContract();
   const { toast } = useToast();
-  
+
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [isCapturing, setIsCapturing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
-  
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -40,18 +37,18 @@ export const ResidenceProofStep = (props: ResidenceProofStepProps = {}) => {
 
   const saveAndProceed = useCallback(async (imageData: string) => {
     if (isSaving || isSaved) return;
-    
+
     setIsSaving(true);
-    
+
     try {
       const contractId = window.location.pathname.match(/\/assinar\/([^/]+)/)?.[1];
-      
+
       if (!contractId) {
         throw new Error('ID do contrato não encontrado');
       }
 
       console.log('[ResidenceProof] Salvando automaticamente para contrato:', contractId);
-      
+
       const response = await fetch('/api/assinatura/public/save-residence-proof', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -65,23 +62,23 @@ export const ResidenceProofStep = (props: ResidenceProofStepProps = {}) => {
       });
 
       const result = await response.json();
-      
+
       if (!response.ok) {
         throw new Error(result.message || 'Erro ao salvar comprovante');
       }
 
       console.log('[ResidenceProof] Comprovante salvo com sucesso!', result);
-      
+
       setResidenceProofPhoto(imageData);
       setResidenceProofValidated(true);
       setIsSaved(true);
       setIsSaving(false);
-      
+
       toast({
         title: 'Comprovante salvo!',
         description: 'Foto do comprovante de residência registrada com sucesso.'
       });
-      
+
     } catch (error) {
       console.error('[ResidenceProof] Erro ao salvar:', error);
       toast({
@@ -103,9 +100,9 @@ export const ResidenceProofStep = (props: ResidenceProofStepProps = {}) => {
     try {
       setCameraError(null);
       setIsCapturing(true);
-      
+
       await new Promise(resolve => setTimeout(resolve, 100));
-      
+
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: 'environment',
@@ -113,9 +110,9 @@ export const ResidenceProofStep = (props: ResidenceProofStepProps = {}) => {
           height: { ideal: 1080 }
         }
       });
-      
+
       streamRef.current = stream;
-      
+
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         videoRef.current.onloadedmetadata = () => {
@@ -151,10 +148,10 @@ export const ResidenceProofStep = (props: ResidenceProofStepProps = {}) => {
 
     const video = videoRef.current;
     const canvas = canvasRef.current;
-    
+
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
-    
+
     const ctx = canvas.getContext('2d');
     if (ctx) {
       ctx.drawImage(video, 0, 0);
@@ -226,11 +223,11 @@ export const ResidenceProofStep = (props: ResidenceProofStepProps = {}) => {
 
   if (isSaving) {
     return (
-      <div 
+      <div
         className="min-h-screen flex flex-col items-center justify-center px-4 py-6"
         style={{ fontFamily, backgroundColor }}
       >
-        <div 
+        <div
           className="w-full max-w-md rounded-lg p-8 text-center"
           style={{ backgroundColor: cardColor }}
         >
@@ -248,15 +245,15 @@ export const ResidenceProofStep = (props: ResidenceProofStepProps = {}) => {
 
   if (isSaved) {
     return (
-      <div 
+      <div
         className="min-h-screen flex flex-col items-center justify-center px-4 py-6"
         style={{ fontFamily, backgroundColor }}
       >
-        <div 
+        <div
           className="w-full max-w-md rounded-lg p-8 text-center"
           style={{ backgroundColor: cardColor }}
         >
-          <div 
+          <div
             className="w-20 h-20 mx-auto mb-4 rounded-full flex items-center justify-center"
             style={{ backgroundColor: buttonColor }}
           >
@@ -277,24 +274,11 @@ export const ResidenceProofStep = (props: ResidenceProofStepProps = {}) => {
   }
 
   return (
-    <div 
+    <div
       className="min-h-screen flex flex-col px-4 py-6"
       style={{ fontFamily, backgroundColor }}
     >
       <div className="max-w-lg mx-auto w-full flex-1 flex flex-col">
-        {props.logo_url && (
-          <div style={{ textAlign: (props.logo_position || 'center') as any, marginBottom: '24px' }}>
-            <img 
-              src={props.logo_url} 
-              alt="Logo" 
-              style={{
-                maxWidth: props.logo_size === 'small' ? '100px' : props.logo_size === 'large' ? '300px' : '200px',
-                height: 'auto',
-                display: props.logo_position === 'center' ? 'inline-block' : undefined
-              }} 
-            />
-          </div>
-        )}
         <div className="text-center mb-6">
           <h1 className="text-2xl font-bold mb-2" style={{ color: textColor }}>
             Comprovante de Residência
@@ -305,7 +289,7 @@ export const ResidenceProofStep = (props: ResidenceProofStepProps = {}) => {
         </div>
 
         {addressData && (
-          <div 
+          <div
             className="rounded-lg p-4 mb-4"
             style={{ backgroundColor: cardColor }}
           >
@@ -341,7 +325,7 @@ export const ResidenceProofStep = (props: ResidenceProofStepProps = {}) => {
         <div className="flex-1 flex flex-col">
           {!isCapturing && !capturedImage && (
             <div className="flex-1 flex flex-col items-center justify-center gap-4">
-              <div 
+              <div
                 className="w-full aspect-[4/3] rounded-lg flex items-center justify-center"
                 style={{ backgroundColor: cardColor }}
               >
@@ -394,7 +378,7 @@ export const ResidenceProofStep = (props: ResidenceProofStepProps = {}) => {
                   className="absolute inset-0 w-full h-full object-cover"
                 />
               </div>
-              
+
               <div className="flex gap-3 mt-4">
                 <Button
                   onClick={stopCamera}
@@ -426,7 +410,7 @@ export const ResidenceProofStep = (props: ResidenceProofStepProps = {}) => {
                   className="w-full h-full object-contain"
                 />
               </div>
-              
+
               <div className="mt-4">
                 <Button
                   onClick={retakePhoto}

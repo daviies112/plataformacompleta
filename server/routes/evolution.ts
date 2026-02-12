@@ -43,6 +43,24 @@ router.get('/qrcode', authenticateToken, async (req: AuthRequest, res) => {
       });
     }
 
+    // Checking status first to avoid generating QR code if already connected
+    // This fixes the "QR Code não disponível" error on frontend
+    try {
+      const statusData = await getInstanceStatus(config);
+      if (statusData?.instance?.state === 'open') {
+        console.log(`✅ [Evolution API] Instância ${config.instance} já conectada. Retornando status.`);
+        return res.json({
+          success: true,
+          alreadyConnected: true,
+          qrcode: null,
+          instance: config.instance,
+          message: 'WhatsApp já está conectado'
+        });
+      }
+    } catch (statusError) {
+      console.warn('⚠️ [Evolution API] Erro ao verificar status (continuando para QR code):', statusError);
+    }
+
     const qrData = await getQRCode(config);
 
     res.json({

@@ -1,8 +1,15 @@
+
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+
+// 🔍 DEBUG LOGGER - Rastreamento de Renderização e Design
+const logDesignDebug = (stage: string, data: any) => {
+  console.log(`%c[FormularioPublico] ${stage}`, 'background: #222; color: #bada55; padding: 4px; font-weight: bold;', data);
+};
+
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
 import { Input } from "../components/ui/input";
@@ -234,6 +241,113 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
   });
   const [questionAnswers, setQuestionAnswers] = useState<Record<string, any>>({});
   const [result, setResult] = useState<any>(null);
+
+  // Default design configuration (mirrors FormPreview.tsx)
+  const defaultDesign = useMemo(() => ({
+    colors: {
+      titleColor: "hsl(221, 83%, 53%)",
+      textColor: "hsl(222, 47%, 11%)",
+      pageBackground: "linear-gradient(135deg, hsl(210, 40%, 96%), hsl(0, 0%, 100%))",
+      containerBackground: "hsl(0, 0%, 100%)",
+      buttonColor: "hsl(221, 83%, 53%)",
+      buttonTextColor: "hsl(0, 0%, 100%)",
+      progressBarColor: "hsl(221, 83%, 53%)",
+      inputBackground: "hsl(210, 40%, 96%)",
+      borderColor: "hsl(214, 32%, 91%)",
+      // Deprecated fields
+      primary: "hsl(221, 83%, 53%)",
+      secondary: "hsl(210, 40%, 96%)",
+      background: "hsl(0, 0%, 100%)",
+      text: "hsl(222, 47%, 11%)",
+      button: "hsl(221, 83%, 53%)",
+      buttonText: "hsl(0, 0%, 100%)"
+    },
+    typography: {
+      fontFamily: "Inter",
+      titleSize: "2xl",
+      textSize: "base"
+    },
+    logo: null,
+    logoAlign: 'center',
+    logoSize: 120,
+    spacing: "comfortable"
+  }), []);
+
+  // Function to migrate colors (mirrors FormPreview.tsx)
+  const migrateColors = useCallback((oldColors: any) => {
+    if (!oldColors) return defaultDesign.colors;
+    return {
+      titleColor: oldColors.titleColor || oldColors.primary || defaultDesign.colors.titleColor,
+      textColor: oldColors.textColor || oldColors.text || defaultDesign.colors.textColor,
+      pageBackground: oldColors.pageBackground ||
+        `linear-gradient(135deg, ${oldColors.secondary || defaultDesign.colors.inputBackground}, ${oldColors.background || defaultDesign.colors.containerBackground})`,
+      containerBackground: oldColors.containerBackground || oldColors.secondary || oldColors.background || defaultDesign.colors.containerBackground,
+      buttonColor: oldColors.buttonColor || oldColors.button || defaultDesign.colors.buttonColor,
+      buttonTextColor: oldColors.buttonTextColor || oldColors.buttonText || defaultDesign.colors.buttonTextColor,
+      progressBarColor: oldColors.progressBarColor || oldColors.progressBar || oldColors.primary || defaultDesign.colors.progressBarColor,
+      inputBackground: oldColors.inputBackground || oldColors.secondary || defaultDesign.colors.inputBackground,
+      borderColor: oldColors.borderColor || defaultDesign.colors.borderColor,
+      primary: oldColors.primary,
+      secondary: oldColors.secondary,
+      background: oldColors.background,
+      text: oldColors.text,
+      button: oldColors.button,
+      buttonText: oldColors.buttonText,
+      progressBar: oldColors.progressBar
+    };
+  }, [defaultDesign]);
+
+  const design = useMemo(() => {
+    // 🔍 DEBUG: Log raw received design config
+    console.log('🎨 [FormularioPublico] Raw Form Design Config:', baseDesign);
+    console.log('🎨 [FormularioPublico] Raw Colors:', baseDesign.colors);
+
+    return {
+      ...defaultDesign,
+      ...baseDesign,
+      colors: migrateColors(baseDesign.colors),
+      typography: {
+        ...defaultDesign.typography,
+        ...(baseDesign.typography || {})
+      },
+      spacing: baseDesign.spacing || defaultDesign.spacing
+    };
+  }, [form, defaultDesign, migrateColors]);
+
+  const colors = design.colors;
+
+  // 🔍 DEBUG: Log final processed colors
+  useEffect(() => {
+    console.log('🎨 [FormularioPublico] FINAL APPLIED COLORS:', colors);
+    console.log('🎨 [FormularioPublico] Container Background:', colors.containerBackground);
+    console.log('🎨 [FormularioPublico] Secondary (Fallback):', colors.secondary);
+  }, [colors]);
+
+  // Apply colors to CSS variables
+  useEffect(() => {
+    const root = document.documentElement;
+    root.style.setProperty('--form-title-color', colors.titleColor);
+    root.style.setProperty('--form-text-color', colors.textColor);
+    root.style.setProperty('--form-page-bg', colors.pageBackground);
+    root.style.setProperty('--form-container-bg', colors.containerBackground);
+    root.style.setProperty('--form-button-color', colors.buttonColor);
+    root.style.setProperty('--form-button-text-color', colors.buttonTextColor);
+    root.style.setProperty('--form-progress-color', colors.progressBarColor);
+    root.style.setProperty('--form-input-bg', colors.inputBackground);
+    root.style.setProperty('--form-border-color', colors.borderColor);
+
+    return () => {
+      root.style.removeProperty('--form-title-color');
+      root.style.removeProperty('--form-text-color');
+      root.style.removeProperty('--form-page-bg');
+      root.style.removeProperty('--form-container-bg');
+      root.style.removeProperty('--form-button-color');
+      root.style.removeProperty('--form-button-text-color');
+      root.style.removeProperty('--form-progress-color');
+      root.style.removeProperty('--form-input-bg');
+      root.style.removeProperty('--form-border-color');
+    };
+  }, [colors]);
 
   // 🔥 FIX: Formulários de validação com telefone da URL como defaultValue
   const personalForm = useForm({
@@ -621,6 +735,7 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
         qualificacao
       });
 
+      const totalSteps = 3 + questionPages.length + 1;
       setCurrentStep(totalSteps - 1);
       toast.success("Formulário enviado com sucesso!");
     } catch (error: any) {
@@ -631,87 +746,16 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
     }
   };
 
-  // IMPORTANTE: Mover useMemo ANTES dos retornos condicionais para evitar violação de regras de Hooks
   const questionPages = useMemo(() => form ? groupQuestionsByPages(form) : [], [form]);
   const allQuestions = useMemo(() => questionPages.flatMap(p => p.questions), [questionPages]);
 
-  // 🔥 FIX: Move ALL useMemo hooks BEFORE conditional returns to avoid Hooks order violation
-  const defaultDesign = {
-    colors: {
-      // ✅ NEW: Clear color naming
-      titleColor: "hsl(221, 83%, 53%)",
-      textColor: "hsl(222, 47%, 11%)",
-      pageBackground: "linear-gradient(135deg, hsl(210, 40%, 96%), hsl(0, 0%, 100%))",
-      containerBackground: "hsl(0, 0%, 100%)",
-      buttonColor: "hsl(221, 83%, 53%)",
-      buttonTextColor: "hsl(0, 0%, 100%)",
-      progressBarColor: "hsl(221, 83%, 53%)",
-      inputBackground: "hsl(210, 40%, 96%)",
-      borderColor: "hsl(214, 32%, 91%)",
-
-      // DEPRECATED: Para retrocompatibilidade
-      primary: "hsl(221, 83%, 53%)",
-      secondary: "hsl(210, 40%, 96%)",
-      background: "hsl(0, 0%, 100%)",
-      text: "hsl(222, 47%, 11%)",
-      button: "hsl(221, 83%, 53%)",
-      buttonText: "hsl(0, 0%, 100%)"
-    },
-    typography: {
-      fontFamily: "Inter",
-      titleSize: "2xl",
-      textSize: "base"
-    },
-    spacing: "comfortable"
-  };
-
-  // Função para migrar cores antigas para novo formato
-  const migrateColors = useCallback((oldColors: any) => {
-    if (!oldColors) return defaultDesign.colors;
-
-    return {
-      // Novas cores (prioridade para novos campos)
-      titleColor: oldColors.titleColor || oldColors.primary || defaultDesign.colors.titleColor,
-      textColor: oldColors.textColor || oldColors.text || defaultDesign.colors.textColor,
-      pageBackground: oldColors.pageBackground ||
-        `linear-gradient(135deg, ${oldColors.secondary || defaultDesign.colors.inputBackground}, ${oldColors.background || defaultDesign.colors.containerBackground})`,
-      containerBackground: oldColors.containerBackground || oldColors.background || defaultDesign.colors.containerBackground,
-      buttonColor: oldColors.buttonColor || oldColors.button || defaultDesign.colors.buttonColor,
-      buttonTextColor: oldColors.buttonTextColor || oldColors.buttonText || defaultDesign.colors.buttonTextColor,
-      progressBarColor: oldColors.progressBarColor || oldColors.progressBar || oldColors.primary || defaultDesign.colors.progressBarColor,
-      inputBackground: oldColors.inputBackground || oldColors.secondary || defaultDesign.colors.inputBackground,
-      borderColor: oldColors.borderColor || defaultDesign.colors.borderColor,
-
-      // Manter deprecated para compatibilidade
-      primary: oldColors.primary,
-      secondary: oldColors.secondary,
-      background: oldColors.background,
-      text: oldColors.text,
-      button: oldColors.button,
-      buttonText: oldColors.buttonText,
-      progressBar: oldColors.progressBar
-    };
-  }, []);
-
-  const design = useMemo(() => {
-    if (!form) return defaultDesign;
-    const baseDesign = (form.designConfig as any) ?? {};
-    return {
-      ...defaultDesign,
-      ...baseDesign,
-      colors: migrateColors(baseDesign.colors),
-      typography: {
-        ...defaultDesign.typography,
-        ...(baseDesign.typography || {})
-      },
-      spacing: baseDesign.spacing || defaultDesign.spacing
-    };
-  }, [form, migrateColors]);
+  const totalSteps = 1 + 1 + 1 + questionPages.length + 1; // welcome + personal + address + pages de perguntas + completion
+  const progress = currentStep === 0 ? 0 : Math.min(100, Math.round(((currentStep) / (totalSteps - 1)) * 100));
 
   const welcomeConfig = useMemo(() => {
     if (!form) return { title: "Bem-vindo!", description: "Por favor, preencha o formulário a seguir.", imageUrl: null, buttonText: "Começar", titleSize: "2xl", logoAlign: "center" };
 
-    const config = ((form as any).welcomePageConfig) || (form.welcomeConfig as any) || {};
+    const config = ((form as any).welcomePageConfig) || (form.welcomeConfig as any) || (form as any).welcome_page_config || (form as any).welcome_config || {};
     const elements = (form.questions as any[] | null) || (form.elements as any[] | null) || [];
 
     const heading = elements.find((el: any) => el.type === 'heading' && el.level === 1);
@@ -733,10 +777,6 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
   }, [form, design.logo]);
     };
   }, [form, design.logo]);
-
-  const colors = design.colors;
-  const totalSteps = 1 + 1 + 1 + questionPages.length + 1; // welcome + personal + address + pages de perguntas + completion
-  const progress = currentStep === 0 ? 0 : Math.min(100, Math.round(((currentStep) / (totalSteps - 1)) * 100));
 
   // ✅ OTIMIZAÇÃO: Mostrar skeleton ultra-leve quando carregando
   if (!form) {
@@ -814,7 +854,7 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
             <CardTitle className="text-4xl font-bold mb-4" style={{ color: colors.titleColor }}>
               {welcomeConfig.title}
             </CardTitle>
-            <CardDescription className="text-lg" style={{ color: `${colors.textColor}99` }}>
+            <CardDescription className="text-lg" style={{ color: colors.textColor, opacity: 0.8 }}>
               {welcomeConfig.description}
             </CardDescription>
           </CardHeader>
@@ -822,7 +862,7 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
             <Button
               size="lg"
               onClick={handleStartWizard}
-              style={{ backgroundColor: colors.buttonColor, color: colors.buttonTextColorColor }}
+              style={{ backgroundColor: colors.buttonColor, color: colors.buttonTextColor }}
               className="px-8"
             >
               <Sparkles className="mr-2 h-5 w-5" />
@@ -837,23 +877,23 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
   // PÁGINA DE DADOS PESSOAIS (Step 1)
   if (currentStep === 1) {
     return (
-      <div className="min-h-screen p-4" style={{ background: `linear-gradient(to bottom right, ${colors.background}, ${colors.secondary})` }}>
+      <div className="min-h-screen p-4" style={{ background: colors.pageBackground }}>
         <div className="max-w-3xl mx-auto pt-8">
           <div className="mb-6">
             <div className="h-2 rounded-full overflow-hidden mb-2" style={{ backgroundColor: colors.inputBackground }}>
               <div className="h-full transition-all duration-300" style={{ width: `${progress}%`, backgroundColor: colors.progressBarColor }} />
             </div>
-            <p className="text-sm text-right" style={{ color: colors.text }}>{progress}% completo</p>
+            <p className="text-sm text-right" style={{ color: colors.textColor }}>{progress}% completo</p>
           </div>
 
           <Card className="shadow-lg" style={{ backgroundColor: colors.containerBackground, borderColor: colors.borderColor }}>
             <CardHeader>
-              <CardTitle className="text-2xl" style={{ color: colors.text }}>Dados Pessoais</CardTitle>
-              <CardDescription style={{ color: `${colors.text}99` }}>Por favor, preencha suas informações de contato</CardDescription>
+              <CardTitle className="text-2xl" style={{ color: colors.textColor }}>Dados Pessoais</CardTitle>
+              <CardDescription style={{ color: colors.textColor, opacity: 0.8 }}>Por favor, preencha suas informações de contato</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label style={{ color: colors.text }}>Nome completo *</Label>
+                <Label style={{ color: colors.textColor }}>Nome completo *</Label>
                 <Input
                   {...personalForm.register("name")}
                   placeholder="Digite seu nome"
@@ -862,12 +902,12 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
                 />
                 {personalForm.formState.errors.name && (
                   <p className="text-sm mt-1" style={{ color: '#ef4444' }}>
-                    {personalForm.formState.errors.name.message}
+                    {personalForm.formState.errors.name.message as string}
                   </p>
                 )}
               </div>
               <div>
-                <Label style={{ color: colors.text }}>Email *</Label>
+                <Label style={{ color: colors.textColor }}>Email *</Label>
                 <Input
                   type="email"
                   {...personalForm.register("email")}
@@ -877,12 +917,12 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
                 />
                 {personalForm.formState.errors.email && (
                   <p className="text-sm mt-1" style={{ color: '#ef4444' }}>
-                    {personalForm.formState.errors.email.message}
+                    {personalForm.formState.errors.email.message as string}
                   </p>
                 )}
               </div>
               <div>
-                <Label style={{ color: colors.text }}>CPF *</Label>
+                <Label style={{ color: colors.textColor }}>CPF *</Label>
                 <Input
                   {...personalForm.register("cpf")}
                   placeholder="000.000.000-00"
@@ -900,13 +940,13 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
                 />
                 {personalForm.formState.errors.cpf && (
                   <p className="text-sm mt-1" style={{ color: '#ef4444' }}>
-                    {personalForm.formState.errors.cpf.message}
+                    {personalForm.formState.errors.cpf.message as string}
                   </p>
                 )}
               </div>
               <div>
-                <Label style={{ color: colors.text }}>
-                  Telefone
+                <Label style={{ color: colors.textColor }}>
+                  Telefone (WhatsApp) *
                   {telefoneBloqueado && (
                     <span className="ml-2 text-xs" style={{ color: '#22c55e' }}>
                       ✓ WhatsApp verificado
@@ -921,7 +961,7 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
                   readOnly={telefoneBloqueado}
                   style={{
                     backgroundColor: colors.inputBackground,
-                    borderColor: telefoneBloqueado ? '#22c55e' : `${colors.primary}30`,
+                    borderColor: telefoneBloqueado ? '#22c55e' : colors.borderColor,
                     color: colors.textColor,
                     cursor: telefoneBloqueado ? 'not-allowed' : 'text',
                     borderWidth: telefoneBloqueado ? '2px' : '1px'
@@ -929,12 +969,12 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
                 />
               </div>
               <div>
-                <Label style={{ color: colors.text }}>Instagram</Label>
+                <Label style={{ color: colors.textColor }}>Instagram</Label>
                 <Input
                   {...personalForm.register("instagram")}
                   placeholder="@seuinstagram"
                   className="mt-1"
-                  style={{ backgroundColor: colors.inputBackground, borderColor: `${colors.primary}30`, color: colors.text }}
+                  style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.textColor }}
                   onChange={(e) => {
                     let value = e.target.value;
                     if (value && !value.startsWith('@')) {
@@ -960,121 +1000,121 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
   // PÁGINA DE ENDEREÇO (Step 2)
   if (currentStep === 2) {
     return (
-      <div className="min-h-screen p-4" style={{ background: `linear-gradient(to bottom right, ${colors.background}, ${colors.secondary})` }}>
+      <div className="min-h-screen p-4" style={{ background: colors.pageBackground }}>
         <div className="max-w-3xl mx-auto pt-8">
           <div className="mb-6">
-            <div className="h-2 rounded-full overflow-hidden mb-2" style={{ backgroundColor: colors.secondary }}>
+            <div className="h-2 rounded-full overflow-hidden mb-2" style={{ backgroundColor: colors.inputBackground }}>
               <div className="h-full transition-all duration-300" style={{ width: `${progress}%`, backgroundColor: colors.progressBarColor }} />
             </div>
-            <p className="text-sm text-right" style={{ color: colors.text }}>{progress}% completo</p>
+            <p className="text-sm text-right" style={{ color: colors.textColor }}>{progress}% completo</p>
           </div>
 
-          <Card className="shadow-lg" style={{ backgroundColor: colors.containerBackground, borderColor: `${colors.primary}30` }}>
+          <Card className="shadow-lg" style={{ backgroundColor: colors.containerBackground, borderColor: colors.borderColor }}>
             <CardHeader>
-              <CardTitle className="text-2xl" style={{ color: colors.text }}>Dados de Endereço</CardTitle>
-              <CardDescription style={{ color: `${colors.text}99` }}>Preencha seu endereço completo</CardDescription>
+              <CardTitle className="text-2xl" style={{ color: colors.textColor }}>Dados de Endereço</CardTitle>
+              <CardDescription style={{ color: colors.textColor, opacity: 0.8 }}>Preencha seu endereço completo</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2 sm:col-span-1">
-                  <Label style={{ color: colors.text }}>CEP *</Label>
+                  <Label style={{ color: colors.textColor }}>CEP *</Label>
                   <Input
                     {...addressForm.register("cep")}
                     placeholder="00000-000"
                     maxLength={9}
                     className="mt-1"
-                    style={{ backgroundColor: colors.inputBackground, borderColor: `${colors.primary}30`, color: colors.text }}
+                    style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.textColor }}
                   />
                   {addressForm.formState.errors.cep && (
                     <p className="text-sm mt-1" style={{ color: '#ef4444' }}>
-                      {addressForm.formState.errors.cep.message}
+                      {addressForm.formState.errors.cep.message as string}
                     </p>
                   )}
                 </div>
                 <div className="col-span-2 sm:col-span-1">
-                  <Label style={{ color: colors.text }}>Estado *</Label>
+                  <Label style={{ color: colors.textColor }}>Estado *</Label>
                   <Input
                     {...addressForm.register("state")}
                     placeholder="SP"
                     maxLength={2}
                     className="mt-1 uppercase"
-                    style={{ backgroundColor: colors.inputBackground, borderColor: `${colors.primary}30`, color: colors.text }}
+                    style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.textColor }}
                   />
                   {addressForm.formState.errors.state && (
                     <p className="text-sm mt-1" style={{ color: '#ef4444' }}>
-                      {addressForm.formState.errors.state.message}
+                      {addressForm.formState.errors.state.message as string}
                     </p>
                   )}
                 </div>
               </div>
 
               <div>
-                <Label style={{ color: colors.text }}>Rua *</Label>
+                <Label style={{ color: colors.textColor }}>Rua *</Label>
                 <Input
                   {...addressForm.register("street")}
                   placeholder="Nome da rua"
                   className="mt-1"
-                  style={{ backgroundColor: colors.inputBackground, borderColor: `${colors.primary}30`, color: colors.text }}
+                  style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.textColor }}
                 />
                 {addressForm.formState.errors.street && (
                   <p className="text-sm mt-1" style={{ color: '#ef4444' }}>
-                    {addressForm.formState.errors.street.message}
+                    {addressForm.formState.errors.street.message as string}
                   </p>
                 )}
               </div>
 
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <Label style={{ color: colors.text }}>Número *</Label>
+                  <Label style={{ color: colors.textColor }}>Número *</Label>
                   <Input
                     {...addressForm.register("number")}
                     placeholder="123"
                     className="mt-1"
-                    style={{ backgroundColor: colors.inputBackground, borderColor: `${colors.primary}30`, color: colors.text }}
+                    style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.textColor }}
                   />
                   {addressForm.formState.errors.number && (
                     <p className="text-sm mt-1" style={{ color: '#ef4444' }}>
-                      {addressForm.formState.errors.number.message}
+                      {addressForm.formState.errors.number.message as string}
                     </p>
                   )}
                 </div>
                 <div className="col-span-2">
-                  <Label style={{ color: colors.text }}>Complemento</Label>
+                  <Label style={{ color: colors.textColor }}>Complemento</Label>
                   <Input
                     {...addressForm.register("complement")}
                     placeholder="Apto, bloco, etc."
                     className="mt-1"
-                    style={{ backgroundColor: colors.inputBackground, borderColor: `${colors.primary}30`, color: colors.text }}
+                    style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.textColor }}
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label style={{ color: colors.text }}>Bairro *</Label>
+                  <Label style={{ color: colors.textColor }}>Bairro *</Label>
                   <Input
                     {...addressForm.register("neighborhood")}
                     placeholder="Nome do bairro"
                     className="mt-1"
-                    style={{ backgroundColor: colors.inputBackground, borderColor: `${colors.primary}30`, color: colors.text }}
+                    style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.textColor }}
                   />
                   {addressForm.formState.errors.neighborhood && (
                     <p className="text-sm mt-1" style={{ color: '#ef4444' }}>
-                      {addressForm.formState.errors.neighborhood.message}
+                      {addressForm.formState.errors.neighborhood.message as string}
                     </p>
                   )}
                 </div>
                 <div>
-                  <Label style={{ color: colors.text }}>Cidade *</Label>
+                  <Label style={{ color: colors.textColor }}>Cidade *</Label>
                   <Input
                     {...addressForm.register("city")}
                     placeholder="Nome da cidade"
                     className="mt-1"
-                    style={{ backgroundColor: colors.inputBackground, borderColor: `${colors.primary}30`, color: colors.text }}
+                    style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.textColor }}
                   />
                   {addressForm.formState.errors.city && (
                     <p className="text-sm mt-1" style={{ color: '#ef4444' }}>
-                      {addressForm.formState.errors.city.message}
+                      {addressForm.formState.errors.city.message as string}
                     </p>
                   )}
                 </div>
@@ -1098,6 +1138,8 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
     const currentPage = questionPages[pageIndex];
     const isLastPage = pageIndex === questionPages.length - 1;
     const pageQuestions = currentPage?.questions || [];
+    const totalSteps = 3 + questionPages.length + 1;
+    const progress = Math.round(((currentStep) / (totalSteps - 1)) * 100);
 
     if (!currentPage || pageQuestions.length === 0) return null;
 
@@ -1172,16 +1214,16 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
     };
 
     return (
-      <div className="min-h-screen p-4" style={{ background: `linear-gradient(to bottom right, ${colors.background}, ${colors.secondary})` }}>
+      <div className="min-h-screen p-4" style={{ background: colors.pageBackground }}>
         <div className="max-w-3xl mx-auto pt-8">
           <div className="mb-6">
-            <div className="h-2 rounded-full overflow-hidden mb-2" style={{ backgroundColor: colors.secondary }}>
+            <div className="h-2 rounded-full overflow-hidden mb-2" style={{ backgroundColor: colors.inputBackground }}>
               <div className="h-full transition-all duration-300" style={{ width: `${progress}%`, backgroundColor: colors.progressBarColor }} />
             </div>
-            <p className="text-sm text-right" style={{ color: colors.text }}>{progress}% completo</p>
+            <p className="text-sm text-right" style={{ color: colors.textColor }}>{progress}% completo</p>
           </div>
 
-          <Card className="shadow-lg" style={{ backgroundColor: colors.containerBackground, borderColor: `${colors.primary}30` }}>
+          <Card className="shadow-lg" style={{ backgroundColor: colors.containerBackground, borderColor: colors.borderColor }}>
             <CardContent className="space-y-6 pt-6">
               {pageQuestions.map((question: any, idx: number) => renderQuestionInput(question, idx))}
             </CardContent>
@@ -1218,153 +1260,40 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
   }
 
   // PÁGINA DE CONCLUSÃO (Step final)
-  // Mostrar loader enquanto está submetendo
-  if (isSubmitting) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4" style={{ background: `linear-gradient(to bottom right, ${colors.background}, ${colors.secondary})` }}>
-        <Card className="w-full max-w-2xl p-8 text-center shadow-xl" style={{ backgroundColor: colors.containerBackground, borderColor: `${colors.primary}30` }}>
-          <Loader2 className="h-16 w-16 animate-spin mx-auto mb-6" style={{ color: colors.titleColor }} />
-          <h2 className="text-2xl font-bold mb-4" style={{ color: colors.text }}>
-            Enviando formulário...
-          </h2>
-          <p style={{ color: `${colors.text}99` }}>
-            Por favor, aguarde enquanto processamos suas informações.
-          </p>
-        </Card>
-      </div>
-    );
-  }
-
-  // Renderizar tela de conclusão APENAS se result existir
   if (result) {
-    // Get completion page configuration from form
-    const completionConfig = (form.completionPageConfig as any) || {
-      title: "Agradecemos sua resposta!",
-      subtitle: "",
-      message: "Obrigado por preencher o formulário. Nossa equipe já está analisando e em breve você receberá a mensagem no seu WhatsApp.",
-      logo: null,
-      logoAlign: "center",
-      design: {
-        colors: {
-          primary: colors.titleColor,
-          secondary: colors.inputBackground,
-          background: colors.containerBackground,
-          text: colors.textColor,
-          icon: "hsl(221, 83%, 53%)"
-        },
-        typography: {
-          fontFamily: design.typography.fontFamily,
-          titleSize: "3xl",
-          textSize: "base"
-        },
-        spacing: "comfortable"
-      }
-    };
-
-    // Use completion page design if available, otherwise fall back to form design
-    const completionDesign = completionConfig.design || {};
-    const completionColors = completionDesign.colors || {};
-    const completionTypography = completionDesign.typography || design.typography;
-
-    // Determine colors with fallback chain: completionConfig.design.colors > form.designConfig.colors > defaults
-    // 6 VARIAÇÕES DE CORES:
-    const titleColor = completionColors.primary || colors.titleColor || "hsl(221, 83%, 53%)"; // 1. Cor do Título
-    const textColor = completionColors.text || colors.textColor || "hsl(222, 47%, 11%)"; // 2. Cor do Texto
-    const bgColor = completionColors.background || colors.containerBackground || "hsl(0, 0%, 100%)"; // 3. Fundo do Container
-    const pageBg = colors.pageBackground || `linear-gradient(to bottom right, ${colors.background}, ${colors.secondary})`; // 4. Fundo da Página
-    const buttonColor = colors.buttonColor || "hsl(221, 83%, 53%)"; // 5. Cor do Botão
-    const buttonTextColor = colors.buttonTextColor || "hsl(0, 0%, 100%)"; // 6. Cor do Texto do Botão
-    const iconColor = completionColors.icon || completionColors.primary || titleColor;
-
-    // Get messages - usando campo único "message" em vez de successMessage/failureMessage
-    const displayTitle = completionConfig.title || "Agradecemos sua resposta!";
-    const displaySubtitle = completionConfig.subtitle || "";
-    const displayMessage = completionConfig.message ||
-      completionConfig.successMessage ||
-      "Obrigado por preencher o formulário. Nossa equipe já está analisando e em breve você receberá a mensagem no seu WhatsApp.";
-    const additionalText = completionConfig.additionalThankYouText || "";
-
-    // Get logo configuration - buscar primeiro do design.logo (igual Assinatura)
-    const completionLogo = design.logo || completionConfig.logo || completionDesign.logo || null;
-    const logoAlign = completionConfig.logoAlign || completionDesign.logoAlign || "center";
-
-    // Title size mapping
-    const titleSizeMap: Record<string, string> = {
-      'xs': 'text-xs',
-      'sm': 'text-sm',
-      'base': 'text-base',
-      'lg': 'text-lg',
-      'xl': 'text-xl',
-      '2xl': 'text-2xl',
-      '3xl': 'text-3xl',
-      '4xl': 'text-4xl'
-    };
-    const titleSizeClass = titleSizeMap[completionTypography.titleSize] || 'text-3xl';
-
-    // Logo alignment classes
-    const logoAlignClass = logoAlign === 'left' ? 'justify-start' : logoAlign === 'right' ? 'justify-end' : 'justify-center';
+    const titleColor = colors.titleColor || "#151f29";
+    const textColor = colors.textColor || "#1e293b";
+    const bgColor = colors.containerBackground || "#ffffff";
+    const pageBg = colors.pageBackground || "linear-gradient(to bottom right, #f8fafc, #ffffff)";
+    const iconColor = colors.buttonColor || "#10b981";
 
     return (
       <div className="min-h-screen flex items-center justify-center p-4" style={{ background: pageBg }}>
-        <Card className="w-full max-w-2xl p-8 text-center shadow-xl" style={{ backgroundColor: bgColor, borderColor: `${titleColor}30` }}>
-          {/* Logo */}
-          {completionLogo && (
-            <div className={`flex ${logoAlignClass} mb-6`}>
-              <img src={completionLogo} alt="Logo" className="h-16 object-contain" />
+        <Card className="w-full max-w-lg p-10 text-center shadow-xl border-none" style={{ backgroundColor: bgColor }}>
+          {design.logo && (
+            <div className={`flex justify-center mb-8`}>
+              <img src={design.logo} alt="Logo" className="h-12 object-contain" />
             </div>
           )}
 
-          {/* Icon Genérico - sem diferenciar sucesso/falha */}
-          <CheckCircle2 className="h-20 w-20 mx-auto mb-6" style={{ color: iconColor }} />
+          <div className="mb-8 flex justify-center">
+            <div className="rounded-full p-4" style={{ backgroundColor: `${iconColor}15` }}>
+              <CheckCircle2 className="h-12 w-12" style={{ color: iconColor }} />
+            </div>
+          </div>
 
-          {/* Title */}
-          <h2 className={`${titleSizeClass} font-bold mb-2`} style={{ color: titleColor, fontFamily: completionTypography.fontFamily }}>
-            {displayTitle}
+          <h2 className="text-3xl font-bold mb-4" style={{ color: titleColor, fontFamily: design.typography.fontFamily }}>
+            Obrigado!
           </h2>
 
-          {/* Subtitle */}
-          {displaySubtitle && (
-            <p className="text-lg mb-4" style={{ color: `${textColor}90`, fontFamily: completionTypography.fontFamily }}>
-              {displaySubtitle}
-            </p>
-          )}
-
-          {/* Main Message - SEMPRE a mesma mensagem genérica */}
-          <p className="text-xl mb-6" style={{ color: `${textColor}99`, fontFamily: completionTypography.fontFamily }}>
-            {displayMessage}
+          <p className="text-lg leading-relaxed mb-8" style={{ color: `${textColor}e6`, fontFamily: design.typography.fontFamily }}>
+            Nossa equipe já está analisando e em breve você irá receber o resultado no seu whatsapp.
           </p>
 
-          {/* Additional Thank You Text */}
-          {additionalText && (
-            <p className="text-base mb-6" style={{ color: `${textColor}90`, fontFamily: completionTypography.fontFamily }}>
-              {additionalText}
+          <div className="pt-6 border-t" style={{ borderColor: `${textColor}15` }}>
+            <p className="text-sm font-medium" style={{ color: `${textColor}80` }}>
+              Seus dados foram salvos com segurança.
             </p>
-          )}
-
-          {/* CTA Button */}
-          {completionConfig.ctaText && completionConfig.ctaUrl && (
-            <div className="mb-6">
-              <a href={completionConfig.ctaUrl} target="_blank" rel="noopener noreferrer">
-                <Button size="lg" style={{ backgroundColor: buttonColor, color: buttonTextColor }}>
-                  {completionConfig.ctaText}
-                </Button>
-              </a>
-            </div>
-          )}
-
-          {/* Custom Content */}
-          {completionConfig.customContent && (
-            <div
-              className="mt-6 text-sm"
-              style={{ color: textColor }}
-              dangerouslySetInnerHTML={{ __html: completionConfig.customContent }}
-            />
-          )}
-
-          {/* Footer Text */}
-          <div className="text-sm mt-6" style={{ color: `${textColor}80` }}>
-            <p>Seus dados foram salvos com sucesso.</p>
-            <p>Em breve você receberá um retorno pelo WhatsApp.</p>
           </div>
         </Card>
       </div>

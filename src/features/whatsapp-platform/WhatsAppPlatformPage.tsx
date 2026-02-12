@@ -6,6 +6,8 @@ import { storage } from "./lib/utils";
 import { evolutionApi, EvolutionChat, EvolutionMessage } from "./lib/evolutionApi";
 import { configManager } from "./lib/config";
 import { toast } from "sonner";
+import { QrCode, RefreshCw, X, Check, LogOut } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface Message {
   id: string;
@@ -77,6 +79,10 @@ const Index = () => {
   const abortControllerRef = useRef<AbortController | null>(null);
   const messageAbortControllerRef = useRef<AbortController | null>(null);
   const messageLoadingRef = useRef(false);
+
+  // 🏷️ QR Code State
+  const [qrCode, setQrCode] = useState<{ base64: string; code: string } | null>(null);
+  const [loadingQr, setLoadingQr] = useState(false);
 
   // Carregar tags salvas para cada conversa
   useEffect(() => {
@@ -930,48 +936,47 @@ const Index = () => {
 
       console.log('=== INÍCIO DO CARREGAMENTO DE CHATS ===');
 
-      // Buscar contatos primeiro para obter nomes salvos
-      try {
-        const contactsArray = await evolutionApi.fetchContacts();
+      // 🎯 OTIMIZAÇÃO: Buscar contatos APENAS se for forceReload ou se não tiver contatos ainda
+      // Isso reduz drasticamente o peso da requisição em polling
+      if (forceReload || Object.keys(contactsMap).length === 0) {
+        try {
+          console.log('👥 [loadRealChats] Buscando contatos da API...');
+          const contactsArray = await evolutionApi.fetchContacts();
 
-        // Converter array de contatos em mapa indexado por remoteJid
-        const contactsObj: Record<string, { name?: string; pushName?: string; notify?: string; verifiedName?: string }> = {};
+          // Converter array de contatos em mapa indexado por remoteJid
+          const contactsObj: Record<string, { name?: string; pushName?: string; notify?: string; verifiedName?: string }> = {};
 
-        contactsArray.forEach((contact: any) => {
-          // Criar múltiplas chaves para facilitar a busca
-          const jid = contact.id || contact.remoteJid;
-          if (jid) {
-            // Adicionar com o JID completo
-            contactsObj[jid] = {
-              name: contact.name,
-              pushName: contact.pushName,
-              notify: contact.notify,
-              verifiedName: contact.verifiedName,
-            };
+          contactsArray.forEach((contact: any) => {
+            // Criar múltiplas chaves para facilitar a busca
+            const jid = contact.id || contact.remoteJid;
+            if (jid) {
+              // Adicionar com o JID completo
+              contactsObj[jid] = {
+                name: contact.name,
+                pushName: contact.pushName,
+                notify: contact.notify,
+                verifiedName: contact.verifiedName,
+              };
 
-            // Adicionar também sem o sufixo @s.whatsapp.net
-            const cleanJid = jid.replace('@s.whatsapp.net', '').replace('@g.us', '');
-            contactsObj[cleanJid] = contactsObj[jid];
+              // Adicionar também sem o sufixo @s.whatsapp.net
+              const cleanJid = jid.replace('@s.whatsapp.net', '').replace('@g.us', '');
+              contactsObj[cleanJid] = contactsObj[jid];
 
-            // Adicionar com @s.whatsapp.net se não tiver
-            if (!jid.includes('@')) {
-              contactsObj[`${jid}@s.whatsapp.net`] = contactsObj[jid];
+              // Adicionar com @s.whatsapp.net se não tiver
+              if (!jid.includes('@')) {
+                contactsObj[`${jid}@s.whatsapp.net`] = contactsObj[jid];
+              }
             }
-          }
-        });
+          });
 
-        setContactsMap(contactsObj);
-        console.log('✅ Contatos carregados:', contactsArray.length, 'contatos mapeados com', Object.keys(contactsObj).length, 'chaves');
-        console.log('📋 Exemplo de contatos:', contactsArray.slice(0, 3).map((c: any) => ({
-          id: c.id,
-          name: c.name,
-          pushName: c.pushName,
-          notify: c.notify,
-          verifiedName: c.verifiedName
-        })));
-      } catch (contactError) {
-        console.error('❌ Erro ao carregar contatos:', contactError);
-        // Continua mesmo se falhar ao carregar contatos
+          setContactsMap(contactsObj);
+          console.log('✅ Contatos carregados:', contactsArray.length, 'contatos mapeados com', Object.keys(contactsObj).length, 'chaves');
+        } catch (contactError) {
+          console.error('❌ Erro ao carregar contatos:', contactError);
+          // Continua mesmo se falhar ao carregar contatos
+        }
+      } else {
+        console.log('⏭️ [loadRealChats] Usando contatos em cache (polling)');
       }
 
       // ✅ CORREÇÃO 5: Verificar se não foi cancelado após async operation
@@ -982,10 +987,7 @@ const Index = () => {
       }
 
       // Buscar conversas
-      console.log('🔧 Parâmetros:');
-      console.log('  forceReload:', forceReload);
-      console.log('  silent (polling):', silent);
-      console.log('  WhatsApp conectado:', state?.connected);
+      // console.log('🔧 Parâmetros:', { forceReload, silent, connected: state?.connected });
 
       const fetchStartTime = Date.now();
       const rawChats = await evolutionApi.fetchChats();
@@ -1009,6 +1011,7 @@ const Index = () => {
           console.log(`       Nome/Push: ${chat.pushName || chat.name || 'N/A'}`);
           console.log(`       Não lidas: ${chat.unreadCount || 0}`);
           console.log(`       Timestamp: ${chat.lastMessageTimestamp || chat.lastMessage?.messageTimestamp || 'N/A'}`);
+          console.log(`       É grupo? ${chat.remoteJid?.includes('@g.us') ? 'SIM' : 'NÃO'}`);
         });
       }
 
@@ -1017,12 +1020,17 @@ const Index = () => {
         console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
         if (!silent) {
           toast.info("Nenhuma conversa encontrada no WhatsApp", {
-            description: "Certifique-se de que sua instância está conectada",
+            description: "Se você tem conversas no celular, tente enviar uma mensagem para forçar a sincronização.",
+            duration: 5000,
           });
         } else {
           console.log('🔄 [Polling] Nenhuma conversa encontrada (resposta vazia da API)');
         }
-        setConversations([]);
+
+        // 🔥 CORREÇÃO: Não limpar conversas se já existirem (para não piscar a tela)
+        if (conversations.length === 0) {
+          setConversations([]);
+        }
         return;
       }
 
@@ -1230,7 +1238,10 @@ const Index = () => {
             description: error instanceof Error ? error.message : "Verifique se a Evolution API está configurada e conectada",
           });
         }
-        setConversations([]);
+        // 🔥 CORREÇÃO: Não limpar conversas se já existirem (para não piscar a tela)
+        if (conversations.length === 0) {
+          setConversations([]);
+        }
       }
     } finally {
       // ✅ CORREÇÃO 5: Liberar flag de loading no finally
@@ -1395,52 +1406,67 @@ const Index = () => {
       }
     };
 
-    // 🔥 CORREÇÃO: Carregar conversas IMEDIATAMENTE ao ativar dados reais
-    console.log('🔄 [Initial Load] Carregando conversas inicialmente...');
+    // 🔥 CORREÇÃO: Carregar conversas IMEDIATAMENTE do cache (se existir) para UX instantânea
+    const cachedChats = loadFromCache();
+    if (cachedChats && cachedChats.length > 0) {
+      console.log('🚀 [Initial Load] Cache encontrado! Exibindo', cachedChats.length, 'conversas imediatamente.');
+      setConversations(cachedChats);
+      setUseRealData(true);
+    }
+
+    console.log('🔄 [Initial Load] Buscando dados atualizados da API...');
     loadRealChats(false, false).catch(err => {
       console.error('❌ [Initial Load] Erro ao carregar conversas:', err);
     });
 
-    // 🔄 Conversas - 60s (reduzido de 30s)
+    // 🔄 Conversas - 180s (3 minutos) - Reduzido para evitar sobrecarga
+    // O usuário pode clicar em "Atualizar" se precisar de instantaneidade
     conversationTimer = setInterval(() => {
       if (isPageVisible()) {
-        console.log('🔄 [Polling] Atualizando conversas (60s)');
+        console.log('🔄 [Polling] Verificando conversas (180s)...');
         loadRealChats(true, true).catch(err => {
           console.error('❌ [Polling] Erro ao atualizar conversas:', err);
         });
       }
-    }, POLLING_CONFIG.CONVERSATION_REFRESH);
+    }, 180000); // 3 minutos
 
-    // 💬 Mensagens do chat ativo - 10s (reduzido de 5s)
+    // 💬 Mensagens do chat ativo - 15s
+    // Aumentado para evitar ERR_INSUFFICIENT_RESOURCES
     if (activeConversationId) {
       messageTimer = setInterval(() => {
         if (isPageVisible() && activeConversationId) {
-          console.log('💬 [Polling] Atualizando mensagens (10s)');
+          // console.log('💬 [Polling] Atualizando mensagens (15s)');
           // ✅ FIX RACE CONDITION: Capture current chat ID and validate before setting state
           const currentChatId = activeConversationId;
           loadRealMessages(currentChatId, true, 50)
             .then((freshMessages) => {
               if (currentChatId === activeConversationId) {
-                setMessages(freshMessages);
-              } else {
-                console.log('⏭️ [Polling] Ignoring stale message response');
+                // Only update if there are new messages or changes to avoid re-renders
+                setMessages(prev => {
+                  if (prev.length !== freshMessages.length) return freshMessages;
+                  // Simple check for last message change
+                  const lastPrev = prev[prev.length - 1];
+                  const lastFresh = freshMessages[freshMessages.length - 1];
+                  if (lastPrev?.id !== lastFresh?.id) return freshMessages;
+                  return prev;
+                });
               }
             })
             .catch(err => {
               console.error('❌ [Polling] Erro ao atualizar mensagens:', err);
             });
         }
-      }, POLLING_CONFIG.MESSAGE_REFRESH);
+      }, 15000); // 15 segundos
     }
 
-    // 🏷️ Leads - 30s (reduzido de 10s)
+    // 🏷️ Leads - 60s
     loadLeads(); // Carregar imediatamente
     leadsTimer = setInterval(() => {
       if (isPageVisible()) {
-        console.log('🏷️ [Polling] Atualizando leads (30s)');
+        // console.log('🏷️ [Polling] Atualizando leads (60s)');
         loadLeads();
       }
-    }, POLLING_CONFIG.LEADS_REFRESH);
+    }, 60000); // 60 segundos
 
     // 👁️ Detectar quando a aba fica visível/oculta
     const handleVisibilityChange = () => {
@@ -1775,16 +1801,221 @@ const Index = () => {
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      console.log('🚪 Logout solicitado pelo usuário');
+      toast.loading('Desconectando WhatsApp...', { id: 'logout-toast' });
+
+      await evolutionApi.logout();
+
+      toast.dismiss('logout-toast');
+      toast.success('WhatsApp desconectado com sucesso!');
+
+      // Limpar estados locais
+      setConversations([]);
+      setMessages([]);
+      setContactsMap({});
+      setUseRealData(false);
+      setConnectionState({ connected: false, state: 'close' });
+
+      // Forçar atualização do QR Code
+      setQrCode(null);
+      fetchQRCode();
+
+    } catch (error) {
+      console.error('❌ Erro ao desconectar:', error);
+      toast.dismiss('logout-toast');
+      toast.error('Erro ao desconectar WhatsApp');
+    }
+  };
+
+  const fetchQRCode = async () => {
+    setLoadingQr(true);
+    setQrCode(null);
+
+    try {
+      // Usar endpoint do backend que já tem a correção de normalização
+      const response = await fetch('/api/evolution/qrcode');
+      const data = await response.json();
+
+      if (data.success) {
+        if (data.alreadyConnected) {
+          // toast.success("WhatsApp já está conectado!"); // Removido para mostrar overlay
+          checkConnection(); // Atualizar status
+          // Se já estiver conectado, manter o overlay aberto para opção de desconectar
+        } else {
+          setQrCode(data.qrcode);
+          // toast.success("QR Code gerado com sucesso!");
+        }
+      } else {
+        toast.error(data.error || 'Erro ao obter QR code');
+      }
+    } catch (err) {
+      toast.error('Erro ao conectar com a API');
+    } finally {
+      setLoadingQr(false);
+    }
+  };
+
+  const [showQrCodeOverlay, setShowQrCodeOverlay] = useState(false);
+
+  // ... (previous code)
+
   return (
     <div className="flex flex-col h-screen w-full overflow-hidden bg-background">
       <Header
         onRefreshAll={() => loadRealChats(true)}
         onRefreshLabels={refreshLabelsOnly}
+        onConnect={() => {
+          setShowQrCodeOverlay(true);
+          fetchQRCode(); // Já busca o QR Code ao abrir
+        }}
         isRefreshing={isLoadingChats}
         connectionState={connectionState}
       />
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 overflow-hidden relative">
+        {/* Overlay de Desconexão / QR Code */}
+        {/* 🔥 CORREÇÃO: Só mostrar overlay se NÃO tiver conversas carregadas OU se for manual */}
+        {useRealData && ((connectionState && !connectionState.connected && conversations.length === 0) || showQrCodeOverlay) && (
+          <div className="absolute inset-0 z-50 bg-black/95 flex flex-col items-center justify-center text-white p-6">
+            {/* Botão Fechar Overlay (Apenas se for manual ou se estiver conectado mas quiser ver) */}
+            {showQrCodeOverlay && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute top-4 right-4 text-white hover:bg-white/10"
+                onClick={() => setShowQrCodeOverlay(false)}
+              >
+                <X className="w-6 h-6" />
+              </Button>
+            )}
+
+            <div className="max-w-md w-full flex flex-col items-center gap-8 animate-fade-in">
+              {/* ÁREA CENTRAL DO OVERLAY - MUDA CONFORME STATUS */}
+              {connectionState?.connected ? (
+                // 🟢 MODELO DE CONECTADO (COM OPÇÃO DE LOGOUT)
+                <div className="flex flex-col items-center gap-6 text-center">
+                  <div className="p-6 rounded-full bg-green-500/10 border border-green-500/20 shadow-xl shadow-green-900/20">
+                    <div className="p-4 bg-green-500 rounded-full animate-pulse-slow">
+                      <Check className="w-12 h-12 text-white" strokeWidth={3} />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <h2 className="text-3xl font-bold tracking-tight text-white">WhatsApp Conectado</h2>
+                    <p className="text-zinc-400 text-lg">
+                      Sua instância <span className="text-green-400 font-mono font-bold">{(configManager.getConfig() as any)?.instance || '...'}</span> está ativa e sincronizando mensagens.
+                    </p>
+                  </div>
+
+                  <div className="flex gap-4 mt-4 w-full">
+                    <Button
+                      variant="outline"
+                      size="lg"
+                      className="flex-1 border-zinc-700 bg-transparent text-white hover:bg-zinc-800 hover:text-white h-12"
+                      onClick={() => setShowQrCodeOverlay(false)}
+                    >
+                      Fechar
+                    </Button>
+
+                    <Button
+                      variant="destructive"
+                      size="lg"
+                      className="flex-1 bg-red-500/10 text-red-500 hover:bg-red-500/20 border-red-500/20 h-12"
+                      onClick={handleLogout}
+                    >
+                      <LogOut className="w-5 h-5 mr-2" />
+                      Desconectar
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                // ⚫ MODELO DE DESCONECTADO (QR CODE)
+                <>
+                  <div className="text-center space-y-4">
+                    <div className="p-4 rounded-full bg-green-500/10 w-fit mx-auto border border-green-500/20">
+                      <QrCode className="w-12 h-12 text-green-500" />
+                    </div>
+                    <div>
+                      <h2 className="text-3xl font-bold tracking-tight">Conecte seu WhatsApp</h2>
+                      <p className="text-zinc-400 text-lg mt-2">
+                        Escaneie o código abaixo para acessar suas conversas
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="relative group">
+                    {qrCode ? (
+                      <div className="p-4 bg-white rounded-3xl shadow-2xl shadow-green-500/20 transition-all duration-300 hover:scale-[1.02]">
+                        <img
+                          src={qrCode.base64}
+                          alt="QR Code WhatsApp"
+                          className="w-72 h-72 object-contain"
+                        />
+                      </div>
+                    ) : (
+                      <div className="w-80 h-80 rounded-3xl bg-zinc-900 border-2 border-dashed border-zinc-700 flex flex-col items-center justify-center gap-4">
+                        {loadingQr ? (
+                          <RefreshCw className="w-10 h-10 text-green-500 animate-spin" />
+                        ) : (
+                          <div className="text-center p-6">
+                            <QrCode className="w-16 h-16 text-zinc-600 mx-auto mb-4" />
+                            <p className="text-zinc-500 text-sm">QR Code não gerado</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Bordas decorativas do scanner */}
+                    <div className="absolute -top-4 -left-4 w-8 h-8 border-t-4 border-l-4 border-green-500 rounded-tl-xl opacity-50" />
+                    <div className="absolute -top-4 -right-4 w-8 h-8 border-t-4 border-r-4 border-green-500 rounded-tr-xl opacity-50" />
+                    <div className="absolute -bottom-4 -left-4 w-8 h-8 border-b-4 border-l-4 border-green-500 rounded-bl-xl opacity-50" />
+                    <div className="absolute -bottom-4 -right-4 w-8 h-8 border-b-4 border-r-4 border-green-500 rounded-br-xl opacity-50" />
+                  </div>
+
+                  <div className="flex flex-col gap-4 w-full max-w-xs">
+                    <Button
+                      size="lg"
+                      className="w-full bg-green-600 hover:bg-green-500 text-white font-semibold h-12 rounded-xl text-lg shadow-lg shadow-green-900/20"
+                      onClick={fetchQRCode}
+                      disabled={loadingQr}
+                    >
+                      {loadingQr ? (
+                        <>
+                          <RefreshCw className="w-5 h-5 mr-2 animate-spin" />
+                          Gerando...
+                        </>
+                      ) : (
+                        <>
+                          <QrCode className="w-5 h-5 mr-2" />
+                          Gerar QR Code
+                        </>
+                      )}
+                    </Button>
+
+                    <div className="flex items-center gap-3 justify-center text-sm text-zinc-500">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                        Instância: <span className="text-zinc-300 font-mono">{(configManager.getConfig() as any)?.instance || '...'}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="text-center max-w-sm">
+                    <p className="text-zinc-500 text-sm">
+                      1. Abra o WhatsApp no seu celular<br />
+                      2. Toque em Menu (⋮) ou Configurações<br />
+                      3. Selecione <b>Aparelhos Conectados</b><br />
+                      4. Toque em <b>Conectar um aparelho</b>
+                    </p>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Sidebar SEMPRE visível */}
         <div className="w-[380px] shrink-0 h-full border-r border-border">
           <ConversationList

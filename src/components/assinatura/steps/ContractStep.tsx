@@ -16,9 +16,6 @@ interface ClientData {
   client_phone: string | null;
   contract_html: string;
   protocol_number: string | null;
-  logo_url?: string | null;
-  logo_size?: string;
-  logo_position?: string;
   primary_color?: string | null;
   text_color?: string | null;
   font_family?: string | null;
@@ -70,40 +67,22 @@ export const ContractStep = ({ clientData, selfiePhoto, documentPhoto, currentSt
       const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
       if (scrollTop + clientHeight >= scrollHeight - 50) {
         setHasScrolled(true);
+        setAgreed(true); // Automatically agree when scrolled to the end
       }
-    }
-  };
-
-  const getLogoPositionStyle = (position?: string): string => {
-    switch (position) {
-      case 'left': return 'text-align: left;';
-      case 'right': return 'text-align: right;';
-      default: return 'text-align: center;';
-    }
-  };
-
-  const getLogoSizeStyle = (size?: string): string => {
-    switch (size) {
-      case 'small': return 'max-width: 100px;';
-      case 'large': return 'max-width: 300px;';
-      default: return 'max-width: 200px;';
     }
   };
 
   const generateContractHTML = (signedAt?: Date) => {
     const now = signedAt || new Date();
     const protocol = clientData?.protocol_number || contractData?.protocol_number || generateProtocolNumber();
-    
+
     const primaryColor = clientData?.primary_color || '#1351B4';
     const textColor = clientData?.text_color || '#333333';
     const fontFamily = clientData?.font_family || 'Arial, sans-serif';
     const fontSize = clientData?.font_size || '16px';
-    const logoUrl = clientData?.logo_url;
-    const logoSize = clientData?.logo_size || 'medium';
-    const logoPosition = clientData?.logo_position || 'center';
     const companyName = clientData?.company_name || 'Sua Empresa';
     const footerText = clientData?.footer_text;
-    
+
     const clausesHTML = contractConfig.clauses.map(clause => `
       <h3 style="font-weight: bold !important; margin-top: 25px !important; margin-bottom: 10px !important; color: ${textColor} !important; font-family: ${fontFamily} !important;">${clause.title}</h3>
       <p style="text-align: justify !important; line-height: 1.6 !important; font-family: ${fontFamily} !important; font-size: ${fontSize} !important; color: ${textColor} !important;">${clause.content}</p>
@@ -180,11 +159,11 @@ export const ContractStep = ({ clientData, selfiePhoto, documentPhoto, currentSt
     }
 
     setIsSigning(true);
-    
+
     try {
       const { html, protocol } = generateContractHTML();
       const now = new Date().toISOString();
-      
+
       await apiRequest('POST', `/api/assinatura/public/contracts/${clientData.id}/finalize`, {
         selfie_photo: selfiePhoto,
         document_photo: documentPhoto,
@@ -223,18 +202,6 @@ export const ContractStep = ({ clientData, selfiePhoto, documentPhoto, currentSt
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 animate-fade-in">
-      {clientData?.logo_url && (
-        <div style={{ textAlign: (clientData?.logo_position || 'center') as any, marginBottom: '24px' }}>
-          <img 
-            src={clientData.logo_url} 
-            alt="Logo" 
-            style={{
-              maxWidth: clientData?.logo_size === 'small' ? '100px' : clientData?.logo_size === 'large' ? '300px' : '200px',
-              height: 'auto'
-            }} 
-          />
-        </div>
-      )}
       <div className="text-center mb-6">
         <h2 className="text-2xl sm:text-3xl font-bold mb-2" style={resolvedTitleColor ? { color: resolvedTitleColor } : undefined} data-testid="text-contract-title">
           {contractConfig.pageTitle}
@@ -249,7 +216,7 @@ export const ContractStep = ({ clientData, selfiePhoto, documentPhoto, currentSt
           <FileText className="w-5 h-5" style={resolvedIconColor ? { color: resolvedIconColor } : undefined} />
           <span className="font-medium" style={resolvedTextColor ? { color: resolvedTextColor } : undefined}>{contractConfig.title}</span>
         </div>
-        
+
         <div
           ref={scrollRef}
           onScroll={handleScroll}
@@ -258,7 +225,7 @@ export const ContractStep = ({ clientData, selfiePhoto, documentPhoto, currentSt
           dangerouslySetInnerHTML={{ __html: html }}
           data-testid="contract-viewer"
         />
-        
+
         {!hasScrolled && (
           <div className={resolvedButtonColor ? "flex items-center gap-2 px-4 py-3 border-t" : "flex items-center gap-2 px-4 py-3 bg-warning/10 border-t border-warning/20"} style={resolvedButtonColor ? { backgroundColor: `${resolvedButtonColor}1A`, borderColor: `${resolvedButtonColor}33` } : undefined}>
             <AlertCircle className="w-4 h-4" style={resolvedButtonColor ? { color: resolvedButtonColor } : undefined} />
@@ -297,7 +264,7 @@ export const ContractStep = ({ clientData, selfiePhoto, documentPhoto, currentSt
           <ArrowLeft className="w-4 h-4" />
           Voltar
         </Button>
-        
+
         <Button
           onClick={handleSign}
           disabled={!hasScrolled || !agreed || isSigning}

@@ -5,11 +5,11 @@
 
 import type { Express } from "express";
 import { db } from "../db";
-import { 
-  redisConfig, 
-  sentryConfig, 
-  resendConfig, 
-  cloudflareConfig, 
+import {
+  redisConfig,
+  sentryConfig,
+  resendConfig,
+  cloudflareConfig,
   betterStackConfig,
   bigdatacorpConfig,
   supabaseMasterConfig,
@@ -19,24 +19,27 @@ import {
   appSettings,
   supabaseConfig,
   hms100msConfig,
-  totalExpressConfig
+  totalExpressConfig,
+  n8nConfig,
+  pluggyConfig
 } from "../../shared/db-schema";
 import { eq, and } from "drizzle-orm";
 import { encrypt, decrypt } from '../lib/credentialsManager';
 import { authenticateConfig, AuthRequest } from '../middleware/configAuth';
 import { createRateLimiter } from '../middleware/rateLimiter';
 import { authenticateToken } from '../middleware/auth';
-import { 
-  saveSupabaseFileConfig, 
+import {
+  saveSupabaseFileConfig,
   getEffectiveSupabaseConfig,
-  getSupabaseFileConfig 
+  getSupabaseFileConfig
 } from '../lib/supabaseFileConfig';
 import { invalidateCredentialsCache } from '../lib/publicCache';
 import axios from 'axios';
 import Redis from 'ioredis';
 
 export function setupConfigRoutes(app: Express) {
-  
+  console.log('🔧 [CONFIG] Setting up configuration routes...');
+
   // Rate limiter específico para config (30 req/min para evitar abuso)
   const configLimiter = createRateLimiter({
     windowMs: 60000, // 1 minuto
@@ -44,16 +47,16 @@ export function setupConfigRoutes(app: Express) {
     message: 'Muitas requisições de configuração. Tente novamente em 1 minuto.',
     keyGenerator: (req) => `config:${req.ip}:${req.path}`,
   });
-  
+
   // ===== REDIS CONFIGURATION =====
-  
+
   app.get("/api/config/redis", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const tenantId = req.user!.tenantId;
       const configFromDb = await db.select().from(redisConfig)
         .where(eq(redisConfig.tenantId, tenantId))
         .limit(1);
-      
+
       if (configFromDb[0]) {
         return res.json({
           configured: true,
@@ -61,7 +64,7 @@ export function setupConfigRoutes(app: Express) {
           updatedAt: configFromDb[0].updatedAt,
         });
       }
-      
+
       return res.json({
         configured: false,
       });
@@ -79,11 +82,11 @@ export function setupConfigRoutes(app: Express) {
       const configFromDb = await db.select().from(redisConfig)
         .where(eq(redisConfig.tenantId, tenantId))
         .limit(1);
-      
+
       if (configFromDb[0]) {
         const decryptedUrl = decrypt(configFromDb[0].redisUrl);
         const decryptedToken = configFromDb[0].redisToken ? decrypt(configFromDb[0].redisToken) : null;
-        
+
         return res.json({
           success: true,
           credentials: {
@@ -92,10 +95,10 @@ export function setupConfigRoutes(app: Express) {
           }
         });
       }
-      
-      return res.status(404).json({
-        success: false,
-        error: "Credenciais não encontradas"
+
+      return res.json({
+        success: true,
+        credentials: null
       });
     } catch (error) {
       console.error("Erro ao buscar credenciais do Redis:", error);
@@ -106,18 +109,18 @@ export function setupConfigRoutes(app: Express) {
       });
     }
   });
-  
+
   app.post("/api/config/redis", authenticateConfig, async (req: AuthRequest, res) => {
     try {
       let { redisUrl, redisToken } = req.body;
       const tenantId = req.user!.tenantId;
-      
+
       if (!redisUrl) {
         return res.status(400).json({
           error: "redisUrl é obrigatório",
         });
       }
-      
+
       // Limpar URL se usuário colou o comando CLI completo do Upstash
       // Exemplo: "redis-cli --tls -u redis://..." → "redis://..."
       if (redisUrl.includes('redis-cli')) {
@@ -127,21 +130,21 @@ export function setupConfigRoutes(app: Express) {
           console.log('✅ URL do Redis limpa automaticamente:', redisUrl.replace(/:[^:]*@/, ':***@'));
         }
       }
-      
+
       // Validar formato da URL
       if (!redisUrl.startsWith('redis://') && !redisUrl.startsWith('rediss://')) {
         return res.status(400).json({
           error: "URL do Redis inválida. Deve começar com redis:// ou rediss://",
         });
       }
-      
+
       const encryptedUrl = encrypt(redisUrl);
       const encryptedToken = redisToken ? encrypt(redisToken) : null;
-      
+
       const existingConfig = await db.select().from(redisConfig)
         .where(eq(redisConfig.tenantId, tenantId))
         .limit(1);
-      
+
       if (existingConfig[0]) {
         await db
           .update(redisConfig)
@@ -154,7 +157,7 @@ export function setupConfigRoutes(app: Express) {
             eq(redisConfig.id, existingConfig[0].id),
             eq(redisConfig.tenantId, tenantId)
           ));
-        
+
         console.log(`✅ Configuração do Redis atualizada para tenant ${tenantId}`);
         return res.json({
           success: true,
@@ -166,7 +169,7 @@ export function setupConfigRoutes(app: Express) {
           redisUrl: encryptedUrl,
           redisToken: encryptedToken,
         });
-        
+
         console.log(`✅ Configuração do Redis salva para tenant ${tenantId}`);
         return res.json({
           success: true,
@@ -185,14 +188,14 @@ export function setupConfigRoutes(app: Express) {
   app.post("/api/config/redis/test", async (req, res) => {
     try {
       const { redisUrl, redisToken } = req.body;
-      
+
       if (!redisUrl) {
         return res.status(400).json({
           success: false,
           error: "redisUrl é obrigatório",
         });
       }
-      
+
       // Validate URL format
       if (!redisUrl.startsWith('redis://') && !redisUrl.startsWith('rediss://')) {
         return res.status(400).json({
@@ -200,7 +203,7 @@ export function setupConfigRoutes(app: Express) {
           error: "URL do Redis inválida. Deve começar com redis:// ou rediss://",
         });
       }
-      
+
       // Test connection with a temporary Redis instance
       const redisConfig: any = {
         maxRetriesPerRequest: 1,
@@ -208,7 +211,7 @@ export function setupConfigRoutes(app: Express) {
         connectTimeout: 5000,
         retryStrategy: () => null, // Don't retry on test
       };
-      
+
       // Enable TLS if URL uses rediss:// or is Upstash
       const isSecure = redisUrl.startsWith('rediss://') || redisUrl.includes('upstash.io');
       if (isSecure) {
@@ -216,9 +219,9 @@ export function setupConfigRoutes(app: Express) {
           rejectUnauthorized: true
         };
       }
-      
+
       const testRedis = new Redis(redisUrl, redisConfig);
-      
+
       return new Promise((resolve) => {
         const timeout = setTimeout(() => {
           testRedis.disconnect();
@@ -227,7 +230,7 @@ export function setupConfigRoutes(app: Express) {
             error: "Timeout ao conectar no Redis. Verifique a URL e tente novamente.",
           }));
         }, 5000);
-        
+
         testRedis.on('error', (err: Error) => {
           clearTimeout(timeout);
           testRedis.disconnect();
@@ -237,14 +240,14 @@ export function setupConfigRoutes(app: Express) {
             error: `Erro ao conectar: ${err.message}`,
           }));
         });
-        
+
         testRedis.on('connect', async () => {
           try {
             // Try PING command
             const pong = await testRedis.ping();
             clearTimeout(timeout);
             testRedis.disconnect();
-            
+
             if (pong === 'PONG') {
               resolve(res.json({
                 success: true,
@@ -281,16 +284,16 @@ export function setupConfigRoutes(app: Express) {
     try {
       const { cache } = await import('../lib/cache');
       const stats = await cache.getStats();
-      
+
       // Calculate metrics
       const totalCommands = stats.redis.commandsThisMonth || 0;
       const limit = 500000; // Upstash Free Tier limit
       const usagePercent = Math.min((totalCommands / limit) * 100, 100);
-      
+
       // Get Redis INFO if connected
       let storageUsedKB = 0;
       let hitRate = 0;
-      
+
       if (stats.redisConnected) {
         try {
           // Try to get detailed stats from cache implementation
@@ -302,7 +305,7 @@ export function setupConfigRoutes(app: Express) {
           console.log('Não foi possível calcular hit rate:', err);
         }
       }
-      
+
       return res.json({
         success: true,
         telemetry: {
@@ -332,22 +335,22 @@ export function setupConfigRoutes(app: Express) {
       // Check if REDIS_URL exists in environment (Replit Secrets)
       const redisUrl = process.env.REDIS_URL || process.env.UPSTASH_REDIS_URL;
       const redisToken = process.env.REDIS_TOKEN || process.env.UPSTASH_REDIS_TOKEN;
-      
+
       if (!redisUrl) {
         return res.status(404).json({
           success: false,
           error: "Nenhuma credencial Redis encontrada nos Secrets",
         });
       }
-      
+
       // Encrypt and save to database
       const encryptedUrl = encrypt(redisUrl);
       const encryptedToken = redisToken ? encrypt(redisToken) : null;
-      
+
       const existingConfig = await db.select().from(redisConfig)
         .where(eq(redisConfig.tenantId, tenantId))
         .limit(1);
-      
+
       if (existingConfig[0]) {
         await db
           .update(redisConfig)
@@ -367,9 +370,9 @@ export function setupConfigRoutes(app: Express) {
           redisToken: encryptedToken,
         });
       }
-      
+
       console.log(`✅ Credenciais Redis migradas para tenant ${tenantId}`);
-      
+
       return res.json({
         success: true,
         message: "Credenciais migradas com sucesso! Agora você pode remover REDIS_URL dos Secrets.",
@@ -385,17 +388,17 @@ export function setupConfigRoutes(app: Express) {
   });
 
   // ===== SENTRY CONFIGURATION =====
-  
+
   app.get("/api/config/sentry", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const tenantId = req.user!.tenantId;
       const configFromDb = await db.select().from(sentryConfig)
         .where(eq(sentryConfig.tenantId, tenantId))
         .limit(1);
-      
+
       if (configFromDb[0]) {
         let dsn = configFromDb[0].dsn;
-        
+
         // Try to decrypt if encrypted, otherwise use plain value
         try {
           dsn = decrypt(dsn);
@@ -403,7 +406,7 @@ export function setupConfigRoutes(app: Express) {
           // If decrypt fails, assume it's plain text (from env vars)
           // This happens when credentials are initialized from environment
         }
-        
+
         return res.json({
           configured: true,
           dsn: dsn,
@@ -413,7 +416,7 @@ export function setupConfigRoutes(app: Express) {
           updatedAt: configFromDb[0].updatedAt,
         });
       }
-      
+
       return res.json({
         configured: false,
       });
@@ -432,11 +435,11 @@ export function setupConfigRoutes(app: Express) {
       const configFromDb = await db.select().from(sentryConfig)
         .where(eq(sentryConfig.tenantId, tenantId))
         .limit(1);
-      
+
       if (configFromDb[0]) {
         const decryptedDsn = decrypt(configFromDb[0].dsn);
         const decryptedToken = configFromDb[0].authToken ? decrypt(configFromDb[0].authToken) : null;
-        
+
         return res.json({
           success: true,
           credentials: {
@@ -449,10 +452,10 @@ export function setupConfigRoutes(app: Express) {
           }
         });
       }
-      
-      return res.status(404).json({
-        success: false,
-        error: "Credenciais não encontradas"
+
+      return res.json({
+        success: true,
+        credentials: null
       });
     } catch (error) {
       console.error("Erro ao buscar credenciais do Sentry:", error);
@@ -463,25 +466,25 @@ export function setupConfigRoutes(app: Express) {
       });
     }
   });
-  
+
   app.post("/api/config/sentry", authenticateConfig, async (req: AuthRequest, res) => {
     try {
       const { dsn, authToken, organization, project, environment, tracesSampleRate } = req.body;
       const tenantId = req.user!.tenantId;
-      
+
       if (!dsn) {
         return res.status(400).json({
           error: "DSN é obrigatório",
         });
       }
-      
+
       const encryptedDsn = encrypt(dsn);
       const encryptedToken = authToken ? encrypt(authToken) : null;
-      
+
       const existingConfig = await db.select().from(sentryConfig)
         .where(eq(sentryConfig.tenantId, tenantId))
         .limit(1);
-      
+
       if (existingConfig[0]) {
         await db
           .update(sentryConfig)
@@ -498,7 +501,7 @@ export function setupConfigRoutes(app: Express) {
             eq(sentryConfig.id, existingConfig[0].id),
             eq(sentryConfig.tenantId, tenantId)
           ));
-        
+
         console.log(`✅ Configuração do Sentry atualizada para tenant ${tenantId}`);
         return res.json({
           success: true,
@@ -514,7 +517,7 @@ export function setupConfigRoutes(app: Express) {
           environment: environment || 'production',
           tracesSampleRate: tracesSampleRate || '0.1',
         });
-        
+
         console.log(`✅ Configuração do Sentry salva para tenant ${tenantId}`);
         return res.json({
           success: true,
@@ -531,14 +534,14 @@ export function setupConfigRoutes(app: Express) {
   });
 
   // ===== RESEND CONFIGURATION =====
-  
+
   app.get("/api/config/resend", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const tenantId = req.user!.tenantId;
       const configFromDb = await db.select().from(resendConfig)
         .where(eq(resendConfig.tenantId, tenantId))
         .limit(1);
-      
+
       if (configFromDb[0]) {
         return res.json({
           configured: true,
@@ -547,7 +550,7 @@ export function setupConfigRoutes(app: Express) {
           updatedAt: configFromDb[0].updatedAt,
         });
       }
-      
+
       return res.json({
         configured: false,
       });
@@ -565,10 +568,10 @@ export function setupConfigRoutes(app: Express) {
       const configFromDb = await db.select().from(resendConfig)
         .where(eq(resendConfig.tenantId, tenantId))
         .limit(1);
-      
+
       if (configFromDb[0]) {
         const decryptedApiKey = decrypt(configFromDb[0].apiKey);
-        
+
         return res.json({
           success: true,
           credentials: {
@@ -577,10 +580,10 @@ export function setupConfigRoutes(app: Express) {
           }
         });
       }
-      
-      return res.status(404).json({
-        success: false,
-        error: "Credenciais não encontradas"
+
+      return res.json({
+        success: true,
+        credentials: null
       });
     } catch (error) {
       console.error("Erro ao buscar credenciais do Resend:", error);
@@ -591,24 +594,24 @@ export function setupConfigRoutes(app: Express) {
       });
     }
   });
-  
+
   app.post("/api/config/resend", authenticateConfig, async (req: AuthRequest, res) => {
     try {
       const { apiKey, fromEmail } = req.body;
       const tenantId = req.user!.tenantId;
-      
+
       if (!apiKey || !fromEmail) {
         return res.status(400).json({
           error: "apiKey e fromEmail são obrigatórios",
         });
       }
-      
+
       const encryptedApiKey = encrypt(apiKey);
-      
+
       const existingConfig = await db.select().from(resendConfig)
         .where(eq(resendConfig.tenantId, tenantId))
         .limit(1);
-      
+
       if (existingConfig[0]) {
         await db
           .update(resendConfig)
@@ -621,7 +624,7 @@ export function setupConfigRoutes(app: Express) {
             eq(resendConfig.id, existingConfig[0].id),
             eq(resendConfig.tenantId, tenantId)
           ));
-        
+
         console.log(`✅ Configuração do Resend atualizada para tenant ${tenantId}`);
         return res.json({
           success: true,
@@ -633,7 +636,7 @@ export function setupConfigRoutes(app: Express) {
           apiKey: encryptedApiKey,
           fromEmail,
         });
-        
+
         console.log(`✅ Configuração do Resend salva para tenant ${tenantId}`);
         return res.json({
           success: true,
@@ -660,7 +663,7 @@ export function setupConfigRoutes(app: Express) {
   app.post("/api/config/supabase/test", async (req, res) => {
     try {
       const { supabaseUrl, supabaseAnonKey } = req.body;
-      
+
       if (!supabaseUrl || !supabaseAnonKey) {
         return res.status(400).json({
           success: false,
@@ -695,14 +698,14 @@ export function setupConfigRoutes(app: Express) {
       });
     }
   });
-  
+
   app.get("/api/config/cloudflare", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const tenantId = req.user!.tenantId;
       const configFromDb = await db.select().from(cloudflareConfig)
         .where(eq(cloudflareConfig.tenantId, tenantId))
         .limit(1);
-      
+
       if (configFromDb[0]) {
         return res.json({
           configured: true,
@@ -710,7 +713,7 @@ export function setupConfigRoutes(app: Express) {
           updatedAt: configFromDb[0].updatedAt,
         });
       }
-      
+
       return res.json({
         configured: false,
       });
@@ -728,11 +731,11 @@ export function setupConfigRoutes(app: Express) {
       const configFromDb = await db.select().from(cloudflareConfig)
         .where(eq(cloudflareConfig.tenantId, tenantId))
         .limit(1);
-      
+
       if (configFromDb[0]) {
         const decryptedZoneId = decrypt(configFromDb[0].zoneId);
         const decryptedApiToken = decrypt(configFromDb[0].apiToken);
-        
+
         return res.json({
           success: true,
           credentials: {
@@ -741,10 +744,10 @@ export function setupConfigRoutes(app: Express) {
           }
         });
       }
-      
-      return res.status(404).json({
-        success: false,
-        error: "Credenciais não encontradas"
+
+      return res.json({
+        success: true,
+        credentials: null
       });
     } catch (error) {
       console.error("Erro ao buscar credenciais do Cloudflare:", error);
@@ -755,25 +758,25 @@ export function setupConfigRoutes(app: Express) {
       });
     }
   });
-  
+
   app.post("/api/config/cloudflare", authenticateConfig, async (req: AuthRequest, res) => {
     try {
       const { zoneId, apiToken } = req.body;
       const tenantId = req.user!.tenantId;
-      
+
       if (!zoneId || !apiToken) {
         return res.status(400).json({
           error: "zoneId e apiToken são obrigatórios",
         });
       }
-      
+
       const encryptedZoneId = encrypt(zoneId);
       const encryptedApiToken = encrypt(apiToken);
-      
+
       const existingConfig = await db.select().from(cloudflareConfig)
         .where(eq(cloudflareConfig.tenantId, tenantId))
         .limit(1);
-      
+
       if (existingConfig[0]) {
         await db
           .update(cloudflareConfig)
@@ -786,7 +789,7 @@ export function setupConfigRoutes(app: Express) {
             eq(cloudflareConfig.id, existingConfig[0].id),
             eq(cloudflareConfig.tenantId, tenantId)
           ));
-        
+
         console.log(`✅ Configuração do Cloudflare atualizada para tenant ${tenantId}`);
         return res.json({
           success: true,
@@ -798,7 +801,7 @@ export function setupConfigRoutes(app: Express) {
           zoneId: encryptedZoneId,
           apiToken: encryptedApiToken,
         });
-        
+
         console.log(`✅ Configuração do Cloudflare salva para tenant ${tenantId}`);
         return res.json({
           success: true,
@@ -815,14 +818,14 @@ export function setupConfigRoutes(app: Express) {
   });
 
   // ===== BETTER STACK CONFIGURATION =====
-  
+
   app.get("/api/config/better-stack", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const tenantId = req.user!.tenantId;
       const configFromDb = await db.select().from(betterStackConfig)
         .where(eq(betterStackConfig.tenantId, tenantId))
         .limit(1);
-      
+
       if (configFromDb[0]) {
         return res.json({
           configured: true,
@@ -830,7 +833,7 @@ export function setupConfigRoutes(app: Express) {
           updatedAt: configFromDb[0].updatedAt,
         });
       }
-      
+
       return res.json({
         configured: false,
       });
@@ -848,10 +851,10 @@ export function setupConfigRoutes(app: Express) {
       const configFromDb = await db.select().from(betterStackConfig)
         .where(eq(betterStackConfig.tenantId, tenantId))
         .limit(1);
-      
+
       if (configFromDb[0]) {
         const decryptedToken = decrypt(configFromDb[0].sourceToken);
-        
+
         return res.json({
           success: true,
           credentials: {
@@ -860,10 +863,10 @@ export function setupConfigRoutes(app: Express) {
           }
         });
       }
-      
-      return res.status(404).json({
-        success: false,
-        error: "Credenciais não encontradas"
+
+      return res.json({
+        success: true,
+        credentials: null
       });
     } catch (error) {
       console.error("Erro ao buscar credenciais do Better Stack:", error);
@@ -874,25 +877,25 @@ export function setupConfigRoutes(app: Express) {
       });
     }
   });
-  
+
   app.post("/api/config/better-stack", authenticateConfig, async (req: AuthRequest, res) => {
     try {
       const { sourceToken, ingestingHost } = req.body;
       const tenantId = req.user!.tenantId;
-      
+
       if (!sourceToken) {
         return res.status(400).json({
           error: "sourceToken é obrigatório",
         });
       }
-      
+
       const encryptedToken = encrypt(sourceToken);
       const hostToUse = ingestingHost || "in.logs.betterstack.com";
-      
+
       const existingConfig = await db.select().from(betterStackConfig)
         .where(eq(betterStackConfig.tenantId, tenantId))
         .limit(1);
-      
+
       if (existingConfig[0]) {
         await db
           .update(betterStackConfig)
@@ -905,7 +908,7 @@ export function setupConfigRoutes(app: Express) {
             eq(betterStackConfig.id, existingConfig[0].id),
             eq(betterStackConfig.tenantId, tenantId)
           ));
-        
+
         console.log(`✅ Configuração do Better Stack atualizada para tenant ${tenantId}`);
         return res.json({
           success: true,
@@ -917,7 +920,7 @@ export function setupConfigRoutes(app: Express) {
           sourceToken: encryptedToken,
           ingestingHost: hostToUse,
         });
-        
+
         console.log(`✅ Configuração do Better Stack salva para tenant ${tenantId}`);
         return res.json({
           success: true,
@@ -941,7 +944,7 @@ export function setupConfigRoutes(app: Express) {
       const configFromDb = await db.select().from(bigdatacorpConfig)
         .where(eq(bigdatacorpConfig.tenantId, tenantId))
         .limit(1);
-      
+
       if (configFromDb[0]) {
         return res.json({
           configured: true,
@@ -949,7 +952,7 @@ export function setupConfigRoutes(app: Express) {
           updatedAt: configFromDb[0].updatedAt,
         });
       }
-      
+
       return res.json({
         configured: false,
       });
@@ -967,7 +970,7 @@ export function setupConfigRoutes(app: Express) {
       const configFromDb = await db.select().from(bigdatacorpConfig)
         .where(eq(bigdatacorpConfig.tenantId, tenantId))
         .limit(1);
-      
+
       if (configFromDb[0]) {
         return res.json({
           success: true,
@@ -979,10 +982,10 @@ export function setupConfigRoutes(app: Express) {
           }
         });
       }
-      
-      return res.status(404).json({
-        success: false,
-        error: "Credenciais não encontradas"
+
+      return res.json({
+        success: true,
+        credentials: null
       });
     } catch (error) {
       console.error("Erro ao buscar credenciais do BigDataCorp:", error);
@@ -998,22 +1001,22 @@ export function setupConfigRoutes(app: Express) {
     try {
       const { tokenId, chaveToken, supabaseMasterUrl, supabaseMasterServiceRoleKey } = req.body;
       const tenantId = req.user!.tenantId;
-      
+
       if (!tokenId || !chaveToken) {
         return res.status(400).json({
           error: "tokenId e chaveToken são obrigatórios",
         });
       }
-      
+
       const encryptedTokenId = encrypt(tokenId);
       const encryptedChaveToken = encrypt(chaveToken);
       const encryptedMasterUrl = supabaseMasterUrl ? encrypt(supabaseMasterUrl) : null;
       const encryptedMasterKey = supabaseMasterServiceRoleKey ? encrypt(supabaseMasterServiceRoleKey) : null;
-      
+
       const existingConfig = await db.select().from(bigdatacorpConfig)
         .where(eq(bigdatacorpConfig.tenantId, tenantId))
         .limit(1);
-      
+
       if (existingConfig[0]) {
         await db
           .update(bigdatacorpConfig)
@@ -1028,7 +1031,7 @@ export function setupConfigRoutes(app: Express) {
             eq(bigdatacorpConfig.id, existingConfig[0].id),
             eq(bigdatacorpConfig.tenantId, tenantId)
           ));
-        
+
         console.log(`✅ Configuração do BigDataCorp atualizada para tenant ${tenantId}`);
         return res.json({
           success: true,
@@ -1042,7 +1045,7 @@ export function setupConfigRoutes(app: Express) {
           supabaseMasterUrl: encryptedMasterUrl,
           supabaseMasterServiceRoleKey: encryptedMasterKey,
         });
-        
+
         console.log(`✅ Configuração do BigDataCorp salva para tenant ${tenantId}`);
         return res.json({
           success: true,
@@ -1061,14 +1064,14 @@ export function setupConfigRoutes(app: Express) {
   app.post("/api/config/bigdatacorp/test", authenticateConfig, async (req: AuthRequest, res) => {
     try {
       const { tokenId, chaveToken } = req.body;
-      
+
       if (!tokenId || !chaveToken) {
         return res.status(400).json({
           success: false,
           error: "tokenId e chaveToken são obrigatórios",
         });
       }
-      
+
       const testResponse = await axios.post(
         'https://plataforma.bigdatacorp.com.br/pessoas',
         {
@@ -1085,7 +1088,7 @@ export function setupConfigRoutes(app: Express) {
           timeout: 10000,
         }
       );
-      
+
       if (testResponse.data && testResponse.data.Status) {
         return res.json({
           success: true,
@@ -1093,21 +1096,21 @@ export function setupConfigRoutes(app: Express) {
           connected: true,
         });
       }
-      
+
       return res.status(400).json({
         success: false,
         error: "Resposta inválida da API BigDataCorp",
       });
     } catch (error: any) {
       console.error("Erro ao testar BigDataCorp:", error);
-      
+
       if (error.response?.status === 401 || error.response?.status === 403) {
         return res.status(401).json({
           success: false,
           error: "Credenciais inválidas. Verifique TOKEN_ID e CHAVE_TOKEN.",
         });
       }
-      
+
       return res.status(500).json({
         success: false,
         error: error.message || "Erro ao testar conexão",
@@ -1116,14 +1119,14 @@ export function setupConfigRoutes(app: Express) {
   });
 
   // ===== SUPABASE MASTER CONFIGURATION =====
-  
+
   app.get("/api/config/supabase-master", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const tenantId = req.user!.tenantId;
       const configFromDb = await db.select().from(supabaseMasterConfig)
         .where(eq(supabaseMasterConfig.tenantId, tenantId))
         .limit(1);
-      
+
       if (configFromDb[0]) {
         return res.json({
           configured: true,
@@ -1131,7 +1134,7 @@ export function setupConfigRoutes(app: Express) {
           updatedAt: configFromDb[0].updatedAt,
         });
       }
-      
+
       // Fallback: check environment variables
       if (process.env.SUPABASE_MASTER_URL && process.env.SUPABASE_MASTER_SERVICE_ROLE_KEY) {
         return res.json({
@@ -1139,7 +1142,7 @@ export function setupConfigRoutes(app: Express) {
           source: 'environment',
         });
       }
-      
+
       return res.json({
         configured: false,
       });
@@ -1157,11 +1160,11 @@ export function setupConfigRoutes(app: Express) {
       const configFromDb = await db.select().from(supabaseMasterConfig)
         .where(eq(supabaseMasterConfig.tenantId, tenantId))
         .limit(1);
-      
+
       if (configFromDb[0]) {
         const decryptedUrl = decrypt(configFromDb[0].supabaseMasterUrl);
         const decryptedKey = decrypt(configFromDb[0].supabaseMasterServiceRoleKey);
-        
+
         return res.json({
           success: true,
           credentials: {
@@ -1171,7 +1174,7 @@ export function setupConfigRoutes(app: Express) {
           source: 'database'
         });
       }
-      
+
       // Fallback to environment variables
       if (process.env.SUPABASE_MASTER_URL && process.env.SUPABASE_MASTER_SERVICE_ROLE_KEY) {
         return res.json({
@@ -1183,7 +1186,7 @@ export function setupConfigRoutes(app: Express) {
           source: 'environment'
         });
       }
-      
+
       return res.status(404).json({
         success: false,
         error: "Credenciais não encontradas"
@@ -1197,38 +1200,38 @@ export function setupConfigRoutes(app: Express) {
       });
     }
   });
-  
+
   app.post("/api/config/supabase-master", authenticateConfig, async (req: AuthRequest, res) => {
     try {
       let { supabaseMasterUrl, supabaseMasterServiceRoleKey } = req.body;
       const tenantId = req.user!.tenantId;
-      
+
       if (!supabaseMasterUrl || !supabaseMasterServiceRoleKey) {
         return res.status(400).json({
           error: "URL e Service Role Key são obrigatórios",
         });
       }
-      
+
       // Validate URL format
       if (!supabaseMasterUrl.includes('supabase.co') && !supabaseMasterUrl.includes('supabase.in')) {
         return res.status(400).json({
           error: "URL do Supabase inválida. Deve ser uma URL do Supabase.",
         });
       }
-      
+
       // Normalize URL: ensure it has https:// prefix and no trailing slashes
       supabaseMasterUrl = supabaseMasterUrl.trim().replace(/\/+$/, '');
       if (!supabaseMasterUrl.startsWith('http://') && !supabaseMasterUrl.startsWith('https://')) {
         supabaseMasterUrl = `https://${supabaseMasterUrl}`;
       }
-      
+
       const encryptedUrl = encrypt(supabaseMasterUrl);
       const encryptedKey = encrypt(supabaseMasterServiceRoleKey);
-      
+
       const existingConfig = await db.select().from(supabaseMasterConfig)
         .where(eq(supabaseMasterConfig.tenantId, tenantId))
         .limit(1);
-      
+
       if (existingConfig[0]) {
         await db
           .update(supabaseMasterConfig)
@@ -1241,7 +1244,7 @@ export function setupConfigRoutes(app: Express) {
             eq(supabaseMasterConfig.id, existingConfig[0].id),
             eq(supabaseMasterConfig.tenantId, tenantId)
           ));
-        
+
         console.log(`✅ Configuração do Supabase Master atualizada para tenant ${tenantId}`);
         return res.json({
           success: true,
@@ -1253,7 +1256,7 @@ export function setupConfigRoutes(app: Express) {
           supabaseMasterUrl: encryptedUrl,
           supabaseMasterServiceRoleKey: encryptedKey,
         });
-        
+
         console.log(`✅ Configuração do Supabase Master salva para tenant ${tenantId}`);
         return res.json({
           success: true,
@@ -1272,17 +1275,17 @@ export function setupConfigRoutes(app: Express) {
   app.post("/api/config/supabase-master/test", authenticateConfig, async (req: AuthRequest, res) => {
     try {
       const { supabaseMasterUrl, supabaseMasterServiceRoleKey } = req.body;
-      
+
       if (!supabaseMasterUrl || !supabaseMasterServiceRoleKey) {
         return res.status(400).json({
           success: false,
           error: "URL e Service Role Key são obrigatórios",
         });
       }
-      
+
       // Test connection using SAME approach as working Supabase Database test
       const { createClient } = await import('@supabase/supabase-js');
-      
+
       // Normalize URL: ensure https:// prefix and clean trailing slashes
       let cleanUrl = supabaseMasterUrl.trim().replace(/\/+$/, '');
       if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
@@ -1291,10 +1294,10 @@ export function setupConfigRoutes(app: Express) {
       const cleanKey = supabaseMasterServiceRoleKey.trim();
 
       console.log(`[Supabase Master Test] Testando conexão com URL: ${cleanUrl}`);
-      
+
       // Extract project ref from URL (e.g., axrvyrpefpntacuibyds from axrvyrpefpntacuibyds.supabase.co)
       const urlProjectRef = cleanUrl.replace('https://', '').replace('.supabase.co', '').split('.')[0];
-      
+
       // Validate JWT and extract ref
       try {
         const jwtParts = cleanKey.split('.');
@@ -1305,12 +1308,12 @@ export function setupConfigRoutes(app: Express) {
             error: "Chave inválida: não é um JWT válido. Copie a chave completa do Supabase Dashboard > Settings > API.",
           });
         }
-        
+
         const payloadJson = Buffer.from(jwtParts[1], 'base64').toString('utf-8');
         const payload = JSON.parse(payloadJson);
-        
+
         console.log(`[Supabase Master Test] JWT payload - role: ${payload.role}, ref: ${payload.ref}`);
-        
+
         // Check if key matches URL project
         if (payload.ref && payload.ref !== urlProjectRef) {
           console.log(`[Supabase Master Test] ERRO: Chave é de projeto diferente! Key ref: ${payload.ref}, URL ref: ${urlProjectRef}`);
@@ -1319,7 +1322,7 @@ export function setupConfigRoutes(app: Express) {
             error: `Chave é de projeto diferente! A chave pertence ao projeto "${payload.ref}" mas a URL aponta para "${urlProjectRef}". Copie a chave do projeto correto.`,
           });
         }
-        
+
         // Check role
         if (payload.role !== 'service_role') {
           console.log(`[Supabase Master Test] ERRO: Chave é "${payload.role}", não service_role`);
@@ -1328,7 +1331,7 @@ export function setupConfigRoutes(app: Express) {
             error: `Você está usando a chave "${payload.role}". Use a "service_role" key do Supabase Dashboard > Settings > API.`,
           });
         }
-        
+
         console.log(`[Supabase Master Test] JWT válido: role=service_role, ref=${payload.ref}`);
       } catch (jwtError: any) {
         console.log(`[Supabase Master Test] Erro ao decodificar JWT: ${jwtError.message}`);
@@ -1355,41 +1358,41 @@ export function setupConfigRoutes(app: Express) {
       const testClient = createClient(cleanUrl, cleanKey, {
         auth: { persistSession: false }
       });
-      
+
       // Test connection by checking if API key is valid
       // First, try a simple RPC call or health check
       console.log(`[Supabase Master Test] Key preview: ${cleanKey.substring(0, 20)}...`);
-      
+
       // Test 1: Try to access the database - any error with valid credentials is acceptable
       const { data, error } = await testClient
         .from('datacorp_checks')
         .select('id')
         .limit(1);
-      
+
       // Log full error for debugging
       if (error) {
         console.log('[Supabase Master Test] Query result error:', JSON.stringify(error));
       }
-      
+
       // Success conditions:
       // 1. No error at all (query succeeded)
       // 2. Table doesn't exist (PGRST116 or message contains "does not exist" - means connection works)
       // 3. Empty result is OK (data might be [])
       const errorCode = error?.code || '';
       const errorMsg = error?.message || '';
-      
+
       // PGRST116 = "The result contains 0 rows" - this is actually success
       // PGRST204 = "No Content" - this is actually success
       // 42P01 = Table does not exist - connection works, just no table
-      const isTableNotFound = errorCode === 'PGRST116' || errorCode === '42P01' || 
-                              errorMsg.includes('does not exist') || 
-                              errorMsg.includes('relation');
-      
+      const isTableNotFound = errorCode === 'PGRST116' || errorCode === '42P01' ||
+        errorMsg.includes('does not exist') ||
+        errorMsg.includes('relation');
+
       // Invalid API key errors
       const isInvalidKey = errorMsg.toLowerCase().includes('invalid api key') ||
-                           errorMsg.toLowerCase().includes('jwt') ||
-                           errorCode === 'PGRST301';
-      
+        errorMsg.toLowerCase().includes('jwt') ||
+        errorCode === 'PGRST301';
+
       if (!error || isTableNotFound) {
         console.log('[Supabase Master Test] Connection successful!');
         return res.json({
@@ -1398,7 +1401,7 @@ export function setupConfigRoutes(app: Express) {
           connected: true,
         });
       }
-      
+
       if (isInvalidKey) {
         console.log('[Supabase Master Test] Invalid API key');
         return res.status(400).json({
@@ -1406,25 +1409,25 @@ export function setupConfigRoutes(app: Express) {
           error: "API Key inválida. Verifique se você está usando a Service Role Key correta.",
         });
       }
-      
+
       // Check for DNS/network errors
       console.error('[Supabase Master Test] Connection failed:', error);
-      
+
       if (errorMsg.includes('fetch failed') || errorMsg.includes('ENOTFOUND') || errorMsg.includes('getaddrinfo')) {
         return res.status(400).json({
           success: false,
           error: `Projeto Supabase não encontrado! Verifique se a URL está correta.`,
         });
       }
-      
+
       return res.status(400).json({
         success: false,
         error: `Erro na conexão: ${error.message}`,
       });
-      
+
     } catch (error: any) {
       console.error("Erro ao testar Supabase Master:", error);
-      
+
       const errorMsg = error.message || '';
       if (errorMsg.includes('fetch failed') || errorMsg.includes('ENOTFOUND') || errorMsg.includes('getaddrinfo')) {
         return res.status(400).json({
@@ -1432,7 +1435,7 @@ export function setupConfigRoutes(app: Express) {
           error: `Projeto Supabase não encontrado! Verifique se a URL está correta.`,
         });
       }
-      
+
       return res.status(500).json({
         success: false,
         error: error.message || "Erro ao testar conexão",
@@ -1441,11 +1444,11 @@ export function setupConfigRoutes(app: Express) {
   });
 
   // ===== CACHE CONFIGURATION =====
-  
+
   app.get("/api/config/cache", authenticateConfig, async (req, res) => {
     try {
       const configFromDb = await db.select().from(cacheConfig).limit(1);
-      
+
       if (configFromDb[0]) {
         return res.json({
           configured: true,
@@ -1453,7 +1456,7 @@ export function setupConfigRoutes(app: Express) {
           updatedAt: configFromDb[0].updatedAt,
         });
       }
-      
+
       return res.json({
         configured: false,
       });
@@ -1468,7 +1471,7 @@ export function setupConfigRoutes(app: Express) {
   app.get("/api/config/cache/settings", authenticateConfig, async (req, res) => {
     try {
       const configFromDb = await db.select().from(cacheConfig).limit(1);
-      
+
       if (configFromDb[0]) {
         return res.json({
           success: true,
@@ -1492,10 +1495,11 @@ export function setupConfigRoutes(app: Express) {
           }
         });
       }
-      
-      return res.status(404).json({
-        success: false,
-        error: "Configurações não encontradas"
+
+      return res.json({
+        success: true,
+        settings: null,
+        configured: false
       });
     } catch (error) {
       console.error("Erro ao buscar configurações do Cache:", error);
@@ -1506,7 +1510,7 @@ export function setupConfigRoutes(app: Express) {
       });
     }
   });
-  
+
   app.post("/api/config/cache", authenticateConfig, async (req, res) => {
     try {
       const {
@@ -1525,9 +1529,9 @@ export function setupConfigRoutes(app: Express) {
         compressionEnabled,
         compressionThreshold
       } = req.body;
-      
+
       const existingConfig = await db.select().from(cacheConfig).limit(1);
-      
+
       if (existingConfig[0]) {
         await db
           .update(cacheConfig)
@@ -1549,7 +1553,7 @@ export function setupConfigRoutes(app: Express) {
             updatedAt: new Date(),
           })
           .where(eq(cacheConfig.id, existingConfig[0].id));
-        
+
         console.log("✅ Configuração do Cache atualizada");
         return res.json({
           success: true,
@@ -1572,7 +1576,7 @@ export function setupConfigRoutes(app: Express) {
           compressionEnabled,
           compressionThreshold,
         });
-        
+
         console.log("✅ Configuração do Cache salva");
         return res.json({
           success: true,
@@ -1589,11 +1593,11 @@ export function setupConfigRoutes(app: Express) {
   });
 
   // ===== OPTIMIZER CONFIGURATION =====
-  
+
   app.get("/api/config/optimizer", authenticateConfig, async (req, res) => {
     try {
       const configFromDb = await db.select().from(optimizerConfig).limit(1);
-      
+
       if (configFromDb[0]) {
         return res.json({
           configured: true,
@@ -1601,7 +1605,7 @@ export function setupConfigRoutes(app: Express) {
           updatedAt: configFromDb[0].updatedAt,
         });
       }
-      
+
       return res.json({
         configured: false,
       });
@@ -1616,7 +1620,7 @@ export function setupConfigRoutes(app: Express) {
   app.get("/api/config/optimizer/settings", authenticateConfig, async (req, res) => {
     try {
       const configFromDb = await db.select().from(optimizerConfig).limit(1);
-      
+
       if (configFromDb[0]) {
         return res.json({
           success: true,
@@ -1634,10 +1638,11 @@ export function setupConfigRoutes(app: Express) {
           }
         });
       }
-      
-      return res.status(404).json({
-        success: false,
-        error: "Configurações não encontradas"
+
+      return res.json({
+        success: true,
+        settings: null,
+        configured: false
       });
     } catch (error) {
       console.error("Erro ao buscar configurações do Optimizer:", error);
@@ -1648,7 +1653,7 @@ export function setupConfigRoutes(app: Express) {
       });
     }
   });
-  
+
   app.post("/api/config/optimizer", authenticateConfig, async (req, res) => {
     try {
       const {
@@ -1661,9 +1666,9 @@ export function setupConfigRoutes(app: Express) {
         aggregationEnabled,
         aggregationFunctions
       } = req.body;
-      
+
       const existingConfig = await db.select().from(optimizerConfig).limit(1);
-      
+
       if (existingConfig[0]) {
         await db
           .update(optimizerConfig)
@@ -1679,7 +1684,7 @@ export function setupConfigRoutes(app: Express) {
             updatedAt: new Date(),
           })
           .where(eq(optimizerConfig.id, existingConfig[0].id));
-        
+
         console.log("✅ Configuração do Optimizer atualizada");
         return res.json({
           success: true,
@@ -1696,7 +1701,7 @@ export function setupConfigRoutes(app: Express) {
           aggregationEnabled,
           aggregationFunctions,
         });
-        
+
         console.log("✅ Configuração do Optimizer salva");
         return res.json({
           success: true,
@@ -1713,11 +1718,11 @@ export function setupConfigRoutes(app: Express) {
   });
 
   // ===== MONITORING CONFIGURATION =====
-  
+
   app.get("/api/config/monitoring", authenticateConfig, async (req, res) => {
     try {
       const configFromDb = await db.select().from(monitoringConfig).limit(1);
-      
+
       if (configFromDb[0]) {
         return res.json({
           configured: true,
@@ -1725,7 +1730,7 @@ export function setupConfigRoutes(app: Express) {
           updatedAt: configFromDb[0].updatedAt,
         });
       }
-      
+
       return res.json({
         configured: false,
       });
@@ -1740,7 +1745,7 @@ export function setupConfigRoutes(app: Express) {
   app.get("/api/config/monitoring/settings", authenticateConfig, async (req, res) => {
     try {
       const configFromDb = await db.select().from(monitoringConfig).limit(1);
-      
+
       if (configFromDb[0]) {
         return res.json({
           success: true,
@@ -1762,10 +1767,11 @@ export function setupConfigRoutes(app: Express) {
           }
         });
       }
-      
-      return res.status(404).json({
-        success: false,
-        error: "Configurações não encontradas"
+
+      return res.json({
+        success: true,
+        settings: null,
+        configured: false
       });
     } catch (error) {
       console.error("Erro ao buscar configurações do Monitoring:", error);
@@ -1776,7 +1782,7 @@ export function setupConfigRoutes(app: Express) {
       });
     }
   });
-  
+
   app.post("/api/config/monitoring", authenticateConfig, async (req, res) => {
     try {
       const {
@@ -1793,9 +1799,9 @@ export function setupConfigRoutes(app: Express) {
         alertEmail,
         autoActionsEnabled
       } = req.body;
-      
+
       const existingConfig = await db.select().from(monitoringConfig).limit(1);
-      
+
       if (existingConfig[0]) {
         await db
           .update(monitoringConfig)
@@ -1815,7 +1821,7 @@ export function setupConfigRoutes(app: Express) {
             updatedAt: new Date(),
           })
           .where(eq(monitoringConfig.id, existingConfig[0].id));
-        
+
         console.log("✅ Configuração do Monitoring atualizada");
         return res.json({
           success: true,
@@ -1836,7 +1842,7 @@ export function setupConfigRoutes(app: Express) {
           alertEmail,
           autoActionsEnabled,
         });
-        
+
         console.log("✅ Configuração do Monitoring salva");
         return res.json({
           success: true,
@@ -1853,20 +1859,20 @@ export function setupConfigRoutes(app: Express) {
   });
 
   // ===== SUPABASE CONFIGURATION =====
-  
+
   app.get("/api/config/supabase", authenticateConfig, async (req: AuthRequest, res) => {
     try {
       const tenantId = req.user!.tenantId;
       const configFromDb = await db.select().from(supabaseConfig)
         .where(eq(supabaseConfig.tenantId, tenantId))
         .limit(1);
-      
+
       if (configFromDb[0]) {
         const { getSupabaseCredentialsStrict } = await import('../lib/credentialsDb.js');
         const decrypted = await getSupabaseCredentialsStrict(tenantId);
         const resolvedUrl = decrypted?.url || configFromDb[0].supabaseUrl;
         const resolvedBucket = configFromDb[0].supabaseBucket || 'receipts';
-        
+
         return res.json({
           configured: true,
           url: resolvedUrl,
@@ -1878,7 +1884,7 @@ export function setupConfigRoutes(app: Express) {
           updatedAt: configFromDb[0].updatedAt,
         });
       }
-      
+
       return res.json({
         configured: false,
       });
@@ -1894,24 +1900,25 @@ export function setupConfigRoutes(app: Express) {
     try {
       // Get tenantId from authenticated user (set by authenticateConfig middleware)
       const tenantId = req.user?.tenantId || req.session?.tenantId;
-      
+
       if (!tenantId) {
-        console.log('⚠️ [SUPABASE] Nenhum tenantId encontrado - retornando 401');
-        return res.status(401).json({
-          success: false,
-          error: 'Autenticação necessária para acessar credenciais'
+        console.log('⚠️ [SUPABASE] Nenhum tenantId encontrado - retornando null');
+        return res.json({
+          success: true,
+          credentials: null,
+          error: 'Autenticação necessária'
         });
       }
-      
+
       console.log(`🔍 [SUPABASE] Buscando credenciais para tenant: ${tenantId}`);
-      
+
       // 🔐 ADMIN PLATFORM: Use STRICT version - NO FALLBACKS
       // This ensures each admin sees ONLY their own credentials
       // New admins will see EMPTY/ZERO credentials (not from another tenant)
       try {
         const { getSupabaseCredentialsStrict } = await import('../lib/credentialsDb.js');
         const credentials = await getSupabaseCredentialsStrict(tenantId);
-        
+
         if (credentials) {
           console.log(`✅ [SUPABASE-STRICT] Credenciais encontradas para tenant: ${tenantId}`);
           return res.json({
@@ -1930,12 +1937,12 @@ export function setupConfigRoutes(app: Express) {
       } catch (dbError) {
         console.warn("⚠️ Database unavailable for Supabase credentials:", dbError instanceof Error ? dbError.message : 'Unknown error');
       }
-      
+
       // 🔐 NO FALLBACKS - Return empty credentials for new admins
       // This is correct behavior: new admins should configure their own credentials
       console.log(`ℹ️ [SUPABASE-STRICT] Nenhuma credencial configurada para tenant ${tenantId}`);
       console.log(`💡 [SUPABASE-STRICT] Admin deve configurar suas próprias credenciais`);
-      
+
       return res.json({
         success: false,
         credentials: null,
@@ -1950,42 +1957,42 @@ export function setupConfigRoutes(app: Express) {
       });
     }
   });
-  
+
   app.post("/api/config/supabase", authenticateConfig, async (req: AuthRequest, res) => {
     try {
       const { supabaseUrl, supabaseAnonKey, supabaseBucket, databaseUrl } = req.body;
       const tenantId = req.user!.tenantId;
-      
+
       if (!supabaseUrl || !supabaseAnonKey) {
         return res.status(400).json({
           error: "supabaseUrl e supabaseAnonKey são obrigatórios",
         });
       }
-      
+
       if (!supabaseUrl.startsWith('http')) {
         return res.status(400).json({
           error: "URL inválida - deve começar com http:// ou https://",
         });
       }
-      
+
       if (databaseUrl && !databaseUrl.startsWith('postgres')) {
         return res.status(400).json({
           error: "DATABASE_URL inválida. Deve começar com postgresql:// ou postgres://",
         });
       }
-      
+
       let savedToDatabase = false;
       let savedToFile = false;
-      
+
       // Try database first
       try {
         const encryptedUrl = encrypt(supabaseUrl);
         const encryptedAnonKey = encrypt(supabaseAnonKey);
-        
+
         const existingConfig = await db.select().from(supabaseConfig)
           .where(eq(supabaseConfig.tenantId, tenantId))
           .limit(1);
-        
+
         if (existingConfig[0]) {
           await db
             .update(supabaseConfig)
@@ -1999,7 +2006,7 @@ export function setupConfigRoutes(app: Express) {
               eq(supabaseConfig.id, existingConfig[0].id),
               eq(supabaseConfig.tenantId, tenantId)
             ));
-          
+
           console.log(`✅ Supabase config updated in database for tenant ${tenantId}`);
         } else {
           await db.insert(supabaseConfig).values({
@@ -2008,12 +2015,12 @@ export function setupConfigRoutes(app: Express) {
             supabaseAnonKey: encryptedAnonKey,
             supabaseBucket: supabaseBucket || 'receipts',
           });
-          
+
           console.log(`✅ Supabase config created in database for tenant ${tenantId}`);
         }
-        
+
         savedToDatabase = true;
-        
+
         // Migration: clean up old credentials from app_settings
         try {
           const oldSettings = await db.select().from(appSettings).limit(1);
@@ -2026,7 +2033,7 @@ export function setupConfigRoutes(app: Express) {
                 updatedAt: new Date(),
               })
               .where(eq(appSettings.id, oldSettings[0].id));
-            
+
             console.log("✅ Old credentials removed from app_settings (auto migration)");
           }
         } catch (migrationError) {
@@ -2035,7 +2042,7 @@ export function setupConfigRoutes(app: Express) {
       } catch (dbError) {
         console.warn("⚠️ Database unavailable, using file-based storage fallback:", dbError instanceof Error ? dbError.message : 'Unknown error');
       }
-      
+
       // If database failed, fallback to file-based storage
       if (!savedToDatabase) {
         const fileSaved = saveSupabaseFileConfig({
@@ -2043,7 +2050,7 @@ export function setupConfigRoutes(app: Express) {
           supabaseAnonKey,
           ...(databaseUrl && { databaseUrl }),
         });
-        
+
         if (fileSaved) {
           savedToFile = true;
           console.log("✅ Supabase config saved to file (database unavailable)");
@@ -2055,7 +2062,7 @@ export function setupConfigRoutes(app: Express) {
           });
         }
       }
-      
+
       // Always save databaseUrl to file (it's the main database connection)
       if (databaseUrl) {
         const dbUrlSaved = saveSupabaseFileConfig({
@@ -2067,7 +2074,7 @@ export function setupConfigRoutes(app: Express) {
           console.log("✅ Database URL saved to supabase-config.json - restart server to apply");
         }
       }
-      
+
       // Clear Supabase client cache to force reconnection
       try {
         const { clearSupabaseCache } = await import('../lib/supabaseClient.js');
@@ -2076,7 +2083,7 @@ export function setupConfigRoutes(app: Express) {
       } catch (cacheError) {
         console.warn("⚠️ Could not clear Supabase cache:", cacheError);
       }
-      
+
       // Clear multi-tenant Supabase client cache for this tenant
       try {
         const { clearClientSupabaseCache } = await import('../lib/multiTenantSupabase.js');
@@ -2085,7 +2092,7 @@ export function setupConfigRoutes(app: Express) {
       } catch (multiTenantCacheError) {
         console.warn("⚠️ Could not clear multi-tenant Supabase cache:", multiTenantCacheError);
       }
-      
+
       // 🔐 CRITICAL: Clear formularios module Supabase client cache
       // This cache is used by /api/forms endpoint and was causing stale data after credential change
       try {
@@ -2095,7 +2102,7 @@ export function setupConfigRoutes(app: Express) {
       } catch (formulariosError) {
         console.warn("⚠️ Could not clear formularios Supabase cache:", formulariosError);
       }
-      
+
       // Invalidate LeadsCache for this tenant (cached leads data from old credentials)
       try {
         const { invalidateLeadsCache } = await import('./leadsPipelineRoutes.js');
@@ -2104,7 +2111,7 @@ export function setupConfigRoutes(app: Express) {
       } catch (leadsCacheError) {
         console.warn("⚠️ Could not invalidate LeadsCache:", leadsCacheError);
       }
-      
+
       // 🔐 CRITICAL: Invalidate publicCache credentials (used by /api/forms endpoint)
       // This cache was preventing forms from loading after credential save
       try {
@@ -2113,7 +2120,7 @@ export function setupConfigRoutes(app: Express) {
       } catch (publicCacheError) {
         console.warn("⚠️ Could not invalidate PublicCache:", publicCacheError);
       }
-      
+
       // Reinitialize assinaturaSupabaseService to use new credentials
       try {
         const { assinaturaSupabaseService } = await import('../services/assinatura-supabase.js');
@@ -2122,7 +2129,7 @@ export function setupConfigRoutes(app: Express) {
       } catch (assinaturaError) {
         console.warn("⚠️ Could not reinitialize assinaturaSupabaseService:", assinaturaError);
       }
-      
+
       try {
         const { syncAdminCredentialsToOwner } = await import('../lib/masterSyncService.js');
         const adminId = req.user!.userId || tenantId;
@@ -2142,12 +2149,12 @@ export function setupConfigRoutes(app: Express) {
       } catch (syncError) {
         console.warn("⚠️ Could not sync admin credentials to Owner:", syncError);
       }
-      
+
       const storageMethod = savedToDatabase ? 'database' : 'file';
       const needsRestart = !!databaseUrl;
       return res.json({
         success: true,
-        message: needsRestart 
+        message: needsRestart
           ? `Credenciais salvas! Reinicie o servidor para aplicar a nova conexão com o banco de dados.`
           : `Credenciais salvas com sucesso! (storage: ${storageMethod})`,
         storage: storageMethod,
@@ -2166,10 +2173,10 @@ export function setupConfigRoutes(app: Express) {
   app.get("/api/config/supabase/test-tables", authenticateConfig, async (req, res) => {
     try {
       const { testAllTables } = await import('../lib/multiTenantSupabase.js');
-      
+
       // Testar para o cliente padrão '1'
       const testResults = await testAllTables('1');
-      
+
       if (!testResults.connected) {
         return res.status(400).json({
           success: false,
@@ -2177,7 +2184,7 @@ export function setupConfigRoutes(app: Express) {
           tables: {}
         });
       }
-      
+
       return res.json({
         success: true,
         ...testResults
@@ -2199,24 +2206,24 @@ export function setupConfigRoutes(app: Express) {
       if (!tenantId) {
         return res.status(401).json({ success: false, error: "Tenant não identificado" });
       }
-      
+
       const { companySlug, markAllPublic, formIds } = req.body;
-      
+
       console.log(`📋 [PublicSettings] Atualizando configurações para tenant: ${tenantId}`);
       console.log(`📋 [PublicSettings] companySlug: ${companySlug}, markAllPublic: ${markAllPublic}`);
-      
+
       const { getSupabaseClient } = await import('../lib/multiTenantSupabase.js');
       const supabase = await getSupabaseClient(tenantId);
-      
+
       if (!supabase) {
-        return res.status(400).json({ 
-          success: false, 
-          error: "Supabase não configurado para este tenant" 
+        return res.status(400).json({
+          success: false,
+          error: "Supabase não configurado para este tenant"
         });
       }
-      
+
       const results: any = { updated: false, companySlugUpdated: false, formsUpdated: 0 };
-      
+
       // Update company_slug in Supabase app_settings
       // REGRA: Supabase NÃO tem coluna 'active'. Enviar apenas colunas válidas.
       // Colunas válidas: company_name, company_slug, active_form_id, active_form_url,
@@ -2226,65 +2233,65 @@ export function setupConfigRoutes(app: Express) {
       if (companySlug) {
         const normalizedSlug = companySlug.toLowerCase().trim().replace(/\s+/g, '-');
         console.log(`📋 [PublicSettings] Atualizando company_slug para: ${normalizedSlug}`);
-        
+
         const { data: existingRow } = await supabase
           .from('app_settings')
           .select('id')
           .limit(1)
           .maybeSingle();
-        
+
         const { error: updateError } = existingRow
           ? await supabase
-              .from('app_settings')
-              .update({ company_slug: normalizedSlug, updated_at: new Date().toISOString() })
-              .eq('id', existingRow.id)
+            .from('app_settings')
+            .update({ company_slug: normalizedSlug, updated_at: new Date().toISOString() })
+            .eq('id', existingRow.id)
           : await supabase
-              .from('app_settings')
-              .insert({ company_slug: normalizedSlug, updated_at: new Date().toISOString() });
-        
+            .from('app_settings')
+            .insert({ company_slug: normalizedSlug, updated_at: new Date().toISOString() });
+
         if (updateError) {
           console.error(`❌ [PublicSettings] Erro ao atualizar company_slug:`, updateError);
         } else {
           console.log(`✅ [PublicSettings] company_slug atualizado para: ${normalizedSlug}`);
           results.companySlugUpdated = true;
           results.companySlug = normalizedSlug;
-          
+
           try {
             const { saveCompanySlug } = await import('../lib/tenantSlug.js');
             await saveCompanySlug(tenantId, normalizedSlug);
-            
+
             const { db: localDb } = await import('../db.js');
             const { formTenantMapping, appSettings: appSettingsTable } = await import('../../shared/db-schema.js');
             const { eq: eqOp } = await import('drizzle-orm');
-            
+
             await localDb.update(formTenantMapping)
               .set({ companySlug: normalizedSlug })
               .where(eqOp(formTenantMapping.tenantId, tenantId));
-            
+
             const [existingSettings] = await localDb.select().from(appSettingsTable).limit(1);
             if (existingSettings) {
               await localDb.update(appSettingsTable).set({ companySlug: normalizedSlug }).where(eqOp(appSettingsTable.id, existingSettings.id));
             }
-            
+
             console.log(`✅ [PublicSettings] Synced slug to hms100ms_config, app_settings, and form_tenant_mapping`);
           } catch (syncErr) {
             console.warn(`⚠️ [PublicSettings] Error syncing slug to local tables:`, syncErr);
           }
         }
       }
-      
+
       // Mark forms as public
       if (markAllPublic) {
         console.log(`📋 [PublicSettings] Marcando formulários como públicos...`);
-        
+
         let updateQuery = supabase.from('forms').update({ is_public: true });
-        
+
         if (formIds && Array.isArray(formIds) && formIds.length > 0) {
           updateQuery = updateQuery.in('id', formIds);
         }
-        
+
         const { error: formsError, count } = await updateQuery;
-        
+
         if (formsError) {
           console.error(`❌ [PublicSettings] Erro ao atualizar forms:`, formsError);
         } else {
@@ -2292,14 +2299,14 @@ export function setupConfigRoutes(app: Express) {
           results.formsUpdated = count || 'todos';
         }
       }
-      
+
       results.updated = results.companySlugUpdated || results.formsUpdated > 0;
-      
+
       if (results.updated) {
         console.log(`✅ [PublicSettings] Configurações atualizadas com sucesso`);
         console.log(`💡 [PublicSettings] Execute sincronização de forms para propagar mudanças`);
       }
-      
+
       return res.json({
         success: true,
         message: "Configurações atualizadas no Supabase",
@@ -2323,7 +2330,7 @@ export function setupConfigRoutes(app: Express) {
       const configFromDb = await db.select().from(hms100msConfig)
         .where(eq(hms100msConfig.tenantId, tenantId))
         .limit(1);
-      
+
       if (configFromDb[0]) {
         return res.json({
           configured: true,
@@ -2331,7 +2338,7 @@ export function setupConfigRoutes(app: Express) {
           updatedAt: configFromDb[0].updatedAt,
         });
       }
-      
+
       return res.json({
         configured: false,
       });
@@ -2346,28 +2353,28 @@ export function setupConfigRoutes(app: Express) {
   app.get("/api/config/hms100ms/sync-from-env", async (req: AuthRequest, res) => {
     try {
       const tenantId = req.user?.tenantId || "system";
-      
+
       // Verificar se há secrets no environment
       const envHmsKey = process.env.HMS_APP_ACCESS_KEY?.trim();
       const envHmsSecret = process.env.HMS_APP_SECRET?.trim();
       const envHmsToken = process.env.HMS_MANAGEMENT_TOKEN?.trim();
       const envHmsTemplateId = process.env.HMS_TEMPLATE_ID?.trim();
       const envHmsApiUrl = process.env.HMS_API_BASE_URL?.trim() || 'https://api.100ms.live/v2';
-      
+
       // Verificar se há configuração no banco
       const existingConfig = await db.select().from(hms100msConfig)
         .where(eq(hms100msConfig.tenantId, tenantId))
         .limit(1);
-      
+
       // Se há config no banco, retornar ela descriptografada
       if (existingConfig[0]) {
         const decryptedKey = decrypt(existingConfig[0].appAccessKey);
         const decryptedSecret = decrypt(existingConfig[0].appSecret);
         const decryptedToken = existingConfig[0].managementToken ? decrypt(existingConfig[0].managementToken) : null;
         const templateId = existingConfig[0].templateId;
-        
+
         console.log(`✅ [HMS100ms] Config carregada do banco de dados para tenant ${tenantId}`);
-        
+
         return res.json({
           success: true,
           credentials: {
@@ -2381,13 +2388,13 @@ export function setupConfigRoutes(app: Express) {
           syncedFromEnv: false
         });
       }
-      
+
       // Se não há config no banco MAS há valores no environment, salvar automaticamente!
       if (envHmsKey && envHmsSecret) {
         const encryptedKey = encrypt(envHmsKey);
         const encryptedSecret = encrypt(envHmsSecret);
         const encryptedToken = envHmsToken ? encrypt(envHmsToken) : null;
-        
+
         try {
           await db.insert(hms100msConfig).values({
             tenantId,
@@ -2397,10 +2404,10 @@ export function setupConfigRoutes(app: Express) {
             templateId: envHmsTemplateId || null,
             apiBaseUrl: envHmsApiUrl,
           });
-          
+
           console.log(`✅ [HMS100ms] Credenciais sincronizadas do environment para banco de dados para tenant ${tenantId}`);
           console.log(`   📋 Campos salvos: Key=${!!envHmsKey}, Secret=${!!envHmsSecret}, Token=${!!envHmsToken}, TemplateId=${!!envHmsTemplateId}, URL=${!!envHmsApiUrl}`);
-          
+
           return res.json({
             success: true,
             credentials: {
@@ -2432,10 +2439,10 @@ export function setupConfigRoutes(app: Express) {
           });
         }
       }
-      
+
       // Se não há config no banco e nem no environment
       console.log(`⚠️  [HMS100ms] Nenhuma configuração encontrada (banco ou environment)`);
-      
+
       return res.json({
         success: true,
         credentials: {
@@ -2465,13 +2472,13 @@ export function setupConfigRoutes(app: Express) {
       const configFromDb = await db.select().from(hms100msConfig)
         .where(eq(hms100msConfig.tenantId, tenantId))
         .limit(1);
-      
+
       if (configFromDb[0]) {
         const decryptedKey = decrypt(configFromDb[0].appAccessKey);
         const decryptedSecret = decrypt(configFromDb[0].appSecret);
         const decryptedToken = configFromDb[0].managementToken ? decrypt(configFromDb[0].managementToken) : null;
         const templateId = configFromDb[0].templateId;
-        
+
         return res.json({
           success: true,
           credentials: {
@@ -2483,7 +2490,7 @@ export function setupConfigRoutes(app: Express) {
           }
         });
       }
-      
+
       return res.status(404).json({
         success: false,
         error: "Credenciais não encontradas"
@@ -2497,26 +2504,26 @@ export function setupConfigRoutes(app: Express) {
       });
     }
   });
-  
+
   app.post("/api/config/hms100ms", authenticateConfig, async (req: AuthRequest, res) => {
     try {
       let { appAccessKey, appSecret, managementToken, templateId, apiBaseUrl } = req.body;
       const tenantId = req.user!.tenantId;
-      
+
       if (!appAccessKey || !appSecret) {
         return res.status(400).json({
           error: "appAccessKey e appSecret são obrigatórios",
         });
       }
-      
+
       const encryptedKey = encrypt(appAccessKey);
       const encryptedSecret = encrypt(appSecret);
       const encryptedToken = managementToken ? encrypt(managementToken) : null;
-      
+
       const existingConfig = await db.select().from(hms100msConfig)
         .where(eq(hms100msConfig.tenantId, tenantId))
         .limit(1);
-      
+
       if (existingConfig[0]) {
         await db
           .update(hms100msConfig)
@@ -2532,7 +2539,7 @@ export function setupConfigRoutes(app: Express) {
             eq(hms100msConfig.id, existingConfig[0].id),
             eq(hms100msConfig.tenantId, tenantId)
           ));
-        
+
         console.log(`✅ Configuração do 100ms atualizada para tenant ${tenantId}`);
         return res.json({
           success: true,
@@ -2547,7 +2554,7 @@ export function setupConfigRoutes(app: Express) {
           templateId: templateId,
           apiBaseUrl: apiBaseUrl || 'https://api.100ms.live/v2',
         });
-        
+
         console.log(`✅ Configuração do 100ms salva para tenant ${tenantId}`);
         return res.json({
           success: true,
@@ -2566,32 +2573,32 @@ export function setupConfigRoutes(app: Express) {
   app.post("/api/config/hms100ms/test", async (req, res) => {
     try {
       const { appAccessKey, appSecret } = req.body;
-      
+
       if (!appAccessKey || !appSecret) {
         return res.status(400).json({
           success: false,
           error: "appAccessKey e appSecret são obrigatórios",
         });
       }
-      
+
       // Test connection with a temporary request to 100ms API
       const { generateManagementToken } = await import('../services/meetings/hms100ms');
       const token = generateManagementToken(appAccessKey, appSecret);
-      
+
       const testResponse = await axios.get('https://api.100ms.live/v2/rooms', {
         headers: {
           Authorization: `Bearer ${token}`,
         },
         timeout: 5000,
       });
-      
+
       if (testResponse.status === 200) {
         return res.json({
           success: true,
           message: "Credenciais validadas com sucesso",
         });
       }
-      
+
       return res.status(400).json({
         success: false,
         error: "Credenciais inválidas",
@@ -2614,11 +2621,11 @@ export function setupConfigRoutes(app: Express) {
       const configFromDb = await db.select().from(totalExpressConfig)
         .where(eq(totalExpressConfig.tenantId, tenantId))
         .limit(1);
-      
+
       if (configFromDb[0]) {
         const decryptedUser = decrypt(configFromDb[0].user);
         const decryptedReid = decrypt(configFromDb[0].reid);
-        
+
         return res.json({
           configured: true,
           user: decryptedUser,
@@ -2630,7 +2637,7 @@ export function setupConfigRoutes(app: Express) {
           updatedAt: configFromDb[0].updatedAt,
         });
       }
-      
+
       return res.json({
         configured: false,
       });
@@ -2648,12 +2655,12 @@ export function setupConfigRoutes(app: Express) {
       const configFromDb = await db.select().from(totalExpressConfig)
         .where(eq(totalExpressConfig.tenantId, tenantId))
         .limit(1);
-      
+
       if (configFromDb[0]) {
         const decryptedUser = decrypt(configFromDb[0].user);
         const decryptedPassword = decrypt(configFromDb[0].password);
         const decryptedReid = decrypt(configFromDb[0].reid);
-        
+
         return res.json({
           success: true,
           credentials: {
@@ -2666,7 +2673,7 @@ export function setupConfigRoutes(app: Express) {
           }
         });
       }
-      
+
       return res.status(404).json({
         success: false,
         error: "Credenciais não encontradas"
@@ -2680,31 +2687,31 @@ export function setupConfigRoutes(app: Express) {
       });
     }
   });
-  
+
   app.post("/api/config/total-express", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const { user, password, reid, service, serviceType, testMode, profitMargin } = req.body;
       const resolvedService = service || serviceType;
       const tenantId = req.user!.tenantId;
-      
+
       if (!user || !password || !reid) {
         return res.status(400).json({
           error: "Usuário, senha e REID são obrigatórios",
         });
       }
-      
+
       // Validate service type
       const validServices = ['EXP', 'ESP', 'PRM', 'STD'];
       const validatedService = validServices.includes(resolvedService) ? resolvedService : 'EXP';
-      
+
       const encryptedUser = encrypt(user);
       const encryptedPassword = encrypt(password);
       const encryptedReid = encrypt(reid);
-      
+
       const existingConfig = await db.select().from(totalExpressConfig)
         .where(eq(totalExpressConfig.tenantId, tenantId))
         .limit(1);
-      
+
       if (existingConfig[0]) {
         await db
           .update(totalExpressConfig)
@@ -2729,13 +2736,13 @@ export function setupConfigRoutes(app: Express) {
           profitMargin: profitMargin || 1.40,
         });
       }
-      
+
       console.log(`✅ [TotalExpress] Configuração salva para tenant ${tenantId}`);
-      
+
       // Invalidate cache so new credentials are used immediately
       const { totalExpressService } = await import("../services/totalExpressService");
       totalExpressService.invalidateCache(tenantId);
-      
+
       return res.json({
         success: true,
         message: "Configuração do Total Express salva com sucesso",
@@ -2754,13 +2761,13 @@ export function setupConfigRoutes(app: Express) {
     try {
       const tenantId = req.user!.tenantId;
       let { user, password, reid } = req.body;
-      
+
       // If password is not provided, try to get it from existing config
       if (!password) {
         const existingConfig = await db.select().from(totalExpressConfig)
           .where(eq(totalExpressConfig.tenantId, tenantId))
           .limit(1);
-        
+
         if (existingConfig[0]) {
           password = decrypt(existingConfig[0].password);
           // Also use existing user/reid if not provided
@@ -2768,25 +2775,25 @@ export function setupConfigRoutes(app: Express) {
           if (!reid) reid = decrypt(existingConfig[0].reid);
         }
       }
-      
+
       if (!user || !password || !reid) {
         return res.status(400).json({
           success: false,
           error: "Usuário, senha e REID são obrigatórios para testar",
         });
       }
-      
+
       // Test connection by making a simple quote request
       const { totalExpressService } = await import("../services/totalExpressService");
       const testResult = await totalExpressService.testCredentials(user, password, reid);
-      
+
       if (testResult.success) {
         return res.json({
           success: true,
           message: "Credenciais do Total Express validadas com sucesso",
         });
       }
-      
+
       return res.status(400).json({
         success: false,
         error: testResult.error || "Credenciais inválidas",
@@ -2804,16 +2811,16 @@ export function setupConfigRoutes(app: Express) {
   app.delete("/api/config/total-express", authenticateToken, async (req: AuthRequest, res) => {
     try {
       const tenantId = req.user!.tenantId;
-      
+
       await db.delete(totalExpressConfig)
         .where(eq(totalExpressConfig.tenantId, tenantId));
-      
+
       // Invalidate cache so system falls back to env vars immediately
       const { totalExpressService } = await import("../services/totalExpressService");
       totalExpressService.invalidateCache(tenantId);
-      
+
       console.log(`🗑️ [TotalExpress] Configuração removida para tenant ${tenantId}`);
-      
+
       return res.json({
         success: true,
         message: "Configuração do Total Express removida",
@@ -2831,10 +2838,10 @@ export function setupConfigRoutes(app: Express) {
     try {
       const tenantId = (req as any).user?.tenantId;
       if (!tenantId) return res.status(401).json({ error: 'Tenant não identificado' });
-      
+
       const { getCompanySlug } = await import('../lib/tenantSlug');
       const slug = await getCompanySlug(tenantId);
-      
+
       res.json({ success: true, companySlug: slug, tenantId });
     } catch (err: any) {
       res.status(500).json({ error: 'Erro ao buscar slug', message: err.message });
@@ -2845,15 +2852,15 @@ export function setupConfigRoutes(app: Express) {
     try {
       const tenantId = (req as any).user?.tenantId;
       if (!tenantId) return res.status(401).json({ error: 'Tenant não identificado' });
-      
+
       const { companySlug } = req.body;
       if (!companySlug || typeof companySlug !== 'string') {
         return res.status(400).json({ error: 'companySlug é obrigatório' });
       }
-      
+
       const { saveCompanySlug } = await import('../lib/tenantSlug');
       const saved = await saveCompanySlug(tenantId, companySlug);
-      
+
       if (saved) {
         const { getCompanySlug } = await import('../lib/tenantSlug');
         const normalizedSlug = await getCompanySlug(tenantId);
@@ -2863,6 +2870,273 @@ export function setupConfigRoutes(app: Express) {
       }
     } catch (err: any) {
       res.status(500).json({ error: 'Erro ao salvar slug', message: err.message });
+    }
+  });
+
+  // ===== N8N CONFIGURATION =====
+
+  app.get("/api/config/n8n", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const tenantId = req.user!.tenantId;
+      const configFromDb = await db.select().from(n8nConfig)
+        .where(eq(n8nConfig.tenantId, tenantId))
+        .limit(1);
+
+      if (configFromDb[0]) {
+        return res.json({
+          configured: true,
+          createdAt: configFromDb[0].createdAt,
+          updatedAt: configFromDb[0].updatedAt,
+        });
+      }
+
+      return res.json({
+        configured: false,
+      });
+    } catch (error) {
+      console.error("Erro ao buscar configuração do n8n:", error);
+      return res.json({
+        configured: false,
+      });
+    }
+  });
+
+  app.get("/api/config/n8n/credentials", authenticateConfig, async (req: AuthRequest, res) => {
+    try {
+      const tenantId = req.user?.tenantId || req.session?.tenantId;
+
+      if (!tenantId) {
+        return res.json({
+          success: true,
+          credentials: null,
+          error: 'Autenticação necessária'
+        });
+      }
+
+      const configFromDb = await db.select().from(n8nConfig)
+        .where(eq(n8nConfig.tenantId, tenantId))
+        .limit(1);
+
+      if (configFromDb[0]) {
+        const decryptedWebhookUrl = decrypt(configFromDb[0].webhookUrl);
+
+        return res.json({
+          success: true,
+          credentials: {
+            webhookUrl: decryptedWebhookUrl,
+          }
+        });
+      }
+
+      return res.json({
+        success: true,
+        credentials: null
+      });
+    } catch (error) {
+      console.error("Erro ao buscar credenciais do n8n:", error);
+      return res.status(500).json({
+        success: false,
+        error: "Erro ao buscar credenciais",
+        message: error instanceof Error ? error.message : "Erro desconhecido",
+      });
+    }
+  });
+
+  app.post("/api/config/n8n", authenticateConfig, async (req: AuthRequest, res) => {
+    try {
+      const { webhookUrl } = req.body;
+      const tenantId = req.user!.tenantId;
+
+      if (!webhookUrl) {
+        return res.status(400).json({
+          error: "Webhook URL é obrigatório",
+        });
+      }
+
+      // Validate URL format
+      if (!webhookUrl.startsWith('http://') && !webhookUrl.startsWith('https://')) {
+        return res.status(400).json({
+          error: "URL inválida. Deve começar com http:// ou https://",
+        });
+      }
+
+      const encryptedUrl = encrypt(webhookUrl);
+
+      const existingConfig = await db.select().from(n8nConfig)
+        .where(eq(n8nConfig.tenantId, tenantId))
+        .limit(1);
+
+      if (existingConfig[0]) {
+        await db
+          .update(n8nConfig)
+          .set({
+            webhookUrl: encryptedUrl,
+            updatedAt: new Date(),
+          })
+          .where(and(
+            eq(n8nConfig.id, existingConfig[0].id),
+            eq(n8nConfig.tenantId, tenantId)
+          ));
+
+        console.log(`✅ Configuração do n8n atualizada para tenant ${tenantId}`);
+        return res.json({
+          success: true,
+          message: "Credenciais atualizadas com sucesso",
+        });
+      } else {
+        await db.insert(n8nConfig).values({
+          tenantId,
+          webhookUrl: encryptedUrl,
+        });
+
+        console.log(`✅ Configuração do n8n salva para tenant ${tenantId}`);
+        return res.json({
+          success: true,
+          message: "Credenciais salvas com sucesso",
+        });
+      }
+    } catch (error) {
+      console.error("Erro ao salvar configuração do n8n:", error);
+      return res.status(500).json({
+        error: "Erro ao salvar configuração",
+        message: error instanceof Error ? error.message : "Erro desconhecido",
+      });
+    }
+  });
+
+  // ===== PLUGGY CONFIGURATION =====
+
+  app.get("/api/config/pluggy", authenticateToken, async (req: AuthRequest, res) => {
+    try {
+      const tenantId = req.user!.tenantId;
+      const configFromDb = await db.select().from(pluggyConfig)
+        .where(eq(pluggyConfig.tenantId, tenantId))
+        .limit(1);
+
+      if (configFromDb[0]) {
+        return res.json({
+          configured: true,
+          createdAt: configFromDb[0].createdAt,
+          updatedAt: configFromDb[0].updatedAt,
+        });
+      }
+
+      return res.json({
+        configured: false,
+      });
+    } catch (error) {
+      console.error("Erro ao buscar configuração do Pluggy:", error);
+      return res.json({
+        configured: false,
+      });
+    }
+  });
+
+  app.get("/api/config/pluggy/credentials", authenticateConfig, async (req: AuthRequest, res) => {
+    try {
+      const tenantId = req.user?.tenantId || req.session?.tenantId;
+
+      if (!tenantId) {
+        return res.json({
+          success: true,
+          credentials: null,
+          error: 'Autenticação necessária'
+        });
+      }
+
+      const configFromDb = await db.select().from(pluggyConfig)
+        .where(eq(pluggyConfig.tenantId, tenantId))
+        .limit(1);
+
+      if (configFromDb[0]) {
+        // Pluggy client_id and client_secret are not encrypted in current schema based on db-schema.ts
+        // Checking schema: clientId: text, clientSecret: text (not marked as encrypted in other files usually, but let's check)
+        // Actually, let's assume they are PLAIN TEXT based on other files or Encrypted?
+        // Let's check db-schema.ts again.
+        // It says: clientId: text('client_id'), clientSecret: text('client_secret')
+        // In credentials.ts: db.insert(pluggyConfig).values({ ... clientId: credentials.client_id, clientSecret: credentials.client_secret })
+        // It seems they are stored as plain text or handled by credentials.ts.
+        // Wait, credentials.ts encrypts everything into `credentialsStorage` (file/memory), but `pluggyConfig` table might be plain text?
+        // Let's check how other configs are done.
+        // Redis: redisUrl. Resend: apiKey.
+        // Credentials.ts Line 284: values({ tenantId, clientId: credentials.client_id, clientSecret: credentials.client_secret })
+        // It seems they are stored directly.
+
+        return res.json({
+          success: true,
+          credentials: {
+            clientId: configFromDb[0].clientId,
+            clientSecret: configFromDb[0].clientSecret,
+          }
+        });
+      }
+
+      return res.json({
+        success: true,
+        credentials: null
+      });
+    } catch (error) {
+      console.error("Erro ao buscar credenciais do Pluggy:", error);
+      return res.status(500).json({
+        success: false,
+        error: "Erro ao buscar credenciais",
+        message: error instanceof Error ? error.message : "Erro desconhecido",
+      });
+    }
+  });
+
+  app.post("/api/config/pluggy", authenticateConfig, async (req: AuthRequest, res) => {
+    try {
+      const { clientId, clientSecret } = req.body;
+      const tenantId = req.user!.tenantId;
+
+      if (!clientId || !clientSecret) {
+        return res.status(400).json({
+          error: "Client ID e Client Secret são obrigatórios",
+        });
+      }
+
+      const existingConfig = await db.select().from(pluggyConfig)
+        .where(eq(pluggyConfig.tenantId, tenantId))
+        .limit(1);
+
+      if (existingConfig[0]) {
+        await db
+          .update(pluggyConfig)
+          .set({
+            clientId,
+            clientSecret,
+            updatedAt: new Date(),
+          })
+          .where(and(
+            eq(pluggyConfig.id, existingConfig[0].id),
+            eq(pluggyConfig.tenantId, tenantId)
+          ));
+
+        console.log(`✅ Configuração do Pluggy atualizada para tenant ${tenantId}`);
+        return res.json({
+          success: true,
+          message: "Credenciais atualizadas com sucesso",
+        });
+      } else {
+        await db.insert(pluggyConfig).values({
+          tenantId,
+          clientId,
+          clientSecret,
+        });
+
+        console.log(`✅ Configuração do Pluggy salva para tenant ${tenantId}`);
+        return res.json({
+          success: true,
+          message: "Credenciais salvas com sucesso",
+        });
+      }
+    } catch (error) {
+      console.error("Erro ao salvar configuração do Pluggy:", error);
+      return res.status(500).json({
+        error: "Erro ao salvar configuração",
+        message: error instanceof Error ? error.message : "Erro desconhecido",
+      });
     }
   });
 }

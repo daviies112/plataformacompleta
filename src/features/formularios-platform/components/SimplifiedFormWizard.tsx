@@ -3,7 +3,7 @@ import { FormElement, DesignConfig, FormTemplate, ScoreTier, CompletionPageConfi
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
-import { Plus, ArrowRight, ArrowLeft, Save, Trash2, Eye, Palette, FileText, Target, ChevronRight, CheckCircle2, Edit2, GripVertical, Upload, X, Image as ImageIcon } from "lucide-react";
+import { Plus, ArrowRight, ArrowLeft, Save, Trash2, Eye, Palette, FileText, Target, ChevronRight, CheckCircle2, Edit2, GripVertical, Upload, X, Image as ImageIcon, Monitor, Smartphone } from "lucide-react";
 import { Textarea } from "./ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { DesignCustomizer } from "./design/DesignCustomizer";
@@ -155,14 +155,14 @@ const SortableQuestionItem = ({ question, index, onEdit, onDelete, isSelected = 
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => onEdit(question)}
+          onClick={(e) => { e.stopPropagation(); onEdit(question); }}
         >
           <Edit2 className="h-4 w-4" />
         </Button>
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => onDelete(question.id)}
+          onClick={(e) => { e.stopPropagation(); onDelete(question.id); }}
           className="text-destructive hover:text-destructive"
         >
           <Trash2 className="h-4 w-4" />
@@ -220,6 +220,7 @@ export const SimplifiedFormWizard = ({
   const [uploadingWelcomeLogo, setUploadingWelcomeLogo] = useState(false);
   const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(null);
   const [step3ActiveTab, setStep3ActiveTab] = useState<'design' | 'completion' | 'scoring'>('design');
+  const [previewDevice, setPreviewDevice] = useState<'desktop' | 'mobile'>('desktop');
   const [completionPreviewMode, setCompletionPreviewMode] = useState<'success' | 'failure'>('success');
 
   // Drag and drop sensors
@@ -235,7 +236,6 @@ export const SimplifiedFormWizard = ({
   );
 
   // Centralized helper to serialize questions into FormElement[] with proper pageBreaks
-  // This ensures consistent structure across all code paths
   const serializeElements = (questionsToSerialize: QuestionData[], welcomeData: WelcomePageData): FormElement[] => {
     const finalElements: FormElement[] = [];
     const seenPageBreakIds = new Set<string>();
@@ -284,11 +284,8 @@ export const SimplifiedFormWizard = ({
 
       finalElements.push(questionElement);
 
-      // Add pageBreak after each question (except the last one)
-      // Use question.id for stable unique pageBreak IDs
       if (index < questionsToSerialize.length - 1) {
         const pageBreakId = `pagebreak-after-${question.id}`;
-        // Deduplicate pageBreak IDs to prevent issues
         if (!seenPageBreakIds.has(pageBreakId)) {
           seenPageBreakIds.add(pageBreakId);
           const pageBreakBetweenQuestions: PageBreakElement = {
@@ -314,8 +311,6 @@ export const SimplifiedFormWizard = ({
         const newIndex = items.findIndex((item) => item.id === over.id);
 
         const reorderedQuestions = arrayMove(items, oldIndex, newIndex);
-
-        // Use centralized helper to build and propagate updated elements
         const finalElements = serializeElements(reorderedQuestions, welcomePage);
         onElementsChange(finalElements);
 
@@ -329,11 +324,10 @@ export const SimplifiedFormWizard = ({
     }
   };
 
-  // Hydrate state from elements prop (for editing existing forms)
+  // Hydrate state from elements prop
   useEffect(() => {
     if (!elements || elements.length === 0) return;
 
-    // Extract welcome page data from heading and text elements
     const headingElement = elements.find(
       (el): el is HeadingElement => isHeadingElement(el) && el.level === 1
     );
@@ -341,14 +335,11 @@ export const SimplifiedFormWizard = ({
       (el): el is TextElement => isTextElement(el)
     );
 
-    // Update welcome page state if we found the elements
-    // BUT preserve any existing customization fields from externalWelcomePageConfig
     if (headingElement || textElement) {
       setWelcomePage(prev => ({
         title: headingElement?.text || title || prev.title || '',
         description: textElement?.content || description || prev.description || '',
         buttonText: prev.buttonText || 'Começar',
-        // Preserve existing customization fields
         logo: prev.logo,
         titleSize: prev.titleSize,
         extendedDescription: prev.extendedDescription,
@@ -356,7 +347,6 @@ export const SimplifiedFormWizard = ({
       }));
     }
 
-    // Extract and convert question elements to QuestionData
     const questionElements = elements.filter(isQuestionElement);
     if (questionElements.length > 0) {
       const convertedQuestions: QuestionData[] = questionElements.map((qEl) => ({
@@ -371,7 +361,6 @@ export const SimplifiedFormWizard = ({
     }
   }, [elements]);
 
-  // Sync welcomeTitle and welcomeMessage props to welcomePage state
   useEffect(() => {
     setWelcomePage(prev => ({
       ...prev,
@@ -380,7 +369,6 @@ export const SimplifiedFormWizard = ({
     }));
   }, [welcomeTitle, welcomeMessage]);
 
-  // Notify parent of welcomePage changes
   useEffect(() => {
     if (onWelcomePageConfigChange) {
       onWelcomePageConfigChange({
@@ -495,7 +483,6 @@ export const SimplifiedFormWizard = ({
     }
     setQuestions(updatedQuestions);
 
-    // Propagate updated elements to parent immediately after add/edit
     const finalElements = serializeElements(updatedQuestions, welcomePage);
     onElementsChange(finalElements);
 
@@ -522,7 +509,6 @@ export const SimplifiedFormWizard = ({
     const updatedQuestions = questions.filter(q => q.id !== questionId);
     setQuestions(updatedQuestions);
 
-    // Propagate updated elements to parent immediately after deletion
     const finalElements = serializeElements(updatedQuestions, welcomePage);
     onElementsChange(finalElements);
 
@@ -566,11 +552,9 @@ export const SimplifiedFormWizard = ({
   };
 
   const buildFinalElements = (): FormElement[] => {
-    // Use centralized helper for consistent element serialization
     return serializeElements(questions, welcomePage);
   };
 
-  // Validation logic
   const canAdvanceFromStep1 = useMemo(() => {
     return welcomePage.title.trim().length > 0 && welcomePage.description.trim().length > 0;
   }, [welcomePage]);
@@ -602,6 +586,9 @@ export const SimplifiedFormWizard = ({
       const finalElements = buildFinalElements();
       onElementsChange(finalElements);
       handleSaveProgress();
+      setCurrentStep(3);
+    } else if (currentStep === 3) {
+      handleSaveProgress();
     }
   };
 
@@ -612,11 +599,9 @@ export const SimplifiedFormWizard = ({
   };
 
   const handleStepClick = (step: 1 | 2 | 3) => {
-    // Allow free navigation to previous steps
     if (step < currentStep) {
       setCurrentStep(step);
     } else if (step === currentStep + 1) {
-      // Validate before advancing
       handleNextStep();
     }
   };
@@ -707,11 +692,11 @@ export const SimplifiedFormWizard = ({
       welcomePageConfig: {
         title: welcomePage.title,
         description: welcomePage.description,
-        buttonText: welcomePage.buttonText || 'Começar',
+        buttonText: welcomePage.buttonText,
         logo: welcomePage.logo,
-        titleSize: welcomePage.titleSize || '2xl',
+        titleSize: welcomePage.titleSize,
         extendedDescription: welcomePage.extendedDescription,
-        logoAlign: welcomePage.logoAlign || 'left'
+        logoAlign: welcomePage.logoAlign
       },
       completionPageConfig
     };
@@ -720,509 +705,455 @@ export const SimplifiedFormWizard = ({
   const editorContent = (
     <>
       {currentStep === 1 && (
-        <Tabs defaultValue="content" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-4">
-            <TabsTrigger value="content" className="min-h-[44px] md:min-h-0">
-              <FileText className="h-4 w-4 mr-2" />
-              Conteúdo
-            </TabsTrigger>
-            <TabsTrigger value="scoring" className="min-h-[44px] md:min-h-0">
-              <Target className="h-4 w-4 mr-2" />
-              Pontuação
-            </TabsTrigger>
-            <TabsTrigger value="design" className="min-h-[44px] md:min-h-0">
-              <Palette className="h-4 w-4 mr-2" />
-              Design
-            </TabsTrigger>
-          </TabsList>
+        <div className="space-y-6">
+          <Tabs defaultValue="conteudo" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-6 h-12">
+              <TabsTrigger value="conteudo" className="gap-2 text-base">
+                <FileText className="h-4 w-4" />
+                Conteúdo
+              </TabsTrigger>
+              <TabsTrigger value="design" className="gap-2 text-base">
+                <Palette className="h-4 w-4" />
+                Design
+              </TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="content">
-            <Card className="p-4 md:p-8 bg-gradient-to-br from-card to-card/80 border-border shadow-[var(--shadow-luxury)]">
-              <CardHeader className="px-0 pt-0">
-                <CardTitle className="text-xl md:text-2xl flex items-center gap-2">
-                  <FileText className="h-5 w-5 md:h-6 md:w-6 text-primary" />
-                  Página de Boas-Vindas
-                </CardTitle>
-                <CardDescription className="text-sm">
-                  Configure a primeira impressão do seu formulário. Esta página será sempre exibida primeiro.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="px-0 space-y-4 md:space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="form-name" className="text-base">
-                    Nome do Formulário *
-                  </Label>
-                  <Input
-                    id="form-name"
-                    value={title}
-                    onChange={(e) => onTitleChange(e.target.value)}
-                    placeholder="Ex: Formulário de Qualificação"
-                    className="bg-background border-border h-11 md:h-11"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Nome interno para identificar o formulário na listagem
-                  </p>
-                  {!title.trim() && (
-                    <p className="text-xs text-destructive">
-                      ⚠️ Campo obrigatório
-                    </p>
-                  )}
-                </div>
+            <TabsContent value="conteudo" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-xl">Página de Boas-vindas</CardTitle>
+                  <CardDescription>Configure como os usuários verão o início do formulário</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="welcome-title">Título *</Label>
+                    <Input
+                      id="welcome-title"
+                      value={welcomePage.title}
+                      onChange={(e) => handleWelcomePageChange('title', e.target.value)}
+                      placeholder="Ex: Formulário de Qualificação"
+                      className="min-h-[44px]"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="welcome-desc">Descrição *</Label>
+                    <Textarea
+                      id="welcome-desc"
+                      value={welcomePage.description}
+                      onChange={(e) => handleWelcomePageChange('description', e.target.value)}
+                      placeholder="Ex: Conte-nos um pouco sobre você..."
+                      className="min-h-[100px]"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="welcome-btn">Texto do Botão</Label>
+                    <Input
+                      id="welcome-btn"
+                      value={welcomePage.buttonText}
+                      onChange={(e) => handleWelcomePageChange('buttonText', e.target.value)}
+                      placeholder="Ex: Começar"
+                      className="min-h-[44px]"
+                    />
+                  </div>
 
-                <Separator />
+                  <Separator className="my-4" />
 
-                <div className="space-y-2">
-                  <Label htmlFor="welcome-title" className="text-base">
-                    Título *
-                  </Label>
-                  <Input
-                    id="welcome-title"
-                    value={welcomePage.title}
-                    onChange={(e) => handleWelcomePageChange('title', e.target.value)}
-                    placeholder="Ex: Questionário de Qualificação"
-                    className="text-lg font-semibold bg-background border-border h-12"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Título que aparece DENTRO do formulário para quem responde
-                  </p>
-                  {!welcomePage.title.trim() && (
-                    <p className="text-xs text-destructive">
-                      ⚠️ Campo obrigatório
-                    </p>
-                  )}
-                </div>
+                  <div className="space-y-4">
+                    <Label>Logo de Boas-vindas</Label>
+                    <div className="flex flex-col gap-4">
+                      {welcomePage.logo ? (
+                        <div className="relative w-full max-w-sm aspect-video rounded-lg border bg-muted flex items-center justify-center overflow-hidden group">
+                          <img src={welcomePage.logo} alt="Logo Preview" className="max-w-full max-h-full object-contain" />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                            <Button variant="destructive" size="sm" onClick={removeWelcomeLogo} className="h-9">
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Remover
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="w-full">
+                          <Label
+                            htmlFor="welcome-logo-upload"
+                            className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-muted/30 hover:bg-muted/50 transition-colors"
+                          >
+                            <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                              <Upload className="w-8 h-8 mb-4 text-muted-foreground" />
+                              <p className="mb-2 text-sm text-muted-foreground">
+                                <span className="font-semibold">Clique para upload</span> ou arraste
+                              </p>
+                            </div>
+                            <Input
+                              id="welcome-logo-upload"
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={handleWelcomeLogoUpload}
+                              disabled={uploadingWelcomeLogo}
+                            />
+                          </Label>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
 
-                <div className="space-y-2">
-                  <Label htmlFor="welcome-message" className="text-base">
-                    Mensagem de Boas-Vindas *
-                  </Label>
-                  <Textarea
-                    id="welcome-message"
-                    value={welcomePage.description}
-                    onChange={(e) => handleWelcomePageChange('description', e.target.value)}
-                    placeholder="Ex: Bem-vindo! Responda às perguntas a seguir para descobrir se você se qualifica para nosso programa."
-                    className="resize-none bg-background border-border min-h-[100px] md:min-h-[120px]"
-                    rows={5}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Texto explicativo que aparece abaixo do título
-                  </p>
-                  {!welcomePage.description.trim() && (
-                    <p className="text-xs text-destructive">
-                      ⚠️ Campo obrigatório
-                    </p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="button-text" className="text-base">
-                    Texto do Botão de Início
-                  </Label>
-                  <Input
-                    id="button-text"
-                    value={welcomePage.buttonText}
-                    onChange={(e) => handleWelcomePageChange('buttonText', e.target.value)}
-                    placeholder="Começar"
-                    className="bg-background border-border"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="design">
-            <Card className="p-4 md:p-6">
+            <TabsContent value="design">
               <DesignCustomizer design={designConfig} onChange={onDesignChange} />
-            </Card>
-          </TabsContent>
-        </Tabs>
-      )}
-
-      {currentStep === 1 && (
-        <div className="flex-shrink-0 border-t bg-background pt-4 mt-4">
-          <div className="flex flex-col md:flex-row gap-3">
-            <Button onClick={handleSaveProgress} variant="outline" className="gap-2 min-h-[44px] md:min-h-0" disabled={isSaving}>
-              <Save className="h-4 w-4" />
-              {isSaving ? 'Salvando...' : 'Salvar Progresso'}
-            </Button>
-            <Button
-              onClick={handleNextStep}
-              className="flex-1 gap-2 min-h-[44px] md:min-h-0"
-              disabled={!canAdvanceFromStep1}
-            >
-              Próximo: Adicionar Perguntas
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-          </div>
+            </TabsContent>
+          </Tabs>
         </div>
       )}
 
       {currentStep === 2 && (
-        <Tabs defaultValue="content" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-4">
-            <TabsTrigger value="content" className="min-h-[44px] md:min-h-0">
-              <Target className="h-4 w-4 mr-2" />
-              Perguntas
-            </TabsTrigger>
-            <TabsTrigger value="design" className="min-h-[44px] md:min-h-0">
-              <Palette className="h-4 w-4 mr-2" />
-              Design
-            </TabsTrigger>
-            <TabsTrigger value="scoring" className="min-h-[44px] md:min-h-0">
-              <Target className="h-4 w-4 mr-2" />
-              Pontuação
-            </TabsTrigger>
-          </TabsList>
+        <div className="space-y-6">
+          <Tabs defaultValue="perguntas" className="w-full">
+            <TabsList className="grid w-full grid-cols-3 mb-6 h-12">
+              <TabsTrigger value="perguntas" className="gap-2 text-base">
+                <FileText className="h-4 w-4" />
+                Perguntas
+              </TabsTrigger>
+              <TabsTrigger value="design" className="gap-2 text-base">
+                <Palette className="h-4 w-4" />
+                Design
+              </TabsTrigger>
+              <TabsTrigger value="pontuacao" className="gap-2 text-base">
+                <Target className="h-4 w-4" />
+                Pontuação
+              </TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="content">
-            <Card className="p-4 md:p-8 bg-gradient-to-br from-card to-card/80 border-border shadow-[var(--shadow-luxury)]">
-              <CardHeader className="px-0 pt-0">
-                <CardTitle className="text-xl md:text-2xl flex items-center gap-2">
-                  <Target className="h-5 w-5 md:h-6 md:w-6 text-primary" />
-                  Adicionar Perguntas
-                </CardTitle>
-                <CardDescription className="text-sm">
-                  Crie as perguntas do seu questionário. Cada pergunta aparecerá em uma página separada.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="px-0 space-y-4 md:space-y-6">
-                {questions.length > 0 && (
-                  <div className="space-y-3">
-                    <Label className="text-base flex flex-col md:flex-row md:items-center gap-1 md:gap-2">
-                      <span>Perguntas Adicionadas ({questions.length})</span>
-                      <span className="text-xs text-muted-foreground font-normal">
-                        • Arraste para reordenar
-                      </span>
-                    </Label>
-                    <DndContext
-                      sensors={sensors}
-                      collisionDetection={closestCenter}
-                      onDragEnd={handleDragEnd}
-                    >
-                      <SortableContext
-                        items={questions.map(q => q.id)}
-                        strategy={verticalListSortingStrategy}
-                      >
-                        {questions.map((question, index) => (
-                          <SortableQuestionItem
-                            key={question.id}
-                            question={question}
-                            index={index}
-                            onEdit={handleEditQuestion}
-                            onDelete={handleDeleteQuestion}
-                            isSelected={selectedQuestionId === question.id}
-                            onSelect={setSelectedQuestionId}
-                          />
-                        ))}
-                      </SortableContext>
-                    </DndContext>
+            <TabsContent value="perguntas" className="space-y-6">
+              <div className="flex items-center justify-between gap-4">
+                <h2 className="text-xl font-bold">Estrutura do Formulário</h2>
+                <Button onClick={handleAddQuestion} disabled={!!editingQuestion} className="gap-2 h-10 px-4">
+                  <Plus className="h-4 w-4" />
+                  Nova Pergunta
+                </Button>
+              </div>
+
+              {!editingQuestion && questions.length === 0 && (
+                <div className="text-center py-12 border-2 border-dashed rounded-xl bg-muted/20">
+                  <div className="bg-primary/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <FileText className="h-8 w-8 text-primary" />
                   </div>
-                )}
+                  <h3 className="text-lg font-medium mb-1">Nenhuma pergunta ainda</h3>
+                  <p className="text-muted-foreground mb-6">Comece adicionando sua primeira pergunta ao formulário.</p>
+                  <Button onClick={handleAddQuestion} size="lg" className="gap-2">
+                    <Plus className="h-5 w-5" />
+                    Adicionar Primeira Pergunta
+                  </Button>
+                </div>
+              )}
 
-                {editingQuestion ? (
-                  <Card className="border-2 border-primary/50 bg-primary/5">
-                    <CardHeader className="pb-2 md:pb-4">
-                      <CardTitle className="text-lg">
-                        {isAddingQuestion ? 'Nova Pergunta' : 'Editar Pergunta'}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
+              {questions.length > 0 && !editingQuestion && (
+                <div className="space-y-3">
+                  <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleDragEnd}
+                  >
+                    <SortableContext
+                      items={questions.map(q => q.id)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      {questions.map((question, index) => (
+                        <SortableQuestionItem
+                          key={question.id}
+                          question={question}
+                          index={index}
+                          onEdit={handleEditQuestion}
+                          onDelete={handleDeleteQuestion}
+                          isSelected={selectedQuestionId === question.id}
+                          onSelect={setSelectedQuestionId}
+                        />
+                      ))}
+                    </SortableContext>
+                  </DndContext>
+                </div>
+              )}
+
+              {editingQuestion && (
+                <Card className="border-2 border-primary/50 bg-primary/5">
+                  <CardHeader className="pb-2 md:pb-4">
+                    <CardTitle className="text-lg">
+                      {isAddingQuestion ? 'Nova Pergunta' : 'Editar Pergunta'}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="question-text">Texto da Pergunta *</Label>
+                      <Input
+                        id="question-text"
+                        value={editingQuestion.text}
+                        onChange={(e) => setEditingQuestion({ ...editingQuestion, text: e.target.value })}
+                        placeholder="Ex: Qual é o seu nível de experiência?"
+                        className="bg-background"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="question-text">Texto da Pergunta *</Label>
+                        <Label htmlFor="question-type">Tipo de Resposta</Label>
+                        <Select
+                          value={editingQuestion.questionType}
+                          onValueChange={(value: any) => setEditingQuestion({ ...editingQuestion, questionType: value, options: value === 'multiple-choice' ? [] : undefined })}
+                        >
+                          <SelectTrigger id="question-type" className="bg-background min-h-[44px] md:min-h-0">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {questionTypeOptions.map(option => (
+                              <SelectItem key={option.value} value={option.value}>
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="question-points">Pontos</Label>
                         <Input
-                          id="question-text"
-                          value={editingQuestion.text}
-                          onChange={(e) => setEditingQuestion({ ...editingQuestion, text: e.target.value })}
-                          placeholder="Ex: Qual é o seu nível de experiência?"
+                          id="question-points"
+                          type="number"
+                          value={editingQuestion.points}
+                          onChange={(e) => setEditingQuestion({ ...editingQuestion, points: parseInt(e.target.value) || 0 })}
                           className="bg-background"
+                          min={0}
                         />
                       </div>
+                    </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="question-type">Tipo de Resposta</Label>
-                          <Select
-                            value={editingQuestion.questionType}
-                            onValueChange={(value: any) => setEditingQuestion({ ...editingQuestion, questionType: value, options: value === 'multiple-choice' ? [] : undefined })}
-                          >
-                            <SelectTrigger id="question-type" className="bg-background min-h-[44px] md:min-h-0">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {questionTypeOptions.map(option => (
-                                <SelectItem key={option.value} value={option.value}>
-                                  {option.label}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="question-points">Pontos</Label>
-                          <Input
-                            id="question-points"
-                            type="number"
-                            value={editingQuestion.points}
-                            onChange={(e) => setEditingQuestion({ ...editingQuestion, points: parseInt(e.target.value) || 0 })}
-                            className="bg-background"
-                            min={0}
-                          />
-                        </div>
+                    <div className="flex items-center justify-between p-4 rounded-lg bg-background border">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="question-required">Pergunta Obrigatória</Label>
+                        <p className="text-xs text-muted-foreground">
+                          O usuário deve responder para continuar
+                        </p>
                       </div>
+                      <Switch
+                        id="question-required"
+                        checked={editingQuestion.required}
+                        onCheckedChange={(checked) => setEditingQuestion({ ...editingQuestion, required: checked })}
+                      />
+                    </div>
 
-                      <div className="flex items-center justify-between p-4 rounded-lg bg-background border">
-                        <div className="space-y-0.5">
-                          <Label htmlFor="question-required">Pergunta Obrigatória</Label>
-                          <p className="text-xs text-muted-foreground">
-                            O usuário deve responder para continuar
-                          </p>
+                    {editingQuestion.questionType === 'multiple-choice' && (
+                      <div className="space-y-3 p-4 rounded-lg bg-background border">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
+                          <Label className="text-base">Opções de Resposta</Label>
+                          <Button onClick={handleAddOption} size="sm" variant="outline" className="gap-2 min-h-[44px] md:min-h-0">
+                            <Plus className="h-3 w-3" />
+                            Adicionar Opção
+                          </Button>
                         </div>
-                        <Switch
-                          id="question-required"
-                          checked={editingQuestion.required}
-                          onCheckedChange={(checked) => setEditingQuestion({ ...editingQuestion, required: checked })}
-                        />
-                      </div>
 
-                      {editingQuestion.questionType === 'multiple-choice' && (
-                        <div className="space-y-3 p-4 rounded-lg bg-background border">
-                          <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
-                            <Label className="text-base">Opções de Resposta</Label>
-                            <Button onClick={handleAddOption} size="sm" variant="outline" className="gap-2 min-h-[44px] md:min-h-0">
-                              <Plus className="h-3 w-3" />
-                              Adicionar Opção
-                            </Button>
-                          </div>
-
-                          {editingQuestion.options && editingQuestion.options.length > 0 ? (
-                            <div className="space-y-2">
-                              {editingQuestion.options.map((option, idx) => (
-                                <div key={option.id} className="flex flex-col md:flex-row md:items-center gap-2">
-                                  <span className="text-sm text-muted-foreground w-6 hidden md:block">{idx + 1}.</span>
-                                  <div className="flex items-center gap-2 flex-1">
-                                    <span className="text-sm text-muted-foreground w-6 md:hidden">{idx + 1}.</span>
-                                    <Input
-                                      value={option.text}
-                                      onChange={(e) => handleUpdateOption(option.id, 'text', e.target.value)}
-                                      placeholder="Texto da opção"
-                                      className="flex-1"
-                                    />
-                                  </div>
-                                  <div className="flex items-center gap-2 pl-6 md:pl-0">
+                        {editingQuestion.options && editingQuestion.options.length > 0 ? (
+                          <div className="space-y-2">
+                            {editingQuestion.options.map((option, idx) => (
+                              <div key={option.id} className="flex flex-col md:flex-row md:items-center gap-2">
+                                <span className="text-sm text-muted-foreground w-6 hidden md:block">{idx + 1}.</span>
+                                <Input
+                                  value={option.text}
+                                  onChange={(e) => handleUpdateOption(option.id, 'text', e.target.value)}
+                                  placeholder={`Opção ${idx + 1}`}
+                                  className="flex-1 bg-background"
+                                />
+                                <div className="flex items-center gap-2">
+                                  <div className="flex items-center gap-2 bg-muted/30 px-2 rounded border">
+                                    <span className="text-xs text-muted-foreground">Pts:</span>
                                     <Input
                                       type="number"
                                       value={option.points}
                                       onChange={(e) => handleUpdateOption(option.id, 'points', parseInt(e.target.value) || 0)}
-                                      placeholder="Pontos"
-                                      className="w-20 md:w-24"
-                                      min={0}
-                                    />
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      onClick={() => handleDeleteOption(option.id)}
-                                      className="text-destructive hover:text-destructive min-h-[44px] min-w-[44px] md:min-h-0 md:min-w-0"
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <p className="text-sm text-muted-foreground text-center py-4">
-                              Nenhuma opção adicionada. Clique em "Adicionar Opção" para começar.
-                            </p>
-                          )}
-                        </div>
-                      )}
-
-                      <div className="flex flex-col md:flex-row gap-3 pt-4 border-t">
-                        <Button onClick={handleCancelQuestion} variant="outline" className="flex-1 min-h-[44px] md:min-h-0">
-                          Cancelar
-                        </Button>
-                        <Button onClick={handleSaveQuestion} className="flex-1 gap-2 min-h-[44px] md:min-h-0">
-                          <CheckCircle2 className="h-4 w-4" />
-                          Salvar Pergunta
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <Button onClick={handleAddQuestion} variant="outline" className="w-full gap-2 h-14 md:h-16 border-dashed border-2">
-                    <Plus className="h-5 w-5" />
-                    Adicionar Nova Pergunta
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="design">
-            <Card className="p-4 md:p-6">
-              <DesignCustomizer design={designConfig} onChange={onDesignChange} />
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="scoring" className="space-y-4 md:space-y-6">
-            <Card className="p-4 md:p-6 bg-gradient-to-br from-card to-card/80 border-border shadow-md">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 rounded-lg bg-background border border-border">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="use-tiers-step2">Usar Níveis de Pontuação</Label>
-                    <p className="text-xs text-muted-foreground">
-                      Classifique leads em diferentes níveis baseado na pontuação
-                    </p>
-                  </div>
-                  <Switch
-                    id="use-tiers-step2"
-                    checked={useTiers}
-                    onCheckedChange={handleUseTiersChange}
-                  />
-                </div>
-
-                {!useTiers && (
-                  <div className="space-y-2">
-                    <Label htmlFor="passing-score-step2">Pontuação Mínima para Qualificação</Label>
-                    <Input
-                      id="passing-score-step2"
-                      type="number"
-                      value={passingScore}
-                      onChange={(e) => onPassingScoreChange(parseInt(e.target.value) || 0)}
-                      className="bg-background border-border"
-                      min={0}
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Pontuação mínima para considerar o lead qualificado
-                    </p>
-                  </div>
-                )}
-
-                {useTiers && (
-                  <div className="space-y-4">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
-                      <Label className="text-base">Níveis de Pontuação</Label>
-                      <Button onClick={addScoreTier} size="sm" variant="outline" className="gap-2 min-h-[44px] md:min-h-0">
-                        <Plus className="h-3 w-3" />
-                        Adicionar Nível
-                      </Button>
-                    </div>
-
-                    {scoreTiers.length > 0 ? (
-                      <div className="space-y-3">
-                        {scoreTiers.map((tier) => (
-                          <Card key={tier.id} className="p-4 bg-background">
-                            <div className="space-y-3">
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                <div className="space-y-1">
-                                  <Label className="text-xs">Nome do Nível</Label>
-                                  <Input
-                                    value={tier.label}
-                                    onChange={(e) => updateScoreTier(tier.id, { label: e.target.value })}
-                                    placeholder="Ex: Ótimo"
-                                    className="h-9"
-                                  />
-                                </div>
-                                <div className="space-y-1">
-                                  <Label className="text-xs">Descrição</Label>
-                                  <Input
-                                    value={tier.description}
-                                    onChange={(e) => updateScoreTier(tier.id, { description: e.target.value })}
-                                    placeholder="Ex: Lead altamente qualificado"
-                                    className="h-9"
-                                  />
-                                </div>
-                              </div>
-
-                              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                                <div className="space-y-1">
-                                  <Label className="text-xs">Pontuação Mínima</Label>
-                                  <Input
-                                    type="number"
-                                    value={tier.minScore}
-                                    onChange={(e) => updateScoreTier(tier.id, { minScore: parseInt(e.target.value) || 0 })}
-                                    className="h-9"
-                                    min={0}
-                                  />
-                                </div>
-                                <div className="space-y-1">
-                                  <Label className="text-xs">Pontuação Máxima</Label>
-                                  <Input
-                                    type="number"
-                                    value={tier.maxScore}
-                                    onChange={(e) => updateScoreTier(tier.id, { maxScore: parseInt(e.target.value) || 0 })}
-                                    className="h-9"
-                                    min={0}
-                                  />
-                                </div>
-                                <div className="flex items-end gap-2 col-span-2 md:col-span-1">
-                                  <div className="flex-1 flex items-center justify-between p-2 rounded-md bg-muted">
-                                    <Label className="text-xs">Qualifica</Label>
-                                    <Switch
-                                      checked={tier.qualifies}
-                                      onCheckedChange={(checked) => updateScoreTier(tier.id, { qualifies: checked })}
+                                      className="w-16 h-8 bg-transparent border-0 focus-visible:ring-0 text-center"
                                     />
                                   </div>
                                   <Button
                                     variant="ghost"
                                     size="icon"
-                                    onClick={() => deleteScoreTier(tier.id)}
-                                    className="text-destructive hover:text-destructive h-9 w-9"
+                                    onClick={() => handleDeleteOption(option.id)}
+                                    className="h-8 w-8 text-destructive"
                                   >
                                     <Trash2 className="h-4 w-4" />
                                   </Button>
                                 </div>
                               </div>
-                            </div>
-                          </Card>
-                        ))}
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-center py-6 text-muted-foreground text-sm italic">
+                            Nenhuma opção adicionada
+                          </div>
+                        )}
                       </div>
-                    ) : (
-                      <p className="text-sm text-muted-foreground text-center py-8 border border-dashed rounded-lg">
-                        Nenhum nível de pontuação configurado. Clique em "Adicionar Nível" para começar.
-                      </p>
-                    )}\n                  </div>
-                )}
-              </div>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      )}
+                    )}
 
-      {currentStep === 2 && (
-        <div className="flex-shrink-0 border-t bg-background pt-4 mt-4">
-          <div className="flex flex-col md:flex-row gap-3 md:gap-4">
-            <Button onClick={handlePrevStep} variant="outline" className="gap-2 min-h-[44px] md:min-h-0">
-              <ArrowLeft className="h-4 w-4" />
-              Voltar
-            </Button>
-            <Button onClick={handleSaveProgress} variant="outline" className="gap-2 min-h-[44px] md:min-h-0" disabled={isSaving}>
-              <Save className="h-4 w-4" />
-              {isSaving ? 'Salvando...' : 'Salvar e Sair'}
-            </Button>
-            <Button
-              onClick={handleNextStep}
-              className="flex-1 gap-2 min-h-[44px] md:min-h-0"
-              disabled={!canAdvanceFromStep2}
-            >
-              <CheckCircle2 className="h-4 w-4" />
-              Salvar Formulário
-            </Button>
-          </div>
+                    <div className="flex justify-end gap-3 pt-4 border-t">
+                      <Button variant="ghost" onClick={handleCancelQuestion} className="h-10">Cancelar</Button>
+                      <Button onClick={handleSaveQuestion} className="h-10 px-6">Salvar Pergunta</Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+
+            <TabsContent value="design">
+              <DesignCustomizer design={designConfig} onChange={onDesignChange} />
+            </TabsContent>
+
+            <TabsContent value="pontuacao">
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-xl">Pontuação Mínima</CardTitle>
+                    <CardDescription>Defina quantos pontos são necessários para aprovação</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="passing-score">Pontuação de Aprovação</Label>
+                      <Input
+                        id="passing-score"
+                        type="number"
+                        value={passingScore}
+                        onChange={(e) => onPassingScoreChange(parseInt(e.target.value) || 0)}
+                        className="max-w-[200px] h-11"
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <h3 className="text-lg font-semibold">Tiers de Qualificação</h3>
+                      <p className="text-sm text-muted-foreground">Crie faixas de pontuação com retornos personalizados</p>
+                    </div>
+                    <Switch checked={useTiers} onCheckedChange={handleUseTiersChange} />
+                  </div>
+
+                  {useTiers && (
+                    <div className="space-y-4">
+                      {scoreTiers.map(tier => (
+                        <Card key={tier.id} className="relative overflow-hidden group">
+                          <div className={`absolute left-0 top-0 bottom-0 w-1 ${tier.qualifies ? 'bg-green-500' : 'bg-red-500'}`} />
+                          <CardContent className="p-4 pt-6">
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                              <div className="md:col-span-1 space-y-2">
+                                <Label>Nome da Faixa</Label>
+                                <Input value={tier.label} onChange={(e) => updateScoreTier(tier.id, { label: e.target.value })} placeholder="Ex: Ótimo" className="h-10" />
+                              </div>
+                              <div className="md:col-span-1 space-y-2">
+                                <Label>Pontuação (Min - Max)</Label>
+                                <div className="flex items-center gap-2">
+                                  <Input type="number" value={tier.minScore} onChange={(e) => updateScoreTier(tier.id, { minScore: parseInt(e.target.value) || 0 })} className="h-10" />
+                                  <span className="text-muted-foreground">-</span>
+                                  <Input type="number" value={tier.maxScore} onChange={(e) => updateScoreTier(tier.id, { maxScore: parseInt(e.target.value) || 0 })} className="h-10" />
+                                </div>
+                              </div>
+                              <div className="md:col-span-1 space-y-2">
+                                <div className="flex items-center justify-between mb-2">
+                                  <Label>Qualifica?</Label>
+                                  <Switch checked={tier.qualifies} onCheckedChange={(val) => updateScoreTier(tier.id, { qualifies: val })} />
+                                </div>
+                                <div className={`text-xs font-medium px-2 py-1 rounded text-center ${tier.qualifies ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                                  {tier.qualifies ? 'Aprovado' : 'Reprovado'}
+                                </div>
+                              </div>
+                              <div className="md:col-span-1 flex justify-end">
+                                <Button variant="ghost" size="icon" onClick={() => deleteScoreTier(tier.id)} className="text-destructive">
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </div>
+                            <div className="mt-4 space-y-2">
+                              <Label>Mensagem/Descrição</Label>
+                              <Input value={tier.description} onChange={(e) => updateScoreTier(tier.id, { description: e.target.value })} placeholder="Ex: Lead altamente qualificado" className="h-10" />
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                      <Button onClick={addScoreTier} variant="outline" className="w-full border-dashed h-12 gap-2">
+                        <Plus className="h-4 w-4" />
+                        Adicionar Faixa de Pontuação
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
         </div>
       )}
 
+      {currentStep === 3 && (
+        <div className="space-y-6">
+          <Tabs value={step3ActiveTab} onValueChange={(v: any) => setStep3ActiveTab(v)} className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-6 h-12">
+              <TabsTrigger value="design" className="gap-2 text-base">
+                <Palette className="h-4 w-4" />
+                Design Global
+              </TabsTrigger>
+              <TabsTrigger value="scoring" className="gap-2 text-base">
+                <Target className="h-4 w-4" />
+                Scoring
+              </TabsTrigger>
+            </TabsList>
 
+            <TabsContent value="design">
+              <DesignCustomizer design={designConfig} onChange={onDesignChange} />
+            </TabsContent>
 
-
-
+            <TabsContent value="scoring">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Configuração Final de Scoring</CardTitle>
+                  <CardDescription>Revise as regras de pontuação do seu formulário</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="final-passing-score">Pontuação Mínima Global</Label>
+                    <Input
+                      id="final-passing-score"
+                      type="number"
+                      value={passingScore}
+                      onChange={(e) => onPassingScoreChange(parseInt(e.target.value) || 0)}
+                      className="max-w-[200px]"
+                    />
+                  </div>
+                  <Separator />
+                  <div className="space-y-4">
+                    <h3 className="font-semibold">Resumo de Perguntas ({questions.length})</h3>
+                    <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
+                      {questions.map((q, i) => (
+                        <div key={q.id} className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
+                          <span className="text-sm truncate mr-4">{i + 1}. {q.text}</span>
+                          <span className="font-mono text-xs font-bold bg-primary/10 text-primary px-2 py-1 rounded">
+                            {q.points} pts
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex justify-between items-center pt-2 font-bold">
+                      <span>Total Possível:</span>
+                      <span className="text-xl text-primary">{questions.reduce((acc, q) => acc + q.points, 0)} pts</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        </div>
+      )}
     </>
   );
 
   const previewPanel = (
-    <div className="flex flex-col h-full">
-      <div className="mb-4 flex items-start justify-between gap-4 flex-shrink-0">
+    <div className="flex flex-col">
+      <div className="mb-4 flex items-center justify-between gap-4 flex-shrink-0">
         <div className="flex-1">
           <h2 className="text-lg md:text-xl font-bold flex items-center gap-2">
             <Eye className="h-4 w-4 md:h-5 md:w-5 text-primary" />
@@ -1236,24 +1167,47 @@ export const SimplifiedFormWizard = ({
                 : "Veja como seu formulário aparece para os usuários"}
           </p>
         </div>
-        {currentStep === 3 && step3ActiveTab === 'completion' && (
-          <Tabs value={completionPreviewMode} onValueChange={(v: any) => setCompletionPreviewMode(v)} className="w-auto">
-            <TabsList className="grid grid-cols-2">
-              <TabsTrigger value="success" className="gap-1 md:gap-2 text-xs">
-                <CheckCircle2 className="h-3 w-3" />
-                <span className="hidden sm:inline">Sucesso</span>
-              </TabsTrigger>
-              <TabsTrigger value="failure" className="gap-1 md:gap-2 text-xs">
-                <X className="h-3 w-3" />
-                <span className="hidden sm:inline">Falha</span>
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-        )}
+        <div className="flex items-center gap-2">
+          <div className="flex bg-muted p-1 rounded-lg">
+            <Button
+              variant={previewDevice === 'desktop' ? 'secondary' : 'ghost'}
+              size="sm"
+              onClick={() => setPreviewDevice('desktop')}
+              className="h-8 px-2"
+            >
+              <Monitor className="h-4 w-4 mr-1" />
+              <span className="hidden sm:inline">Desktop</span>
+            </Button>
+            <Button
+              variant={previewDevice === 'mobile' ? 'secondary' : 'ghost'}
+              size="sm"
+              onClick={() => setPreviewDevice('mobile')}
+              className="h-8 px-2"
+            >
+              <Smartphone className="h-4 w-4 mr-1" />
+              <span className="hidden sm:inline">Mobile</span>
+            </Button>
+          </div>
+
+          {currentStep === 3 && step3ActiveTab === 'completion' && (
+            <Tabs value={completionPreviewMode} onValueChange={(v: any) => setCompletionPreviewMode(v)} className="w-auto">
+              <TabsList className="grid grid-cols-2">
+                <TabsTrigger value="success" className="gap-1 md:gap-2 text-xs">
+                  <CheckCircle2 className="h-3 w-3" />
+                  <span className="hidden sm:inline">Sucesso</span>
+                </TabsTrigger>
+                <TabsTrigger value="failure" className="gap-1 md:gap-2 text-xs">
+                  <X className="h-3 w-3" />
+                  <span className="hidden sm:inline">Falha</span>
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+          )}
+        </div>
       </div>
 
-      <div className="border-2 border-dashed border-gray-300 rounded-lg flex-1 overflow-hidden flex flex-col" style={{ backgroundColor: '#f8fafc' }}>
-        <div className="overflow-y-auto flex-1 p-4 md:p-6">
+      <div className="rounded-lg flex flex-col">
+        <div className="p-4 md:p-6 flex justify-center items-start">
           {currentStep === 3 && step3ActiveTab === 'completion' && completionPageConfig ? (
             <CompletionPagePreview
               config={completionPageConfig}
@@ -1265,6 +1219,8 @@ export const SimplifiedFormWizard = ({
               onBack={() => { }}
               isLivePreview={true}
               activeQuestionId={selectedQuestionId}
+              wizardMode={true}
+              device={previewDevice}
             />
           )}
         </div>
@@ -1274,12 +1230,12 @@ export const SimplifiedFormWizard = ({
 
   return (
     <div className="space-y-4 md:space-y-6">
-      {/* Step Navigation */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 md:gap-4">
           {[
             { step: 1, label: 'Boas-vindas' },
-            { step: 2, label: 'Perguntas' }
+            { step: 2, label: 'Perguntas' },
+            { step: 3, label: 'Finalização' }
           ].map(({ step, label }) => (
             <div key={step} className="flex items-center gap-1 md:gap-2">
               <button
@@ -1301,23 +1257,51 @@ export const SimplifiedFormWizard = ({
                   {label}
                 </div>
               </div>
-              {step < 2 && <ChevronRight className="h-4 w-4 md:h-5 md:w-5 text-muted-foreground hidden md:block" />}
+              {step < 3 && <ChevronRight className="h-4 w-4 md:h-5 md:w-5 text-muted-foreground hidden md:block" />}
             </div>
           ))}
         </div>
+
+        <div className="flex items-center gap-2">
+          {onSave && (
+            <Button
+              variant="outline"
+              onClick={handleSaveProgress}
+              disabled={isSaving}
+              className="gap-2 hidden md:flex min-h-[44px]"
+            >
+              <Save className="h-4 w-4" />
+              {isSaving ? 'Salvando...' : 'Salvar Rascunho'}
+            </Button>
+          )}
+          <Button
+            onClick={handleNextStep}
+            className="gap-2 min-h-[44px]"
+            disabled={currentStep === 3 && isSaving}
+          >
+            {currentStep === 3 ? (
+              <>
+                <Save className="h-4 w-4" />
+                {isSaving ? 'Finalizando...' : 'Finalizar Formulário'}
+              </>
+            ) : (
+              <>
+                Próximo Passo
+                <ArrowRight className="h-4 w-4" />
+              </>
+            )}
+          </Button>
+        </div>
       </div>
 
-      {/* Mobile Layout */}
       {isMobile && (
         <div className="space-y-4 pb-20">
           {editorContent}
         </div>
       )}
 
-      {/* Desktop Layout - Two-Column Resizable Layout: Editor Left, Preview Right */}
       {!isMobile && (
         <PanelGroup direction="horizontal" className="gap-4">
-          {/* LEFT COLUMN: Editor */}
           <Panel defaultSize={50} minSize={30}>
             <div className="h-[calc(100vh-14rem)] flex flex-col pr-2 animate-in fade-in slide-in-from-bottom-4 duration-500">
               <div className="flex-1 overflow-y-auto space-y-4 pb-4">
@@ -1326,19 +1310,16 @@ export const SimplifiedFormWizard = ({
             </div>
           </Panel>
 
-          {/* Resizable Handle */}
           <PanelResizeHandle className="w-2 bg-border hover:bg-primary/50 transition-colors rounded-full cursor-col-resize" />
 
-          {/* RIGHT COLUMN: Live Preview - Always Visible (Sticky) */}
           <Panel defaultSize={50} minSize={30}>
-            <div className="sticky top-4 h-[calc(100vh-14rem)]">
+            <div className="sticky top-4">
               {previewPanel}
             </div>
           </Panel>
         </PanelGroup>
       )}
 
-      {/* Mobile Floating Preview Button */}
       {isMobile && (
         <Button
           onClick={() => setMobilePreviewOpen(true)}
@@ -1349,29 +1330,22 @@ export const SimplifiedFormWizard = ({
         </Button>
       )}
 
-      {/* Mobile Preview Dialog */}
       <Dialog open={mobilePreviewOpen} onOpenChange={setMobilePreviewOpen}>
-        <DialogContent className="max-w-full h-[100dvh] max-h-[100dvh] w-full p-0 m-0 rounded-none border-0">
-          <DialogHeader className="p-4 border-b flex-shrink-0">
-            <DialogTitle className="flex items-center gap-2 text-lg">
-              <Eye className="h-5 w-5 text-primary" />
-              Pré-visualizar
-            </DialogTitle>
+        <DialogContent className="max-w-full h-[100dvh] p-0 flex flex-col gap-0 border-0 rounded-none">
+          <DialogHeader className="p-4 border-b bg-background flex-row items-center justify-between shrink-0">
+            <DialogTitle className="text-base font-bold">Visualização</DialogTitle>
+            <Button variant="ghost" size="icon" onClick={() => setMobilePreviewOpen(false)} className="h-9 w-9">
+              <X className="h-5 w-5" />
+            </Button>
           </DialogHeader>
-          <div className="flex-1 overflow-y-auto p-4">
-            {currentStep === 3 && step3ActiveTab === 'completion' && completionPageConfig ? (
-              <CompletionPagePreview
-                config={completionPageConfig}
-                previewMode={completionPreviewMode}
-              />
-            ) : (
-              <FormPreview
-                config={previewConfig}
-                onBack={() => setMobilePreviewOpen(false)}
-                isLivePreview={true}
-                activeQuestionId={selectedQuestionId}
-              />
-            )}
+          <div className="flex-1 overflow-hidden">
+            <FormPreview
+              config={previewConfig}
+              onBack={() => setMobilePreviewOpen(false)}
+              isLivePreview={true}
+              wizardMode={true}
+              device="mobile"
+            />
           </div>
         </DialogContent>
       </Dialog>
