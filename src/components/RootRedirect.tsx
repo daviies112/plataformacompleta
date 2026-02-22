@@ -10,5 +10,5 @@ import { useAuth } from '@/contexts/AuthContext';
 export const RootRedirect = () => {
   const { isAuthenticated } = useAuth();
 
-  return <Navigate to={isAuthenticated ? "/formulario/admin/formularios" : "/login"} replace />;
+  return <Navigate to={isAuthenticated ? "/workspace" : "/login"} replace />;
 };

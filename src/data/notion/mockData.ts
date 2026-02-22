@@ -34,6 +34,7 @@ export const initialBoardWithExamples: Board = {
     {
       id: 'list-1',
       title: 'A Fazer',
+      color: '#61bd4f',
       cards: [
         {
           id: 'card-1',
@@ -94,6 +95,7 @@ export const initialBoardWithExamples: Board = {
     {
       id: 'list-2',
       title: 'Em Progresso',
+      color: '#f2d600',
       cards: [
         {
           id: 'card-3',
@@ -131,6 +133,7 @@ export const initialBoardWithExamples: Board = {
     {
       id: 'list-3',
       title: 'Concluído',
+      color: '#0079bf',
       cards: [
         {
           id: 'card-4',

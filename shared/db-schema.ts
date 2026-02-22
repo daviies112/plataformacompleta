@@ -503,10 +503,29 @@ export const workspaceThemes = pgTable('workspace_themes', {
   icon: text('icon'),
   color: text('color').default('#6366f1'),
   userId: text('user_id'),
+  favorited: boolean('favorited'),
+  isPublic: boolean('is_public').default(false),
+  publicSlug: text('public_slug'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow()
 }, (table) => ({
   tenantIdx: index('idx_workspace_themes_tenant').on(table.tenantId),
+}));
+
+// Workspace Public Mapping Table
+export const workspacePublicMapping = pgTable('workspace_public_mapping', {
+  id: text('id').primaryKey(),
+  itemId: text('item_id').notNull(),
+  itemType: text('item_type').notNull(), // 'page', 'database', 'board'
+  tenantId: text('tenant_id').notNull(),
+  clientId: text('client_id'),
+  isActive: boolean('is_active').default(true),
+  settings: jsonb('settings').default({}),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow()
+}, (table) => ({
+  itemIdx: index('idx_workspace_public_item').on(table.itemId, table.itemType),
+  tenantIdx: index('idx_workspace_public_tenant').on(table.tenantId),
 }));
 
 // Workspace Pages Table
@@ -530,6 +549,8 @@ export const workspacePages = pgTable('workspace_pages', {
   fullWidth: boolean('full_width'),
   locked: boolean('locked'),
   favorited: boolean('favorited'),
+  isPublic: boolean('is_public').default(false),
+  publicSlug: text('public_slug'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow()
 }, (table) => ({
@@ -555,6 +576,8 @@ export const workspaceDatabases = pgTable('workspace_databases', {
   clientId: text('client_id'),
   locked: boolean('locked'),
   favorited: boolean('favorited'),
+  isPublic: boolean('is_public').default(false),
+  publicSlug: text('public_slug'),
   chartType: text('chart_type'),
   chartXAxis: text('chart_x_axis'),
   chartYAxis: text('chart_y_axis'),
@@ -581,6 +604,8 @@ export const workspaceBoards = pgTable('workspace_boards', {
   tenantId: text('tenant_id'),
   clientId: text('client_id'),
   favorited: boolean('favorited'),
+  isPublic: boolean('is_public').default(false),
+  publicSlug: text('public_slug'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow()
 }, (table) => ({
@@ -791,11 +816,11 @@ export const formSubmissions = pgTable("form_submissions", {
   answers: jsonb("answers").notNull(),
   totalScore: integer("total_score").notNull(),
   passed: boolean("passed").notNull(),
-  
+
   // ID único curto para identificar participante em reuniões compartilhadas
   // Formato: pid_xxxxxxxxxx (10 caracteres únicos)
   participantId: text("participant_id"),
-  
+
   // Dados de contato
   contactName: text("contact_name"),
   contactEmail: text("contact_email"),
@@ -803,7 +828,7 @@ export const formSubmissions = pgTable("form_submissions", {
   contactCpf: text("contact_cpf"),
   instagramHandle: text("instagram_handle"),
   birthDate: date("birth_date"),
-  
+
   // Dados de endereço
   addressCep: text("address_cep"),
   addressStreet: text("address_street"),
@@ -812,7 +837,7 @@ export const formSubmissions = pgTable("form_submissions", {
   addressNeighborhood: text("address_neighborhood"),
   addressCity: text("address_city"),
   addressState: text("address_state"),
-  
+
   // Status de processamento e agendamento
   processadoWhatsapp: boolean("processado_whatsapp").default(false),
   agendouReuniao: boolean("agendou_reuniao").default(false),
@@ -820,7 +845,7 @@ export const formSubmissions = pgTable("form_submissions", {
   followUpCount: integer("follow_up_count").default(0),
   ultimoFollowUp: timestamp("ultimo_follow_up", { withTimezone: true }),
   followUpEncerrado: boolean("follow_up_encerrado").default(false),
-  
+
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 }, (table) => ({
@@ -884,16 +909,16 @@ export const configurationsWhatsapp = pgTable("configurations_whatsapp", {
 export const leads = pgTable("leads", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   tenantId: text("tenant_id").notNull(),
-  
+
   // Identificação
   telefone: text("telefone").notNull(),
   telefoneNormalizado: text("telefone_normalizado").notNull().unique(),
   nome: text("nome"),
   email: text("email"),
-  
+
   // Origem do lead
   origem: text("origem").default("whatsapp"),
-  
+
   // WhatsApp Data
   whatsappId: text("whatsapp_id"),
   whatsappInstance: text("whatsapp_instance"),
@@ -901,58 +926,58 @@ export const leads = pgTable("leads", {
   primeiraMensagemEm: timestamp("primeira_mensagem_em", { withTimezone: true }),
   ultimaMensagemEm: timestamp("ultima_mensagem_em", { withTimezone: true }),
   totalMensagens: integer("total_mensagens").default(0),
-  
+
   // STATUS DO FORMULÁRIO (TRACKING REAL)
   formularioUrl: text("formulario_url"),
   formularioEnviado: boolean("formulario_enviado").default(false),
   formularioEnviadoEm: timestamp("formulario_enviado_em", { withTimezone: true }),
-  
+
   formularioAberto: boolean("formulario_aberto").default(false),
   formularioAbertoEm: timestamp("formulario_aberto_em", { withTimezone: true }),
   formularioVisualizacoes: integer("formulario_visualizacoes").default(0),
-  
+
   formularioIniciado: boolean("formulario_iniciado").default(false),
   formularioIniciadoEm: timestamp("formulario_iniciado_em", { withTimezone: true }),
-  
+
   formularioConcluido: boolean("formulario_concluido").default(false),
   formularioConcluidoEm: timestamp("formulario_concluido_em", { withTimezone: true }),
-  
+
   // Status consolidado do formulário (para facilitar queries)
   formStatus: text("form_status").default("not_sent"),
-  
+
   // Qualificação
   pontuacao: integer("pontuacao"),
   statusQualificacao: text("status_qualificacao").default("pending"),
   qualificationStatus: text("qualification_status").default("pending"),
   motivoReprovacao: text("motivo_reprovacao"),
-  
+
   // Link do formulário enviado
   formularioId: uuid("formulario_id").references(() => forms.id, { onDelete: "set null" }),
   submissionId: uuid("submission_id").references(() => formSubmissions.id, { onDelete: "set null" }),
-  
+
   // CPF para matching (secondary identifier after phone)
   cpf: text("cpf"),
   cpfNormalizado: text("cpf_normalizado"),
-  
+
   // FK para CPF check (consulta de compliance)
   cpfCheckId: uuid("cpf_check_id"),
   cpfStatus: text("cpf_status"), // pending, approved, rejected
   cpfCheckedAt: timestamp("cpf_checked_at", { withTimezone: true }),
-  
+
   // FK para dados_cliente (reunião)
   meetingId: uuid("meeting_id"),
   meetingStatus: text("meeting_status"), // pending, scheduled, completed, cancelled
   meetingScheduledAt: timestamp("meeting_scheduled_at", { withTimezone: true }),
-  
+
   // Pipeline status unificado (para Kanban)
   pipelineStatus: text("pipeline_status").default("contato-inicial"),
-  
+
   // Metadados
   ipAddress: text("ip_address"),
   userAgent: text("user_agent"),
   tags: jsonb("tags").default(sql`'[]'::jsonb`),
   observacoes: text("observacoes"),
-  
+
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 }, (table) => ({
@@ -971,19 +996,19 @@ export const leads = pgTable("leads", {
 // WhatsApp Labels Table - Custom conversation labels
 export const whatsappLabels = pgTable("whatsapp_labels", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  
+
   // Nome e cor da etiqueta
   nome: text("nome").notNull(),
   cor: text("cor").notNull(),
-  
+
   // Mapeamento de status
   formStatus: text("form_status").notNull(),
   qualificationStatus: text("qualification_status"),
-  
+
   // Configurações
   ordem: integer("ordem").notNull().default(0),
   ativo: boolean("ativo").default(true),
-  
+
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 }, (table) => ({
@@ -995,30 +1020,30 @@ export const whatsappLabels = pgTable("whatsapp_labels", {
 export const formularioSessoes = pgTable("formulario_sessoes", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   leadId: uuid("lead_id").notNull().references(() => leads.id, { onDelete: "cascade" }),
-  
+
   // Token único e seguro para acesso
   token: text("token").notNull().unique(),
   sessaoId: text("sessao_id").notNull().unique(),
-  
+
   // Status da sessão
   aberto: boolean("aberto").default(false),
   primeiraAberturaEm: timestamp("primeira_abertura_em", { withTimezone: true }),
   ultimaAtividadeEm: timestamp("ultima_atividade_em", { withTimezone: true }),
   totalAcessos: integer("total_acessos").default(0),
-  
+
   // Progresso do formulário
   camposPreenchidos: jsonb("campos_preenchidos").default(sql`'{}'::jsonb`),
   progressoPercentual: integer("progresso_percentual").default(0),
   paginaAtual: integer("pagina_atual").default(1),
-  
+
   // Tracking (arrays para múltiplos acessos)
   ipAddresses: jsonb("ip_addresses").default(sql`'[]'::jsonb`),
   userAgents: jsonb("user_agents").default(sql`'[]'::jsonb`),
-  
+
   // Expiração
   expiresAt: timestamp("expires_at", { withTimezone: true }),
   concluido: boolean("concluido").default(false),
-  
+
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 }, (table) => ({
@@ -1031,12 +1056,12 @@ export const formularioSessoes = pgTable("formulario_sessoes", {
 export const leadHistorico = pgTable("lead_historico", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   leadId: uuid("lead_id").notNull().references(() => leads.id, { onDelete: "cascade" }),
-  
+
   tipoEvento: text("tipo_evento").notNull(),
   descricao: text("descricao"),
   dados: jsonb("dados"),
   ipAddress: text("ip_address"),
-  
+
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 }, (table) => ({
   leadIdIdx: index("idx_historico_lead_id").on(table.leadId),
@@ -1052,17 +1077,17 @@ export const leadHistorico = pgTable("lead_historico", {
 export const dadosCliente = pgTable("dados_cliente", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
   tenantId: text("tenant_id").notNull(),
-  
+
   // Identificação - Link com lead
   leadId: uuid("lead_id").references(() => leads.id, { onDelete: "set null" }),
-  
+
   // Dados do cliente
   nome: text("nome").notNull(),
   telefone: text("telefone"),
   telefoneNormalizado: text("telefone_normalizado"),
   email: text("email"),
   cpf: text("cpf"),
-  
+
   // Status da reunião
   reuniaoStatus: text("reuniao_status").default("pendente"), // pendente, agendada, realizada, cancelada
   reuniaoData: timestamp("reuniao_data", { withTimezone: true }),
@@ -1070,18 +1095,18 @@ export const dadosCliente = pgTable("dados_cliente", {
   reuniaoLocal: text("reuniao_local"),
   reuniaoTipo: text("reuniao_tipo"), // presencial, online
   reuniaoLink: text("reuniao_link"), // Link do Google Meet, Zoom, etc
-  
+
   // Consultor responsável
   consultorNome: text("consultor_nome"),
   consultorEmail: text("consultor_email"),
-  
+
   // Notas e observações
   observacoes: text("observacoes"),
-  
+
   // Resultado da reunião
   resultadoReuniao: text("resultado_reuniao"), // aprovado, em_analise, recusado
   motivoRecusa: text("motivo_recusa"),
-  
+
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 }, (table) => ({
@@ -1409,34 +1434,34 @@ export const complianceUsers = pgTable("compliance_users", {
 // Datacorp Checks - Main CPF compliance checks table with intelligent cache
 export const datacorpChecks = pgTable("datacorp_checks", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  
+
   // Identification (NEVER stores plain CPF for LGPD compliance)
   cpfHash: text("cpf_hash").notNull(),
   cpfEncrypted: text("cpf_encrypted").notNull(),
-  
+
   // Person data (for display)
   personName: text("person_name"),
   personCpf: text("person_cpf"),
-  
+
   // Multi-tenant isolation
   tenantId: uuid("tenant_id").notNull().references(() => tenantsRegistry.id, { onDelete: "cascade" }),
   leadId: uuid("lead_id"),
   submissionId: uuid("submission_id"),
-  
+
   // Cache reuse tracking
   originCheckId: uuid("origin_check_id"),
-  
+
   // Bigdatacorp API result
   status: text("status").notNull().$type<ComplianceStatus>().default("pending"),
   riskScore: numeric("risk_score", { precision: 5, scale: 2 }),
   payload: jsonb("payload").notNull(),
-  
+
   // Metadata
   consultedAt: timestamp("consulted_at").notNull().defaultNow(),
   expiresAt: timestamp("expires_at").notNull(),
   source: text("source").notNull().default("bigdatacorp_v1"),
   apiCost: numeric("api_cost", { precision: 10, scale: 2 }).notNull().default("0.07"),
-  
+
   // Audit
   createdBy: uuid("created_by"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -1537,9 +1562,9 @@ export const insertDatacorpCheckSchema = createInsertSchema(datacorpChecks, {
   riskScore: z.string().optional(),
   payload: z.record(z.any()),
   apiCost: z.string().optional(),
-}).omit({ 
-  id: true, 
-  createdAt: true, 
+}).omit({
+  id: true,
+  createdAt: true,
   updatedAt: true,
   consultedAt: true,
 });
@@ -1562,28 +1587,28 @@ export const insertFormSubmissionComplianceTrackingSchema = createInsertSchema(f
 export const printerConfigs = pgTable('printer_configs', {
   id: serial('id').primaryKey(),
   tenantId: text('tenant_id').notNull(),
-  
+
   // Printer identification
   printerName: text('printer_name').notNull(), // Name from QZ Tray
   printerModel: text('printer_model'), // User-friendly model name
   printerType: text('printer_type').default('thermal'), // thermal, laser, inkjet
-  
+
   // Connection settings
   connectionType: text('connection_type').default('qz-tray'), // qz-tray, usb, network
   printerPort: text('printer_port'), // COM1, USB001, IP address, etc
-  
+
   // Label configuration
   labelWidthMm: numeric('label_width_mm', { precision: 10, scale: 2 }).default('60'),
   labelHeightMm: numeric('label_height_mm', { precision: 10, scale: 2 }).default('40'),
   labelGapMm: numeric('label_gap_mm', { precision: 10, scale: 2 }).default('2'),
-  
+
   // Print format
   printFormat: text('print_format').default('zpl'), // zpl, epl, escpos, pdf
   dpi: integer('dpi').default(203),
-  
+
   // Barcode settings
   barcodeType: text('barcode_type').default('CODE128'),
-  
+
   // Enabled fields for printing
   enabledFields: jsonb('enabled_fields').default({
     description: true,
@@ -1594,11 +1619,11 @@ export const printerConfigs = pgTable('printer_configs', {
     weight: false,
     qrcode: false
   }),
-  
+
   // Status
   isDefault: boolean('is_default').default(false),
   isActive: boolean('is_active').default(true),
-  
+
   // Timestamps
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
@@ -1626,23 +1651,23 @@ export const labelTemplates = pgTable('label_templates', {
   tenantId: text('tenant_id').notNull(),
   name: text('name').notNull(),
   description: text('description'),
-  
+
   // Tamanho da etiqueta em milímetros
   widthMm: numeric('width_mm', { precision: 10, scale: 2 }).notNull(),
   heightMm: numeric('height_mm', { precision: 10, scale: 2 }).notNull(),
-  
+
   // Design data (JSON com elementos Fabric.js)
   // Format: { objects: [...], background: '...', version: '...' }
   designData: jsonb('design_data').notNull(),
-  
+
   // Preview thumbnail (base64 ou URL)
   previewUrl: text('preview_url'),
-  
+
   // Metadata
   isPublic: boolean('is_public').default(false),
   category: text('category'),
   tags: text('tags').array(),
-  
+
   // Timestamps
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow(),
@@ -2361,21 +2386,21 @@ export const servicePrices = pgTable("service_prices", {
 }));
 
 // Insert Schemas for Wallet System
-export const insertWalletSchema = createInsertSchema(wallets).omit({ 
-  id: true, 
-  createdAt: true, 
-  updatedAt: true 
+export const insertWalletSchema = createInsertSchema(wallets).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
 });
 
-export const insertWalletTransactionSchema = createInsertSchema(walletTransactions).omit({ 
-  id: true, 
-  createdAt: true 
+export const insertWalletTransactionSchema = createInsertSchema(walletTransactions).omit({
+  id: true,
+  createdAt: true
 });
 
-export const insertServicePriceSchema = createInsertSchema(servicePrices).omit({ 
-  id: true, 
-  createdAt: true, 
-  updatedAt: true 
+export const insertServicePriceSchema = createInsertSchema(servicePrices).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true
 });
 
 // Types for Wallet System

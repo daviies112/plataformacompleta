@@ -32,6 +32,8 @@ export interface StorePage {
   fullWidth?: boolean;
   locked?: boolean;
   favorited?: boolean;
+  isPublic?: boolean;
+  publicSlug?: string;
 }
 
 // Simplified Database type
@@ -100,6 +102,8 @@ export interface StoreDatabase {
     allowMultiple: boolean;
     publicUrl?: string;
   };
+  isPublic?: boolean;
+  publicSlug?: string;
 }
 
 export interface NotionState {
@@ -120,7 +124,7 @@ interface NotionStore extends NotionState {
   setCurrentPage: (pageId: string) => void;
   duplicatePage: (pageId: string) => void;
   togglePageFavorite: (pageId: string) => void;
-  
+
   // Block actions
   addBlock: (type?: string) => void;
   addBlockAfter: (afterBlockId: string, type?: string) => string | null;
@@ -129,7 +133,7 @@ interface NotionStore extends NotionState {
   moveBlockUp: (blockId: string) => void;
   moveBlockDown: (blockId: string) => void;
   reorderBlocks: (startIndex: number, endIndex: number) => void;
-  
+
   // Database actions
   addDatabase: (title?: string, icon?: string, themeId?: string) => void;
   updateDatabase: (dbId: string, updates: Partial<StoreDatabase>) => void;
@@ -137,13 +141,13 @@ interface NotionStore extends NotionState {
   duplicateDatabase: (dbId: string) => void;
   setCurrentDatabase: (dbId: string) => void;
   toggleDatabaseFavorite: (dbId: string) => void;
-  
+
   // Database View actions
   addView: (dbId: string, viewType: string, viewName?: string) => void;
   deleteView: (dbId: string, viewId: string) => void;
   updateView: (dbId: string, viewId: string, updates: any) => void;
   setCurrentView: (dbId: string, viewId: string) => void;
-  
+
   // Board actions
   addBoard: (title?: string, icon?: string, themeId?: string) => string;
   updateBoard: (boardId: string, updates: any) => void;
@@ -151,26 +155,30 @@ interface NotionStore extends NotionState {
   duplicateBoard: (boardId: string) => void;
   setCurrentBoard: (boardId: string) => void;
   toggleBoardFavorite: (boardId: string) => void;
-  
+
   // Board Label actions
   addBoardLabel: (boardId: string, name: string, color: string) => Label;
   updateBoardLabel: (boardId: string, labelId: string, updates: { name?: string; color?: string }) => void;
   deleteBoardLabel: (boardId: string, labelId: string) => void;
-  
+
   // Search
   setSearchQuery: (query: string) => void;
-  
-  // Export/Import
+
+  // Public Sharing
+  togglePublic: (itemId: string, itemType: 'page' | 'board' | 'database', isPublic: boolean) => Promise<{ success: boolean; url?: string }>;
   exportData: () => string;
   importData: (data: string) => void;
-  
+
   // Helpers
   getCurrentPage: () => StorePage | null;
   getCurrentDatabase: () => StoreDatabase | null;
   getCurrentBoard: () => Board | null;
-  
+
   // Supabase reload
   reloadFromSupabase: () => Promise<void>;
+
+  // Selections
+  resetSelection: () => void;
 }
 
 const generateId = () => Date.now().toString(36) + Math.random().toString(36).substr(2);
@@ -206,7 +214,7 @@ export const useNotionStore = create<NotionStore>()(
           createdAt: Date.now(),
           updatedAt: Date.now(),
         };
-        
+
         set((state) => ({
           pages: [...state.pages, newPage],
           currentPageId: newPage.id,
@@ -215,39 +223,39 @@ export const useNotionStore = create<NotionStore>()(
 
       deletePage: (pageId: string) => {
         const state = get();
-        
+
         // Função recursiva para coletar TODAS as páginas descendentes (DFS - busca em profundidade)
         const collectAllDescendants = (parentId: string, pages: StorePage[]): string[] => {
           const directChildren = pages.filter(p => p.parentId === parentId);
           const allDescendants: string[] = [];
-          
+
           for (const child of directChildren) {
             allDescendants.push(child.id);
             // Recursivamente coletar descendentes deste filho (netos, bisnetos, etc.)
             const childDescendants = collectAllDescendants(child.id, pages);
             allDescendants.push(...childDescendants);
           }
-          
+
           return allDescendants;
         };
-        
+
         // Coletar TODAS as páginas descendentes (inclui filhos, netos, bisnetos, etc.)
         const allDescendantIds = collectAllDescendants(pageId, state.pages);
         const allIdsToDelete = [pageId, ...allDescendantIds];
-        
+
         console.log(`🗑️ Deletando página ${pageId} e ${allDescendantIds.length} descendentes recursivamente`);
-        
+
         // Atualizar state local IMEDIATAMENTE
         set((state) => {
           const filteredPages = state.pages.filter(p => !allIdsToDelete.includes(p.id));
           return {
             pages: filteredPages,
-            currentPageId: state.currentPageId === pageId 
-              ? (filteredPages[0]?.id || null) 
+            currentPageId: state.currentPageId === pageId
+              ? (filteredPages[0]?.id || null)
               : state.currentPageId,
           };
         });
-        
+
         // Deletar do Supabase em background (não bloqueia UI)
         Promise.resolve().then(async () => {
           try {
@@ -266,9 +274,9 @@ export const useNotionStore = create<NotionStore>()(
 
       updatePage: (pageId: string, updates: Partial<StorePage>) => {
         set((state) => ({
-          pages: state.pages.map(p => 
-            p.id === pageId 
-              ? { ...p, ...updates, updatedAt: Date.now() } 
+          pages: state.pages.map(p =>
+            p.id === pageId
+              ? { ...p, ...updates, updatedAt: Date.now() }
               : p
           ),
         }));
@@ -336,7 +344,7 @@ export const useNotionStore = create<NotionStore>()(
 
         const blocks = [...currentPage.blocks];
         const index = blocks.findIndex(b => b.id === afterBlockId);
-        
+
         if (index !== -1) {
           blocks.splice(index + 1, 0, newBlock);
           get().updatePage(currentPage.id, { blocks });
@@ -359,7 +367,7 @@ export const useNotionStore = create<NotionStore>()(
         if (!currentPage) return;
 
         get().updatePage(currentPage.id, {
-          blocks: currentPage.blocks.map(b => 
+          blocks: currentPage.blocks.map(b =>
             b.id === blockId ? { ...b, ...updates } : b
           ),
         });
@@ -371,7 +379,7 @@ export const useNotionStore = create<NotionStore>()(
 
         const blocks = [...currentPage.blocks];
         const index = blocks.findIndex(b => b.id === blockId);
-        
+
         if (index > 0) {
           [blocks[index - 1], blocks[index]] = [blocks[index], blocks[index - 1]];
           get().updatePage(currentPage.id, { blocks });
@@ -384,7 +392,7 @@ export const useNotionStore = create<NotionStore>()(
 
         const blocks = [...currentPage.blocks];
         const index = blocks.findIndex(b => b.id === blockId);
-        
+
         if (index < blocks.length - 1) {
           [blocks[index], blocks[index + 1]] = [blocks[index + 1], blocks[index]];
           get().updatePage(currentPage.id, { blocks });
@@ -398,7 +406,7 @@ export const useNotionStore = create<NotionStore>()(
         const blocks = [...currentPage.blocks];
         const [removed] = blocks.splice(startIndex, 1);
         blocks.splice(endIndex, 0, removed);
-        
+
         get().updatePage(currentPage.id, { blocks });
       },
 
@@ -512,16 +520,16 @@ export const useNotionStore = create<NotionStore>()(
       updateDatabase: (dbId: string, updates: Partial<StoreDatabase>) => {
         // Update in global databases array
         set((state) => ({
-          databases: state.databases.map(db => 
+          databases: state.databases.map(db =>
             db.id === dbId ? { ...db, ...updates } : db
           ),
         }));
-        
+
         // Update in ALL pages
         set((state) => ({
           pages: state.pages.map(page => ({
             ...page,
-            databases: page.databases.map(db => 
+            databases: page.databases.map(db =>
               db.id === dbId ? { ...db, ...updates } : db
             )
           }))
@@ -535,12 +543,12 @@ export const useNotionStore = create<NotionStore>()(
           const filteredDatabases = state.databases.filter(db => db.id !== dbId);
           return {
             databases: filteredDatabases,
-            currentDatabaseId: state.currentDatabaseId === dbId 
-              ? (filteredDatabases[0]?.id || null) 
+            currentDatabaseId: state.currentDatabaseId === dbId
+              ? (filteredDatabases[0]?.id || null)
               : state.currentDatabaseId,
           };
         });
-        
+
         // Remove from ALL pages
         set((state) => ({
           pages: state.pages.map(page => ({
@@ -548,7 +556,7 @@ export const useNotionStore = create<NotionStore>()(
             databases: page.databases.filter(db => db.id !== dbId)
           }))
         }));
-        
+
         // Deletar do Supabase em background (não bloqueia UI)
         Promise.resolve().then(async () => {
           try {
@@ -624,7 +632,7 @@ export const useNotionStore = create<NotionStore>()(
 
       updateBoard: (boardId: string, updates: any) => {
         set((state) => ({
-          boards: state.boards.map(b => 
+          boards: state.boards.map(b =>
             b.id === boardId ? { ...b, ...updates } : b
           ),
         }));
@@ -636,12 +644,12 @@ export const useNotionStore = create<NotionStore>()(
           const filteredBoards = state.boards.filter(b => b.id !== boardId);
           return {
             boards: filteredBoards,
-            currentBoardId: state.currentBoardId === boardId 
-              ? (filteredBoards[0]?.id || null) 
+            currentBoardId: state.currentBoardId === boardId
+              ? (filteredBoards[0]?.id || null)
               : state.currentBoardId,
           };
         });
-        
+
         // Deletar do Supabase em background (não bloqueia UI)
         Promise.resolve().then(async () => {
           try {
@@ -686,9 +694,9 @@ export const useNotionStore = create<NotionStore>()(
 
       togglePageFavorite: (pageId: string) => {
         set((state) => ({
-          pages: state.pages.map(p => 
-            p.id === pageId 
-              ? { ...p, favorited: !p.favorited } 
+          pages: state.pages.map(p =>
+            p.id === pageId
+              ? { ...p, favorited: !p.favorited }
               : p
           ),
         }));
@@ -697,20 +705,20 @@ export const useNotionStore = create<NotionStore>()(
       toggleDatabaseFavorite: (dbId: string) => {
         // Update in global databases array
         set((state) => ({
-          databases: state.databases.map(db => 
-            db.id === dbId 
-              ? { ...db, favorited: !db.favorited } 
+          databases: state.databases.map(db =>
+            db.id === dbId
+              ? { ...db, favorited: !db.favorited }
               : db
           ),
         }));
-        
+
         // Update in ALL pages to maintain consistency
         set((state) => ({
           pages: state.pages.map(page => ({
             ...page,
-            databases: page.databases.map(db => 
-              db.id === dbId 
-                ? { ...db, favorited: !db.favorited } 
+            databases: page.databases.map(db =>
+              db.id === dbId
+                ? { ...db, favorited: !db.favorited }
                 : db
             )
           }))
@@ -719,9 +727,9 @@ export const useNotionStore = create<NotionStore>()(
 
       toggleBoardFavorite: (boardId: string) => {
         set((state) => ({
-          boards: state.boards.map(b => 
-            b.id === boardId 
-              ? { ...b, favorited: !b.favorited } 
+          boards: state.boards.map(b =>
+            b.id === boardId
+              ? { ...b, favorited: !b.favorited }
               : b
           ),
         }));
@@ -735,9 +743,9 @@ export const useNotionStore = create<NotionStore>()(
         };
 
         set((state) => ({
-          boards: state.boards.map(b => 
-            b.id === boardId 
-              ? { ...b, labels: [...(b.labels || []), newLabel] } 
+          boards: state.boards.map(b =>
+            b.id === boardId
+              ? { ...b, labels: [...(b.labels || []), newLabel] }
               : b
           ),
         }));
@@ -749,7 +757,7 @@ export const useNotionStore = create<NotionStore>()(
         set((state) => ({
           boards: state.boards.map(b => {
             if (b.id !== boardId) return b;
-            
+
             const updatedLabels = (b.labels || []).map(label =>
               label.id === labelId
                 ? { ...label, ...updates }
@@ -777,7 +785,7 @@ export const useNotionStore = create<NotionStore>()(
         set((state) => ({
           boards: state.boards.map(b => {
             if (b.id !== boardId) return b;
-            
+
             const updatedLabels = (b.labels || []).filter(label => label.id !== labelId);
 
             const updatedLists = b.lists.map(list => ({
@@ -854,8 +862,37 @@ export const useNotionStore = create<NotionStore>()(
         });
       },
 
-      setSearchQuery: (query: string) => {
-        set({ searchQuery: query });
+      setSearchQuery: (query: string) => set({ searchQuery: query }),
+
+      togglePublic: async (itemId: string, itemType: 'page' | 'board' | 'database', isPublic: boolean) => {
+        try {
+          const response = await fetch('/api/workspace/public/toggle', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ itemId, itemType, isPublic }),
+          });
+
+          if (!response.ok) throw new Error('Falha ao alternar visibilidade pública');
+
+          const result = await response.json();
+
+          // Atualizar estado local based on itemType
+          if (itemType === 'page') {
+            get().updatePage(itemId, { isPublic, publicSlug: result.publicSlug } as any);
+          } else if (itemType === 'board') {
+            get().updateBoard(itemId, { isPublic, publicSlug: result.publicSlug } as any);
+          } else if (itemType === 'database') {
+            get().updateDatabase(itemId, { isPublic, publicSlug: result.publicSlug } as any);
+          }
+
+          return {
+            success: true,
+            url: result.publicSlug ? `${window.location.origin}/w/${result.publicSlug}` : undefined
+          };
+        } catch (error) {
+          console.error('Erro ao alternar público:', error);
+          return { success: false };
+        }
       },
 
       exportData: () => {
@@ -893,13 +930,17 @@ export const useNotionStore = create<NotionStore>()(
         const state = get();
         return state.boards.find(b => b.id === state.currentBoardId) || null;
       },
-      
+
+      resetSelection: () => {
+        set({ currentPageId: null, currentDatabaseId: null, currentBoardId: null });
+      },
+
       reloadFromSupabase: async () => {
         try {
           console.log('🔄 Recarregando workspace do Supabase...');
           const storageKey = 'notion-clone-storage';
           const data = await supabaseStorage.getItem(storageKey);
-          
+
           if (data) {
             const parsed = JSON.parse(data);
             console.log('✅ Dados carregados do Supabase:', {
@@ -907,21 +948,21 @@ export const useNotionStore = create<NotionStore>()(
               boards: parsed.boards?.length || 0,
               databases: parsed.databases?.length || 0
             });
-            
+
             // Garantir defaults seguros para evitar undefined em HMR
             const safePages = (parsed.pages || []).map((page: any) => ({
               ...page,
               blocks: Array.isArray(page.blocks) ? page.blocks : [],
               databases: Array.isArray(page.databases) ? page.databases : [],
             }));
-            
+
             const safeDatabases = (parsed.databases || []).map((db: any) => ({
               ...db,
               rows: Array.isArray(db.rows) ? db.rows : [],
               fields: Array.isArray(db.fields) ? db.fields : [],
               views: Array.isArray(db.views) ? db.views : [],
             }));
-            
+
             set({
               pages: safePages,
               boards: parsed.boards || [],
@@ -944,7 +985,7 @@ export const useNotionStore = create<NotionStore>()(
       storage: supabaseStorage,
       migrate: (persistedState: any, version: number) => {
         console.log('✅ Zustand Store - Versão 7 - Dados carregados do Supabase');
-        
+
         // Garantir que todas as páginas têm blocks como array (nunca undefined)
         if (persistedState?.pages) {
           persistedState.pages = persistedState.pages.map((page: any) => ({
@@ -953,7 +994,7 @@ export const useNotionStore = create<NotionStore>()(
             databases: Array.isArray(page.databases) ? page.databases : [],
           }));
         }
-        
+
         // Garantir que todos os databases têm rows como array (nunca undefined)
         if (persistedState?.databases) {
           persistedState.databases = persistedState.databases.map((db: any) => ({
@@ -963,12 +1004,12 @@ export const useNotionStore = create<NotionStore>()(
             views: Array.isArray(db.views) ? db.views : [],
           }));
         }
-        
+
         // Garantir que boards existe
         if (!Array.isArray(persistedState?.boards)) {
           persistedState.boards = [];
         }
-        
+
         return persistedState;
       },
     }

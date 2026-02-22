@@ -1,7 +1,9 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNotionStore } from "@/stores/notionStore";
 import {
+  Home,
   LayoutDashboard,
   BarChart3,
   Calendar,
@@ -20,14 +22,19 @@ import {
   FileSignature,
   Tag,
   ClipboardList,
-  Truck
+  Truck,
+  Store,
+  Sparkles,
+  Wand2,
+  Camera,
+  LogOut
 } from "lucide-react";
 import { WalletBadge } from "@/components/WalletBadge";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuTrigger,
+  DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 
 const HeaderNavigation = () => {
@@ -35,7 +42,19 @@ const HeaderNavigation = () => {
   const location = useLocation();
   const { user, logout } = useAuth();
 
-  const navItems = [
+  interface NavItem {
+    path: string;
+    label: string;
+    icon: any;
+    active: boolean;
+    children?: {
+      path: string;
+      label: string;
+      icon: any;
+    }[];
+  }
+
+  const navItems: NavItem[] = [
     {
       path: "/formulario",
       label: "Formulário",
@@ -101,6 +120,12 @@ const HeaderNavigation = () => {
       label: "Assinatura",
       icon: FileSignature,
       active: location.pathname.startsWith("/assinatura")
+    },
+    {
+      path: "/fotos/9pack",
+      label: "Fotos IA",
+      icon: Sparkles,
+      active: location.pathname.startsWith("/fotos")
     }
   ];
 
@@ -112,6 +137,17 @@ const HeaderNavigation = () => {
         <div className="flex items-center h-16 gap-2">
           {/* Navigation with horizontal scroll */}
           <nav className="flex items-center space-x-1 overflow-x-auto scrollbar-hide flex-1 min-w-0" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+            {/* Home Icon */}
+            <Button
+              variant={location.pathname === "/dashboard" || location.pathname === "/" ? "default" : "ghost"}
+              size="icon"
+              onClick={() => navigate("/dashboard")}
+              className={`h-10 w-10 flex-shrink-0 hover:bg-transparent hover:text-inherit ${location.pathname === "/dashboard" || location.pathname === "/" ? '!bg-primary !text-black' : 'text-gray-400 hover:text-white'}`}
+              title="Home"
+            >
+              <Home className="w-5 h-5" />
+            </Button>
+
             {navItems.map((item) => {
               if (item.children) {
                 return (
@@ -119,10 +155,9 @@ const HeaderNavigation = () => {
                     <DropdownMenuTrigger asChild>
                       <Button
                         variant={item.active ? "default" : "ghost"}
-                        size="sm"
-                        className={`h-10 px-3 whitespace-nowrap flex-shrink-0 hover:bg-transparent hover:text-inherit ${item.active ? '!bg-primary !text-black' : 'text-gray-400 hover:text-white'}`}
+                        size="default"
+                        className={`h-10 px-3.5 text-sm font-medium whitespace-nowrap flex-shrink-0 hover:bg-transparent hover:text-inherit ${item.active ? '!bg-primary !text-black' : 'text-gray-400 hover:text-white'}`}
                       >
-                        <item.icon className="w-4 h-4 mr-1.5" />
                         {item.label}
                       </Button>
                     </DropdownMenuTrigger>
@@ -133,7 +168,6 @@ const HeaderNavigation = () => {
                           onClick={() => navigate(child.path)}
                           className="text-gray-300 hover:text-white hover:bg-white/10 cursor-pointer"
                         >
-                          <child.icon className="w-4 h-4 mr-2" />
                           {child.label}
                         </DropdownMenuItem>
                       ))}
@@ -146,11 +180,15 @@ const HeaderNavigation = () => {
                 <Button
                   key={item.path}
                   variant={item.active ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => navigate(item.path)}
-                  className={`h-10 px-3 whitespace-nowrap flex-shrink-0 hover:bg-transparent hover:text-inherit ${item.active ? '!bg-primary !text-black' : 'text-gray-400 hover:text-white'}`}
+                  size="default"
+                  onClick={() => {
+                    if (item.path === '/workspace') {
+                      useNotionStore.getState().resetSelection();
+                    }
+                    navigate(item.path);
+                  }}
+                  className={`h-10 px-3.5 text-sm font-medium whitespace-nowrap flex-shrink-0 hover:bg-transparent hover:text-inherit ${item.active ? '!bg-primary !text-black' : 'text-gray-400 hover:text-white'}`}
                 >
-                  <item.icon className="w-4 h-4 mr-1.5" />
                   {item.label}
                 </Button>
               );
@@ -159,11 +197,10 @@ const HeaderNavigation = () => {
             {/* Envio Button - Direct Navigation */}
             <Button
               variant={isEnvioActive ? "default" : "ghost"}
-              size="sm"
+              size="default"
               onClick={() => navigate("/envio")}
-              className={`h-10 px-3 whitespace-nowrap flex-shrink-0 hover:bg-transparent hover:text-inherit ${isEnvioActive ? '!bg-primary !text-black' : 'text-gray-400 hover:text-white'}`}
+              className={`h-10 px-3.5 text-sm font-medium whitespace-nowrap flex-shrink-0 hover:bg-transparent hover:text-inherit ${isEnvioActive ? '!bg-primary !text-black' : 'text-gray-400 hover:text-white'}`}
             >
-              <Truck className="w-4 h-4 mr-1.5" />
               Envio
             </Button>
           </nav>
@@ -179,6 +216,16 @@ const HeaderNavigation = () => {
               title="Configurações"
             >
               <Settings className="w-5 h-5" />
+            </Button>
+            <Button
+              onClick={logout}
+              variant="ghost"
+              size="icon"
+              className="h-10 w-10 text-gray-400 hover:text-white hover:bg-transparent"
+              title="Sair da Plataforma"
+              data-testid="button-logout"
+            >
+              <LogOut className="w-5 h-5" />
             </Button>
           </div>
         </div>

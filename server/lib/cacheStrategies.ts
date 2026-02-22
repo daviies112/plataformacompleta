@@ -56,17 +56,17 @@ export function getProgressiveTTL(accessCount: number): number {
     console.log(`📊 Progressive TTL: ${accessCount} acessos -> 24h cache`);
     return 24 * 60 * 60; // 24 hours
   }
-  
+
   if (accessCount > 50) {
     console.log(`📊 Progressive TTL: ${accessCount} acessos -> 2h cache`);
     return 2 * 60 * 60; // 2 hours
   }
-  
+
   if (accessCount > 10) {
     console.log(`📊 Progressive TTL: ${accessCount} acessos -> 30min cache`);
     return 30 * 60; // 30 minutes
   }
-  
+
   console.log(`📊 Progressive TTL: ${accessCount} acessos -> 5min cache (default)`);
   return 5 * 60; // 5 minutes default
 }
@@ -90,12 +90,12 @@ export class BatchInvalidator {
   add(key: string): void {
     this.queue.add(key);
     console.log(`➕ Adicionado à fila de invalidação: ${key} (total: ${this.queue.size})`);
-    
+
     // Reset timer on each add
     if (this.timer) {
       clearTimeout(this.timer);
     }
-    
+
     // Schedule batch invalidation
     this.timer = setTimeout(() => {
       this.flush();
@@ -110,17 +110,17 @@ export class BatchInvalidator {
       console.log('⚠️ Fila de invalidação vazia, nada para fazer');
       return;
     }
-    
+
     const keys = Array.from(this.queue);
     console.log(`🗑️ Invalidando ${keys.length} chaves de cache em lote...`);
-    
+
     try {
       // Invalidate all keys using delPattern
       for (const key of keys) {
         await cache.delPattern(key);
         console.log(`✅ Invalidado: ${key}`);
       }
-      
+
       console.log(`✅ Batch invalidation completa: ${keys.length} chaves removidas`);
     } catch (error) {
       console.error('❌ Erro durante batch invalidation:', error);
@@ -165,11 +165,11 @@ export async function warmCache(
   supabaseKey: string
 ): Promise<void> {
   console.log(`🔥 Iniciando cache warming para usuário ${userId}...`);
-  
+
   try {
     // Create Supabase client
     const supabase = createClient(supabaseUrl, supabaseKey);
-    
+
     // Load projects and tasks in parallel
     const [projectsResult, tasksResult] = await Promise.all([
       supabase
@@ -181,7 +181,7 @@ export async function warmCache(
         .select('*')
         .eq('user_id', userId)
     ]);
-    
+
     // Cache projects
     if (projectsResult.data && !projectsResult.error) {
       const cacheKey = `user:${userId}:projects`;
@@ -190,7 +190,7 @@ export async function warmCache(
     } else if (projectsResult.error) {
       console.error(`❌ Erro ao carregar projects:`, projectsResult.error);
     }
-    
+
     // Cache tasks
     if (tasksResult.data && !tasksResult.error) {
       const cacheKey = `user:${userId}:tasks`;
@@ -199,7 +199,7 @@ export async function warmCache(
     } else if (tasksResult.error) {
       console.error(`❌ Erro ao carregar tasks:`, tasksResult.error);
     }
-    
+
     console.log(`🔥 Cache warming concluído para usuário ${userId}`);
   } catch (error) {
     console.error(`❌ Erro no cache warming para usuário ${userId}:`, error);
@@ -233,21 +233,21 @@ export async function compressForCache(data: any): Promise<{ compressed: boolean
     const jsonString = JSON.stringify(data);
     const sizeInBytes = Buffer.byteLength(jsonString, 'utf8');
     const sizeInKB = sizeInBytes / 1024;
-    
+
     // Only compress if data is larger than 10KB
     if (sizeInKB <= 10) {
       console.log(`📦 Dados pequenos (${sizeInKB.toFixed(2)}KB), sem compressão`);
       return { compressed: false, data: jsonString };
     }
-    
+
     // Compress using gzip
     const compressed = await gzipAsync(jsonString);
     const compressedBase64 = compressed.toString('base64');
     const compressedSizeKB = Buffer.byteLength(compressedBase64, 'utf8') / 1024;
     const ratio = ((1 - compressedSizeKB / sizeInKB) * 100).toFixed(1);
-    
+
     console.log(`📦 Compressão: ${sizeInKB.toFixed(2)}KB -> ${compressedSizeKB.toFixed(2)}KB (${ratio}% redução)`);
-    
+
     return { compressed: true, data: compressedBase64 };
   } catch (error) {
     console.error('❌ Erro na compressão:', error);
@@ -266,12 +266,12 @@ export async function decompressFromCache(compressed: boolean, data: string): Pr
     if (!compressed) {
       return JSON.parse(data);
     }
-    
+
     // Decompress gzip data
     const buffer = Buffer.from(data, 'base64');
     const decompressed = await gunzipAsync(buffer);
     const result = JSON.parse(decompressed.toString());
-    
+
     console.log(`📦 Dados descomprimidos com sucesso`);
     return result;
   } catch (error) {
@@ -303,11 +303,11 @@ export async function setCompressedCache(
  */
 export async function getCompressedCache<T = any>(key: string): Promise<T | null> {
   const cached = await cache.get<{ compressed: boolean; data: string; timestamp: number }>(key);
-  
+
   if (!cached) {
     return null;
   }
-  
+
   const decompressed = await decompressFromCache(cached.compressed, cached.data);
   console.log(`✅ Cache recuperado e descomprimido: ${key}`);
   return decompressed as T;
@@ -319,10 +319,10 @@ export async function getCompressedCache<T = any>(key: string): Promise<T | null
 export async function trackAccessAndGetTTL(key: string): Promise<number> {
   const accessKey = `access:count:${key}`;
   const count = await cache.incr(accessKey);
-  
+
   // Set expiration for access counter (reset after 24h)
   await cache.expire(accessKey, 24 * 60 * 60);
-  
+
   return getProgressiveTTL(count);
 }
 
@@ -356,19 +356,19 @@ export async function cacheDashboardData<T = any>(
   options: { compress?: boolean; ttl?: number; suffix?: string } = {}
 ): Promise<T> {
   const { compress = true, ttl = CACHE_TTLS.DASHBOARD, suffix = 'data' } = options;
-  
+
   if (!tenantId || tenantId === 'undefined' || tenantId === 'null' || tenantId.trim() === '') {
     console.error('❌ [CACHE] tenantId inválido - não é possível criar cache');
     throw new Error('tenantId inválido para cache de dashboard');
   }
-  
+
   if (!clientId || clientId === 'undefined' || clientId === 'null' || clientId.trim() === '') {
     console.error('❌ [CACHE] clientId inválido - não é possível criar cache');
     throw new Error('clientId inválido para cache de dashboard');
   }
-  
+
   const cacheKey = `${CACHE_NAMESPACES.DASHBOARD}:${clientId}:${tenantId}:${suffix}`;
-  
+
   try {
     // Try to get from cache first
     if (compress) {
@@ -384,19 +384,19 @@ export async function cacheDashboardData<T = any>(
         return cached;
       }
     }
-    
+
     console.log(`❌ Cache MISS (Dashboard): ${cacheKey}`);
-    
+
     // Execute query
     const data = await queryFn();
-    
+
     // Set cache with compression if needed
     if (compress) {
       await setCompressedCache(cacheKey, data, ttl);
     } else {
       await cache.set(cacheKey, data, ttl);
     }
-    
+
     console.log(`✅ Dashboard data cached: ${cacheKey} (TTL: ${ttl}s, compressed: ${compress})`);
     return data;
   } catch (error) {
@@ -419,14 +419,14 @@ export async function cacheFormsMetadata<T = any>(
   options: { compress?: boolean; ttl?: number } = {}
 ): Promise<T> {
   const { compress = false, ttl = CACHE_TTLS.FORMS } = options;
-  
+
   if (!tenantId || tenantId === 'undefined' || tenantId === 'null' || tenantId.trim() === '') {
     console.error('❌ [CACHE] tenantId inválido para cache de formulários');
     throw new Error('tenantId inválido para cache de formulários');
   }
-  
+
   const cacheKey = `${CACHE_NAMESPACES.FORMS}:${clientId}:${tenantId}:${identifier}`;
-  
+
   try {
     // Try to get from cache first
     if (compress) {
@@ -442,19 +442,19 @@ export async function cacheFormsMetadata<T = any>(
         return cached;
       }
     }
-    
+
     console.log(`❌ Cache MISS (Forms): ${cacheKey}`);
-    
+
     // Execute query
     const data = await queryFn();
-    
+
     // Set cache
     if (compress) {
       await setCompressedCache(cacheKey, data, ttl);
     } else {
       await cache.set(cacheKey, data, ttl);
     }
-    
+
     console.log(`✅ Forms metadata cached: ${cacheKey} (TTL: ${ttl}s, compressed: ${compress})`);
     return data;
   } catch (error) {
@@ -479,7 +479,7 @@ export async function cacheProductCatalog<T = any>(
 ): Promise<T> {
   const { compress = true, ttl = CACHE_TTLS.PRODUCTS } = options;
   const cacheKey = `${CACHE_NAMESPACES.PRODUCTS}:${clientId}:${tenantId}:${catalogType}:${identifier}`;
-  
+
   try {
     // Try to get from cache first
     if (compress) {
@@ -495,19 +495,19 @@ export async function cacheProductCatalog<T = any>(
         return cached;
       }
     }
-    
+
     console.log(`❌ Cache MISS (Products/${catalogType}): ${cacheKey}`);
-    
+
     // Execute query
     const data = await queryFn();
-    
+
     // Set cache with compression
     if (compress) {
       await setCompressedCache(cacheKey, data, ttl);
     } else {
       await cache.set(cacheKey, data, ttl);
     }
-    
+
     console.log(`✅ Product catalog cached: ${cacheKey} (TTL: ${ttl}s, compressed: ${compress})`);
     return data;
   } catch (error) {
@@ -544,7 +544,7 @@ export async function invalidateDashboardCache(clientId: string, tenantId?: stri
  */
 export async function invalidateFormsCache(clientId: string, tenantId: string, identifier?: string): Promise<void> {
   try {
-    const pattern = identifier 
+    const pattern = identifier
       ? `${CACHE_NAMESPACES.FORMS}:${clientId}:${tenantId}:${identifier}*`
       : `${CACHE_NAMESPACES.FORMS}:*`;
     await cache.delPattern(pattern);
@@ -587,7 +587,7 @@ export async function warmupDashboardCache(
   supabaseClient: any
 ): Promise<void> {
   console.log(`🔥 Warming up dashboard cache for client ${clientId}, tenant ${tenantId}...`);
-  
+
   try {
     // Preload dashboard data
     await cacheDashboardData(
@@ -599,13 +599,13 @@ export async function warmupDashboardCache(
           .select('*')
           .eq('tenant_id', tenantId)
           .limit(100);
-        
+
         if (error) throw error;
         return data || [];
       },
       { compress: true, ttl: CACHE_TTLS.DASHBOARD }
     );
-    
+
     console.log(`✅ Dashboard cache warmed up successfully for client ${clientId}`);
   } catch (error) {
     console.error(`❌ Error warming up dashboard cache for client ${clientId}:`, error);
@@ -629,7 +629,7 @@ export async function cacheClientsList<T = any>(
 ): Promise<T> {
   const { compress = false, ttl = CACHE_TTLS.CLIENTS } = options;
   const cacheKey = `${CACHE_NAMESPACES.CLIENTS}:${clientId}:${tenantId}:list`;
-  
+
   try {
     // Try to get from cache first
     if (compress) {
@@ -645,19 +645,19 @@ export async function cacheClientsList<T = any>(
         return cached;
       }
     }
-    
+
     console.log(`❌ Cache MISS (Clients): ${cacheKey}`);
-    
+
     // Execute query
     const data = await queryFn();
-    
+
     // Set cache
     if (compress) {
       await setCompressedCache(cacheKey, data, ttl);
     } else {
       await cache.set(cacheKey, data, ttl);
     }
-    
+
     console.log(`✅ Clients list cached: ${cacheKey} (TTL: ${ttl}s, compressed: ${compress})`);
     return data;
   } catch (error) {
@@ -699,14 +699,14 @@ export async function cacheClientsListByTenant<T = any>(
   options: { compress?: boolean; ttl?: number } = {}
 ): Promise<T> {
   const { compress = false, ttl = CACHE_TTLS.CLIENTS } = options;
-  
+
   if (!tenantId || tenantId === 'undefined' || tenantId === 'null' || tenantId.trim() === '') {
     console.error('❌ [CACHE] tenantId inválido para cache de clientes');
     throw new Error('tenantId inválido para cache de clientes');
   }
-  
+
   const cacheKey = `${CACHE_NAMESPACES.CLIENTS}:tenant:${tenantId}:list`;
-  
+
   try {
     // Try to get from cache first
     if (compress) {
@@ -722,19 +722,19 @@ export async function cacheClientsListByTenant<T = any>(
         return cached;
       }
     }
-    
+
     console.log(`❌ Cache MISS (Clients/Tenant): ${cacheKey}`);
-    
+
     // Execute query
     const data = await queryFn();
-    
+
     // Set cache
     if (compress) {
       await setCompressedCache(cacheKey, data, ttl);
     } else {
       await cache.set(cacheKey, data, ttl);
     }
-    
+
     console.log(`✅ Clients list cached (tenant-only): ${cacheKey} (TTL: ${ttl}s, compressed: ${compress})`);
     return data;
   } catch (error) {
@@ -774,21 +774,21 @@ export async function cacheWorkspaceData<T = any>(
   options: { compress?: boolean; ttl?: number; resourceId?: string } = {}
 ): Promise<T> {
   const { compress = true, ttl = CACHE_TTLS.WORKSPACE, resourceId = 'all' } = options;
-  
+
   // ✅ VALIDAÇÃO DEFENSIVA: Garantir que tenantId é válido
   if (!tenantId || tenantId === 'undefined' || tenantId === 'null' || tenantId.trim() === '') {
     console.error('❌ [CACHE] tenantId inválido para cache de workspace');
     throw new Error('tenantId inválido para cache de workspace');
   }
-  
+
   // ✅ VALIDAÇÃO ADICIONAL: clientId também deve ser válido
   if (!clientId || clientId === 'undefined' || clientId === 'null' || clientId.trim() === '') {
     console.error('❌ [CACHE] clientId inválido para cache de workspace');
     throw new Error('clientId inválido para cache de workspace');
   }
-  
+
   const cacheKey = `${CACHE_NAMESPACES.WORKSPACE}:${clientId}:${tenantId}:${resourceType}:${resourceId}`;
-  
+
   try {
     // Try to get from cache first
     if (compress) {
@@ -804,19 +804,19 @@ export async function cacheWorkspaceData<T = any>(
         return cached;
       }
     }
-    
+
     console.log(`❌ Cache MISS (Workspace/${resourceType}): ${cacheKey}`);
-    
+
     // Execute query
     const data = await queryFn();
-    
+
     // Set cache with compression
     if (compress) {
       await setCompressedCache(cacheKey, data, ttl);
     } else {
       await cache.set(cacheKey, data, ttl);
     }
-    
+
     console.log(`✅ Workspace data cached: ${cacheKey} (TTL: ${ttl}s, compressed: ${compress})`);
     return data;
   } catch (error) {
@@ -851,6 +851,15 @@ export async function invalidateWorkspaceCache(
     }
     await cache.delPattern(pattern);
     console.log(`🗑️ Invalidated workspace cache: ${pattern}`);
+
+    // 🔥 CRITICAL: Também invalidar o cache do calendário no Dashboard
+    // O calendário do dashboard agrega eventos do workspace, então deve ser limpo
+    // quando houver mudanças no workspace.
+    if (clientId && tenantId) {
+      const dashboardCalendarPattern = `${CACHE_NAMESPACES.DASHBOARD}:${clientId}:${tenantId}:calendar`;
+      await cache.delPattern(dashboardCalendarPattern);
+      console.log(`🗑️ Invalidated dashboard calendar cache: ${dashboardCalendarPattern}`);
+    }
   } catch (error) {
     console.error(`❌ Error invalidating workspace cache:`, error);
   }
@@ -872,7 +881,7 @@ export async function cacheBillingData<T = any>(
 ): Promise<T> {
   const { compress = false, ttl = CACHE_TTLS.BILLING, identifier = 'all' } = options;
   const cacheKey = `${CACHE_NAMESPACES.BILLING}:${clientId}:${dataType}:${identifier}`;
-  
+
   try {
     // Try to get from cache first
     if (compress) {
@@ -888,19 +897,19 @@ export async function cacheBillingData<T = any>(
         return cached;
       }
     }
-    
+
     console.log(`❌ Cache MISS (Billing/${dataType}): ${cacheKey}`);
-    
+
     // Execute query
     const data = await queryFn();
-    
+
     // Set cache
     if (compress) {
       await setCompressedCache(cacheKey, data, ttl);
     } else {
       await cache.set(cacheKey, data, ttl);
     }
-    
+
     console.log(`✅ Billing data cached: ${cacheKey} (TTL: ${ttl}s, compressed: ${compress})`);
     return data;
   } catch (error) {
@@ -955,44 +964,44 @@ export async function cacheWhatsAppMessages<T = any>(
   options: { compress?: boolean; ttl?: number } = {}
 ): Promise<T> {
   const { compress = false, ttl = CACHE_TTLS.WHATSAPP_MESSAGES } = options;
-  
+
   // ✅ VALIDAÇÃO DEFENSIVA: Garantir que tenantId é válido
   if (!tenantId || tenantId === 'undefined' || tenantId === 'null' || tenantId.trim() === '') {
     console.error('❌ [CACHE] tenantId inválido para cache de WhatsApp messages');
     throw new Error('tenantId inválido para cache de WhatsApp messages');
   }
-  
+
   // ✅ VALIDAÇÃO ADICIONAL: clientId também deve ser válido
   if (!clientId || clientId === 'undefined' || clientId === 'null' || clientId.trim() === '') {
     console.error('❌ [CACHE] clientId inválido para cache de WhatsApp messages');
     throw new Error('clientId inválido para cache de WhatsApp messages');
   }
-  
+
   const cacheKey = `${CACHE_NAMESPACES.WHATSAPP}:${clientId}:${tenantId}:messages:${instance}:${remoteJid}`;
-  
+
   try {
     // Try to get from cache first
-    const cached = compress 
+    const cached = compress
       ? await getCompressedCache<T>(cacheKey)
       : await cache.get<T>(cacheKey);
-    
+
     if (cached) {
       console.log(`🎯 Cache HIT (WhatsApp Messages): ${cacheKey}`);
       return cached;
     }
-    
+
     console.log(`❌ Cache MISS (WhatsApp Messages): ${cacheKey}`);
-    
+
     // Execute query
     const data = await queryFn();
-    
+
     // Set cache
     if (compress) {
       await setCompressedCache(cacheKey, data, ttl);
     } else {
       await cache.set(cacheKey, data, ttl);
     }
-    
+
     console.log(`✅ WhatsApp messages cached: ${cacheKey} (TTL: ${ttl}s)`);
     return data;
   } catch (error) {
@@ -1015,41 +1024,41 @@ export async function cacheWhatsAppConversations<T = any>(
   options: { compress?: boolean; ttl?: number } = {}
 ): Promise<T> {
   const { compress = false, ttl = CACHE_TTLS.HOT } = options;
-  
+
   // ✅ VALIDAÇÃO DEFENSIVA: Garantir que tenantId é válido
   if (!tenantId || tenantId === 'undefined' || tenantId === 'null' || tenantId.trim() === '') {
     console.error('❌ [CACHE] tenantId inválido para cache de WhatsApp conversations');
     throw new Error('tenantId inválido para cache de WhatsApp conversations');
   }
-  
+
   // ✅ VALIDAÇÃO ADICIONAL: clientId também deve ser válido
   if (!clientId || clientId === 'undefined' || clientId === 'null' || clientId.trim() === '') {
     console.error('❌ [CACHE] clientId inválido para cache de WhatsApp conversations');
     throw new Error('clientId inválido para cache de WhatsApp conversations');
   }
-  
+
   const cacheKey = `${CACHE_NAMESPACES.WHATSAPP}:${clientId}:${tenantId}:conversations:${instance}`;
-  
+
   try {
-    const cached = compress 
+    const cached = compress
       ? await getCompressedCache<T>(cacheKey)
       : await cache.get<T>(cacheKey);
-    
+
     if (cached) {
       console.log(`🎯 Cache HIT (WhatsApp Conversations): ${cacheKey}`);
       return cached;
     }
-    
+
     console.log(`❌ Cache MISS (WhatsApp Conversations): ${cacheKey}`);
-    
+
     const data = await queryFn();
-    
+
     if (compress) {
       await setCompressedCache(cacheKey, data, ttl);
     } else {
       await cache.set(cacheKey, data, ttl);
     }
-    
+
     console.log(`✅ WhatsApp conversations cached: ${cacheKey} (TTL: ${ttl}s)`);
     return data;
   } catch (error) {

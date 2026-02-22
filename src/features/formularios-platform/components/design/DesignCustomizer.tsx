@@ -74,6 +74,7 @@ export const DesignCustomizer = ({ design, onChange }: DesignCustomizerProps) =>
     buttonTextColor: "hsl(0, 0%, 100%)",
     progressBarColor: "hsl(221, 83%, 53%)",
     inputBackground: "hsl(210, 40%, 96%)",
+    inputTextColor: "hsl(222, 47%, 11%)",
     borderColor: "hsl(214, 32%, 91%)"
   };
 
@@ -98,6 +99,30 @@ export const DesignCustomizer = ({ design, onChange }: DesignCustomizerProps) =>
     console.log('🎨 [DesignCustomizer] Design Recebido:', design);
     console.log('🛡️ [DesignCustomizer] Design Seguro (com defaults):', safeDesign);
   }, [design]);
+
+  // 🛠️ HELPER: Corrigir URLs do localhost automaticamente
+  const fixLogoUrl = (url: string | null) => {
+    if (!url) return null;
+    if (typeof url !== 'string') return url;
+
+    // Se a URL contém localhost ou 127.0.0.1, extrair apenas o path
+    if (url.includes('localhost:') || url.includes('127.0.0.1:')) {
+      const parts = url.split('/uploads/');
+      if (parts.length > 1) {
+        return '/uploads/' + parts[1];
+      }
+    }
+
+    // Se a URL contém qualquer protocolo (http:// ou https://), extrair apenas o path
+    if (url.includes('://')) {
+      const match = url.match(/\/uploads\/logos\/[^"'\s]+/);
+      if (match) {
+        return match[0];
+      }
+    }
+
+    return url;
+  };
 
   // Função auxiliar para logar mudanças
   const handleChange = (newDesign: any) => {
@@ -294,7 +319,7 @@ export const DesignCustomizer = ({ design, onChange }: DesignCustomizerProps) =>
                   }}
                 >
                   <img
-                    src={logoPreview || safeDesign.logo}
+                    src={logoPreview || fixLogoUrl(safeDesign.logo) || ''}
                     alt="Logo"
                     style={{ height: `${safeDesign.logoSize || 64}px`, maxWidth: '200px' }}
                     className="object-contain"
@@ -557,6 +582,17 @@ export const DesignCustomizer = ({ design, onChange }: DesignCustomizerProps) =>
                 colors: {
                   ...safeDesign.colors,
                   inputBackground: color
+                }
+              })}
+            />
+            <ColorPicker
+              label="Cor do Texto do Input"
+              color={safeDesign.colors.inputTextColor || safeDesign.colors.textColor || "hsl(222, 47%, 11%)"}
+              onChange={(color) => handleChange({
+                ...safeDesign,
+                colors: {
+                  ...safeDesign.colors,
+                  inputTextColor: color
                 }
               })}
             />

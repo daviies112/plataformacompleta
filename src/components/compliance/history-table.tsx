@@ -31,10 +31,10 @@ export function HistoryTable({ data, isLoading, onViewDetails }: HistoryTablePro
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [downloadingAll, setDownloadingAll] = useState(false);
 
-  console.log('[HistoryTable] Renderizando com:', { 
-    dataLength: data?.length || 0, 
-    isLoading, 
-    searchTerm 
+  console.log('[HistoryTable] Renderizando com:', {
+    dataLength: data?.length || 0,
+    isLoading,
+    searchTerm
   });
 
   const filteredData = data.filter(check => {
@@ -45,9 +45,9 @@ export function HistoryTable({ data, isLoading, onViewDetails }: HistoryTablePro
     const displayCpf = checkAny.personCpf || checkAny.cpf || (checkAny.payload as any)?._basic_data?.Result?.[0]?.BasicData?.TaxIdNumber || "";
 
     return check.id.toLowerCase().includes(term) ||
-           check.status.toLowerCase().includes(term) ||
-           displayName.toLowerCase().includes(term) ||
-           displayCpf.toLowerCase().includes(term);
+      check.status.toLowerCase().includes(term) ||
+      displayName.toLowerCase().includes(term) ||
+      displayCpf.toLowerCase().includes(term);
   });
 
   console.log('[HistoryTable] Dados filtrados:', filteredData.length, 'registros');
@@ -148,14 +148,13 @@ export function HistoryTable({ data, isLoading, onViewDetails }: HistoryTablePro
                 <TableHead className="text-center">Dados</TableHead>
                 <TableHead className="text-right">Risco</TableHead>
                 <TableHead className="text-right">Processos</TableHead>
-                <TableHead className="text-right">Custo</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredData.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                     Nenhuma consulta encontrada
                   </TableCell>
                 </TableRow>
@@ -164,22 +163,22 @@ export function HistoryTable({ data, isLoading, onViewDetails }: HistoryTablePro
                   const payload = check.payload as any;
                   const subjectInfo = extractSubjectInfo(payload);
                   const costSaved = check.apiCost === "0.00";
-                  
+
                   // Usar os campos diretos personName e personCpf quando disponíveis
                   const checkAny = check as any;
                   const displayName = checkAny.personName || subjectInfo.name;
                   const displayCpf = checkAny.personCpf || subjectInfo.cpf;
-                  
+
                   // Extrair dados da consulta completa
                   const basicData = payload?._basic_data?.Result?.[0]?.BasicData;
                   const collections = payload?._collections?.Result?.[0]?.Collections;
                   const isCompleteConsultation = payload?._datacorp_complete === true;
                   const cpfStatus = basicData?.TaxIdStatus;
                   const hasDebt = collections?.HasActiveCollections || (collections?.TotalOccurrences && collections.TotalOccurrences > 0);
-                  
+
                   return (
-                    <TableRow 
-                      key={check.id} 
+                    <TableRow
+                      key={check.id}
                       className="hover-elevate cursor-pointer even:bg-muted/30"
                       onClick={() => onViewDetails?.(check)}
                       data-testid={`row-check-${check.id}`}
@@ -226,11 +225,10 @@ export function HistoryTable({ data, isLoading, onViewDetails }: HistoryTablePro
                           const displayRisk = calculatedRisk || Number(check.riskScore);
                           const riskInteger = Math.round(displayRisk);
                           return (
-                            <span className={`font-semibold ${
-                              riskInteger <= 3 ? "text-green-500" :
-                              riskInteger <= 6 ? "text-amber-500" :
-                              "text-red-500"
-                            }`}>
+                            <span className={`font-semibold ${riskInteger <= 3 ? "text-green-500" :
+                                riskInteger <= 6 ? "text-amber-500" :
+                                  "text-red-500"
+                              }`}>
                               {riskInteger}
                             </span>
                           );
@@ -238,21 +236,6 @@ export function HistoryTable({ data, isLoading, onViewDetails }: HistoryTablePro
                       </TableCell>
                       <TableCell className="text-right font-medium">
                         {(check as any).processCount ?? subjectInfo.totalLawsuits ?? 0}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          {costSaved ? (
-                            <Badge variant="secondary" className="gap-1 bg-accent/10 text-accent">
-                              <TrendingDown className="h-3 w-3" />
-                              R$ 0,00
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline" className="gap-1">
-                              <TrendingUp className="h-3 w-3" />
-                              R$ {Number(check.apiCost).toFixed(2)}
-                            </Badge>
-                          )}
-                        </div>
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">

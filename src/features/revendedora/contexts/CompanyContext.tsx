@@ -52,10 +52,10 @@ interface CompanyContextType {
 
 const CompanyContext = createContext<CompanyContextType | undefined>(undefined);
 
-function hexToHSL(hex: string): string {
+export function hexToHSL(hex: string): string {
   const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
   if (!result) return '0 0% 0%';
-  
+
   let r = parseInt(result[1], 16) / 255;
   let g = parseInt(result[2], 16) / 255;
   let b = parseInt(result[3], 16) / 255;
@@ -81,7 +81,7 @@ function hexToHSL(hex: string): string {
 
 function applyBrandingToCSS(branding: BrandingConfig) {
   const root = document.documentElement;
-  
+
   root.style.setProperty('--brand-primary', branding.primary_color);
   root.style.setProperty('--brand-secondary', branding.secondary_color);
   root.style.setProperty('--brand-accent', branding.accent_color);
@@ -93,19 +93,20 @@ function applyBrandingToCSS(branding: BrandingConfig) {
   root.style.setProperty('--brand-text', branding.text_color);
   root.style.setProperty('--brand-heading', branding.heading_color);
   root.style.setProperty('--brand-selected', branding.selected_item_color);
-  
-  root.style.setProperty('--primary', hexToHSL(branding.primary_color));
-  root.style.setProperty('--secondary', hexToHSL(branding.secondary_color));
-  root.style.setProperty('--accent', hexToHSL(branding.accent_color));
+
+  // ✅ REMOVIDO: Não sobrescrever variáveis globais que afetam o painel administrativo
+  // root.style.setProperty('--primary', hexToHSL(branding.primary_color));
+  // root.style.setProperty('--secondary', hexToHSL(branding.secondary_color));
+  // root.style.setProperty('--accent', hexToHSL(branding.accent_color));
 }
 
 export function CompanyProvider({ children }: { children: ReactNode }) {
   const resellerSupabase = useSupabase();
   const adminSupabase = useAdminSupabase();
 
-  const supabaseContext = adminSupabase.configured ? adminSupabase : 
-                          resellerSupabase.configured ? resellerSupabase :
-                          { client: null, loading: resellerSupabase.loading || adminSupabase.loading, configured: false, error: null, refresh: async () => {} };
+  const supabaseContext = adminSupabase.configured ? adminSupabase :
+    resellerSupabase.configured ? resellerSupabase :
+      { client: null, loading: resellerSupabase.loading || adminSupabase.loading, configured: false, error: null, refresh: async () => { } };
 
   const { client: supabase, loading: supabaseLoading, configured } = supabaseContext;
   const [reseller, setReseller] = useState<Reseller | null>(null);
@@ -157,7 +158,7 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
     try {
       setBrandingLoading(true);
       console.log('[CompanyContext] Fetching branding from companies table...');
-      
+
       const { data, error } = await supabase
         .from('companies' as any)
         .select(`
@@ -189,7 +190,7 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
       if (data) {
         console.log('[CompanyContext] Branding loaded from Supabase:', data);
         const companyData = data as any;
-        
+
         const newBranding: BrandingConfig = {
           primary_color: companyData.primary_color || DEFAULT_BRANDING.primary_color,
           secondary_color: companyData.secondary_color || DEFAULT_BRANDING.secondary_color,
@@ -207,7 +208,7 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
           logo_position: companyData.logo_position || DEFAULT_BRANDING.logo_position,
           company_name: companyData.company_name || DEFAULT_BRANDING.company_name,
         };
-        
+
         setBranding(newBranding);
         applyBrandingToCSS(newBranding);
         console.log('[CompanyContext] Branding applied to CSS');
@@ -231,7 +232,7 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
     if (supabaseLoading) {
       return;
     }
-    
+
     fetchBrandingData();
 
     if (!supabase || !configured) {
@@ -257,7 +258,7 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (supabaseLoading || !configured) return;
-    
+
     const interval = setInterval(() => {
       fetchBrandingData();
     }, 60000);
@@ -266,10 +267,10 @@ export function CompanyProvider({ children }: { children: ReactNode }) {
   }, [supabaseLoading, configured, fetchBrandingData]);
 
   return (
-    <CompanyContext.Provider value={{ 
-      reseller, 
+    <CompanyContext.Provider value={{
+      reseller,
       branding,
-      loading, 
+      loading,
       brandingLoading,
       refetch: fetchCompanyData,
       refetchBranding: fetchBrandingData,

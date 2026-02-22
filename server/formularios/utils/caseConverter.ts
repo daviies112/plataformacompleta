@@ -128,6 +128,12 @@ export function mapFormDataToSupabase(frontendData: any): Record<string, any> {
   if (frontendData.completion_page_id !== undefined) {
     mapped.completion_page_id = frontendData.completion_page_id;
   }
+  if (frontendData.tenantId !== undefined) {
+    mapped.tenant_id = frontendData.tenantId;
+  }
+  if (frontendData.tenant_id !== undefined) {
+    mapped.tenant_id = frontendData.tenant_id;
+  }
 
   // Questions/Elements → questions JSONB
   if (frontendData.questions !== undefined) {
@@ -285,6 +291,7 @@ export const SUPABASE_FORMS_VALID_FIELDS = [
   'slug',
   'status',
   'tags',
+  'tenant_id',
   'updated_at'
 ];
 
@@ -302,11 +309,15 @@ export const SUPABASE_FORMS_VALID_FIELDS = [
  * do resultado para evitar conflitos em round-trips de dados.
  */
 export function reconstructFormDataFromSupabase(supabaseData: any): Record<string, any> {
-  // Start with camelCase converted data
-  const result: Record<string, any> = { ...supabaseData };
+  // 🔄 CONVERSÃO CRÍTICA: Garantir que TODAS as chaves do objeto raiz venham em camelCase
+  // Isso resolve problemas onde design_config (snake_case) não é reconhecido pelo frontend
+  const camelCasedData = convertKeysToCamelCase(supabaseData);
 
-  // Get designConfig for nested properties
-  const designConfig = supabaseData.designConfig || supabaseData.design_config || {};
+  // Start with camelCase converted data
+  const result: Record<string, any> = { ...camelCasedData };
+
+  // Get designConfig for nested properties - support both case versions for safety
+  const designConfig = result.designConfig || result.design_config || {};
   const welcomeScreen = designConfig.welcomeScreen || designConfig.welcome_screen || {};
 
   // =====================================================

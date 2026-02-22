@@ -10,14 +10,31 @@ interface CardLabelProps {
 
 export const CardLabel = ({ label, size = 'full', onClick }: CardLabelProps) => {
   const isHexColor = label.color.startsWith('#');
-  
+
+  const colorMap: Record<string, string> = {
+    'green': 'bg-label-green',
+    'yellow': 'bg-label-yellow',
+    'orange': 'bg-label-orange',
+    'red': 'bg-label-red',
+    'purple': 'bg-label-purple',
+    'blue': 'bg-label-blue',
+    'sky': 'bg-label-sky',
+    'lime': 'bg-label-lime',
+    'pink': 'bg-label-pink',
+    'black': 'bg-label-black',
+  };
+
+  const bgColorClass = !isHexColor ? (colorMap[label.color] || labelColorClasses[label.color] || 'bg-secondary') : '';
+
   return (
     <div
       onClick={onClick}
       className={cn(
-        'rounded font-medium text-white cursor-pointer transition-all',
-        !isHexColor && labelColorClasses[label.color],
-        size === 'compact' ? 'min-h-[8px] w-10 px-1.5 py-0.5 text-[10px] leading-tight' : 'px-3 py-1 text-xs'
+        'rounded-sm font-bold cursor-pointer transition-all duration-200 select-none group/label',
+        bgColorClass,
+        size === 'compact'
+          ? 'h-2 w-10 hover:w-12 shadow-sm'
+          : 'px-3 py-1 text-[11px] leading-tight text-white uppercase tracking-wider hover:brightness-110 shadow-[0_1px_0_rgba(0,0,0,0.1)]'
       )}
       style={isHexColor ? { backgroundColor: label.color } : undefined}
       title={label.name}

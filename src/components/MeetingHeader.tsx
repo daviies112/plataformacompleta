@@ -10,9 +10,10 @@ import { useToast } from "@/hooks/use-toast";
 interface MeetingHeaderProps {
   title: string;
   description: string;
+  extraActions?: React.ReactNode;
 }
 
-export function MeetingHeader({ title, description }: MeetingHeaderProps) {
+export function MeetingHeader({ title, description, extraActions }: MeetingHeaderProps) {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { createInstantMeeting, isCreatingInstant } = useReuniao();
@@ -46,17 +47,18 @@ export function MeetingHeader({ title, description }: MeetingHeaderProps) {
   };
 
   return (
-    <div className="flex items-center justify-between flex-wrap gap-4 mb-8">
-      <div>
+    <div className="grid grid-cols-1 lg:grid-cols-[1fr,auto] items-center gap-4 mb-8">
+      <div className="min-w-0">
         <h1 className="text-3xl font-bold tracking-tight">{title}</h1>
         <p className="text-muted-foreground">{description}</p>
       </div>
-      <div className="flex gap-2 flex-wrap">
-        <Button 
-          onClick={handleInstantMeeting} 
+      <div className="flex gap-2 flex-wrap lg:flex-nowrap justify-start lg:justify-end shrink-0">
+        {extraActions}
+        <Button
+          onClick={handleInstantMeeting}
           disabled={isCreatingInstant}
           variant="default"
-          className="gap-2 bg-green-600 hover:bg-green-700"
+          className="gap-2 bg-primary hover:bg-primary/90 transition-all active:scale-95"
         >
           {isCreatingInstant ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -65,30 +67,30 @@ export function MeetingHeader({ title, description }: MeetingHeaderProps) {
           )}
           Reunião Instantânea
         </Button>
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           className="gap-2"
           onClick={() => setShowScheduleModal(true)}
         >
           <Plus className="h-4 w-4" /> Agendar Reunião
         </Button>
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           className="gap-2"
           onClick={() => navigate("/gravacoes")}
         >
           <Video className="h-4 w-4" /> Gravações
         </Button>
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           className="gap-2"
           onClick={() => navigate("/horarios-disponiveis")}
           data-testid="button-horarios"
         >
           <Clock className="h-4 w-4" /> Horários
         </Button>
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           className="gap-2"
           onClick={() => navigate("/room-design")}
         >
@@ -103,9 +105,9 @@ export function MeetingHeader({ title, description }: MeetingHeaderProps) {
         onJoin={handleJoinMeeting}
       />
 
-      <CreateEventModal 
-        open={showScheduleModal} 
-        onOpenChange={setShowScheduleModal} 
+      <CreateEventModal
+        open={showScheduleModal}
+        onOpenChange={setShowScheduleModal}
       />
     </div>
   );

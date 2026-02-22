@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, useLocation } from "react-router-dom";
+import { BrowserRouter, useLocation, Navigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "./contexts/AuthContext";
 import { NotificationProvider } from "./contexts/NotificationContext";
@@ -22,6 +22,8 @@ import FormularioPublicoWrapper from './features/formularios-platform/pages/Form
 const AssinaturaClientPage = lazy(() => import('./pages/AssinaturaClientPage'));
 const AssinaturaFromMeeting = lazy(() => import('./pages/AssinaturaFromMeeting'));
 const ReuniaoPublica = lazy(() => import('./pages/ReuniaoPublica'));
+const LojaPublica = lazy(() => import('./pages/LojaPublica'));
+const PrintLabelsPage = lazy(() => import('./features/produto/pages/PrintLabelsPage'));
 import LoginPage from './pages/Index';
 
 
@@ -54,10 +56,16 @@ const isPublicRoute = (path: string): boolean => {
     return false;
   }
 
+  // Rotas internas da loja NÃO são públicas (devem ser tratadas pelo DesktopApp)
+  if (path.startsWith('/loja/personalizar') || path.startsWith('/loja/meus-produtos')) {
+    return false;
+  }
+
   return (
     path === '/' ||
     path === '/login' ||
     path === '/auth/login' ||
+    path === '/print-labels' ||
     path.startsWith('/assinar/') ||
     path.startsWith('/assinatura/') ||
     path.startsWith('/f/') ||
@@ -127,11 +135,31 @@ const PublicRoutes = () => {
     );
   }
 
-  // Login principal
+  // Loja Pública de Semijoias
+  if (path.startsWith('/loja/')) {
+    return (
+      <Suspense fallback={<MinimalSkeleton />}>
+        <LojaPublica />
+      </Suspense>
+    );
+  }
+
+  // Página de Impressão de Etiquetas
+  if (path === '/print-labels') {
+    return (
+      <Suspense fallback={<MinimalSkeleton />}>
+        <PrintLabelsPage />
+      </Suspense>
+    );
+  }
+
+  // Login principal - PLATAFORMA ADMIN (Email + Senha)
   if (path === '/login' || path === '/') {
     return (
       <AuthProvider>
-        <LoginPage />
+        <Suspense fallback={<MinimalSkeleton />}>
+          <LoginPage />
+        </Suspense>
       </AuthProvider>
     );
   }

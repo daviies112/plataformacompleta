@@ -12,7 +12,7 @@ interface ColorPickerProps {
 }
 
 const DEFAULT_PRESET_COLORS = [
-  "#61bd4f", "#f2d600", "#ff9f1a", "#eb5a46", "#c377e0", 
+  "#61bd4f", "#f2d600", "#ff9f1a", "#eb5a46", "#c377e0",
   "#0079bf", "#00c2e0", "#51e898", "#ff78cb", "#344563",
   "#0052cc", "#6554c0", "#00b8d9", "#36b37e", "#ff5630", "#ff991f",
   "#5243aa", "#ff0000", "#00ff00", "#0000ff", "#ffff00", "#ff00ff",
@@ -53,10 +53,10 @@ const saveCustomColors = (colors: string[]) => {
   }
 };
 
-export const ColorPicker = ({ 
-  value = "#0079bf", 
-  onChange, 
-  presetColors = DEFAULT_PRESET_COLORS 
+export const ColorPicker = ({
+  value = "#0079bf",
+  onChange,
+  presetColors = DEFAULT_PRESET_COLORS
 }: ColorPickerProps) => {
   const [customColor, setCustomColor] = useState(value);
   const [savedCustomColors, setSavedCustomColors] = useState<string[]>([]);
@@ -95,7 +95,7 @@ export const ColorPicker = ({
     if (!/^#[0-9A-F]{6}$/i.test(customColor)) {
       return;
     }
-    
+
     if (savedCustomColors.includes(customColor)) {
       return;
     }
@@ -133,11 +133,16 @@ export const ColorPicker = ({
           ))}
         </div>
         <div className="flex items-center gap-2 pt-2">
-          <div 
-            className="h-8 w-8 rounded-md border-2 border-border flex-shrink-0" 
+          <div
+            className="h-8 w-8 rounded-md border-2 border-border flex-shrink-0"
             style={{ backgroundColor: value }}
           />
-          <span className="text-xs font-mono text-muted-foreground">{value}</span>
+          <Input
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            className="h-8 w-24 text-xs font-mono"
+            onClick={(e) => (e.target as HTMLInputElement).select()}
+          />
         </div>
       </TabsContent>
 
@@ -157,7 +162,7 @@ export const ColorPicker = ({
               />
             ))}
           </div>
-          
+
           {savedCustomColors.length > 0 && (
             <div className="mt-4 pt-4 border-t">
               <p className="text-xs font-semibold text-muted-foreground mb-2">Cores Salvas</p>
@@ -179,8 +184,8 @@ export const ColorPicker = ({
           )}
         </div>
         <div className="flex items-center gap-2 pt-2 border-t">
-          <div 
-            className="h-10 w-full rounded-md border-2 border-border flex items-center justify-center" 
+          <div
+            className="h-10 w-full rounded-md border-2 border-border flex items-center justify-center"
             style={{ backgroundColor: value }}
           >
             <span className="text-xs font-mono text-white mix-blend-difference">{value}</span>
@@ -207,11 +212,11 @@ export const ColorPicker = ({
               />
             </div>
           </div>
-          <div 
-            className="h-16 rounded-md border-2 border-border" 
+          <div
+            className="h-16 rounded-md border-2 border-border"
             style={{ backgroundColor: customColor }}
           />
-          <Button 
+          <Button
             onClick={saveCurrentColor}
             variant="outline"
             size="sm"

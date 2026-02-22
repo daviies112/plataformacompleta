@@ -29,6 +29,7 @@ export async function setupVite(app: Express, server: Server) {
 
   // Add timeout protection
   const vitePromise = createViteServer({
+    root: process.cwd(),
     server: {
       middlewareMode: true,
       hmr: {
@@ -46,7 +47,7 @@ export async function setupVite(app: Express, server: Server) {
     setTimeout(() => reject(new Error('Vite server creation timed out after 30 seconds')), 30000);
   });
 
-  const vite = await Promise.race([vitePromise, timeoutPromise]);
+  const vite = await (Promise.race([vitePromise, timeoutPromise]) as Promise<any>);
   console.log('[VITE] Vite server created successfully');
 
   // Use Vite middleware only for non-API routes
@@ -61,16 +62,26 @@ export async function setupVite(app: Express, server: Server) {
     }
 
     // CRITICAL: Skip static assets - prevent returning HTML for JS/CSS files (MIME type error)
-    if (req.path.match(/\.(js|jsx|ts|tsx|css|png|jpg|jpeg|gif|ico|svg|json|woff|woff2|ttf|eot|map)$/)) {
-      return next();
+    // Se o Vite não serviu, e é um arquivo estático, não devemos retornar o index.html
+    const staticExtensions = /\.(js|mjs|jsx|ts|tsx|css|png|jpg|jpeg|gif|ico|svg|json|woff|woff2|ttf|eot|map|wasm)$/;
+    if (req.path.match(staticExtensions)) {
+      console.log(`[VITE-FALLBACK] Skipping static asset (not found by Vite): ${req.method} ${req.path}`);
+      return res.status(404).set("Content-Type", "text/plain").send("Asset not found");
     }
 
+    // Se chegamos aqui, é uma rota de navegação (SPA route), então servimos o index.html
+    console.log(`[VITE-FALLBACK] Serving index.html for navigation route: ${req.method} ${req.path}`);
     const url = req.originalUrl;
 
     try {
       const clientTemplate = path.resolve(process.cwd(), "index.html");
+      if (!fs.existsSync(clientTemplate)) {
+        console.error(`[VITE-FALLBACK] index.html not found at ${clientTemplate}`);
+        return next();
+      }
+
       let template = fs.readFileSync(clientTemplate, "utf-8");
-      vite.transformIndexHtml(url, template).then(transformedTemplate => {
+      vite.transformIndexHtml(url, template).then((transformedTemplate: string) => {
         // Headers for iframe embedding (Replit preview) and no-cache
         const headers: Record<string, string> = {
           "Content-Type": "text/html",
@@ -85,12 +96,12 @@ export async function setupVite(app: Express, server: Server) {
           headers["Content-Security-Policy"] = "frame-ancestors 'self' *.replit.com *.replit.dev *.repl.co *.picard.replit.dev replit.com replit.dev";
         }
 
-        res.status(200).set(headers).end(transformedTemplate);
-      }).catch(e => {
-        vite.ssrFixStacktrace(e as Error);
+        res.status(200).set(headers).send(transformedTemplate);
+      }).catch((e: Error) => {
+        vite.ssrFixStacktrace(e);
         next(e);
       });
-    } catch (e) {
+    } catch (e: any) {
       vite.ssrFixStacktrace(e as Error);
       next(e);
     }

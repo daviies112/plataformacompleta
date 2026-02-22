@@ -51,6 +51,7 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
       buttonTextColor: "hsl(0, 0%, 100%)",
       progressBarColor: "hsl(221, 83%, 53%)",
       inputBackground: "hsl(210, 40%, 96%)",
+      inputTextColor: "hsl(222, 47%, 11%)",
       borderColor: "hsl(214, 32%, 91%)",
 
       // DEPRECATED: Para retrocompatibilidade
@@ -76,28 +77,56 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
   const migrateColors = (oldColors: any) => {
     if (!oldColors) return defaultDesign.colors;
 
+    // Suporte para ambos os formatos (snake_case do DB e camelCase do Frontend)
+    const get = (camel: string, snake: string) => oldColors[camel] || oldColors[snake];
+
     return {
       // Novas cores (prioridade para novos campos)
-      titleColor: oldColors.titleColor || oldColors.primary || defaultDesign.colors.titleColor,
-      textColor: oldColors.textColor || oldColors.text || defaultDesign.colors.textColor,
-      pageBackground: oldColors.pageBackground ||
-        `linear-gradient(135deg, ${oldColors.secondary || defaultDesign.colors.inputBackground}, ${oldColors.background || defaultDesign.colors.containerBackground})`,
-      containerBackground: oldColors.containerBackground || oldColors.background || defaultDesign.colors.containerBackground,
-      buttonColor: oldColors.buttonColor || oldColors.button || defaultDesign.colors.buttonColor,
-      buttonTextColor: oldColors.buttonTextColor || oldColors.buttonText || defaultDesign.colors.buttonTextColor,
-      progressBarColor: oldColors.progressBarColor || oldColors.progressBar || oldColors.primary || defaultDesign.colors.progressBarColor,
-      inputBackground: oldColors.inputBackground || oldColors.secondary || defaultDesign.colors.inputBackground,
-      borderColor: oldColors.borderColor || defaultDesign.colors.borderColor,
+      titleColor: get('titleColor', 'title_color') || get('primary', 'primary') || defaultDesign.colors.titleColor,
+      textColor: get('textColor', 'text_color') || get('text', 'text') || defaultDesign.colors.textColor,
+      pageBackground: get('pageBackground', 'page_background') ||
+        `linear-gradient(135deg, ${get('secondary', 'secondary') || defaultDesign.colors.inputBackground}, ${get('background', 'background') || defaultDesign.colors.containerBackground})`,
+      containerBackground: get('containerBackground', 'container_background') || get('background', 'background') || defaultDesign.colors.containerBackground,
+      buttonColor: get('buttonColor', 'button_color') || get('button', 'button') || defaultDesign.colors.buttonColor,
+      buttonTextColor: get('buttonTextColor', 'button_text_color') || get('buttonText', 'button_text') || defaultDesign.colors.buttonTextColor,
+      progressBarColor: get('progressBarColor', 'progress_bar_color') || get('progressBar', 'progress_bar') || get('primary', 'primary') || defaultDesign.colors.progressBarColor,
+      inputBackground: get('inputBackground', 'input_background') || get('secondary', 'secondary') || defaultDesign.colors.inputBackground,
+      inputTextColor: get('inputTextColor', 'input_text_color') || get('textColor', 'text_color') || defaultDesign.colors.inputTextColor,
+      borderColor: get('borderColor', 'border_color') || defaultDesign.colors.borderColor,
 
       // Manter deprecated para compatibilidade
-      primary: oldColors.primary,
-      secondary: oldColors.secondary,
-      background: oldColors.background,
-      text: oldColors.text,
-      button: oldColors.button,
-      buttonText: oldColors.buttonText,
-      progressBar: oldColors.progressBar
+      primary: get('primary', 'primary'),
+      secondary: get('secondary', 'secondary'),
+      background: get('background', 'background'),
+      text: get('text', 'text'),
+      button: get('button', 'button'),
+      buttonText: get('buttonText', 'button_text'),
+      progressBar: get('progressBar', 'progress_bar')
     };
+  };
+
+  // 🛠️ HELPER: Corrigir URLs do localhost automaticamente
+  const fixLogoUrl = (url: string | null) => {
+    if (!url) return null;
+    if (typeof url !== 'string') return url;
+
+    // Se a URL contém localhost ou 127.0.0.1, extrair apenas o path
+    if (url.includes('localhost:') || url.includes('127.0.0.1:')) {
+      const parts = url.split('/uploads/');
+      if (parts.length > 1) {
+        return '/uploads/' + parts[1];
+      }
+    }
+
+    // Se a URL contém qualquer protocolo (http:// ou https://), extrair apenas o path
+    if (url.includes('://')) {
+      const match = url.match(/\/uploads\/logos\/[^"'\s]+/);
+      if (match) {
+        return match[0];
+      }
+    }
+
+    return url;
   };
 
   const baseDesign = config.designConfig ?? {
@@ -128,7 +157,8 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
       ...defaultDesign.typography,
       ...(baseDesign.typography || {})
     },
-    spacing: baseDesign.spacing || defaultDesign.spacing
+    spacing: baseDesign.spacing || defaultDesign.spacing,
+    logo: fixLogoUrl(baseDesign.logo || null) // 🛠️ Corrige URL da logo automaticamente
   };
 
   const welcomeConfig = config.welcomePageConfig ?? {
@@ -151,6 +181,7 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
       root.style.setProperty('--form-button-text-color', colors.buttonTextColor);
       root.style.setProperty('--form-progress-color', colors.progressBarColor);
       root.style.setProperty('--form-input-bg', colors.inputBackground);
+      root.style.setProperty('--form-input-text-color', colors.inputTextColor || colors.textColor);
       root.style.setProperty('--form-border-color', colors.borderColor);
     }
     return () => {
@@ -163,6 +194,7 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
         root.style.removeProperty('--form-button-text-color');
         root.style.removeProperty('--form-progress-color');
         root.style.removeProperty('--form-input-bg');
+        root.style.removeProperty('--form-input-text-color');
         root.style.removeProperty('--form-border-color');
       }
     };
@@ -418,14 +450,14 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
                     style={{
                       backgroundColor: colors.inputBackground,
                       borderColor: colors.borderColor,
-                      color: colors.textColor
+                      color: colors.inputTextColor
                     }}
                   >
                     <RadioGroupItem value={option.id} id={`${element.id}-${option.id}`} />
                     <Label
                       htmlFor={`${element.id}-${option.id}`}
                       className="flex-1 cursor-pointer font-normal"
-                      style={{ color: colors.textColor }}
+                      style={{ color: colors.inputTextColor }}
                     >
                       {option.text}
                     </Label>
@@ -443,7 +475,7 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
                 style={{
                   backgroundColor: colors.inputBackground,
                   borderColor: colors.borderColor,
-                  color: colors.textColor
+                  color: colors.inputTextColor
                 }}
                 rows={4}
               />
@@ -595,7 +627,7 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
                   className="mt-1"
                   disabled
                   value="João da Silva"
-                  style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.textColor }}
+                  style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.inputTextColor }}
                 />
               </div>
               <div>
@@ -606,7 +638,7 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
                   className="mt-1"
                   disabled
                   value="joao@email.com"
-                  style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.textColor }}
+                  style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.inputTextColor }}
                 />
               </div>
               <div>
@@ -617,7 +649,7 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
                   className="mt-1"
                   disabled
                   value="123.456.789-00"
-                  style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.textColor }}
+                  style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.inputTextColor }}
                 />
               </div>
               <div>
@@ -627,7 +659,7 @@ export const FormPreview = ({ config, onBack, isLivePreview = false, activePageI
                   className="mt-1"
                   disabled
                   value="(11) 99999-9999"
-                  style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.textColor }}
+                  style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.inputTextColor }}
                 />
               </div>
             </CardContent>

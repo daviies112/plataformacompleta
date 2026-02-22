@@ -227,4 +227,4 @@ echo ""
 
 # Start the integrated server (includes Vite middleware + Express backend)
 echo "👤 User configured: $CLIENT_LOGIN_EMAIL"
-PORT=5000 NODE_ENV=development npx -y tsx server/index.ts
+PORT=${PORT:-5000} NODE_ENV=development npx -y tsx server/index.ts

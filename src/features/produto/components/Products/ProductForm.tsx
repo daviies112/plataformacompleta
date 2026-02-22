@@ -9,11 +9,11 @@ import { Card } from "@/features/produto/components/ui/card";
 import { Switch } from "@/features/produto/components/ui/switch";
 import { ImageUpload } from "@/features/produto/components/ui/image-upload";
 import { toast } from "sonner";
-import type { Product } from "@/pages/Index";
+import type { Product } from "@/features/produto/pages/ProdutoPage";
 
 interface ProductFormProps {
   onBack: () => void;
-  onSave: (product: Omit<Product, "createdAt"> | Product) => void;
+  onSave: (product: Omit<Product, "createdAt" | "id"> | Product) => void;
   initialData?: Product | null;
 }
 
@@ -30,6 +30,7 @@ export const ProductForm = ({ onBack, onSave, initialData }: ProductFormProps) =
     stock: initialData?.stock || 0,
     price: initialData?.price || "R$ 0,00",
     image: initialData?.image || "",
+    tags: initialData?.tags?.join(", ") || "",
   });
 
   useEffect(() => {
@@ -45,6 +46,7 @@ export const ProductForm = ({ onBack, onSave, initialData }: ProductFormProps) =
         stock: initialData.stock,
         price: initialData.price,
         image: initialData.image,
+        tags: initialData.tags?.join(", ") || "",
       });
     }
   }, [initialData]);
@@ -66,6 +68,7 @@ export const ProductForm = ({ onBack, onSave, initialData }: ProductFormProps) =
       subcategory: formData.subcategory,
       price: formData.price,
       stock: formData.stock,
+      tags: formData.tags.split(",").map(t => t.trim()).filter(t => t),
     };
 
     if (initialData) {
@@ -164,16 +167,25 @@ export const ProductForm = ({ onBack, onSave, initialData }: ProductFormProps) =
                       </SelectContent>
                     </Select>
                   </div>
-                  <div>
-                    <Label htmlFor="size">Tamanho</Label>
-                    <Input id="size" />
-                  </div>
-                  <div>
-                    <Label htmlFor="color">Cor</Label>
-                    <div className="flex gap-2">
-                      <Input id="color" className="flex-1" />
-                      <div className="w-10 h-10 rounded border bg-white cursor-pointer" />
-                    </div>
+                </div>
+                <div>
+                  <Label htmlFor="tags">Etiquetas (separadas por vírgula)</Label>
+                  <Input
+                    id="tags"
+                    placeholder="Ex: verao, promocao, novidade"
+                    value={formData.tags}
+                    onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="size">Tamanho</Label>
+                  <Input id="size" value={formData.size} onChange={(e) => setFormData({ ...formData, size: e.target.value })} />
+                </div>
+                <div>
+                  <Label htmlFor="color">Cor</Label>
+                  <div className="flex gap-2">
+                    <Input id="color" className="flex-1" value={formData.color} onChange={(e) => setFormData({ ...formData, color: e.target.value })} />
+                    <div className="w-10 h-10 rounded border bg-white cursor-pointer" />
                   </div>
                 </div>
 
@@ -235,7 +247,7 @@ export const ProductForm = ({ onBack, onSave, initialData }: ProductFormProps) =
           <TabsContent value="estoque" className="space-y-6">
             <Card className="p-6">
               <h3 className="font-medium mb-4">Quantidades do Produto</h3>
-                <div className="grid grid-cols-4 gap-4">
+              <div className="grid grid-cols-4 gap-4">
                 <div>
                   <Label htmlFor="quantity">Quantidade *</Label>
                   <Input

@@ -97,12 +97,12 @@ const PersonalizarAssinaturaPage = () => {
     if (globalConfig) {
       if (globalConfig.logo_url) setLogoUrl(globalConfig.logo_url);
       if (globalConfig.logo_size) setLogoSize(globalConfig.logo_size);
-      if (globalConfig.background_color || globalConfig.verification_background_color) 
+      if (globalConfig.background_color || globalConfig.verification_background_color)
         setBackgroundColor(globalConfig.background_color || globalConfig.verification_background_color);
-      if (globalConfig.title_color || globalConfig.primary_color) 
+      if (globalConfig.title_color || globalConfig.primary_color)
         setTitleColor(globalConfig.title_color || globalConfig.primary_color);
       if (globalConfig.text_color) setTextColor(globalConfig.text_color);
-      if (globalConfig.button_color || globalConfig.verification_primary_color || globalConfig.primary_color) 
+      if (globalConfig.button_color || globalConfig.verification_primary_color || globalConfig.primary_color)
         setButtonColor(globalConfig.button_color || globalConfig.verification_primary_color || globalConfig.primary_color);
       if (globalConfig.button_text_color) setButtonTextColor(globalConfig.button_text_color);
       if (globalConfig.icon_color) setIconColor(globalConfig.icon_color);
@@ -439,7 +439,11 @@ const PersonalizarAssinaturaPage = () => {
                                 className="w-9 h-9 rounded-md cursor-pointer border-0 p-0"
                                 data-testid={`input-color-${id}`}
                               />
-                              <span className="text-xs font-mono text-muted-foreground">{value}</span>
+                              <Input
+                                value={value}
+                                onChange={(e) => setter(e.target.value)}
+                                className="h-9 w-24 text-xs font-mono bg-background"
+                              />
                             </div>
                           </div>
                         ))}

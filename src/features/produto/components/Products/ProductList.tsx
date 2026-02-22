@@ -17,6 +17,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/fe
 import { Label } from "@/features/produto/components/ui/label";
 import { formatDateBRT } from "@/features/produto/lib/datetime";
 import { ImportWithImagesDialog } from "./ImportWithImagesDialog";
+import { JewelryLabelModal } from "@/features/produto/components/Printer/JewelryLabelModal";
 
 
 interface ProductListProps {
@@ -35,6 +36,7 @@ export const ProductList = ({ products, printerSettings, onAddProduct, onImportP
   const [selectedProductToPrint, setSelectedProductToPrint] = useState<Product | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [jewelryPrintModalOpen, setJewelryPrintModalOpen] = useState(false);
 
   const [filters, setFilters] = useState({
     barcode: "",
@@ -212,6 +214,20 @@ export const ProductList = ({ products, printerSettings, onAddProduct, onImportP
             >
               <Download className="w-4 h-4" />
               Exportar
+            </Button>
+            <Button
+              variant="outline"
+              className="gap-2 bg-green-600/10 border-green-600/20 text-green-600 hover:bg-green-600/20"
+              onClick={() => {
+                if (selectedProducts.length === 0) {
+                  toast.error("Selecione ao menos um produto para imprimir etiquetas");
+                  return;
+                }
+                setJewelryPrintModalOpen(true);
+              }}
+            >
+              <Printer className="w-4 h-4" />
+              Imprimir Etiquetas (Joias)
             </Button>
             <Button
               className="gap-2"
@@ -473,6 +489,12 @@ export const ProductList = ({ products, printerSettings, onAddProduct, onImportP
         open={importDialogOpen}
         onOpenChange={setImportDialogOpen}
         onImportComplete={onImportProducts}
+      />
+
+      <JewelryLabelModal
+        isOpen={jewelryPrintModalOpen}
+        onClose={() => setJewelryPrintModalOpen(false)}
+        selectedProducts={products.filter(p => selectedProducts.includes(p.id))}
       />
     </div>
   );

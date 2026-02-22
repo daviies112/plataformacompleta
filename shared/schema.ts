@@ -12,7 +12,7 @@ export function formatCPF(cpf: unknown): string {
 }
 
 // Additional types for compliance module
-export type ComplianceStatus = "approved" | "rejected" | "pending" | "review" | "error";
+export type ComplianceStatus = "approved" | "rejected" | "pending" | "manual_review" | "error";
 
 // Types for Bigdatacorp process data
 export interface BigdatacorpUpdate {

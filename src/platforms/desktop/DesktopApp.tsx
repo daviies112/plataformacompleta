@@ -66,6 +66,15 @@ import { AdminTags } from "@/features/revendedora/pages/admin/Tags";
 import RevendedorasHub from "@/features/revendedora/pages/admin/RevendedorasHub";
 import VendasHub from "@/features/revendedora/pages/admin/VendasHub";
 
+// Import Store Platform (Loja de Semijoias)
+import PersonalizarLoja from "@/features/store/pages/PersonalizarLoja";
+
+// Import Photo Platform
+import MelhorarFotos from "@/features/photos/pages/MelhorarFotos";
+import MelhorarFotosResultado from "@/features/photos/pages/MelhorarFotosResultado";
+import Criar9Fotos from "@/features/photos/pages/Criar9Fotos";
+import Criar9FotosResultado from "@/features/photos/pages/Criar9FotosResultado";
+
 /**
  * Desktop App - Versão completa para desktop
  * Design otimizado para telas grandes com navegação lateral
@@ -84,7 +93,7 @@ const DesktopApp = () => {
         element={
           <ProtectedRoute>
             <DesktopLayout>
-              <FormularioPage />
+              <WorkspacePage />
             </DesktopLayout>
           </ProtectedRoute>
         }
@@ -716,6 +725,48 @@ const DesktopApp = () => {
           Rota /revendedora/* é tratada diretamente no PlatformRouter 
           para evitar interferência do AuthContext */}
 
+      {/* Photo Platform Routes */}
+      <Route
+        path="/fotos/melhorar"
+        element={
+          <ProtectedRoute>
+            <DesktopLayout>
+              <MelhorarFotos />
+            </DesktopLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/fotos/melhorar/resultado/:id"
+        element={
+          <ProtectedRoute>
+            <DesktopLayout>
+              <MelhorarFotosResultado />
+            </DesktopLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/fotos/9pack"
+        element={
+          <ProtectedRoute>
+            <DesktopLayout>
+              <Criar9Fotos />
+            </DesktopLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/fotos/9pack/resultado/:id"
+        element={
+          <ProtectedRoute>
+            <DesktopLayout>
+              <Criar9FotosResultado />
+            </DesktopLayout>
+          </ProtectedRoute>
+        }
+      />
+
       {/* Envio Platform Routes */}
       <Route
         path="/envio"
@@ -798,6 +849,22 @@ const DesktopApp = () => {
       />
 
       {/* Rota /assinar/:token removida - tratada via lazy loading no App.tsx */}
+
+      {/* Loja Personalizada de Semijoias */}
+      <Route
+        path="/loja/personalizar"
+        element={
+          <ProtectedRoute>
+            <DesktopLayout fullWidth={true}>
+              <PersonalizarLoja />
+            </DesktopLayout>
+          </ProtectedRoute>
+        }
+      />
+
+
+
+      {/* Rota pública /loja/:slug é tratada no App.tsx */}
 
       {/* Catch all - 404 */}
       <Route

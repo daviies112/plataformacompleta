@@ -97,27 +97,36 @@ export const CardLabelsSection = ({ card, onUpdate }: CardLabelsSectionProps) =>
       <PopoverTrigger asChild>
         {card.labels.length > 0 ? (
           <div className="cursor-pointer">
-            <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase flex items-center gap-2">
-              <Tag className="w-4 h-4" />
+            <h4 className="text-[10px] font-bold text-muted-foreground mb-2.5 uppercase tracking-wider flex items-center gap-2">
+              <Tag className="w-3.5 h-3.5 text-primary" />
               Etiquetas
             </h4>
-            <div className="flex flex-wrap gap-1">
-              {card.labels.map((label) => (
-                <CardLabel key={label.id} label={label} size="full" />
-              ))}
-              <Button variant="secondary" size="sm" className="h-8">
-                +
+            <div className="flex flex-wrap gap-2 items-center">
+              {(card.labels || []).length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {(card.labels || []).map((label) => (
+                    <CardLabel key={label.id} label={label} size="compact" />
+                  ))}
+                </div>
+              )}
+              <Button
+                variant="secondary"
+                size="icon"
+                className="h-8 w-8 rounded-full bg-secondary/50 hover:bg-secondary border border-border/50"
+              >
+                <Plus className="w-4 h-4" />
               </Button>
             </div>
           </div>
         ) : (
           <div className="cursor-pointer">
             <div className="text-left">
-              <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase flex items-center gap-2">
-                <Tag className="w-4 h-4" />
+              <h4 className="text-[10px] font-bold text-muted-foreground mb-2.5 uppercase tracking-wider flex items-center gap-2">
+                <Tag className="w-3.5 h-3.5 text-primary" />
                 Etiquetas
               </h4>
-              <Button variant="secondary" size="sm">
+              <Button variant="outline" size="sm" className="bg-background/50 hover:bg-secondary/50 border-dashed">
+                <Plus className="w-4 h-4 mr-2" />
                 Adicionar etiquetas
               </Button>
             </div>
@@ -126,7 +135,7 @@ export const CardLabelsSection = ({ card, onUpdate }: CardLabelsSectionProps) =>
       </PopoverTrigger>
       <PopoverContent className="w-80">
         <h3 className="font-semibold mb-3">Etiquetas</h3>
-        
+
         {!creating && !editingLabelId ? (
           <>
             <div className="space-y-1 mb-3">
@@ -139,8 +148,8 @@ export const CardLabelsSection = ({ card, onUpdate }: CardLabelsSectionProps) =>
                     onClick={() => toggleLabel(label.id)}
                     className="flex-1 flex items-center gap-2 p-2 rounded hover:bg-secondary transition-colors"
                   >
-                    <div 
-                      className="w-3 h-3 rounded-full shrink-0" 
+                    <div
+                      className="w-3 h-3 rounded-full shrink-0"
                       style={{ backgroundColor: label.color }}
                     />
                     <CardLabel label={label} size="full" />
@@ -159,9 +168,9 @@ export const CardLabelsSection = ({ card, onUpdate }: CardLabelsSectionProps) =>
                 </div>
               ))}
             </div>
-            <Button 
-              onClick={() => setCreating(true)} 
-              variant="outline" 
+            <Button
+              onClick={() => setCreating(true)}
+              variant="outline"
               className="w-full"
               size="sm"
             >
@@ -184,7 +193,7 @@ export const CardLabelsSection = ({ card, onUpdate }: CardLabelsSectionProps) =>
                 }}
               />
             </div>
-            
+
             <div>
               <label className="text-sm font-medium mb-2 block">Cor da etiqueta</label>
               <ColorPicker
@@ -199,16 +208,16 @@ export const CardLabelsSection = ({ card, onUpdate }: CardLabelsSectionProps) =>
                 <Check className="w-4 h-4 mr-2" />
                 Salvar
               </Button>
-              <Button 
-                onClick={cancelEditLabel} 
-                variant="outline" 
+              <Button
+                onClick={cancelEditLabel}
+                variant="outline"
                 size="sm"
               >
                 <X className="w-4 h-4" />
               </Button>
-              <Button 
-                onClick={() => deleteLabel(editingLabelId)} 
-                variant="destructive" 
+              <Button
+                onClick={() => deleteLabel(editingLabelId)}
+                variant="destructive"
                 size="sm"
               >
                 <Trash2 className="w-4 h-4" />
@@ -233,7 +242,7 @@ export const CardLabelsSection = ({ card, onUpdate }: CardLabelsSectionProps) =>
                 }}
               />
             </div>
-            
+
             <div>
               <label className="text-sm font-medium mb-2 block">Cor da etiqueta</label>
               <ColorPicker
@@ -247,13 +256,13 @@ export const CardLabelsSection = ({ card, onUpdate }: CardLabelsSectionProps) =>
               <Button onClick={createNewLabel} className="flex-1" size="sm">
                 Criar etiqueta
               </Button>
-              <Button 
+              <Button
                 onClick={() => {
                   setCreating(false);
                   setNewLabelName('');
                   setNewLabelColor('#0079bf');
-                }} 
-                variant="outline" 
+                }}
+                variant="outline"
                 size="sm"
               >
                 Cancelar

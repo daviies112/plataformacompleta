@@ -46,9 +46,12 @@ import AdminBranding from "@/features/revendedora/pages/admin/Branding";
 
 import AdminGamification from "@/features/revendedora/pages/admin/Gamification";
 
+// Import Store Platform (Loja de Semijoias)
+import PersonalizarLoja from "@/features/store/pages/PersonalizarLoja";
+
 /**
- * Mobile App - VersÃ£o otimizada para mobile
- * Design touch-first com navegaÃ§Ã£o inferior
+ * Mobile App - Versão otimizada para mobile
+ * Design touch-first com navegação inferior
  */
 const MobileApp = () => {
   return (
@@ -556,6 +559,20 @@ const MobileApp = () => {
           </ProtectedRoute>
         }
       />
+
+      {/* Loja Personalizada de Semijoias */}
+      <Route
+        path="/loja/personalizar"
+        element={
+          <ProtectedRoute>
+            <MobileLayout>
+              <PersonalizarLoja />
+            </MobileLayout>
+          </ProtectedRoute>
+        }
+      />
+
+
 
       {/* Rota /revendedora/* removida - tratada via lazy loading no PlatformRouter */}
 

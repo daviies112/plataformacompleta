@@ -40,7 +40,7 @@ function generateDynamicFormUrl(companySlug: string, formSlug: string): string {
   const domain = process.env.APP_DOMAIN || process.env.REPLIT_DOMAINS?.split(',')[0] ||
     (process.env.REPL_SLUG && process.env.REPL_OWNER ?
       `${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` :
-      'localhost:5000');
+      'localhost:5001');
   const protocol = domain.includes('localhost') ? 'http' : 'https';
   return `${protocol}://${domain}/formulario/${companySlug}/form/${formSlug}`;
 }

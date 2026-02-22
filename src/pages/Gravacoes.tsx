@@ -118,11 +118,11 @@ export default function Gravacoes() {
     } catch (error: any) {
       const errorData = error.response?.data;
       const errorMessage = errorData?.message || "Não foi possível carregar a gravação.";
-      
+
       if (errorData?.status === 'failed') {
         queryClient.invalidateQueries({ queryKey: ["gravacoes"] });
       }
-      
+
       toast({
         variant: "destructive",
         title: "Erro",
@@ -196,12 +196,12 @@ export default function Gravacoes() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <MeetingHeader 
-          title="Gravações" 
-          description="Visualize e gerencie as gravações das suas reuniões." 
+      <div className="relative">
+        <MeetingHeader
+          title="Gravações"
+          description="Visualize e gerencie as gravações das suas reuniões."
         />
-        <div className="flex items-center gap-2 px-3 py-1 bg-secondary/20 rounded-full border border-secondary/30">
+        <div className="absolute top-0 right-0 flex items-center gap-2 px-3 py-1 bg-secondary/20 rounded-full border border-secondary/30 mt-[-40px]">
           <div className="w-2 h-2 rounded-full bg-green-500" />
           <span className="text-xs font-medium text-secondary-foreground">Supabase Sincronizado</span>
         </div>

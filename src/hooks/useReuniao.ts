@@ -27,7 +27,11 @@ export function useReuniao(id?: string) {
     queryKey: ["/api/reunioes"],
     queryFn: async () => {
       const response = await reunioesApi.list();
-      return response.data;
+      // Handle the strict response format { success: true, data: [] }
+      if (response.data && response.data.success && Array.isArray(response.data.data)) {
+        return response.data.data;
+      }
+      return Array.isArray(response.data) ? response.data : [];
     },
     staleTime: 30 * 1000,
   });

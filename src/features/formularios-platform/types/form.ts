@@ -138,6 +138,7 @@ export interface DesignConfig {
     buttonTextColor?: string;      // Cor do texto do botão
     progressBarColor?: string;     // Cor da barra de progresso
     inputBackground?: string;      // Fundo dos inputs
+    inputTextColor?: string;       // Cor do texto do input
     borderColor?: string;          // Cor das bordas
 
     // ⚠️ DEPRECATED: Manter para retrocompatibilidade (será removido no futuro)

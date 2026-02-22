@@ -7,13 +7,13 @@ import { Loader2 } from 'lucide-react';
 // Componentes principais - imports estáticos para evitar problemas de lazy loading em dev
 import DesktopApp from './desktop/DesktopApp';
 import MobileApp from './mobile/MobileApp';
-
 // ✅ CRITICAL FIX: FormularioPublicoWrapper MUST use static import
 // Lazy loading was causing a separate bundle that wasn't updated by HMR
 import FormularioPublicoWrapper from '@/features/formularios-platform/pages/FormularioPublicoWrapper';
 
 // Rotas públicas - lazy loading para performance (carregam separadamente)
 const ReuniaoPublica = lazy(() => import('@/pages/ReuniaoPublica'));
+const PublicWorkspaceApp = lazy(() => import('@/PublicWorkspaceApp'));
 
 // Fallback loading simples e leve
 const LoadingFallback = () => (
@@ -63,6 +63,12 @@ const PlatformRouter = () => {
     return false;
   }, [location.pathname]);
 
+  // Detectar se é uma rota pública de workspace
+  // Padrões: /w/:token, /workspace/share/:token
+  const isPublicWorkspaceRoute = useMemo(() => {
+    return /^\/w\/[^/]+/.test(location.pathname) || /^\/workspace\/share\/[^/]+/.test(location.pathname);
+  }, [location.pathname]);
+
   // Se for uma rota pública de formulário, renderizar diretamente
   if (isPublicFormRoute) {
     return <FormularioPublicoWrapper />;
@@ -70,7 +76,12 @@ const PlatformRouter = () => {
 
   // Se for uma rota publica de reuniao, renderizar diretamente
   if (location.pathname.startsWith('/reuniao/') || location.pathname.startsWith('/reuniao-publica/')) {
-    return <ReuniaoPublica />;
+    return <Suspense fallback={<LoadingFallback />}><ReuniaoPublica /></Suspense>;
+  }
+
+  // Se for uma rota pública de workspace, renderizar diretamente
+  if (isPublicWorkspaceRoute) {
+    return <Suspense fallback={<LoadingFallback />}><PublicWorkspaceApp /></Suspense>;
   }
 
   // Componentes principais não precisam de Suspense (imports estáticos)

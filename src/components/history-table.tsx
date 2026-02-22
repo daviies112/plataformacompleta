@@ -28,7 +28,7 @@ export function HistoryTable({ data, isLoading, onViewDetails }: HistoryTablePro
   const filteredData = data.filter(check => {
     if (!searchTerm) return true;
     return check.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-           check.status.toLowerCase().includes(searchTerm.toLowerCase());
+      check.status.toLowerCase().includes(searchTerm.toLowerCase());
   });
 
   if (isLoading) {
@@ -83,14 +83,13 @@ export function HistoryTable({ data, isLoading, onViewDetails }: HistoryTablePro
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Score</TableHead>
                 <TableHead className="text-right">Processos</TableHead>
-                <TableHead className="text-right">Custo</TableHead>
                 <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredData.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                     Nenhuma consulta encontrada
                   </TableCell>
                 </TableRow>
@@ -99,14 +98,14 @@ export function HistoryTable({ data, isLoading, onViewDetails }: HistoryTablePro
                   const payload = check.payload as any;
                   const subjectInfo = extractSubjectInfo(payload);
                   const costSaved = check.apiCost === "0.00";
-                  
+
                   const checkAny = check as any;
                   const displayName = checkAny.personName || subjectInfo.name;
                   const displayCpf = checkAny.personCpf || subjectInfo.cpf;
-                  
+
                   return (
-                    <TableRow 
-                      key={check.id} 
+                    <TableRow
+                      key={check.id}
                       className="hover:bg-muted/50 cursor-pointer"
                       onClick={() => onViewDetails?.(check)}
                       data-testid={`row-check-${check.id}`}
@@ -134,31 +133,15 @@ export function HistoryTable({ data, isLoading, onViewDetails }: HistoryTablePro
                         <StatusBadge status={check.status} />
                       </TableCell>
                       <TableCell className="text-right">
-                        <span className={`font-semibold ${
-                          Number(check.riskScore) <= 3 ? "text-green-600" :
+                        <span className={`font-semibold ${Number(check.riskScore) <= 3 ? "text-green-600" :
                           Number(check.riskScore) <= 6 ? "text-yellow-600" :
-                          "text-red-600"
-                        }`}>
+                            "text-red-600"
+                          }`}>
                           {Number(check.riskScore).toFixed(1)}
                         </span>
                       </TableCell>
                       <TableCell className="text-right font-medium">
                         {subjectInfo.totalLawsuits}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          {costSaved ? (
-                            <Badge variant="secondary" className="gap-1 bg-green-50 text-green-700">
-                              <TrendingDown className="h-3 w-3" />
-                              R$ 0,00
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline" className="gap-1">
-                              <TrendingUp className="h-3 w-3" />
-                              R$ {Number(check.apiCost).toFixed(2)}
-                            </Badge>
-                          )}
-                        </div>
                       </TableCell>
                       <TableCell className="text-right">
                         <Button

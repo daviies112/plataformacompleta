@@ -40,14 +40,14 @@ interface ImportDialogState {
   event: WorkspaceCalendarEvent | null;
 }
 
-export const WorkspaceCalendarView = ({ 
-  onEventClick, 
-  showSyncButtons = true 
+export const WorkspaceCalendarView = ({
+  onEventClick,
+  showSyncButtons = true
 }: WorkspaceCalendarViewProps) => {
-  console.log('[WorkspaceCalendarView] Component initialized with:', { 
-    onEventClick: typeof onEventClick, 
+  console.log('[WorkspaceCalendarView] Component initialized with:', {
+    onEventClick: typeof onEventClick,
     hasOnEventClick: !!onEventClick,
-    showSyncButtons 
+    showSyncButtons
   });
 
   const queryClient = useQueryClient();
@@ -63,8 +63,8 @@ export const WorkspaceCalendarView = ({
     retry: 2,
   });
 
-  console.log('[WorkspaceCalendarView] Events data:', { 
-    eventsData, 
+  console.log('[WorkspaceCalendarView] Events data:', {
+    eventsData,
     eventCount: eventsData?.data?.length || 0,
     sampleEvent: eventsData?.data?.[0]
   });
@@ -83,7 +83,7 @@ export const WorkspaceCalendarView = ({
       const response = await fetch('/api/workspace/calendar/sync-to-google', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           eventId: event.id,
           source: event.source,
           sourceId: event.sourceId,
@@ -110,15 +110,15 @@ export const WorkspaceCalendarView = ({
   });
 
   const syncFromGoogleMutation = useMutation({
-    mutationFn: async ({ event, destinationType, destinationId }: { 
-      event: WorkspaceCalendarEvent; 
+    mutationFn: async ({ event, destinationType, destinationId }: {
+      event: WorkspaceCalendarEvent;
       destinationType: 'board' | 'database';
       destinationId: string;
     }) => {
       const response = await fetch('/api/workspace/calendar/sync-from-google', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           eventId: event.id,
           googleEventId: event.metadata?.googleEventId,
           destinationType,
@@ -368,7 +368,7 @@ export const WorkspaceCalendarView = ({
               <div className="space-y-2">
                 <div className="grid grid-cols-7 gap-2 mb-2">
                   {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map((day) => (
-                    <div key={day} className="text-center text-xs font-semibold text-muted-foreground p-2">
+                    <div key={day} className="text-center text-[10px] font-bold text-muted-foreground p-2 uppercase tracking-wider">
                       {day}
                     </div>
                   ))}
@@ -456,7 +456,7 @@ export const WorkspaceCalendarView = ({
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="text-xl font-semibold">
-                  {selectedDate 
+                  {selectedDate
                     ? `Eventos de ${format(selectedDate, "d 'de' MMMM", { locale: ptBR })}`
                     : 'Todos os Eventos'
                   }
@@ -479,7 +479,7 @@ export const WorkspaceCalendarView = ({
                   <>
                     {eventsBySource.database.length > 0 && (
                       <div className="space-y-2">
-                        <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+                        <h3 className="text-sm font-bold text-primary flex items-center gap-2 mb-3">
                           <Database className="w-4 h-4" />
                           Databases ({eventsBySource.database.length})
                         </h3>
@@ -566,9 +566,9 @@ export const WorkspaceCalendarView = ({
 
                     {eventsBySource.board.length > 0 && (
                       <div className="space-y-2">
-                        <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-2">
+                        <h3 className="text-sm font-bold text-primary flex items-center gap-2 mb-3">
                           <Kanban className="w-4 h-4" />
-                          Boards ({eventsBySource.board.length})
+                          Quadros ({eventsBySource.board.length})
                         </h3>
                         {eventsBySource.board.map((event) => (
                           <div
@@ -655,8 +655,8 @@ export const WorkspaceCalendarView = ({
                             <div
                               className="p-3 hover:bg-muted/30 cursor-pointer transition-colors"
                               onClick={(e) => {
-                                console.log('[WorkspaceCalendarView] Google Calendar event clicked!', { 
-                                  event, 
+                                console.log('[WorkspaceCalendarView] Google Calendar event clicked!', {
+                                  event,
                                   onEventClick: typeof onEventClick,
                                   hasOnEventClick: !!onEventClick
                                 });
@@ -710,7 +710,7 @@ export const WorkspaceCalendarView = ({
                   <div className="text-center py-12 text-muted-foreground">
                     <CalendarIcon className="w-12 h-12 mx-auto mb-3 opacity-50" />
                     <p className="text-sm">
-                      {selectedDate 
+                      {selectedDate
                         ? 'Nenhum evento nesta data'
                         : 'Nenhum evento encontrado'
                       }
@@ -772,7 +772,7 @@ export const WorkspaceCalendarView = ({
                 </div>
               ) : (selectedDestinationType === 'board' ? boards : databases).length === 0 ? (
                 <div className="py-4 px-3 text-center text-sm text-muted-foreground border rounded-md bg-muted/20">
-                  {selectedDestinationType === 'board' 
+                  {selectedDestinationType === 'board'
                     ? 'Nenhum board disponível. Crie um board primeiro.'
                     : 'Nenhuma database disponível. Crie uma database primeiro.'}
                 </div>

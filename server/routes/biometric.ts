@@ -18,9 +18,9 @@ const router = Router();
 
 const rpName = 'NEXUS Intelligence';
 const rpID = process.env.REPLIT_DEV_DOMAIN || 'localhost';
-const origin = process.env.REPLIT_DEV_DOMAIN 
+const origin = process.env.REPLIT_DEV_DOMAIN
   ? `https://${process.env.REPLIT_DEV_DOMAIN}`
-  : `http://localhost:5000`;
+  : `http://localhost:5001`;
 
 router.post('/register/options', async (req, res) => {
   try {

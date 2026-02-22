@@ -31,6 +31,7 @@ interface DesignColors {
   background?: string;
   secondary?: string;
   progressBar?: string;
+  inputTextColor?: string;
 }
 
 interface DesignConfig {
@@ -361,39 +362,35 @@ const PublicFormApp = () => {
 
   // 🎨 Função de migração de cores (igual ao FormularioPublico.tsx)
   const migrateColors = useCallback((oldColors: any) => {
-    if (!oldColors) {
-      return {
-        titleColor: '#3b82f6',
-        textColor: '#1a1a1a',
-        pageBackground: 'linear-gradient(135deg, #f8fafc, #ffffff)',
-        containerBackground: '#ffffff',
-        buttonColor: '#3b82f6',
-        buttonTextColor: '#ffffff',
-        progressBarColor: '#3b82f6',
-        inputBackground: '#f8fafc',
-        borderColor: '#e2e8f0'
-      };
-    }
+    const def = {
+      titleColor: "hsl(221, 83%, 53%)",
+      textColor: "hsl(222, 47%, 11%)",
+      pageBackground: "linear-gradient(135deg, hsl(210, 40%, 96%), hsl(0, 0%, 100%))",
+      containerBackground: "hsl(0, 0%, 100%)",
+      buttonColor: "hsl(221, 83%, 53%)",
+      buttonTextColor: "hsl(0, 0%, 100%)",
+      progressBarColor: "hsl(221, 83%, 53%)",
+      inputBackground: "hsl(210, 40%, 96%)",
+      inputTextColor: "hsl(222, 47%, 11%)",
+      borderColor: "hsl(214, 32%, 91%)"
+    };
+
+    if (!oldColors) return def;
+
+    // Suporte para ambos os formatos (snake_case do DB e camelCase do Frontend)
+    const get = (camel: string, snake: string) => oldColors[camel] || oldColors[snake];
 
     return {
-      titleColor: oldColors.titleColor || oldColors.primary || '#3b82f6',
-      textColor: oldColors.textColor || oldColors.text || '#1a1a1a',
-      pageBackground: oldColors.pageBackground ||
-        `linear-gradient(135deg, ${oldColors.secondary || '#f8fafc'}, ${oldColors.background || '#ffffff'})`,
-      containerBackground: oldColors.containerBackground || oldColors.secondary || oldColors.background || '#ffffff',
-      buttonColor: oldColors.buttonColor || oldColors.button || oldColors.primary || '#3b82f6',
-      buttonTextColor: oldColors.buttonTextColor || oldColors.buttonText || '#ffffff',
-      progressBarColor: oldColors.progressBarColor || oldColors.progressBar || oldColors.primary || '#3b82f6',
-      inputBackground: oldColors.inputBackground || oldColors.secondary || '#f8fafc',
-      borderColor: oldColors.borderColor || '#e2e8f0',
-      // Manter campos legados para compatibilidade
-      primary: oldColors.primary,
-      secondary: oldColors.secondary,
-      background: oldColors.background,
-      text: oldColors.text,
-      button: oldColors.button,
-      buttonText: oldColors.buttonText,
-      progressBar: oldColors.progressBar
+      titleColor: get('titleColor', 'title_color') || get('primary', 'primary') || def.titleColor,
+      textColor: get('textColor', 'text_color') || get('text', 'text') || def.textColor,
+      pageBackground: get('pageBackground', 'page_background') || def.pageBackground,
+      containerBackground: get('containerBackground', 'container_background') || get('secondary', 'secondary') || get('background', 'background') || def.containerBackground,
+      buttonColor: get('buttonColor', 'button_color') || get('button', 'button') || def.buttonColor,
+      buttonTextColor: get('buttonTextColor', 'button_text_color') || get('buttonText', 'button_text') || def.buttonTextColor,
+      progressBarColor: get('progressBarColor', 'progress_bar_color') || get('progressBar', 'progress_bar') || get('primary', 'primary') || def.progressBarColor,
+      inputBackground: get('inputBackground', 'input_background') || get('secondary', 'secondary') || def.inputBackground,
+      inputTextColor: get('inputTextColor', 'input_text_color') || get('textColor', 'text_color') || def.inputTextColor,
+      borderColor: get('borderColor', 'border_color') || def.borderColor
     };
   }, []);
 
@@ -419,12 +416,9 @@ const PublicFormApp = () => {
     const progressStep = currentStep === 3 ? 3 + currentQuestionPage : currentStep;
 
     // Aplicar migração de cores
-    const rawColors = form?.designConfig?.colors;
+    // Checar designConfig ou design_config pois o backend pode retornar ambos dependendo do endpoint
+    const rawColors = form?.designConfig?.colors || (form as any)?.design_config?.colors || (form as any)?.colors;
     const migratedColors = migrateColors(rawColors);
-
-    const primaryColor = migratedColors.titleColor || '#e91e63';
-
-    // A logo está salva em designConfig.logo, não em welcomeConfig.logo (calculado fora do useMemo agora)
 
     return {
       questions,
@@ -432,7 +426,7 @@ const PublicFormApp = () => {
       totalSteps,
       progressPercent: Math.round(((progressStep + 1) / totalSteps) * 100),
       colors: migratedColors,
-      primaryColor,
+      primaryColor: migratedColors.titleColor,
       buttonColor: migratedColors.buttonColor,
       buttonTextColor: migratedColors.buttonTextColor,
       textColor: migratedColors.textColor,
@@ -444,8 +438,75 @@ const PublicFormApp = () => {
     };
   }, [form, currentStep, currentQuestionPage, getQuestions, migrateColors]);
 
+  // 🎨 Função para renderizar inputs (agora dentro para ter acesso a 'colors')
+  const renderInput = (question: any, value: any, onChange: (v: any) => void) => {
+    const type = question.questionType || question.type;
+
+    if (type === 'text' || type === 'short-text') {
+      return (
+        <input
+          type="text"
+          style={{ ...styles.input, backgroundColor: colors.inputBackground, color: colors.inputTextColor }}
+          value={value || ''}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="Digite sua resposta..."
+        />
+      );
+    }
+
+    if (type === 'textarea' || type === 'long-text') {
+      return (
+        <textarea
+          style={{ ...styles.textarea, backgroundColor: colors.inputBackground, color: colors.inputTextColor }}
+          value={value || ''}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="Digite sua resposta..."
+          rows={4}
+        />
+      );
+    }
+
+    if (type === 'multiple-choice' || type === 'radio') {
+      const options = question.options || [];
+      return (
+        <div style={styles.optionsContainer}>
+          {options.map((opt: any, i: number) => {
+            const optValue = typeof opt === 'string' ? opt : opt.text || opt.value;
+            const isSelected = value === optValue;
+            return (
+              <button
+                key={i}
+                style={{
+                  ...styles.optionButton,
+                  backgroundColor: colors.inputBackground,
+                  color: colors.inputTextColor,
+                  borderColor: isSelected ? primaryColor : colors.borderColor,
+                  ...(isSelected ? styles.optionButtonSelected : {}),
+                  ...(isSelected ? { borderColor: primaryColor, boxShadow: `0 0 0 1px ${primaryColor}` } : {}),
+                }}
+                onClick={() => onChange(optValue)}
+              >
+                {optValue}
+              </button>
+            );
+          })}
+        </div>
+      );
+    }
+
+    return (
+      <input
+        type="text"
+        style={{ ...styles.input, backgroundColor: colors.inputBackground, color: colors.inputTextColor }}
+        value={value || ''}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="Digite sua resposta..."
+      />
+    );
+  };
+
   // Definir logo fora do useMemo para simplificar o acesso
-  const logo = form?.designConfig?.logo || form?.welcomeConfig?.logo;
+  const logo = (form as any)?.designConfig?.logo || form?.welcomeConfig?.logo;
 
   // Use CSS classes for mobile optimization (defined in index.html)
   // This reduces JavaScript style recalculations significantly on mobile
@@ -496,7 +557,7 @@ const PublicFormApp = () => {
       center: 'center',
       right: 'flex-end'
     };
-    const desktopAlign = alignMap[form?.designConfig?.logoAlign || 'left'] || 'flex-start';
+    const desktopAlign = alignMap[(form as any)?.designConfig?.logoAlign || 'left'] || 'flex-start';
 
     return (
       <div className="pf-container" style={{
@@ -578,7 +639,7 @@ const PublicFormApp = () => {
             <input
               type="text"
               className="pf-input"
-              style={{ ...(personalErrors.name ? styles.inputError : {}), backgroundColor: secondaryColor }}
+              style={{ ...(personalErrors.name ? styles.inputError : {}), backgroundColor: secondaryColor, color: colors.inputTextColor }}
               value={personalData.name}
               onChange={(e) => setPersonalData(prev => ({ ...prev, name: e.target.value }))}
               placeholder="João da Silva"
@@ -591,7 +652,7 @@ const PublicFormApp = () => {
             <input
               type="email"
               className="pf-input"
-              style={{ ...(personalErrors.email ? styles.inputError : {}), backgroundColor: secondaryColor }}
+              style={{ ...(personalErrors.email ? styles.inputError : {}), backgroundColor: secondaryColor, color: colors.inputTextColor }}
               value={personalData.email}
               onChange={(e) => setPersonalData(prev => ({ ...prev, email: e.target.value }))}
               placeholder="joao@email.com"
@@ -604,7 +665,7 @@ const PublicFormApp = () => {
             <input
               type="text"
               className="pf-input"
-              style={{ ...(personalErrors.cpf ? styles.inputError : {}), backgroundColor: secondaryColor }}
+              style={{ ...(personalErrors.cpf ? styles.inputError : {}), backgroundColor: secondaryColor, color: colors.inputTextColor }}
               value={personalData.cpf}
               onChange={(e) => setPersonalData(prev => ({ ...prev, cpf: formatCPF(e.target.value) }))}
               placeholder="123.456.789-00"
@@ -635,7 +696,8 @@ const PublicFormApp = () => {
                   borderColor: phoneLocked ? '#22c55e' : undefined,
                   borderWidth: phoneLocked ? '2px' : '1px',
                   paddingRight: phoneLocked ? '40px' : undefined,
-                  cursor: phoneLocked ? 'not-allowed' : 'text'
+                  cursor: phoneLocked ? 'not-allowed' : 'text',
+                  color: colors.inputTextColor
                 }}
                 value={personalData.phone}
                 onChange={(e) => !phoneLocked && setPersonalData(prev => ({ ...prev, phone: formatPhone(e.target.value) }))}
@@ -662,7 +724,7 @@ const PublicFormApp = () => {
             <input
               type="text"
               className="pf-input"
-              style={{ backgroundColor: secondaryColor }}
+              style={{ backgroundColor: secondaryColor, color: colors.inputTextColor }}
               value={personalData.instagram}
               onChange={(e) => setPersonalData(prev => ({ ...prev, instagram: e.target.value }))}
               placeholder="@joaosilva"
@@ -697,7 +759,7 @@ const PublicFormApp = () => {
               <label style={styles.label}>CEP *</label>
               <input
                 type="text"
-                style={{ ...styles.input, ...(addressErrors.cep ? styles.inputError : {}), backgroundColor: secondaryColor }}
+                style={{ ...styles.input, ...(addressErrors.cep ? styles.inputError : {}), backgroundColor: secondaryColor, color: colors.inputTextColor }}
                 value={addressData.cep}
                 onChange={(e) => {
                   const formatted = formatCEP(e.target.value);
@@ -712,7 +774,7 @@ const PublicFormApp = () => {
               <label style={styles.label}>Estado *</label>
               <input
                 type="text"
-                style={{ ...styles.input, ...(addressErrors.state ? styles.inputError : {}), backgroundColor: secondaryColor }}
+                style={{ ...styles.input, ...(addressErrors.state ? styles.inputError : {}), backgroundColor: secondaryColor, color: colors.inputTextColor }}
                 value={addressData.state}
                 onChange={(e) => setAddressData(prev => ({ ...prev, state: e.target.value.toUpperCase().slice(0, 2) }))}
                 placeholder="SP"
@@ -725,7 +787,7 @@ const PublicFormApp = () => {
             <label style={styles.label}>Rua * {loadingCep && <span style={{ color: '#888' }}>(buscando...)</span>}</label>
             <input
               type="text"
-              style={{ ...styles.input, ...(addressErrors.street ? styles.inputError : {}), backgroundColor: secondaryColor }}
+              style={{ ...styles.input, ...(addressErrors.street ? styles.inputError : {}), backgroundColor: secondaryColor, color: colors.inputTextColor }}
               value={addressData.street}
               onChange={(e) => setAddressData(prev => ({ ...prev, street: e.target.value }))}
               placeholder="Av. Paulista"
@@ -738,7 +800,7 @@ const PublicFormApp = () => {
               <label style={styles.label}>Número *</label>
               <input
                 type="text"
-                style={{ ...styles.input, ...(addressErrors.number ? styles.inputError : {}), backgroundColor: secondaryColor }}
+                style={{ ...styles.input, ...(addressErrors.number ? styles.inputError : {}), backgroundColor: secondaryColor, color: colors.inputTextColor }}
                 value={addressData.number}
                 onChange={(e) => setAddressData(prev => ({ ...prev, number: e.target.value }))}
                 placeholder="1000"
@@ -748,7 +810,7 @@ const PublicFormApp = () => {
               <label style={styles.label}>Complemento</label>
               <input
                 type="text"
-                style={{ ...styles.input, backgroundColor: secondaryColor }}
+                style={{ ...styles.input, backgroundColor: secondaryColor, color: colors.inputTextColor }}
                 value={addressData.complement}
                 onChange={(e) => setAddressData(prev => ({ ...prev, complement: e.target.value }))}
                 placeholder="Sala 501"
@@ -761,7 +823,7 @@ const PublicFormApp = () => {
               <label style={styles.label}>Bairro</label>
               <input
                 type="text"
-                style={{ ...styles.input, backgroundColor: secondaryColor }}
+                style={{ ...styles.input, backgroundColor: secondaryColor, color: colors.inputTextColor }}
                 value={addressData.neighborhood}
                 onChange={(e) => setAddressData(prev => ({ ...prev, neighborhood: e.target.value }))}
                 placeholder="Bela Vista"
@@ -771,7 +833,7 @@ const PublicFormApp = () => {
               <label style={styles.label}>Cidade *</label>
               <input
                 type="text"
-                style={{ ...styles.input, ...(addressErrors.city ? styles.inputError : {}), backgroundColor: secondaryColor }}
+                style={{ ...styles.input, ...(addressErrors.city ? styles.inputError : {}), backgroundColor: secondaryColor, color: colors.inputTextColor }}
                 value={addressData.city}
                 onChange={(e) => setAddressData(prev => ({ ...prev, city: e.target.value }))}
                 placeholder="São Paulo"
@@ -852,68 +914,7 @@ const PublicFormApp = () => {
   return null;
 };
 
-const renderInput = (question: any, value: any, onChange: (v: any) => void) => {
-  const type = question.questionType || question.type;
-
-  if (type === 'text' || type === 'short-text') {
-    return (
-      <input
-        type="text"
-        style={styles.input}
-        value={value || ''}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder="Digite sua resposta..."
-      />
-    );
-  }
-
-  if (type === 'textarea' || type === 'long-text') {
-    return (
-      <textarea
-        style={styles.textarea}
-        value={value || ''}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder="Digite sua resposta..."
-        rows={4}
-      />
-    );
-  }
-
-  if (type === 'multiple-choice' || type === 'radio') {
-    const options = question.options || [];
-    return (
-      <div style={styles.optionsContainer}>
-        {options.map((opt: any, i: number) => {
-          const optValue = typeof opt === 'string' ? opt : opt.text || opt.value;
-          const isSelected = value === optValue;
-          return (
-            <button
-              key={i}
-              style={{
-                ...styles.optionButton,
-                ...(isSelected ? styles.optionButtonSelected : {}),
-              }}
-              onClick={() => onChange(optValue)}
-            >
-              {optValue}
-            </button>
-          );
-        })}
-      </div>
-    );
-  }
-
-  return (
-    <input
-      type="text"
-      style={styles.input}
-      value={value || ''}
-      onChange={(e) => onChange(e.target.value)}
-      placeholder="Digite sua resposta..."
-    />
-  );
-};
-
+// Estilos movidos para fora do componente
 const styles: Record<string, React.CSSProperties> = {
   container: {
     minHeight: '100vh',
@@ -1097,7 +1098,6 @@ const styles: Record<string, React.CSSProperties> = {
   },
   optionButton: {
     padding: '12px 16px',
-    backgroundColor: '#f8fafc',
     border: '2px solid #e5e7eb',
     borderRadius: 8,
     fontSize: 16,
@@ -1107,7 +1107,6 @@ const styles: Record<string, React.CSSProperties> = {
   },
   optionButtonSelected: {
     backgroundColor: '#dbeafe',
-    borderColor: '#3b82f6',
   },
   buttonRow: {
     display: 'flex',

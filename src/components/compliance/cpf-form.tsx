@@ -107,26 +107,10 @@ export function CpfForm({ onSubmit, isLoading }: CpfFormProps) {
             </p>
           </div>
 
-          <div className="flex items-center space-x-2 p-3 rounded-lg border border-orange-200 bg-orange-50">
-            <Checkbox
-              id="forceRefresh"
-              checked={forceRefresh}
-              onCheckedChange={(checked) => setForceRefresh(checked === true)}
-              disabled={isLoading}
-            />
-            <div className="flex flex-col">
-              <Label htmlFor="forceRefresh" className="text-sm font-medium cursor-pointer flex items-center gap-2">
-                <RefreshCw className="h-4 w-4 text-orange-600" />
-                Forçar Atualização (3 APIs DataCorp)
-              </Label>
-              <p className="text-xs text-muted-foreground">
-                Ignora cache e busca dados frescos: Dados Cadastrais + Processos Financeiros + Processos Judiciais (custo: ~R$ 0,17)
-              </p>
-            </div>
-          </div>
 
-          <Button 
-            type="submit" 
+
+          <Button
+            type="submit"
             className="w-full"
             disabled={isLoading || (submitted && (!cpf.isValid || !name.trim()))}
             data-testid="button-submit-cpf"
@@ -144,27 +128,7 @@ export function CpfForm({ onSubmit, isLoading }: CpfFormProps) {
             )}
           </Button>
 
-          <div className="rounded-lg bg-muted/50 p-4 space-y-2">
-            <h4 className="text-sm font-medium">Como funciona:</h4>
-            <ul className="text-xs text-muted-foreground space-y-1">
-              <li className="flex items-start gap-2">
-                <span className="text-primary mt-0.5">1.</span>
-                <span>Busca no cache local (economia de custos se já consultado)</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-primary mt-0.5">2.</span>
-                <span>Se não encontrado, consulta API Bigdatacorp (R$ 0,07)</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-primary mt-0.5">3.</span>
-                <span>Análise automática de risco jurídico (score 0-10)</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-primary mt-0.5">4.</span>
-                <span>Resultado armazenado em cache por 60 dias</span>
-              </li>
-            </ul>
-          </div>
+
         </form>
       </CardContent>
     </Card>

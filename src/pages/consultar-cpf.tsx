@@ -32,7 +32,7 @@ export default function ConsultarCPFPage() {
         setIsAuthenticated(false);
       }
     };
-    
+
     checkAuth();
   }, []);
 
@@ -78,14 +78,14 @@ export default function ConsultarCPFPage() {
   const handleSubmitCpf = async (data: { cpf: string; name: string; forceRefresh?: boolean }) => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
       const response = await fetch("/api/compliance/check", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           cpf: data.cpf,
           personName: data.name,
           forceRefresh: data.forceRefresh || false,
@@ -98,19 +98,19 @@ export default function ConsultarCPFPage() {
           setError("Você não está autenticado. Por favor, faça login para usar esta funcionalidade.");
           return;
         }
-        
+
         if (response.status === 503) {
           const errorData = await response.json();
           setError(errorData.error || "Serviço temporariamente indisponível");
           return;
         }
-        
+
         const errorData = await response.json();
         throw new Error(errorData.error || "Erro ao consultar CPF");
       }
 
       const result = await response.json();
-      
+
       if (result) {
         setSelectedCheck(result);
         setIsModalOpen(true);
@@ -135,32 +135,20 @@ export default function ConsultarCPFPage() {
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
         <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight" data-testid="page-title">Consultar CPF</h1>
+          <h1 className="text-3xl font-semibold tracking-tight" data-testid="page-title">Consultar CPF</h1>
           <p className="text-muted-foreground">
             Consulte processos judiciais via Bigdatacorp com cache inteligente
           </p>
         </div>
 
         {/* Status de Autenticação */}
-        {isAuthenticated !== null && (
-          <Alert variant={isAuthenticated ? "default" : "destructive"}>
-            {isAuthenticated ? (
-              <>
-                <CheckCircle2 className="h-4 w-4" />
-                <AlertTitle>Autenticado</AlertTitle>
-                <AlertDescription>
-                  Você está logado como {userEmail}. Suas consultas serão registradas em sua conta.
-                </AlertDescription>
-              </>
-            ) : (
-              <>
-                <InfoIcon className="h-4 w-4" />
-                <AlertTitle>Modo Demonstração</AlertTitle>
-                <AlertDescription>
-                  Você está usando o modo demonstração. Para acessar funcionalidades completas, faça login no sistema.
-                </AlertDescription>
-              </>
-            )}
+        {isAuthenticated === false && (
+          <Alert variant="destructive">
+            <InfoIcon className="h-4 w-4" />
+            <AlertTitle>Modo Demonstração</AlertTitle>
+            <AlertDescription>
+              Você está usando o modo demonstração. Para acessar funcionalidades completas, faça login no sistema.
+            </AlertDescription>
           </Alert>
         )}
 
@@ -203,8 +191,8 @@ export default function ConsultarCPFPage() {
                   description="Realize sua primeira consulta de CPF para ver o histórico aqui."
                 />
               ) : (
-                <HistoryTable 
-                  data={historyChecks} 
+                <HistoryTable
+                  data={historyChecks}
                   isLoading={isLoadingHistory}
                   onViewDetails={handleViewDetails}
                 />

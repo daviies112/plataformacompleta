@@ -25,8 +25,8 @@ export function Header({ onRefreshAll, onRefreshLabels, onConnect, isRefreshing 
           </svg>
         </div>
         <div>
-          <h1 className="text-lg font-bold">Dashboard WhatsApp</h1>
-          <p className="text-xs text-muted-foreground">Atendimento com IA</p>
+          <h1 className="text-2xl font-bold">Dashboard WhatsApp</h1>
+          <p className="text-sm text-muted-foreground">Atendimento com IA</p>
         </div>
       </div>
 
@@ -61,8 +61,8 @@ export function Header({ onRefreshAll, onRefreshLabels, onConnect, isRefreshing 
             size="sm"
             onClick={onConnect}
             className={`gap-2 ${isConnected
-                ? "border-emerald-500 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800 dark:hover:bg-emerald-950/50"
-                : ""
+              ? "border-emerald-500 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800 dark:hover:bg-emerald-950/50"
+              : ""
               }`}
             title={isConnected ? "Gerenciar Conexão / Ver QR Code" : "Conectar novo aparelho via QR Code"}
           >

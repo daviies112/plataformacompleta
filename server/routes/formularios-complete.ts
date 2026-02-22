@@ -429,7 +429,7 @@ function generateDynamicFormUrl(companySlug: string, formSlug: string): string {
   const domain = process.env.APP_DOMAIN || process.env.REPLIT_DOMAINS?.split(',')[0] ||
     (process.env.REPL_SLUG && process.env.REPL_OWNER ?
       `${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` :
-      'localhost:5000');
+      'localhost:5001');
   const protocol = domain.includes('localhost') ? 'http' : 'https';
   return `${protocol}://${domain}/formulario/${companySlug}/form/${formSlug}`;
 }
@@ -1954,102 +1954,119 @@ export function registerFormulariosCompleteRoutes(app: Express) {
       }
 
       if (supabase) {
-        console.log('📝 [POST /api/forms] Salvando no Supabase...');
-        console.log('📦 [POST] Dados recebidos do frontend:', JSON.stringify(req.body, null, 2));
-
-        // 🔗 SLUG: Buscar slugs existentes no Supabase
-        const { data: existingForms } = await supabase
-          .from('forms')
-          .select('slug')
-          .not('slug', 'is', null);
-
-        if (existingForms) {
-          existingSlugs = existingForms.map((f: any) => f.slug).filter(Boolean);
-        }
-        console.log(`🔗 [SLUG] ${existingSlugs.length} slug(s) existente(s) encontrado(s)`);
-
-        // 🔗 SLUG: Gerar slug único
-        const uniqueSlug = generateUniqueFormSlug(baseSlug, existingSlugs);
-        console.log(`🔗 [SLUG] Slug único gerado: "${uniqueSlug}"`);
-
-        // =====================================================
-        // USAR mapFormDataToSupabase PARA GARANTIR QUE TODOS OS 
-        // CAMPOS SEJAM MAPEADOS CORRETAMENTE:
-        // - welcomeConfig.title → welcome_title
-        // - welcomeConfig.description → welcome_message
-        // - welcomeConfig extras (buttonText, logo, etc.) → design_config.welcomeScreen
-        // - completionPageConfig → design_config.completionPage
-        // - questions/elements → questions
-        // - scoreTiers → score_tiers
-        // =====================================================
-        const snakeData = mapFormDataToSupabase(req.body);
-        // Remove updated_at for insert (será criado automaticamente)
-        snakeData.created_at = new Date().toISOString();
-        // 🔗 SLUG: Incluir slug no form
-        snakeData.slug = uniqueSlug;
-
-        console.log('📦 [POST] Dados mapeados para Supabase:', JSON.stringify(snakeData, null, 2));
-        console.log('📦 [POST] Campos a criar:', Object.keys(snakeData));
-
-        const { data, error } = await supabase
-          .from('forms')
-          .insert(snakeData)
-          .select()
-          .single();
-
-        if (error) {
-          console.error('❌ [SUPABASE] Erro ao criar form:', error);
-          throw error;
-        }
-
-        console.log('✅ [SUPABASE] Formulário criado com sucesso!');
-
-        // 🔐 ISOLAMENTO MULTI-TENANT: Salvar metadata na tabela de mapeamento global
-        // 🔗 SLUG: Incluir slug e companySlug no mapeamento
         try {
-          await db.insert(formTenantMapping).values({
-            formId: data.id,
-            tenantId: tenantId,
-            slug: uniqueSlug,
-            companySlug: companySlug,
-            isPublic: req.body.isPublic !== undefined ? req.body.isPublic : true
-          });
-          console.log(`✅ [MAPPING] Form ${data.id} registrado com slug "${uniqueSlug}" e companySlug "${companySlug}"`);
-        } catch (error) {
-          console.error('[MAPPING] Erro ao salvar metadata:', error);
-        }
+          console.log('📝 [POST /api/forms] Salvando no Supabase...');
+          console.log('📦 [POST] Dados recebidos do frontend:', JSON.stringify(req.body, null, 2));
 
-        const camelData = convertKeysToCamelCase(data);
-        const parsedData = parseJsonbFields(camelData, ['questions', 'designConfig', 'scoreTiers', 'tags']);
-        const reconstructedData = reconstructFormDataFromSupabase(parsedData);
+          // 🔗 SLUG: Buscar slugs existentes no Supabase
+          const { data: existingForms } = await supabase
+            .from('forms')
+            .select('slug')
+            .not('slug', 'is', null);
 
-
-        // 🌟 LÓGICA DE PRIMEIRO FORMULÁRIO ATIVO (SUPABASE)
-        if (existingSlugs.length === 0) {
-          console.log('🌟 [POST] Primeiro formulário criado (Supabase) - definindo como Ativo por padrão');
-          try {
-            const supabaseSettings = await getOrCreateAppSettingsInSupabase(supabase);
-            const formUrl = generateDynamicFormUrl(companySlug, uniqueSlug);
-
-            const { error: activeError } = await supabase
-              .from('app_settings')
-              .update({
-                active_form_id: data.id,
-                active_form_url: formUrl,
-                company_slug: companySlug,
-                updated_at: new Date().toISOString()
-              })
-              .eq('id', supabaseSettings.id);
-
-            if (!activeError) {
-              console.log('✅ [POST] Formulário definido como ativo automaticamente!');
-            }
-          } catch (activeErr) {
-            console.warn('⚠️ [POST] Erro ao definir primeiro formulário como ativo:', activeErr);
+          if (existingForms) {
+            existingSlugs = existingForms.map((f: any) => f.slug).filter(Boolean);
           }
-        }
+          console.log(`🔗 [SLUG] ${existingSlugs.length} slug(s) existente(s) encontrado(s)`);
 
-        return res.status(201).json(reconstructedData);
+          // 🔗 SLUG: Gerar slug único
+          const uniqueSlug = generateUniqueFormSlug(baseSlug, existingSlugs);
+          console.log(`🔗 [SLUG] Slug único gerado: "${uniqueSlug}"`);
+
+          // =====================================================
+          // USAR mapFormDataToSupabase PARA GARANTIR QUE TODOS OS 
+          // CAMPOS SEJAM MAPEADOS CORRETAMENTE:
+          // - welcomeConfig.title → welcome_title
+          // - welcomeConfig.description → welcome_message
+          // - welcomeConfig extras (buttonText, logo, etc.) → design_config.welcomeScreen
+          // - completionPageConfig → design_config.completionPage
+          // - questions/elements → questions
+          // - scoreTiers → score_tiers
+          // =====================================================
+          const snakeData = mapFormDataToSupabase(req.body);
+          // Remove updated_at for insert (será criado automaticamente)
+          snakeData.created_at = new Date().toISOString();
+          // 🔗 SLUG: Incluir slug no form
+          snakeData.slug = uniqueSlug;
+          // 🔐 SECURITY: Ensure tenant_id is set
+          snakeData.tenant_id = tenantId;
+
+          console.log('📦 [POST] Dados mapeados para Supabase:', JSON.stringify(snakeData, null, 2));
+          console.log('📦 [POST] Campos a criar:', Object.keys(snakeData));
+          console.log('🔐 [POST] Debug TenantID:', {
+            fromHeader: req.headers['tenant-id'],
+            fromUser: (req as any).user?.tenantId,
+            variable: tenantId,
+            inSnakeData: snakeData.tenant_id
+          });
+
+          if (!snakeData.tenant_id) {
+            console.error('❌ [POST] CRITICAL: tenant_id is missing/null in snakeData even after assignment!');
+            return res.status(500).json({ error: 'Erro interno: Tenant ID inválido' });
+          }
+
+          const { data, error } = await supabase
+            .from('forms')
+            .insert(snakeData)
+            .select()
+            .single();
+
+          if (error) {
+            console.error('❌ [SUPABASE] Erro ao criar form:', error);
+            throw error;
+          }
+
+          console.log('✅ [SUPABASE] Formulário criado com sucesso!');
+
+          // 🔐 ISOLAMENTO MULTI-TENANT: Salvar metadata na tabela de mapeamento global
+          // 🔗 SLUG: Incluir slug e companySlug no mapeamento
+          try {
+            await db.insert(formTenantMapping).values({
+              formId: data.id,
+              tenantId: tenantId,
+              slug: uniqueSlug,
+              companySlug: companySlug,
+              isPublic: req.body.isPublic !== undefined ? req.body.isPublic : true
+            });
+            console.log(`✅ [MAPPING] Form ${data.id} registrado com slug "${uniqueSlug}" e companySlug "${companySlug}"`);
+          } catch (error) {
+            console.error('[MAPPING] Erro ao salvar metadata:', error);
+          }
+
+          const camelData = convertKeysToCamelCase(data);
+          const parsedData = parseJsonbFields(camelData, ['questions', 'designConfig', 'scoreTiers', 'tags']);
+          const reconstructedData = reconstructFormDataFromSupabase(parsedData);
+
+
+          // 🌟 LÓGICA DE PRIMEIRO FORMULÁRIO ATIVO (SUPABASE)
+          if (existingSlugs.length === 0) {
+            console.log('🌟 [POST] Primeiro formulário criado (Supabase) - definindo como Ativo por padrão');
+            try {
+              const supabaseSettings = await getOrCreateAppSettingsInSupabase(supabase);
+              const formUrl = generateDynamicFormUrl(companySlug, uniqueSlug);
+
+              const { error: activeError } = await supabase
+                .from('app_settings')
+                .update({
+                  active_form_id: data.id,
+                  active_form_url: formUrl,
+                  company_slug: companySlug,
+                  updated_at: new Date().toISOString()
+                })
+                .eq('id', supabaseSettings.id);
+
+              if (!activeError) {
+                console.log('✅ [POST] Formulário definido como ativo automaticamente!');
+              }
+            } catch (activeErr) {
+              console.warn('⚠️ [POST] Erro ao definir primeiro formulário como ativo:', activeErr);
+            }
+          }
+
+          return res.status(201).json(reconstructedData);
+        } catch (supaError) {
+          console.error('❌ [SUPABASE] Erro ao salvar no Supabase (tentando local):', supaError);
+        }
       }
 
       console.log('📝 [POST /api/forms] Salvando no PostgreSQL local...');
@@ -2069,7 +2086,24 @@ export function registerFormulariosCompleteRoutes(app: Express) {
 
       // 🔐 ISOLAMENTO MULTI-TENANT: Adicionar tenantId e slug ao form antes de salvar
       const formWithTenant = { ...req.body, tenantId, slug: uniqueSlug };
-      const validatedData = insertFormSchema.parse(formWithTenant);
+      console.log('📦 [POST/Local] Form com tenant:', JSON.stringify(formWithTenant, null, 2));
+
+      // 🔍 DEBUG: Verificar se insertFormSchema está removendo tenantId
+      let validatedData;
+      try {
+        validatedData = insertFormSchema.parse(formWithTenant);
+        console.log('✅ [POST/Local] Validated Data:', JSON.stringify(validatedData, null, 2));
+
+        if (!validatedData.tenantId) {
+          console.error('❌ [POST/Local] CRITICAL: tenantId foi removido pela validação Zod!');
+          // Force re-add tenantId if schema stripped it but user is authenticated
+          validatedData.tenantId = tenantId;
+        }
+      } catch (zodError) {
+        console.error('❌ [POST/Local] Erro de validação Zod:', zodError);
+        throw zodError;
+      }
+
       const form = await storage.createForm(validatedData);
 
       // 🔐 ISOLAMENTO MULTI-TENANT: Salvar metadata na tabela de mapeamento global
@@ -2217,6 +2251,9 @@ export function registerFormulariosCompleteRoutes(app: Express) {
         if (newSlug) {
           updateData.slug = newSlug;
         }
+
+        // 🔐 SECURITY: Ensure tenant_id is set (important for multi-tenant isolation)
+        updateData.tenant_id = tenantId;
 
         console.log('📦 [PATCH] Dados mapeados para Supabase:', JSON.stringify(updateData, null, 2));
         console.log('📦 [PATCH] Campos a atualizar:', Object.keys(updateData));

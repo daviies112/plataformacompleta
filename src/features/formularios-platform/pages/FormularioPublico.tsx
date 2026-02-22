@@ -253,6 +253,7 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
       buttonTextColor: "hsl(0, 0%, 100%)",
       progressBarColor: "hsl(221, 83%, 53%)",
       inputBackground: "hsl(210, 40%, 96%)",
+      inputTextColor: "hsl(222, 47%, 11%)",
       borderColor: "hsl(214, 32%, 91%)",
       // Deprecated fields
       primary: "hsl(221, 83%, 53%)",
@@ -276,26 +277,86 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
   // Function to migrate colors (mirrors FormPreview.tsx)
   const migrateColors = useCallback((oldColors: any) => {
     if (!oldColors) return defaultDesign.colors;
+
+    // Suporte para ambos os formatos (snake_case do DB e camelCase do Frontend)
+    const get = (camel: string, snake: string) => oldColors[camel] || oldColors[snake];
+
     return {
-      titleColor: oldColors.titleColor || oldColors.primary || defaultDesign.colors.titleColor,
-      textColor: oldColors.textColor || oldColors.text || defaultDesign.colors.textColor,
-      pageBackground: oldColors.pageBackground ||
-        `linear-gradient(135deg, ${oldColors.secondary || defaultDesign.colors.inputBackground}, ${oldColors.background || defaultDesign.colors.containerBackground})`,
-      containerBackground: oldColors.containerBackground || oldColors.secondary || oldColors.background || defaultDesign.colors.containerBackground,
-      buttonColor: oldColors.buttonColor || oldColors.button || defaultDesign.colors.buttonColor,
-      buttonTextColor: oldColors.buttonTextColor || oldColors.buttonText || defaultDesign.colors.buttonTextColor,
-      progressBarColor: oldColors.progressBarColor || oldColors.progressBar || oldColors.primary || defaultDesign.colors.progressBarColor,
-      inputBackground: oldColors.inputBackground || oldColors.secondary || defaultDesign.colors.inputBackground,
-      borderColor: oldColors.borderColor || defaultDesign.colors.borderColor,
-      primary: oldColors.primary,
-      secondary: oldColors.secondary,
-      background: oldColors.background,
-      text: oldColors.text,
-      button: oldColors.button,
-      buttonText: oldColors.buttonText,
-      progressBar: oldColors.progressBar
+      titleColor: get('titleColor', 'title_color') || get('primary', 'primary') || defaultDesign.colors.titleColor,
+      textColor: get('textColor', 'text_color') || get('text', 'text') || defaultDesign.colors.textColor,
+      pageBackground: get('pageBackground', 'page_background') ||
+        `linear-gradient(135deg, ${get('secondary', 'secondary') || defaultDesign.colors.inputBackground}, ${get('background', 'background') || defaultDesign.colors.containerBackground})`,
+      containerBackground: get('containerBackground', 'container_background') || get('secondary', 'secondary') || get('background', 'background') || defaultDesign.colors.containerBackground,
+      buttonColor: get('buttonColor', 'button_color') || get('button', 'button') || defaultDesign.colors.buttonColor,
+      buttonTextColor: get('buttonTextColor', 'button_text_color') || get('buttonText', 'button_text') || defaultDesign.colors.buttonTextColor,
+      progressBarColor: get('progressBarColor', 'progress_bar_color') || get('progressBar', 'progress_bar') || get('primary', 'primary') || defaultDesign.colors.progressBarColor,
+      inputBackground: get('inputBackground', 'input_background') || get('secondary', 'secondary') || defaultDesign.colors.inputBackground,
+      // 🔥 FIX: Se inputTextColor for o padrão escuro mas o textColor foi alterado para outra cor (ex: branco), usar textColor
+      inputTextColor: (() => {
+        const rawInputColor = get('inputTextColor', 'input_text_color');
+        const rawTextColor = get('textColor', 'text_color') || get('text', 'text');
+
+        // Se temos uma cor de input definida
+        if (rawInputColor) {
+          // Se ela é EXATAMENTE a cor padrão ("hsl(222, 47%, 11%)") E o texto principal NÃO é a padrão
+          // Significa que o usuário mudou o texto geral mas não mexeu no input (que ficou com valor padrão salvo)
+          // Nesse caso, queremos que o input acompanhe o texto geral
+          if (rawInputColor === defaultDesign.colors.inputTextColor && rawTextColor && rawTextColor !== defaultDesign.colors.textColor) {
+            return rawTextColor;
+          }
+          return rawInputColor;
+        }
+
+        // Se não tem cor de input definida, usa o texto principal ou o padrão
+        return rawTextColor || defaultDesign.colors.inputTextColor;
+      })(),
+      borderColor: get('borderColor', 'border_color') || defaultDesign.colors.borderColor,
+
+      // Manter legados para compatibilidade interna
+      primary: get('primary', 'primary'),
+      secondary: get('secondary', 'secondary'),
+      background: get('background', 'background'),
+      text: get('text', 'text'),
+      button: get('button', 'button'),
+      buttonText: get('buttonText', 'button_text'),
+      progressBar: get('progressBar', 'progress_bar')
     };
   }, [defaultDesign]);
+
+  // 🛠️ HELPER: Corrigir URLs do localhost automaticamente
+  const fixLogoUrl = useCallback((url: string | null) => {
+    if (!url) return null;
+    if (typeof url !== 'string') return url;
+
+    // Se a URL é um upload, FORÇAR path relativo (resolve problemas de porta 5000 vs 5001)
+    if (url.includes('/uploads/')) {
+      const index = url.indexOf('/uploads/');
+      return url.substring(index);
+    }
+
+    // Fallback: Tentar extrair path de URLs absolutas
+    if (url.includes('://')) {
+      try {
+        const urlObj = new URL(url);
+        // Se for localhost:5001, forçar relativo
+        if (urlObj.port === '5001' && urlObj.hostname === 'localhost') {
+          return urlObj.pathname + urlObj.search;
+        }
+        return urlObj.pathname + urlObj.search;
+      } catch (e) {
+        // Se falhar o parse, retorna original
+        return url;
+      }
+    }
+
+    return url;
+  }, []);
+
+  // Calculate baseDesign from form configuration or use defaults
+  const baseDesign = useMemo(() => {
+    if (!form) return defaultDesign;
+    return (form as any).designConfig || (form as any).design_config || defaultDesign;
+  }, [form, defaultDesign]);
 
   const design = useMemo(() => {
     // 🔍 DEBUG: Log raw received design config
@@ -310,9 +371,10 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
         ...defaultDesign.typography,
         ...(baseDesign.typography || {})
       },
-      spacing: baseDesign.spacing || defaultDesign.spacing
+      spacing: baseDesign.spacing || defaultDesign.spacing,
+      logo: fixLogoUrl(baseDesign.logo || null) // 🛠️ Corrige URL da logo automaticamente
     };
-  }, [form, defaultDesign, migrateColors]);
+  }, [form, defaultDesign, migrateColors, fixLogoUrl]);
 
   const colors = design.colors;
 
@@ -334,6 +396,7 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
     root.style.setProperty('--form-button-text-color', colors.buttonTextColor);
     root.style.setProperty('--form-progress-color', colors.progressBarColor);
     root.style.setProperty('--form-input-bg', colors.inputBackground);
+    root.style.setProperty('--form-input-text-color', colors.inputTextColor);
     root.style.setProperty('--form-border-color', colors.borderColor);
 
     return () => {
@@ -345,6 +408,7 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
       root.style.removeProperty('--form-button-text-color');
       root.style.removeProperty('--form-progress-color');
       root.style.removeProperty('--form-input-bg');
+      root.style.removeProperty('--form-input-text-color');
       root.style.removeProperty('--form-border-color');
     };
   }, [colors]);
@@ -765,7 +829,7 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
     const description = config.description || text?.content || form.description || "Por favor, preencha o formulário a seguir.";
 
     // 🎨 LOGO: Buscar primeiro do design.logo (igual Assinatura), depois fallback para welcomeConfig
-    const imageUrl = design.logo || config.logo || config.imageUrl || (form.welcomeConfig as any)?.imageUrl || null;
+    const imageUrl = fixLogoUrl(design.logo || config.logo || config.imageUrl || (form.welcomeConfig as any)?.imageUrl || null);
     const buttonText = config.buttonText || "Começar";
 
     return {
@@ -774,9 +838,34 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
       imageUrl,
       buttonText,
       titleSize: config.titleSize || "2xl",
-  }, [form, design.logo]);
     };
   }, [form, design.logo]);
+
+  // 🎨 COMPONENTE DE HEADER COM LOGO - Reutilizável em todos os steps
+  const FormHeader = () => {
+    if (!design.logo) return null;
+
+    // Mobile: sempre center. Desktop: respeita config
+    const alignClass =
+      design.logoAlign === 'left' ? 'justify-center md:justify-start' :
+        design.logoAlign === 'right' ? 'justify-center md:justify-end' :
+          'justify-center';
+
+    return (
+      <div className={`flex ${alignClass} mb-6`}>
+        <img
+          src={design.logo}
+          alt="Logo"
+          style={{ height: `${design.logoSize || 64}px` }}
+          className="object-contain"
+          onError={(e) => {
+            console.error('❌ Logo failed to load:', design.logo);
+            (e.target as HTMLImageElement).style.display = 'none';
+          }}
+        />
+      </div>
+    );
+  };
 
   // ✅ OTIMIZAÇÃO: Mostrar skeleton ultra-leve quando carregando
   if (!form) {
@@ -842,34 +931,61 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
 
   // PÁGINA DE BOAS-VINDAS (Step 0)
   if (currentStep === 0) {
+    const logoAlignClass =
+      design.logoAlign === 'left' ? 'justify-center md:justify-start' :
+        design.logoAlign === 'right' ? 'justify-center md:justify-end' :
+          'justify-center';
+
     return (
-      <div className="min-h-screen flex items-center justify-center p-4" style={{ background: colors.pageBackground }}>
-        <Card className="w-full max-w-2xl shadow-xl" style={{ backgroundColor: colors.containerBackground, borderColor: colors.borderColor }}>
-          <CardHeader className="text-center pb-8">
-            {welcomeConfig.imageUrl && (
-              <div className="mb-6">
-                <img src={welcomeConfig.imageUrl} alt="Welcome" className="max-w-xs mx-auto rounded-lg" />
-              </div>
-            )}
-            <CardTitle className="text-4xl font-bold mb-4" style={{ color: colors.titleColor }}>
-              {welcomeConfig.title}
-            </CardTitle>
-            <CardDescription className="text-lg" style={{ color: colors.textColor, opacity: 0.8 }}>
-              {welcomeConfig.description}
-            </CardDescription>
-          </CardHeader>
-          <CardFooter className="flex justify-center pb-8">
-            <Button
-              size="lg"
-              onClick={handleStartWizard}
-              style={{ backgroundColor: colors.buttonColor, color: colors.buttonTextColor }}
-              className="px-8"
-            >
-              <Sparkles className="mr-2 h-5 w-5" />
-              {welcomeConfig.buttonText}
-            </Button>
-          </CardFooter>
-        </Card>
+      <div className="min-h-screen relative" style={{ background: colors.pageBackground }}>
+
+
+        {/* ✅ LOGO: absolute top-0 — completamente FORA do flex container */}
+        {design.logo && (
+          <div
+            className={`absolute top-0 left-0 w-full flex ${logoAlignClass} px-6 pt-4 md:px-10 md:pt-3 z-10`}
+          >
+            <img
+              src={design.logo}
+              alt="Logo"
+              className="object-contain"
+              style={{ height: `${design.logoSize || 80}px` }}
+            />
+          </div>
+        )}
+
+        {/* Card centralizado — NÃO deve conter nenhuma referência à logo aqui */}
+        <div className="min-h-screen flex flex-col items-center justify-center p-4">
+          <Card
+            className="w-full max-w-lg"
+            style={{
+              backgroundColor: colors.containerBackground,
+              borderColor: colors.borderColor,
+              borderRadius: 16,
+            }}
+          >
+            <CardHeader className="text-center pb-8">
+              <CardTitle className="text-4xl font-bold mb-4" style={{ color: colors.titleColor }}>
+                {welcomeConfig.title}
+              </CardTitle>
+              <CardDescription className="text-lg" style={{ color: colors.textColor, opacity: 0.8 }}>
+                {welcomeConfig.description}
+              </CardDescription>
+            </CardHeader>
+            <CardFooter className="flex justify-center pb-8">
+              <Button
+                size="lg"
+                onClick={handleStartWizard}
+                style={{ backgroundColor: colors.buttonColor, color: colors.buttonTextColor }}
+                className="px-8"
+              >
+                <Sparkles className="mr-2 h-5 w-5" />
+                {welcomeConfig.buttonText}
+              </Button>
+            </CardFooter>
+          </Card>
+        </div>
+
       </div>
     );
   }
@@ -879,6 +995,9 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
     return (
       <div className="min-h-screen p-4" style={{ background: colors.pageBackground }}>
         <div className="max-w-3xl mx-auto pt-8">
+          {/* Logo Header */}
+          <FormHeader />
+
           <div className="mb-6">
             <div className="h-2 rounded-full overflow-hidden mb-2" style={{ backgroundColor: colors.inputBackground }}>
               <div className="h-full transition-all duration-300" style={{ width: `${progress}%`, backgroundColor: colors.progressBarColor }} />
@@ -888,7 +1007,7 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
 
           <Card className="shadow-lg" style={{ backgroundColor: colors.containerBackground, borderColor: colors.borderColor }}>
             <CardHeader>
-              <CardTitle className="text-2xl" style={{ color: colors.textColor }}>Dados Pessoais</CardTitle>
+              <CardTitle className="text-2xl" style={{ color: colors.titleColor || 'inherit' }}>Dados Pessoais</CardTitle>
               <CardDescription style={{ color: colors.textColor, opacity: 0.8 }}>Por favor, preencha suas informações de contato</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -898,7 +1017,7 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
                   {...personalForm.register("name")}
                   placeholder="Digite seu nome"
                   className="mt-1"
-                  style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.textColor }}
+                  style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.inputTextColor }}
                 />
                 {personalForm.formState.errors.name && (
                   <p className="text-sm mt-1" style={{ color: '#ef4444' }}>
@@ -913,7 +1032,7 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
                   {...personalForm.register("email")}
                   placeholder="seu@email.com"
                   className="mt-1"
-                  style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.textColor }}
+                  style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.inputTextColor }}
                 />
                 {personalForm.formState.errors.email && (
                   <p className="text-sm mt-1" style={{ color: '#ef4444' }}>
@@ -928,7 +1047,7 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
                   placeholder="000.000.000-00"
                   maxLength={14}
                   className="mt-1"
-                  style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.textColor }}
+                  style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.inputTextColor }}
                   onChange={(e) => {
                     const value = e.target.value.replace(/\D/g, '');
                     const formatted = value
@@ -962,7 +1081,7 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
                   style={{
                     backgroundColor: colors.inputBackground,
                     borderColor: telefoneBloqueado ? '#22c55e' : colors.borderColor,
-                    color: colors.textColor,
+                    color: colors.inputTextColor,
                     cursor: telefoneBloqueado ? 'not-allowed' : 'text',
                     borderWidth: telefoneBloqueado ? '2px' : '1px'
                   }}
@@ -974,7 +1093,7 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
                   {...personalForm.register("instagram")}
                   placeholder="@seuinstagram"
                   className="mt-1"
-                  style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.textColor }}
+                  style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.inputTextColor }}
                   onChange={(e) => {
                     let value = e.target.value;
                     if (value && !value.startsWith('@')) {
@@ -1002,6 +1121,9 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
     return (
       <div className="min-h-screen p-4" style={{ background: colors.pageBackground }}>
         <div className="max-w-3xl mx-auto pt-8">
+          {/* Logo Header */}
+          <FormHeader />
+
           <div className="mb-6">
             <div className="h-2 rounded-full overflow-hidden mb-2" style={{ backgroundColor: colors.inputBackground }}>
               <div className="h-full transition-all duration-300" style={{ width: `${progress}%`, backgroundColor: colors.progressBarColor }} />
@@ -1011,7 +1133,7 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
 
           <Card className="shadow-lg" style={{ backgroundColor: colors.containerBackground, borderColor: colors.borderColor }}>
             <CardHeader>
-              <CardTitle className="text-2xl" style={{ color: colors.textColor }}>Dados de Endereço</CardTitle>
+              <CardTitle className="text-2xl" style={{ color: colors.titleColor || 'inherit' }}>Dados de Endereço</CardTitle>
               <CardDescription style={{ color: colors.textColor, opacity: 0.8 }}>Preencha seu endereço completo</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -1023,7 +1145,7 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
                     placeholder="00000-000"
                     maxLength={9}
                     className="mt-1"
-                    style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.textColor }}
+                    style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.inputTextColor }}
                   />
                   {addressForm.formState.errors.cep && (
                     <p className="text-sm mt-1" style={{ color: '#ef4444' }}>
@@ -1038,7 +1160,7 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
                     placeholder="SP"
                     maxLength={2}
                     className="mt-1 uppercase"
-                    style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.textColor }}
+                    style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.inputTextColor }}
                   />
                   {addressForm.formState.errors.state && (
                     <p className="text-sm mt-1" style={{ color: '#ef4444' }}>
@@ -1054,7 +1176,7 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
                   {...addressForm.register("street")}
                   placeholder="Nome da rua"
                   className="mt-1"
-                  style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.textColor }}
+                  style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.inputTextColor }}
                 />
                 {addressForm.formState.errors.street && (
                   <p className="text-sm mt-1" style={{ color: '#ef4444' }}>
@@ -1070,7 +1192,7 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
                     {...addressForm.register("number")}
                     placeholder="123"
                     className="mt-1"
-                    style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.textColor }}
+                    style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.inputTextColor }}
                   />
                   {addressForm.formState.errors.number && (
                     <p className="text-sm mt-1" style={{ color: '#ef4444' }}>
@@ -1084,7 +1206,7 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
                     {...addressForm.register("complement")}
                     placeholder="Apto, bloco, etc."
                     className="mt-1"
-                    style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.textColor }}
+                    style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.inputTextColor }}
                   />
                 </div>
               </div>
@@ -1096,7 +1218,7 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
                     {...addressForm.register("neighborhood")}
                     placeholder="Nome do bairro"
                     className="mt-1"
-                    style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.textColor }}
+                    style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.inputTextColor }}
                   />
                   {addressForm.formState.errors.neighborhood && (
                     <p className="text-sm mt-1" style={{ color: '#ef4444' }}>
@@ -1110,7 +1232,7 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
                     {...addressForm.register("city")}
                     placeholder="Nome da cidade"
                     className="mt-1"
-                    style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.textColor }}
+                    style={{ backgroundColor: colors.inputBackground, borderColor: colors.borderColor, color: colors.inputTextColor }}
                   />
                   {addressForm.formState.errors.city && (
                     <p className="text-sm mt-1" style={{ color: '#ef4444' }}>
@@ -1145,8 +1267,8 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
 
     const renderQuestionInput = (question: any, questionIndexInPage: number) => {
       const qType = question.questionType || question.type || '';
-      const isMultipleChoice = qType === 'multiple-choice' && question.options && question.options.length > 0;
-      const isLongText = qType === 'long-text';
+      const isMultipleChoice = qType === 'multiple-choice' || qType === 'radio' || qType === 'checkbox'; // Normalized types
+      const isLongText = qType === 'long-text' || qType === 'textarea';
 
       return (
         <div key={question.id} className="space-y-4 p-4 rounded-lg border" style={{ backgroundColor: colors.inputBackground, borderColor: `${colors.primary}30` }}>
@@ -1161,7 +1283,7 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
               {questionIndexInPage + 1}
             </span>
             <div className="flex-1">
-              <h3 className="text-lg font-medium mb-4" style={{ color: colors.text }}>
+              <h3 className="text-lg font-medium mb-4" style={{ color: colors.inputTextColor }}>
                 {question.text}
               </h3>
 
@@ -1183,7 +1305,7 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
                       style={{ backgroundColor: colors.inputBackground, borderColor: `${colors.primary}30` }}
                     >
                       <RadioGroupItem value={option.text} id={`${question.id}-${optIndex}`} />
-                      <Label htmlFor={`${question.id}-${optIndex}`} className="font-normal cursor-pointer flex-1" style={{ color: colors.text }}>
+                      <Label htmlFor={`${question.id}-${optIndex}`} className="font-normal cursor-pointer flex-1" style={{ color: colors.inputTextColor }}>
                         {option.text}
                       </Label>
                     </div>
@@ -1196,7 +1318,7 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
                   placeholder="Digite sua resposta"
                   rows={4}
                   className="text-base"
-                  style={{ backgroundColor: colors.inputBackground, borderColor: `${colors.primary}30`, color: colors.text }}
+                  style={{ backgroundColor: colors.inputBackground, borderColor: `${colors.primary}30`, color: colors.inputTextColor }}
                 />
               ) : (
                 <Input
@@ -1204,7 +1326,7 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
                   onChange={(e) => handleAnswer(question.id, e.target.value, question.points || 0, question.text)}
                   placeholder="Digite sua resposta"
                   className="text-base"
-                  style={{ backgroundColor: colors.inputBackground, borderColor: `${colors.primary}30`, color: colors.text }}
+                  style={{ backgroundColor: colors.inputBackground, borderColor: `${colors.primary}30`, color: colors.inputTextColor }}
                 />
               )}
             </div>
@@ -1216,6 +1338,9 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
     return (
       <div className="min-h-screen p-4" style={{ background: colors.pageBackground }}>
         <div className="max-w-3xl mx-auto pt-8">
+          {/* Logo Header */}
+          <FormHeader />
+
           <div className="mb-6">
             <div className="h-2 rounded-full overflow-hidden mb-2" style={{ backgroundColor: colors.inputBackground }}>
               <div className="h-full transition-all duration-300" style={{ width: `${progress}%`, backgroundColor: colors.progressBarColor }} />
@@ -1287,7 +1412,7 @@ const FormularioPublico = (_props: FormularioPublicoProps) => {
           </h2>
 
           <p className="text-lg leading-relaxed mb-8" style={{ color: `${textColor}e6`, fontFamily: design.typography.fontFamily }}>
-            Nossa equipe já está analisando e em breve você irá receber o resultado no seu whatsapp.
+            Nossa equipe já está analisando e logo voce irá receber a mensagem no whatsapp
           </p>
 
           <div className="pt-6 border-t" style={{ borderColor: `${textColor}15` }}>

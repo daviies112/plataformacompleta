@@ -43,7 +43,7 @@ const Index = () => {
   useEffect(() => {
     const savedEmail = localStorage.getItem('saved_email');
     const savedPassword = localStorage.getItem('saved_password');
-    
+
     if (savedEmail && savedPassword) {
       setEmail(savedEmail);
       setPassword(savedPassword);
@@ -52,12 +52,12 @@ const Index = () => {
   }, []);
 
   if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/workspace" replace />;
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     setEmailError('');
     setPasswordError('');
 
@@ -75,7 +75,7 @@ const Index = () => {
 
     try {
       const success = await login(email, password);
-      
+
       if (!success) {
         setPasswordError('Email ou senha inválidos');
         toast.error('Credenciais inválidas', {
@@ -89,7 +89,7 @@ const Index = () => {
           localStorage.removeItem('saved_email');
           localStorage.removeItem('saved_password');
         }
-        
+
         toast.success('Login realizado com sucesso!', {
           description: 'Bem-vindo de volta ao Nexus Intelligence.',
         });
@@ -113,10 +113,10 @@ const Index = () => {
     }
 
     const authenticatedEmail = await authenticateWithBiometric(email);
-    
+
     if (authenticatedEmail) {
       const success = await login(email, '');
-      
+
       if (success) {
         toast.success('Login biométrico bem-sucedido!', {
           description: 'Bem-vindo de volta!',
@@ -132,36 +132,36 @@ const Index = () => {
     <div className="min-h-screen bg-background relative overflow-hidden">
       {/* Animated Background Gradient */}
       <div className="fixed inset-0 bg-gradient-to-br from-background via-background/95 to-primary/5 animate-gradient pointer-events-none" />
-      
+
       {/* Ambient Light Effects */}
       <div className="fixed top-0 left-1/3 w-96 h-96 bg-primary/10 rounded-full blur-[120px] animate-float pointer-events-none" />
-      <div 
-        className="fixed bottom-0 right-1/3 w-80 h-80 bg-primary/5 rounded-full blur-[100px] animate-float pointer-events-none" 
-        style={{ animationDelay: '2s' }} 
+      <div
+        className="fixed bottom-0 right-1/3 w-80 h-80 bg-primary/5 rounded-full blur-[100px] animate-float pointer-events-none"
+        style={{ animationDelay: '2s' }}
       />
 
       {/* Main Content */}
       <div className="relative z-10 min-h-screen flex flex-col justify-center p-6 py-8">
         <div className="w-full max-w-md mx-auto space-y-4">
-          
+
           {/* Hero Section - Logo & Subtitle */}
-          <div 
+          <div
             className={cn(
               "text-center space-y-3 transition-all duration-700 ease-out",
               mounted ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-4"
             )}
           >
             <div className="flex justify-center">
-              <img 
-                src={nexusLogo} 
-                alt="NEXUS" 
+              <img
+                src={nexusLogo}
+                alt="NEXUS"
                 className="h-auto object-contain animate-breathe drop-shadow-[0_0_30px_rgba(212,175,55,0.3)] w-[90vw] max-w-[24rem] lg:max-w-[18rem]"
               />
             </div>
           </div>
 
           {/* Form Container with Glass Effect */}
-          <div 
+          <div
             className={cn(
               "transition-all duration-700 ease-out delay-150",
               mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
@@ -273,7 +273,7 @@ const Index = () => {
           </div>
 
           {/* Footer Info */}
-          <div 
+          <div
             className={cn(
               "text-center transition-all duration-700 ease-out delay-300",
               mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"

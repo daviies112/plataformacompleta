@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Upload, Palette, Save, Sparkles, Shuffle, X } from "lucide-react";
 import { useAdminSupabase } from "@/features/revendedora/contexts/AdminSupabaseContext";
@@ -22,6 +23,7 @@ interface ColorVariation {
 
 interface CompanyData {
   id: string;
+  company_name?: string;
   primary_color: string;
   secondary_color: string;
   logo_url?: string;
@@ -459,7 +461,11 @@ export default function Branding() {
                             className="w-9 h-9 rounded-md cursor-pointer border-0 p-0"
                             data-testid={`input-color-${id}`}
                           />
-                          <span className="text-xs font-mono text-muted-foreground">{value}</span>
+                          <Input
+                            value={value}
+                            onChange={(e) => setter(e.target.value)}
+                            className="h-9 w-24 text-xs font-mono bg-background"
+                          />
                         </div>
                       </div>
                     ))}

@@ -84,9 +84,7 @@ const FormularioPublicoWrapper = () => {
   return (
     <Router hook={customHook as any}>
       {/* 🔍 DEBUG WRAPPER: If this shows, App.tsx is correctly mounting this wrapper */}
-      <div style={{ background: 'blue', color: 'white', padding: '10px', textAlign: 'center', zIndex: 9999, position: 'relative' }}>
-        DEBUG: WRAPPER COMPONENT MOUNTED
-      </div>
+
       <Switch>
         <Route path="/f/:token">
           <FormularioPublico />

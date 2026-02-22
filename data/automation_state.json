@@ -1,23 +1,15 @@
 {
   "isRunning": true,
-  "startedAt": "2026-02-12T00:24:16.289Z",
+  "startedAt": "2026-02-21T22:51:23.123Z",
   "lastExecutions": {
     "system-system": {
       "clientId": "system",
       "tenantId": "system",
-<<<<<<< HEAD
-      "lastRun": "2026-02-12T18:34:26.916Z",
-      "lastSuccess": "2026-02-12T18:34:26.916Z",
-      "lastError": "Invalid supabaseUrl: Must be a valid HTTP or HTTPS URL.",
+      "lastRun": "2026-02-22T00:30:36.429Z",
+      "lastSuccess": "2026-02-22T00:30:36.429Z",
+      "lastError": null,
       "consecutiveErrors": 0,
-      "totalExecutions": 517,
-=======
-      "lastRun": "2026-02-12T12:07:02.024Z",
-      "lastSuccess": "2026-02-12T12:07:02.024Z",
-      "lastError": "Invalid supabaseUrl: Must be a valid HTTP or HTTPS URL.",
-      "consecutiveErrors": 0,
-      "totalExecutions": 377,
->>>>>>> 4d793f4d84a2204ab2dcf026863c0538a40ddced
+      "totalExecutions": 3698,
       "totalNewClientsDetected": 0,
       "totalEventsCreated": 0,
       "status": "running"
@@ -25,22 +17,14 @@
     "dev-daviemericko_gmail_com-dev-daviemericko_gmail_com": {
       "clientId": "dev-daviemericko_gmail_com",
       "tenantId": "dev-daviemericko_gmail_com",
-<<<<<<< HEAD
-      "lastRun": "2026-02-12T18:34:27.556Z",
-      "lastSuccess": "2026-02-12T18:34:27.556Z",
-      "lastError": "Invalid supabaseUrl: Must be a valid HTTP or HTTPS URL.",
+      "lastRun": "2026-02-12T15:33:05.991Z",
+      "lastSuccess": "2026-02-12T15:33:05.991Z",
+      "lastError": null,
       "consecutiveErrors": 0,
-      "totalExecutions": 731,
-=======
-      "lastRun": "2026-02-12T12:07:02.042Z",
-      "lastSuccess": "2026-02-12T12:07:02.042Z",
-      "lastError": "Invalid supabaseUrl: Must be a valid HTTP or HTTPS URL.",
-      "consecutiveErrors": 0,
-      "totalExecutions": 591,
->>>>>>> 4d793f4d84a2204ab2dcf026863c0538a40ddced
+      "totalExecutions": 1570,
       "totalNewClientsDetected": 0,
       "totalEventsCreated": 0,
-      "status": "running"
+      "status": "stopped"
     },
     "dev-teste_empresa_com-dev-teste_empresa_com": {
       "clientId": "dev-teste_empresa_com",
@@ -52,7 +36,7 @@
       "totalExecutions": 114,
       "totalNewClientsDetected": 0,
       "totalEventsCreated": 0,
-      "status": "running"
+      "status": "stopped"
     },
     "emerick-sj-001-emerick-sj-001": {
       "clientId": "emerick-sj-001",
@@ -64,7 +48,7 @@
       "totalExecutions": 20,
       "totalNewClientsDetected": 0,
       "totalEventsCreated": 0,
-      "status": "running"
+      "status": "stopped"
     },
     "babilo-tenant-001-babilo-tenant-001": {
       "clientId": "babilo-tenant-001",
@@ -76,7 +60,7 @@
       "totalExecutions": 156,
       "totalNewClientsDetected": 0,
       "totalEventsCreated": 0,
-      "status": "running"
+      "status": "stopped"
     },
     "dev-davipiano_gmail_com-dev-davipiano_gmail_com": {
       "clientId": "dev-davipiano_gmail_com",
@@ -88,43 +72,39 @@
       "totalExecutions": 100,
       "totalNewClientsDetected": 0,
       "totalEventsCreated": 0,
-      "status": "running"
+      "status": "stopped"
     },
     "b25cf69e-def4-4cea-afbf-0b93eabb77b2-b25cf69e-def4-4cea-afbf-0b93eabb77b2": {
       "clientId": "b25cf69e-def4-4cea-afbf-0b93eabb77b2",
       "tenantId": "b25cf69e-def4-4cea-afbf-0b93eabb77b2",
-<<<<<<< HEAD
-      "lastRun": "2026-02-12T18:34:27.552Z",
-      "lastSuccess": "2026-02-12T18:34:27.552Z",
+      "lastRun": "2026-02-12T15:33:05.988Z",
+      "lastSuccess": "2026-02-12T15:33:05.988Z",
       "lastError": null,
       "consecutiveErrors": 0,
-      "totalExecutions": 313,
-=======
-      "lastRun": "2026-02-12T12:07:02.033Z",
-      "lastSuccess": "2026-02-12T12:07:02.033Z",
+      "totalExecutions": 88,
+      "totalNewClientsDetected": 0,
+      "totalEventsCreated": 0,
+      "status": "stopped"
+    },
+    "emericks-tenant-emericks-tenant": {
+      "clientId": "emericks-tenant",
+      "tenantId": "emericks-tenant",
+      "lastRun": "2026-02-22T00:30:36.484Z",
+      "lastSuccess": "2026-02-22T00:30:36.484Z",
       "lastError": null,
       "consecutiveErrors": 0,
-      "totalExecutions": 173,
->>>>>>> 4d793f4d84a2204ab2dcf026863c0538a40ddced
+      "totalExecutions": 1823,
       "totalNewClientsDetected": 0,
       "totalEventsCreated": 0,
       "status": "running"
     }
   },
   "globalStats": {
-<<<<<<< HEAD
-    "totalExecutions": 1951,
+    "totalExecutions": 7569,
     "totalNewClientsDetected": 0,
     "totalEventsCreated": 0,
-    "totalErrors": 12,
-    "uptime": 65411
-=======
-    "totalExecutions": 1531,
-    "totalNewClientsDetected": 0,
-    "totalEventsCreated": 0,
-    "totalErrors": 12,
-    "uptime": 42165
->>>>>>> 4d793f4d84a2204ab2dcf026863c0538a40ddced
+    "totalErrors": 0,
+    "uptime": 5953
   },
   "settings": {
     "detectionIntervalMinutes": 2,

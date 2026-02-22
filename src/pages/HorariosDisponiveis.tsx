@@ -10,9 +10,9 @@ import { Switch } from "@/components/ui/switch";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2, Clock, Loader2, ArrowLeft, Video, Users, MapPin, Home, Calendar, Palette } from "lucide-react";
+import { Plus, Pencil, Trash2, Clock, Loader2, Video, Users, MapPin } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { MeetingHeader } from "@/components/MeetingHeader";
 
 interface Horario {
   id: string;
@@ -244,43 +244,15 @@ export default function HorariosDisponiveis() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Horários Disponíveis</h1>
-          <p className="text-muted-foreground">Configure os horários disponíveis para agendamento de reuniões</p>
-        </div>
-      </div>
-
-      <Tabs value="horarios" className="w-full">
-        <TabsList className="grid w-full grid-cols-5 lg:w-auto">
-          <TabsTrigger value="home" className="gap-2" onClick={() => navigate("/reuniao")}>
-            <Home className="h-4 w-4" />
-            <span className="hidden sm:inline">Home</span>
-          </TabsTrigger>
-          <TabsTrigger value="calendario" className="gap-2" onClick={() => navigate("/reuniao?tab=calendario")}>
-            <Calendar className="h-4 w-4" />
-            <span className="hidden sm:inline">Calendário</span>
-          </TabsTrigger>
-          <TabsTrigger value="gravacoes" className="gap-2" onClick={() => navigate("/reuniao?tab=gravacoes")}>
-            <Video className="h-4 w-4" />
-            <span className="hidden sm:inline">Gravações</span>
-          </TabsTrigger>
-          <TabsTrigger value="design" className="gap-2" onClick={() => navigate("/reuniao?tab=design")}>
-            <Palette className="h-4 w-4" />
-            <span className="hidden sm:inline">Design</span>
-          </TabsTrigger>
-          <TabsTrigger value="horarios" className="gap-2">
-            <Clock className="h-4 w-4" />
-            <span className="hidden sm:inline">Horários</span>
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
-
-      <div className="flex justify-end">
-        <Button onClick={openAddModal} className="gap-2" data-testid="button-add-horario">
-          <Plus className="h-4 w-4" /> Adicionar Horário
-        </Button>
-      </div>
+      <MeetingHeader
+        title="Horários Disponíveis"
+        description="Configure os horários disponíveis para agendamento de reuniões"
+        extraActions={
+          <Button onClick={openAddModal} className="gap-2" data-testid="button-add-horario">
+            <Plus className="h-4 w-4" /> Adicionar Horário
+          </Button>
+        }
+      />
 
       {horarios.length === 0 ? (
         <Card>
@@ -309,7 +281,7 @@ export default function HorariosDisponiveis() {
                     {dayHorarios.length}
                   </span>
                 </div>
-                
+
                 <div className="flex flex-col gap-3 min-h-[400px] p-2 rounded-b-lg bg-muted/20 border border-t-0 border-muted-foreground/10">
                   {dayHorarios
                     .sort((a, b) => a.horario.localeCompare(b.horario))
@@ -372,7 +344,7 @@ export default function HorariosDisponiveis() {
                         </div>
                       );
                     })}
-                  
+
                   {dayHorarios.length === 0 && (
                     <div className="flex flex-col items-center justify-center py-8 text-center opacity-40">
                       <Clock className="h-8 w-8 mb-2 stroke-1" />

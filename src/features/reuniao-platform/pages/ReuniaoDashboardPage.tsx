@@ -15,7 +15,6 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,25 +26,25 @@ import {
   Video,
   Calendar,
   FileText,
-  Download,
-  Play,
   Users,
   Clock,
   Share2,
-  Copy,
   Check,
+  Play,
+  Download
 } from "lucide-react";
 import { format, addHours } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
+import { MeetingHeader } from "@/components/MeetingHeader";
 
-function CreateMeetingDialog({ 
-  open, 
-  onOpenChange, 
-  onSubmit, 
-  isCreating 
-}: { 
-  open: boolean; 
+function CreateMeetingDialog({
+  open,
+  onOpenChange,
+  onSubmit,
+  isCreating
+}: {
+  open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (data: any) => void;
   isCreating: boolean;
@@ -70,7 +69,7 @@ function CreateMeetingDialog({
 
     const inicio = new Date(dataInicio);
     const fim = addHours(inicio, duracao / 60);
-    
+
     onSubmit({
       titulo: titulo || "Nova Reunião",
       descricao,
@@ -92,7 +91,7 @@ function CreateMeetingDialog({
               Agende uma nova reunião para sua equipe.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
               <Label htmlFor="titulo">Título</Label>
@@ -127,7 +126,7 @@ function CreateMeetingDialog({
                 />
               </div>
             </div>
-            
+
             <div className="grid gap-2">
               <Label htmlFor="descricao">Descrição (opcional)</Label>
               <Textarea
@@ -138,7 +137,7 @@ function CreateMeetingDialog({
                 rows={3}
               />
             </div>
-            
+
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="dataInicio">Data e hora</Label>
@@ -149,7 +148,7 @@ function CreateMeetingDialog({
                   onChange={(e) => setDataInicio(e.target.value)}
                 />
               </div>
-              
+
               <div className="grid gap-2">
                 <Label htmlFor="duracao">Duração</Label>
                 <select
@@ -168,7 +167,7 @@ function CreateMeetingDialog({
               </div>
             </div>
           </div>
-          
+
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar
@@ -273,13 +272,13 @@ function MeetingDetailView({ meetingId }: { meetingId: string }) {
             </Button>
           )}
         </div>
-        
+
         <div className="flex-1 min-h-0 border rounded-lg overflow-hidden shadow-2xl">
-          <Meeting100ms 
-            roomId={meeting.roomId100ms} 
+          <Meeting100ms
+            roomId={meeting.roomId100ms}
             meetingId={meetingId}
             participantName={meeting.nome || "Participante"}
-            onLeave={() => navigate("/reunioes")} 
+            onLeave={() => navigate("/reunioes")}
           />
         </div>
       </div>
@@ -317,7 +316,7 @@ function MeetingDetailView({ meetingId }: { meetingId: string }) {
                   <TabsTrigger value="transcript">Transcrição (IA)</TabsTrigger>
                   <TabsTrigger value="summary">Resumo Inteligente</TabsTrigger>
                 </TabsList>
-                
+
                 <TabsContent value="recording" className="space-y-4">
                   <div className="aspect-video bg-black rounded-lg flex items-center justify-center relative group cursor-pointer overflow-hidden">
                     <div className="absolute inset-0 bg-gradient-to-br from-zinc-800 to-zinc-900" />
@@ -422,7 +421,7 @@ function MeetingDetailView({ meetingId }: { meetingId: string }) {
                 <p className="text-muted-foreground mt-1">{meeting.descricao}</p>
               </div>
             )}
-            
+
             <div className="grid grid-cols-2 gap-4">
               <div className="flex items-center gap-3">
                 <Calendar className="h-5 w-5 text-muted-foreground" />
@@ -433,7 +432,7 @@ function MeetingDetailView({ meetingId }: { meetingId: string }) {
                   </p>
                 </div>
               </div>
-              
+
               <div className="flex items-center gap-3">
                 <Clock className="h-5 w-5 text-muted-foreground" />
                 <div>
@@ -514,14 +513,11 @@ function MeetingsList() {
 
   const handleCreateInstantMeeting = async () => {
     try {
-      toast.loading("Criando reunião instantânea...");
       const result = await createInstantMeeting();
-      toast.dismiss();
       setCreatedMeeting(result.data);
       setShowMeetingModal(true);
       toast.success("Reunião instantânea criada!");
     } catch (err: any) {
-      toast.dismiss();
       toast.error(err.message || "Erro ao criar reunião instantânea");
     }
   };
@@ -536,12 +532,19 @@ function MeetingsList() {
     }
   };
 
+  const handleJoinMeeting = () => {
+    if (createdMeeting) {
+      setShowMeetingModal(false);
+      navigate(`/reuniao/${createdMeeting.id}`);
+    }
+  };
+
   const today = format(new Date(), "yyyy-MM-dd");
   const upcomingMeetings = meetings.filter(m => {
     const isToday = format(new Date(m.dataInicio), "yyyy-MM-dd") === today;
     return isToday && (m.status === 'agendada' || m.status === 'em_andamento');
   });
-  const pastMeetings = meetings.filter(m => 
+  const pastMeetings = meetings.filter(m =>
     m.status === 'concluida' || m.status === 'finalizada' || m.status === 'cancelada'
   );
 
@@ -556,46 +559,16 @@ function MeetingsList() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Reuniões</h1>
-          <p className="text-muted-foreground">
-            Gerencie suas videoconferências
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button 
-            onClick={handleCreateInstantMeeting} 
-            disabled={isStarting}
-            className="gap-2 bg-green-600 hover:bg-green-700"
-          >
-            {isStarting ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Criando...
-              </>
-            ) : (
-              <>
-                <Video className="h-4 w-4" />
-                Reunião Instantânea
-              </>
-            )}
-          </Button>
-          <Button onClick={() => setCreateDialogOpen(true)} className="gap-2">
-            <Plus className="h-4 w-4" />
-            Agendar Reunião
-          </Button>
-          <Button variant="outline" onClick={() => navigate("/horarios-disponiveis")} className="gap-2">
-            <Clock className="h-4 w-4" />
-            Horários
-          </Button>
-        </div>
-      </div>
+      <MeetingHeader
+        title="Reuniões"
+        description="Gerencie suas videoconferências"
+      />
 
       <InstantMeetingModal
-        isOpen={showMeetingModal}
+        open={showMeetingModal}
         onClose={() => setShowMeetingModal(false)}
         meeting={createdMeeting}
+        onJoin={handleJoinMeeting}
       />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -612,7 +585,7 @@ function MeetingsList() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
@@ -628,7 +601,7 @@ function MeetingsList() {
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center gap-4">
@@ -673,8 +646,8 @@ function MeetingsList() {
             </Card>
           ) : (
             upcomingMeetings.map((meeting) => (
-              <ReuniaoCard 
-                key={meeting.id} 
+              <ReuniaoCard
+                key={meeting.id}
                 meeting={meeting}
                 onStart={handleStartMeeting}
                 isStarting={isStarting}
@@ -716,9 +689,6 @@ export function ReuniaoDashboardPage({ meetingId: propMeetingId }: { meetingId?:
   const navigate = useNavigate();
   const { id: urlMeetingId } = useParams<{ id?: string }>();
   const meetingId = propMeetingId || urlMeetingId;
-  
-  const { meetings, loading, error, addMeeting, isCreating, startMeeting, isStarting, createInstantMeeting } = useReuniao();
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   if (meetingId) {
     return <MeetingDetailView meetingId={meetingId} />;

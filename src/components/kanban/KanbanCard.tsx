@@ -51,7 +51,7 @@ export const KanbanCard = ({ card, onClick }: KanbanCardProps) => {
 
       <div className="p-3">
         {(card.labels || []).length > 0 && (
-          <div className="flex flex-wrap gap-1 mb-2">
+          <div className="flex flex-wrap gap-1.5 mb-2.5">
             {(card.labels || []).map((label) => (
               <CardLabel key={label.id} label={label} size="compact" />
             ))}
@@ -65,15 +65,14 @@ export const KanbanCard = ({ card, onClick }: KanbanCardProps) => {
         <div className="flex flex-wrap gap-2 items-center">
           {dueDate && (
             <div
-              className={`flex items-center gap-1 px-2 py-1 rounded text-xs ${
-                card.completed
+              className={`flex items-center gap-1 px-2 py-1 rounded text-xs ${card.completed
                   ? 'bg-label-green/10 text-label-green'
                   : isOverdue
-                  ? 'bg-destructive/10 text-destructive'
-                  : isDueSoon
-                  ? 'bg-label-yellow/10 text-label-yellow'
-                  : 'bg-secondary text-secondary-foreground'
-              }`}
+                    ? 'bg-destructive/10 text-destructive'
+                    : isDueSoon
+                      ? 'bg-label-yellow/10 text-label-yellow'
+                      : 'bg-secondary text-secondary-foreground'
+                }`}
               data-testid={`badge-due-date-${card.id}`}
             >
               <Calendar className="w-3 h-3" />
@@ -99,11 +98,10 @@ export const KanbanCard = ({ card, onClick }: KanbanCardProps) => {
 
           {totalChecklistItems > 0 && (
             <div
-              className={`flex items-center gap-1 px-2 py-1 rounded text-xs ${
-                completedChecklistItems === totalChecklistItems
+              className={`flex items-center gap-1 px-2 py-1 rounded text-xs ${completedChecklistItems === totalChecklistItems
                   ? 'bg-label-green/10 text-label-green'
                   : 'bg-secondary text-secondary-foreground'
-              }`}
+                }`}
               data-testid={`badge-checklist-${card.id}`}
             >
               <CheckSquare className="w-3 h-3" />
@@ -123,7 +121,7 @@ export const KanbanCard = ({ card, onClick }: KanbanCardProps) => {
           {(card.customFields || []).length > 0 && (card.customFields || []).filter(f => f.value).map((field) => {
             const Icon = getCustomFieldIcon(field.type);
             const colorClass = field.color ? labelColorClassesWithOpacity[field.color] : 'bg-secondary text-secondary-foreground';
-            
+
             return (
               <div
                 key={field.id}

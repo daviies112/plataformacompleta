@@ -70,29 +70,29 @@ export const meetingTypesApi = {
 };
 
 export const bookingsApi = {
-  list: (params?: { status?: string; from?: string; to?: string; meetingTypeId?: string }) => 
+  list: (params?: { status?: string; from?: string; to?: string; meetingTypeId?: string }) =>
     api.get('/api/bookings', { params }),
   get: (id: string) => api.get(`/api/bookings/${id}`),
-  updateStatus: (id: string, status: string, reason?: string) => 
+  updateStatus: (id: string, status: string, reason?: string) =>
     api.patch(`/api/bookings/${id}/status`, { status, cancellationReason: reason }),
-  cancel: (id: string, reason?: string) => 
+  cancel: (id: string, reason?: string) =>
     api.patch(`/api/bookings/${id}/cancel`, { cancellationReason: reason }),
-  addNote: (id: string, notes: string) => 
+  addNote: (id: string, notes: string) =>
     api.patch(`/api/bookings/${id}/notes`, { notes }),
 };
 
 export const publicApi = {
-  getMeeting: (company: string, slug: string) => 
+  getMeeting: (company: string, slug: string) =>
     api.get(`/api/public/agendar/${company}/${slug}`),
-  getAvailableSlots: (company: string, slug: string, date: string) => 
+  getAvailableSlots: (company: string, slug: string, date: string) =>
     api.get(`/api/public/agendar/${company}/${slug}/slots`, { params: { date } }),
-  createBooking: (company: string, slug: string, data: any) => 
+  createBooking: (company: string, slug: string, data: any) =>
     api.post(`/api/public/agendar/${company}/${slug}`, data),
-  getConfirmation: (bookingId: string) => 
+  getConfirmation: (bookingId: string) =>
     api.get(`/api/public/booking/${bookingId}/confirmation`),
-  getMeetingRoom: (company: string, roomId: string) => 
+  getMeetingRoom: (company: string, roomId: string) =>
     api.get(`/api/reunioes/public/${company}/${roomId}`),
-  getMeetingRoomToken: (company: string, roomId: string, name: string) => 
+  getMeetingRoomToken: (company: string, roomId: string, name: string) =>
     api.post(`/api/reunioes/public/${company}/${roomId}/token`, { name }),
 };
 
@@ -110,8 +110,40 @@ export const meetingTemplatesApi = {
   create: (data: any) => api.post('/api/meeting-templates', data),
   update: (id: string, data: any) => api.patch(`/api/meeting-templates/${id}`, data),
   delete: (id: string) => api.delete(`/api/meeting-templates/${id}`),
-  createFromMeetingType: (meetingTypeId: string) => 
+  createFromMeetingType: (meetingTypeId: string) =>
     api.post(`/api/meeting-templates/from-meeting-type/${meetingTypeId}`),
+};
+
+export const storeApi = {
+  uploadLogo: async (file: File) => {
+    console.log('📤 [API] Fazendo upload de logo...');
+
+    const formData = new FormData();
+    formData.append('logo', file);
+
+    const token = localStorage.getItem('authToken');
+    const tenantId = localStorage.getItem('tenantId');
+
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    if (tenantId) headers['x-tenant-id'] = tenantId;
+
+    const response = await fetch('/api/upload/logo', {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      console.error('❌ [API] Erro no upload:', error);
+      throw new Error('Failed to upload logo');
+    }
+
+    const result = await response.json();
+    console.log('✅ [API] Logo enviada com sucesso:', result.url);
+    return result.url;
+  }
 };
 
 export default api;

@@ -61,10 +61,20 @@ const ContratosListaPage = () => {
     }
   };
 
-  const copyUrl = (contract: Contract) => {
+  const copyUrl = async (contract: Contract) => {
     const url = `${window.location.origin}/assinar/${contract.access_token}`;
-    navigator.clipboard.writeText(url);
-    toast({ title: 'URL copiada!' });
+    const { copyToClipboard } = await import('@/lib/clipboard');
+
+    const success = await copyToClipboard(url);
+    if (success) {
+      toast({ title: 'URL copiada!' });
+    } else {
+      toast({
+        title: 'Erro ao copiar',
+        description: 'Tente novamente ou copie manualmente',
+        variant: 'destructive'
+      });
+    }
   };
 
   return (

@@ -37,12 +37,12 @@ interface CardDetailModalProps {
   onArchive?: (cardId: string) => void;
 }
 
-export const CardDetailModal = ({ 
-  card, 
+export const CardDetailModal = ({
+  card,
   listId,
   lists,
-  onClose, 
-  onUpdate, 
+  onClose,
+  onUpdate,
   onDelete,
   onMove,
   onCopy,
@@ -103,7 +103,7 @@ export const CardDetailModal = ({
       toast({
         title: newArchivedState ? "Cartão arquivado" : "Cartão restaurado",
         description: newArchivedState
-          ? "O cartão foi arquivado. Você ainda pode desarquivá-lo." 
+          ? "O cartão foi arquivado. Você ainda pode desarquivá-lo."
           : "O cartão foi restaurado e voltou para a lista",
       });
       // Don't close the modal so users can unarchive if needed
@@ -129,12 +129,12 @@ export const CardDetailModal = ({
         {card.cover && card.cover.size === 'full' && (
           <CardCoverDisplay cover={card.cover} />
         )}
-        
+
         <div className="overflow-y-auto max-h-[90vh]">
           {card.cover && card.cover.size === 'normal' && (
             <CardCoverDisplay cover={card.cover} />
           )}
-          
+
           <DialogHeader className="px-6 pt-6 pb-4">
             <DialogTitle className="sr-only">{card.title}</DialogTitle>
             <DialogDescription className="sr-only">
@@ -160,18 +160,19 @@ export const CardDetailModal = ({
                     {card.title}
                   </h2>
                 )}
-                <p className="text-sm text-muted-foreground mt-1">
-                  na lista <span className="underline">{currentList?.title || 'A Fazer'}</span>
+                <p className="text-sm text-muted-foreground mt-1 flex items-center gap-2">
+                  na lista
+                  <span className="flex items-center gap-1.5 font-medium underline underline-offset-4 decoration-primary/30">
+                    {currentList?.color && (
+                      <span
+                        className="w-2 h-2 rounded-full shadow-sm animate-pulse-subtle"
+                        style={{ backgroundColor: currentList.color }}
+                      />
+                    )}
+                    {currentList?.title || 'A Fazer'}
+                  </span>
                 </p>
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onClose}
-                className="h-8 w-8 flex-shrink-0"
-              >
-                <X className="w-4 h-4" />
-              </Button>
             </div>
           </DialogHeader>
 
@@ -278,7 +279,7 @@ export const CardDetailModal = ({
                       Mover
                     </Button>
                   )}
-                  
+
                   <Button
                     variant="secondary"
                     size="sm"
@@ -289,7 +290,7 @@ export const CardDetailModal = ({
                     <Copy className="w-4 h-4 mr-2" />
                     Copiar
                   </Button>
-                  
+
                   <Button
                     variant="secondary"
                     size="sm"
@@ -309,7 +310,7 @@ export const CardDetailModal = ({
                       </>
                     )}
                   </Button>
-                  
+
                   <Button
                     variant="secondary"
                     size="sm"
@@ -320,7 +321,7 @@ export const CardDetailModal = ({
                     <Share2 className="w-4 h-4 mr-2" />
                     Compartilhar
                   </Button>
-                  
+
                   <Button
                     variant="secondary"
                     size="sm"

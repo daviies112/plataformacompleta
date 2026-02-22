@@ -1,4 +1,4 @@
-import { LayoutDashboard, Package, Users, FolderTree, Menu } from "lucide-react";
+import { LayoutDashboard, Package, Users, FolderTree, Menu, Printer, Settings } from "lucide-react";
 
 interface BottomNavProps {
   currentPage: string;
@@ -8,13 +8,13 @@ interface BottomNavProps {
 export const BottomNav = ({ currentPage, onNavigate }: BottomNavProps) => {
   const navItems = [
     { id: "dashboard", icon: LayoutDashboard, label: "Dashboard" },
-    { id: "produto-list", icon: Package, label: "Produtos" },
-    { id: "cadastro-fornecedor", icon: Users, label: "Cadastros" },
-    { id: "produto-category", icon: FolderTree, label: "Categorias" },
+    { id: "produto-admin-products", icon: Package, label: "Produção" },
+    { id: "produto-print-queue", icon: Printer, label: "Fila" },
+    { id: "printer-config", icon: Settings, label: "Conf. Imp." },
   ];
 
   return (
-    <nav 
+    <nav
       className="fixed bottom-0 left-0 right-0 bg-card border-t border-border safe-area-bottom z-50 shadow-lg"
       data-testid="bottom-nav"
       role="navigation"
@@ -24,7 +24,7 @@ export const BottomNav = ({ currentPage, onNavigate }: BottomNavProps) => {
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = currentPage === item.id;
-          
+
           return (
             <button
               key={item.id}
@@ -44,12 +44,12 @@ export const BottomNav = ({ currentPage, onNavigate }: BottomNavProps) => {
               {isActive && (
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-1 bg-primary rounded-full transition-all duration-200" />
               )}
-              
+
               <div className={`
                 flex items-center justify-center w-10 h-10 rounded-xl
                 transition-all duration-200
-                ${isActive 
-                  ? "bg-primary/10" 
+                ${isActive
+                  ? "bg-primary/10"
                   : "group-hover:bg-muted"
                 }
               `}>
@@ -58,7 +58,7 @@ export const BottomNav = ({ currentPage, onNavigate }: BottomNavProps) => {
                   ${isActive ? "stroke-[2.5] scale-110" : "stroke-2"}
                 `} />
               </div>
-              
+
               <span className={`
                 text-[11px] font-medium transition-all duration-200
                 ${isActive ? "font-semibold" : ""}

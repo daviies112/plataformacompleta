@@ -49,7 +49,11 @@ const STATUS_OPTIONS = [
   { value: 'fulfilled', label: 'Atendido', color: 'bg-blue-100 text-blue-800 border-blue-300' },
 ];
 
-export default function AdminProductRequests() {
+interface AdminProductRequestsProps {
+  embedded?: boolean;
+}
+
+export default function AdminProductRequests({ embedded }: AdminProductRequestsProps) {
   const [requests, setRequests] = useState<ProductRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -68,7 +72,7 @@ export default function AdminProductRequests() {
         credentials: 'include'
       });
       console.log('[AdminProductRequests] Response status:', response.status);
-      
+
       const result = await response.json();
       console.log('[AdminProductRequests] Response body:', result);
 
@@ -151,7 +155,7 @@ export default function AdminProductRequests() {
       (request.product?.reference || '').toLowerCase().includes(searchLower) ||
       (request.reseller?.nome || '').toLowerCase().includes(searchLower) ||
       (request.reseller?.email || '').toLowerCase().includes(searchLower);
-    
+
     return matchesStatus && matchesSearch;
   });
 
@@ -160,13 +164,15 @@ export default function AdminProductRequests() {
   }
 
   return (
-    <div className="space-y-6 p-6">
-      <div>
-        <h1 className="text-3xl font-bold">Solicitações de Produtos</h1>
-        <p className="text-muted-foreground">
-          Gerencie as solicitações de produtos das revendedoras
-        </p>
-      </div>
+    <div className={`space-y-6 ${embedded ? '' : 'p-6'}`}>
+      {!embedded && (
+        <div>
+          <h1 className="text-3xl font-bold">Solicitações de Produtos</h1>
+          <p className="text-muted-foreground">
+            Gerencie as solicitações de produtos das revendedoras
+          </p>
+        </div>
+      )}
 
       <Card>
         <CardHeader>

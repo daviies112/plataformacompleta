@@ -108,6 +108,9 @@ export function useAuth() {
   return {
     user: data?.user || null,
     tenant: data?.tenant || null,
+    // Aliases convenientes para IDs
+    tenantId: data?.tenant?.id || null,
+    userId: data?.user?.id || null,
     isAuthenticated: !!data?.user,
     isLoading,
     error,

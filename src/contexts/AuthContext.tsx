@@ -31,6 +31,9 @@ interface AuthContextType {
   client: Client | null;
   credentials: ClientCredentials | null;
   isAuthenticated: boolean;
+  // Aliases convenientes para IDs
+  tenantId: string | null;
+  userId: string | null;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
   isLoading: boolean;
@@ -398,6 +401,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     client,
     credentials,
     isAuthenticated,
+    // Aliases convenientes para IDs
+    tenantId: user?.tenantId || null,
+    userId: user?.id || null,
     login,
     logout,
     isLoading,

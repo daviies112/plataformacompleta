@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { Sidebar } from "@/features/produto/components/Layout/Sidebar";
 import { Header } from "@/features/produto/components/Layout/Header";
 import { ProductList } from "@/features/produto/components/Products/ProductList";
 import { ProductForm } from "@/features/produto/components/Products/ProductForm";
@@ -57,6 +56,7 @@ export interface Product {
   laborCost?: string;
   wholesalePrice?: string;
   nfeData?: string;
+  tags?: string[];
 }
 
 export interface PrinterSettings {
@@ -124,7 +124,7 @@ export interface Category {
 }
 
 const ProdutoPage = () => {
-  const [currentPage, setCurrentPage] = useState("produto-list");
+  const [currentPage, setCurrentPage] = useState("produto-admin-products");
   const [showProductForm, setShowProductForm] = useState(false);
   const [showSupplierForm, setShowSupplierForm] = useState(false);
   const [showResellerForm, setShowResellerForm] = useState(false);
@@ -297,7 +297,7 @@ const ProdutoPage = () => {
     if (showSupplierForm) return "Cadastro de Fornecedor";
     if (showResellerForm) return "Cadastro de Revendedor";
     if (showCategoryForm) return "Categoria";
-    
+
     switch (currentPage) {
       case "produto-list":
         return "Listar Produto";
@@ -589,7 +589,6 @@ const ProdutoPage = () => {
 
       {/* Desktop Layout */}
       <div className="hidden md:flex h-screen bg-background overflow-hidden">
-        <Sidebar currentPage={currentPage} onNavigate={handleNavigate} />
         <div className="flex-1 flex flex-col overflow-hidden">
           <div className="flex-1 overflow-auto">
             {renderContent()}

@@ -25,7 +25,7 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
     if (!req.session || !req.session.userId) {
       const tempTenantId = `dev-tenant-default`;
       console.warn('⚠️ [DEV] Label Designer: Usando tenant temporário para desenvolvimento');
-      
+
       // Criar sessão temporária se não existir
       if (req.session) {
         req.session.userId = tempTenantId;
@@ -36,10 +36,10 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
     }
     return next();
   }
-  
+
   // Em produção, exigir autenticação real
   if (!req.session || !req.session.userId) {
-    return res.status(401).json({ 
+    return res.status(401).json({
       error: 'Não autenticado',
       redirect: '/login'
     });
@@ -69,22 +69,31 @@ export function attachUserData(req: Request, res: Response, next: NextFunction) 
 // Middleware para verificar se rota é pública (não precisa de autenticação)
 export function isPublicRoute(path: string): boolean {
   // Permitir todas as rotas do Vite e assets
-  if (path.startsWith('/@') || 
-      path.startsWith('/node_modules') ||
-      path.startsWith('/src') ||
-      path.endsWith('.js') ||
-      path.endsWith('.ts') ||
-      path.endsWith('.tsx') ||
-      path.endsWith('.jsx') ||
-      path.endsWith('.css') ||
-      path.endsWith('.json') ||
-      path.endsWith('.png') ||
-      path.endsWith('.jpg') ||
-      path.endsWith('.svg') ||
-      path.endsWith('.ico')) {
+  if (path.startsWith('/@') ||
+    path.startsWith('/node_modules') ||
+    path.startsWith('/src') ||
+    path.endsWith('.js') ||
+    path.endsWith('.ts') ||
+    path.endsWith('.tsx') ||
+    path.endsWith('.jsx') ||
+    path.endsWith('.css') ||
+    path.endsWith('.json') ||
+    path.endsWith('.png') ||
+    path.endsWith('.jpg') ||
+    path.endsWith('.jpeg') ||
+    path.endsWith('.gif') ||
+    path.endsWith('.svg') ||
+    path.endsWith('.ico') ||
+    path.endsWith('.woff') ||
+    path.endsWith('.woff2') ||
+    path.endsWith('.ttf') ||
+    path.endsWith('.eot') ||
+    path.endsWith('.wasm') ||
+    path.endsWith('.map') ||
+    path.endsWith('.mjs')) {
     return true;
   }
-  
+
   const publicRoutes = [
     '/',             // Página inicial / Dashboard (redirecionamento interno)
     '/login',
@@ -110,6 +119,9 @@ export function isPublicRoute(path: string): boolean {
     '/form/',        // Formulário público direto
     '/f/',           // Formulário com token
     '/formulario/',  // Formulário público com slug da empresa
+    '/w/',           // Workspace público (curto)
+    '/workspace/share/', // Workspace público (longo)
+    '/api/public/workspace/', // API de workspace pública
     '/api/n8n',      // API do n8n (tem autenticação própria)
   ];
 
@@ -119,7 +131,7 @@ export function isPublicRoute(path: string): boolean {
   if (normalizedPath === '/api/n8n' || normalizedPath.startsWith('/api/n8n/') || normalizedPath.includes('/api/n8n')) {
     return true;
   }
-  
+
   // Verificar padrões especiais de formulário público
   // /formulario/:companySlug/form/:id ou /:companySlug/form/:id
   if (/^\/formulario\/[^/]+\/form\/[^/]+/.test(path)) {
@@ -128,7 +140,7 @@ export function isPublicRoute(path: string): boolean {
   if (/^\/[^/]+\/form\/[^/]+/.test(path) && !path.startsWith('/api/')) {
     return true;
   }
-  
+
   return publicRoutes.some(route => path.startsWith(route));
 }
 
@@ -145,28 +157,28 @@ export function redirectIfNotAuth(req: Request, res: Response, next: NextFunctio
   if (isPublicRoute(req.path)) {
     return next();
   }
-  
+
   // Se não está autenticado e está tentando acessar página protegida
   if (!req.session || !req.session.userId) {
     // Se é API, SEMPRE retornar 401 JSON
     if (req.path.startsWith('/api/')) {
-      return res.status(401).json({ 
+      return res.status(401).json({
         error: 'Não autenticado',
         redirect: '/login'
       });
     }
-    
+
     // Se é página HTML, redirecionar
     if (req.accepts('html')) {
       return res.redirect('/login');
     }
-    
+
     // Default: 401 JSON
-    return res.status(401).json({ 
+    return res.status(401).json({
       error: 'Não autenticado',
       redirect: '/login'
     });
   }
-  
+
   next();
 }

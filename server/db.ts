@@ -28,15 +28,15 @@ let connectionAttempted = false;
 function initializeDatabase(): void {
   if (connectionAttempted) return;
   connectionAttempted = true;
-  
+
   console.log('🐘 Initializing database connection...');
-  
+
   // Prioridade para o DATABASE_URL dos Secrets
   const databaseUrl = process.env.DATABASE_URL || getDatabaseUrl();
-  
+
   // Se não temos DATABASE_URL mas temos os segredos do Supabase, construímos a URL
   let finalDbUrl = databaseUrl;
-  
+
   const sUrl = process.env.REACT_APP_SUPABASE_URL || process.env.SUPABASE_URL;
   const sKey = process.env.REACT_APP_SUPABASE_SERVICE_ROLE || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.REACT_APP_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
 
@@ -58,17 +58,17 @@ function initializeDatabase(): void {
   if (finalDbUrl) {
     try {
       // Remover query params que podem causar problemas com o driver node-postgres
-      pool = new Pool({ 
+      pool = new Pool({
         connectionString: finalDbUrl,
         connectionTimeoutMillis: 15000,
         max: 20,
-        ssl: { 
+        ssl: {
           rejectUnauthorized: false
         }
       });
-      
+
       db = drizzle(pool, { schema });
-      
+
       pool.query('SELECT NOW()').then(async () => {
         console.log('✅ Database connection established and verified');
         try {
@@ -149,6 +149,21 @@ function initializeDatabase(): void {
               id SERIAL PRIMARY KEY, tenant_id TEXT NOT NULL, client_id TEXT NOT NULL,
               qr_code_data TEXT NOT NULL, created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW()
             );
+            CREATE TABLE IF NOT EXISTS workspace_public_mapping (
+              id TEXT PRIMARY KEY,
+              item_id TEXT NOT NULL,
+              item_type TEXT NOT NULL,
+              tenant_id TEXT NOT NULL,
+              client_id TEXT,
+              is_active BOOLEAN DEFAULT TRUE,
+              settings JSONB DEFAULT '{}',
+              created_at TIMESTAMPTZ DEFAULT NOW(),
+              updated_at TIMESTAMPTZ DEFAULT NOW()
+            );
+            CREATE INDEX IF NOT EXISTS idx_workspace_public_item ON workspace_public_mapping(item_id, item_type);
+            CREATE INDEX IF NOT EXISTS idx_workspace_public_tenant ON workspace_public_mapping(tenant_id);
+
+            CREATE TABLE IF NOT EXISTS leads (
               id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
               tenant_id TEXT NOT NULL,
               telefone TEXT NOT NULL,

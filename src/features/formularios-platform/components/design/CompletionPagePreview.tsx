@@ -12,17 +12,17 @@ interface CompletionPagePreviewProps {
   previewMode?: 'success' | 'failure';
 }
 
-export const CompletionPagePreview = ({ 
-  config, 
-  passed: passedProp, 
-  score: scoreProp, 
+export const CompletionPagePreview = ({
+  config,
+  passed: passedProp,
+  score: scoreProp,
   tier,
-  previewMode 
+  previewMode
 }: CompletionPagePreviewProps) => {
   // If previewMode is provided, use it to determine passed state
   const passed = previewMode ? previewMode === 'success' : (passedProp ?? true);
   const score = scoreProp ?? 85; // Default score for preview
-  
+
   // Use design from config with default values
   const design = config.design || {
     colors: {
@@ -41,10 +41,34 @@ export const CompletionPagePreview = ({
     spacing: "comfortable" as const
   };
 
+  // 🛠️ HELPER: Corrigir URLs do localhost automaticamente
+  const fixLogoUrl = (url: string | null) => {
+    if (!url) return null;
+    if (typeof url !== 'string') return url;
+
+    // Se a URL contém localhost ou 127.0.0.1, extrair apenas o path
+    if (url.includes('localhost:') || url.includes('127.0.0.1:')) {
+      const parts = url.split('/uploads/');
+      if (parts.length > 1) {
+        return '/uploads/' + parts[1];
+      }
+    }
+
+    // Se a URL contém qualquer protocolo (http:// ou https://), extrair apenas o path
+    if (url.includes('://')) {
+      const match = url.match(/\/uploads\/logos\/[^"'\s]+/);
+      if (match) {
+        return match[0];
+      }
+    }
+
+    return url;
+  };
+
   const renderIcon = () => {
     const iconColor = passed ? design.colors.successIcon : design.colors.failureIcon;
     const IconComponent = passed ? CheckCircle2 : XCircle;
-    
+
     return <IconComponent className="h-10 w-10" style={{ color: iconColor }} />;
   };
 
@@ -93,7 +117,7 @@ export const CompletionPagePreview = ({
     <div className="max-w-2xl mx-auto" style={{ fontFamily: design.typography.fontFamily }}>
       <Card
         className={`p-8 shadow-[var(--shadow-luxury)] ${spacingClasses[design.spacing]}`}
-        style={{ 
+        style={{
           backgroundColor: design.colors.background,
           color: design.colors.text,
           borderColor: design.colors.primary
@@ -101,28 +125,27 @@ export const CompletionPagePreview = ({
       >
         {design.logo && (
           <div className={`mb-8 ${design.logoAlign === 'center' ? 'flex justify-center' : design.logoAlign === 'right' ? 'flex justify-end' : ''}`}>
-            <img src={design.logo} alt="Logo" className="h-16 object-contain" />
+            <img src={fixLogoUrl(design.logo) || ''} alt="Logo" className="h-16 object-contain" />
           </div>
         )}
 
         <div className="text-center space-y-6">
-          <div className={`inline-flex items-center justify-center ${
-            (passed ? config.successIconImage : config.failureIconImage) 
-              ? '' 
+          <div className={`inline-flex items-center justify-center ${(passed ? (config as any).successIconImage : (config as any).failureIconImage)
+              ? ''
               : `w-20 h-20 rounded-full ${passed ? 'bg-green-500/20' : 'bg-destructive/20'}`
-          }`}>
+            }`}>
             {renderIcon()}
           </div>
 
           <div>
-            <h2 
+            <h2
               className={`${titleSizeClasses[design.typography.titleSize as keyof typeof titleSizeClasses]} font-bold mb-2`}
               style={{ color: design.colors.text }}
             >
               {config.title}
             </h2>
             {config.subtitle && (
-              <p 
+              <p
                 className={`${textSizeClasses[design.typography.textSize as keyof typeof textSizeClasses]} opacity-70`}
                 style={{ color: design.colors.text }}
               >
@@ -134,7 +157,7 @@ export const CompletionPagePreview = ({
           {config.showTierBadge && tier && passed && (
             <div className="space-y-4">
               <div className="flex items-center justify-center gap-3 p-4 border rounded-lg"
-                style={{ 
+                style={{
                   backgroundColor: `${design.colors.primary}10`,
                   borderColor: `${design.colors.primary}20`
                 }}
@@ -165,7 +188,7 @@ export const CompletionPagePreview = ({
             </div>
           )}
 
-          <p 
+          <p
             className={`${textSizeClasses[design.typography.textSize as keyof typeof textSizeClasses]}`}
             style={{ color: design.colors.text }}
           >
@@ -173,20 +196,20 @@ export const CompletionPagePreview = ({
           </p>
 
           {config.customContent && (
-            <div 
+            <div
               className="p-4 border rounded-lg text-sm"
               dangerouslySetInnerHTML={{ __html: config.customContent }}
-              style={{ 
+              style={{
                 backgroundColor: design.colors.secondary,
                 borderColor: `${design.colors.primary}20`,
-                color: design.colors.text 
+                color: design.colors.text
               }}
             />
           )}
 
           {passed && !config.ctaText && (
             <div className="p-4 border rounded-lg"
-              style={{ 
+              style={{
                 backgroundColor: `${design.colors.primary}10`,
                 borderColor: `${design.colors.primary}20`
               }}

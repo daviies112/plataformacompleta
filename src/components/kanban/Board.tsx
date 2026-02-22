@@ -28,28 +28,28 @@ export const Board = ({ board, onUpdateBoard, filterSidebarOpen, onFilterSidebar
     const cardId = searchParams.get('cardId');
     if (cardId && board.lists) {
       console.log('[Board] Detectado cardId na URL:', cardId);
-      
+
       // Buscar o card nas listas
       for (const list of board.lists) {
         const card = list.cards?.find(c => c.id === cardId);
         if (card) {
           console.log('[Board] Card encontrado, abrindo modal:', card.title);
           setSelectedCard({ card, listId: list.id });
-          
+
           // Remover o cardId da URL para não reabrir sempre
           const newSearchParams = new URLSearchParams(searchParams);
           newSearchParams.delete('cardId');
           setSearchParams(newSearchParams, { replace: true });
-          
+
           toast({
             title: "Card aberto",
             description: `Visualizando: ${card.title}`,
           });
-          
+
           break;
         }
       }
-      
+
       if (!selectedCard) {
         console.warn('[Board] Card não encontrado:', cardId);
       }
@@ -68,11 +68,11 @@ export const Board = ({ board, onUpdateBoard, filterSidebarOpen, onFilterSidebar
       lists: board.lists.map((list) =>
         list.id === selectedCard.listId
           ? {
-              ...list,
-              cards: list.cards.map((card) =>
-                card.id === updatedCard.id ? updatedCard : card
-              ),
-            }
+            ...list,
+            cards: list.cards.map((card) =>
+              card.id === updatedCard.id ? updatedCard : card
+            ),
+          }
           : list
       ),
     };
@@ -89,9 +89,9 @@ export const Board = ({ board, onUpdateBoard, filterSidebarOpen, onFilterSidebar
       lists: board.lists.map((list) =>
         list.id === selectedCard.listId
           ? {
-              ...list,
-              cards: list.cards.filter((card) => card.id !== cardId),
-            }
+            ...list,
+            cards: list.cards.filter((card) => card.id !== cardId),
+          }
           : list
       ),
     };
@@ -145,9 +145,9 @@ export const Board = ({ board, onUpdateBoard, filterSidebarOpen, onFilterSidebar
       lists: board.lists.map((list) =>
         list.id === selectedCard.listId
           ? {
-              ...list,
-              cards: [...list.cards, newCard],
-            }
+            ...list,
+            cards: [...list.cards, newCard],
+          }
           : list
       ),
     };
@@ -165,13 +165,13 @@ export const Board = ({ board, onUpdateBoard, filterSidebarOpen, onFilterSidebar
       lists: board.lists.map((list) =>
         list.id === selectedCard.listId
           ? {
-              ...list,
-              cards: list.cards.map((card) =>
-                card.id === cardId
-                  ? updatedCard
-                  : card
-              ),
-            }
+            ...list,
+            cards: list.cards.map((card) =>
+              card.id === cardId
+                ? updatedCard
+                : card
+            ),
+          }
           : list
       ),
     };
@@ -199,9 +199,9 @@ export const Board = ({ board, onUpdateBoard, filterSidebarOpen, onFilterSidebar
       lists: board.lists.map((list) =>
         list.id === listId
           ? {
-              ...list,
-              cards: [...list.cards, newCard],
-            }
+            ...list,
+            cards: [...list.cards, newCard],
+          }
           : list
       ),
     };
@@ -270,6 +270,17 @@ export const Board = ({ board, onUpdateBoard, filterSidebarOpen, onFilterSidebar
     onUpdateBoard(updatedBoard);
   };
 
+  const handleUpdateList = (listId: string, updates: Partial<List>) => {
+    const updatedBoard = {
+      ...board,
+      lists: board.lists.map((list) =>
+        list.id === listId ? { ...list, ...updates } : list
+      ),
+    };
+
+    onUpdateBoard(updatedBoard);
+  };
+
   const handleAddList = () => {
     if (!newListTitle.trim()) return;
 
@@ -296,7 +307,7 @@ export const Board = ({ board, onUpdateBoard, filterSidebarOpen, onFilterSidebar
 
   const filteredLists = useMemo(() => {
     const nonArchivedLists = board.lists.filter(list => !list.archived);
-    
+
     if (!hasActiveFilters) {
       return nonArchivedLists.map(list => ({
         ...list,
@@ -308,7 +319,7 @@ export const Board = ({ board, onUpdateBoard, filterSidebarOpen, onFilterSidebar
       const filteredCards = list.cards
         .filter(card => !card.archived)
         .filter(card => matchesFilters(card, filters, currentUserId));
-      
+
       return {
         ...list,
         cards: filteredCards
@@ -336,6 +347,7 @@ export const Board = ({ board, onUpdateBoard, filterSidebarOpen, onFilterSidebar
               onCopyList={handleCopyList}
               onDeleteList={handleDeleteList}
               onRenameList={handleRenameList}
+              onUpdateList={handleUpdateList}
               allLists={board.lists.filter(l => !l.archived)}
             />
           ))}
@@ -358,7 +370,7 @@ export const Board = ({ board, onUpdateBoard, filterSidebarOpen, onFilterSidebar
                 data-testid="input-list-title"
               />
               <div className="flex gap-2">
-                <Button 
+                <Button
                   onClick={handleAddList}
                   size="sm"
                   className="bg-primary hover:bg-primary/90"
@@ -366,7 +378,7 @@ export const Board = ({ board, onUpdateBoard, filterSidebarOpen, onFilterSidebar
                 >
                   Adicionar lista
                 </Button>
-                <Button 
+                <Button
                   onClick={() => {
                     setAddingList(false);
                     setNewListTitle('');

@@ -213,6 +213,30 @@ export const SimplifiedFormWizard = ({
     logoAlign: externalWelcomePageConfig?.logoAlign
   });
 
+  // 🛠️ HELPER: Corrigir URLs do localhost automaticamente
+  const fixLogoUrl = (url: string | null) => {
+    if (!url) return null;
+    if (typeof url !== 'string') return url;
+
+    // Se a URL contém localhost ou 127.0.0.1, extrair apenas o path
+    if (url.includes('localhost:') || url.includes('127.0.0.1:')) {
+      const parts = url.split('/uploads/');
+      if (parts.length > 1) {
+        return '/uploads/' + parts[1];
+      }
+    }
+
+    // Se a URL contém qualquer protocolo (http:// ou https://), extrair apenas o path
+    if (url.includes('://')) {
+      const match = url.match(/\/uploads\/logos\/[^"'\s]+/);
+      if (match) {
+        return match[0];
+      }
+    }
+
+    return url;
+  };
+
   const [questions, setQuestions] = useState<QuestionData[]>([]);
   const [editingQuestion, setEditingQuestion] = useState<QuestionData | null>(null);
   const [isAddingQuestion, setIsAddingQuestion] = useState(false);
@@ -763,7 +787,7 @@ export const SimplifiedFormWizard = ({
                     <div className="flex flex-col gap-4">
                       {welcomePage.logo ? (
                         <div className="relative w-full max-w-sm aspect-video rounded-lg border bg-muted flex items-center justify-center overflow-hidden group">
-                          <img src={welcomePage.logo} alt="Logo Preview" className="max-w-full max-h-full object-contain" />
+                          <img src={fixLogoUrl(welcomePage.logo) || ''} alt="Logo Preview" className="max-w-full max-h-full object-contain" />
                           <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                             <Button variant="destructive" size="sm" onClick={removeWelcomeLogo} className="h-9">
                               <Trash2 className="h-4 w-4 mr-2" />

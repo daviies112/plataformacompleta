@@ -37,7 +37,7 @@ import AdminProductRequests from "@/features/revendedora/pages/admin/ProductRequ
 import AdminSettings from "@/features/revendedora/pages/admin/Settings";
 import AdminBranding from "@/features/revendedora/pages/admin/Branding";
 import AdminGamification from "@/features/revendedora/pages/admin/Gamification";
-import AdminGamification from "@/features/revendedora/pages/admin/Gamification";
+
 import AdminSplitTest from "@/features/revendedora/pages/admin/SplitTest";
 import { AdminTags } from "@/features/revendedora/pages/admin/Tags";
 

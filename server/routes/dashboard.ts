@@ -32,14 +32,14 @@ router.get('/dashboard-data', authenticateToken, async (req, res) => {
     // 🔐 ISOLAMENTO MULTI-TENANT: Usar apenas dados da sessão autenticada
     const clientId = req.user!.clientId;
     const tenantId = req.user!.tenantId; // Usar tenantId da sessão, NÃO mapeamento hard-coded
-    
+
     if (!tenantId) {
       return res.status(401).json({
         success: false,
         error: 'Sessão inválida - faça login novamente'
       });
     }
-    
+
     // Testa conexão dinâmica com Supabase primeiro (usando credenciais do cliente)
     const dynamicConnectionTest = await testDynamicSupabaseConnection(clientId);
     if (!dynamicConnectionTest) {
@@ -52,7 +52,7 @@ router.get('/dashboard-data', authenticateToken, async (req, res) => {
         warning: 'Supabase não configurado para este cliente. Configure as credenciais em /configuracoes para visualizar dados reais.'
       });
     }
-    
+
     // Busca dados agregados de todas as 12 tabelas do Supabase
     const aggregatedData = await cacheDashboardData(
       clientId,
@@ -67,7 +67,7 @@ router.get('/dashboard-data', authenticateToken, async (req, res) => {
       console.error('Cache wrapper error for aggregated data, fetching directly:', error);
       return fetchTenantSupabaseData(clientId, tenantId);
     });
-    
+
     // Busca dados legados do clientes_completos para compatibilidade
     const legacyDashboardData = await cacheDashboardData(
       clientId,
@@ -82,7 +82,7 @@ router.get('/dashboard-data', authenticateToken, async (req, res) => {
       console.error('Cache wrapper error for legacy data, using fallback:', error);
       return getDashboardDataFromSupabase(clientId, tenantId);
     });
-    
+
     if (aggregatedData === null && legacyDashboardData === null) {
       // DISABLED MOCK DATA: Return empty data with clear message
       return res.json({
@@ -93,7 +93,7 @@ router.get('/dashboard-data', authenticateToken, async (req, res) => {
         warning: 'Nenhum dado disponível no Supabase. Verifique a configuração e as tabelas do banco de dados.'
       });
     }
-    
+
     res.json({
       success: true,
       data: legacyDashboardData || [],
@@ -117,14 +117,14 @@ router.get('/supabase-summary', authenticateToken, async (req, res) => {
     // 🔐 ISOLAMENTO MULTI-TENANT: Usar apenas dados da sessão autenticada
     const clientId = req.user!.clientId;
     const tenantId = req.user!.tenantId; // Usar tenantId da sessão, NÃO mapeamento hard-coded
-    
+
     if (!tenantId) {
       return res.status(401).json({
         success: false,
         error: 'Sessão inválida - faça login novamente'
       });
     }
-    
+
     // Testa conexão dinâmica com Supabase primeiro
     const dynamicConnectionTest = await testDynamicSupabaseConnection(clientId);
     if (!dynamicConnectionTest) {
@@ -135,10 +135,10 @@ router.get('/supabase-summary', authenticateToken, async (req, res) => {
         data: null
       });
     }
-    
+
     // Busca dados agregados de todas as 12 tabelas
     const aggregatedData = await fetchTenantSupabaseData(clientId, tenantId);
-    
+
     if (!aggregatedData) {
       return res.json({
         success: false,
@@ -147,7 +147,7 @@ router.get('/supabase-summary', authenticateToken, async (req, res) => {
         data: null
       });
     }
-    
+
     res.json({
       success: true,
       connected: true,
@@ -198,20 +198,20 @@ router.get('/client/:clientId', authenticateToken, async (req, res) => {
     const clientId = req.user!.clientId;
     // 🔐 ISOLAMENTO MULTI-TENANT: Usar tenantId da sessão
     const tenantId = req.user!.tenantId;
-    
+
     if (!tenantId) {
       return res.status(401).json({
         success: false,
         error: 'Sessão inválida - faça login novamente'
       });
     }
-    
+
     // Get dynamic Supabase client using user's configured credentials
     const dynamicSupabase = await getDynamicSupabaseClient(clientId);
     if (!dynamicSupabase) {
       // 🔐 SECURITY FIX: Generate unique mock data per tenant using crypto-based seeding
       const mockData = generateMockDashboardData(tenantId);
-      const mockClient = mockData.find(item => 
+      const mockClient = mockData.find(item =>
         item.telefone === paramClientId && item.tenant_id === tenantId
       );
       if (!mockClient) {
@@ -227,7 +227,7 @@ router.get('/client/:clientId', authenticateToken, async (req, res) => {
         warning: 'Usando dados mockados - Supabase não configurado para este cliente'
       });
     }
-    
+
     // Fetch specific client data from Supabase with cache
     // Use unique suffix to avoid collision with /dashboard-data cache
     const clientData = await cacheDashboardData(
@@ -239,7 +239,7 @@ router.get('/client/:clientId', authenticateToken, async (req, res) => {
           .select('*')
           .eq('telefone', paramClientId)
           .single();
-        
+
         if (error) {
           if (error.code === 'PGRST116') {
             throw new Error('CLIENT_NOT_FOUND');
@@ -247,11 +247,11 @@ router.get('/client/:clientId', authenticateToken, async (req, res) => {
           console.error('Supabase query error:', error);
           throw error;
         }
-        
+
         return data;
       },
-      { 
-        compress: false, 
+      {
+        compress: false,
         ttl: 300, // 5 minutes TTL for specific client data
         suffix: `client:${paramClientId}` // Unique cache key per client to avoid collision
       }
@@ -261,14 +261,14 @@ router.get('/client/:clientId', authenticateToken, async (req, res) => {
       }
       throw error;
     });
-    
+
     if (!clientData) {
       return res.status(404).json({
         success: false,
         error: 'Client not found'
       });
     }
-    
+
     res.json({
       success: true,
       data: clientData,
@@ -294,14 +294,14 @@ router.put('/client/:clientId/status', authenticateToken, async (req, res) => {
     const clientId = req.user!.clientId;
     // 🔐 ISOLAMENTO MULTI-TENANT: Usar tenantId da sessão
     const tenantId = req.user!.tenantId;
-    
+
     if (!tenantId) {
       return res.status(401).json({
         success: false,
         error: 'Sessão inválida - faça login novamente'
       });
     }
-    
+
     // Validate input
     const validation = statusUpdateSchema.safeParse(req.body);
     if (!validation.success) {
@@ -311,16 +311,16 @@ router.put('/client/:clientId/status', authenticateToken, async (req, res) => {
         details: validation.error.issues
       });
     }
-    
+
     const { clientId: paramClientId } = req.params;
     const { status } = validation.data;
-    
+
     // Get dynamic Supabase client using user's configured credentials
     const dynamicSupabase = await getDynamicSupabaseClient(clientId);
     if (!dynamicSupabase) {
       // 🔐 SECURITY FIX: Generate unique mock data per tenant using crypto-based seeding
       const mockData = generateMockDashboardData(tenantId);
-      const mockClient = mockData.find(item => 
+      const mockClient = mockData.find(item =>
         item.telefone === paramClientId && item.tenant_id === tenantId
       );
       if (!mockClient) {
@@ -329,7 +329,7 @@ router.put('/client/:clientId/status', authenticateToken, async (req, res) => {
           error: 'Client not found'
         });
       }
-      
+
       // Simulate update in mock mode
       return res.json({
         success: true,
@@ -338,7 +338,7 @@ router.put('/client/:clientId/status', authenticateToken, async (req, res) => {
         warning: 'Usando dados mockados - Supabase não configurado para este cliente'
       });
     }
-    
+
     // Update client status in Supabase
     const { data, error } = await dynamicSupabase
       .from('clientes_completos')
@@ -349,7 +349,7 @@ router.put('/client/:clientId/status', authenticateToken, async (req, res) => {
       .eq('telefone', paramClientId)
       .select()
       .single();
-    
+
     if (error) {
       if (error.code === 'PGRST116') {
         return res.status(404).json({
@@ -384,7 +384,7 @@ router.get('/calendar-events', authenticateToken, async (req, res) => {
     const authClientId = req.user!.clientId;
     // 🔐 ISOLAMENTO MULTI-TENANT: Usar tenantId da sessão
     const tenantId = req.user!.tenantId;
-    
+
     // Cache calendar events aggregation (workspace + iCal)
     const calendarData = await cacheDashboardData(
       authClientId,
@@ -401,12 +401,12 @@ router.get('/calendar-events', authenticateToken, async (req, res) => {
             const { data: databases } = await supabase
               .from('workspace_databases')
               .select('*');
-            
+
             // Buscar boards com cards que tem due dates
             const { data: boards } = await supabase
               .from('workspace_boards')
               .select('*');
-            
+
             // Buscar reuniões do Supabase para o calendário
             const { data: supabaseMeetings, error: meetingsError } = await supabase
               .from('reunioes')
@@ -418,11 +418,11 @@ router.get('/calendar-events', authenticateToken, async (req, res) => {
 
             if (supabaseMeetings && supabaseMeetings.length > 0) {
               console.log(`🎥 Encontradas ${supabaseMeetings.length} reuniões no Supabase (EXIBIÇÃO TOTAL ATIVA)`);
-              
+
               for (const meeting of supabaseMeetings) {
                 // Suportar múltiplos formatos de campo de data
                 const startDate = meeting.data_inicio || meeting.dataHora || meeting.data_hora || meeting.created_at;
-                
+
                 if (!startDate) {
                   console.log(`⚠️ Reunião ${meeting.id} sem data. Dados:`, JSON.stringify(meeting));
                   continue;
@@ -467,323 +467,340 @@ router.get('/calendar-events', authenticateToken, async (req, res) => {
                 }
               }
             }
-        
+
             // Extrair eventos de databases (rows com colunas tipo date)
-        if (databases && databases.length > 0) {
-          for (const db of databases) {
-            try {
-              const columns = typeof db.columns === 'string' ? JSON.parse(db.columns) : db.columns;
-              const rows = typeof db.rows === 'string' ? JSON.parse(db.rows) : db.rows;
-              
-              // Encontrar colunas do tipo date
-              const dateColumns = columns?.filter((col: any) => col.type === 'date') || [];
-              
-              if (dateColumns.length > 0 && rows && rows.length > 0) {
-                for (const row of rows) {
-                  for (const dateCol of dateColumns) {
-                    const dateValue = row[dateCol.id];
-                    if (dateValue) {
-                      // Extrair título da row (primeira coluna text/title)
-                      const titleColumn = columns?.find((c: any) => c.type === 'text' || c.type === 'title');
-                      const title = titleColumn ? row[titleColumn.id] : 'Evento sem título';
-                      
-                      // Extrair data e hora corretamente
-                      let dateOnly = dateValue;
-                      let timeOnly = '00:00';
-                      let hasTime = false;
-                      
-                      // Se dateValue contém horário (formato ISO com 'T'), extrair separadamente
-                      if (dateValue.includes('T')) {
-                        dateOnly = dateValue.split('T')[0];
-                        
-                        // Extrair horário usando timezone de São Paulo
-                        const dateObj = new Date(dateValue);
-                        timeOnly = dateObj.toLocaleTimeString('pt-BR', {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                          timeZone: 'America/Sao_Paulo'
-                        });
-                        hasTime = true;
-                      } else {
-                        // Procurar por coluna de hora associada (time_<dateColId> ou similar)
-                        const timeColumn = columns?.find((c: any) => 
-                          c.type === 'time' && 
-                          (c.id === `time_${dateCol.id}` || c.name?.toLowerCase().includes('hora') || c.name?.toLowerCase().includes('time'))
-                        );
-                        
-                        if (timeColumn && row[timeColumn.id]) {
-                          timeOnly = row[timeColumn.id];
-                          hasTime = true;
-                        }
-                      }
-                      
-                      workspaceEvents.push({
-                        id: `workspace_db_${db.id}_${row.id}_${dateCol.id}`,
-                        title: `📊 ${db.title || 'Database'}: ${title}`,
-                        description: `Evento do workspace database`,
-                        date: dateOnly,
-                        time: timeOnly,
-                        duration: undefined,
-                        isAllDay: !hasTime,
-                        type: 'workspace',
-                        client: 'Workspace Database',
-                        status: 'confirmado',
-                        location: `/workspace`,
-                        meetLink: '',
-                        source: 'workspace_database'
-                      });
-                    }
-                  }
-                }
-              }
-            } catch (parseError) {
-              console.error('Erro ao processar database:', db.id, parseError);
-            }
-          }
-        }
-        
-        // Extrair eventos de boards (cards com dueDate)
-        if (boards && boards.length > 0) {
-          console.log(`📋 Processando ${boards.length} boards...`);
-          for (const board of boards) {
-            try {
-              // Boards têm estrutura: board.lists[].cards[]
-              const lists = typeof board.lists === 'string' ? JSON.parse(board.lists) : board.lists;
-              console.log(`📋 Board "${board.title}": ${lists?.length || 0} listas encontradas`);
-              
-              if (lists && lists.length > 0) {
-                for (const list of lists) {
-                  const cards = list.cards || [];
-                  console.log(`   Lista "${list.title}": ${cards.length} cards`);
-                  
-                  if (cards && cards.length > 0) {
-                    for (const card of cards) {
-                      // Suportar múltiplas variantes do campo de data
-                      const dueDate = card.dueDate || card.due_date || card.properties?.due_date || card.properties?.dueDate;
-                      
-                      if (dueDate) {
-                        // Extrair apenas a parte da data (yyyy-mm-dd) se for timestamp ISO
-                        const dateOnly = dueDate.split('T')[0];
-                        
-                        // Extrair horário: usar dueTime se existir, senão extrair do dueDate
-                        let timeOnly = card.dueTime;
-                        if (!timeOnly && dueDate.includes('T')) {
-                          // Se dueDate tem horário (formato ISO), extrair usando timezone de São Paulo
-                          const dueDateObj = new Date(dueDate);
-                          timeOnly = dueDateObj.toLocaleTimeString('pt-BR', {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                            timeZone: 'America/Sao_Paulo'
+            if (databases && databases.length > 0) {
+              for (const db of databases) {
+                try {
+                  const columns = typeof db.columns === 'string' ? JSON.parse(db.columns) : db.columns;
+                  const rows = typeof db.rows === 'string' ? JSON.parse(db.rows) : db.rows;
+
+                  // Encontrar colunas do tipo date
+                  const dateColumns = columns?.filter((col: any) => col.type === 'date') || [];
+
+                  if (dateColumns.length > 0 && rows && rows.length > 0) {
+                    for (const row of rows) {
+                      for (const dateCol of dateColumns) {
+                        const dateValue = row[dateCol.id];
+                        if (dateValue) {
+                          // Extrair título da row (primeira coluna text/title)
+                          const titleColumn = columns?.find((c: any) => c.type === 'text' || c.type === 'title');
+                          const title = titleColumn ? row[titleColumn.id] : 'Evento sem título';
+
+                          // Extrair data e hora corretamente
+                          let dateOnly = dateValue;
+                          let timeOnly = '00:00';
+                          let hasTime = false;
+
+                          // Se dateValue contém horário (formato ISO com 'T'), extrair separadamente
+                          if (dateValue.includes('T')) {
+                            dateOnly = dateValue.split('T')[0];
+
+                            // Extrair horário usando timezone de São Paulo
+                            const dateObj = new Date(dateValue);
+                            timeOnly = dateObj.toLocaleTimeString('pt-BR', {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              timeZone: 'America/Sao_Paulo'
+                            });
+                            hasTime = true;
+                          } else {
+                            // Procurar por coluna de hora associada (time_<dateColId> ou similar)
+                            const timeColumn = columns?.find((c: any) =>
+                              c.type === 'time' &&
+                              (c.id === `time_${dateCol.id}` || c.name?.toLowerCase().includes('hora') || c.name?.toLowerCase().includes('time'))
+                            );
+
+                            if (timeColumn && row[timeColumn.id]) {
+                              timeOnly = row[timeColumn.id];
+                              hasTime = true;
+                            }
+                          }
+
+                          workspaceEvents.push({
+                            id: `workspace_db_${db.id}_${row.id}_${dateCol.id}`,
+                            title: `📊 ${db.title || 'Database'}: ${title}`,
+                            description: `Evento do workspace database`,
+                            date: dateOnly,
+                            time: timeOnly,
+                            duration: undefined,
+                            isAllDay: !hasTime,
+                            type: 'workspace',
+                            client: 'Workspace Database',
+                            status: 'confirmado',
+                            location: `/workspace`,
+                            meetLink: '',
+                            source: 'workspace_database'
                           });
                         }
-                        
-                        // Se ainda não tiver horário, usar 00:00
-                        if (!timeOnly) {
-                          timeOnly = '00:00';
-                        }
-                        
-                        workspaceEvents.push({
-                          id: `workspace_board_${board.id}_${card.id}`,
-                          title: `📋 ${card.title || 'Card sem título'}`,
-                          description: card.description || `Card do board "${board.title}"`,
-                          date: dateOnly,
-                          time: timeOnly,
-                          duration: undefined,
-                          isAllDay: !card.dueTime && !dueDate.includes('T'), // All-day se não tiver horário
-                          type: 'workspace',
-                          client: board.title || 'Workspace Board',
-                          status: card.completed ? 'concluído' : 'pendente',
-                          location: `/workspace`,
-                          meetLink: '',
-                          source: 'workspace_board'
-                        });
-                        console.log(`     ✅ Evento extraído: "${card.title}" em ${dateOnly} às ${timeOnly}`);
                       }
                     }
                   }
+                } catch (parseError) {
+                  console.error('Erro ao processar database:', db.id, parseError);
                 }
               }
-            } catch (parseError) {
-              console.error('❌ Erro ao processar board:', board.id, parseError);
-            }
-          }
-        }
-        
-        console.log(`✅ Workspace: ${workspaceEvents.length} eventos encontrados`);
-      }
-    } catch (workspaceError) {
-      console.error('Erro ao buscar eventos do workspace:', workspaceError);
-    }
-
-    // ============================================================================
-    // MEETING EVENTS - Buscar reuniões agendadas do sistema 100ms
-    // ============================================================================
-    let meetingEvents: any[] = [];
-    try {
-      const tenantId = req.user!.tenantId;
-      console.log(`🎥 Buscando reuniões para tenantId: ${tenantId}`);
-      const { db } = await import('../db');
-      const meetings = await db.select().from(reunioes)
-        .where(eq(reunioes.tenantId, tenantId))
-        .orderBy(desc(reunioes.dataInicio));
-
-      if (meetings && meetings.length > 0) {
-        console.log(`🎥 Encontradas ${meetings.length} reuniões no banco de dados`);
-        for (const meeting of meetings) {
-          try {
-            const startDate = meeting.dataInicio;
-            if (!startDate) {
-              console.log(`⚠️ Reunião ${meeting.id} sem data de início`);
-              continue;
             }
 
-            const dateObj = new Date(startDate);
-            const dateOnly = dateObj.toISOString().split('T')[0];
-            const timeOnly = dateObj.toLocaleTimeString('pt-BR', {
-              hour: '2-digit',
-              minute: '2-digit',
-              timeZone: 'America/Sao_Paulo'
-            });
+            // Extrair eventos de boards (cards com dueDate)
+            if (boards && boards.length > 0) {
+              console.log(`📋 Processando ${boards.length} boards...`);
+              for (const board of boards) {
+                try {
+                  // Boards têm estrutura: board.lists[].cards[]
+                  const lists = typeof board.lists === 'string' ? JSON.parse(board.lists) : board.lists;
+                  console.log(`📋 Board "${board.title}": ${lists?.length || 0} listas encontradas`);
 
-            console.log(`✅ Adicionando reunião: ${meeting.titulo} em ${dateOnly} ${timeOnly}`);
+                  if (lists && lists.length > 0) {
+                    for (const list of lists) {
+                      const cards = list.cards || [];
+                      console.log(`   Lista "${list.title}": ${cards.length} cards`);
 
-            meetingEvents.push({
-              id: `meeting_${meeting.id}`,
-              title: `🎥 Reunião: ${meeting.titulo || 'Sem título'}`,
-              description: meeting.descricao || `Reunião agendada via 100ms`,
-              date: dateOnly,
-              time: timeOnly,
-              duration: meeting.duracao || 60,
-              isAllDay: false,
-              type: 'video',
-              client: meeting.nome || 'Sistema de Reunião',
-              status: meeting.status || 'agendada',
-              location: `/reuniao/${meeting.id}`,
-              meetLink: `/reuniao/${meeting.id}`,
-              source: 'meeting_system'
-            });
-          } catch (meetingProcessError) {
-            console.error('Erro ao processar reunião:', meeting.id, meetingProcessError);
+                      if (cards && cards.length > 0) {
+                        for (const card of cards) {
+                          // Suportar múltiplas variantes do campo de data (camelCase, snake_case, nested)
+                          // Com as mudanças no /load, agora deve vir majoritariamente como camelCase
+                          const dueDate = card.dueDate || card.due_date || card.properties?.dueDate || card.properties?.due_date;
+
+                          if (dueDate) {
+                            try {
+                              const dueDateObj = new Date(dueDate);
+                              if (isNaN(dueDateObj.getTime())) continue;
+
+                              // Formato ISO para o calendário: YYYY-MM-DD
+                              const year = dueDateObj.getFullYear();
+                              const month = String(dueDateObj.getMonth() + 1).padStart(2, '0');
+                              const day = String(dueDateObj.getDate()).padStart(2, '0');
+                              const dateOnly = `${year}-${month}-${day}`;
+
+                              // Extrair horário: PRIORIDADE para dueTime (camelCase), depois variantes
+                              let timeOnly = card.dueTime || card.due_time || card.properties?.dueTime || card.properties?.due_time;
+
+                              let hasExplicitTime = !!timeOnly && timeOnly !== '00:00';
+
+                              if (!hasExplicitTime && typeof dueDate === 'string' && dueDate.includes('T')) {
+                                // Se dueDate tem horário (formato ISO), extrair se não for meia-noite exata ou se for o único dado
+                                const extractedTime = dueDateObj.toLocaleTimeString('pt-BR', {
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                  timeZone: 'America/Sao_Paulo'
+                                });
+
+                                if (extractedTime !== '00:00') {
+                                  timeOnly = extractedTime;
+                                  hasExplicitTime = true;
+                                }
+                              }
+
+                              // Se ainda não tiver horário, usar 00:00 mas marcar como AllDay
+                              if (!timeOnly) {
+                                timeOnly = '00:00';
+                              }
+
+                              workspaceEvents.push({
+                                id: `workspace_board_${board.id}_${card.id}`,
+                                title: `📋 ${card.title || card.titulo || card.name || card.nome || 'Card sem título'}`,
+                                description: card.description || card.descricao || `Card do board "${board.title}"`,
+                                date: dateOnly,
+                                time: timeOnly,
+                                duration: undefined,
+                                isAllDay: !hasExplicitTime,
+                                type: 'workspace',
+                                client: board.title || 'Workspace Board',
+                                status: card.completed ? 'concluído' : 'pendente',
+                                location: `/workspace`,
+                                meetLink: '',
+                                source: 'workspace_board'
+                              });
+                            } catch (err) {
+                              console.error(`❌ Erro ao processar card ${card.id}:`, err);
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                } catch (parseError) {
+                  console.error('❌ Erro ao processar board:', board.id, parseError);
+                }
+              }
+            }
+
+            console.log(`✅ Workspace: ${workspaceEvents.length} eventos encontrados`);
           }
+        } catch (workspaceError) {
+          console.error('Erro ao buscar eventos do workspace:', workspaceError);
         }
-      } else {
-        console.log(`ℹ️ Nenhuma reunião encontrada para o tenant ${tenantId}`);
-      }
-      console.log(`✅ Reuniões: ${meetingEvents.length} eventos processados`);
-    } catch (meetingError) {
-      console.error('Erro ao buscar reuniões do sistema:', meetingError);
-    }
-    
-    // ============================================================================
-    // ICAL EVENTS - Buscar eventos do iCal (se configurado)
-    // ============================================================================
-    
-    // SEMPRE processar iCal como complemento
-    let icalEvents = [];
-    try {
-        const icalUrl = process.env.ICAL_URL;
-        
-        if (!icalUrl) {
-          console.warn('ICAL_URL não configurado - pulando integração iCal');
-        } else {
-          const response = await fetch(icalUrl);
-          const icalData = await response.text();
-        const parsedData = ical.sync.parseICS(icalData);
-        
-        const now = new Date();
-        const sevenDaysAgo = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
-        const thirtyDaysFromNow = new Date(now.getTime() + (30 * 24 * 60 * 60 * 1000));
-        
-        for (const key in parsedData) {
-          const event = parsedData[key];
-          if (event.type === 'VEVENT') {
-            const startDate = new Date(event.start);
-            const endDate = new Date(event.end);
-            
-            // Filtrar eventos dentro do mesmo range do Google Calendar (últimos 7 dias + próximos 30 dias)
-            if (startDate >= sevenDaysAgo && startDate <= thirtyDaysFromNow) {
-              // Verificar se é evento de dia inteiro de forma mais robusta
-              const isAllDay = !(event.start instanceof Date && event.start.getHours !== undefined) || 
-                             (typeof event.start === 'string' && !event.start.includes('T'));
-              const durationMinutes = isAllDay ? undefined : Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60));
-              
-              icalEvents.push({
-                id: event.uid || `ical_${Math.random().toString(36).substr(2, 9)}`,
-                title: event.summary || 'Evento sem título',
-                description: event.description || '',
-                date: startDate.toISOString().split('T')[0],
-                time: isAllDay ? 'Dia todo' : startDate.toLocaleTimeString('pt-BR', { 
-                  hour: '2-digit', 
+
+        // ============================================================================
+        // MEETING EVENTS - Buscar reuniões agendadas do sistema 100ms
+        // ============================================================================
+        let meetingEvents: any[] = [];
+        try {
+          const tenantId = req.user!.tenantId;
+          console.log(`🎥 Buscando reuniões para tenantId: ${tenantId}`);
+          const { db } = await import('../db');
+          const meetings = await db.select().from(reunioes)
+            .where(eq(reunioes.tenantId, tenantId))
+            .orderBy(desc(reunioes.dataInicio));
+
+          if (meetings && meetings.length > 0) {
+            console.log(`🎥 Encontradas ${meetings.length} reuniões no banco de dados`);
+            for (const meeting of meetings) {
+              try {
+                const startDate = meeting.dataInicio;
+                if (!startDate) {
+                  console.log(`⚠️ Reunião ${meeting.id} sem data de início`);
+                  continue;
+                }
+
+                const dateObj = new Date(startDate);
+                const dateOnly = dateObj.toISOString().split('T')[0];
+                const timeOnly = dateObj.toLocaleTimeString('pt-BR', {
+                  hour: '2-digit',
                   minute: '2-digit',
                   timeZone: 'America/Sao_Paulo'
-                }),
-                duration: durationMinutes,
-                isAllDay: isAllDay,
-                type: (event.description && event.description.includes('meet.google.com')) || (event.location && event.location.includes('meet.google.com')) ? 'video' : 'presential',
-                client: event.organizer?.name || event.organizer?.email || 'Não informado',
-                status: 'confirmado',
-                location: event.location || '',
-                meetLink: (() => {
-                  // Procurar o link do Google Meet na descrição ou location
-                  const desc = event.description || '';
-                  const loc = event.location || '';
-                  const meetMatch = (desc + ' ' + loc).match(/https:\/\/meet\.google\.com\/[a-z0-9-]+/i);
-                  return meetMatch ? meetMatch[0] : '';
-                })()
-              });
+                });
+
+                console.log(`✅ Adicionando reunião: ${meeting.titulo} em ${dateOnly} ${timeOnly}`);
+
+                meetingEvents.push({
+                  id: `meeting_${meeting.id}`,
+                  title: `🎥 Reunião: ${meeting.titulo || 'Sem título'}`,
+                  description: meeting.descricao || `Reunião agendada via 100ms`,
+                  date: dateOnly,
+                  time: timeOnly,
+                  duration: meeting.duracao || 60,
+                  isAllDay: false,
+                  type: 'video',
+                  client: meeting.nome || 'Sistema de Reunião',
+                  status: meeting.status || 'agendada',
+                  location: `/reuniao/${meeting.id}`,
+                  meetLink: `/reuniao/${meeting.id}`,
+                  source: 'meeting_system'
+                });
+              } catch (meetingProcessError) {
+                console.error('Erro ao processar reunião:', meeting.id, meetingProcessError);
+              }
+            }
+          } else {
+            console.log(`ℹ️ Nenhuma reunião encontrada para o tenant ${tenantId}`);
+          }
+          console.log(`✅ Reuniões: ${meetingEvents.length} eventos processados`);
+        } catch (meetingError) {
+          console.error('Erro ao buscar reuniões do sistema:', meetingError);
+        }
+
+        // ============================================================================
+        // ICAL EVENTS - Buscar eventos do iCal (se configurado)
+        // ============================================================================
+
+        // SEMPRE processar iCal como complemento
+        let icalEvents = [];
+        try {
+          const icalUrl = process.env.ICAL_URL;
+
+          if (!icalUrl) {
+            console.warn('ICAL_URL não configurado - pulando integração iCal');
+          } else {
+            const response = await fetch(icalUrl);
+            const icalData = await response.text();
+            const parsedData = ical.sync.parseICS(icalData);
+
+            const now = new Date();
+            const sevenDaysAgo = new Date(now.getTime() - (7 * 24 * 60 * 60 * 1000));
+            const thirtyDaysFromNow = new Date(now.getTime() + (30 * 24 * 60 * 60 * 1000));
+
+            for (const key in parsedData) {
+              const event = parsedData[key];
+              if (event.type === 'VEVENT') {
+                const startDate = new Date(event.start);
+                const endDate = new Date(event.end);
+
+                // Filtrar eventos dentro do mesmo range do Google Calendar (últimos 7 dias + próximos 30 dias)
+                if (startDate >= sevenDaysAgo && startDate <= thirtyDaysFromNow) {
+                  // Verificar se é evento de dia inteiro de forma mais robusta
+                  const isAllDay = !(event.start instanceof Date && event.start.getHours !== undefined) ||
+                    (typeof event.start === 'string' && !event.start.includes('T'));
+                  const durationMinutes = isAllDay ? undefined : Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60));
+
+                  icalEvents.push({
+                    id: event.uid || `ical_${Math.random().toString(36).substr(2, 9)}`,
+                    title: event.summary || 'Evento sem título',
+                    description: event.description || '',
+                    date: startDate.toISOString().split('T')[0],
+                    time: isAllDay ? 'Dia todo' : startDate.toLocaleTimeString('pt-BR', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      timeZone: 'America/Sao_Paulo'
+                    }),
+                    duration: durationMinutes,
+                    isAllDay: isAllDay,
+                    type: (event.description && event.description.includes('meet.google.com')) || (event.location && event.location.includes('meet.google.com')) ? 'video' : 'presential',
+                    client: event.organizer?.name || event.organizer?.email || 'Não informado',
+                    status: 'confirmado',
+                    location: event.location || '',
+                    meetLink: (() => {
+                      // Procurar o link do Google Meet na descrição ou location
+                      const desc = event.description || '';
+                      const loc = event.location || '';
+                      const meetMatch = (desc + ' ' + loc).match(/https:\/\/meet\.google\.com\/[a-z0-9-]+/i);
+                      return meetMatch ? meetMatch[0] : '';
+                    })()
+                  });
+                }
+              }
+            }
+
+            console.log(`iCal encontrou ${icalEvents.length} eventos`);
+            if (icalEvents.length > 0) {
+              console.log('Primeiro evento do iCal:', JSON.stringify(icalEvents[0], null, 2));
             }
           }
+        } catch (icalError) {
+          console.error('Erro ao buscar dados do iCal:', icalError);
         }
-        
-        console.log(`iCal encontrou ${icalEvents.length} eventos`);
-        if (icalEvents.length > 0) {
-          console.log('Primeiro evento do iCal:', JSON.stringify(icalEvents[0], null, 2));
-        }
-        }
-    } catch (icalError) {
-      console.error('Erro ao buscar dados do iCal:', icalError);
-    }
 
-    // Combinar eventos do iCal, Workspace e Reuniões
-    const allEvents = [...icalEvents, ...workspaceEvents, ...meetingEvents];
-    
-    // Remover duplicatas baseado no título e data
-    const uniqueEvents = allEvents.filter((event, index, arr) => 
-      index === arr.findIndex(e => e.id === event.id || (e.title === event.title && e.date === event.date && e.time === event.time))
-    );
-    
-    // Ordenar todos os eventos por data e hora
-    uniqueEvents.sort((a, b) => {
-      const dateA = new Date(a.date + 'T' + (a.time && a.time !== 'Dia todo' ? a.time : '00:00') + ':00');
-      const dateB = new Date(b.date + 'T' + (b.time && b.time !== 'Dia todo' ? b.time : '00:00') + ':00');
-      return dateA.getTime() - dateB.getTime();
-    });
-    
-    console.log(`Total de eventos únicos: ${uniqueEvents.length}`);
-    console.log(`  - iCal: ${icalEvents.length}`);
-    console.log(`  - Workspace: ${workspaceEvents.length}`);
-    if (uniqueEvents.length > 0) {
-      console.log('Eventos finais processados:', uniqueEvents.map(e => ({ title: e.title, date: e.date, time: e.time })));
-    }
-    
-    return {
-      success: true,
-      data: uniqueEvents,
-      timestamp: new Date().toISOString(),
-      source: 'integrated',
-      sources: {
-        ical: icalEvents.length,
-        workspace: workspaceEvents.length,
-        meetings: meetingEvents.length,
-        total_unique: uniqueEvents.length
-      },
-      total: uniqueEvents.length
-    };
+        // Combinar eventos do iCal, Workspace e Reuniões
+        const allEvents = [...icalEvents, ...workspaceEvents, ...meetingEvents];
+
+        // Remover duplicatas baseado no título e data
+        const uniqueEvents = allEvents.filter((event, index, arr) =>
+          index === arr.findIndex(e => e.id === event.id || (e.title === event.title && e.date === event.date && e.time === event.time))
+        );
+
+        // Ordenar todos os eventos por data e hora
+        uniqueEvents.sort((a, b) => {
+          const dateA = new Date(a.date + 'T' + (a.time && a.time !== 'Dia todo' ? a.time : '00:00') + ':00');
+          const dateB = new Date(b.date + 'T' + (b.time && b.time !== 'Dia todo' ? b.time : '00:00') + ':00');
+          return dateA.getTime() - dateB.getTime();
+        });
+
+        console.log(`Total de eventos únicos: ${uniqueEvents.length}`);
+        console.log(`  - iCal: ${icalEvents.length}`);
+        console.log(`  - Workspace: ${workspaceEvents.length}`);
+        if (uniqueEvents.length > 0) {
+          console.log('Eventos finais processados:', uniqueEvents.map(e => ({ title: e.title, date: e.date, time: e.time })));
+        }
+
+        return {
+          success: true,
+          data: uniqueEvents,
+          timestamp: new Date().toISOString(),
+          source: 'integrated',
+          sources: {
+            ical: icalEvents.length,
+            workspace: workspaceEvents.length,
+            meetings: meetingEvents.length,
+            total_unique: uniqueEvents.length
+          },
+          total: uniqueEvents.length
+        };
       },
       { compress: true, suffix: 'calendar' }
     ).catch(async (error) => {
       console.error('❌ Cache error for calendar events, using fallback:', error);
-      
+
       // Graceful degradation - buscar workspace events sem cache
       let workspaceEvents: any[] = [];
       try {
@@ -795,7 +812,7 @@ router.get('/calendar-events', authenticateToken, async (req, res) => {
           const { data: boards } = await supabase
             .from('workspace_boards')
             .select('*');
-          
+
           // Processar databases com colunas de data (simplificado para fallback)
           if (databases && databases.length > 0) {
             for (const db of databases) {
@@ -803,7 +820,7 @@ router.get('/calendar-events', authenticateToken, async (req, res) => {
                 const columns = typeof db.columns === 'string' ? JSON.parse(db.columns) : db.columns;
                 const rows = typeof db.rows === 'string' ? JSON.parse(db.rows) : db.rows;
                 const dateColumns = columns?.filter((col: any) => col.type === 'date') || [];
-                
+
                 if (dateColumns.length > 0 && rows && rows.length > 0) {
                   for (const row of rows) {
                     for (const dateCol of dateColumns) {
@@ -811,7 +828,7 @@ router.get('/calendar-events', authenticateToken, async (req, res) => {
                       if (dateValue) {
                         const titleColumn = columns?.find((c: any) => c.type === 'text' || c.type === 'title');
                         const title = titleColumn ? row[titleColumn.id] : 'Evento sem título';
-                        
+
                         workspaceEvents.push({
                           id: `workspace_db_${db.id}_${row.id}_${dateCol.id}`,
                           title: `📊 ${db.title || 'Database'}: ${title}`,
@@ -838,7 +855,7 @@ router.get('/calendar-events', authenticateToken, async (req, res) => {
       } catch (workspaceError) {
         console.error('Erro ao buscar eventos do workspace no fallback:', workspaceError);
       }
-      
+
       return {
         success: true,
         data: workspaceEvents.length > 0 ? workspaceEvents : [{
@@ -864,7 +881,7 @@ router.get('/calendar-events', authenticateToken, async (req, res) => {
         total: workspaceEvents.length || 1
       };
     });
-    
+
     // Return cached data
     res.json(calendarData);
 
@@ -884,7 +901,7 @@ router.get('/test-connections', authenticateToken, async (req, res) => {
     // 🔐 ISOLAMENTO MULTI-TENANT: Usar apenas dados da sessão autenticada
     const clientId = req.user!.clientId;
     const tenantId = req.user!.tenantId;
-    
+
     if (!tenantId) {
       return res.status(401).json({
         success: false,
@@ -908,11 +925,11 @@ router.get('/test-connections', authenticateToken, async (req, res) => {
       if (supabaseCredentials) {
         connectionResults.supabase.hasCredentials = true;
         const supabaseConnected = await testDynamicSupabaseConnection(clientId);
-        
+
         if (supabaseConnected) {
           connectionResults.supabase.status = 'connected';
           connectionResults.supabase.message = 'Conexão com Supabase estabelecida com sucesso';
-          
+
           // Buscar dados reais do dashboard
           try {
             const realData = await getDashboardDataFromSupabase(clientId, tenantId);
@@ -944,12 +961,12 @@ router.get('/test-connections', authenticateToken, async (req, res) => {
       const whatsappCredentials = getWhatsAppCredentials(clientId);
       if (whatsappCredentials && whatsappCredentials.apiKey && whatsappCredentials.phoneNumber) {
         connectionResults.whatsapp.hasCredentials = true;
-        
+
         try {
           // Test WhatsApp API with a simple status check
           // This is a placeholder - you would replace with actual WhatsApp API endpoint
           const testUrl = `https://api.evolution.com.br/instance/status`; // Example URL
-          
+
           const response = await fetch(testUrl, {
             method: 'GET',
             headers: {
@@ -981,14 +998,14 @@ router.get('/test-connections', authenticateToken, async (req, res) => {
     }
 
     // Determine overall status
-    const hasActiveConnection = connectionResults.supabase.status === 'connected' || 
-                               connectionResults.whatsapp.status === 'connected';
+    const hasActiveConnection = connectionResults.supabase.status === 'connected' ||
+      connectionResults.whatsapp.status === 'connected';
 
     if (hasActiveConnection) {
       connectionResults.overall_status = 'connected';
     } else {
-      const hasPartialConnection = connectionResults.supabase.status === 'partial' || 
-                                  connectionResults.whatsapp.status === 'partial';
+      const hasPartialConnection = connectionResults.supabase.status === 'partial' ||
+        connectionResults.whatsapp.status === 'partial';
       connectionResults.overall_status = hasPartialConnection ? 'partial' : 'error';
     }
 
@@ -1029,12 +1046,12 @@ router.get('/test-integrations', async (req, res) => {
     });
   }
   // DEVELOPMENT ENDPOINT: Verificar se Supabase está configurado em environment variables
-  const supabaseConfigured = !!(process.env.REACT_APP_SUPABASE_URL || process.env.SUPABASE_URL) && 
-                              !!(process.env.REACT_APP_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY);
+  const supabaseConfigured = !!(process.env.REACT_APP_SUPABASE_URL || process.env.SUPABASE_URL) &&
+    !!(process.env.REACT_APP_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY);
   if (supabaseConfigured) {
     console.log('✅ Supabase configurado via environment variables');
   }
-  
+
   const results = {
     timestamp: new Date().toISOString(),
     supabase: { status: 'unknown', message: '' },
@@ -1055,7 +1072,7 @@ router.get('/test-integrations', async (req, res) => {
       const { error } = await supabaseClient
         .from('clientes_completos')
         .select('*', { count: 'exact', head: true });
-      
+
       if (!error) {
         results.supabase = { status: 'connected', message: 'Successfully connected to Supabase' };
       } else {
@@ -1107,40 +1124,40 @@ router.get('/check-new-clients', authenticateToken, async (req, res) => {
     const clientId = req.user!.clientId;
     // 🔐 ISOLAMENTO MULTI-TENANT: Usar tenantId da sessão
     const tenantId = req.user!.tenantId;
-    
+
     if (!tenantId) {
       return res.status(401).json({
         success: false,
         error: 'Sessão inválida - faça login novamente'
       });
     }
-    
+
     console.log(`🔍 Verificando novos clientes para cliente ${clientId} (tenant: ${tenantId})`);
-    
+
     // Limpar cache expirado antes da verificação
     cleanExpiredCache();
-    
+
     // Detectar novos clientes
     const detection = await detectNewClients(clientId, tenantId);
-    
+
     let processResults = [];
-    
+
     // Se existem novos clientes e o processamento automático está habilitado
     if (detection.newClients.length > 0) {
       const shouldProcessAutomatically = req.query.autoProcess !== 'false'; // Default é true
-      
+
       if (shouldProcessAutomatically) {
         console.log(`🚀 Processando ${detection.newClients.length} novos clientes automaticamente...`);
-        
+
         try {
           processResults = await processNewClients(clientId, detection.newClients);
-          
+
           // Log dos resultados
           const successful = processResults.filter(r => r.success).length;
           const failed = processResults.filter(r => !r.success).length;
-          
+
           console.log(`✅ Processamento concluído: ${successful} sucessos, ${failed} falhas`);
-          
+
         } catch (processError) {
           console.error('❌ Erro no processamento automático:', processError);
           // Não falhar a resposta toda por erro no processamento
@@ -1153,10 +1170,10 @@ router.get('/check-new-clients', authenticateToken, async (req, res) => {
         console.log(`⏸️ Processamento automático desabilitado via query parameter`);
       }
     }
-    
+
     // Estatísticas do cache para debugging
     const cacheStats = getCacheStats();
-    
+
     res.json({
       success: true,
       detection: {
@@ -1184,10 +1201,10 @@ router.get('/check-new-clients', authenticateToken, async (req, res) => {
       },
       timestamp: new Date().toISOString()
     });
-    
+
   } catch (error) {
     console.error('❌ Erro na detecção de novos clientes:', error);
-    
+
     res.status(500).json({
       success: false,
       error: 'Erro interno na detecção de novos clientes',
@@ -1203,16 +1220,16 @@ router.get('/cache-stats', authenticateToken, async (req, res) => {
     const clientId = req.user!.clientId;
     // 🔐 ISOLAMENTO MULTI-TENANT: Usar tenantId da sessão
     const tenantId = req.user!.tenantId;
-    
+
     if (!tenantId) {
       return res.status(401).json({
         success: false,
         error: 'Sessão inválida - faça login novamente'
       });
     }
-    
+
     const stats = getCacheStats();
-    
+
     res.json({
       success: true,
       clientId,
@@ -1220,7 +1237,7 @@ router.get('/cache-stats', authenticateToken, async (req, res) => {
       cache: stats,
       timestamp: new Date().toISOString()
     });
-    
+
   } catch (error) {
     console.error('Erro ao obter estatísticas do cache:', error);
     res.status(500).json({

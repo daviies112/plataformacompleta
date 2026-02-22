@@ -33,8 +33,8 @@ export default function VerFormularios() {
     queryKey: ["/api/forms"],
   });
 
-  const forms = Array.isArray(formsResponse) 
-    ? formsResponse 
+  const forms = Array.isArray(formsResponse)
+    ? formsResponse
     : formsResponse?.forms || [];
 
   // Buscar formulário ativo
@@ -53,7 +53,7 @@ export default function VerFormularios() {
         const userData = localStorage.getItem('user_data');
         const tid = userData ? JSON.parse(userData)?.tenantId : (localStorage.getItem('tenantId') || localStorage.getItem('tenant_id'));
         if (tid) headers["x-tenant-id"] = tid;
-      } catch {}
+      } catch { }
       return fetch("/api/formularios/config/ativo", {
         method: "PUT",
         headers,
@@ -89,12 +89,18 @@ export default function VerFormularios() {
   });
 
   // Copiar link do formulário usando slug quando disponível
-  const copyFormLink = (form: any) => {
+  const copyFormLink = async (form: any) => {
     const link = getFormUrl(form, companySlug);
-    navigator.clipboard.writeText(link);
-    setCopiedId(form.id);
-    toast.success("Link copiado!");
-    setTimeout(() => setCopiedId(null), 2000);
+    const { copyToClipboard } = await import('@/lib/clipboard');
+
+    const success = await copyToClipboard(link);
+    if (success) {
+      setCopiedId(form.id);
+      toast.success("Link copiado!");
+      setTimeout(() => setCopiedId(null), 2000);
+    } else {
+      toast.error("Erro ao copiar link");
+    }
   };
 
   // Abrir formulário usando slug quando disponível
@@ -121,41 +127,17 @@ export default function VerFormularios() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/5 relative overflow-hidden">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,_var(--tw-gradient-stops))] from-accent/5 via-transparent to-transparent pointer-events-none" />
-      
+
       <div className="container mx-auto px-4 py-12 relative">
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10 animate-slide-up">
             <div>
-              <div className="inline-flex items-center gap-2 mb-3 px-4 py-1.5 glass rounded-full border border-primary/20">
-                <Sparkles className="h-3.5 w-3.5 text-primary" />
-                <span className="text-xs font-semibold text-primary">Gerenciamento</span>
-              </div>
-              <h1 className="text-5xl font-extrabold mb-3 bg-gradient-to-r from-primary via-primary-glow to-accent bg-clip-text text-transparent">
+              <h1 className="text-3xl font-extrabold mb-2 bg-gradient-to-r from-primary via-primary-glow to-accent bg-clip-text text-transparent">
                 Formulários Criados
               </h1>
-              <p className="text-lg text-muted-foreground">
+              <p className="text-base text-muted-foreground">
                 Gerencie e compartilhe seus formulários de qualificação
               </p>
-            </div>
-            <div className="flex gap-3 animate-fade-in">
-              <Button 
-                onClick={() => setLocation("/admin")} 
-                variant="premium" 
-                className="gap-2 shadow-luxury" 
-                data-testid="button-create-new"
-              >
-                <FileText className="h-4 w-4" />
-                Criar Novo
-              </Button>
-              <Button 
-                onClick={() => setLocation("/admin/dashboard")} 
-                variant="outline" 
-                className="gap-2 glass" 
-                data-testid="button-dashboard"
-              >
-                <BarChart className="h-4 w-4" />
-                Respostas
-              </Button>
             </div>
           </div>
 
@@ -176,8 +158,8 @@ export default function VerFormularios() {
                 <p className="text-muted-foreground mb-8 text-lg">
                   Comece criando seu primeiro formulário de qualificação
                 </p>
-                <Button 
-                  onClick={() => setLocation("/admin")} 
+                <Button
+                  onClick={() => setLocation("/admin")}
                   variant="premium"
                   size="lg"
                   data-testid="button-create-first"
@@ -190,21 +172,21 @@ export default function VerFormularios() {
           ) : (
             <div className="grid gap-8 md:grid-cols-2">
               {forms.map((form, index) => (
-                <Card 
-                  key={form.id} 
-                  className="glass hover-lift border-2 border-border/50 hover:border-primary/30 shadow-card animate-slide-up group overflow-hidden" 
+                <Card
+                  key={form.id}
+                  className="glass hover-lift border-2 border-border/50 hover:border-primary/30 shadow-card animate-slide-up group overflow-hidden"
                   data-testid={`card-form-${form.id}`}
                   style={{ animationDelay: `${index * 0.1}s` }}
                 >
                   <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-primary/5 to-transparent rounded-bl-full opacity-0 group-hover:opacity-100 transition-opacity" />
-                  
+
                   <CardHeader className="relative">
                     <div className="flex justify-between items-start mb-3">
                       <CardTitle className="text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text flex items-center gap-2">
                         {form.title}
                         {activeFormId === form.id && (
-                          <Badge 
-                            variant="default" 
+                          <Badge
+                            variant="default"
                             className="bg-gradient-to-r from-primary to-primary-glow text-primary-foreground animate-glow gap-1"
                             data-testid={`badge-active-${form.id}`}
                           >
@@ -213,8 +195,8 @@ export default function VerFormularios() {
                           </Badge>
                         )}
                       </CardTitle>
-                      <Badge 
-                        variant="secondary" 
+                      <Badge
+                        variant="secondary"
                         className="glass shadow-sm"
                         data-testid={`badge-questions-${form.id}`}
                       >
@@ -234,8 +216,8 @@ export default function VerFormularios() {
                   <CardContent>
                     <div className="flex gap-2 flex-wrap">
                       {activeFormId === form.id ? (
-                        <Badge 
-                          variant="outline" 
+                        <Badge
+                          variant="outline"
                           className="px-3 py-1.5 bg-primary/10 border-primary/30 text-primary gap-1"
                           data-testid={`active-indicator-${form.id}`}
                         >
@@ -330,9 +312,9 @@ export default function VerFormularios() {
             <AlertDialogCancel data-testid="button-cancel-delete" className="glass">
               Cancelar
             </AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleDeleteConfirm} 
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90" 
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               data-testid="button-confirm-delete"
             >
               Excluir

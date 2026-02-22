@@ -181,24 +181,24 @@ export function ReuniaoCard({ meeting, onUpdate }: ReuniaoCardProps) {
   return (
     <>
       <div
-        className={`flex items-center justify-between p-4 border rounded-lg transition-colors ${isCancelled ? 'opacity-60' : 'hover:bg-muted/50'}`}
+        className={`flex flex-wrap items-center justify-between gap-4 p-4 border rounded-lg transition-colors ${isCancelled ? 'opacity-60' : 'hover:bg-muted/50'}`}
         data-testid={`reuniao-card-${meeting.id}`}
       >
-        <div className="flex items-center gap-4">
-          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+        <div className="flex items-center gap-4 flex-1 min-w-0">
+          <div className="h-10 w-10 rounded-full bg-primary/10 flex-shrink-0 flex items-center justify-center text-primary font-bold">
             {displayName.charAt(0)}
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <p className="font-medium">{meeting.titulo || "Reunião"}</p>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="font-medium truncate">{meeting.titulo || "Reunião"}</p>
               {getStatusBadge()}
             </div>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-muted-foreground truncate">
               {format(new Date(meeting.data_inicio), "dd 'de' MMMM, HH:mm", { locale: ptBR })} {meeting.nome && `• ${meeting.nome}`}
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-shrink-0 ml-auto">
           {meeting.link_reuniao && (
             <Button
               variant="ghost"
@@ -221,7 +221,7 @@ export function ReuniaoCard({ meeting, onUpdate }: ReuniaoCardProps) {
               )}
             </Button>
           )}
-          
+
           {canModify && (
             <>
               <Button
@@ -233,7 +233,7 @@ export function ReuniaoCard({ meeting, onUpdate }: ReuniaoCardProps) {
               >
                 <CalendarClock className="h-4 w-4" />
               </Button>
-              
+
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button
@@ -271,11 +271,11 @@ export function ReuniaoCard({ meeting, onUpdate }: ReuniaoCardProps) {
               </AlertDialog>
             </>
           )}
-          
+
           <Link to={`/reuniao/${meeting.id}`}>
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               className="gap-2"
               disabled={isCancelled}
               data-testid="button-entrar-reuniao"
@@ -297,7 +297,7 @@ export function ReuniaoCard({ meeting, onUpdate }: ReuniaoCardProps) {
               Escolha a nova data e horário para a reunião.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="reschedule-date-card">Nova Data</Label>
@@ -320,7 +320,7 @@ export function ReuniaoCard({ meeting, onUpdate }: ReuniaoCardProps) {
               />
             </div>
           </div>
-          
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowRescheduleDialog(false)}>
               Cancelar

@@ -2,7 +2,7 @@ import { ReactNode, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppHeader } from '@/features/revendedora/components/AppHeader';
 import { ResellerBottomNav } from '@/features/revendedora/components/ResellerBottomNav';
-import { useCompany } from '@/features/revendedora/contexts/CompanyContext';
+import { useCompany, hexToHSL } from '@/features/revendedora/contexts/CompanyContext';
 import { ChatWidget } from '@/features/revendedora/components/chat/ChatWidget';
 import { SupabaseProvider } from '@/features/revendedora/contexts/SupabaseContext';
 import { getResellerToken } from '@/features/revendedora/lib/resellerAuth';
@@ -35,9 +35,12 @@ function ResellerLayoutContent({ children }: ResellerLayoutProps) {
   }
 
   return (
-    <div 
+    <div
       className="min-h-screen flex flex-col"
       style={{
+        '--primary': hexToHSL(branding.primary_color),
+        '--secondary': hexToHSL(branding.secondary_color),
+        '--accent': hexToHSL(branding.accent_color),
         '--dynamic-primary': branding.primary_color,
         '--dynamic-secondary': branding.secondary_color,
         '--dynamic-accent': branding.accent_color,
@@ -47,8 +50,8 @@ function ResellerLayoutContent({ children }: ResellerLayoutProps) {
         '--dynamic-button-text': branding.button_text_color,
       } as React.CSSProperties}
     >
-      <AppHeader 
-        type="reseller" 
+      <AppHeader
+        type="reseller"
         companyName={branding.company_name || "Sistema de Revendedores"}
         companyLogo={branding.logo_url}
       />

@@ -28,7 +28,7 @@ export default function ReuniaoDashboard() {
   const [isCreatingInstant, setIsCreatingInstant] = useState(false);
 
   const meetingsArray = Array.isArray(meetings) ? meetings : [];
-  
+
   const upcomingMeetings = meetingsArray
     .filter((m: Meeting) => {
       const meetingDate = new Date(m.dataInicio);
@@ -82,13 +82,13 @@ export default function ReuniaoDashboard() {
     try {
       const now = new Date();
       const timeStr = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-      
+
       const response = await api.post('/api/reunioes/instantanea', {
         titulo: "Reuniao Instantanea - " + timeStr
       });
-      
+
       const meetingData = response.data?.data || response.data;
-      
+
       if (meetingData && meetingData.id) {
         setCreatedMeeting({
           id: meetingData.id,
@@ -134,9 +134,9 @@ export default function ReuniaoDashboard() {
 
   return (
     <div className="space-y-8">
-      <MeetingHeader 
-        title="Reunioes" 
-        description="Gerencie suas videoconferencias e agendamentos." 
+      <MeetingHeader
+        title="Reunioes"
+        description="Gerencie suas videoconferencias e agendamentos."
       />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -178,7 +178,7 @@ export default function ReuniaoDashboard() {
                   </Button>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
                   {upcomingMeetings.map((meeting: Meeting) => (
                     <ReuniaoCard key={meeting.id} meeting={{
                       id: meeting.id,
@@ -206,9 +206,9 @@ export default function ReuniaoDashboard() {
         onJoin={handleJoinMeeting}
       />
 
-      <CreateEventModal 
-        open={showScheduleModal} 
-        onOpenChange={setShowScheduleModal} 
+      <CreateEventModal
+        open={showScheduleModal}
+        onOpenChange={setShowScheduleModal}
       />
     </div>
   );

@@ -35,6 +35,8 @@ import walletRoutes from "./routes/wallet";
 import splitRoutes from "./routes/split";
 import monitoringRoutes from "./routes/monitoring";
 import produtosRoutes from "./routes/produtos";
+import storeRoutes from "./routes/store";
+import workspacePublicRoutes from "./routes/workspacePublic";
 
 // Configure multer for logo uploads
 const logoStorage = multer.diskStorage({
@@ -141,6 +143,9 @@ export async function registerRoutes(app: Express) {
     }
   });
 
+  // Public Workspace routes - allows viewing shared pages/boards without auth
+  app.use("/api/public/workspace", workspacePublicRoutes);
+
   // Import utilities for protection logic
   const { log } = await import("./vite");
   const { SUPABASE_CONFIGURED } = await import("./config/supabaseOwner");
@@ -204,13 +209,14 @@ export async function registerRoutes(app: Express) {
     try {
       if (!req.file) return res.status(400).json({ success: false, error: 'Nenhum arquivo enviado' });
 
-      // Return absolute URL for CORS compatibility
-      const protocol = req.protocol;
-      const host = req.get('host');
-      const logoUrl = `${protocol}://${process.env.APP_DOMAIN || host}/uploads/logos/${req.file.filename}`;
+      // Return RELATIVE URL - browser resolves against current domain
+      // This works regardless of how the user accesses the app (localhost, VPS IP, tunnel, etc.)
+      const logoUrl = `/uploads/logos/${req.file.filename}`;
 
+      console.log(`✅ [UPLOAD] Logo salva: ${req.file.filename}, URL relativa: ${logoUrl}`);
       res.json({ success: true, url: logoUrl });
     } catch (error) {
+      console.error('❌ [UPLOAD] Erro ao fazer upload:', error);
       res.status(500).json({ success: false, error: 'Falha ao fazer upload' });
     }
   });
@@ -235,6 +241,9 @@ export async function registerRoutes(app: Express) {
 
   // Product management routes (import with images)
   app.use("/api/produtos", requireTenant, produtosRoutes);
+
+  // Store routes (admin customization and reseller products)
+  app.use("/api/store", requireTenant, storeRoutes);
 
   // Horarios disponiveis routes (meeting schedules)
   const { registerHorariosRoutes } = await import("./routes/horarios");

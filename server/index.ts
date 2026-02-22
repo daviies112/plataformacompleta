@@ -59,6 +59,7 @@ app.set('trust proxy', 1);
 // secure: false é OBRIGATÓRIO quando sameSite é 'none'
 // proxy: true permite que Express confie no x-forwarded-proto do proxy HTTPS do Replit
 app.use(session({
+  name: 'nexus.completa.sid',
   secret: process.env.SESSION_SECRET || (() => {
     if (process.env.NODE_ENV === 'production') {
       throw new Error('SESSION_SECRET environment variable is required in production');
@@ -204,36 +205,42 @@ app.use((req, res, next) => {
     throw err;
   });
 
+  // Setup static files or Vite dev server based on NODE_ENV
+  const isProduction = process.env.NODE_ENV === 'production';
+  log(`Environment: ${isProduction ? 'production' : 'development'}`);
+
+  if (isProduction) {
+    log('Serving static files from dist/');
+    serveStatic(app);
+  } else {
+    log('Setting up Vite development server...');
+    try {
+      // DEBUG: Middleware para logar TODAS as requisições que chegam no Vite
+      app.use((req, res, next) => {
+        // Ignorar polling do Vite HMR para não poluir o log
+        if (req.headers['sec-websocket-protocol'] === 'vite-hmr') return next();
+
+        console.log(`[PRE-VITE] ${req.method} ${req.url}`);
+        next();
+      });
+
+      const { setupVite } = await import("./vite");
+      await setupVite(app, server);
+      log('✅ Vite development server initialized');
+    } catch (err) {
+      console.error('❌ Failed to setup Vite:', err);
+    }
+  }
+
   // ALWAYS serve the app on the port specified in the environment variable PORT
   const port = parseInt(process.env.PORT || '5000', 10);
 
-  // Start server and setup Vite in the callback
+  // Start server
   server.listen({
     port,
     host: "0.0.0.0",
-    reusePort: true,
   }, () => {
     log(`serving on port ${port}`);
-
-    // Setup static files or Vite dev server based on NODE_ENV
-    const isProduction = process.env.NODE_ENV === 'production';
-    log(`Environment: ${isProduction ? 'production' : 'development'}`);
-
-    if (isProduction) {
-      log('Serving static files from dist/');
-      serveStatic(app);
-    } else {
-      log('Setting up Vite development server...');
-      import("./vite").then(({ setupVite }) => {
-        setupVite(app, server).then(() => {
-          log('✅ Vite development server initialized');
-        }).catch(err => {
-          console.error('❌ Failed to setup Vite:', err);
-        });
-      }).catch(err => {
-        console.error('❌ Failed to load Vite module:', err);
-      });
-    }
 
     // Background tasks - Initialize queues and automation
     setImmediate(async () => {
@@ -257,7 +264,7 @@ app.use((req, res, next) => {
 
         // Start cache cleanup scheduler (daily cleanup of local cache tables)
         const { startCacheCleanupScheduler } = await import('./lib/cacheCleanup');
-        startCacheCleanupScheduler(24);
+        await startCacheCleanupScheduler(24);
         log('✅ Cache cleanup scheduler started (every 24h)');
       } catch (error) {
         console.error('❌ Failed to start background services:', error);

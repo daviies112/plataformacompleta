@@ -22,8 +22,8 @@ export default function AdminDashboard() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-bold">Dashboard Administrador</h1>
-        <p className="text-muted-foreground">Visão geral da plataforma</p>
+        <h1 className="text-4xl font-extrabold tracking-tight">Dashboard Administrador</h1>
+        <p className="text-lg text-muted-foreground">Visão geral da plataforma</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

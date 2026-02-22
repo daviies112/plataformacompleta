@@ -3,6 +3,7 @@ import HeaderNavigation from '@/components/HeaderNavigation';
 
 interface DesktopLayoutProps {
   children: ReactNode;
+  fullWidth?: boolean;
 }
 
 /**
@@ -11,17 +12,21 @@ interface DesktopLayoutProps {
  * - Área de conteúdo principal com padding adequado
  * - Otimizado para mouse e teclado
  */
-const DesktopLayout = ({ children }: DesktopLayoutProps) => {
+const DesktopLayout = ({ children, fullWidth = false }: DesktopLayoutProps) => {
   return (
-    <div className="relative min-h-screen bg-background">
+    <div className="relative min-h-screen bg-background text-foreground">
       {/* Desktop Header */}
       <HeaderNavigation />
-      
+
       {/* Main Content Area - Desktop Optimized */}
       <main className="pt-16">
-        <div className="container-luxury py-6">
-          {children}
-        </div>
+        {fullWidth ? (
+          children
+        ) : (
+          <div className="container-luxury py-6">
+            {children}
+          </div>
+        )}
       </main>
     </div>
   );

@@ -1,8 +1,9 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, Percent, Palette } from "lucide-react";
+import { Users, Percent, Palette, Store } from "lucide-react";
 import AdminBranding from "./Branding";
 import AdminResellers from "./Resellers";
 import CommissionConfiguration from "./CommissionConfiguration";
+import PersonalizarLoja from "@/features/store/pages/PersonalizarLoja";
 
 export default function RevendedorasHub() {
     return (
@@ -20,6 +21,10 @@ export default function RevendedorasHub() {
                         <Palette className="h-4 w-4" />
                         Personalização
                     </TabsTrigger>
+                    <TabsTrigger value="loja" className="gap-2" data-testid="tab-loja">
+                        <Store className="h-4 w-4" />
+                        Loja
+                    </TabsTrigger>
                     <TabsTrigger value="revendedoras" className="gap-2" data-testid="tab-revendedoras">
                         <Users className="h-4 w-4" />
                         Revendedoras
@@ -32,6 +37,10 @@ export default function RevendedorasHub() {
 
                 <TabsContent value="personalizacao" className="mt-4">
                     <AdminBranding />
+                </TabsContent>
+
+                <TabsContent value="loja" className="mt-4">
+                    <PersonalizarLoja />
                 </TabsContent>
 
                 <TabsContent value="revendedoras" className="mt-4">

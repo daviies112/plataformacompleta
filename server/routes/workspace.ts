@@ -2,8 +2,8 @@ import { Router } from 'express';
 import { authenticateToken } from '../middleware/auth';
 import { getDynamicSupabaseClient } from '../lib/multiTenantSupabase';
 import { db } from '../db';
-import { workspaceThemes } from '../../shared/db-schema';
-import { eq } from 'drizzle-orm';
+import { workspaceThemes, workspacePublicMapping } from '../../shared/db-schema';
+import { eq, and } from 'drizzle-orm';
 import { queryWithCache, CACHE_NAMESPACES, CACHE_TTLS, cacheWorkspaceData, invalidateWorkspaceCache } from '../lib/cacheStrategies';
 import { cache } from '../lib/cache';
 
@@ -231,9 +231,8 @@ workspaceRoutes.post('/save', authenticateToken, async (req, res) => {
     }
 
     // Invalidate workspace cache after save
-    const workspaceCacheKey = `${CACHE_NAMESPACES.WORKSPACE}:${clientId}:${tenantId}:*`;
-    await cache.delPattern(workspaceCacheKey);
-    console.log(`🗑️ Workspace cache invalidated after save: ${workspaceCacheKey}`);
+    await invalidateWorkspaceCache(clientId, tenantId);
+    console.log(`🗑️ Workspace and Dashboard Calendar cache invalidated after save for tenant: ${tenantId}`);
 
     res.json({
       success: true,
@@ -394,54 +393,70 @@ workspaceRoutes.get('/load', authenticateToken, async (req, res) => {
 
         // Parse JSON fields and convert to camelCase
         const parsedPages = (pages || []).map((page: any) => {
-          const camelPage = convertKeysToCamelCase(page);
+          let camelPage = convertKeysToCamelCase(page);
 
           // Parse JSONB fields
           if (typeof camelPage.blocks === 'string') {
             camelPage.blocks = JSON.parse(camelPage.blocks);
+            // Convert nested keys (important for objects inside blocks)
+            camelPage.blocks = convertKeysToCamelCase(camelPage.blocks);
           }
           if (typeof camelPage.databases === 'string') {
             camelPage.databases = JSON.parse(camelPage.databases);
+            camelPage.databases = convertKeysToCamelCase(camelPage.databases);
+          }
+          if (typeof camelPage.properties === 'string' && camelPage.properties.startsWith('{')) {
+            camelPage.properties = JSON.parse(camelPage.properties);
+            camelPage.properties = convertKeysToCamelCase(camelPage.properties);
           }
 
           return camelPage;
         });
 
         const parsedBoards = (boards || []).map((board: any) => {
-          const camelBoard = convertKeysToCamelCase(board);
+          let camelBoard = convertKeysToCamelCase(board);
 
           // Parse JSONB fields
           if (typeof camelBoard.lists === 'string') {
             camelBoard.lists = JSON.parse(camelBoard.lists);
+            // CRITICAL: Convert nested keys after parsing JSON string
+            camelBoard.lists = convertKeysToCamelCase(camelBoard.lists);
           }
           if (typeof camelBoard.cards === 'string') {
             camelBoard.cards = JSON.parse(camelBoard.cards);
+            camelBoard.cards = convertKeysToCamelCase(camelBoard.cards);
           }
           if (typeof camelBoard.labels === 'string') {
             camelBoard.labels = JSON.parse(camelBoard.labels);
+            camelBoard.labels = convertKeysToCamelCase(camelBoard.labels);
           }
           if (typeof camelBoard.members === 'string') {
             camelBoard.members = JSON.parse(camelBoard.members);
+            camelBoard.members = convertKeysToCamelCase(camelBoard.members);
           }
           if (typeof camelBoard.settings === 'string') {
             camelBoard.settings = JSON.parse(camelBoard.settings);
+            camelBoard.settings = convertKeysToCamelCase(camelBoard.settings);
           }
 
           return camelBoard;
         });
 
         const parsedDatabases = (databases || []).map((db: any) => {
-          const camelDb = convertKeysToCamelCase(db);
+          let camelDb = convertKeysToCamelCase(db);
 
           // Parse JSONB fields
           if (typeof camelDb.columns === 'string') {
             camelDb.columns = JSON.parse(camelDb.columns);
+            camelDb.columns = convertKeysToCamelCase(camelDb.columns);
           }
           if (typeof camelDb.rows === 'string') {
             camelDb.rows = JSON.parse(camelDb.rows);
+            camelDb.rows = convertKeysToCamelCase(camelDb.rows);
           }
           if (typeof camelDb.views === 'string') {
             camelDb.views = JSON.parse(camelDb.views);
+            camelDb.views = convertKeysToCamelCase(camelDb.views);
           }
 
           // Map viewType back to view for compatibility
@@ -758,43 +773,77 @@ function extractEventsFromBoards(boards: any[]): WorkspaceCalendarEvent[] {
   const events: WorkspaceCalendarEvent[] = [];
 
   boards.forEach((board: any) => {
-    let lists = board.lists;
-    if (typeof lists === 'string') lists = JSON.parse(lists);
+    let lists = board.lists || board.listas;
+    if (typeof lists === 'string') {
+      try {
+        lists = JSON.parse(lists);
+      } catch (e) {
+        console.error('Failed to parse lists:', e);
+      }
+    }
     if (!Array.isArray(lists)) return;
 
     lists.forEach((list: any) => {
-      let cards = list.cards;
-      if (typeof cards === 'string') cards = JSON.parse(cards);
+      let cards = list.cards || list.itens || [];
+      if (typeof cards === 'string') {
+        try {
+          cards = JSON.parse(cards);
+        } catch (e) {
+          console.error('Failed to parse cards:', e);
+        }
+      }
       if (!Array.isArray(cards)) return;
 
       cards.forEach((card: any) => {
-        if (card.dueDate) {
-          const dueDateObj = new Date(card.dueDate);
-          const dateOnly = dueDateObj.toISOString().split('T')[0];
+        // Handle both camelCase and snake_case for properties, including inside 'properties' object
+        const dueDate = card.dueDate || card.due_date || card.properties?.due_date || card.properties?.dueDate;
+        const dueTime = card.dueTime || card.due_time || card.properties?.due_time || card.properties?.dueTime;
+        const title = card.title || card.titulo || card.name || card.nome || 'Card sem título';
+        const description = card.description || card.descricao || '';
 
-          let timeOnly = card.dueTime;
-          if (!timeOnly) {
-            timeOnly = dueDateObj.toLocaleTimeString('pt-BR', {
-              hour: '2-digit',
-              minute: '2-digit',
-              timeZone: 'America/Sao_Paulo'
-            });
-          }
+        if (dueDate) {
+          try {
+            const dueDateObj = new Date(dueDate);
+            if (isNaN(dueDateObj.getTime())) return;
 
-          events.push({
-            id: `board_${board.id}_${card.id}`,
-            title: card.title || 'Card sem título',
-            date: dateOnly,
-            time: timeOnly,
-            source: 'board',
-            sourceId: card.id,
-            type: 'dueDate',
-            description: card.description,
-            metadata: {
-              boardId: board.id,
-              cardId: card.id
+            const dateOnly = typeof dueDate === 'string' && dueDate.includes('T') ? dueDate.split('T')[0] : dueDate;
+
+            let timeOnly = dueTime;
+            if (!timeOnly) {
+              // If dueDate is a full ISO string with time, extract it
+              if (typeof dueDate === 'string' && dueDate.includes('T')) {
+                const timePart = dueDate.split('T')[1];
+                if (timePart && timePart.length >= 5) {
+                  timeOnly = timePart.substring(0, 5);
+                }
+              }
+
+              if (!timeOnly) {
+                timeOnly = dueDateObj.toLocaleTimeString('pt-BR', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  timeZone: 'America/Sao_Paulo'
+                });
+              }
             }
-          });
+
+            events.push({
+              id: `board_${board.id}_${card.id}`,
+              title,
+              date: dateOnly,
+              time: timeOnly,
+              source: 'board',
+              sourceId: card.id,
+              type: 'dueDate',
+              description,
+              metadata: {
+                boardId: board.id,
+                cardId: card.id
+              }
+            });
+          } catch (e) {
+            console.error(`Error processing card ${card.id}:`, e);
+          }
         }
       });
     });
@@ -1125,5 +1174,80 @@ workspaceRoutes.post('/boards/:boardId/import-page', authenticateToken, async (r
       error: 'Erro ao mover página para o quadro',
       details: error.message
     });
+  }
+});
+
+// Tornar um item do workspace público ou privado
+workspaceRoutes.post('/public/toggle', authenticateToken, async (req: any, res) => {
+  try {
+    const { itemId, itemType, isPublic } = req.body;
+    const { clientId, tenantId } = req.user;
+
+    console.log(`🔒 [Workspace] Toggling public state for ${itemType} ${itemId} to ${isPublic}`);
+
+    const supabase = await getDynamicSupabaseClient(clientId);
+    if (!supabase) {
+      return res.status(400).json({ error: 'Supabase não configurado' });
+    }
+
+    const tableMap: Record<string, string> = {
+      'page': 'workspace_pages',
+      'database': 'workspace_databases',
+      'board': 'workspace_boards'
+    };
+
+    const tableName = tableMap[itemType];
+    if (!tableName) return res.status(400).json({ error: 'Tipo de item inválido' });
+
+    let publicSlug = null;
+
+    if (isPublic) {
+      // 1. Gerar slug único
+      publicSlug = `wp_${Math.random().toString(36).substring(2, 10)}`;
+
+      // 2. Criar mapeamento no banco local
+      await db.insert(workspacePublicMapping).values({
+        id: publicSlug,
+        itemId,
+        itemType,
+        tenantId,
+        clientId,
+        isActive: true,
+        updatedAt: new Date()
+      });
+    } else {
+      // Desativar mapeamentos existentes
+      await db.update(workspacePublicMapping)
+        .set({ isActive: false, updatedAt: new Date() })
+        .where(and(eq(workspacePublicMapping.itemId, itemId), eq(workspacePublicMapping.itemType, itemType)));
+    }
+
+    // 3. Atualizar flag no Supabase
+    const { error: updateError } = await supabase
+      .from(tableName)
+      .update({
+        is_public: isPublic,
+        public_slug: publicSlug
+      })
+      .eq('id', itemId);
+
+    if (updateError) {
+      console.error('Erro ao atualizar Supabase:', updateError);
+      throw updateError;
+    }
+
+    // Invalidar cache
+    await invalidateWorkspaceCache(clientId, tenantId);
+
+    res.json({
+      success: true,
+      isPublic,
+      publicSlug,
+      url: publicSlug ? `/w/${publicSlug}` : null
+    });
+
+  } catch (error: any) {
+    console.error('Erro ao alternar visibilidade pública:', error);
+    res.status(500).json({ error: 'Erro ao processar solicitação', details: error.message });
   }
 });

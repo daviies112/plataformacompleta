@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from 'next-themes';
-import { Settings, User, Shield, Plug, Database, Calendar, MessageSquare, Zap, Video, CreditCard, Webhook, Activity, Search, Bell, ChevronDown, Sun, Moon, Code, Server, Cloud, BarChart3, Copy, Eye, EyeOff, RefreshCw, Trash2, Check, Link2, Truck, LogOut, AlertTriangle } from 'lucide-react';
+import { Settings, User, Shield, Plug, Database, Calendar, MessageSquare, Zap, Video, CreditCard, Webhook, Activity, Search, Bell, ChevronDown, Sun, Moon, Code, Server, Cloud, BarChart3, Copy, Eye, EyeOff, RefreshCw, Trash2, Check, Link2, Truck, LogOut, AlertTriangle, Lock } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -225,7 +225,6 @@ const SettingsPage = () => {
   });
 
   const [openSections, setOpenSections] = useState({
-    profile: true,
     company: false,
     system: false,
     notifications: false,
@@ -254,16 +253,16 @@ const SettingsPage = () => {
   const [showN8nApiKey, setShowN8nApiKey] = useState(false);
   const [copiedN8nApiKey, setCopiedN8nApiKey] = useState(false);
 
+  // Advanced Settings Lock State
+  const [advancedPassword, setAdvancedPassword] = useState('');
+  const [isAdvancedUnlocked, setIsAdvancedUnlocked] = useState(false);
+
   useEffect(() => {
     setMounted(true);
   }, []);
 
   const isDark = mounted && (resolvedTheme ?? theme) === 'dark';
 
-  const [profileForm, setProfileForm] = useState({
-    name: user?.name || '',
-    email: user?.email || ''
-  });
 
   const [companyForm, setCompanyForm] = useState({
     name: client?.name || '',
@@ -356,16 +355,6 @@ const SettingsPage = () => {
     }
   });
 
-  const handleSaveProfile = () => {
-    updateUser(profileForm);
-    localStorage.setItem('user-name', profileForm.name);
-    localStorage.setItem('user-email', profileForm.email);
-
-    toast({
-      title: "Perfil atualizado",
-      description: "Suas informações foram salvas com sucesso.",
-    });
-  };
 
   const handleSaveCompany = async () => {
     updateClient(companyForm);
@@ -2058,61 +2047,6 @@ const SettingsPage = () => {
         {/* Settings Sections */}
         <div className="space-y-4">
 
-          {/* Profile Section */}
-          <CollapsibleSection
-            openSections={openSections}
-            setOpenSections={setOpenSections}
-            id="profile"
-            title="Perfil do Usuário"
-            description="Informações da sua conta"
-            icon={User}
-          >
-            <div className="space-y-4">
-              <PremiumInput
-                label="Nome"
-                value={profileForm.name}
-                onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
-                placeholder="Seu nome"
-                data-testid="input-name"
-              />
-              <PremiumInput
-                label="Email"
-                type="email"
-                value={profileForm.email}
-                onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
-                placeholder="seu@email.com"
-                data-testid="input-email"
-              />
-              <div className="flex items-center gap-4">
-                <Label>Função:</Label>
-                <Badge variant="secondary" data-testid="badge-role">
-                  {user?.role === 'admin' ? 'Administrador' : 'Visualizador'}
-                </Badge>
-              </div>
-              <PremiumButton
-                onClick={handleSaveProfile}
-                data-testid="button-save-profile"
-                variant="primary"
-              >
-                Salvar Alterações
-              </PremiumButton>
-
-              <div className="pt-4 border-t border-border mt-4">
-                <PremiumButton
-                  onClick={() => {
-                    logout();
-                    navigate('/login');
-                  }}
-                  data-testid="button-logout"
-                  variant="destructive"
-                  className="w-full"
-                >
-                  <LogOut className="w-4 h-4 mr-2" />
-                  Sair da Plataforma
-                </PremiumButton>
-              </div>
-            </div>
-          </CollapsibleSection>
 
           {/* Company Section */}
           <CollapsibleSection
@@ -2350,1403 +2284,1441 @@ const SettingsPage = () => {
             </div>
           </CollapsibleSection>
 
-          {/* WhatsApp/Evolution API Section */}
-          <CollapsibleSection
-            openSections={openSections}
-            setOpenSections={setOpenSections}
-            id="evolutionApi"
-            title="Evolution API (WhatsApp)"
-            description="Para conectar, escaneie o código QR com seu WhatsApp Web"
-            icon={MessageSquare}
-          >
-            <div className="space-y-4">
-              <PremiumInput
-                label="URL da API"
-                value={integrationForms.evolution_api.apiUrl}
-                onChange={(e) =>
-                  setIntegrationForms((prev) => ({
-                    ...prev,
-                    evolution_api: { ...prev.evolution_api, apiUrl: e.target.value },
-                  }))
-                }
-                placeholder="https://api.seu-dominio.com"
-                data-testid="input-evolution-url"
-              />
-
-              <PremiumInput
-                label="API Key"
-                type="password"
-                value={integrationForms.evolution_api.apiKey}
-                onChange={(e) =>
-                  setIntegrationForms((prev) => ({
-                    ...prev,
-                    evolution_api: { ...prev.evolution_api, apiKey: e.target.value },
-                  }))
-                }
-                placeholder="Sua chave de API global"
-                data-testid="input-evolution-api-key"
-              />
-
-              <PremiumInput
-                label="Nome da Instância"
-                value={integrationForms.evolution_api.instance}
-                onChange={(e) =>
-                  setIntegrationForms((prev) => ({
-                    ...prev,
-                    evolution_api: { ...prev.evolution_api, instance: e.target.value },
-                  }))
-                }
-                placeholder="Ex: MinhaEmpresa"
-                data-testid="input-evolution-instance"
-              />
-
-              <div className="flex items-center gap-2 mb-4">
-                {evolutionCredentials?.success && (
-                  <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300">
-                    <Check className="w-3 h-3 mr-1" />
-                    Configurado
-                  </Badge>
-                )}
-              </div>
-
-              <div className="p-4 rounded-lg bg-muted/50 border border-border text-center flex flex-col items-center gap-4">
-                <p className="text-sm text-muted-foreground">
-                  Para conectar e escanear o QR Code, acesse o menu <b>WhatsApp</b> no painel esquerdo.
+          {/* Advanced Settings Lock */}
+          {!isAdvancedUnlocked ? (
+            <PremiumCard variant="elevated" padding="lg" className="border-primary/20 bg-primary/5">
+              <div className="flex flex-col items-center justify-center py-8 text-center space-y-4">
+                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-2">
+                  <Lock className="w-8 h-8 text-primary" />
+                </div>
+                <h3 className="text-xl font-bold">Configurações Avançadas</h3>
+                <p className="text-muted-foreground max-w-md">
+                  As configurações a seguir são protegidas. Digite a senha para acessar.
                 </p>
-                <PremiumButton
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => {
-                    window.location.href = '/whatsapp';
-                  }}
-                >
-                  <MessageSquare className="w-4 h-4 mr-2" />
-                  Ir para WhatsApp
-                </PremiumButton>
-              </div>
-            </div>
 
-            {/* Legacy Upload Section - Keep for compatibility */}
-            {whatsappQRCode && (
-              <div className="space-y-3 pt-4 border-t border-border/50">
-                <Label className="text-base font-semibold">QR Code (Upload Manual)</Label>
-                <PremiumCard variant="outlined" padding="md">
-                  <img
-                    src={whatsappQRCode}
-                    alt="WhatsApp QR Code"
-                    className="w-full max-w-xs mx-auto rounded-lg"
+                <div className="flex w-full max-w-sm items-center space-x-2">
+                  <PremiumInput
+                    type="password"
+                    placeholder="Senha de acesso"
+                    value={advancedPassword}
+                    onChange={(e) => setAdvancedPassword(e.target.value)}
                   />
-                </PremiumCard>
-              </div>
-            )}
-
-            <div className="space-y-3 pt-4 border-t border-border/50">
-              <Label className="text-sm text-muted-foreground">Upload Manual (opcional)</Label>
-              <input
-                id="qr-code-upload"
-                type="file"
-                accept="image/*"
-                onChange={handleQRCodeUpload}
-                disabled={uploadingQRCode}
-                className="hidden"
-              />
-              <PremiumButton
-                variant="outline"
-                size="sm"
-                onClick={() => document.getElementById('qr-code-upload')?.click()}
-                disabled={uploadingQRCode}
-                className="w-full sm:w-auto"
-              >
-                {uploadingQRCode ? 'Enviando...' : 'Escolher arquivo'}
-              </PremiumButton>
-            </div>
-
-            <div className="flex flex-wrap gap-3 pt-4 border-t border-border/50">
-              <PremiumButton
-                onClick={() => handleSaveIntegration('evolution_api')}
-                isLoading={saveEvolutionApiMutation.isPending}
-                data-testid="button-save-evolution"
-                variant="primary"
-              >
-                Salvar Configuração
-              </PremiumButton>
-              <PremiumButton
-                variant="secondary"
-                onClick={() => handleTestConnection('evolution_api')}
-                disabled={!evolutionCredentials?.success}
-                data-testid="button-test-evolution"
-              >
-                Testar Conexão
-              </PremiumButton>
-            </div>
-          </CollapsibleSection>
-
-          {/* Supabase Section */}
-          <CollapsibleSection
-            openSections={openSections}
-            setOpenSections={setOpenSections}
-            id="supabase"
-            title="Supabase Database"
-            description="Configuração do banco de dados"
-            icon={Database}
-          >
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 mb-4">
-                {credentialsStatus?.credentials?.supabase_configured && (
-                  <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300">
-                    Configurado
-                  </Badge>
-                )}
-              </div>
-
-              <PremiumInput
-                label="URL do Projeto Supabase"
-                value={integrationForms.supabase.url}
-                onChange={(e) => setIntegrationForms({
-                  ...integrationForms,
-                  supabase: { ...integrationForms.supabase, url: e.target.value }
-                })}
-                placeholder="https://xxxxxxxxxxx.supabase.co"
-                data-testid="input-supabase-url"
-              />
-
-              <PremiumInput
-                label="Chave Anônima (anon/public)"
-                type="password"
-                value={integrationForms.supabase.anon_key}
-                onChange={(e) => setIntegrationForms({
-                  ...integrationForms,
-                  supabase: { ...integrationForms.supabase, anon_key: e.target.value }
-                })}
-                placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-                data-testid="input-supabase-anon-key"
-              />
-
-              <PremiumInput
-                label="Bucket de Armazenamento"
-                value={integrationForms.supabase.bucket}
-                onChange={(e) => setIntegrationForms({
-                  ...integrationForms,
-                  supabase: { ...integrationForms.supabase, bucket: e.target.value }
-                })}
-                placeholder="receipts"
-                data-testid="input-supabase-bucket"
-              />
-
-              <div className="flex gap-3">
-                <PremiumButton
-                  onClick={() => handleSaveIntegration('supabase')}
-                  isLoading={saveSupabaseMutation.isPending}
-                  data-testid="button-save-supabase"
-                  variant="primary"
-                >
-                  Salvar Configuração
-                </PremiumButton>
-                <PremiumButton
-                  variant="secondary"
-                  onClick={() => handleTestConnection('supabase')}
-                  disabled={!credentialsStatus?.credentials?.supabase_configured}
-                  data-testid="button-test-supabase"
-                >
-                  Testar Conexão
-                </PremiumButton>
-              </div>
-            </div>
-          </CollapsibleSection>
-
-          {/* Company Slug Section */}
-          <CollapsibleSection
-            openSections={openSections}
-            setOpenSections={setOpenSections}
-            id="companySlug"
-            title="Identificador da Empresa (URL)"
-            description="Personalizar URLs públicas"
-            icon={Link2}
-          >
-            <CompanySlugSection />
-          </CollapsibleSection>
-
-          {/* N8N Section */}
-          <CollapsibleSection
-            openSections={openSections}
-            setOpenSections={setOpenSections}
-            id="n8n"
-            title="Processamento de Documentos (N8N)"
-            description="Análise automática com IA"
-            icon={Webhook}
-          >
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 mb-4">
-                {n8nCredentials?.configured && (
-                  <Badge className="bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300">
-                    Configurado
-                  </Badge>
-                )}
-              </div>
-
-              {n8nMeetingApiStatus?.tenantId && (
-                <div className="bg-muted/50 rounded-lg p-4 space-y-2">
-                  <div className="flex items-center justify-between flex-wrap gap-2">
-                    <span className="text-sm font-medium">Seu Tenant ID:</span>
-                    <div className="flex items-center gap-2">
-                      <code className="text-xs bg-muted px-2 py-1 rounded font-mono" data-testid="text-tenant-id-n8n-docs">
-                        {n8nMeetingApiStatus.tenantId}
-                      </code>
-                      <PremiumButton
-                        size="icon"
-                        variant="ghost"
-                        onClick={async () => {
-                          await navigator.clipboard.writeText(n8nMeetingApiStatus.tenantId);
-                          toast({ title: 'Copiado!', description: 'Tenant ID copiado' });
-                        }}
-                        data-testid="button-copy-tenant-id-n8n-docs"
-                      >
-                        <Copy className="h-3 w-3" />
-                      </PremiumButton>
-                    </div>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Este é o identificador único da sua plataforma.
-                  </p>
-                </div>
-              )}
-
-              <PremiumInput
-                label="URL do Webhook"
-                value={integrationForms.n8n.webhook_url}
-                onChange={(e) => setIntegrationForms({
-                  ...integrationForms,
-                  n8n: { ...integrationForms.n8n, webhook_url: e.target.value }
-                })}
-                placeholder="https://seu-webhook.com/..."
-                data-testid="input-n8n-webhook-url"
-              />
-
-              <div className="flex gap-3">
-                <PremiumButton
-                  onClick={() => handleSaveIntegration('n8n')}
-                  isLoading={saveN8nMutation.isPending}
-                  data-testid="button-save-n8n"
-                  variant="primary"
-                >
-                  Salvar Configuração
-                </PremiumButton>
-                <PremiumButton
-                  variant="secondary"
-                  onClick={() => handleTestConnection('n8n')}
-                  disabled={!n8nCredentials?.configured}
-                  data-testid="button-test-n8n"
-                >
-                  Testar Conexão
-                </PremiumButton>
-              </div>
-            </div>
-          </CollapsibleSection>
-
-          {/* Redis Section */}
-          <CollapsibleSection
-            openSections={openSections}
-            setOpenSections={setOpenSections}
-            id="redis"
-            title="Redis Cache"
-            description="Cache distribuído para performance"
-            icon={Server}
-          >
-            <div className="space-y-4">
-              <PremiumInput
-                label="Redis URL"
-                value={integrationForms.redis.redis_url}
-                onChange={(e) => setIntegrationForms({
-                  ...integrationForms,
-                  redis: { ...integrationForms.redis, redis_url: e.target.value }
-                })}
-                placeholder="redis://..."
-              />
-
-              <PremiumInput
-                label="Redis Token (opcional)"
-                type="password"
-                value={integrationForms.redis.redis_token}
-                onChange={(e) => setIntegrationForms({
-                  ...integrationForms,
-                  redis: { ...integrationForms.redis, redis_token: e.target.value }
-                })}
-                placeholder="Token de autenticação"
-              />
-
-              <div className="flex gap-3">
-                <PremiumButton
-                  onClick={() => handleSaveIntegration('redis')}
-                  isLoading={saveRedisMutation.isPending}
-                  variant="primary"
-                >
-                  Salvar Configuração
-                </PremiumButton>
-                <PremiumButton
-                  variant="secondary"
-                  onClick={() => handleTestConnection('redis')}
-                  disabled={!redisCredentials?.success}
-                >
-                  Testar Conexão
-                </PremiumButton>
-              </div>
-            </div>
-          </CollapsibleSection>
-
-          {/* Sentry Section */}
-          <CollapsibleSection
-            openSections={openSections}
-            setOpenSections={setOpenSections}
-            id="sentry"
-            title="Sentry Monitoring"
-            description="Monitoramento de erros e performance"
-            icon={Activity}
-          >
-            <div className="space-y-4">
-              <PremiumInput
-                label="DSN"
-                type="password"
-                value={integrationForms.sentry.dsn}
-                onChange={(e) => setIntegrationForms({
-                  ...integrationForms,
-                  sentry: { ...integrationForms.sentry, dsn: e.target.value }
-                })}
-                placeholder="https://...@sentry.io/..."
-              />
-
-              <PremiumInput
-                label="Environment"
-                value={integrationForms.sentry.environment}
-                onChange={(e) => setIntegrationForms({
-                  ...integrationForms,
-                  sentry: { ...integrationForms.sentry, environment: e.target.value }
-                })}
-                placeholder="production"
-              />
-
-              <div className="flex gap-3">
-                <PremiumButton
-                  onClick={() => handleSaveIntegration('sentry')}
-                  isLoading={saveSentryMutation.isPending}
-                  variant="primary"
-                >
-                  Salvar Configuração
-                </PremiumButton>
-                <PremiumButton
-                  variant="secondary"
-                  onClick={() => handleTestConnection('sentry')}
-                  disabled={!sentryCredentials?.success}
-                >
-                  Testar Conexão
-                </PremiumButton>
-              </div>
-            </div>
-          </CollapsibleSection>
-
-          {/* Cloudflare Section */}
-          <CollapsibleSection
-            openSections={openSections}
-            setOpenSections={setOpenSections}
-            id="cloudflare"
-            title="Cloudflare CDN"
-            description="CDN e proteção DDoS"
-            icon={Cloud}
-          >
-            <div className="space-y-4">
-              <PremiumInput
-                label="Zone ID"
-                value={integrationForms.cloudflare.zone_id}
-                onChange={(e) => setIntegrationForms({
-                  ...integrationForms,
-                  cloudflare: { ...integrationForms.cloudflare, zone_id: e.target.value }
-                })}
-                placeholder="Zone ID"
-              />
-
-              <PremiumInput
-                label="API Token"
-                type="password"
-                value={integrationForms.cloudflare.api_token}
-                onChange={(e) => setIntegrationForms({
-                  ...integrationForms,
-                  cloudflare: { ...integrationForms.cloudflare, api_token: e.target.value }
-                })}
-                placeholder="API Token"
-              />
-
-              <div className="flex gap-3">
-                <PremiumButton
-                  onClick={() => handleSaveIntegration('cloudflare')}
-                  isLoading={saveCloudflareMutation.isPending}
-                  variant="primary"
-                >
-                  Salvar Configuração
-                </PremiumButton>
-                <PremiumButton
-                  variant="secondary"
-                  onClick={() => handleTestConnection('cloudflare')}
-                  disabled={!cloudflareCredentials?.success}
-                >
-                  Testar Conexão
-                </PremiumButton>
-              </div>
-            </div>
-          </CollapsibleSection>
-
-          {/* Better Stack Section */}
-          <CollapsibleSection
-            openSections={openSections}
-            setOpenSections={setOpenSections}
-            id="betterStack"
-            title="Better Stack"
-            description="Logging centralizado e uptime"
-            icon={BarChart3}
-          >
-            <div className="space-y-4">
-              <PremiumInput
-                label="Source Token"
-                type="password"
-                value={integrationForms.better_stack.source_token}
-                onChange={(e) => setIntegrationForms({
-                  ...integrationForms,
-                  better_stack: { ...integrationForms.better_stack, source_token: e.target.value }
-                })}
-                placeholder="Source Token (ex: Gv2bG4...)"
-              />
-
-              <PremiumInput
-                label="Ingesting Host (Opcional)"
-                value={integrationForms.better_stack.ingesting_host}
-                onChange={(e) => setIntegrationForms({
-                  ...integrationForms,
-                  better_stack: { ...integrationForms.better_stack, ingesting_host: e.target.value }
-                })}
-                placeholder="Ex: s1553180.eu-nbg-2.betterstackdata.com"
-              />
-
-              <div className="flex gap-3">
-                <PremiumButton
-                  onClick={() => handleSaveIntegration('better_stack')}
-                  isLoading={saveBetterStackMutation.isPending}
-                  variant="primary"
-                >
-                  Salvar Configuração
-                </PremiumButton>
-                <PremiumButton
-                  variant="secondary"
-                  onClick={() => handleTestConnection('better_stack')}
-                  disabled={!betterStackCredentials?.success}
-                >
-                  Testar Conexão
-                </PremiumButton>
-              </div>
-            </div>
-          </CollapsibleSection>
-
-          {/* BigDataCorp Section */}
-          <CollapsibleSection
-            openSections={openSections}
-            setOpenSections={setOpenSections}
-            id="bigdatacorp"
-            title="Consultar CPF (BigDataCorp)"
-            description="Consulta de processos judiciais e dados cadastrais"
-            icon={Search}
-          >
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 mb-4">
-                {bigdatacorpStatus?.configured && (
-                  <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
-                    Configurado
-                  </Badge>
-                )}
-              </div>
-
-              <PremiumInput
-                label="TOKEN_ID"
-                type="password"
-                value={integrationForms.bigdatacorp.token_id}
-                onChange={(e) => setIntegrationForms({
-                  ...integrationForms,
-                  bigdatacorp: { ...integrationForms.bigdatacorp, token_id: e.target.value }
-                })}
-                placeholder="ID do Token BigDataCorp"
-              />
-
-              <PremiumInput
-                label="CHAVE_TOKEN"
-                type="password"
-                value={integrationForms.bigdatacorp.chave_token}
-                onChange={(e) => setIntegrationForms({
-                  ...integrationForms,
-                  bigdatacorp: { ...integrationForms.bigdatacorp, chave_token: e.target.value }
-                })}
-                placeholder="Chave do Token BigDataCorp"
-              />
-
-              <div className="flex gap-3">
-                <PremiumButton
-                  onClick={() => handleSaveIntegration('bigdatacorp')}
-                  isLoading={saveBigdatacorpMutation.isPending}
-                  variant="primary"
-                >
-                  Salvar Configuração
-                </PremiumButton>
-                <PremiumButton
-                  variant="secondary"
-                  onClick={() => handleTestConnection('bigdatacorp')}
-                  disabled={!bigdatacorpStatus?.configured}
-                >
-                  Testar Conexão
-                </PremiumButton>
-              </div>
-            </div>
-          </CollapsibleSection>
-
-          {/* TotalExpress Section */}
-          <CollapsibleSection
-            openSections={openSections}
-            setOpenSections={setOpenSections}
-            id="totalexpress"
-            title="Frete TotalExpress"
-            description="Cotação e envio de fretes com TotalExpress"
-            icon={Truck}
-          >
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 mb-4">
-                {isLoadingTotalExpress ? (
-                  <Badge className="bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300">
-                    Carregando...
-                  </Badge>
-                ) : totalExpressConfig?.configured ? (
-                  <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300" data-testid="badge-totalexpress-configured">
-                    Configurado
-                  </Badge>
-                ) : (
-                  <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300" data-testid="badge-totalexpress-not-configured">
-                    Não configurado
-                  </Badge>
-                )}
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <PremiumInput
-                  label="Usuário *"
-                  value={integrationForms.totalexpress.user}
-                  onChange={(e) => setIntegrationForms({
-                    ...integrationForms,
-                    totalexpress: { ...integrationForms.totalexpress, user: e.target.value }
-                  })}
-                  placeholder="Usuário TotalExpress"
-                  data-testid="input-totalexpress-user"
-                />
-
-                <div className="space-y-2">
-                  <Label>Senha {!totalExpressConfig?.configured && "*"}</Label>
-                  <div className="flex gap-2">
-                    <PremiumInput
-                      type="password"
-                      value={integrationForms.totalexpress.password}
-                      onChange={(e) => setIntegrationForms({
-                        ...integrationForms,
-                        totalexpress: { ...integrationForms.totalexpress, password: e.target.value }
-                      })}
-                      placeholder={totalExpressConfig?.configured ? "••••••••" : "Senha TotalExpress"}
-                      data-testid="input-totalexpress-password"
-                    />
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {totalExpressConfig?.configured
-                      ? "Deixe em branco para manter a senha atual"
-                      : "Senha de acesso à API"}
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <PremiumInput
-                  label="REID *"
-                  value={integrationForms.totalexpress.reid}
-                  onChange={(e) => setIntegrationForms({
-                    ...integrationForms,
-                    totalexpress: { ...integrationForms.totalexpress, reid: e.target.value }
-                  })}
-                  placeholder="Código REID"
-                  data-testid="input-totalexpress-reid"
-                />
-
-                <div className="space-y-2">
-                  <Label>Tipo de Serviço</Label>
-                  <Select
-                    value={integrationForms.totalexpress.service_type}
-                    onValueChange={(value) => setIntegrationForms({
-                      ...integrationForms,
-                      totalexpress: { ...integrationForms.totalexpress, service_type: value }
-                    })}
+                  <PremiumButton
+                    onClick={() => {
+                      if (advancedPassword === '230723Davi#') {
+                        setIsAdvancedUnlocked(true);
+                        toast({ title: 'Acesso liberado', description: 'Configurações avançadas desbloqueadas.' });
+                      } else {
+                        toast({ title: 'Acesso negado', description: 'Senha incorreta.', variant: 'destructive' });
+                      }
+                    }}
                   >
-                    <SelectTrigger data-testid="select-totalexpress-service">
-                      <SelectValue placeholder="Selecione o serviço" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="EXP" data-testid="select-item-exp">EXP - Expresso</SelectItem>
-                      <SelectItem value="ESP" data-testid="select-item-esp">ESP - Especial</SelectItem>
-                      <SelectItem value="PRM" data-testid="select-item-prm">PRM - Premium</SelectItem>
-                      <SelectItem value="STD" data-testid="select-item-std">STD - Standard</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    Desbloquear
+                  </PremiumButton>
                 </div>
               </div>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <PremiumInput
-                  label="Margem de Lucro (%)"
-                  type="number"
-                  value={integrationForms.totalexpress.profit_margin}
-                  onChange={(e) => setIntegrationForms({
-                    ...integrationForms,
-                    totalexpress: { ...integrationForms.totalexpress, profit_margin: e.target.value }
-                  })}
-                  placeholder="40"
-                  data-testid="input-totalexpress-margin"
-                />
-
-                <div className="space-y-2">
-                  <Label>Modo de Teste</Label>
-                  <PremiumSwitch
-                    checked={integrationForms.totalexpress.test_mode as boolean}
-                    onCheckedChange={(checked) => setIntegrationForms({
-                      ...integrationForms,
-                      totalexpress: { ...integrationForms.totalexpress, test_mode: checked }
-                    })}
-                    label={integrationForms.totalexpress.test_mode ? "Ativado (sem cobranças reais)" : "Desativado (produção)"}
-                    data-testid="switch-totalexpress-testmode"
+            </PremiumCard>
+          ) : (
+            <>
+              {/* WhatsApp/Evolution API Section */}
+              <CollapsibleSection
+                openSections={openSections}
+                setOpenSections={setOpenSections}
+                id="evolutionApi"
+                title="Evolution API (WhatsApp)"
+                description="Para conectar, escaneie o código QR com seu WhatsApp Web"
+                icon={MessageSquare}
+              >
+                <div className="space-y-4">
+                  <PremiumInput
+                    label="URL da API"
+                    value={integrationForms.evolution_api.apiUrl}
+                    onChange={(e) =>
+                      setIntegrationForms((prev) => ({
+                        ...prev,
+                        evolution_api: { ...prev.evolution_api, apiUrl: e.target.value },
+                      }))
+                    }
+                    placeholder="https://api.seu-dominio.com"
+                    data-testid="input-evolution-url"
                   />
+
+                  <PremiumInput
+                    label="API Key"
+                    type="password"
+                    value={integrationForms.evolution_api.apiKey}
+                    onChange={(e) =>
+                      setIntegrationForms((prev) => ({
+                        ...prev,
+                        evolution_api: { ...prev.evolution_api, apiKey: e.target.value },
+                      }))
+                    }
+                    placeholder="Sua chave de API global"
+                    data-testid="input-evolution-api-key"
+                  />
+
+                  <PremiumInput
+                    label="Nome da Instância"
+                    value={integrationForms.evolution_api.instance}
+                    onChange={(e) =>
+                      setIntegrationForms((prev) => ({
+                        ...prev,
+                        evolution_api: { ...prev.evolution_api, instance: e.target.value },
+                      }))
+                    }
+                    placeholder="Ex: MinhaEmpresa"
+                    data-testid="input-evolution-instance"
+                  />
+
+                  <div className="flex items-center gap-2 mb-4">
+                    {evolutionCredentials?.success && (
+                      <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300">
+                        <Check className="w-3 h-3 mr-1" />
+                        Configurado
+                      </Badge>
+                    )}
+                  </div>
+
+                  <div className="p-4 rounded-lg bg-muted/50 border border-border text-center flex flex-col items-center gap-4">
+                    <p className="text-sm text-muted-foreground">
+                      Para conectar e escanear o QR Code, acesse o menu <b>WhatsApp</b> no painel esquerdo.
+                    </p>
+                    <PremiumButton
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => {
+                        window.location.href = '/whatsapp';
+                      }}
+                    >
+                      <MessageSquare className="w-4 h-4 mr-2" />
+                      Ir para WhatsApp
+                    </PremiumButton>
+                  </div>
                 </div>
-              </div>
 
-              <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800">
-                <p className="text-sm text-blue-800 dark:text-blue-200">
-                  <strong>Sobre o REID:</strong> O REID é o código de identificação do remetente associado à sua conta TotalExpress.
-                  Cada REID está vinculado a um CEP de origem. Para diferentes origens, configure diferentes REIDs.
-                </p>
-              </div>
+                {/* Legacy Upload Section - Keep for compatibility */}
+                {whatsappQRCode && (
+                  <div className="space-y-3 pt-4 border-t border-border/50">
+                    <Label className="text-base font-semibold">QR Code (Upload Manual)</Label>
+                    <PremiumCard variant="outlined" padding="md">
+                      <img
+                        src={whatsappQRCode}
+                        alt="WhatsApp QR Code"
+                        className="w-full max-w-xs mx-auto rounded-lg"
+                      />
+                    </PremiumCard>
+                  </div>
+                )}
 
-              <div className="flex gap-3">
-                <PremiumButton
-                  onClick={() => {
-                    if (!integrationForms.totalexpress.user || !integrationForms.totalexpress.reid) {
-                      toast({ title: "Erro", description: "Por favor, preencha usuário e REID", variant: "destructive" });
-                      return;
-                    }
-                    if (!totalExpressConfig?.configured && !integrationForms.totalexpress.password) {
-                      toast({ title: "Erro", description: "Por favor, preencha a senha", variant: "destructive" });
-                      return;
-                    }
-                    saveTotalExpressMutation.mutate(integrationForms.totalexpress);
-                  }}
-                  isLoading={saveTotalExpressMutation.isPending}
-                  variant="primary"
-                  data-testid="button-save-totalexpress"
-                >
-                  Salvar Configuração
-                </PremiumButton>
-                <PremiumButton
-                  variant="secondary"
-                  onClick={() => {
-                    if (!integrationForms.totalexpress.user || !integrationForms.totalexpress.reid) {
-                      toast({ title: "Erro", description: "Por favor, preencha usuário e REID", variant: "destructive" });
-                      return;
-                    }
-                    testTotalExpressMutation.mutate(integrationForms.totalexpress);
-                  }}
-                  disabled={testTotalExpressMutation.isPending || !integrationForms.totalexpress.user || !integrationForms.totalexpress.reid}
-                  data-testid="button-test-totalexpress"
-                >
-                  {testTotalExpressMutation.isPending ? "Testando..." : "Testar Conexão"}
-                </PremiumButton>
-                {totalExpressConfig?.configured && (
+                <div className="space-y-3 pt-4 border-t border-border/50">
+                  <Label className="text-sm text-muted-foreground">Upload Manual (opcional)</Label>
+                  <input
+                    id="qr-code-upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleQRCodeUpload}
+                    disabled={uploadingQRCode}
+                    className="hidden"
+                  />
                   <PremiumButton
                     variant="outline"
-                    onClick={() => deleteTotalExpressMutation.mutate()}
-                    disabled={deleteTotalExpressMutation.isPending}
-                    data-testid="button-delete-totalexpress"
+                    size="sm"
+                    onClick={() => document.getElementById('qr-code-upload')?.click()}
+                    disabled={uploadingQRCode}
+                    className="w-full sm:w-auto"
                   >
-                    {deleteTotalExpressMutation.isPending ? "Removendo..." : "Remover"}
+                    {uploadingQRCode ? 'Enviando...' : 'Escolher arquivo'}
                   </PremiumButton>
-                )}
-              </div>
-            </div>
-          </CollapsibleSection>
-
-          {/* Supabase Master Section */}
-          <CollapsibleSection
-            openSections={openSections}
-            setOpenSections={setOpenSections}
-            id="supabaseMaster"
-            title="Supabase Master"
-            description="Cache de consultas CPF - Histórico centralizado"
-            icon={Database}
-          >
-            <div className="space-y-4">
-              <div className="flex items-center gap-2 mb-4">
-                {supabaseMasterStatus?.configured && (
-                  <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
-                    Configurado
-                  </Badge>
-                )}
-              </div>
-
-              <PremiumInput
-                label="URL do Supabase Master"
-                value={integrationForms.supabase_master.url}
-                onChange={(e) => setIntegrationForms({
-                  ...integrationForms,
-                  supabase_master: { ...integrationForms.supabase_master, url: e.target.value }
-                })}
-                placeholder="https://xxx.supabase.co"
-              />
-
-              <PremiumInput
-                label="Service Role Key"
-                type="password"
-                value={integrationForms.supabase_master.service_role_key}
-                onChange={(e) => setIntegrationForms({
-                  ...integrationForms,
-                  supabase_master: { ...integrationForms.supabase_master, service_role_key: e.target.value }
-                })}
-                placeholder="Service Role Key do Supabase Master"
-              />
-
-              <div className="flex gap-3">
-                <PremiumButton
-                  onClick={() => handleSaveIntegration('supabase_master')}
-                  isLoading={saveSupabaseMasterMutation.isPending}
-                  variant="primary"
-                >
-                  Salvar Configuração
-                </PremiumButton>
-                <PremiumButton
-                  variant="secondary"
-                  onClick={() => handleTestConnection('supabase_master')}
-                  disabled={!supabaseMasterStatus?.configured}
-                >
-                  Testar Conexão
-                </PremiumButton>
-              </div>
-            </div>
-          </CollapsibleSection>
-
-          {/* Cache Section */}
-          <CollapsibleSection
-            openSections={openSections}
-            setOpenSections={setOpenSections}
-            id="cache"
-            title="Cache Strategies"
-            description="Configurações de cache para otimização"
-            icon={Zap}
-          >
-            <div className="space-y-6">
-              <PremiumSwitch
-                label="Progressive TTL Enabled"
-                description="Habilitar TTL progressivo baseado em acesso"
-                checked={integrationForms.cache.progressive_ttl_enabled === 'true'}
-                onChange={(e) => setIntegrationForms({
-                  ...integrationForms,
-                  cache: { ...integrationForms.cache, progressive_ttl_enabled: String(e.target.checked) }
-                })}
-              />
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <PremiumInput
-                  label="Access Threshold High"
-                  type="number"
-                  value={integrationForms.cache.access_threshold_high}
-                  onChange={(e) => setIntegrationForms({
-                    ...integrationForms,
-                    cache: { ...integrationForms.cache, access_threshold_high: e.target.value }
-                  })}
-                  placeholder="100"
-                />
-                <PremiumInput
-                  label="Access Threshold Medium"
-                  type="number"
-                  value={integrationForms.cache.access_threshold_medium}
-                  onChange={(e) => setIntegrationForms({
-                    ...integrationForms,
-                    cache: { ...integrationForms.cache, access_threshold_medium: e.target.value }
-                  })}
-                  placeholder="50"
-                />
-                <PremiumInput
-                  label="Access Threshold Low"
-                  type="number"
-                  value={integrationForms.cache.access_threshold_low}
-                  onChange={(e) => setIntegrationForms({
-                    ...integrationForms,
-                    cache: { ...integrationForms.cache, access_threshold_low: e.target.value }
-                  })}
-                  placeholder="10"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <PremiumInput
-                  label="TTL High (s)"
-                  type="number"
-                  value={integrationForms.cache.ttl_high}
-                  onChange={(e) => setIntegrationForms({
-                    ...integrationForms,
-                    cache: { ...integrationForms.cache, ttl_high: e.target.value }
-                  })}
-                  placeholder="3600"
-                />
-                <PremiumInput
-                  label="TTL Medium (s)"
-                  type="number"
-                  value={integrationForms.cache.ttl_medium}
-                  onChange={(e) => setIntegrationForms({
-                    ...integrationForms,
-                    cache: { ...integrationForms.cache, ttl_medium: e.target.value }
-                  })}
-                  placeholder="1800"
-                />
-                <PremiumInput
-                  label="TTL Low (s)"
-                  type="number"
-                  value={integrationForms.cache.ttl_low}
-                  onChange={(e) => setIntegrationForms({
-                    ...integrationForms,
-                    cache: { ...integrationForms.cache, ttl_low: e.target.value }
-                  })}
-                  placeholder="900"
-                />
-                <PremiumInput
-                  label="TTL Default (s)"
-                  type="number"
-                  value={integrationForms.cache.ttl_default}
-                  onChange={(e) => setIntegrationForms({
-                    ...integrationForms,
-                    cache: { ...integrationForms.cache, ttl_default: e.target.value }
-                  })}
-                  placeholder="300"
-                />
-              </div>
-
-              <PremiumSwitch
-                label="Batch Invalidation Enabled"
-                description="Agrupar invalidações de cache"
-                checked={integrationForms.cache.batch_invalidation_enabled === 'true'}
-                onChange={(e) => setIntegrationForms({
-                  ...integrationForms,
-                  cache: { ...integrationForms.cache, batch_invalidation_enabled: String(e.target.checked) }
-                })}
-              />
-
-              <PremiumSwitch
-                label="Cache Warming Enabled"
-                description="Pre-carregar cache frequentemente acessado"
-                checked={integrationForms.cache.cache_warming_enabled === 'true'}
-                onChange={(e) => setIntegrationForms({
-                  ...integrationForms,
-                  cache: { ...integrationForms.cache, cache_warming_enabled: String(e.target.checked) }
-                })}
-              />
-
-              <PremiumButton
-                onClick={() => handleSaveIntegration('cache')}
-                isLoading={saveCacheMutation.isPending}
-                variant="primary"
-              >
-                Salvar Configuração
-              </PremiumButton>
-            </div>
-          </CollapsibleSection>
-
-          {/* Optimizer Section */}
-          <CollapsibleSection
-            openSections={openSections}
-            setOpenSections={setOpenSections}
-            id="optimizer"
-            title="Query Optimizer"
-            description="Otimizações de consultas ao banco"
-            icon={Code}
-          >
-            <div className="space-y-4">
-              <div className="space-y-3">
-                <Label>Default Field Set</Label>
-                <Select
-                  value={integrationForms.optimizer.default_field_set}
-                  onValueChange={(value) => setIntegrationForms({
-                    ...integrationForms,
-                    optimizer: { ...integrationForms.optimizer, default_field_set: value }
-                  })}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="minimal">Minimal</SelectItem>
-                    <SelectItem value="compact">Compact</SelectItem>
-                    <SelectItem value="standard">Standard</SelectItem>
-                    <SelectItem value="full">Full</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <PremiumInput
-                  label="Default Page Size"
-                  type="number"
-                  value={integrationForms.optimizer.default_page_size}
-                  onChange={(e) => setIntegrationForms({
-                    ...integrationForms,
-                    optimizer: { ...integrationForms.optimizer, default_page_size: e.target.value }
-                  })}
-                  placeholder="20"
-                />
-                <PremiumInput
-                  label="Max Page Size"
-                  type="number"
-                  value={integrationForms.optimizer.max_page_size}
-                  onChange={(e) => setIntegrationForms({
-                    ...integrationForms,
-                    optimizer: { ...integrationForms.optimizer, max_page_size: e.target.value }
-                  })}
-                  placeholder="100"
-                />
-              </div>
-
-              <PremiumSwitch
-                label="Query Caching Enabled"
-                description="Cachear resultados de queries"
-                checked={integrationForms.optimizer.query_caching_enabled === 'true'}
-                onChange={(e) => setIntegrationForms({
-                  ...integrationForms,
-                  optimizer: { ...integrationForms.optimizer, query_caching_enabled: String(e.target.checked) }
-                })}
-              />
-
-              <PremiumButton
-                onClick={() => handleSaveIntegration('optimizer')}
-                isLoading={saveOptimizerMutation.isPending}
-                variant="primary"
-              >
-                Salvar Configuração
-              </PremiumButton>
-            </div>
-          </CollapsibleSection>
-
-          {/* 100ms Video Conference Section */}
-          <CollapsibleSection
-            openSections={openSections}
-            setOpenSections={setOpenSections}
-            id="hms100ms"
-            title="Integração com Reunião (100ms)"
-            description="Configure credenciais para videoconferência em tempo real"
-            icon={Video}
-          >
-            <div className="space-y-4">
-              <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-4">
-                <p className="text-sm text-blue-900 dark:text-blue-100">
-                  ℹ️ <strong>Como obter as credenciais:</strong>
-                </p>
-                <ul className="text-sm text-blue-800 dark:text-blue-200 mt-2 space-y-1 ml-4 list-disc">
-                  <li>Visite <a href="https://dashboard.100ms.live" target="_blank" rel="noopener noreferrer" className="underline font-semibold">dashboard.100ms.live</a></li>
-                  <li>Vá para Configurações → Credenciais</li>
-                  <li>Copie App Access Key e App Secret</li>
-                </ul>
-              </div>
-
-              <PremiumInput
-                label="App Access Key"
-                type="password"
-                value={integrationForms.hms100ms?.app_access_key || ''}
-                onChange={(e) => setIntegrationForms({
-                  ...integrationForms,
-                  hms100ms: { ...integrationForms.hms100ms, app_access_key: e.target.value }
-                })}
-                placeholder="646..."
-              />
-
-              <PremiumInput
-                label="App Secret"
-                type="password"
-                value={integrationForms.hms100ms?.app_secret || ''}
-                onChange={(e) => setIntegrationForms({
-                  ...integrationForms,
-                  hms100ms: { ...integrationForms.hms100ms, app_secret: e.target.value }
-                })}
-                placeholder="Sua chave secreta"
-              />
-
-              <PremiumInput
-                label="Management Token"
-                type="password"
-                value={integrationForms.hms100ms?.management_token || ''}
-                onChange={(e) => setIntegrationForms({
-                  ...integrationForms,
-                  hms100ms: { ...integrationForms.hms100ms, management_token: e.target.value }
-                })}
-                placeholder="Token para gerenciar salas (opcional)"
-              />
-
-              <PremiumInput
-                label="Template ID"
-                value={integrationForms.hms100ms?.template_id || ''}
-                onChange={(e) => setIntegrationForms({
-                  ...integrationForms,
-                  hms100ms: { ...integrationForms.hms100ms, template_id: e.target.value }
-                })}
-                placeholder="645..."
-              />
-
-              <PremiumInput
-                label="API Base URL"
-                value={integrationForms.hms100ms?.api_base_url || ''}
-                onChange={(e) => setIntegrationForms({
-                  ...integrationForms,
-                  hms100ms: { ...integrationForms.hms100ms, api_base_url: e.target.value }
-                })}
-                placeholder="https://api.100ms.live/v2"
-              />
-
-              <div className="flex gap-2">
-                <PremiumButton
-                  onClick={() => testHms100msMutation.mutate({
-                    app_access_key: integrationForms.hms100ms?.app_access_key || '',
-                    app_secret: integrationForms.hms100ms?.app_secret || '',
-                  })}
-                  variant="outline"
-                  disabled={testHms100msMutation.isPending || !integrationForms.hms100ms?.app_access_key || !integrationForms.hms100ms?.app_secret}
-                  isLoading={testHms100msMutation.isPending}
-                  data-testid="button-test-100ms"
-                >
-                  {testHms100msMutation.isPending ? "Testando..." : "Testar Conexão 100ms"}
-                </PremiumButton>
-                <PremiumButton
-                  onClick={() => handleSaveIntegration('hms100ms')}
-                  variant="primary"
-                  data-testid="button-save-100ms"
-                >
-                  Salvar Configuração
-                </PremiumButton>
-              </div>
-            </div>
-          </CollapsibleSection>
-
-          {/* N8N Meeting API Section */}
-          <CollapsibleSection
-            openSections={openSections}
-            setOpenSections={setOpenSections}
-            id="n8nMeetingApi"
-            title="Automação de Reuniões (N8N)"
-            description="Gere API Key para o N8N criar reuniões na plataforma"
-            icon={Link2}
-          >
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <span className="text-sm font-medium">Status da API Key:</span>
-                  {isLoadingN8nMeetingApi ? (
-                    <RefreshCw className="h-4 w-4 animate-spin" />
-                  ) : n8nMeetingApiStatus?.hasApiKey ? (
-                    <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Ativa</Badge>
-                  ) : (
-                    <Badge variant="secondary">Não configurada</Badge>
-                  )}
                 </div>
-                {n8nMeetingApiStatus?.createdAt && (
-                  <span className="text-xs text-muted-foreground">
-                    Criada em: {new Date(n8nMeetingApiStatus.createdAt).toLocaleDateString('pt-BR')}
-                  </span>
-                )}
-              </div>
 
-              {n8nMeetingApiStatus?.tenantId && (
-                <div className="bg-muted/50 rounded-lg p-4 space-y-2">
-                  <div className="flex items-center justify-between flex-wrap gap-2">
-                    <span className="text-sm font-medium">Seu Tenant ID:</span>
-                    <div className="flex items-center gap-2">
-                      <code className="text-xs bg-muted px-2 py-1 rounded font-mono" data-testid="text-tenant-id">
-                        {n8nMeetingApiStatus.tenantId}
-                      </code>
-                      <PremiumButton
-                        size="icon"
-                        variant="ghost"
-                        onClick={async () => {
-                          await navigator.clipboard.writeText(n8nMeetingApiStatus.tenantId);
-                          toast({ title: 'Copiado!', description: 'Tenant ID copiado' });
-                        }}
-                        data-testid="button-copy-tenant-id"
-                      >
-                        <Copy className="h-3 w-3" />
-                      </PremiumButton>
+                <div className="flex flex-wrap gap-3 pt-4 border-t border-border/50">
+                  <PremiumButton
+                    onClick={() => handleSaveIntegration('evolution_api')}
+                    isLoading={saveEvolutionApiMutation.isPending}
+                    data-testid="button-save-evolution"
+                    variant="primary"
+                  >
+                    Salvar Configuração
+                  </PremiumButton>
+                  <PremiumButton
+                    variant="secondary"
+                    onClick={() => handleTestConnection('evolution_api')}
+                    disabled={!evolutionCredentials?.success}
+                    data-testid="button-test-evolution"
+                  >
+                    Testar Conexão
+                  </PremiumButton>
+                </div>
+              </CollapsibleSection>
+
+              {/* Supabase Section */}
+              <CollapsibleSection
+                openSections={openSections}
+                setOpenSections={setOpenSections}
+                id="supabase"
+                title="Supabase Database"
+                description="Configuração do banco de dados"
+                icon={Database}
+              >
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 mb-4">
+                    {credentialsStatus?.credentials?.supabase_configured && (
+                      <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300">
+                        Configurado
+                      </Badge>
+                    )}
+                  </div>
+
+                  <PremiumInput
+                    label="URL do Projeto Supabase"
+                    value={integrationForms.supabase.url}
+                    onChange={(e) => setIntegrationForms({
+                      ...integrationForms,
+                      supabase: { ...integrationForms.supabase, url: e.target.value }
+                    })}
+                    placeholder="https://xxxxxxxxxxx.supabase.co"
+                    data-testid="input-supabase-url"
+                  />
+
+                  <PremiumInput
+                    label="Chave Anônima (anon/public)"
+                    type="password"
+                    value={integrationForms.supabase.anon_key}
+                    onChange={(e) => setIntegrationForms({
+                      ...integrationForms,
+                      supabase: { ...integrationForms.supabase, anon_key: e.target.value }
+                    })}
+                    placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    data-testid="input-supabase-anon-key"
+                  />
+
+                  <PremiumInput
+                    label="Bucket de Armazenamento"
+                    value={integrationForms.supabase.bucket}
+                    onChange={(e) => setIntegrationForms({
+                      ...integrationForms,
+                      supabase: { ...integrationForms.supabase, bucket: e.target.value }
+                    })}
+                    placeholder="receipts"
+                    data-testid="input-supabase-bucket"
+                  />
+
+                  <div className="flex gap-3">
+                    <PremiumButton
+                      onClick={() => handleSaveIntegration('supabase')}
+                      isLoading={saveSupabaseMutation.isPending}
+                      data-testid="button-save-supabase"
+                      variant="primary"
+                    >
+                      Salvar Configuração
+                    </PremiumButton>
+                    <PremiumButton
+                      variant="secondary"
+                      onClick={() => handleTestConnection('supabase')}
+                      disabled={!credentialsStatus?.credentials?.supabase_configured}
+                      data-testid="button-test-supabase"
+                    >
+                      Testar Conexão
+                    </PremiumButton>
+                  </div>
+                </div>
+              </CollapsibleSection>
+
+              {/* Company Slug Section */}
+              <CollapsibleSection
+                openSections={openSections}
+                setOpenSections={setOpenSections}
+                id="companySlug"
+                title="Identificador da Empresa (URL)"
+                description="Personalizar URLs públicas"
+                icon={Link2}
+              >
+                <CompanySlugSection />
+              </CollapsibleSection>
+
+              {/* N8N Section */}
+              <CollapsibleSection
+                openSections={openSections}
+                setOpenSections={setOpenSections}
+                id="n8n"
+                title="Processamento de Documentos (N8N)"
+                description="Análise automática com IA"
+                icon={Webhook}
+              >
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 mb-4">
+                    {n8nCredentials?.configured && (
+                      <Badge className="bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300">
+                        Configurado
+                      </Badge>
+                    )}
+                  </div>
+
+                  {n8nMeetingApiStatus?.tenantId && (
+                    <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <span className="text-sm font-medium">Seu Tenant ID:</span>
+                        <div className="flex items-center gap-2">
+                          <code className="text-xs bg-muted px-2 py-1 rounded font-mono" data-testid="text-tenant-id-n8n-docs">
+                            {n8nMeetingApiStatus.tenantId}
+                          </code>
+                          <PremiumButton
+                            size="icon"
+                            variant="ghost"
+                            onClick={async () => {
+                              await navigator.clipboard.writeText(n8nMeetingApiStatus.tenantId);
+                              toast({ title: 'Copiado!', description: 'Tenant ID copiado' });
+                            }}
+                            data-testid="button-copy-tenant-id-n8n-docs"
+                          >
+                            <Copy className="h-3 w-3" />
+                          </PremiumButton>
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Este é o identificador único da sua plataforma.
+                      </p>
+                    </div>
+                  )}
+
+                  <PremiumInput
+                    label="URL do Webhook"
+                    value={integrationForms.n8n.webhook_url}
+                    onChange={(e) => setIntegrationForms({
+                      ...integrationForms,
+                      n8n: { ...integrationForms.n8n, webhook_url: e.target.value }
+                    })}
+                    placeholder="https://seu-webhook.com/..."
+                    data-testid="input-n8n-webhook-url"
+                  />
+
+                  <div className="flex gap-3">
+                    <PremiumButton
+                      onClick={() => handleSaveIntegration('n8n')}
+                      isLoading={saveN8nMutation.isPending}
+                      data-testid="button-save-n8n"
+                      variant="primary"
+                    >
+                      Salvar Configuração
+                    </PremiumButton>
+                    <PremiumButton
+                      variant="secondary"
+                      onClick={() => handleTestConnection('n8n')}
+                      disabled={!n8nCredentials?.configured}
+                      data-testid="button-test-n8n"
+                    >
+                      Testar Conexão
+                    </PremiumButton>
+                  </div>
+                </div>
+              </CollapsibleSection>
+
+              {/* Redis Section */}
+              <CollapsibleSection
+                openSections={openSections}
+                setOpenSections={setOpenSections}
+                id="redis"
+                title="Redis Cache"
+                description="Cache distribuído para performance"
+                icon={Server}
+              >
+                <div className="space-y-4">
+                  <PremiumInput
+                    label="Redis URL"
+                    value={integrationForms.redis.redis_url}
+                    onChange={(e) => setIntegrationForms({
+                      ...integrationForms,
+                      redis: { ...integrationForms.redis, redis_url: e.target.value }
+                    })}
+                    placeholder="redis://..."
+                  />
+
+                  <PremiumInput
+                    label="Redis Token (opcional)"
+                    type="password"
+                    value={integrationForms.redis.redis_token}
+                    onChange={(e) => setIntegrationForms({
+                      ...integrationForms,
+                      redis: { ...integrationForms.redis, redis_token: e.target.value }
+                    })}
+                    placeholder="Token de autenticação"
+                  />
+
+                  <div className="flex gap-3">
+                    <PremiumButton
+                      onClick={() => handleSaveIntegration('redis')}
+                      isLoading={saveRedisMutation.isPending}
+                      variant="primary"
+                    >
+                      Salvar Configuração
+                    </PremiumButton>
+                    <PremiumButton
+                      variant="secondary"
+                      onClick={() => handleTestConnection('redis')}
+                      disabled={!redisCredentials?.success}
+                    >
+                      Testar Conexão
+                    </PremiumButton>
+                  </div>
+                </div>
+              </CollapsibleSection>
+
+              {/* Sentry Section */}
+              <CollapsibleSection
+                openSections={openSections}
+                setOpenSections={setOpenSections}
+                id="sentry"
+                title="Sentry Monitoring"
+                description="Monitoramento de erros e performance"
+                icon={Activity}
+              >
+                <div className="space-y-4">
+                  <PremiumInput
+                    label="DSN"
+                    type="password"
+                    value={integrationForms.sentry.dsn}
+                    onChange={(e) => setIntegrationForms({
+                      ...integrationForms,
+                      sentry: { ...integrationForms.sentry, dsn: e.target.value }
+                    })}
+                    placeholder="https://...@sentry.io/..."
+                  />
+
+                  <PremiumInput
+                    label="Environment"
+                    value={integrationForms.sentry.environment}
+                    onChange={(e) => setIntegrationForms({
+                      ...integrationForms,
+                      sentry: { ...integrationForms.sentry, environment: e.target.value }
+                    })}
+                    placeholder="production"
+                  />
+
+                  <div className="flex gap-3">
+                    <PremiumButton
+                      onClick={() => handleSaveIntegration('sentry')}
+                      isLoading={saveSentryMutation.isPending}
+                      variant="primary"
+                    >
+                      Salvar Configuração
+                    </PremiumButton>
+                    <PremiumButton
+                      variant="secondary"
+                      onClick={() => handleTestConnection('sentry')}
+                      disabled={!sentryCredentials?.success}
+                    >
+                      Testar Conexão
+                    </PremiumButton>
+                  </div>
+                </div>
+              </CollapsibleSection>
+
+              {/* Cloudflare Section */}
+              <CollapsibleSection
+                openSections={openSections}
+                setOpenSections={setOpenSections}
+                id="cloudflare"
+                title="Cloudflare CDN"
+                description="CDN e proteção DDoS"
+                icon={Cloud}
+              >
+                <div className="space-y-4">
+                  <PremiumInput
+                    label="Zone ID"
+                    value={integrationForms.cloudflare.zone_id}
+                    onChange={(e) => setIntegrationForms({
+                      ...integrationForms,
+                      cloudflare: { ...integrationForms.cloudflare, zone_id: e.target.value }
+                    })}
+                    placeholder="Zone ID"
+                  />
+
+                  <PremiumInput
+                    label="API Token"
+                    type="password"
+                    value={integrationForms.cloudflare.api_token}
+                    onChange={(e) => setIntegrationForms({
+                      ...integrationForms,
+                      cloudflare: { ...integrationForms.cloudflare, api_token: e.target.value }
+                    })}
+                    placeholder="API Token"
+                  />
+
+                  <div className="flex gap-3">
+                    <PremiumButton
+                      onClick={() => handleSaveIntegration('cloudflare')}
+                      isLoading={saveCloudflareMutation.isPending}
+                      variant="primary"
+                    >
+                      Salvar Configuração
+                    </PremiumButton>
+                    <PremiumButton
+                      variant="secondary"
+                      onClick={() => handleTestConnection('cloudflare')}
+                      disabled={!cloudflareCredentials?.success}
+                    >
+                      Testar Conexão
+                    </PremiumButton>
+                  </div>
+                </div>
+              </CollapsibleSection>
+
+              {/* Better Stack Section */}
+              <CollapsibleSection
+                openSections={openSections}
+                setOpenSections={setOpenSections}
+                id="betterStack"
+                title="Better Stack"
+                description="Logging centralizado e uptime"
+                icon={BarChart3}
+              >
+                <div className="space-y-4">
+                  <PremiumInput
+                    label="Source Token"
+                    type="password"
+                    value={integrationForms.better_stack.source_token}
+                    onChange={(e) => setIntegrationForms({
+                      ...integrationForms,
+                      better_stack: { ...integrationForms.better_stack, source_token: e.target.value }
+                    })}
+                    placeholder="Source Token (ex: Gv2bG4...)"
+                  />
+
+                  <PremiumInput
+                    label="Ingesting Host (Opcional)"
+                    value={integrationForms.better_stack.ingesting_host}
+                    onChange={(e) => setIntegrationForms({
+                      ...integrationForms,
+                      better_stack: { ...integrationForms.better_stack, ingesting_host: e.target.value }
+                    })}
+                    placeholder="Ex: s1553180.eu-nbg-2.betterstackdata.com"
+                  />
+
+                  <div className="flex gap-3">
+                    <PremiumButton
+                      onClick={() => handleSaveIntegration('better_stack')}
+                      isLoading={saveBetterStackMutation.isPending}
+                      variant="primary"
+                    >
+                      Salvar Configuração
+                    </PremiumButton>
+                    <PremiumButton
+                      variant="secondary"
+                      onClick={() => handleTestConnection('better_stack')}
+                      disabled={!betterStackCredentials?.success}
+                    >
+                      Testar Conexão
+                    </PremiumButton>
+                  </div>
+                </div>
+              </CollapsibleSection>
+
+              {/* BigDataCorp Section */}
+              <CollapsibleSection
+                openSections={openSections}
+                setOpenSections={setOpenSections}
+                id="bigdatacorp"
+                title="Consultar CPF (BigDataCorp)"
+                description="Consulta de processos judiciais e dados cadastrais"
+                icon={Search}
+              >
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 mb-4">
+                    {bigdatacorpStatus?.configured && (
+                      <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
+                        Configurado
+                      </Badge>
+                    )}
+                  </div>
+
+                  <PremiumInput
+                    label="TOKEN_ID"
+                    type="password"
+                    value={integrationForms.bigdatacorp.token_id}
+                    onChange={(e) => setIntegrationForms({
+                      ...integrationForms,
+                      bigdatacorp: { ...integrationForms.bigdatacorp, token_id: e.target.value }
+                    })}
+                    placeholder="ID do Token BigDataCorp"
+                  />
+
+                  <PremiumInput
+                    label="CHAVE_TOKEN"
+                    type="password"
+                    value={integrationForms.bigdatacorp.chave_token}
+                    onChange={(e) => setIntegrationForms({
+                      ...integrationForms,
+                      bigdatacorp: { ...integrationForms.bigdatacorp, chave_token: e.target.value }
+                    })}
+                    placeholder="Chave do Token BigDataCorp"
+                  />
+
+                  <div className="flex gap-3">
+                    <PremiumButton
+                      onClick={() => handleSaveIntegration('bigdatacorp')}
+                      isLoading={saveBigdatacorpMutation.isPending}
+                      variant="primary"
+                    >
+                      Salvar Configuração
+                    </PremiumButton>
+                    <PremiumButton
+                      variant="secondary"
+                      onClick={() => handleTestConnection('bigdatacorp')}
+                      disabled={!bigdatacorpStatus?.configured}
+                    >
+                      Testar Conexão
+                    </PremiumButton>
+                  </div>
+                </div>
+              </CollapsibleSection>
+
+              {/* TotalExpress Section */}
+              <CollapsibleSection
+                openSections={openSections}
+                setOpenSections={setOpenSections}
+                id="totalexpress"
+                title="Frete TotalExpress"
+                description="Cotação e envio de fretes com TotalExpress"
+                icon={Truck}
+              >
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 mb-4">
+                    {isLoadingTotalExpress ? (
+                      <Badge className="bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300">
+                        Carregando...
+                      </Badge>
+                    ) : totalExpressConfig?.configured ? (
+                      <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300" data-testid="badge-totalexpress-configured">
+                        Configurado
+                      </Badge>
+                    ) : (
+                      <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300" data-testid="badge-totalexpress-not-configured">
+                        Não configurado
+                      </Badge>
+                    )}
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <PremiumInput
+                      label="Usuário *"
+                      value={integrationForms.totalexpress.user}
+                      onChange={(e) => setIntegrationForms({
+                        ...integrationForms,
+                        totalexpress: { ...integrationForms.totalexpress, user: e.target.value }
+                      })}
+                      placeholder="Usuário TotalExpress"
+                      data-testid="input-totalexpress-user"
+                    />
+
+                    <div className="space-y-2">
+                      <Label>Senha {!totalExpressConfig?.configured && "*"}</Label>
+                      <div className="flex gap-2">
+                        <PremiumInput
+                          type="password"
+                          value={integrationForms.totalexpress.password}
+                          onChange={(e) => setIntegrationForms({
+                            ...integrationForms,
+                            totalexpress: { ...integrationForms.totalexpress, password: e.target.value }
+                          })}
+                          placeholder={totalExpressConfig?.configured ? "••••••••" : "Senha TotalExpress"}
+                          data-testid="input-totalexpress-password"
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {totalExpressConfig?.configured
+                          ? "Deixe em branco para manter a senha atual"
+                          : "Senha de acesso à API"}
+                      </p>
                     </div>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Este é o identificador único da sua plataforma. Use-o para configurar integrações com o N8N.
-                  </p>
-                </div>
-              )}
 
-              {!n8nMeetingApiStatus?.hasConfig && (
-                <div className="bg-amber-100 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-lg p-4">
-                  <p className="text-sm text-amber-900 dark:text-amber-200">
-                    Configure primeiro as credenciais do 100ms acima para poder gerar a API Key do N8N.
-                  </p>
-                </div>
-              )}
-
-              {generatedN8nApiKey && (
-                <div className="bg-green-100 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-lg p-4 space-y-3">
-                  <p className="text-sm font-medium text-green-900 dark:text-green-200">
-                    Sua nova API Key foi gerada! Copie e guarde em local seguro:
-                  </p>
-                  <div className="flex items-center gap-2">
+                  <div className="grid gap-4 md:grid-cols-2">
                     <PremiumInput
-                      readOnly
-                      type={showN8nApiKey ? "text" : "password"}
-                      value={generatedN8nApiKey}
-                      className="font-mono text-sm"
-                      data-testid="input-n8n-meeting-api-key"
+                      label="REID *"
+                      value={integrationForms.totalexpress.reid}
+                      onChange={(e) => setIntegrationForms({
+                        ...integrationForms,
+                        totalexpress: { ...integrationForms.totalexpress, reid: e.target.value }
+                      })}
+                      placeholder="Código REID"
+                      data-testid="input-totalexpress-reid"
                     />
-                    <PremiumButton
-                      size="icon"
-                      variant="outline"
-                      onClick={() => setShowN8nApiKey(!showN8nApiKey)}
-                      data-testid="button-toggle-n8n-api-key"
-                    >
-                      {showN8nApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </PremiumButton>
-                    <PremiumButton
-                      size="icon"
-                      variant="outline"
-                      onClick={copyN8nApiKey}
-                      data-testid="button-copy-n8n-api-key"
-                    >
-                      {copiedN8nApiKey ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-                    </PremiumButton>
-                  </div>
-                  <p className="text-xs text-amber-700 dark:text-amber-300">
-                    Esta chave não será mostrada novamente. Se perder, gere uma nova.
-                  </p>
-                </div>
-              )}
 
-              {n8nMeetingApiStatus?.hasConfig && (
-                <>
-                  <div className="flex gap-2">
-                    <PremiumButton
-                      variant={n8nMeetingApiStatus?.hasApiKey ? "outline" : "primary"}
-                      disabled={generateN8nMeetingApiKeyMutation.isPending}
-                      onClick={() => generateN8nMeetingApiKeyMutation.mutate()}
-                      isLoading={generateN8nMeetingApiKeyMutation.isPending}
-                      data-testid="button-generate-n8n-meeting-key"
-                    >
-                      <RefreshCw className="mr-2 h-4 w-4" />
-                      {n8nMeetingApiStatus?.hasApiKey ? "Regenerar API Key" : "Gerar API Key"}
-                    </PremiumButton>
-
-                    {n8nMeetingApiStatus?.hasApiKey && (
-                      <PremiumButton
-                        variant="destructive"
-                        disabled={revokeN8nMeetingApiKeyMutation.isPending}
-                        onClick={() => revokeN8nMeetingApiKeyMutation.mutate()}
-                        isLoading={revokeN8nMeetingApiKeyMutation.isPending}
-                        data-testid="button-revoke-n8n-meeting-key"
+                    <div className="space-y-2">
+                      <Label>Tipo de Serviço</Label>
+                      <Select
+                        value={integrationForms.totalexpress.service_type}
+                        onValueChange={(value) => setIntegrationForms({
+                          ...integrationForms,
+                          totalexpress: { ...integrationForms.totalexpress, service_type: value }
+                        })}
                       >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Revogar API Key
+                        <SelectTrigger data-testid="select-totalexpress-service">
+                          <SelectValue placeholder="Selecione o serviço" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="EXP" data-testid="select-item-exp">EXP - Expresso</SelectItem>
+                          <SelectItem value="ESP" data-testid="select-item-esp">ESP - Especial</SelectItem>
+                          <SelectItem value="PRM" data-testid="select-item-prm">PRM - Premium</SelectItem>
+                          <SelectItem value="STD" data-testid="select-item-std">STD - Standard</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <PremiumInput
+                      label="Margem de Lucro (%)"
+                      type="number"
+                      value={integrationForms.totalexpress.profit_margin}
+                      onChange={(e) => setIntegrationForms({
+                        ...integrationForms,
+                        totalexpress: { ...integrationForms.totalexpress, profit_margin: e.target.value }
+                      })}
+                      placeholder="40"
+                      data-testid="input-totalexpress-margin"
+                    />
+
+                    <div className="space-y-2">
+                      <Label>Modo de Teste</Label>
+                      <PremiumSwitch
+                        checked={integrationForms.totalexpress.test_mode as boolean}
+                        onCheckedChange={(checked) => setIntegrationForms({
+                          ...integrationForms,
+                          totalexpress: { ...integrationForms.totalexpress, test_mode: checked }
+                        })}
+                        label={integrationForms.totalexpress.test_mode ? "Ativado (sem cobranças reais)" : "Desativado (produção)"}
+                        data-testid="switch-totalexpress-testmode"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800">
+                    <p className="text-sm text-blue-800 dark:text-blue-200">
+                      <strong>Sobre o REID:</strong> O REID é o código de identificação do remetente associado à sua conta TotalExpress.
+                      Cada REID está vinculado a um CEP de origem. Para diferentes origens, configure diferentes REIDs.
+                    </p>
+                  </div>
+
+                  <div className="flex gap-3">
+                    <PremiumButton
+                      onClick={() => {
+                        if (!integrationForms.totalexpress.user || !integrationForms.totalexpress.reid) {
+                          toast({ title: "Erro", description: "Por favor, preencha usuário e REID", variant: "destructive" });
+                          return;
+                        }
+                        if (!totalExpressConfig?.configured && !integrationForms.totalexpress.password) {
+                          toast({ title: "Erro", description: "Por favor, preencha a senha", variant: "destructive" });
+                          return;
+                        }
+                        saveTotalExpressMutation.mutate(integrationForms.totalexpress);
+                      }}
+                      isLoading={saveTotalExpressMutation.isPending}
+                      variant="primary"
+                      data-testid="button-save-totalexpress"
+                    >
+                      Salvar Configuração
+                    </PremiumButton>
+                    <PremiumButton
+                      variant="secondary"
+                      onClick={() => {
+                        if (!integrationForms.totalexpress.user || !integrationForms.totalexpress.reid) {
+                          toast({ title: "Erro", description: "Por favor, preencha usuário e REID", variant: "destructive" });
+                          return;
+                        }
+                        testTotalExpressMutation.mutate(integrationForms.totalexpress);
+                      }}
+                      disabled={testTotalExpressMutation.isPending || !integrationForms.totalexpress.user || !integrationForms.totalexpress.reid}
+                      data-testid="button-test-totalexpress"
+                    >
+                      {testTotalExpressMutation.isPending ? "Testando..." : "Testar Conexão"}
+                    </PremiumButton>
+                    {totalExpressConfig?.configured && (
+                      <PremiumButton
+                        variant="outline"
+                        onClick={() => deleteTotalExpressMutation.mutate()}
+                        disabled={deleteTotalExpressMutation.isPending}
+                        data-testid="button-delete-totalexpress"
+                      >
+                        {deleteTotalExpressMutation.isPending ? "Removendo..." : "Remover"}
                       </PremiumButton>
                     )}
                   </div>
+                </div>
+              </CollapsibleSection>
 
-                  <div className="bg-blue-100 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg p-4 space-y-2">
-                    <p className="text-sm font-medium text-blue-900 dark:text-blue-200">
-                      Como usar no N8N:
-                    </p>
-                    <ul className="text-sm text-blue-800 dark:text-blue-300 space-y-1 ml-4 list-disc">
-                      <li>Use o nó <strong>HTTP Request</strong> com método <strong>POST</strong></li>
-                      <li>URL: <code className="bg-blue-200 dark:bg-blue-800 px-1 rounded text-xs break-all">{n8nMeetingApiStatus?.tenantId ? `${window.location.origin}/api/n8n/${n8nMeetingApiStatus.tenantId}/reunioes` : `${window.location.origin}/api/n8n/reunioes`}</code></li>
-                      <li>Header: <code className="bg-blue-200 dark:bg-blue-800 px-1 rounded text-xs">X-N8N-API-Key: sua_chave_aqui</code></li>
-                      <li>Body: <code className="bg-blue-200 dark:bg-blue-800 px-1 rounded text-xs">{`{"titulo": "Nome da Reunião", "nome": "Participante"}`}</code></li>
-                    </ul>
-                    {n8nMeetingApiStatus?.tenantId && (
-                      <p className="text-xs text-blue-700 dark:text-blue-400 mt-2">
-                        Seu Tenant ID: <code className="bg-blue-200 dark:bg-blue-800 px-1 rounded">{n8nMeetingApiStatus.tenantId}</code> — A API Key identifica automaticamente qual tenant está fazendo a requisição.
-                      </p>
+              {/* Supabase Master Section */}
+              <CollapsibleSection
+                openSections={openSections}
+                setOpenSections={setOpenSections}
+                id="supabaseMaster"
+                title="Supabase Master"
+                description="Cache de consultas CPF - Histórico centralizado"
+                icon={Database}
+              >
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 mb-4">
+                    {supabaseMasterStatus?.configured && (
+                      <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                        Configurado
+                      </Badge>
                     )}
-                    <p className="text-xs text-blue-700 dark:text-blue-400 mt-2">
-                      As reuniões criadas herdam automaticamente o design e cores da sua configuração.
+                  </div>
+
+                  <PremiumInput
+                    label="URL do Supabase Master"
+                    value={integrationForms.supabase_master.url}
+                    onChange={(e) => setIntegrationForms({
+                      ...integrationForms,
+                      supabase_master: { ...integrationForms.supabase_master, url: e.target.value }
+                    })}
+                    placeholder="https://xxx.supabase.co"
+                  />
+
+                  <PremiumInput
+                    label="Service Role Key"
+                    type="password"
+                    value={integrationForms.supabase_master.service_role_key}
+                    onChange={(e) => setIntegrationForms({
+                      ...integrationForms,
+                      supabase_master: { ...integrationForms.supabase_master, service_role_key: e.target.value }
+                    })}
+                    placeholder="Service Role Key do Supabase Master"
+                  />
+
+                  <div className="flex gap-3">
+                    <PremiumButton
+                      onClick={() => handleSaveIntegration('supabase_master')}
+                      isLoading={saveSupabaseMasterMutation.isPending}
+                      variant="primary"
+                    >
+                      Salvar Configuração
+                    </PremiumButton>
+                    <PremiumButton
+                      variant="secondary"
+                      onClick={() => handleTestConnection('supabase_master')}
+                      disabled={!supabaseMasterStatus?.configured}
+                    >
+                      Testar Conexão
+                    </PremiumButton>
+                  </div>
+                </div>
+              </CollapsibleSection>
+
+              {/* Cache Section */}
+              <CollapsibleSection
+                openSections={openSections}
+                setOpenSections={setOpenSections}
+                id="cache"
+                title="Cache Strategies"
+                description="Configurações de cache para otimização"
+                icon={Zap}
+              >
+                <div className="space-y-6">
+                  <PremiumSwitch
+                    label="Progressive TTL Enabled"
+                    description="Habilitar TTL progressivo baseado em acesso"
+                    checked={integrationForms.cache.progressive_ttl_enabled === 'true'}
+                    onChange={(e) => setIntegrationForms({
+                      ...integrationForms,
+                      cache: { ...integrationForms.cache, progressive_ttl_enabled: String(e.target.checked) }
+                    })}
+                  />
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <PremiumInput
+                      label="Access Threshold High"
+                      type="number"
+                      value={integrationForms.cache.access_threshold_high}
+                      onChange={(e) => setIntegrationForms({
+                        ...integrationForms,
+                        cache: { ...integrationForms.cache, access_threshold_high: e.target.value }
+                      })}
+                      placeholder="100"
+                    />
+                    <PremiumInput
+                      label="Access Threshold Medium"
+                      type="number"
+                      value={integrationForms.cache.access_threshold_medium}
+                      onChange={(e) => setIntegrationForms({
+                        ...integrationForms,
+                        cache: { ...integrationForms.cache, access_threshold_medium: e.target.value }
+                      })}
+                      placeholder="50"
+                    />
+                    <PremiumInput
+                      label="Access Threshold Low"
+                      type="number"
+                      value={integrationForms.cache.access_threshold_low}
+                      onChange={(e) => setIntegrationForms({
+                        ...integrationForms,
+                        cache: { ...integrationForms.cache, access_threshold_low: e.target.value }
+                      })}
+                      placeholder="10"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <PremiumInput
+                      label="TTL High (s)"
+                      type="number"
+                      value={integrationForms.cache.ttl_high}
+                      onChange={(e) => setIntegrationForms({
+                        ...integrationForms,
+                        cache: { ...integrationForms.cache, ttl_high: e.target.value }
+                      })}
+                      placeholder="3600"
+                    />
+                    <PremiumInput
+                      label="TTL Medium (s)"
+                      type="number"
+                      value={integrationForms.cache.ttl_medium}
+                      onChange={(e) => setIntegrationForms({
+                        ...integrationForms,
+                        cache: { ...integrationForms.cache, ttl_medium: e.target.value }
+                      })}
+                      placeholder="1800"
+                    />
+                    <PremiumInput
+                      label="TTL Low (s)"
+                      type="number"
+                      value={integrationForms.cache.ttl_low}
+                      onChange={(e) => setIntegrationForms({
+                        ...integrationForms,
+                        cache: { ...integrationForms.cache, ttl_low: e.target.value }
+                      })}
+                      placeholder="900"
+                    />
+                    <PremiumInput
+                      label="TTL Default (s)"
+                      type="number"
+                      value={integrationForms.cache.ttl_default}
+                      onChange={(e) => setIntegrationForms({
+                        ...integrationForms,
+                        cache: { ...integrationForms.cache, ttl_default: e.target.value }
+                      })}
+                      placeholder="300"
+                    />
+                  </div>
+
+                  <PremiumSwitch
+                    label="Batch Invalidation Enabled"
+                    description="Agrupar invalidações de cache"
+                    checked={integrationForms.cache.batch_invalidation_enabled === 'true'}
+                    onChange={(e) => setIntegrationForms({
+                      ...integrationForms,
+                      cache: { ...integrationForms.cache, batch_invalidation_enabled: String(e.target.checked) }
+                    })}
+                  />
+
+                  <PremiumSwitch
+                    label="Cache Warming Enabled"
+                    description="Pre-carregar cache frequentemente acessado"
+                    checked={integrationForms.cache.cache_warming_enabled === 'true'}
+                    onChange={(e) => setIntegrationForms({
+                      ...integrationForms,
+                      cache: { ...integrationForms.cache, cache_warming_enabled: String(e.target.checked) }
+                    })}
+                  />
+
+                  <PremiumButton
+                    onClick={() => handleSaveIntegration('cache')}
+                    isLoading={saveCacheMutation.isPending}
+                    variant="primary"
+                  >
+                    Salvar Configuração
+                  </PremiumButton>
+                </div>
+              </CollapsibleSection>
+
+              {/* Optimizer Section */}
+              <CollapsibleSection
+                openSections={openSections}
+                setOpenSections={setOpenSections}
+                id="optimizer"
+                title="Query Optimizer"
+                description="Otimizações de consultas ao banco"
+                icon={Code}
+              >
+                <div className="space-y-4">
+                  <div className="space-y-3">
+                    <Label>Default Field Set</Label>
+                    <Select
+                      value={integrationForms.optimizer.default_field_set}
+                      onValueChange={(value) => setIntegrationForms({
+                        ...integrationForms,
+                        optimizer: { ...integrationForms.optimizer, default_field_set: value }
+                      })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="minimal">Minimal</SelectItem>
+                        <SelectItem value="compact">Compact</SelectItem>
+                        <SelectItem value="standard">Standard</SelectItem>
+                        <SelectItem value="full">Full</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <PremiumInput
+                      label="Default Page Size"
+                      type="number"
+                      value={integrationForms.optimizer.default_page_size}
+                      onChange={(e) => setIntegrationForms({
+                        ...integrationForms,
+                        optimizer: { ...integrationForms.optimizer, default_page_size: e.target.value }
+                      })}
+                      placeholder="20"
+                    />
+                    <PremiumInput
+                      label="Max Page Size"
+                      type="number"
+                      value={integrationForms.optimizer.max_page_size}
+                      onChange={(e) => setIntegrationForms({
+                        ...integrationForms,
+                        optimizer: { ...integrationForms.optimizer, max_page_size: e.target.value }
+                      })}
+                      placeholder="100"
+                    />
+                  </div>
+
+                  <PremiumSwitch
+                    label="Query Caching Enabled"
+                    description="Cachear resultados de queries"
+                    checked={integrationForms.optimizer.query_caching_enabled === 'true'}
+                    onChange={(e) => setIntegrationForms({
+                      ...integrationForms,
+                      optimizer: { ...integrationForms.optimizer, query_caching_enabled: String(e.target.checked) }
+                    })}
+                  />
+
+                  <PremiumButton
+                    onClick={() => handleSaveIntegration('optimizer')}
+                    isLoading={saveOptimizerMutation.isPending}
+                    variant="primary"
+                  >
+                    Salvar Configuração
+                  </PremiumButton>
+                </div>
+              </CollapsibleSection>
+
+              {/* 100ms Video Conference Section */}
+              <CollapsibleSection
+                openSections={openSections}
+                setOpenSections={setOpenSections}
+                id="hms100ms"
+                title="Integração com Reunião (100ms)"
+                description="Configure credenciais para videoconferência em tempo real"
+                icon={Video}
+              >
+                <div className="space-y-4">
+                  <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-4">
+                    <p className="text-sm text-blue-900 dark:text-blue-100">
+                      ℹ️ <strong>Como obter as credenciais:</strong>
+                    </p>
+                    <ul className="text-sm text-blue-800 dark:text-blue-200 mt-2 space-y-1 ml-4 list-disc">
+                      <li>Visite <a href="https://dashboard.100ms.live" target="_blank" rel="noopener noreferrer" className="underline font-semibold">dashboard.100ms.live</a></li>
+                      <li>Vá para Configurações → Credenciais</li>
+                      <li>Copie App Access Key e App Secret</li>
+                    </ul>
+                  </div>
+
+                  <PremiumInput
+                    label="App Access Key"
+                    type="password"
+                    value={integrationForms.hms100ms?.app_access_key || ''}
+                    onChange={(e) => setIntegrationForms({
+                      ...integrationForms,
+                      hms100ms: { ...integrationForms.hms100ms, app_access_key: e.target.value }
+                    })}
+                    placeholder="646..."
+                  />
+
+                  <PremiumInput
+                    label="App Secret"
+                    type="password"
+                    value={integrationForms.hms100ms?.app_secret || ''}
+                    onChange={(e) => setIntegrationForms({
+                      ...integrationForms,
+                      hms100ms: { ...integrationForms.hms100ms, app_secret: e.target.value }
+                    })}
+                    placeholder="Sua chave secreta"
+                  />
+
+                  <PremiumInput
+                    label="Management Token"
+                    type="password"
+                    value={integrationForms.hms100ms?.management_token || ''}
+                    onChange={(e) => setIntegrationForms({
+                      ...integrationForms,
+                      hms100ms: { ...integrationForms.hms100ms, management_token: e.target.value }
+                    })}
+                    placeholder="Token para gerenciar salas (opcional)"
+                  />
+
+                  <PremiumInput
+                    label="Template ID"
+                    value={integrationForms.hms100ms?.template_id || ''}
+                    onChange={(e) => setIntegrationForms({
+                      ...integrationForms,
+                      hms100ms: { ...integrationForms.hms100ms, template_id: e.target.value }
+                    })}
+                    placeholder="645..."
+                  />
+
+                  <PremiumInput
+                    label="API Base URL"
+                    value={integrationForms.hms100ms?.api_base_url || ''}
+                    onChange={(e) => setIntegrationForms({
+                      ...integrationForms,
+                      hms100ms: { ...integrationForms.hms100ms, api_base_url: e.target.value }
+                    })}
+                    placeholder="https://api.100ms.live/v2"
+                  />
+
+                  <div className="flex gap-2">
+                    <PremiumButton
+                      onClick={() => testHms100msMutation.mutate({
+                        app_access_key: integrationForms.hms100ms?.app_access_key || '',
+                        app_secret: integrationForms.hms100ms?.app_secret || '',
+                      })}
+                      variant="outline"
+                      disabled={testHms100msMutation.isPending || !integrationForms.hms100ms?.app_access_key || !integrationForms.hms100ms?.app_secret}
+                      isLoading={testHms100msMutation.isPending}
+                      data-testid="button-test-100ms"
+                    >
+                      {testHms100msMutation.isPending ? "Testando..." : "Testar Conexão 100ms"}
+                    </PremiumButton>
+                    <PremiumButton
+                      onClick={() => handleSaveIntegration('hms100ms')}
+                      variant="primary"
+                      data-testid="button-save-100ms"
+                    >
+                      Salvar Configuração
+                    </PremiumButton>
+                  </div>
+                </div>
+              </CollapsibleSection>
+
+              {/* N8N Meeting API Section */}
+              <CollapsibleSection
+                openSections={openSections}
+                setOpenSections={setOpenSections}
+                id="n8nMeetingApi"
+                title="Automação de Reuniões (N8N)"
+                description="Gere API Key para o N8N criar reuniões na plataforma"
+                icon={Link2}
+              >
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-medium">Status da API Key:</span>
+                      {isLoadingN8nMeetingApi ? (
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                      ) : n8nMeetingApiStatus?.hasApiKey ? (
+                        <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Ativa</Badge>
+                      ) : (
+                        <Badge variant="secondary">Não configurada</Badge>
+                      )}
+                    </div>
+                    {n8nMeetingApiStatus?.createdAt && (
+                      <span className="text-xs text-muted-foreground">
+                        Criada em: {new Date(n8nMeetingApiStatus.createdAt).toLocaleDateString('pt-BR')}
+                      </span>
+                    )}
+                  </div>
+
+                  {n8nMeetingApiStatus?.tenantId && (
+                    <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <span className="text-sm font-medium">Seu Tenant ID:</span>
+                        <div className="flex items-center gap-2">
+                          <code className="text-xs bg-muted px-2 py-1 rounded font-mono" data-testid="text-tenant-id">
+                            {n8nMeetingApiStatus.tenantId}
+                          </code>
+                          <PremiumButton
+                            size="icon"
+                            variant="ghost"
+                            onClick={async () => {
+                              await navigator.clipboard.writeText(n8nMeetingApiStatus.tenantId);
+                              toast({ title: 'Copiado!', description: 'Tenant ID copiado' });
+                            }}
+                            data-testid="button-copy-tenant-id"
+                          >
+                            <Copy className="h-3 w-3" />
+                          </PremiumButton>
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Este é o identificador único da sua plataforma. Use-o para configurar integrações com o N8N.
+                      </p>
+                    </div>
+                  )}
+
+                  {!n8nMeetingApiStatus?.hasConfig && (
+                    <div className="bg-amber-100 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-lg p-4">
+                      <p className="text-sm text-amber-900 dark:text-amber-200">
+                        Configure primeiro as credenciais do 100ms acima para poder gerar a API Key do N8N.
+                      </p>
+                    </div>
+                  )}
+
+                  {generatedN8nApiKey && (
+                    <div className="bg-green-100 dark:bg-green-900/30 border border-green-200 dark:border-green-700 rounded-lg p-4 space-y-3">
+                      <p className="text-sm font-medium text-green-900 dark:text-green-200">
+                        Sua nova API Key foi gerada! Copie e guarde em local seguro:
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <PremiumInput
+                          readOnly
+                          type={showN8nApiKey ? "text" : "password"}
+                          value={generatedN8nApiKey}
+                          className="font-mono text-sm"
+                          data-testid="input-n8n-meeting-api-key"
+                        />
+                        <PremiumButton
+                          size="icon"
+                          variant="outline"
+                          onClick={() => setShowN8nApiKey(!showN8nApiKey)}
+                          data-testid="button-toggle-n8n-api-key"
+                        >
+                          {showN8nApiKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </PremiumButton>
+                        <PremiumButton
+                          size="icon"
+                          variant="outline"
+                          onClick={copyN8nApiKey}
+                          data-testid="button-copy-n8n-api-key"
+                        >
+                          {copiedN8nApiKey ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                        </PremiumButton>
+                      </div>
+                      <p className="text-xs text-amber-700 dark:text-amber-300">
+                        Esta chave não será mostrada novamente. Se perder, gere uma nova.
+                      </p>
+                    </div>
+                  )}
+
+                  {n8nMeetingApiStatus?.hasConfig && (
+                    <>
+                      <div className="flex gap-2">
+                        <PremiumButton
+                          variant={n8nMeetingApiStatus?.hasApiKey ? "outline" : "primary"}
+                          disabled={generateN8nMeetingApiKeyMutation.isPending}
+                          onClick={() => generateN8nMeetingApiKeyMutation.mutate()}
+                          isLoading={generateN8nMeetingApiKeyMutation.isPending}
+                          data-testid="button-generate-n8n-meeting-key"
+                        >
+                          <RefreshCw className="mr-2 h-4 w-4" />
+                          {n8nMeetingApiStatus?.hasApiKey ? "Regenerar API Key" : "Gerar API Key"}
+                        </PremiumButton>
+
+                        {n8nMeetingApiStatus?.hasApiKey && (
+                          <PremiumButton
+                            variant="destructive"
+                            disabled={revokeN8nMeetingApiKeyMutation.isPending}
+                            onClick={() => revokeN8nMeetingApiKeyMutation.mutate()}
+                            isLoading={revokeN8nMeetingApiKeyMutation.isPending}
+                            data-testid="button-revoke-n8n-meeting-key"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Revogar API Key
+                          </PremiumButton>
+                        )}
+                      </div>
+
+                      <div className="bg-blue-100 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg p-4 space-y-2">
+                        <p className="text-sm font-medium text-blue-900 dark:text-blue-200">
+                          Como usar no N8N:
+                        </p>
+                        <ul className="text-sm text-blue-800 dark:text-blue-300 space-y-1 ml-4 list-disc">
+                          <li>Use o nó <strong>HTTP Request</strong> com método <strong>POST</strong></li>
+                          <li>URL: <code className="bg-blue-200 dark:bg-blue-800 px-1 rounded text-xs break-all">{n8nMeetingApiStatus?.tenantId ? `${window.location.origin}/api/n8n/${n8nMeetingApiStatus.tenantId}/reunioes` : `${window.location.origin}/api/n8n/reunioes`}</code></li>
+                          <li>Header: <code className="bg-blue-200 dark:bg-blue-800 px-1 rounded text-xs">X-N8N-API-Key: sua_chave_aqui</code></li>
+                          <li>Body: <code className="bg-blue-200 dark:bg-blue-800 px-1 rounded text-xs">{`{"titulo": "Nome da Reunião", "nome": "Participante"}`}</code></li>
+                        </ul>
+                        {n8nMeetingApiStatus?.tenantId && (
+                          <p className="text-xs text-blue-700 dark:text-blue-400 mt-2">
+                            Seu Tenant ID: <code className="bg-blue-200 dark:bg-blue-800 px-1 rounded">{n8nMeetingApiStatus.tenantId}</code> — A API Key identifica automaticamente qual tenant está fazendo a requisição.
+                          </p>
+                        )}
+                        <p className="text-xs text-blue-700 dark:text-blue-400 mt-2">
+                          As reuniões criadas herdam automaticamente o design e cores da sua configuração.
+                        </p>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </CollapsibleSection>
+
+              {/* Monitoring Section */}
+              <CollapsibleSection
+                openSections={openSections}
+                setOpenSections={setOpenSections}
+                id="monitoring"
+                title="Monitoring & Alerts"
+                description="Monitoramento de recursos e alertas"
+                icon={Activity}
+              >
+                <div className="space-y-6">
+                  <PremiumSwitch
+                    label="Monitoring Enabled"
+                    description="Ativar monitoramento de recursos"
+                    checked={integrationForms.monitoring.monitoring_enabled === 'true'}
+                    onChange={(e) => setIntegrationForms({
+                      ...integrationForms,
+                      monitoring: { ...integrationForms.monitoring, monitoring_enabled: String(e.target.checked) }
+                    })}
+                  />
+
+                  <PremiumInput
+                    label="Redis Commands Daily Limit"
+                    type="number"
+                    value={integrationForms.monitoring.redis_commands_daily}
+                    onChange={(e) => setIntegrationForms({
+                      ...integrationForms,
+                      monitoring: { ...integrationForms.monitoring, redis_commands_daily: e.target.value }
+                    })}
+                    placeholder="1000"
+                  />
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <PremiumInput
+                      label="Redis Warning Threshold (%)"
+                      type="number"
+                      value={integrationForms.monitoring.redis_warning_threshold}
+                      onChange={(e) => setIntegrationForms({
+                        ...integrationForms,
+                        monitoring: { ...integrationForms.monitoring, redis_warning_threshold: e.target.value }
+                      })}
+                      placeholder="70"
+                    />
+                    <PremiumInput
+                      label="Redis Critical Threshold (%)"
+                      type="number"
+                      value={integrationForms.monitoring.redis_critical_threshold}
+                      onChange={(e) => setIntegrationForms({
+                        ...integrationForms,
+                        monitoring: { ...integrationForms.monitoring, redis_critical_threshold: e.target.value }
+                      })}
+                      placeholder="90"
+                    />
+                  </div>
+
+                  <PremiumSwitch
+                    label="Alerts Enabled"
+                    description="Enviar alertas por email"
+                    checked={integrationForms.monitoring.alerts_enabled === 'true'}
+                    onChange={(e) => setIntegrationForms({
+                      ...integrationForms,
+                      monitoring: { ...integrationForms.monitoring, alerts_enabled: String(e.target.checked) }
+                    })}
+                  />
+
+                  {integrationForms.monitoring.alerts_enabled === 'true' && (
+                    <PremiumInput
+                      label="Alert Email"
+                      type="email"
+                      value={integrationForms.monitoring.alert_email}
+                      onChange={(e) => setIntegrationForms({
+                        ...integrationForms,
+                        monitoring: { ...integrationForms.monitoring, alert_email: e.target.value }
+                      })}
+                      placeholder="admin@empresa.com"
+                    />
+                  )}
+
+                  <PremiumButton
+                    onClick={() => handleSaveIntegration('monitoring')}
+                    isLoading={saveMonitoringMutation.isPending}
+                    variant="primary"
+                  >
+                    Salvar Configuração
+                  </PremiumButton>
+                </div>
+              </CollapsibleSection>
+
+              {/* Danger Zone Section */}
+              <PremiumCard variant="elevated" padding="lg" className="border-destructive/50 bg-destructive/5" data-testid="card-danger-zone">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-12 h-12 rounded-xl bg-destructive/20 border border-destructive/30 flex items-center justify-center">
+                    <AlertTriangle className="w-6 h-6 text-destructive" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-destructive">Zona de Perigo</h3>
+                    <p className="text-sm text-muted-foreground">Ações destrutivas que não podem ser desfeitas.</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start justify-between gap-4">
+                  <div className="space-y-1">
+                    <p className="font-medium">Reset Total do Sistema</p>
+                    <p className="text-sm text-muted-foreground">
+                      Remove credenciais, cache local e todos os dados sincronizados (contratos, leads, estados).
+                      Ao reconectar as credenciais, os dados serão sincronizados novamente do Supabase.
                     </p>
                   </div>
-                </>
-              )}
-            </div>
-          </CollapsibleSection>
-
-          {/* Monitoring Section */}
-          <CollapsibleSection
-            openSections={openSections}
-            setOpenSections={setOpenSections}
-            id="monitoring"
-            title="Monitoring & Alerts"
-            description="Monitoramento de recursos e alertas"
-            icon={Activity}
-          >
-            <div className="space-y-6">
-              <PremiumSwitch
-                label="Monitoring Enabled"
-                description="Ativar monitoramento de recursos"
-                checked={integrationForms.monitoring.monitoring_enabled === 'true'}
-                onChange={(e) => setIntegrationForms({
-                  ...integrationForms,
-                  monitoring: { ...integrationForms.monitoring, monitoring_enabled: String(e.target.checked) }
-                })}
-              />
-
-              <PremiumInput
-                label="Redis Commands Daily Limit"
-                type="number"
-                value={integrationForms.monitoring.redis_commands_daily}
-                onChange={(e) => setIntegrationForms({
-                  ...integrationForms,
-                  monitoring: { ...integrationForms.monitoring, redis_commands_daily: e.target.value }
-                })}
-                placeholder="1000"
-              />
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <PremiumInput
-                  label="Redis Warning Threshold (%)"
-                  type="number"
-                  value={integrationForms.monitoring.redis_warning_threshold}
-                  onChange={(e) => setIntegrationForms({
-                    ...integrationForms,
-                    monitoring: { ...integrationForms.monitoring, redis_warning_threshold: e.target.value }
-                  })}
-                  placeholder="70"
-                />
-                <PremiumInput
-                  label="Redis Critical Threshold (%)"
-                  type="number"
-                  value={integrationForms.monitoring.redis_critical_threshold}
-                  onChange={(e) => setIntegrationForms({
-                    ...integrationForms,
-                    monitoring: { ...integrationForms.monitoring, redis_critical_threshold: e.target.value }
-                  })}
-                  placeholder="90"
-                />
-              </div>
-
-              <PremiumSwitch
-                label="Alerts Enabled"
-                description="Enviar alertas por email"
-                checked={integrationForms.monitoring.alerts_enabled === 'true'}
-                onChange={(e) => setIntegrationForms({
-                  ...integrationForms,
-                  monitoring: { ...integrationForms.monitoring, alerts_enabled: String(e.target.checked) }
-                })}
-              />
-
-              {integrationForms.monitoring.alerts_enabled === 'true' && (
-                <PremiumInput
-                  label="Alert Email"
-                  type="email"
-                  value={integrationForms.monitoring.alert_email}
-                  onChange={(e) => setIntegrationForms({
-                    ...integrationForms,
-                    monitoring: { ...integrationForms.monitoring, alert_email: e.target.value }
-                  })}
-                  placeholder="admin@empresa.com"
-                />
-              )}
-
-              <PremiumButton
-                onClick={() => handleSaveIntegration('monitoring')}
-                isLoading={saveMonitoringMutation.isPending}
-                variant="primary"
-              >
-                Salvar Configuração
-              </PremiumButton>
-            </div>
-          </CollapsibleSection>
-
-          {/* Danger Zone Section */}
-          <PremiumCard variant="elevated" padding="lg" className="border-destructive/50 bg-destructive/5" data-testid="card-danger-zone">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-12 h-12 rounded-xl bg-destructive/20 border border-destructive/30 flex items-center justify-center">
-                <AlertTriangle className="w-6 h-6 text-destructive" />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-destructive">Zona de Perigo</h3>
-                <p className="text-sm text-muted-foreground">Ações destrutivas que não podem ser desfeitas.</p>
-              </div>
-            </div>
-
-            <div className="flex items-start justify-between gap-4">
-              <div className="space-y-1">
-                <p className="font-medium">Reset Total do Sistema</p>
-                <p className="text-sm text-muted-foreground">
-                  Remove credenciais, cache local e todos os dados sincronizados (contratos, leads, estados).
-                  Ao reconectar as credenciais, os dados serão sincronizados novamente do Supabase.
-                </p>
-              </div>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <PremiumButton
-                    variant="danger"
-                    disabled={clearCredentialsMutation.isPending}
-                    data-testid="button-clear-credentials"
-                  >
-                    {clearCredentialsMutation.isPending ? (
-                      <>
-                        <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                        Limpando...
-                      </>
-                    ) : (
-                      <>
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Reset Total
-                      </>
-                    )}
-                  </PremiumButton>
-                </AlertDialogTrigger>
-                <AlertDialogContent data-testid="dialog-clear-credentials">
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Reset Total do Sistema?</AlertDialogTitle>
-                    <AlertDialogDescription asChild>
-                      <div className="space-y-4">
-                        <p>Esta ação irá remover <strong>todos os dados locais</strong>:</p>
-                        <ul className="list-disc pl-4 space-y-1 text-sm">
-                          <li>Credenciais de todas as integrações (Supabase, N8N, 100ms, TotalExpress, etc.)</li>
-                          <li>Cache de contratos, leads e formulários</li>
-                          <li>Estados de sincronização e automação</li>
-                          <li>Arquivos de configuração local</li>
-                        </ul>
-                        <p className="font-medium text-foreground">Seus dados no Supabase permanecem intactos:</p>
-                        <ul className="list-disc pl-4 space-y-1 text-sm">
-                          <li>Ao reconectar as credenciais, contratos serão sincronizados novamente</li>
-                          <li>Leads e formulários voltarão do Supabase</li>
-                          <li>Configurações de personalização serão restauradas</li>
-                        </ul>
-                        <p className="text-destructive font-medium">Esta ação não pode ser desfeita.</p>
-                      </div>
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel data-testid="button-cancel-clear">Cancelar</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={() => clearCredentialsMutation.mutate()}
-                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                      data-testid="button-confirm-clear"
-                    >
-                      Confirmar Reset
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            </div>
-          </PremiumCard>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <PremiumButton
+                        variant="danger"
+                        disabled={clearCredentialsMutation.isPending}
+                        data-testid="button-clear-credentials"
+                      >
+                        {clearCredentialsMutation.isPending ? (
+                          <>
+                            <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                            Limpando...
+                          </>
+                        ) : (
+                          <>
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Reset Total
+                          </>
+                        )}
+                      </PremiumButton>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent data-testid="dialog-clear-credentials">
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Reset Total do Sistema?</AlertDialogTitle>
+                        <AlertDialogDescription asChild>
+                          <div className="space-y-4">
+                            <p>Esta ação irá remover <strong>todos os dados locais</strong>:</p>
+                            <ul className="list-disc pl-4 space-y-1 text-sm">
+                              <li>Credenciais de todas as integrações (Supabase, N8N, 100ms, TotalExpress, etc.)</li>
+                              <li>Cache de contratos, leads e formulários</li>
+                              <li>Estados de sincronização e automação</li>
+                              <li>Arquivos de configuração local</li>
+                            </ul>
+                            <p className="font-medium text-foreground">Seus dados no Supabase permanecem intactos:</p>
+                            <ul className="list-disc pl-4 space-y-1 text-sm">
+                              <li>Ao reconectar as credenciais, contratos serão sincronizados novamente</li>
+                              <li>Leads e formulários voltarão do Supabase</li>
+                              <li>Configurações de personalização serão restauradas</li>
+                            </ul>
+                            <p className="text-destructive font-medium">Esta ação não pode ser desfeita.</p>
+                          </div>
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel data-testid="button-cancel-clear">Cancelar</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => clearCredentialsMutation.mutate()}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          data-testid="button-confirm-clear"
+                        >
+                          Confirmar Reset
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              </PremiumCard>
+            </>
+          )}
 
         </div>
       </main >

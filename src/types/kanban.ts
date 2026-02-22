@@ -88,6 +88,8 @@ export interface List {
   cards: Card[];
   archived?: boolean;
   position?: number;
+  color?: string;
+  textColor?: string;
 }
 
 export interface Board {
@@ -105,4 +107,6 @@ export interface Board {
   icon?: string;
   locked?: boolean;
   themeId?: string;
+  isPublic?: boolean;
+  publicSlug?: string;
 }
